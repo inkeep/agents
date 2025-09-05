@@ -127,8 +127,8 @@ This will run the test suite in parallel and create in-memory databases for each
 Execute the sample graph build/test. Observe the output. Use the sample graph defintion as a basis for your own graph defintion:
 
 ```bash
-cd inkeep-chat
-pnpm exec tsx examples/graph.graph.ts
+cd agents-run-api 
+pnpm exec tsx ../examples/basic.graph.ts
 ```
 
 ## Credential Management
@@ -215,17 +215,18 @@ export ANTHROPIC_KEY="sk-ant-xyz789..."
 #### Direct Usage
 
 ```typescript
-import { AgentFramework, InMemoryCredentialStore } from './inkeep-chat/src/framework/index.js';
+import { ManagementServer } from './ManagementServer.js';
+import { InMemoryCredentialStore } from '@inkeep/agents-core';
 
-// Create framework - automatically loads CREDENTIAL_STORE_* env vars
-const framework = new AgentFramework({
-    credentialStores: [
-        new InMemoryCredentialStore('default'), // Loads env vars automatically
-    ],
+// Create managementServer - automatically loads CREDENTIAL_STORE_* env vars
+export const managementServer = new ManagementServer({
+  credentialStores: [
+    new InMemoryCredentialStore('default'), // Loads env vars automatically
+  ]
 });
 
 // Access loaded credentials from the environment
-const store = framework.getCredentialStore('default');
+const store = managementServer.getCredentialStore('default');
 const openaiKey = await store?.get('OPENAI_API_KEY'); // 'sk-proj-abc123...'
 const anthropicKey = await store?.get('ANTHROPIC_KEY'); // 'sk-ant-xyz789...'
 
@@ -264,7 +265,7 @@ The `NangoCredentialStore` integrates with [Nango](https://nango.dev) to manage 
 #### Setup
 
 ```typescript
-import { NangoCredentialStore } from './inkeep-chat/src/credential-stores/nango-store.js';
+import { NangoCredentialStore } from './packages/agents-core/credential-stores/nango-store.js';
 
 const framework = new AgentFramework({
     credentialStores: [
@@ -493,34 +494,35 @@ The Agent Framework uses a class-based architecture built around the `AgentFrame
 
 The framework consists of several key components:
 
-1. **`AgentFramework` class** (`inkeep-chat/src/AgentFramework.ts`)
+1. **`ManagementServer` class** (`agents-manage-api/src/ManagementServer.ts`)
    - Main framework class that encapsulates server configuration and lifecycle
    - Accepts configuration object and manages server startup
 
-2. **Configuration Types** (`inkeep-chat/src/types/server-config.ts`)
+2. **Configuration Types** (`packages/agents-core/src/types/server.ts`)
    - `AgentFrameworkServerConfig` - Main configuration interface
    - `CredentialStore` - Interface for credential management
 
-3. **Credential Stores** (`inkeep-chat/src/credential-stores/`)
+3. **Credential Stores** (`packages/agents-core/credential-stores/`)
    - `CredentialStore` interface for extensible credential management
    - `InMemoryCredentialStore` - In-memory credential storage with automatic environment variable loading
 
 ### Basic Usage
 
 ```typescript
-import { AgentFramework } from './inkeep-chat/src/AgentFramework.js';
+import { ManagementServer } from './agents-manage-api/src/ManagementServer.js';
 
 // Minimal setup with defaults
-const framework = new AgentFramework();
+const framework = new ManagementServer();
 await framework.serve();
 ```
 
 ### Advanced Configuration
 
 ```typescript
-import { AgentFramework, InMemoryCredentialStore } from './inkeep-chat/src/framework/index.js';
+import { ManagementServer } from './agents-manage-api/src/ManagementServer.js';
+import { InMemoryCredentialStore } from '@inkeep/agents-core';
 
-const framework = new AgentFramework({
+const managementServer = new ManagementServer({
   // Multiple credential stores
   credentialStores: [
     new InMemoryCredentialStore('api-keys'), // Loads CREDENTIAL_STORE_* env vars
@@ -528,7 +530,7 @@ const framework = new AgentFramework({
   ],
 });
 
-await framework.serve();
+await managementServer.serve();
 ```
 
 ### Environment-based Configuration
@@ -613,7 +615,7 @@ During graceful shutdown, the server:
 
 ## Key Directories
 
-### 🤖 `inkeep-chat/`
+### 🤖 `agents-run-api/`
 
 The main agent framework - an OpenAI Chat Completions compatible API for agentic conversations.
 
@@ -720,7 +722,7 @@ Application → OTEL Collector → Jaeger → Jaeger UI
 
 ### Application Configuration
 
-For traces to be collected, your application server (inkeep-chat) must be running with proper instrumentation configuration.
+For traces to be collected, your application server (agents-run-api) must be running with proper instrumentation configuration.
 
 The application is configured to send traces to the OTEL Collector using OTLP protocol:
 
