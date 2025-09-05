@@ -131,6 +131,10 @@ html {
     @apply bg-transparent;
   }
 
+  table {
+    @apply bg-transparent;
+  }
+
   td {
     border-inline-start: none;
     @apply border-gray-100 dark:border-gray-800;
