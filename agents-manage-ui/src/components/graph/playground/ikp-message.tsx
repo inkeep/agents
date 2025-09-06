@@ -1,21 +1,14 @@
 import type { Message } from '@inkeep/cxkit-react-oss/types';
 import {
   AlertCircle,
-  ArrowRight,
   BookOpen,
-  Brain,
   Check,
   CheckCircle,
   ChevronRight,
-  Clock,
-  Database,
-  FileText,
   LoaderCircle,
-  Play,
   Sparkles,
-  Users,
 } from 'lucide-react';
-import { type FC, useEffect, useMemo, useState, useRef } from 'react';
+import { type FC, useEffect, useState, useRef } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -72,68 +65,179 @@ const CitationBadge: FC<{ citation: { key: string; href?: string; artifact: any 
   );
 };
 
-// StreamMarkdown component that renders with inline citations
+// Inline Data Operation Component
+const InlineDataOperation: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { type, ctx } = operation;
+
+  const getOperationLabel = () => {
+    switch (type) {
+      case 'tool_call_summary':
+        return 'Tool call summary';
+      case 'information_retrieved':
+        return 'Information retrieved';
+      case 'agent_initializing':
+        return 'Agent initializing';
+      case 'agent_ready':
+        return 'Agent ready';
+      case 'completion':
+        return 'Completion';
+      case 'status_update':
+        return 'Status update';
+      default:
+        return type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-start my-2 relative">
+      {/* Connection line */}
+      {!isLast && (
+        <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
+      )}
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px]"
+      >
+        <span className="w-1 h-1 bg-gray-400 rounded-full" />
+        <span className="font-medium ml-3">{getOperationLabel()}</span>
+        <ChevronRight
+          className={cn(
+            'w-3 h-3 transition-transform duration-200',
+            isExpanded ? 'rotate-90' : 'rotate-0'
+          )}
+        />
+      </button>
+
+      {isExpanded && (
+        <div className=" ml-6 pb-2 mt-2 rounded text-xs">
+          <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
+            {JSON.stringify(ctx, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// StreamMarkdown component that renders with inline citations and data operations
 function StreamMarkdown({ parts }: { parts: any[] }) {
-  const markdown = useMemo(() => {
-    let md = '';
-    parts.forEach((part) => {
+  const [processedParts, setProcessedParts] = useState<any[]>([]);
+
+  // Process parts to create a mixed array of text and inline operations
+  useEffect(() => {
+    const processed: any[] = [];
+    let currentTextChunk = '';
+
+    for (const part of parts) {
       if (part.type === 'text') {
-        md += part.text || '';
+        currentTextChunk += part.text || '';
+      } else if (part.type === 'data-operation') {
+        const { type } = part.data as any;
+
+        // Only add inline operations for non-top-level operations
+        const isTopLevelOperation = [
+          'agent_initializing',
+          'agent_ready',
+          'completion',
+          'error',
+          'status_update',
+        ].includes(type);
+
+        if (!isTopLevelOperation) {
+          // If we have accumulated text, add it first
+          if (currentTextChunk.trim()) {
+            processed.push({ type: 'text', content: currentTextChunk });
+            currentTextChunk = '';
+          }
+          // Add the inline operation
+          processed.push({ type: 'inline-operation', operation: part.data });
+        }
       } else if (part.type === 'data-artifact') {
+        // If we have accumulated text, add it first
+        if (currentTextChunk.trim()) {
+          processed.push({ type: 'text', content: currentTextChunk });
+          currentTextChunk = '';
+        }
+        // Add artifact as citation marker in text
         const artifactData = part.data as any;
         const artifactSummary = artifactData.artifactSummary || {
           record_type: 'site',
           title: artifactData.name,
           url: undefined,
         };
-        // Use superscript format: ^artifact identifier^
-        md += ` ^${artifactSummary?.title || artifactData.name}^`;
+        currentTextChunk += ` ^${artifactSummary?.title || artifactData.name}^`;
       }
-    });
-    return md;
+    }
+
+    // Add any remaining text
+    if (currentTextChunk.trim()) {
+      processed.push({ type: 'text', content: currentTextChunk });
+    }
+
+    setProcessedParts(processed);
   }, [parts]);
 
+  // Calculate inline operations for isLast prop
+  const inlineOperations = processedParts.filter((part) => part.type === 'inline-operation');
+  let inlineOpIndex = 0;
+
   return (
-    <Streamdown
-      remarkPlugins={[supersub]}
-      components={{
-        // Intercept superscript elements to render citations
-        sup: ({ children, ...props }) => {
-          // Check if this is a citation (format: ^artifact identifier^)
-          if (children && typeof children === 'string') {
-            // Find the citation part
-            const citation = parts.find(
-              (p) =>
-                p.type === 'data-artifact' &&
-                (p.data.artifactSummary?.title || p.data.name) === children
-            );
+    <div className="inline">
+      {processedParts.map((part, index) => {
+        if (part.type === 'text') {
+          return (
+            <Streamdown
+              key={index}
+              remarkPlugins={[supersub]}
+              components={{
+                // Intercept superscript elements to render citations
+                sup: ({ children, ...props }) => {
+                  // Check if this is a citation (format: ^artifact identifier^)
+                  if (children && typeof children === 'string') {
+                    // Find the citation part
+                    const citation = parts.find(
+                      (p) =>
+                        p.type === 'data-artifact' &&
+                        (p.data.artifactSummary?.title || p.data.name) === children
+                    );
 
-            if (citation) {
-              const artifactData = citation.data as any;
-              const artifactSummary = artifactData.artifactSummary || {
-                record_type: 'site',
-                title: artifactData.name,
-                url: undefined,
-              };
+                    if (citation) {
+                      const artifactData = citation.data as any;
+                      const artifactSummary = artifactData.artifactSummary || {
+                        record_type: 'site',
+                        title: artifactData.name,
+                        url: undefined,
+                      };
 
-              return (
-                <CitationBadge
-                  citation={{
-                    key: artifactSummary?.title || artifactData.name,
-                    href: artifactSummary?.url,
-                    artifact: { ...artifactData, artifactSummary },
-                  }}
-                />
-              );
-            }
-          }
-          // Default superscript rendering
-          return <sup {...props}>{children}</sup>;
-        },
-      }}
-    >
-      {markdown}
-    </Streamdown>
+                      return (
+                        <CitationBadge
+                          citation={{
+                            key: artifactSummary?.title || artifactData.name,
+                            href: artifactSummary?.url,
+                            artifact: { ...artifactData, artifactSummary },
+                          }}
+                        />
+                      );
+                    }
+                  }
+                  // Default superscript rendering
+                  return <sup {...props}>{children}</sup>;
+                },
+              }}
+            >
+              {part.content}
+            </Streamdown>
+          );
+        } else if (part.type === 'inline-operation') {
+          const isLast = inlineOpIndex === inlineOperations.length - 1;
+          inlineOpIndex++;
+          return <InlineDataOperation key={index} operation={part.operation} isLast={isLast} />;
+        }
+        return null;
+      })}
+    </div>
   );
 }
 
@@ -162,47 +266,60 @@ function useProcessedOperations(parts: Message['parts']) {
         let key: string = type;
         console.log('Found data-operation, type:', type);
 
-        switch (type) {
-          case 'agent_initializing':
-          case 'agent_ready':
-            // Use same key so agent_ready replaces agent_initializing
-            key = `agent_lifecycle-${ctx.sessionId}`;
-            break;
-          case 'completion':
-            key = `${type}-${ctx.agent}-${ctx.iteration}`;
-            break;
-          case 'status_update':
-            key = `${type}-${JSON.stringify(ctx)}`;
-            break;
-          default:
-            key = `${type}-${ctx.agent || ''}`;
-        }
+        // Determine if this operation should appear in the top timeline or inline
+        const isTopLevelOperation = [
+          'agent_initializing',
+          'agent_ready',
+          'completion',
+          'error',
+          'status_update',
+        ].includes(type);
 
-        if (
-          (type === 'agent_ready' || type === 'agent_initializing') &&
-          seenOperationKeys.current.has(key)
-        ) {
-          // Replace agent_initializing with agent_ready
-          setOperations((prev) =>
-            prev.map((op) =>
-              op.uniqueKey === key
-                ? { ...part.data, id: part.id, uniqueKey: key, timestamp: op.timestamp } // Keep original timestamp for order
-                : op
-            )
-          );
-        } else if (!seenOperationKeys.current.has(key)) {
-          // Only add if we haven't seen this operation before
-          console.log('Adding new operation:', { type, key, ctx });
-          seenOperationKeys.current.add(key);
-          newOps.push({
-            ...part.data,
-            id: part.id,
-            uniqueKey: key, // Add the key for debugging
-            timestamp: Date.now(),
-          });
-        } else {
-          console.log('Operation already seen:', { type, key });
+        // Only process top-level operations for the timeline
+        if (isTopLevelOperation) {
+          switch (type) {
+            case 'agent_initializing':
+            case 'agent_ready':
+              // Use same key so agent_ready replaces agent_initializing
+              key = `agent_lifecycle-${ctx.sessionId}`;
+              break;
+            case 'completion':
+              key = `${type}-${ctx.agent}-${ctx.iteration}`;
+              break;
+            case 'status_update':
+              key = `${type}-${JSON.stringify(ctx)}`;
+              break;
+            default:
+              key = `${type}-${ctx.agent || ''}`;
+          }
+
+          if (
+            (type === 'agent_ready' || type === 'agent_initializing') &&
+            seenOperationKeys.current.has(key)
+          ) {
+            // Replace agent_initializing with agent_ready
+            setOperations((prev) =>
+              prev.map((op) =>
+                op.uniqueKey === key
+                  ? { ...part.data, id: part.id, uniqueKey: key, timestamp: op.timestamp } // Keep original timestamp for order
+                  : op
+              )
+            );
+          } else if (!seenOperationKeys.current.has(key)) {
+            // Only add if we haven't seen this operation before
+            console.log('Adding new operation:', { type, key, ctx });
+            seenOperationKeys.current.add(key);
+            newOps.push({
+              ...part.data,
+              id: part.id,
+              uniqueKey: key, // Add the key for debugging
+              timestamp: Date.now(),
+            });
+          } else {
+            console.log('Operation already seen:', { type, key });
+          }
         }
+        // Inline operations (like tool_call_summary, information_retrieved) are handled by StreamMarkdown
       } else if (part.type === 'data-artifact') {
         const key = part.data.artifactId || part.data.name;
         if (!seenArtifactKeys.current.has(key)) {
@@ -277,18 +394,20 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({ operation, isL
 
   const renderStructuredLabel = (operationType: string, context: any) => {
     // Convert snake_case to readable format
-    const readableType = operationType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    
+    const readableType = operationType
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (l: string) => l.toUpperCase());
+
     // Try to find the most meaningful fields to display
     const meaningfulFields = Object.entries(context).filter(
-      ([key, value]) => typeof value === 'string' && value.length > 0 && value.length < 100
+      ([, value]) => typeof value === 'string' && value.length > 0 && value.length < 100
     );
-    
+
     if (meaningfulFields.length > 0) {
-      const [firstKey, firstValue] = meaningfulFields[0];
+      const [, firstValue] = meaningfulFields[0];
       return `${readableType}: ${firstValue}`;
     }
-    
+
     return readableType;
   };
 
@@ -315,25 +434,26 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({ operation, isL
 
   return (
     <div className="relative">
-    <div className="flex items-center gap-2 relative">
-      {/* Connection line */}
-      {!isLast && (
-        <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
-      )}
+      <div className="flex items-center gap-2 relative">
+        {/* Connection line */}
+        {!isLast && (
+          <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
+        )}
 
-      {/* Step indicator */}
-      <div className={cn('flex items-center justify-center w-3 h-3 z-10', getStepColor())}>
-        {getStepIcon()}
-      </div>
+        {/* Step indicator */}
+        <div className={cn('flex items-center justify-center w-3 h-3 z-10', getStepColor())}>
+          {getStepIcon()}
+        </div>
 
-      {/* Step label */}
-      <span className={cn('text-xs font-medium', getStepColor())}>{getStepLabel()}</span>
-        
+        {/* Step label */}
+        <span className={cn('text-xs font-medium', getStepColor())}>{getStepLabel()}</span>
+
         {/* Expand button for structured operations */}
         {isStructuredOperation && Object.keys(ctx).length > 1 && (
           <button
+            type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="ml-2 text-xs text-blue-500 hover:text-blue-700"
+            className="text-xs text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/60"
           >
             {isExpanded ? '▼' : '▶'}
           </button>

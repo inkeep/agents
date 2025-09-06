@@ -336,9 +336,9 @@ export function TimelineWrapper({
                         className=" text-xs bg-background/80 backdrop-blur-sm  hover:bg-background/90 transition-all duration-200 opacity-70 hover:opacity-100"
                       >
                         {isRefreshing ? (
-                          <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                          <Loader2 className="h-3 w-3 animate-spin" />
                         ) : (
-                          <RefreshCw className="h-3 w-3 mr-1.5" />
+                          <RefreshCw className="h-3 w-3" />
                         )}
                         {isRefreshing ? 'Refreshing...' : 'Refresh'}
                       </Button>
