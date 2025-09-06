@@ -1,20 +1,24 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
   providerOptions: z.record(z.string(), z.any()).optional(),
 });
 
-const projectModelsSchema = z.object({
-  base: modelSettingsSchema.optional(),
-  structuredOutput: modelSettingsSchema.optional(),
-  summarizer: modelSettingsSchema.optional(),
-}).optional();
+const projectModelsSchema = z
+  .object({
+    base: modelSettingsSchema.optional(),
+    structuredOutput: modelSettingsSchema.optional(),
+    summarizer: modelSettingsSchema.optional(),
+  })
+  .optional();
 
-const projectStopWhenSchema = z.object({
-  transferCountIs: z.number().min(1).max(100).optional(),
-  stepCountIs: z.number().min(1).max(1000).optional(),
-}).optional();
+const projectStopWhenSchema = z
+  .object({
+    transferCountIs: z.number().min(1).max(100).optional(),
+    stepCountIs: z.number().min(1).max(1000).optional(),
+  })
+  .optional();
 
 export const projectSchema = z.object({
   id: z

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // Discriminated union for tool selection
 const toolsConfigSchema = z.discriminatedUnion('type', [

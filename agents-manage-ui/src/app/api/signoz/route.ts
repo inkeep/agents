@@ -1,14 +1,13 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
+import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod/v4';
 import { getLogger } from '@/lib/logger';
 
-
 // Configure axios retry
-axiosRetry(axios, { 
+axiosRetry(axios, {
   retries: 3,
-  retryDelay: axiosRetry.exponentialDelay 
+  retryDelay: axiosRetry.exponentialDelay,
 });
 
 const SIGNOZ_URL = process.env.SIGNOZ_URL || 'http://localhost:3080';
@@ -96,7 +95,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    logger.error({ error, stack: error instanceof Error ? error.stack : undefined }, 'Error proxying to SigNoz');
+    logger.error(
+      { error, stack: error instanceof Error ? error.stack : undefined },
+      'Error proxying to SigNoz'
+    );
     return NextResponse.json(
       {
         error: 'Failed to connect to SigNoz',

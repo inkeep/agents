@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
 import { idSchema } from '@/lib/validation';
 

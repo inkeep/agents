@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export const EXPIRATION_DATE_OPTIONS = [
   { value: '1d', label: '1 day' },

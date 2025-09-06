@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { CredentialToolsList } from '@/components/credentials/credential-tools-list';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
