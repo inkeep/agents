@@ -218,6 +218,9 @@ importers:
       eslint-config-next:
         specifier: 15.3.4
         version: 15.3.4(eslint@8.57.1)(typescript@5.9.2)
+      next-validate-link:
+        specifier: ^1.5.2
+        version: 1.5.2
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -7202,6 +7205,9 @@ packages:
     peerDependencies:
       react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
       react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+
+  next-validate-link@1.5.2:
+    resolution: {integrity: sha512-BMGyo0qJqscSJw0gSCUy3gDrF7LEID6qkVhHtLSIdPPtOYONq0+fidWvLteUzEUqHeKz1GBI9QN3bpfT6Me42A==}
 
   next@15.4.7:
     resolution: {integrity: sha512-OcqRugwF7n7mC8OSYjvsZhhG1AYSvulor1EIUsIkbbEbf1qoE5EbH36Swj8WhF4cHqmDgkiam3z1c1W0J1Wifg==}
@@ -16524,6 +16530,17 @@ snapshots:
     dependencies:
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
+
+  next-validate-link@1.5.2:
+    dependencies:
+      fast-glob: 3.3.3
+      gray-matter: 4.0.3
+      picocolors: 1.1.1
+      remark: 15.0.1
+      remark-gfm: 4.0.1
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - supports-color
 
   next@15.4.7(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
