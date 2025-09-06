@@ -308,7 +308,7 @@ importers:
     dependencies:
       '@ai-sdk/react':
         specifier: 2.0.11
-        version: 2.0.11(react@19.1.1)(zod@4.1.5)
+        version: 2.0.11(react@19.1.1)(zod@3.25.76)
       '@codemirror/lang-json':
         specifier: ^6.0.2
         version: 6.0.2
@@ -326,7 +326,7 @@ importers:
         version: link:../agents-run-api
       '@inkeep/cxkit-react':
         specifier: 0.0.0-rc-20250905022240
-        version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)
+        version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)
       '@inkeep/cxkit-react-oss':
         specifier: 0.0.0-rc-20250905022240
         version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -472,8 +472,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1(react@19.1.1)
       zod:
-        specifier: ^4.1.5
-        version: 4.1.5
+        specifier: ^3.25.76
+        version: 3.25.76
       zustand:
         specifier: ^5.0.7
         version: 5.0.8(@types/react@19.1.12)(react@19.1.1)(use-sync-external-store@1.5.0(react@19.1.1))
@@ -6693,7 +6693,6 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
-    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
@@ -9184,6 +9183,12 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.1(zod@4.1.5)
       zod: 4.1.5
 
+  '@ai-sdk/gateway@1.0.5(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.2(zod@3.25.76)
+      zod: 3.25.76
+
   '@ai-sdk/gateway@1.0.5(zod@4.1.5)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -9202,6 +9207,13 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.1(zod@4.1.5)
       zod: 4.1.5
 
+  '@ai-sdk/provider-utils@2.2.8(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 1.1.3
+      nanoid: 3.3.11
+      secure-json-parse: 2.7.0
+      zod: 3.25.76
+
   '@ai-sdk/provider-utils@2.2.8(zod@4.1.5)':
     dependencies:
       '@ai-sdk/provider': 1.1.3
@@ -9216,6 +9228,14 @@ snapshots:
       eventsource-parser: 3.0.6
       zod: 4.1.5
       zod-to-json-schema: 3.24.6(zod@4.1.5)
+
+  '@ai-sdk/provider-utils@3.0.2(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.6
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
 
   '@ai-sdk/provider-utils@3.0.2(zod@4.1.5)':
     dependencies:
@@ -9232,6 +9252,16 @@ snapshots:
   '@ai-sdk/provider@2.0.0':
     dependencies:
       json-schema: 0.4.0
+
+  '@ai-sdk/react@2.0.11(react@19.1.1)(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider-utils': 3.0.2(zod@3.25.76)
+      ai: 5.0.11(zod@3.25.76)
+      react: 19.1.1
+      swr: 2.3.6(react@19.1.1)
+      throttleit: 2.1.0
+    optionalDependencies:
+      zod: 3.25.76
 
   '@ai-sdk/react@2.0.11(react@19.1.1)(zod@4.1.5)':
     dependencies:
@@ -9252,6 +9282,13 @@ snapshots:
       throttleit: 2.1.0
     optionalDependencies:
       zod: 4.1.5
+
+  '@ai-sdk/ui-utils@1.2.11(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 1.1.3
+      '@ai-sdk/provider-utils': 2.2.8(zod@3.25.76)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
 
   '@ai-sdk/ui-utils@1.2.11(zod@4.1.5)':
     dependencies:
@@ -10043,6 +10080,21 @@ snapshots:
       - react
       - react-dom
       - supports-color
+
+  '@inkeep/cxkit-react@0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/ui-utils': 1.2.11(zod@3.25.76)
+      '@inkeep/cxkit-react-oss': 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.1.12)(react@19.1.1)
+      lucide-react: 0.503.0(react@19.1.1)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - react
+      - react-dom
+      - supports-color
+      - zod
 
   '@inkeep/cxkit-react@0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)':
     dependencies:
@@ -12969,6 +13021,14 @@ snapshots:
   agentkeepalive@4.6.0:
     dependencies:
       humanize-ms: 1.2.1
+
+  ai@5.0.11(zod@3.25.76):
+    dependencies:
+      '@ai-sdk/gateway': 1.0.5(zod@3.25.76)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.2(zod@3.25.76)
+      '@opentelemetry/api': 1.9.0
+      zod: 3.25.76
 
   ai@5.0.11(zod@4.1.5):
     dependencies:

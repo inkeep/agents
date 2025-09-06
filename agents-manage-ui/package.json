@@ -68,7 +68,7 @@
     "streamdown": "^1.0.12",
     "tailwind-merge": "^3.3.1",
     "use-stick-to-bottom": "^1.1.1",
-    "zod": "^4.1.5",
+    "zod": "^3.25.76",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
