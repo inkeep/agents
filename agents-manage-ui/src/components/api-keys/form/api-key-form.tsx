@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 import { toast } from 'sonner';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
 import type { SelectOption } from '@/components/form/generic-select';
@@ -59,7 +60,7 @@ export function ApiKeyForm({
   onApiKeyCreated,
 }: ApiKeyFormProps) {
   const form = useForm<ApiKeyFormData>({
-    resolver: zodResolver(apiKeySchema),
+    resolver: zodResolver(apiKeySchema as any),
     defaultValues: initialData || defaultValues,
   });
 
