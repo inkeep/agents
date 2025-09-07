@@ -250,9 +250,9 @@ services:
       - NANGO_DB_HOST=nango-db
       - NANGO_DB_NAME=${NANGO_DB_NAME:-nango}
       - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER:-nango}:${NANGO_DB_PASSWORD:-nango}@nango-db:5432/${NANGO_DB_NAME:-nango}
-      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3003}
+      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3005}
       - NANGO_PUBLIC_SERVER_URL=${NANGO_PUBLIC_SERVER_URL:-http://localhost:3000}
-      - SERVER_PORT=${SERVER_PORT:-3003}
+      - SERVER_PORT=${SERVER_PORT:-3005}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - FLAG_SERVE_CONNECT_UI=${FLAG_SERVE_CONNECT_UI:-true}
       - FLAG_AUTH_ENABLED=${FLAG_AUTH_ENABLED:-false}
@@ -262,7 +262,7 @@ services:
     volumes:
       - './providers.yaml:/app/nango/packages/providers/providers.yaml'
     ports:
-      - '3005:3003'
+      - '3005:3005'
       - '3009:3009'
     depends_on:
       - nango-db
