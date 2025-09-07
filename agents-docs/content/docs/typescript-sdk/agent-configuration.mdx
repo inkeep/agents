@@ -121,11 +121,11 @@ const agent = agent({
 | `description` | string | Yes | Brief description of the agent's purpose and capabilities |
 | `prompt` | string | Yes | Detailed behavior guidelines and system prompt for the agent |
 | `models` | object | No | AI model settings with separate settings for base, structuredOutput, and summarizer models |
-| `tools` | object | No | Custom and MCP tools that the agent can use. See [Tools](/typescript-sdk/tools) for details |
+| `tools` | object | No | MCP tools that the agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details |
 | `dataComponents` | array | No | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/data-components) for details |
-| `artifactComponents` | array | No | Components for handling tool or agent outputs. See [Artifact Components](/typescript-sdk/artifacts) for details |
-| `canTransferTo` | function | No | Function returning array of agents this agent can transfer to. See [Transfer Relationships](/typescript-sdk/sub-agents#transfer-relationships) for details |
-| `canDelegateTo` | function | No | Function returning array of agents this agent can delegate to. See [Delegation Relationships](/typescript-sdk/sub-agents#delegation-relationships) for details |
+| `artifactComponents` | array | No | Components for handling tool or agent outputs. See [Artifact Components](/typescript-sdk/artifact-components) for details |
+| `canTransferTo` | function | No | Function returning array of agents this agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details |
+| `canDelegateTo` | function | No | Function returning array of agents this agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) for details |
 
 ## Model Settings
 

@@ -19,7 +19,7 @@ import {
   getCredentialReference,
   updateCredentialReference,
 } from '@inkeep/agents-core';
-import { managementServer } from '../server.js';
+import { managementServer } from '../index.js';
 import { getLogger } from '../logger.js';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service.js';
 import dbClient from '../data/db/dbClient.js';

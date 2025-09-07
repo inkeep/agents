@@ -3,16 +3,18 @@ title: Quick Start
 description: Get started with Inkeep's multi-agent framework locally
 ---
 
+# Launch the Visual Builder
+
 ### Step 1: Clone the repository
 
 ```
-git clone git@github.com:inkeep/agents.git
+git clone https://github.com/inkeep/agents.git
 cd agents
 ```
 
 ### Step 2: Configure environment variables
 
-Add your ANTHROPIC_API_KEY to an `.env` file at `/agents-run-api`
+Add your `ANTHROPIC_API_KEY` to an `.env` file at `/agents-run-api/`
 ```
 ANTHROPIC_API_KEY=sk-ant-xyz789
 ```
@@ -34,3 +36,32 @@ pnpm dev
 
 ### Step 6: Start building!
 Open `http://localhost:3000` in the browser and start building agents.
+
+# Set up live Traces
+
+### Step 1: Launch docker containers
+```
+docker compose up -d
+```
+
+### Step 2: Fetch SigNoz API Key
+Open `http://localhost:3080` in the browser. Go to **Settings** → **Workspace Settings** → **API Keys** and copy the API key.
+
+### Step 3: Configure environment variables
+Create a `.env` file at `/agents-manage-ui/` with the following variables:
+
+```
+SIGNOZ_URL=http://localhost:3080
+SIGNOZ_API_KEY=your-signoz-api-key-here
+```
+
+### Step 4: View your live traces
+
+Refresh the live traces panel on the right to see your agents in action.
+
+<img
+  src="/images/live-traces.png"
+  alt="Live traces showing"
+  width="100%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+/>

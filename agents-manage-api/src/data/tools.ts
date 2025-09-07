@@ -1,4 +1,4 @@
-import { managementServer } from '../server.js';
+import { managementServer } from '../index.js';
 import { getLogger } from '../logger.js';
 import dbClient from './db/dbClient.js';
 

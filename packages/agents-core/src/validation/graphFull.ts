@@ -3,7 +3,7 @@ import type {
   ExternalAgentApiInsert,
   InternalAgentDefinition,
   FullGraphDefinition,
-} from '../types/entities.js';
+} from '../types/entities';
 import { FullGraphDefinitionSchema } from '../validation/schemas.js';
 import type { z } from 'zod';
 

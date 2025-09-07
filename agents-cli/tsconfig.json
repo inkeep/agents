@@ -11,22 +11,8 @@
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@inkeep/agents-core": [
-        "../packages/agents-core/src/index.ts"
-      ],
-      "@inkeep/agents-core/*": [
-        "../packages/agents-core/src/*"
-      ]
-    }
+    "resolveJsonModule": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

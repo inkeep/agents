@@ -10,9 +10,10 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "nodemon --watch src --ext ts --exec 'tsx src/index.ts'",
+    "dev:apis": "nodemon --watch src --ext ts --exec 'tsx src/index.ts'",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "test": "ENVIRONMENT=test vitest --run",
     "test:watch": "ENVIRONMENT=test vitest",
     "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
@@ -38,15 +39,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.4",
-    "@hono/vite-dev-server": "^0.20.1",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^2.0.0",
     "drizzle-kit": "^0.31.4",
     "nodemon": "^3.1.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
-    "vite": "^7.1.4",
-    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.1.4"
   },
   "packageManager": "pnpm@10.11.0",

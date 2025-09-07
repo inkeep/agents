@@ -2,8 +2,7 @@ import type {
   ExternalAgentApiInsert,
   InternalAgentDefinition,
   FullGraphDefinition,
-  AgentDefinition,
-} from '../types/entities.js';
+} from '../types/entities';
 import {
   validateAndTypeGraphData,
   validateGraphStructure,
@@ -46,7 +45,7 @@ import {
   createAgentRelation,
 } from './agentRelations.js';
 import { nanoid } from 'nanoid';
-import { ScopeConfig } from '../types/utility.js';
+import { ScopeConfig } from '../types/utility';
 
 // Logger interface for dependency injection
 export interface GraphLogger {
@@ -74,7 +73,10 @@ async function applyExecutionLimitsInheritance(
   try {
     // Get project stopWhen configuration
     const project = await db.query.projects.findFirst({
-      where: and(eq(projects.tenantId, tenantId), eq(projects.id, projectId)),
+      where: and(
+        eq(projects.tenantId, tenantId),
+        eq(projects.id, projectId)
+      ),
     });
 
     if (!project?.stopWhen) {
@@ -83,13 +85,10 @@ async function applyExecutionLimitsInheritance(
     }
 
     const projectStopWhen = project.stopWhen as any;
-    logger.info(
-      {
-        projectId,
-        projectStopWhen: projectStopWhen,
-      },
-      'Found project stopWhen configuration'
-    );
+    logger.info({ 
+      projectId, 
+      projectStopWhen: projectStopWhen 
+    }, 'Found project stopWhen configuration');
 
     // Initialize graph stopWhen if not exists
     if (!graphData.stopWhen) {
@@ -97,74 +96,57 @@ async function applyExecutionLimitsInheritance(
     }
 
     // Inherit transferCountIs from project if graph doesn't have it explicitly set
-    if (
-      graphData.stopWhen.transferCountIs === undefined &&
-      projectStopWhen?.transferCountIs !== undefined
-    ) {
+    if (graphData.stopWhen.transferCountIs === undefined && projectStopWhen?.transferCountIs !== undefined) {
       graphData.stopWhen.transferCountIs = projectStopWhen.transferCountIs;
-      logger.info(
-        {
-          graphId: graphData.id,
-          inheritedValue: projectStopWhen.transferCountIs,
-        },
-        'Graph inherited transferCountIs from project'
-      );
+      logger.info({
+        graphId: graphData.id,
+        inheritedValue: projectStopWhen.transferCountIs,
+      }, 'Graph inherited transferCountIs from project');
     }
 
     // Set default transferCountIs if still not set
     if (graphData.stopWhen.transferCountIs === undefined) {
       graphData.stopWhen.transferCountIs = 10;
-      logger.info(
-        {
-          graphId: graphData.id,
-          defaultValue: 10,
-        },
-        'Graph set to default transferCountIs'
-      );
+      logger.info({
+        graphId: graphData.id,
+        defaultValue: 10,
+      }, 'Graph set to default transferCountIs');
     }
 
     // Propagate stepCountIs from project to agents
     if (projectStopWhen?.stepCountIs !== undefined) {
-      logger.info(
-        {
-          projectId,
-          stepCountIs: projectStopWhen.stepCountIs,
-        },
-        'Propagating stepCountIs to agents'
-      );
+      logger.info({
+        projectId,
+        stepCountIs: projectStopWhen.stepCountIs,
+      }, 'Propagating stepCountIs to agents');
 
       for (const [agentId, agentData] of Object.entries(graphData.agents)) {
         // Only apply to internal agents (have prompt)
-        if (isInternalAgent(agentData as AgentDefinition)) {
+        if (isInternalAgent(agentData)) {
           const agent = agentData as any;
-
+          
           // Initialize agent stopWhen if it doesn't exist
           if (!agent.stopWhen) {
             agent.stopWhen = {};
           }
-
+          
           // Set stepCountIs in stopWhen if not explicitly set
           if (agent.stopWhen.stepCountIs === undefined) {
             agent.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
-            logger.info(
-              {
-                agentId,
-                inheritedValue: projectStopWhen.stepCountIs,
-              },
-              'Agent inherited stepCountIs from project'
-            );
+            logger.info({
+              agentId,
+              inheritedValue: projectStopWhen.stepCountIs,
+            }, 'Agent inherited stepCountIs from project');
           }
         }
       }
     }
+
   } catch (error) {
-    logger.error(
-      {
-        projectId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Failed to apply execution limits inheritance'
-    );
+    logger.error({ 
+      projectId, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, 'Failed to apply execution limits inheritance');
     // Don't throw - inheritance failure shouldn't block graph creation
   }
 }
@@ -667,12 +649,7 @@ export const updateFullGraphServerSide =
     validateGraphStructure(typedGraphDefinition);
 
     // Apply inheritance logic for execution limits
-    await applyExecutionLimitsInheritance(
-      db,
-      logger,
-      { tenantId, projectId },
-      typedGraphDefinition
-    );
+    await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typedGraphDefinition);
 
     try {
       // Verify graph exists and get existing models for cascade logic
@@ -689,7 +666,7 @@ export const updateFullGraphServerSide =
         );
         return createFullGraphServerSide(db)(scopes, graphData);
       }
-
+      
       // Store existing graph models for cascade comparison
       const existingGraphModels = existingGraph.models;
 
@@ -856,7 +833,7 @@ export const updateFullGraphServerSide =
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([agentId, agentData]) => {
           const internalAgent = agentData as InternalAgentDefinition;
-
+          
           // Get the existing agent to check for inheritance
           let existingAgent = null;
           try {
@@ -876,16 +853,16 @@ export const updateFullGraphServerSide =
 
           // Determine final model settings with cascade logic
           let finalModelSettings = internalAgent.models === undefined ? {} : internalAgent.models;
-
+          
           // If graph models changed, cascade to agents that were inheriting
           if (existingAgent && existingAgent.models && typedGraphDefinition.models) {
             const agentModels = existingAgent.models as any;
             const graphModels = typedGraphDefinition.models;
-
+            
             // Check each model type for inheritance and cascade if needed
             const modelTypes = ['base', 'structuredOutput', 'summarizer'] as const;
             const cascadedModels: any = { ...finalModelSettings };
-
+            
             for (const modelType of modelTypes) {
               // If the agent's current model matches the old graph model (was inheriting)
               // and the graph model has changed, cascade the change
@@ -901,18 +878,15 @@ export const updateFullGraphServerSide =
                   ...cascadedModels[modelType],
                   model: graphModels[modelType].model,
                 };
-                logger.info(
-                  {
-                    agentId,
-                    modelType,
-                    oldModel: agentModels[modelType].model,
-                    newModel: graphModels[modelType].model,
-                  },
-                  'Cascading model change from graph to agent'
-                );
+                logger.info({
+                  agentId,
+                  modelType,
+                  oldModel: agentModels[modelType].model,
+                  newModel: graphModels[modelType].model,
+                }, 'Cascading model change from graph to agent');
               }
             }
-
+            
             finalModelSettings = cascadedModels;
           }
 

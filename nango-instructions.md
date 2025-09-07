@@ -8,18 +8,18 @@ Nango runs as part of the main development stack:
 
 ```bash
 # First-time setup: Create .env file
-cp env.nango.example .env
+cp .env.nango.example .env
 
 # Generate encryption key and update .env
-openssl rand -hex 16
-# Edit .env and replace REPLACE_WITH_32_CHAR_ENCRYPTION_KEY with the generated key
+openssl rand -base64 32
+# Edit .env and replace REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY with the generated key
 
 # Start the full stack from agent-framework root (includes Nango + observability)
 docker compose up -d
 ```
 
 **Services included:**
-- **Nango Server**: `http://localhost:3003` (Dashboard/API)
+- **Nango Server**: `http://localhost:3005` (Dashboard/API)
 - **Nango Connect UI**: `http://localhost:3009` (OAuth flows)
 - **PostgreSQL**: Database for Nango
 - **Redis**: Caching for Nango
@@ -32,28 +32,28 @@ Once Nango is running, configure the framework applications to connect to your l
 
 #### Get your Nango API Key
 
-1. Open the Nango Dashboard: `http://localhost:3003`
+1. Open the Nango Dashboard: `http://localhost:3005`
 2. Navigate to **Environment Settings** → **API Keys**
-3. Copy your **Secret Key** (starts with `nango_sk_...`)
+3. Copy your **Secret Key** (starts with `123abc...`)
 
 #### Configure Application Environment Files
 
-**`/configuration/.env`**
+**`/agents-manage-api/.env` and `/agents-run-api/.env`**
 ```bash
 # Admin API key from your local Nango dashboard
-NANGO_SECRET_KEY="nango_sk_..."
+NANGO_SECRET_KEY="123abc..."
 
 # Point to your integrated Nango instance
-NANGO_HOST="http://localhost:3003"
+NANGO_HOST="http://localhost:3005"
 ```
 
-**`/agent-builder/.env`**
+**`/agents-manage-ui/.env`**
 ```bash
 # Admin API key from your local Nango dashboard (server-side calls)
-NANGO_SECRET_KEY="nango_sk_..."
+NANGO_SECRET_KEY="123abc..."
 
 # Frontend should point to your integrated Nango instance
-NEXT_PUBLIC_NANGO_HOST="http://localhost:3003"
+NEXT_PUBLIC_NANGO_HOST="http://localhost:3005"
 
 # Connect UI endpoint
 NEXT_PUBLIC_NANGO_CONNECT_BASE_URL="http://localhost:3009"
@@ -130,17 +130,18 @@ Instead of self-hosting Nango, you can use Nango Cloud:
 
 #### Configure Application Environment Files
 
-**`/configuration/.env`**
+**`/agents-manage-api/.env` and `/agents-run-api/.env`**
+
 ```bash
 # Nango Cloud configuration
-NANGO_SECRET_KEY="nango_sk_..."
+NANGO_SECRET_KEY="123abc..."
 # Leave NANGO_HOST unset to use Nango Cloud
 ```
 
-**`/agent-builder/.env`**
+**`/agents-manage-ui/.env`**
 ```bash
 # Nango Cloud configuration (server-side calls)
-NANGO_SECRET_KEY="nango_sk_..."
+NANGO_SECRET_KEY="123abc..."
 # Leave NEXT_PUBLIC_NANGO_HOST and NEXT_PUBLIC_NANGO_CONNECT_BASE_URL unset
 ```
 
