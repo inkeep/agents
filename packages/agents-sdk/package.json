@@ -2,8 +2,7 @@
   "name": "@inkeep/agents-sdk",
   "version": "0.1.0",
   "description": "SDK for building and managing agents in the Inkeep Agent Framework",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.ts",
   "type": "module",
   "scripts": {
     "build": "tsc",
