@@ -36,8 +36,15 @@ export const managementServer = new ManagementServer({
   },
 });
 
-// Start the server only if not in test environment
-if (env.ENVIRONMENT !== 'test') {
+// Start the server only if not in test environment AND not using Vite dev server  
+const isViteDevServer =
+  process.env.NODE_ENV === 'development' &&
+  (process.env.VITE_DEV_SERVER === 'true' ||
+    process.env.VITE !== undefined ||
+    process.argv.some((arg) => arg.includes('vite')) ||
+    globalThis.__vite_dev_server__);
+
+if (env.ENVIRONMENT !== 'test' && !isViteDevServer) {
   managementServer
     .serve()
     .then(() => {
@@ -49,4 +56,15 @@ if (env.ENVIRONMENT !== 'test') {
       logger.error('Failed to start Management API server:', error);
       process.exit(1);
     });
+} else if (isViteDevServer) {
+  // Initialize server (credential stores, etc.) but don't start HTTP server - Vite handles that
+  (async () => {
+    try {
+      await managementServer.initializeOnly();
+      logger.info('🚀 Management server initialized for Vite dev mode (credential stores ready)');
+      logger.info('🔥 HTTP server handled by Vite dev server');
+    } catch (error) {
+      logger.error('Failed to initialize management server:', error);
+    }
+  })();
 }

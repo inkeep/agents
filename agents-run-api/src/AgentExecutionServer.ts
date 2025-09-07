@@ -1,6 +1,6 @@
-import { BaseServer, type AgentFrameworkServerConfig } from '@inkeep/agents-core';
-import { getLogger } from './logger.js';
+import { type AgentFrameworkServerConfig, BaseServer } from '@inkeep/agents-core';
 import app from './app.js';
+import { getLogger } from './logger.js';
 
 export const EXECUTION_API_PORT = 3003;
 /**
@@ -31,5 +31,15 @@ export class AgentExecutionServer extends BaseServer {
       requestTimeout: 60000,
       ...this.config.serverOptions,
     };
+  }
+
+  /**
+   * Public method to initialize the server without starting HTTP listener
+   * Useful for Vite dev mode where we need credential stores but Vite handles HTTP
+   */
+  async initializeOnly(): Promise<void> {
+    if (!this.app) {
+      await this.initialize();
+    }
   }
 }
