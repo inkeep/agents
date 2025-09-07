@@ -34,6 +34,16 @@ export class ManagementServer extends BaseServer {
   }
 
   /**
+   * Public method to initialize the server without starting HTTP listener
+   * Useful for Vite dev mode where we need credential stores but Vite handles HTTP
+   */
+  async initializeOnly(): Promise<void> {
+    if (!this.app) {
+      await this.initialize();
+    }
+  }
+
+  /**
    * Custom cleanup for Management API before shutdown
    */
   protected async beforeShutdown(): Promise<void> {
