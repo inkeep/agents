@@ -10,6 +10,7 @@ import { getRequestExecutionContext } from '../utils/execution.js';
 
 const logger = getLogger('context-validation');
 
+// @ts-ignore
 const ajv = new Ajv({ allErrors: true, strict: false });
 
 // Constants for HTTP request parts

@@ -7,6 +7,8 @@ import type { ContextConfigSelect, FetchDefinition } from '../types/index.js';
 
 const logger = getLogger('context-config');
 
+type ErrorResponse = { error?: string; message?: string; details?: unknown };
+
 // Factory function to create a comprehensive request schema
 export function createRequestSchema(
   schemas: RequestSchemaDefinition,
@@ -332,18 +334,16 @@ export class ContextConfigBuilder {
   }
 
   // Helper method to parse error responses
-  private async parseErrorResponse(
-    response: Response
-  ): Promise<{ error?: string; message?: string; details?: unknown }> {
+  private async parseErrorResponse(response: Response): Promise<ErrorResponse> {
     try {
       const contentType = response.headers?.get('content-type');
       if (contentType?.includes('application/json')) {
-        return await response.json();
+        return (await response.json()) as ErrorResponse;
       }
       const text = await response.text();
-      return { error: text || `HTTP ${response.status} ${response.statusText}` };
+      return { error: text || `HTTP ${response.status} ${response.statusText}` } as ErrorResponse;
     } catch (error) {
-      return { error: `HTTP ${response.status} ${response.statusText}` };
+      return { error: `HTTP ${response.status} ${response.statusText}` } as ErrorResponse;
     }
   }
 }

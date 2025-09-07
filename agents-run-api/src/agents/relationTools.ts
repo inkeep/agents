@@ -14,7 +14,7 @@ import {
 import { saveA2AMessageResponse } from '../data/conversations.js';
 import dbClient from '../data/db/dbClient.js';
 import { env } from '../env.js';
-import { executionServer } from '../index.js';
+import { executionServer } from '../server.js';
 import { getLogger } from '../logger.js';
 import { graphSessionManager } from '../utils/graph-session.js';
 import type { AgentConfig, DelegateRelation } from './Agent.js';

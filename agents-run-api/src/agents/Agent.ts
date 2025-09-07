@@ -30,7 +30,7 @@ import {
 } from '../data/conversations.js';
 
 import dbClient from '../data/db/dbClient.js';
-import { executionServer } from '../index.js';
+import { executionServer } from '../server.js';
 import { getLogger } from '../logger.js';
 import { createSpanName, getGlobalTracer, handleSpanError, forceFlushTracer } from '../tracer.js';
 import { generateToolId } from '../utils/agent-operations.js';

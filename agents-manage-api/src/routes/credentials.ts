@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
-import { managementServer } from '../index.js';
+import { managementServer } from '../server.js';
 import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,

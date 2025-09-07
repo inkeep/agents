@@ -23,8 +23,7 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["@inkeep/agents-core#build"]
+      "persistent": true
     },
     "start": {
       "dependsOn": ["build"],
@@ -81,11 +80,6 @@
     "docs#dev": {
       "cache": false,
       "persistent": true
-    },
-    "dev:apis": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["@inkeep/agents-core#build"]
     }
   }
 }

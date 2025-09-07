@@ -97,7 +97,7 @@ export const discoverOAuthEndpoints = async (
         if (metadataMatch) {
           const metadataResponse = await fetch(metadataMatch[1]);
           if (metadataResponse.ok) {
-            const metadata = await metadataResponse.json();
+            const metadata = (await metadataResponse.json()) as any;
             if (metadata.authorization_servers?.length > 0) {
               return await tryWellKnownEndpoints(metadata.authorization_servers[0], logger);
             }

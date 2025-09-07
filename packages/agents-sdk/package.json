@@ -12,8 +12,11 @@
     "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "biome check --apply .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "prepack": "clean-package",
+    "postpack": "clean-package restore"
   },
+  "clean-package": "./clean-package.config.json",
   "dependencies": {
     "@inkeep/agents-core": "workspace:*",
     "nanoid": "^5.1.5",
@@ -23,6 +26,7 @@
     "@biomejs/biome": "2.1.4",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^2.0.0",
+    "clean-package": "^2.2.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
     "vitest": "^3.1.4"
