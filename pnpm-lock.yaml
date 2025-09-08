@@ -40,7 +40,7 @@ importers:
         specifier: ^7.23.0
         version: 7.28.4
       '@inkeep/agents-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/agents-core
       '@libsql/client':
         specifier: ^0.15.7
@@ -246,7 +246,7 @@ importers:
         specifier: ^1.0.2
         version: 1.1.0(hono@4.9.6)(zod@4.1.5)
       '@inkeep/agents-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/agents-core
       '@nangohq/node':
         specifier: ^0.66.0
@@ -331,13 +331,13 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1(react-hook-form@7.62.0(react@19.1.1))
       '@inkeep/agents-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/agents-core
       '@inkeep/agents-manage-api':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../agents-manage-api
       '@inkeep/agents-run-api':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/cxkit-react':
         specifier: 0.0.0-rc-20250905022240
@@ -572,7 +572,7 @@ importers:
         specifier: ^1.0.2
         version: 1.1.0(hono@4.9.6)(zod@4.1.5)
       '@inkeep/agents-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/agents-core
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.2
@@ -900,7 +900,7 @@ importers:
   packages/agents-sdk:
     dependencies:
       '@inkeep/agents-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../agents-core
       nanoid:
         specifier: ^5.1.5

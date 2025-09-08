@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Execution API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,7 +28,7 @@
     "@hono/otel": "^0.4.0",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
-    "@inkeep/agents-core": "workspace:*",
+    "@inkeep/agents-core": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
