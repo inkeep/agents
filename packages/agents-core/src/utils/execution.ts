@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import type { ExecutionContext } from '../types/utility.js';
+import type { ExecutionContext } from '../types/utility';
 
 /**
  * Create execution context from middleware values

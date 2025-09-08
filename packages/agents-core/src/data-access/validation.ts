@@ -1,5 +1,5 @@
-import type { DatabaseClient } from '../db/client.js';
-import { projectExistsInTable } from './projects.js';
+import type { DatabaseClient } from '../db/client';
+import { projectExistsInTable } from './projects';
 
 /**
  * Validates that a project exists before performing database operations
@@ -11,13 +11,13 @@ export const validateProjectExists = async (
   projectId: string
 ): Promise<void> => {
   const exists = await projectExistsInTable(db)({
-    scopes: { tenantId, projectId }
+    scopes: { tenantId, projectId },
   });
 
   if (!exists) {
     throw new Error(
       `Project with ID "${projectId}" does not exist for tenant "${tenantId}". ` +
-      `Please create the project first before adding resources to it.`
+        `Please create the project first before adding resources to it.`
     );
   }
 };

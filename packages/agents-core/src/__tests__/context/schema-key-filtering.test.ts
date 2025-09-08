@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createRequestSchema } from '../../context/ContextConfig.js';
+import { createRequestSchema } from '../../context/ContextConfig';
 import {
   type ParsedHttpRequest,
   validateHttpRequestParts,
-} from '../../middleware/contextValidation.js';
+} from '../../middleware/contextValidation';
 
 describe('Schema Key Filtering', () => {
   it('should filter out extra keys from passthrough schemas when storing in cache', async () => {

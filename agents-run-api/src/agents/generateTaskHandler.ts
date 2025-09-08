@@ -2,7 +2,7 @@ import destr from 'destr'; // safe JSON.parse-if-JSON
 import { nanoid } from 'nanoid';
 import traverse from 'traverse'; // tiny object walker
 
-import type { A2ATask, A2ATaskResult } from '../a2a/types.js';
+import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import {
   type McpTool,
   type Part,
@@ -18,9 +18,9 @@ import {
   CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 
-import { getLogger } from '../logger.js';
-import { Agent } from './Agent.js';
-import dbClient from '../data/db/dbClient.js';
+import { getLogger } from '../logger';
+import { Agent } from './Agent';
+import dbClient from '../data/db/dbClient';
 
 /** Turn any string value that is valid JSON into an object/array (in place). */
 export function parseEmbeddedJson<T>(data: T): T {
@@ -53,7 +53,10 @@ export interface TaskHandlerConfig {
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
-export const createTaskHandler = (config: TaskHandlerConfig, credentialStoreRegistry?: CredentialStoreRegistry) => {
+export const createTaskHandler = (
+  config: TaskHandlerConfig,
+  credentialStoreRegistry?: CredentialStoreRegistry
+) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
     try {
       // Extract the user message from the task
@@ -112,48 +115,30 @@ export const createTaskHandler = (config: TaskHandlerConfig, credentialStoreRegi
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
       // Check if this is an internal agent (has prompt)
-      const agentPrompt =
-        'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
-      const models =
-        'models' in config.agentSchema ? config.agentSchema.models : undefined;
-      const stopWhen =
-        'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
+      const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
+      const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
+      const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
-      const agent = new Agent({
-        id: config.agentId,
-        tenantId: config.tenantId,
-        projectId: config.projectId,
-        graphId: config.graphId,
-        baseUrl: config.baseUrl,
-        apiKey: config.apiKey,
-        name: config.name,
-        description: config.description || '',
-        agentPrompt,
-        models: models || undefined,
-        stopWhen: stopWhen || undefined,
-        agentRelations: internalRelations.map((relation) => ({
-          id: relation.id,
+      const agent = new Agent(
+        {
+          id: config.agentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
           graphId: config.graphId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
-          name: relation.name,
-          description: relation.description,
-          agentPrompt: '',
-          delegateRelations: [],
-          agentRelations: [],
-          transferRelations: [],
-        })),
-        transferRelations: internalRelations
-          .filter((relation) => relation.relationType === 'transfer')
-          .map((relation) => ({
-            baseUrl: config.baseUrl,
-            apiKey: config.apiKey,
+          name: config.name,
+          description: config.description || '',
+          agentPrompt,
+          models: models || undefined,
+          stopWhen: stopWhen || undefined,
+          agentRelations: internalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
+            baseUrl: config.baseUrl,
+            apiKey: config.apiKey,
             name: relation.name,
             description: relation.description,
             agentPrompt: '',
@@ -161,61 +146,79 @@ export const createTaskHandler = (config: TaskHandlerConfig, credentialStoreRegi
             agentRelations: [],
             transferRelations: [],
           })),
-        delegateRelations: [
-          // Internal delegate relations
-          ...internalRelations
-            .filter((relation) => relation.relationType === 'delegate')
+          transferRelations: internalRelations
+            .filter((relation) => relation.relationType === 'transfer')
             .map((relation) => ({
-              type: 'internal' as const,
+              baseUrl: config.baseUrl,
+              apiKey: config.apiKey,
+              id: relation.id,
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              graphId: config.graphId,
+              name: relation.name,
+              description: relation.description,
+              agentPrompt: '',
+              delegateRelations: [],
+              agentRelations: [],
+              transferRelations: [],
+            })),
+          delegateRelations: [
+            // Internal delegate relations
+            ...internalRelations
+              .filter((relation) => relation.relationType === 'delegate')
+              .map((relation) => ({
+                type: 'internal' as const,
+                config: {
+                  id: relation.id,
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  graphId: config.graphId,
+                  baseUrl: config.baseUrl,
+                  apiKey: config.apiKey,
+                  name: relation.name,
+                  description: relation.description,
+                  agentPrompt: '',
+                  delegateRelations: [],
+                  agentRelations: [],
+                  transferRelations: [],
+                },
+              })),
+            // External delegate relations
+            ...externalRelations.map((relation) => ({
+              type: 'external' as const,
               config: {
-                id: relation.id,
-                tenantId: config.tenantId,
-                projectId: config.projectId,
-                graphId: config.graphId,
-                baseUrl: config.baseUrl,
-                apiKey: config.apiKey,
-                name: relation.name,
-                description: relation.description,
-                agentPrompt: '',
-                delegateRelations: [],
-                agentRelations: [],
-                transferRelations: [],
+                id: relation.externalAgent.id,
+                name: relation.externalAgent.name,
+                description: relation.externalAgent.description || '',
+                baseUrl: relation.externalAgent.baseUrl,
+                relationType: relation.relationType || undefined,
               },
             })),
-          // External delegate relations
-          ...externalRelations.map((relation) => ({
-            type: 'external' as const,
-            config: {
-              id: relation.externalAgent.id,
-              name: relation.externalAgent.name,
-              description: relation.externalAgent.description || '',
-              baseUrl: relation.externalAgent.baseUrl,
-              relationType: relation.relationType || undefined,
-            },
-          })),
-        ],
-        tools:
-          toolsForAgent.data.map(
-            (item) =>
-              ({
-                ...item.tool,
-                capabilities: item.tool.capabilities || undefined,
-                lastHealthCheck: item.tool.lastHealthCheck
-                  ? new Date(item.tool.lastHealthCheck)
-                  : undefined,
-                lastToolsSync: item.tool.lastToolsSync
-                  ? new Date(item.tool.lastToolsSync)
-                  : undefined,
-                createdAt: new Date(item.tool.createdAt),
-                updatedAt: new Date(item.tool.updatedAt),
-              }) as McpTool
-          ) ?? [],
-        functionTools: [], // All tools are now handled via MCP servers
-        dataComponents: dataComponents,
-        artifactComponents: artifactComponents,
-        contextConfigId: config.contextConfigId || undefined,
-        conversationHistoryConfig: config.conversationHistoryConfig,
-      }, credentialStoreRegistry);
+          ],
+          tools:
+            toolsForAgent.data.map(
+              (item) =>
+                ({
+                  ...item.tool,
+                  capabilities: item.tool.capabilities || undefined,
+                  lastHealthCheck: item.tool.lastHealthCheck
+                    ? new Date(item.tool.lastHealthCheck)
+                    : undefined,
+                  lastToolsSync: item.tool.lastToolsSync
+                    ? new Date(item.tool.lastToolsSync)
+                    : undefined,
+                  createdAt: new Date(item.tool.createdAt),
+                  updatedAt: new Date(item.tool.updatedAt),
+                }) as McpTool
+            ) ?? [],
+          functionTools: [], // All tools are now handled via MCP servers
+          dataComponents: dataComponents,
+          artifactComponents: artifactComponents,
+          contextConfigId: config.contextConfigId || undefined,
+          conversationHistoryConfig: config.conversationHistoryConfig,
+        },
+        credentialStoreRegistry
+      );
 
       // More robust contextId resolution for delegation scenarios
       let contextId = task.context?.conversationId;

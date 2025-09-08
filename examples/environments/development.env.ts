@@ -1,4 +1,4 @@
-import './development.validation.js'; // Validate development env vars
+import './development.validation'; // Validate development env vars
 import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
 
 export const development = registerEnvironmentSettings({

@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import * as execModule from '../../../handlers/executionHandler.js';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
+import * as execModule from '../../../handlers/executionHandler';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock @inkeep/agents-core functions that are used by the chat data stream routes
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -110,15 +110,12 @@ describe('Chat Data Stream Advanced', () => {
   it('streams expected completion content', async () => {
     const { tenantId, projectId, graphId } = await setupGraph();
 
-    const res = await makeRequest(
-      '/api/chat',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Test message' }],
-        }),
-      }
-    );
+    const res = await makeRequest('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'Test message' }],
+      }),
+    });
 
     expect(res.status).toBe(200);
     expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');

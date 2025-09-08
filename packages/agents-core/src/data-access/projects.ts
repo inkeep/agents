@@ -19,16 +19,16 @@ import {
   credentialReferences,
   ledgerArtifacts,
   projects,
-} from '../db/schema.js';
+} from '../db/schema';
 import type {
   ProjectResourceCounts,
   ScopeConfig,
   PaginationConfig,
   ProjectInfo,
   PaginationResult,
-} from '../types/utility.js';
-import type { DatabaseClient } from '../db/client.js';
-import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities.js';
+} from '../types/utility';
+import type { DatabaseClient } from '../db/client';
+import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities';
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables
@@ -302,7 +302,7 @@ export const updateProject =
     // First, get the current project to compare stopWhen values
     const currentProject = await db.query.projects.findFirst({
       where: and(
-        eq(projects.tenantId, params.scopes.tenantId), 
+        eq(projects.tenantId, params.scopes.tenantId),
         eq(projects.id, params.scopes.projectId)
       ),
     });
@@ -321,7 +321,12 @@ export const updateProject =
     // If stopWhen was updated, cascade the changes to agents and graphs
     if (updated && params.data.stopWhen !== undefined) {
       try {
-        await cascadeStopWhenUpdates(db, params.scopes, currentProject?.stopWhen as any, params.data.stopWhen as any);
+        await cascadeStopWhenUpdates(
+          db,
+          params.scopes,
+          currentProject?.stopWhen as any,
+          params.data.stopWhen as any
+        );
       } catch (error) {
         console.warn('Failed to cascade stopWhen updates:', error);
       }
@@ -397,29 +402,28 @@ async function cascadeStopWhenUpdates(
 
   // Update graphs if transferCountIs changed
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
-    
     // Find all graphs that inherited the old transferCountIs value
     const graphsToUpdate = await db.query.agentGraph.findMany({
-      where: and(
-        eq(agentGraph.tenantId, tenantId),
-        eq(agentGraph.projectId, projectId)
-      ),
+      where: and(eq(agentGraph.tenantId, tenantId), eq(agentGraph.projectId, projectId)),
     });
 
     for (const graph of graphsToUpdate) {
       const graphStopWhen = graph.stopWhen as any;
       // If graph has no explicit transferCountIs or matches old project value, update it
-      if (!graphStopWhen?.transferCountIs || graphStopWhen.transferCountIs === oldStopWhen?.transferCountIs) {
+      if (
+        !graphStopWhen?.transferCountIs ||
+        graphStopWhen.transferCountIs === oldStopWhen?.transferCountIs
+      ) {
         const updatedStopWhen = {
           ...(graphStopWhen || {}),
-          transferCountIs: newStopWhen?.transferCountIs
+          transferCountIs: newStopWhen?.transferCountIs,
         };
-        
+
         await db
           .update(agentGraph)
-          .set({ 
+          .set({
             stopWhen: updatedStopWhen,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
           })
           .where(
             and(
@@ -434,13 +438,9 @@ async function cascadeStopWhenUpdates(
 
   // Update agents if stepCountIs changed
   if (oldStopWhen?.stepCountIs !== newStopWhen?.stepCountIs) {
-    
     // Find all agents that inherited the old stepCountIs value
     const agentsToUpdate = await db.query.agents.findMany({
-      where: and(
-        eq(agents.tenantId, tenantId),
-        eq(agents.projectId, projectId)
-      ),
+      where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
     });
 
     for (const agent of agentsToUpdate) {
@@ -449,14 +449,14 @@ async function cascadeStopWhenUpdates(
       if (!agentStopWhen?.stepCountIs || agentStopWhen.stepCountIs === oldStopWhen?.stepCountIs) {
         const updatedStopWhen = {
           ...(agentStopWhen || {}),
-          stepCountIs: newStopWhen?.stepCountIs
+          stepCountIs: newStopWhen?.stepCountIs,
         };
-        
+
         await db
           .update(agents)
-          .set({ 
+          .set({
             stopWhen: updatedStopWhen,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
           })
           .where(
             and(

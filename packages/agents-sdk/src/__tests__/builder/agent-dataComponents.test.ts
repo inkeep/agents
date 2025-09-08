@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Agent } from '../../agent.js';
-import { createTestTenantId } from '../utils/testTenant.js';
+import { Agent } from '../../agent';
+import { createTestTenantId } from '../utils/testTenant';
 
 describe('Agent with DataComponents Integration', () => {
   const tenantId = createTestTenantId('agent-datacomponents');

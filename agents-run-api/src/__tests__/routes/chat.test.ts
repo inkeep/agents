@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as execModule from '../../handlers/executionHandler.js';
-import { makeRequest } from '../utils/testRequest.js';
+import * as execModule from '../../handlers/executionHandler';
+import { makeRequest } from '../utils/testRequest';
 
 // Mock @inkeep/agents-core functions that are used by the chat routes
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -179,51 +179,42 @@ describe('Chat Routes', () => {
 
   describe('POST /chat/completions', () => {
     it('should handle basic chat completion', async () => {
-      const response = await makeRequest(
-        '/v1/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model: 'claude-3-sonnet',
-            messages: [{ role: 'user', content: 'Hello, how are you?' }],
-            conversationId: 'conv-123',
-          }),
-        }
-      );
+      const response = await makeRequest('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Hello, how are you?' }],
+          conversationId: 'conv-123',
+        }),
+      });
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('text/event-stream');
     });
 
     it('should handle streaming chat completion', async () => {
-      const response = await makeRequest(
-        '/v1/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model: 'claude-3-sonnet',
-            messages: [{ role: 'user', content: 'Stream this response' }],
-            conversationId: 'conv-123',
-            stream: true,
-          }),
-        }
-      );
+      const response = await makeRequest('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Stream this response' }],
+          conversationId: 'conv-123',
+          stream: true,
+        }),
+      });
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('text/event-stream');
     });
 
     it('should handle conversation creation', async () => {
-      const response = await makeRequest(
-        '/v1/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model: 'claude-3-sonnet',
-            messages: [{ role: 'user', content: 'Start new conversation' }],
-          }),
-        }
-      );
+      const response = await makeRequest('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Start new conversation' }],
+        }),
+      });
 
       expect(response.status).toBe(200);
 
@@ -239,16 +230,13 @@ describe('Chat Routes', () => {
     });
 
     it('should validate required fields', async () => {
-      const response = await makeRequest(
-        '/v1/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            // Missing required 'model' field to trigger validation error
-            messages: [{ role: 'user', content: 'Hello' }],
-          }),
-        }
-      );
+      const response = await makeRequest('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          // Missing required 'model' field to trigger validation error
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+      });
 
       expect(response.status).toBe(400);
 
@@ -263,16 +251,13 @@ describe('Chat Routes', () => {
       );
       vi.mocked(getFullGraph).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
 
-      const response = await makeRequest(
-        '/v1/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model: 'claude-3-sonnet',
-            messages: [{ role: 'user', content: 'Hello' }],
-          }),
-        }
-      );
+      const response = await makeRequest('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+      });
 
       expect(response.status).toBe(404);
 
@@ -290,16 +275,13 @@ describe('Chat Routes', () => {
         new Error('Execution failed')
       );
 
-      const response = await makeRequest(
-        '/v1/chat/completions',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            model: 'claude-3-sonnet',
-            messages: [{ role: 'user', content: 'This will fail' }],
-          }),
-        }
-      );
+      const response = await makeRequest('/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'This will fail' }],
+        }),
+      });
 
       // For streaming responses, the status is set before execution starts
       // So even if execution fails, the response will have started with 200

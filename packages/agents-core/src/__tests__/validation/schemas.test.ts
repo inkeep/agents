@@ -9,7 +9,7 @@ import {
   MessageInsertSchema,
   PaginationSchema,
   PaginationQueryParamsSchema,
-} from '../../validation/schemas.js';
+} from '../../validation/schemas';
 
 describe('Validation Schemas', () => {
   describe('resourceIdSchema', () => {
@@ -64,7 +64,7 @@ describe('Validation Schemas', () => {
             },
           },
           structuredOutput: {
-            model: 'gpt-4o-mini'
+            model: 'gpt-4o-mini',
           },
         },
       };

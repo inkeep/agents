@@ -1,18 +1,13 @@
 import { and, eq, desc, count } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client.js';
-import {
-  artifactComponents,
-  agentArtifactComponents,
-  agents,
-  agentRelations,
-} from '../db/schema.js';
+import type { DatabaseClient } from '../db/client';
+import { artifactComponents, agentArtifactComponents, agents, agentRelations } from '../db/schema';
 import type {
   ArtifactComponentInsert,
   ArtifactComponentSelect,
   ArtifactComponentUpdate,
-} from '../types/entities.js';
-import type { PaginationConfig, ScopeConfig } from '../types/utility.js';
+} from '../types/entities';
+import type { PaginationConfig, ScopeConfig } from '../types/utility';
 
 export const getArtifactComponentById =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; id: string }) => {

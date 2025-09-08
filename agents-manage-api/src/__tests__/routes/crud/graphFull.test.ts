@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
-import { ensureTestProject } from '../../utils/testProject.js';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
+import { ensureTestProject } from '../../utils/testProject';
 
 describe('Graph Full CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -385,8 +385,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
             prompt: 'You are a test agent.',
             models: {
               base: {
-              model: 'claude-3-5-sonnet-20241022',
-            },
+                model: 'claude-3-5-sonnet-20241022',
+              },
             },
             canTransferTo: [],
             canDelegateTo: [],
@@ -415,7 +415,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.agents[agentId]).toHaveProperty('models');
       expect(body.data.agents[agentId].models).toEqual({
         base: {
-        model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-3-5-sonnet-20241022',
         },
       });
 
@@ -432,7 +432,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(getBody.data.agents[agentId]).toHaveProperty('models');
       expect(getBody.data.agents[agentId].models).toEqual({
         base: {
-        model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-3-5-sonnet-20241022',
         },
       });
     });
@@ -467,9 +467,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
             prompt: 'You are a test agent.',
             models: {
               base: {
-              model: 'claude-3-5-sonnet-20241022',
-              providerOptions,
-            },
+                model: 'claude-3-5-sonnet-20241022',
+                providerOptions,
+              },
             },
             canTransferTo: [],
             canDelegateTo: [],
@@ -498,8 +498,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.agents[agentId]).toHaveProperty('models');
       expect(body.data.agents[agentId].models).toEqual({
         base: {
-        model: 'claude-3-5-sonnet-20241022',
-        providerOptions,
+          model: 'claude-3-5-sonnet-20241022',
+          providerOptions,
         },
       });
 
@@ -516,8 +516,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(getBody.data.agents[agentId]).toHaveProperty('models');
       expect(getBody.data.agents[agentId].models).toEqual({
         base: {
-        model: 'claude-3-5-sonnet-20241022',
-        providerOptions,
+          model: 'claude-3-5-sonnet-20241022',
+          providerOptions,
         },
       });
     });

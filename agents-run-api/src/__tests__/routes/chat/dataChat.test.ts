@@ -1,11 +1,11 @@
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createAgentGraph, createAgent } from '@inkeep/agents-core';
-import * as execModule from '../../../handlers/executionHandler.js';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
-import { ensureTestProject } from '../../utils/testProject.js';
-import dbClient from '../../../data/db/dbClient.js';
+import * as execModule from '../../../handlers/executionHandler';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
+import { ensureTestProject } from '../../utils/testProject';
+import dbClient from '../../../data/db/dbClient';
 
 // Mock @inkeep/agents-core functions that are used by the chat data stream routes
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -111,13 +111,10 @@ describe('Chat Data Stream Route', () => {
       ],
     };
 
-    const res = await makeRequest(
-      '/api/chat',
-      {
-        method: 'POST',
-        body: JSON.stringify(body),
-      }
-    );
+    const res = await makeRequest('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
 
     if (res.status !== 200) {
       const errorText = await res.text();

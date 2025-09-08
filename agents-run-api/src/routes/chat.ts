@@ -16,12 +16,12 @@ import {
   getRequestExecutionContext,
 } from '@inkeep/agents-core';
 
-import { ExecutionHandler } from '../handlers/executionHandler.js';
-import { getLogger } from '../logger.js';
+import { ExecutionHandler } from '../handlers/executionHandler';
+import { getLogger } from '../logger';
 import { contextValidationMiddleware } from '@inkeep/agents-core';
-import type { ContentItem, Message } from '../types/chat.js';
-import { createSSEStreamHelper } from '../utils/stream-helpers.js';
-import dbClient from '../data/db/dbClient.js';
+import type { ContentItem, Message } from '../types/chat';
+import { createSSEStreamHelper } from '../utils/stream-helpers';
+import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 const logger = getLogger('completionsHandler');

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { A2ATask } from '../../a2a/types.js';
+import type { A2ATask } from '../../a2a/types';
 import {
   createTaskHandler,
   createTaskHandlerConfig,
@@ -7,7 +7,7 @@ import {
   parseEmbeddedJson,
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
-} from '../../agents/generateTaskHandler.js';
+} from '../../agents/generateTaskHandler';
 import { TaskState } from '@inkeep/agents-core';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
@@ -325,15 +325,15 @@ describe('generateTaskHandler', () => {
           ...mockConfig.agentSchema,
           models: {
             base: {
-            model: 'anthropic/claude-4-sonnet-20250514',
-            providerOptions: {
-              anthropic: {
-                temperature: 0.7,
-                maxTokens: 4096,
+              model: 'anthropic/claude-4-sonnet-20250514',
+              providerOptions: {
+                anthropic: {
+                  temperature: 0.7,
+                  maxTokens: 4096,
+                },
               },
             },
           },
-        },
         },
       };
 
@@ -352,13 +352,13 @@ describe('generateTaskHandler', () => {
       expect(lastAgentConstructorArgs).toBeDefined();
       expect(lastAgentConstructorArgs.models).toEqual({
         base: {
-        model: 'anthropic/claude-4-sonnet-20250514',
-        providerOptions: {
-          anthropic: {
-            temperature: 0.7,
-            maxTokens: 4096,
+          model: 'anthropic/claude-4-sonnet-20250514',
+          providerOptions: {
+            anthropic: {
+              temperature: 0.7,
+              maxTokens: 4096,
+            },
           },
-        },
         },
       });
     });
@@ -370,16 +370,16 @@ describe('generateTaskHandler', () => {
           ...mockConfig.agentSchema,
           models: {
             base: {
-            model: 'openai/gpt-4o',
-            providerOptions: {
-              openai: {
-                temperature: 0.3,
-                frequencyPenalty: 0.1,
-                presencePenalty: 0.2,
+              model: 'openai/gpt-4o',
+              providerOptions: {
+                openai: {
+                  temperature: 0.3,
+                  frequencyPenalty: 0.1,
+                  presencePenalty: 0.2,
+                },
               },
             },
           },
-        },
         },
       };
 
@@ -398,14 +398,14 @@ describe('generateTaskHandler', () => {
       expect(lastAgentConstructorArgs).toBeDefined();
       expect(lastAgentConstructorArgs.models).toEqual({
         base: {
-        model: 'openai/gpt-4o',
-        providerOptions: {
-          openai: {
-            temperature: 0.3,
-            frequencyPenalty: 0.1,
-            presencePenalty: 0.2,
+          model: 'openai/gpt-4o',
+          providerOptions: {
+            openai: {
+              temperature: 0.3,
+              frequencyPenalty: 0.1,
+              presencePenalty: 0.2,
+            },
           },
-        },
         },
       });
     });
@@ -650,14 +650,14 @@ describe('generateTaskHandler', () => {
           prompt: 'You are a helpful test agent',
           models: {
             base: {
-            model: 'anthropic/claude-4-sonnet-20250514',
-            providerOptions: {
-              anthropic: {
-                temperature: 0.8,
-                maxTokens: 2048,
+              model: 'anthropic/claude-4-sonnet-20250514',
+              providerOptions: {
+                anthropic: {
+                  temperature: 0.8,
+                  maxTokens: 2048,
+                },
               },
             },
-          },
           },
           conversationHistoryConfig: {
             mode: 'full',
@@ -677,13 +677,13 @@ describe('generateTaskHandler', () => {
 
       expect(config.agentSchema.models).toEqual({
         base: {
-        model: 'anthropic/claude-4-sonnet-20250514',
-        providerOptions: {
-          anthropic: {
-            temperature: 0.8,
-            maxTokens: 2048,
+          model: 'anthropic/claude-4-sonnet-20250514',
+          providerOptions: {
+            anthropic: {
+              temperature: 0.8,
+              maxTokens: 2048,
+            },
           },
-        },
         },
       });
     });
@@ -726,15 +726,15 @@ describe('generateTaskHandler', () => {
           prompt: 'You are a helpful test agent',
           models: {
             base: {
-            model: 'openai/gpt-4o',
-            providerOptions: {
-              openai: {
-                temperature: 0.3,
-                frequencyPenalty: 0.1,
-                presencePenalty: 0.2,
+              model: 'openai/gpt-4o',
+              providerOptions: {
+                openai: {
+                  temperature: 0.3,
+                  frequencyPenalty: 0.1,
+                  presencePenalty: 0.2,
+                },
               },
             },
-          },
           },
           conversationHistoryConfig: {
             mode: 'full',
@@ -754,14 +754,14 @@ describe('generateTaskHandler', () => {
 
       expect(config.agentSchema.models).toEqual({
         base: {
-        model: 'openai/gpt-4o',
-        providerOptions: {
-          openai: {
-            temperature: 0.3,
-            frequencyPenalty: 0.1,
-            presencePenalty: 0.2,
+          model: 'openai/gpt-4o',
+          providerOptions: {
+            openai: {
+              temperature: 0.3,
+              frequencyPenalty: 0.1,
+              presencePenalty: 0.2,
+            },
           },
-        },
         },
       });
     });

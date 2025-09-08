@@ -1,6 +1,6 @@
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { type ModelSettings, ModelFactory } from '../../agents/ModelFactory.js';
+import { type ModelSettings, ModelFactory } from '../../agents/ModelFactory';
 
 // Mock AI SDK providers
 vi.mock('@ai-sdk/anthropic', () => {
@@ -177,12 +177,12 @@ describe('ModelFactory', () => {
         temperature: 0.7,
         maxTokens: 1000,
         apiKey: 'should-be-excluded',
-        baseURL: 'should-be-excluded'
+        baseURL: 'should-be-excluded',
       };
       const params = ModelFactory.getGenerationParams(providerOptions);
       expect(params).toEqual({
         temperature: 0.7,
-        maxTokens: 1000
+        maxTokens: 1000,
       });
     });
 
@@ -312,7 +312,7 @@ describe('ModelFactory', () => {
         model: 'anthropic/claude-4-sonnet-20250514',
         providerOptions: {
           temperature: 0.7,
-          maxTokens: 1000
+          maxTokens: 1000,
         },
       } as ModelSettings;
 
@@ -563,9 +563,7 @@ describe('ModelFactory', () => {
 
         const errors = ModelFactory.validateConfig(config);
         expect(errors).toHaveLength(1);
-        expect(errors[0]).toContain(
-          'API keys should not be stored in provider options'
-        );
+        expect(errors[0]).toContain('API keys should not be stored in provider options');
         expect(errors[0]).toContain('Use environment variables');
       });
 

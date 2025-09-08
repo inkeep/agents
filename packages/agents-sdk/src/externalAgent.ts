@@ -1,6 +1,6 @@
 import { getLogger } from '@inkeep/agents-core';
 import type { CredentialReferenceSelect } from '@inkeep/agents-core';
-import type { ExternalAgentInterface } from './types.js';
+import type { ExternalAgentInterface } from './types';
 
 const logger = getLogger('external-agent-builder');
 

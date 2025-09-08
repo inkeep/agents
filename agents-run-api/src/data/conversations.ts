@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import dbClient from './db/dbClient.js';
+import dbClient from './db/dbClient';
 import {
   createMessage,
   type ConversationScopeOptions,

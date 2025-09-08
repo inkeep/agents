@@ -1,7 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { customAlphabet, nanoid } from 'nanoid';
-import { getLogger } from './logger.js';
+import { getLogger } from './logger';
 
 const scryptAsync = promisify(scrypt);
 const logger = getLogger('api-key');

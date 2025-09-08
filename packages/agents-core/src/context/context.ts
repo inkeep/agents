@@ -1,7 +1,7 @@
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import { ContextResolver, type ResolvedContext } from './ContextResolver.js';
-import { getLogger } from '../utils/logger.js';
-import { createSpanName, getGlobalTracer, forceFlushTracer } from '../utils/tracer.js';
+import { ContextResolver, type ResolvedContext } from './ContextResolver';
+import { getLogger } from '../utils/logger';
+import { createSpanName, getGlobalTracer, forceFlushTracer } from '../utils/tracer';
 import {
   getAgentGraphWithDefaultAgent,
   getConversation,
@@ -170,7 +170,7 @@ async function handleContextResolution(
           // Mark span as successful if no errors
           parentSpan.setStatus({ code: SpanStatusCode.OK });
         }
-        
+
         // Force flush after critical context resolution span
         await forceFlushTracer();
 
@@ -220,7 +220,7 @@ async function handleContextResolution(
 
         // Force flush after error to ensure error telemetry is sent
         await forceFlushTracer();
-        
+
         return null;
       } finally {
         parentSpan.end();

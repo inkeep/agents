@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { pushCommand } from '../../commands/push.js';
+import { pushCommand } from '../../commands/push';
 import * as core from '@inkeep/agents-core';
 import inquirer from 'inquirer';
 import chalk from 'chalk';

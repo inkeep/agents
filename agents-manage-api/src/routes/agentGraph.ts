@@ -3,7 +3,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { listAgentGraphs } from '@inkeep/agents-core';
-import { env } from '../../env.js';
+import { env } from '../../env';
 import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
 import {
   createAgentGraph,
@@ -27,7 +27,7 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
+import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 

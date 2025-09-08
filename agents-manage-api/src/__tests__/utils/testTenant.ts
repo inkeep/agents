@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
  *
  * @example
  * ```typescript
- * import { createTestTenantId } from './utils/testTenant.js';
+ * import { createTestTenantId } from './utils/testTenant';
  *
  * describe('My test suite', () => {
  *   const tenantId = createTestTenantId('agents');
@@ -39,7 +39,7 @@ export function createTestTenantId(prefix?: string): string {
  *
  * @example
  * ```typescript
- * import { createTestTenantIds } from './utils/testTenant.js';
+ * import { createTestTenantIds } from './utils/testTenant';
  *
  * describe('Multi-tenant test suite', () => {
  *   const [tenantA, tenantB] = createTestTenantIds(2, 'multi-tenant');
@@ -62,7 +62,7 @@ export function createTestTenantIds(count: number, prefix?: string): string[] {
  *
  * @example
  * ```typescript
- * import { isTestTenant } from './utils/testTenant.js';
+ * import { isTestTenant } from './utils/testTenant';
  *
  * const tenantId = createTestTenantId();
  * console.log(isTestTenant(tenantId)); // true

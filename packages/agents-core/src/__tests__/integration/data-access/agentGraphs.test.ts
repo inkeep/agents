@@ -3,8 +3,8 @@ import {
   cleanupTestDatabase,
   closeTestDatabase,
   createTestDatabaseClient,
-} from '../../../db/test-client.js';
-import { createAgent, deleteAgent } from '../../../data-access/agents.js';
+} from '../../../db/test-client';
+import { createAgent, deleteAgent } from '../../../data-access/agents';
 import {
   createAgentGraph,
   getAgentGraphById,
@@ -13,11 +13,11 @@ import {
   listAgentGraphsPaginated,
   updateAgentGraph,
   deleteAgentGraph,
-} from '../../../data-access/agentGraphs.js';
-import { createAgentRelation, deleteAgentRelation } from '../../../data-access/agentRelations.js';
-import type { DatabaseClient } from '../../../db/client.js';
-import { createTestAgentData, createTestGraphData, createTestRelationData } from '../helpers.js';
-import * as schema from '../../../db/schema.js';
+} from '../../../data-access/agentGraphs';
+import { createAgentRelation, deleteAgentRelation } from '../../../data-access/agentRelations';
+import type { DatabaseClient } from '../../../db/client';
+import { createTestAgentData, createTestGraphData, createTestRelationData } from '../helpers';
+import * as schema from '../../../db/schema';
 
 describe('Agent Graphs Data Access - Integration Tests', () => {
   let db: DatabaseClient;
@@ -30,32 +30,38 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     const dbInfo = await createTestDatabaseClient('agent-graphs-integration');
     db = dbInfo.client;
     dbPath = dbInfo.path;
-    
+
     // Create test projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
-      await db.insert(schema.projects).values({
-        tenantId: tenantId,
-        id: testProjectId,
-        name: 'Test Project',
-        description: 'Project for testing',
-      }).onConflictDoNothing();
+      await db
+        .insert(schema.projects)
+        .values({
+          tenantId: tenantId,
+          id: testProjectId,
+          name: 'Test Project',
+          description: 'Project for testing',
+        })
+        .onConflictDoNothing();
     }
   });
 
   afterEach(async () => {
     // Clean up data between tests but keep the database file
     await cleanupTestDatabase(db);
-    
+
     // Recreate test projects for all tenant IDs for next test
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
-      await db.insert(schema.projects).values({
-        tenantId: tenantId,
-        id: testProjectId,
-        name: 'Test Project',
-        description: 'Project for testing',
-      }).onConflictDoNothing();
+      await db
+        .insert(schema.projects)
+        .values({
+          tenantId: tenantId,
+          id: testProjectId,
+          name: 'Test Project',
+          description: 'Project for testing',
+        })
+        .onConflictDoNothing();
     }
   });
 
@@ -168,7 +174,6 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     });
 
     it('should list all graphs for tenant', async () => {
-
       const graphs = await listAgentGraphs(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });

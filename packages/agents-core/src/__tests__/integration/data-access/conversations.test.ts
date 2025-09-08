@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterAll, beforeAll, afterEach } from 'vitest';
-import { createAgent } from '../../../data-access/agents.js';
-import { createConversation, getConversation } from '../../../data-access/conversations.js';
-import { createMessage } from '../../../data-access/messages.js';
-import type { DatabaseClient } from '../../../db/client.js';
-import { updateConversationActiveAgent } from '../../../data-access/conversations.js';
+import { createAgent } from '../../../data-access/agents';
+import { createConversation, getConversation } from '../../../data-access/conversations';
+import { createMessage } from '../../../data-access/messages';
+import type { DatabaseClient } from '../../../db/client';
+import { updateConversationActiveAgent } from '../../../data-access/conversations';
 import {
   closeTestDatabase,
   createTestDatabaseClient,
   cleanupTestDatabase,
-} from '../../../db/test-client.js';
-import type { ConversationInsert, MessageSelect } from '../../../types/index.js';
-import { createTestAgentData } from '../helpers.js';
-import * as schema from '../../../db/schema.js';
+} from '../../../db/test-client';
+import type { ConversationInsert, MessageSelect } from '../../../types/index';
+import { createTestAgentData } from '../helpers';
+import * as schema from '../../../db/schema';
 
 const createTestConversationData = (
   tenantId: string,
@@ -46,32 +46,38 @@ describe('Conversations Data Access - Integration Tests', () => {
     const dbInfo = await createTestDatabaseClient('conversations-integration');
     db = dbInfo.client;
     dbPath = dbInfo.path;
-    
+
     // Create test projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
-      await db.insert(schema.projects).values({
-        tenantId: tenantId,
-        id: testProjectId,
-        name: 'Test Project',
-        description: 'Project for testing',
-      }).onConflictDoNothing();
+      await db
+        .insert(schema.projects)
+        .values({
+          tenantId: tenantId,
+          id: testProjectId,
+          name: 'Test Project',
+          description: 'Project for testing',
+        })
+        .onConflictDoNothing();
     }
   });
 
   afterEach(async () => {
     // Clean up data between tests but keep the database file
     await cleanupTestDatabase(db);
-    
+
     // Recreate test projects for all tenant IDs for next test
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
-      await db.insert(schema.projects).values({
-        tenantId: tenantId,
-        id: testProjectId,
-        name: 'Test Project',
-        description: 'Project for testing',
-      }).onConflictDoNothing();
+      await db
+        .insert(schema.projects)
+        .values({
+          tenantId: tenantId,
+          id: testProjectId,
+          name: 'Test Project',
+          description: 'Project for testing',
+        })
+        .onConflictDoNothing();
     }
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getArtifactComponentById,
   listArtifactComponents,
@@ -15,8 +15,8 @@ import {
   graphHasArtifactComponents,
   countArtifactComponents,
   countArtifactComponentsForAgent,
-} from '../../data-access/artifactComponents.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/artifactComponents';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Artifact Components Data Access', () => {
   let db: DatabaseClient;

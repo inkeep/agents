@@ -1,1 +1,1 @@
-export * from './api-key-auth.js';
+export * from './api-key-auth';

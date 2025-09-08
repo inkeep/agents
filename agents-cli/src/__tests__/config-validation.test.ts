@@ -1,19 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { validateConfiguration } from '../utils/config.js';
+import { validateConfiguration } from '../utils/config';
 
 // Save original env and cwd
 const originalEnv = process.env;
 
 // Mock the tsx-loader to prevent loading actual files
 vi.mock('../utils/tsx-loader.js', () => ({
-  importWithTypeScriptSupport: vi.fn(() => Promise.resolve({
-    default: {
-      tenantId: 'config-tenant',
-      projectId: 'config-project',
-      managementApiUrl: 'http://config-management',
-      executionApiUrl: 'http://config-execution',
-    },
-  })),
+  importWithTypeScriptSupport: vi.fn(() =>
+    Promise.resolve({
+      default: {
+        tenantId: 'config-tenant',
+        projectId: 'config-project',
+        managementApiUrl: 'http://config-management',
+        executionApiUrl: 'http://config-execution',
+      },
+    })
+  ),
 }));
 
 // Mock the file system to control when config files are found

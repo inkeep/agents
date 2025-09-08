@@ -1,7 +1,7 @@
 import { and, eq, desc, count } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client.js';
-import { conversations, messages } from '../db/schema.js';
+import type { DatabaseClient } from '../db/client';
+import { conversations, messages } from '../db/schema';
 import type {
   ConversationSelect,
   ScopeConfig,
@@ -10,7 +10,7 @@ import type {
   ConversationUpdate,
   ConversationHistoryConfig,
   MessageContent,
-} from '../types/index.js';
+} from '../types/index';
 
 export const listConversations =
   (db: DatabaseClient) =>

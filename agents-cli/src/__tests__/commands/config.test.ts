@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { configGetCommand, configListCommand, configSetCommand } from '../../commands/config.js';
+import { configGetCommand, configListCommand, configSetCommand } from '../../commands/config';
 
 // Mock fs functions
 vi.mock('node:fs', async () => {

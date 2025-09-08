@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
-import { jsonSchemaToZod } from './data-component-schema.js';
+import { getLogger } from '../logger';
+import { jsonSchemaToZod } from './data-component-schema';
 
 const logger = getLogger('ArtifactComponentSchema');
 

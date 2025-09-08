@@ -253,7 +253,7 @@ LOG_LEVEL=debug|info|warn|error
 ```typescript
 // agents-manage-api/src/builder/__tests__/newFeature.test.ts
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NewFeature } from '../newFeature.js';
+import { NewFeature } from '../newFeature';
 
 describe('NewFeature', () => {
   let feature: NewFeature;

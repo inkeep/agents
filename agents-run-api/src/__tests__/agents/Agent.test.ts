@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { Agent, type AgentConfig } from '../../agents/Agent.js';
-import { V1Config } from '../../agents/versions/V1Config.js';
+import { Agent, type AgentConfig } from '../../agents/Agent';
+import { V1Config } from '../../agents/versions/V1Config';
 import type { DataComponentSelect, McpTool, MessageType } from '@inkeep/agents-core';
 
 // Mock the AI SDK functions
@@ -259,7 +259,7 @@ vi.mock('../../data/conversations.js', () => ({
 // Import the mocked functions so we can reference them in tests
 import { generateObject, generateText } from 'ai';
 // Import the mocked module - these will automatically be mocked
-import { getFormattedConversationHistory } from '../../data/conversations.js';
+import { getFormattedConversationHistory } from '../../data/conversations';
 
 describe('Agent Integration with SystemPromptBuilder', () => {
   let mockAgentConfig: AgentConfig;

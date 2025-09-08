@@ -3,10 +3,10 @@ import jmespath from 'jmespath';
 import { nanoid } from 'nanoid';
 import z from 'zod';
 import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
-import { graphSessionManager } from '../utils/graph-session.js';
-import { parseEmbeddedJson } from './generateTaskHandler.js';
-import { toolSessionManager } from './ToolSessionManager.js';
+import { getLogger } from '../logger';
+import { graphSessionManager } from '../utils/graph-session';
+import { parseEmbeddedJson } from './generateTaskHandler';
+import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('artifactTools');
 

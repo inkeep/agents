@@ -4,9 +4,9 @@ import { createDatabaseClient, createProject, getProject } from '@inkeep/agents-
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
-import { ManagementApiClient } from '../api.js';
-import { validateConfiguration } from '../utils/config.js';
-import { importWithTypeScriptSupport } from '../utils/tsx-loader.js';
+import { ManagementApiClient } from '../api';
+import { validateConfiguration } from '../utils/config';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 
 export interface PushOptions {
   tenantId?: string;

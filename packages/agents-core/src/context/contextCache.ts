@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
-import { getLogger } from '../utils/logger.js';
-import { DatabaseClient } from '../db/client.js';
+import { getLogger } from '../utils/logger';
+import { DatabaseClient } from '../db/client';
 import {
   clearContextConfigCache,
   clearConversationCache,
@@ -9,7 +9,7 @@ import {
   cleanupTenantCache,
   invalidateInvocationDefinitionsCache,
   invalidateRequestContextCache,
-} from '../data-access/index.js';
+} from '../data-access/index';
 
 const logger = getLogger('context-cache');
 

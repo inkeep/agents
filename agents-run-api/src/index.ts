@@ -1,5 +1,5 @@
-import './instrumentation.js';
-import { createExecutionHono } from './app.js';
+import './instrumentation';
+import { createExecutionHono } from './app';
 import {
   CredentialStoreRegistry,
   createDefaultCredentialStores,

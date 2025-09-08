@@ -7,7 +7,7 @@ import {
   isApiKeyExpired,
   maskApiKey,
   validateApiKey,
-} from '../../utils/apiKeys.js';
+} from '../../utils/apiKeys';
 
 // Mock the env module
 vi.mock('../../env.js', () => ({

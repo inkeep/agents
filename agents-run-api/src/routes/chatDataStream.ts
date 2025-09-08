@@ -15,10 +15,10 @@ import {
   commonGetErrorResponses,
   getRequestExecutionContext,
 } from '@inkeep/agents-core';
-import { ExecutionHandler } from '../handlers/executionHandler.js';
-import { getLogger } from '../logger.js';
-import { createVercelStreamHelper } from '../utils/stream-helpers.js';
-import dbClient from '../data/db/dbClient.js';
+import { ExecutionHandler } from '../handlers/executionHandler';
+import { getLogger } from '../logger';
+import { createVercelStreamHelper } from '../utils/stream-helpers';
+import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 const logger = getLogger('chatDataStream');

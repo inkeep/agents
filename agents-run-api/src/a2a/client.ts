@@ -1,4 +1,4 @@
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 import type {
   A2AError,
   AgentCard,

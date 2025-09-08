@@ -27,26 +27,26 @@ import {
 import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
-} from '../data/conversations.js';
+} from '../data/conversations';
 
-import dbClient from '../data/db/dbClient.js';
-import { getLogger } from '../logger.js';
-import { createSpanName, getGlobalTracer, handleSpanError, forceFlushTracer } from '../tracer.js';
-import { generateToolId } from '../utils/agent-operations.js';
-import { ArtifactReferenceSchema } from '../utils/artifact-component-schema.js';
-import { jsonSchemaToZod } from '../utils/data-component-schema.js';
-import { graphSessionManager } from '../utils/graph-session.js';
-import { IncrementalStreamParser } from '../utils/incremental-stream-parser.js';
-import { ResponseFormatter } from '../utils/response-formatter.js';
-import type { StreamHelper } from '../utils/stream-helpers.js';
-import { getStreamHelper } from '../utils/stream-registry.js';
-import { createSaveToolResultTool } from './artifactTools.js';
-import { ModelFactory } from './ModelFactory.js';
-import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools.js';
-import { SystemPromptBuilder } from './SystemPromptBuilder.js';
-import { toolSessionManager } from './ToolSessionManager.js';
-import type { SystemPromptV1 } from './types.js';
-import { V1Config } from './versions/V1Config.js';
+import dbClient from '../data/db/dbClient';
+import { getLogger } from '../logger';
+import { createSpanName, getGlobalTracer, handleSpanError, forceFlushTracer } from '../tracer';
+import { generateToolId } from '../utils/agent-operations';
+import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
+import { jsonSchemaToZod } from '../utils/data-component-schema';
+import { graphSessionManager } from '../utils/graph-session';
+import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
+import { ResponseFormatter } from '../utils/response-formatter';
+import type { StreamHelper } from '../utils/stream-helpers';
+import { getStreamHelper } from '../utils/stream-registry';
+import { createSaveToolResultTool } from './artifactTools';
+import { ModelFactory } from './ModelFactory';
+import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
+import { SystemPromptBuilder } from './SystemPromptBuilder';
+import { toolSessionManager } from './ToolSessionManager';
+import type { SystemPromptV1 } from './types';
+import { V1Config } from './versions/V1Config';
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -800,11 +800,10 @@ Key requirements:
     let processedPrompt = this.config.agentPrompt;
     if (resolvedContext) {
       try {
-        processedPrompt = TemplateEngine.render(
-          this.config.agentPrompt,
-          resolvedContext,
-          { strict: false, preserveUnresolved: false }
-        );
+        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+        });
       } catch (error) {
         logger.error(
           {
@@ -1408,7 +1407,7 @@ ${output}`;
         // Mark span as successful
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
-        
+
         // Force flush after critical agent generation span
         await forceFlushTracer();
 
@@ -1467,7 +1466,7 @@ ${output}`;
           message: (error as Error).message,
         });
         span.end();
-        
+
         // Force flush after error to ensure error telemetry is sent
         await forceFlushTracer();
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   addLedgerArtifacts,
   getLedgerArtifacts,
@@ -7,8 +7,8 @@ import {
   deleteLedgerArtifactsByTask,
   deleteLedgerArtifactsByContext,
   countLedgerArtifactsByTask,
-} from '../../data-access/ledgerArtifacts.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/ledgerArtifacts';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Ledger Artifacts Data Access', () => {
   let db: DatabaseClient;

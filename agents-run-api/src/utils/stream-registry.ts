@@ -1,4 +1,4 @@
-import type { StreamHelper } from './stream-helpers.js';
+import type { StreamHelper } from './stream-helpers';
 
 /**
  * Global registry for StreamHelper instances
@@ -11,7 +11,7 @@ const streamHelperRegistry = new Map<string, StreamHelper>();
  */
 export function registerStreamHelper(requestId: string, streamHelper: StreamHelper): void {
   streamHelperRegistry.set(requestId, streamHelper);
-  
+
   // Set sessionId for stream helpers that support it
   if ('setSessionId' in streamHelper && typeof (streamHelper as any).setSessionId === 'function') {
     (streamHelper as any).setSessionId(requestId);

@@ -2,11 +2,11 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
-import type { FullGraphDefinition } from '../types/graph.js';
-import { type ValidatedConfiguration, validateConfiguration } from '../utils/config.js';
-import { compareJsonObjects, getDifferenceSummary } from '../utils/json-comparator.js';
-import { importWithTypeScriptSupport } from '../utils/tsx-loader.js';
-import { generateTypeScriptFileWithLLM } from './pull.llm-generate.js';
+import type { FullGraphDefinition } from '../types/graph';
+import { type ValidatedConfiguration, validateConfiguration } from '../utils/config';
+import { compareJsonObjects, getDifferenceSummary } from '../utils/json-comparator';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { generateTypeScriptFileWithLLM } from './pull.llm-generate';
 
 export interface PullOptions {
   tenantId?: string;
@@ -321,4 +321,3 @@ export async function pullCommand(graphId: string, options: PullOptions) {
     process.exit(1);
   }
 }
-

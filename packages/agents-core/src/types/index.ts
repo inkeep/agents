@@ -1,5 +1,5 @@
 // Re-export all types for convenience
-export * from './a2a.js';
-export * from './entities.js';
-export * from './utility.js';
-export * from './server.js';
+export * from './a2a';
+export * from './entities';
+export * from './utility';
+export * from './server';

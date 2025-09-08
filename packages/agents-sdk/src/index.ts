@@ -1,5 +1,5 @@
-export { Agent } from './agent.js';
-export { ArtifactComponent } from './artifact-component.js';
+export { Agent } from './agent';
+export { ArtifactComponent } from './artifact-component';
 export {
   agent,
   artifactComponent,
@@ -9,19 +9,19 @@ export {
   mcpServer,
   mcpTool,
   tool,
-} from './builders.js';
+} from './builders';
 export {
   createEnvironmentSettings,
   registerEnvironmentSettings,
   getAllEnvironmentSettingKeys,
-} from './environment-settings.js';
-export { DataComponent } from './data-component.js';
+} from './environment-settings';
+export { DataComponent } from './data-component';
 export {
   ExternalAgent,
   externalAgent,
   externalAgents,
-} from './externalAgent.js';
-export { AgentGraph, agentGraph, generateGraph } from './graph.js';
-export { Runner, raceGraphs, run, stream } from './runner.js';
-export { Tool } from './tool.js';
-export type * from './types.js';
+} from './externalAgent';
+export { AgentGraph, agentGraph, generateGraph } from './graph';
+export { Runner, raceGraphs, run, stream } from './runner';
+export { Tool } from './tool';
+export type * from './types';

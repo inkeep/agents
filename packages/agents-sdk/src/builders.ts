@@ -1,15 +1,15 @@
 import { z } from 'zod';
-import { Agent } from './agent.js';
-import { ArtifactComponent } from './artifact-component.js';
-import { DataComponent } from './data-component.js';
-import { Tool } from './tool.js';
+import { Agent } from './agent';
+import { ArtifactComponent } from './artifact-component';
+import { DataComponent } from './data-component';
+import { Tool } from './tool';
 import {
   type CredentialReferenceApiInsert,
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
 } from '@inkeep/agents-core';
-import type { AgentConfig, TransferConfig } from './types.js';
+import type { AgentConfig, TransferConfig } from './types';
 
 /**
  * Creates a new agent with stable ID enforcement.
@@ -198,7 +198,9 @@ export function mcpServer(config: {
       throw new Error('Local MCP server requires an execute function');
     }
 
-    throw new Error('Local MCP servers are no longer supported. Please use remote MCP servers instead.');
+    throw new Error(
+      'Local MCP servers are no longer supported. Please use remote MCP servers instead.'
+    );
   } else {
     // Remote MCP server
     if (!config.serverUrl) {
@@ -223,9 +225,6 @@ export function mcpTool(config: MCPToolConfig): Tool {
   const validatedConfig = MCPToolConfigSchema.parse(config);
   return new Tool(validatedConfig as any);
 }
-
-
-
 
 // Separate schema for non-function transfer properties
 export const TransferConfigSchema = z.object({

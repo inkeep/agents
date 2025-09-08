@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Agent } from '../../agent.js';
-import { ExternalAgent } from '../../externalAgent.js';
-import type { AgentConfig } from '../../types.js';
+import { Agent } from '../../agent';
+import { ExternalAgent } from '../../externalAgent';
+import type { AgentConfig } from '../../types';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     getLogger: vi.fn().mockReturnValue({
@@ -39,7 +39,6 @@ describe('Agent Builder', () => {
       serverUrl: 'http://localhost:3000',
       tenantId: 'test-tenant',
     } as any;
-
   });
 
   describe('Constructor', () => {
@@ -141,7 +140,6 @@ describe('Agent Builder', () => {
       expect(tools).toHaveProperty('testTool');
     });
   });
-
 
   describe('Agent Relationships', () => {
     let sourceAgent: Agent;
@@ -267,11 +265,13 @@ describe('Agent Builder', () => {
         description: 'Test description',
         tenantId: 'test-tenant',
         tools: () => [testTool],
-        dataComponents: () => [{
-          id: 'test-data-component',
-          name: 'Test Data Component',
-          description: 'Test description',
-        }],
+        dataComponents: () => [
+          {
+            id: 'test-data-component',
+            name: 'Test Data Component',
+            description: 'Test description',
+          },
+        ],
       });
     });
 

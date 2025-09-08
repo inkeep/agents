@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getLogger } from '../logger.js';
-import type { VersionConfig } from './types.js';
+import { getLogger } from '../logger';
+import type { VersionConfig } from './types';
 
 const logger = getLogger('SystemPromptBuilder');
 

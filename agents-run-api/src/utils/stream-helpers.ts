@@ -1,5 +1,5 @@
 import { parsePartialJson } from 'ai';
-import type { OperationEvent } from './agent-operations.js';
+import type { OperationEvent } from './agent-operations';
 
 // Common interface for all stream helpers
 export interface StreamHelper {
@@ -45,7 +45,7 @@ export class SSEStreamHelper implements StreamHelper {
     private requestId: string,
     private timestamp: number
   ) {}
-  
+
   private get sessionId(): string {
     return this.requestId;
   }
@@ -102,7 +102,7 @@ export class SSEStreamHelper implements StreamHelper {
 
     // Mark that text streaming is starting
     this.isTextStreaming = true;
-    
+
     try {
       for (let i = 0; i < words.length; i++) {
         await this.stream.sleep(delayMs);
@@ -113,7 +113,7 @@ export class SSEStreamHelper implements StreamHelper {
     } finally {
       // Mark that text streaming has finished
       this.isTextStreaming = false;
-      
+
       // Flush any queued operations now that text sequence is complete
       await this.flushQueuedOperations();
     }
@@ -165,7 +165,7 @@ export class SSEStreamHelper implements StreamHelper {
   async complete(finishReason = 'stop'): Promise<void> {
     // Flush any remaining queued operations before completing
     await this.flushQueuedOperations();
-    
+
     await this.writeCompletion(finishReason);
     await this.writeDone();
   }
@@ -190,7 +190,6 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   async writeOperation(operation: OperationEvent): Promise<void> {
-
     if (operation.type === 'status_update' && operation.ctx.operationType) {
       operation = {
         type: operation.ctx.operationType,
@@ -203,10 +202,10 @@ export class SSEStreamHelper implements StreamHelper {
       this.queuedOperations.push(operation);
       return;
     }
-    
+
     // If not streaming, flush any queued operations first, then send this one
     await this.flushQueuedOperations();
-    
+
     await this.writeData('data-operation', operation);
   }
 
@@ -217,10 +216,10 @@ export class SSEStreamHelper implements StreamHelper {
     if (this.queuedOperations.length === 0) {
       return;
     }
-    
+
     const operationsToFlush = [...this.queuedOperations];
     this.queuedOperations = []; // Clear the queue
-    
+
     for (const operation of operationsToFlush) {
       await this.writeData('data-operation', operation);
     }
@@ -255,13 +254,13 @@ export class VercelDataStreamHelper implements StreamHelper {
   // Memory management - focused on connection completion cleanup
   private static readonly MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB limit (more generous during request)
   private isCompleted = false;
-  
+
   // Stream queuing for proper event ordering
   private isTextStreaming: boolean = false;
   private queuedOperations: OperationEvent[] = [];
 
   constructor(private writer: VercelUIWriter) {}
-  
+
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;
   }
@@ -336,7 +335,7 @@ export class VercelDataStreamHelper implements StreamHelper {
 
     // Mark that text streaming is starting
     this.isTextStreaming = true;
-    
+
     try {
       this.writer.write({
         type: 'text-start',
@@ -366,7 +365,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     } finally {
       // Mark that text streaming has finished
       this.isTextStreaming = false;
-      
+
       // Flush any queued operations now that text sequence is complete
       await this.flushQueuedOperations();
     }
@@ -484,10 +483,10 @@ export class VercelDataStreamHelper implements StreamHelper {
       this.queuedOperations.push(operation);
       return;
     }
-    
+
     // If not streaming, flush any queued operations first, then send this one
     await this.flushQueuedOperations();
-    
+
     this.writer.write({
       id: 'id' in operation ? operation.id : undefined,
       type: 'data-operation',
@@ -502,10 +501,10 @@ export class VercelDataStreamHelper implements StreamHelper {
     if (this.queuedOperations.length === 0) {
       return;
     }
-    
+
     const operationsToFlush = [...this.queuedOperations];
     this.queuedOperations = []; // Clear the queue
-    
+
     for (const operation of operationsToFlush) {
       this.writer.write({
         id: 'id' in operation ? operation.id : undefined,
@@ -531,7 +530,7 @@ export class MCPStreamHelper implements StreamHelper {
   private hasError = false;
   private errorMessage = '';
   private sessionId: string | null = null;
-  
+
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;
   }

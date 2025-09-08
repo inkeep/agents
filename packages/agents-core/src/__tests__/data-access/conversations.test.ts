@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   listConversations,
   createConversation,
@@ -11,9 +11,9 @@ import {
   getActiveAgentForConversation,
   setActiveAgentForConversation,
   getConversationHistory,
-} from '../../data-access/conversations.js';
-import type { DatabaseClient } from '../../db/client.js';
-import type { ConversationUpdate } from '../../types/index.js';
+} from '../../data-access/conversations';
+import type { DatabaseClient } from '../../db/client';
+import type { ConversationUpdate } from '../../types/index';
 
 describe('Conversations Data Access', () => {
   let db: DatabaseClient;

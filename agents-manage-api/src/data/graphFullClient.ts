@@ -3,7 +3,7 @@
  * These functions make HTTP requests to the server instead of direct database calls
  */
 
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 import type { FullGraphDefinition } from '@inkeep/agents-core';
 
 const logger = getLogger('graphFullClient');

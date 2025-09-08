@@ -10,10 +10,10 @@ import {
   type MessageSendParams,
   type Task,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
-import { getLogger } from '../logger.js';
+import dbClient from '../data/db/dbClient';
+import { getLogger } from '../logger';
 import { TaskState } from '@inkeep/agents-core';
-import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types.js';
+import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types';
 
 const logger = getLogger('a2aHandler');
 

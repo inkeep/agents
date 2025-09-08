@@ -11,13 +11,13 @@ import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
 import { handleApiError } from '@inkeep/agents-core';
-import { getLogger } from './logger.js';
-import { apiKeyAuth } from './middleware/api-key-auth.js';
-import { setupOpenAPIRoutes } from './openapi.js';
-import agentRoutes from './routes/agents.js';
-import chatRoutes from './routes/chat.js';
-import chatDataRoutes from './routes/chatDataStream.js';
-import mcpRoutes from './routes/mcp.js';
+import { getLogger } from './logger';
+import { apiKeyAuth } from './middleware/api-key-auth';
+import { setupOpenAPIRoutes } from './openapi';
+import agentRoutes from './routes/agents';
+import chatRoutes from './routes/chat';
+import chatDataRoutes from './routes/chatDataStream';
+import mcpRoutes from './routes/mcp';
 
 type AppVariables = {
   executionContext: ExecutionContext;

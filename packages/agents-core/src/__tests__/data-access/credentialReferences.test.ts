@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getCredentialReference,
   getCredentialReferenceWithTools,
@@ -11,9 +11,9 @@ import {
   hasCredentialReference,
   getCredentialReferenceById,
   countCredentialReferences,
-} from '../../data-access/credentialReferences.js';
-import type { DatabaseClient } from '../../db/client.js';
-import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities.js';
+} from '../../data-access/credentialReferences';
+import type { DatabaseClient } from '../../db/client';
+import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
 
 describe('Credential References Data Access', () => {
   let db: DatabaseClient;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 
 const logger = getLogger('DataComponentSchema');
 

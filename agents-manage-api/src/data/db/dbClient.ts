@@ -1,4 +1,4 @@
-import { env } from '../../env.js';
+import { env } from '../../env';
 import { createDatabaseClient } from '@inkeep/agents-core';
 
 // Create database URL - use in-memory for tests, file for other environments

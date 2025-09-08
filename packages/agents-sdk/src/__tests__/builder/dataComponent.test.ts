@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DataComponent } from '../../data-component.js';
-import { createTestTenantId } from '../utils/testTenant.js';
+import { DataComponent } from '../../data-component';
+import { createTestTenantId } from '../utils/testTenant';
 
 describe('DataComponent Class', () => {
   const tenantId = createTestTenantId('data-component-class');

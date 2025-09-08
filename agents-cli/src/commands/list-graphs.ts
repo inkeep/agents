@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import ora from 'ora';
-import { ManagementApiClient } from '../api.js';
-import type { ValidatedConfiguration } from '../utils/config.js';
-import { validateConfiguration } from '../utils/config.js';
+import { ManagementApiClient } from '../api';
+import type { ValidatedConfiguration } from '../utils/config';
+import { validateConfiguration } from '../utils/config';
 
 export interface ListGraphsOptions {
   tenantId?: string;

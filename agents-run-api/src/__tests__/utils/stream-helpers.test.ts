@@ -3,7 +3,7 @@ import {
   createVercelStreamHelper,
   type VercelDataStreamHelper,
   type VercelUIWriter,
-} from '../../utils/stream-helpers.js';
+} from '../../utils/stream-helpers';
 
 // Mock parsePartialJson from 'ai' package
 vi.mock('ai', () => ({

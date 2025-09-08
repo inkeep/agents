@@ -10,7 +10,7 @@ import type {
   ToolInsert,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
-import type { ExternalAgentConfig } from './externalAgent.js';
+import type { ExternalAgentConfig } from './externalAgent';
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -59,7 +59,7 @@ export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
 // Agent configuration types
 export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
-  tools?: (() => any[]);
+  tools?: () => any[];
   canTransferTo?: () => AgentInterface[];
   canDelegateTo?: () => AllAgentInterface[];
   tenantId?: string;
@@ -76,8 +76,8 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
   };
-  dataComponents?: (() => DataComponentApiInsert[]);
-  artifactComponents?: (() => ArtifactComponentApiInsert[]);
+  dataComponents?: () => DataComponentApiInsert[];
+  artifactComponents?: () => ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
@@ -234,10 +234,10 @@ export interface GraphConfig {
   name?: string;
   description?: string;
   defaultAgent?: AgentInterface;
-  agents?: (() => AllAgentInterface[]);
+  agents?: () => AllAgentInterface[];
   tenantId?: string;
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
-  credentials?: (() => CredentialReferenceApiInsert[]);
+  credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: {
     transferCountIs?: number;
   };

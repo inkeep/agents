@@ -1,6 +1,6 @@
-import { getLogger } from '../logger.js';
-import { ArtifactParser, type StreamPart } from './artifact-parser.js';
-import type { StreamHelper } from './stream-helpers.js';
+import { getLogger } from '../logger';
+import { ArtifactParser, type StreamPart } from './artifact-parser';
+import type { StreamHelper } from './stream-helpers';
 
 const logger = getLogger('IncrementalStreamParser');
 
@@ -71,23 +71,23 @@ export class IncrementalStreamParser {
     let depth = 0;
     let inDataComponents = false;
     let componentsStreamed = 0;
-    
+
     for await (const part of stream) {
       // Look for tool call deltas with incremental JSON
       if (part.type === 'tool-call-delta' && part.toolName === targetToolName) {
         const delta = part.argsTextDelta || '';
         jsonBuffer += delta;
-        
+
         // Parse character by character to detect complete components
         for (const char of delta) {
           componentBuffer += char;
-          
+
           // Track JSON depth
           if (char === '{') {
             depth++;
           } else if (char === '}') {
             depth--;
-            
+
             // At depth 2, we're inside the dataComponents array
             // When we return to depth 2, we have a complete component
             if (depth === 2 && componentBuffer.includes('"id"')) {
@@ -96,13 +96,15 @@ export class IncrementalStreamParser {
               if (componentMatch) {
                 try {
                   const component = JSON.parse(componentMatch[0]);
-                  
+
                   // Stream this individual component
-                  const parts = await this.artifactParser.parseObject({ dataComponents: [component] });
+                  const parts = await this.artifactParser.parseObject({
+                    dataComponents: [component],
+                  });
                   for (const part of parts) {
                     await this.streamPart(part);
                   }
-                  
+
                   componentsStreamed++;
                   componentBuffer = ''; // Reset for next component
                 } catch (e) {
@@ -112,7 +114,7 @@ export class IncrementalStreamParser {
               }
             }
           }
-          
+
           // Detect when we enter dataComponents array
           if (componentBuffer.includes('"dataComponents"') && componentBuffer.includes('[')) {
             inDataComponents = true;
@@ -131,7 +133,7 @@ export class IncrementalStreamParser {
         break; // Tool call complete
       }
     }
-    
+
     logger.debug({ componentsStreamed }, 'Finished streaming components');
   }
 
@@ -164,7 +166,7 @@ export class IncrementalStreamParser {
         .replace(/<\/[^>]*artifact[^>]*>/g, '') // Remove closing tags with artifact in the name
         .replace(/<[^>]*artifact[^>]*\/?>/g, '') // Remove any remaining artifact-related tags
         .trim();
-      
+
       if (cleanedText) {
         this.collectedParts.push({
           kind: 'text',
@@ -302,7 +304,7 @@ export class IncrementalStreamParser {
           .replace(/<\/?artifact[^>]*>/g, '') // Remove all artifact tags
           .replace(/<\/[^>]*artifact[^>]*>/g, '') // Remove closing tags with artifact in the name
           .replace(/<[^>]*artifact[^>]*\/?>/g, ''); // Remove any remaining artifact-related tags
-        
+
         if (cleanedText.trim()) {
           await this.streamHelper.streamText(cleanedText, 50);
         }
@@ -317,7 +319,7 @@ export class IncrementalStreamParser {
           .replace(/<\/?artifact[^>]*>/g, '') // Remove all artifact tags
           .replace(/<\/[^>]*artifact[^>]*>/g, '') // Remove closing tags with artifact in the name
           .replace(/<[^>]*artifact[^>]*\/?>/g, ''); // Remove any remaining artifact-related tags
-        
+
         if (cleanedText.trim()) {
           await this.streamHelper.streamText(cleanedText, 50);
         }

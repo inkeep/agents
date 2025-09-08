@@ -1,5 +1,5 @@
-import { env } from '../env.js';
-import { getLogger } from '../logger.js';
+import { env } from '../env';
+import { getLogger } from '../logger';
 
 import { type FullGraphDefinition, validateAndTypeGraphData } from '@inkeep/agents-core';
 

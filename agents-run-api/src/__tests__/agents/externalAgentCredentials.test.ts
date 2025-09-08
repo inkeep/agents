@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { A2AClient } from '../../a2a/client.js';
+import { A2AClient } from '../../a2a/client';
 import { CredentialStuffer } from '@inkeep/agents-core';
-import { createDelegateToAgentTool } from '../../agents/relationTools.js';
-import { saveA2AMessageResponse } from '../../data/conversations.js';
-import dbClient from '../../data/db/dbClient.js';
+import { createDelegateToAgentTool } from '../../agents/relationTools';
+import { saveA2AMessageResponse } from '../../data/conversations';
+import dbClient from '../../data/db/dbClient';
 // Functions now imported from @inkeep/agents-core and mocked above
 import { CredentialStoreRegistry } from '@inkeep/agents-core';
 

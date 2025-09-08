@@ -7,9 +7,9 @@ import {
   getFullGraph,
   updateFullGraphServerSide,
 } from '@inkeep/agents-core';
-import { createTestTenantId } from '../utils/testTenant.js';
-import { ensureTestProject } from '../utils/testProject.js';
-import dbClient from '../../data/db/dbClient.js';
+import { createTestTenantId } from '../utils/testTenant';
+import { ensureTestProject } from '../utils/testProject';
+import dbClient from '../../data/db/dbClient';
 
 // Mock the logger to reduce noise in tests
 vi.mock('../../logger.js', () => ({

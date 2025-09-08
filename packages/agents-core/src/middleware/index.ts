@@ -1,1 +1,1 @@
-export * from './contextValidation.js';
+export * from './contextValidation';

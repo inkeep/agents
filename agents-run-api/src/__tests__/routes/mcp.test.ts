@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as execModule from '../../handlers/executionHandler.js';
-import { makeRequest } from '../utils/testRequest.js';
+import * as execModule from '../../handlers/executionHandler';
+import { makeRequest } from '../utils/testRequest';
 
 // Mock nanoid to control session ID generation
 vi.mock('nanoid', async (importOriginal) => {

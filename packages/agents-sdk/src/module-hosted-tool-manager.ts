@@ -194,8 +194,8 @@ export const parameters = ${toolFunction.parameters ? JSON.stringify(toolFunctio
 
   private createMCPServerCode(server: ModuleHostedToolServer, toolId: string): string {
     return `#!/usr/bin/env node
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
 import { z } from 'zod';
 import { createServer } from 'node:http';
 

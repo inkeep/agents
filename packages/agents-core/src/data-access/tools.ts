@@ -1,7 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client.js';
-import { agentToolRelations, tools } from '../db/schema.js';
+import type { DatabaseClient } from '../db/client';
+import { agentToolRelations, tools } from '../db/schema';
 import type {
   McpTool,
   McpToolStatus,
@@ -10,7 +10,7 @@ import type {
   ToolInsert,
   ToolSelect,
   ToolUpdate,
-} from '../types/index.js';
+} from '../types/index';
 
 // Helper function to convert database result to McpTool
 export const dbResultToMcpTool = (dbResult: ToolSelect): McpTool => {

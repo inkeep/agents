@@ -1,4 +1,4 @@
-import './production.validation.js'; // Validate production env vars
+import './production.validation'; // Validate production env vars
 import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
 
 export const production = registerEnvironmentSettings({

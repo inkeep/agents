@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSaveToolResultTool } from '../../agents/artifactTools.js';
-import { parseEmbeddedJson } from '../../agents/generateTaskHandler.js';
-import { toolSessionManager } from '../../agents/ToolSessionManager.js';
+import { createSaveToolResultTool } from '../../agents/artifactTools';
+import { parseEmbeddedJson } from '../../agents/generateTaskHandler';
+import { toolSessionManager } from '../../agents/ToolSessionManager';
 
 // Mock JMESPath
 vi.mock('jmespath', () => ({

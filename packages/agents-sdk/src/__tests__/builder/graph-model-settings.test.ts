@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { agent, agentGraph } from '../../index.js';
+import { agent, agentGraph } from '../../index';
 
 describe('Graph Model Settings', () => {
   beforeEach(() => {

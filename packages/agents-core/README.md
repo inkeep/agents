@@ -310,8 +310,8 @@ Create a new file `src/data-access/workflows.ts`:
 
 ```typescript
 import { eq, and } from 'drizzle-orm';
-import { workflows } from '../db/index.js';
-import type { DatabaseClient } from './client.js';
+import { workflows } from '../db/index';
+import type { DatabaseClient } from './client';
 
 // Get workflow by ID
 export const getWorkflowById = (db: DatabaseClient) => async (params: {
@@ -403,7 +403,7 @@ Update the relevant index files to export your new schemas and functions:
 
 In `src/data-access/index.ts`:
 ```typescript
-export * from './workflows.js';
+export * from './workflows';
 ```
 
 #### Step 6: Generate and Apply Migrations

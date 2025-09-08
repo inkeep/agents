@@ -1,10 +1,10 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '@inkeep/agents-core';
-import app from '../../../index.js';
-import dbClient from '../../../data/db/dbClient.js';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
+import app from '../../../index';
+import dbClient from '../../../data/db/dbClient';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Project CRUD Routes - Integration Tests', () => {
   // Helper function to create test project data

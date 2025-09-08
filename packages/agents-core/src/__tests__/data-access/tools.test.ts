@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getToolById,
   listTools,
@@ -10,9 +10,9 @@ import {
   addToolToAgent,
   removeToolFromAgent,
   updateToolStatus,
-} from '../../data-access/tools.js';
-import type { DatabaseClient } from '../../db/client.js';
-import type { ToolInsert } from '../../types/index.js';
+} from '../../data-access/tools';
+import type { DatabaseClient } from '../../db/client';
+import type { ToolInsert } from '../../types/index';
 
 describe('Tools Data Access', () => {
   let db: DatabaseClient;

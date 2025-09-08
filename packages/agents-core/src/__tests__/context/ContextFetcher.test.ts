@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ContextFetcher } from '../../context/ContextFetcher.js';
+import { ContextFetcher } from '../../context/ContextFetcher';
 import type { ContextFetchDefinition } from '@inkeep/agents-core';
-import { dbClient } from '../setup.js';
+import { dbClient } from '../setup';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

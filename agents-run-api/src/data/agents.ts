@@ -1,6 +1,6 @@
-import type { AgentCard, RegisteredAgent } from '../a2a/types.js';
-import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler.js';
-import dbClient from './db/dbClient.js';
+import type { AgentCard, RegisteredAgent } from '../a2a/types';
+import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
+import dbClient from './db/dbClient';
 import {
   type AgentSelect,
   ExecutionContext,
@@ -100,5 +100,10 @@ export async function getRegisteredAgent(
 
   const agentFrameworkBaseUrl = `${baseUrl}/agents`;
 
-  return hydrateAgent({ dbAgent, graphId, baseUrl: agentFrameworkBaseUrl, credentialStoreRegistry });
+  return hydrateAgent({
+    dbAgent,
+    graphId,
+    baseUrl: agentFrameworkBaseUrl,
+    credentialStoreRegistry,
+  });
 }

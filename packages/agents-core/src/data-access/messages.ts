@@ -1,13 +1,13 @@
 import { and, eq, asc, desc, inArray, count } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client.js';
-import { messages } from '../db/schema.js';
+import type { DatabaseClient } from '../db/client';
+import { messages } from '../db/schema';
 import type {
   MessageVisibility,
   ScopeConfig,
   MessageInsert,
   MessageUpdate,
   PaginationConfig,
-} from '../types/index.js';
+} from '../types/index';
 
 export const getMessageById =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; messageId: string }) => {

@@ -3,50 +3,50 @@ import type {
   InternalAgentDefinition,
   FullGraphDefinition,
   AgentDefinition,
-} from '../types/entities.js';
+} from '../types/entities';
 import {
   validateAndTypeGraphData,
   validateGraphStructure,
   isInternalAgent,
   isExternalAgent,
-} from '../validation/graphFull.js';
-import type { DatabaseClient } from '../db/client.js';
+} from '../validation/graphFull';
+import type { DatabaseClient } from '../db/client';
 import { and, eq } from 'drizzle-orm';
-import { agents, projects } from '../db/schema.js';
+import { agents, projects } from '../db/schema';
 
-import { upsertTool, upsertAgentToolRelation } from './tools.js';
-import { upsertContextConfig } from './contextConfigs.js';
+import { upsertTool, upsertAgentToolRelation } from './tools';
+import { upsertContextConfig } from './contextConfigs';
 import {
   upsertDataComponent,
   upsertAgentDataComponentRelation,
   associateDataComponentWithAgent,
   deleteAgentDataComponentRelationByAgent,
-} from './dataComponents.js';
+} from './dataComponents';
 import {
   upsertArtifactComponent,
   upsertAgentArtifactComponentRelation,
   deleteAgentArtifactComponentRelationByAgent,
   associateArtifactComponentWithAgent,
-} from './artifactComponents.js';
-import { upsertAgent } from './agents.js';
-import { upsertExternalAgent } from './externalAgents.js';
+} from './artifactComponents';
+import { upsertAgent } from './agents';
+import { upsertExternalAgent } from './externalAgents';
 import {
   getFullGraphDefinition,
   upsertAgentGraph,
   getAgentGraphById,
   updateAgentGraph,
   deleteAgentGraph,
-} from './agentGraphs.js';
-import { upsertCredentialReference } from './credentialReferences.js';
+} from './agentGraphs';
+import { upsertCredentialReference } from './credentialReferences';
 import {
   deleteAgentToolRelationByAgent,
   upsertAgentRelation,
   createAgentToolRelation,
   deleteAgentRelationsByGraph,
   createAgentRelation,
-} from './agentRelations.js';
+} from './agentRelations';
 import { nanoid } from 'nanoid';
-import { ScopeConfig } from '../types/utility.js';
+import { ScopeConfig } from '../types/utility';
 
 // Logger interface for dependency injection
 export interface GraphLogger {

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject.js';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
+import { ensureTestProject } from '../../utils/testProject';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock the app import with credential stores in context
 vi.mock('../../../index.js', async (importOriginal) => {
-  const { createManagementHono } = await importOriginal() as any;
-  
+  const { createManagementHono } = (await importOriginal()) as any;
+
   const mockCredentialStore = {
     id: 'mock-store',
     type: 'mock',
@@ -75,9 +75,11 @@ vi.mock('../../../index.js', async (importOriginal) => {
   };
 
   const mockConfig = { port: 3002, serverOptions: {} };
-  
+
   return {
-    default: createManagementHono ? createManagementHono(mockConfig, mockRegistry) : { request: vi.fn() },
+    default: createManagementHono
+      ? createManagementHono(mockConfig, mockRegistry)
+      : { request: vi.fn() },
     createManagementHono,
     createManagementApp: vi.fn(),
   };
@@ -99,7 +101,7 @@ declare global {
 }
 
 // Now import the app after mocking
-import app from '../../../index.js';
+import app from '../../../index';
 
 describe('Credential CRUD Routes - Integration Tests', () => {
   const projectId = 'default';

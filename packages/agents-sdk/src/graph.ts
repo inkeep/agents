@@ -1,7 +1,7 @@
 import type { FullGraphDefinition, CredentialReferenceApiInsert } from '@inkeep/agents-core';
 import { getLogger, getProject, createDatabaseClient } from '@inkeep/agents-core';
-import { updateFullGraphViaAPI } from './graphFullClient.js';
-import { ExternalAgent } from './externalAgent.js';
+import { updateFullGraphViaAPI } from './graphFullClient';
+import { ExternalAgent } from './externalAgent';
 import type {
   AgentInterface,
   AllAgentInterface,
@@ -14,7 +14,7 @@ import type {
   RunResult,
   StatusUpdateSettings,
   StreamResponse,
-} from './types.js';
+} from './types';
 
 const logger = getLogger('graph');
 
@@ -63,10 +63,11 @@ export class AgentGraph implements GraphInterface {
 
     // Initialize database client
     // In test environment, always use in-memory database
-    const dbUrl = process.env.ENVIRONMENT === 'test' 
-      ? ':memory:' 
-      : (process.env.DB_FILE_NAME || process.env.DATABASE_URL || ':memory:');
-    
+    const dbUrl =
+      process.env.ENVIRONMENT === 'test'
+        ? ':memory:'
+        : process.env.DB_FILE_NAME || process.env.DATABASE_URL || ':memory:';
+
     this.dbClient = createDatabaseClient({
       url: dbUrl,
     });

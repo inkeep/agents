@@ -2,9 +2,9 @@ import * as readline from 'node:readline';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
-import { ExecutionApiClient, ManagementApiClient } from '../api.js';
-import type { ValidatedConfiguration } from '../utils/config.js';
-import { validateConfiguration } from '../utils/config.js';
+import { ExecutionApiClient, ManagementApiClient } from '../api';
+import type { ValidatedConfiguration } from '../utils/config';
+import { validateConfiguration } from '../utils/config';
 
 export interface ChatOptions {
   tenantId?: string;

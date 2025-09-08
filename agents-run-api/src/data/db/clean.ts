@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { env } from '../../env.js';
+import { env } from '../../env';
 import {
   agentArtifactComponents,
   agentDataComponents,
@@ -20,7 +20,7 @@ import {
   tasks,
   tools,
 } from '@inkeep/agents-core';
-import dbClient from './dbClient.js';
+import dbClient from './dbClient';
 
 /**
  * Truncates all tables in the database, respecting foreign key constraints

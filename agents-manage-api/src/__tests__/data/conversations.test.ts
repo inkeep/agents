@@ -9,7 +9,7 @@ import {
   getConversationHistory,
   updateConversation,
 } from '@inkeep/agents-core';
-import dbClient from '../../data/db/dbClient.js';
+import dbClient from '../../data/db/dbClient';
 
 // Mock nanoid to return predictable IDs
 vi.mock('nanoid', async () => {

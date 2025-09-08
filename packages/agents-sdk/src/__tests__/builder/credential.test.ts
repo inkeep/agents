@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { credential } from '../../builders.js';
+import { credential } from '../../builders';
 
 describe('credential builder function', () => {
   it('should create a credential with required fields', () => {

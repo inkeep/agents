@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { getArtifactComponentsForAgent } from '@inkeep/agents-core';
-import { createTestTenantId } from '../utils/testTenant.js';
-import { ensureTestProject } from '../utils/testProject.js';
-import dbClient from '../../data/db/dbClient.js';
+import { createTestTenantId } from '../utils/testTenant';
+import { ensureTestProject } from '../utils/testProject';
+import dbClient from '../../data/db/dbClient';
 
 describe('Artifact Components Data Operations', () => {
   describe('getArtifactComponentsForAgent', () => {

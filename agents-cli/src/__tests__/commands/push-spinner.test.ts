@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { pushCommand } from '../../commands/push.js';
+import { pushCommand } from '../../commands/push';
 import { existsSync } from 'node:fs';
 import * as core from '@inkeep/agents-core';
 
@@ -55,24 +55,24 @@ describe('Push Command - TypeScript Loading', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     // Reset ora instance
     oraInstance = null;
-    
+
     // Ensure TSX_RUNNING is not set
     delete process.env.TSX_RUNNING;
-    
+
     // Mock file exists
     (existsSync as Mock).mockReturnValue(true);
-    
+
     // Mock process.exit
     mockExit = vi.fn();
     vi.spyOn(process, 'exit').mockImplementation(mockExit as any);
-    
+
     // Mock console methods
     vi.spyOn(console, 'log').mockImplementation(vi.fn());
     vi.spyOn(console, 'error').mockImplementation(vi.fn());
-    
+
     // Setup database client mock
     mockDbClient = {};
     mockGetProject = vi.fn();
@@ -81,11 +81,11 @@ describe('Push Command - TypeScript Loading', () => {
     (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
     (core.getProject as Mock).mockReturnValue(mockGetProject);
     (core.createProject as Mock).mockReturnValue(mockCreateProject);
-    
+
     // Get the mocked tsx-loader import function
     const tsxLoader = await import('../../utils/tsx-loader.js');
     mockImportWithTypeScriptSupport = tsxLoader.importWithTypeScriptSupport as Mock;
-    
+
     // Set DB_FILE_NAME to prevent database errors
     process.env.DB_FILE_NAME = 'test.db';
   });
@@ -97,7 +97,7 @@ describe('Push Command - TypeScript Loading', () => {
       name: 'Test Project',
       tenantId: 'test-tenant',
     });
-    
+
     // Mock graph module
     const mockGraph = {
       init: vi.fn().mockResolvedValue(undefined),
@@ -112,20 +112,20 @@ describe('Push Command - TypeScript Loading', () => {
       getDefaultAgent: vi.fn().mockReturnValue(null),
       setConfig: vi.fn(),
     };
-    
+
     mockImportWithTypeScriptSupport.mockResolvedValue({
       default: mockGraph,
     });
-    
+
     process.env.TSX_RUNNING = '1';
-    
+
     await pushCommand('/test/path/graph.ts', {});
-    
+
     // Verify TypeScript loader was used
     expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
       expect.stringContaining('/test/path/graph.ts')
     );
-    
+
     // Verify spinner was created and used correctly
     expect(oraInstance).toBeDefined();
     expect(oraInstance.start).toHaveBeenCalled();
@@ -134,14 +134,12 @@ describe('Push Command - TypeScript Loading', () => {
 
   it('should handle TypeScript import errors gracefully', async () => {
     // Mock import failure
-    mockImportWithTypeScriptSupport.mockRejectedValue(
-      new Error('Failed to load TypeScript file')
-    );
-    
+    mockImportWithTypeScriptSupport.mockRejectedValue(new Error('Failed to load TypeScript file'));
+
     process.env.TSX_RUNNING = '1';
-    
+
     await pushCommand('/test/path/graph.ts', {});
-    
+
     // Verify error handling
     expect(oraInstance.fail).toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
@@ -158,7 +156,7 @@ describe('Push Command - TypeScript Loading', () => {
       name: 'Test Project',
       tenantId: 'test-tenant',
     });
-    
+
     // Mock graph module
     const mockGraph = {
       init: vi.fn().mockResolvedValue(undefined),
@@ -173,20 +171,20 @@ describe('Push Command - TypeScript Loading', () => {
       getDefaultAgent: vi.fn().mockReturnValue(null),
       setConfig: vi.fn(),
     };
-    
+
     mockImportWithTypeScriptSupport.mockResolvedValue({
       default: mockGraph,
     });
-    
+
     process.env.TSX_RUNNING = '1';
-    
+
     await pushCommand('/test/path/graph.js', {});
-    
+
     // Verify loader was called for JS file too
     expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
       expect.stringContaining('/test/path/graph.js')
     );
-    
+
     // Verify success
     expect(oraInstance.succeed).toHaveBeenCalled();
     expect(mockExit).toHaveBeenCalledWith(0);

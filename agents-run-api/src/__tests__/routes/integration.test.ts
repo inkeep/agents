@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ExecutionHandler } from '../../handlers/executionHandler.js';
+import { ExecutionHandler } from '../../handlers/executionHandler';
 
 // Hoisted mocks for @inkeep/agents-core functions
 const {

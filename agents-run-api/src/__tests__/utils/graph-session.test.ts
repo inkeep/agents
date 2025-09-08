@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { GraphSession, graphSessionManager } from '../../utils/graph-session.js';
-import type { StreamHelper } from '../../utils/stream-helpers.js';
-import type { StatusUpdateSettings } from '../../builder/types.js';
+import { GraphSession, graphSessionManager } from '../../utils/graph-session';
+import type { StreamHelper } from '../../utils/stream-helpers';
+import type { StatusUpdateSettings } from '../../builder/types';
 
 // Mock the AI SDK
 vi.mock('ai', () => ({

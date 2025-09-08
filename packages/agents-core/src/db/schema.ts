@@ -21,8 +21,8 @@ import type {
   MessageContent,
   MessageMetadata,
   StatusUpdateSettings,
-} from '../types/utility.js';
-import type { Part } from '../types/a2a.js';
+} from '../types/utility';
+import type { Part } from '../types/a2a';
 
 // Projects table: Stores project metadata
 export const projects = sqliteTable(

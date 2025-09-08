@@ -3,7 +3,7 @@ import {
   createEnvironmentSettings,
   getAllEnvironmentSettingKeys,
   registerEnvironmentSettings,
-} from '../../environment-settings.js';
+} from '../../environment-settings';
 
 // Test fixtures and helpers
 const createMockCredential = (id: string, overrides = {}) => ({

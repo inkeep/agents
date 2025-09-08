@@ -2,7 +2,7 @@ import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import type { ModelSettings } from '@inkeep/agents-core';
-import type { FullGraphDefinition } from '../types/graph.js';
+import type { FullGraphDefinition } from '../types/graph';
 
 /**
  * Create a language model instance from configuration

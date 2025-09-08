@@ -1,6 +1,6 @@
 import { getLogger } from '@inkeep/agents-core';
-import { ArtifactComponent } from './artifact-component.js';
-import { DataComponent } from './data-component.js';
+import { ArtifactComponent } from './artifact-component';
+import { DataComponent } from './data-component';
 import type {
   AgentConfig,
   AgentInterface,
@@ -10,7 +10,7 @@ import type {
   Message,
   MessageInput,
   ToolCall,
-} from './types.js';
+} from './types';
 import {
   // getDataComponentsForAgent,
   // getArtifactComponentsForAgent,

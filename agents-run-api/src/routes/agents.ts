@@ -1,17 +1,17 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { a2aHandler } from '../a2a/handlers.js';
+import { a2aHandler } from '../a2a/handlers';
 import {
   getAgentGraphWithDefaultAgent,
   getRequestExecutionContext,
   HeadersScopeSchema,
   type CredentialStoreRegistry,
 } from '@inkeep/agents-core';
-import { getRegisteredGraph } from '../data/agentGraph.js';
-import { getRegisteredAgent } from '../data/agents.js';
-import { getLogger } from '../logger.js';
-import dbClient from '../data/db/dbClient.js';
+import { getRegisteredGraph } from '../data/agentGraph';
+import { getRegisteredAgent } from '../data/agents';
+import { getLogger } from '../logger';
+import dbClient from '../data/db/dbClient';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;

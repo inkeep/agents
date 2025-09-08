@@ -1,5 +1,5 @@
-import { getLogger } from '../logger.js';
-import dbClient from './db/dbClient.js';
+import { getLogger } from '../logger';
+import dbClient from './db/dbClient';
 
 import {
   type McpServerConfig,
@@ -213,7 +213,10 @@ export const checkToolHealth = async (
 };
 
 // Tool discovery
-export const discoverToolsFromServer = async (tool: McpTool, credentialStoreRegistry?: CredentialStoreRegistry): Promise<McpToolDefinition[]> => {
+export const discoverToolsFromServer = async (
+  tool: McpTool,
+  credentialStoreRegistry?: CredentialStoreRegistry
+): Promise<McpToolDefinition[]> => {
   try {
     const credentialReferenceId = tool.credentialReferenceId;
     let serverConfig: McpServerConfig;
@@ -362,7 +365,11 @@ export const syncToolDefinitions = async ({
 };
 
 // Bulk health checking
-export const checkAllToolsHealth = async (tenantId: string, projectId: string, credentialStoreRegistry?: CredentialStoreRegistry) => {
+export const checkAllToolsHealth = async (
+  tenantId: string,
+  projectId: string,
+  credentialStoreRegistry?: CredentialStoreRegistry
+) => {
   const toolsList = await listTools(dbClient)({ scopes: { tenantId, projectId } });
 
   const results = await Promise.allSettled(

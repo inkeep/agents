@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { ContextConfigBuilder, createRequestSchema } from '../../context/ContextConfig.js';
+import { ContextConfigBuilder, createRequestSchema } from '../../context/ContextConfig';
 
 describe('createRequestSchema', () => {
   it('should create a request schema with all HTTP parts', () => {

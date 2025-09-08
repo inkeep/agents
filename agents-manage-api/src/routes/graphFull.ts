@@ -12,8 +12,8 @@ import {
   SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
-import { getLogger } from '../logger.js';
+import dbClient from '../data/db/dbClient';
+import { getLogger } from '../logger';
 const logger = getLogger('graphFull');
 
 const app = new OpenAPIHono();

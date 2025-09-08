@@ -1,6 +1,6 @@
 import { and, eq, desc, count, inArray, like } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client.js';
+import type { DatabaseClient } from '../db/client';
 import {
   agents,
   agentArtifactComponents,
@@ -11,13 +11,13 @@ import {
   dataComponents,
   tools,
   projects,
-} from '../db/schema.js';
-import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities.js';
-import type { PaginationConfig, ScopeConfig } from '../types/utility.js';
-import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations.js';
-import { getAgentById } from './agents.js';
-import { getExternalAgent } from './externalAgents.js';
-import { getContextConfigById } from './contextConfigs.js';
+} from '../db/schema';
+import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities';
+import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
+import { getAgentById } from './agents';
+import { getExternalAgent } from './externalAgents';
+import { getContextConfigById } from './contextConfigs';
 
 export const getAgentGraph =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
@@ -653,13 +653,10 @@ export const getFullGraphDefinition =
       if (!db.query?.projects?.findFirst) {
         return result;
       }
-      
+
       // Get project stopWhen configuration
       const project = await db.query.projects.findFirst({
-        where: and(
-          eq(projects.tenantId, tenantId),
-          eq(projects.id, projectId)
-        ),
+        where: and(eq(projects.tenantId, tenantId), eq(projects.id, projectId)),
       });
 
       if (project?.stopWhen) {
@@ -671,26 +668,26 @@ export const getFullGraphDefinition =
             // Only apply to internal agents (not external agents with baseUrl)
             if (agentData && typeof agentData === 'object' && !('baseUrl' in agentData)) {
               const agent = agentData as any;
-              
+
               // Check if agent needs to inherit stepCountIs
               const needsInheritance = !agent.stopWhen || agent.stopWhen.stepCountIs === undefined;
-              
+
               if (needsInheritance) {
                 // Initialize agent stopWhen if it doesn't exist or is null
                 if (!agent.stopWhen) {
                   agent.stopWhen = {};
                 }
-                
+
                 // Set stepCountIs in stopWhen
                 agent.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
-                
+
                 // Persist the inherited value to the database
                 try {
                   await db
                     .update(agents)
-                    .set({ 
+                    .set({
                       stopWhen: agent.stopWhen,
-                      updatedAt: new Date().toISOString()
+                      updatedAt: new Date().toISOString(),
                     })
                     .where(
                       and(
@@ -699,12 +696,12 @@ export const getFullGraphDefinition =
                         eq(agents.id, agentId)
                       )
                     );
-                  
+
                   // Update the in-memory agent data to reflect the persisted values
                   // This ensures the UI gets the updated data
                   result.agents[agentId] = {
                     ...result.agents[agentId],
-                    stopWhen: agent.stopWhen
+                    stopWhen: agent.stopWhen,
                   };
                 } catch (dbError) {
                   console.warn(`Failed to persist stopWhen for agent ${agentId}:`, dbError);

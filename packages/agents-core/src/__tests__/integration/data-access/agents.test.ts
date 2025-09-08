@@ -3,17 +3,17 @@ import {
   createTestDatabaseClient,
   cleanupTestDatabase,
   closeTestDatabase,
-} from '../../../db/test-client.js';
+} from '../../../db/test-client';
 import {
   createAgent,
   getAgentById,
   listAgents,
   updateAgent,
   deleteAgent,
-} from '../../../data-access/agents.js';
-import type { DatabaseClient } from '../../../db/client.js';
-import { AgentInsertSchema } from '../../../validation/schemas.js';
-import * as schema from '../../../db/schema.js';
+} from '../../../data-access/agents';
+import type { DatabaseClient } from '../../../db/client';
+import { AgentInsertSchema } from '../../../validation/schemas';
+import * as schema from '../../../db/schema';
 
 describe('Agents Data Access - Integration Tests', () => {
   let db: DatabaseClient;

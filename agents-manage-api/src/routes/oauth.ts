@@ -20,9 +20,9 @@ import {
   type CredentialStoreRegistry,
   type ServerConfig,
 } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
-import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service.js';
-import dbClient from '../data/db/dbClient.js';
+import { getLogger } from '../logger';
+import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
+import dbClient from '../data/db/dbClient';
 
 type AppVariables = {
   serverConfig: ServerConfig;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getCacheEntry,
   setCacheEntry,
@@ -10,9 +10,9 @@ import {
   invalidateInvocationDefinitionsCache,
   getConversationCacheEntries,
   getContextConfigCacheEntries,
-} from '../../data-access/contextCache.js';
-import type { DatabaseClient } from '../../db/client.js';
-import type { ContextCacheInsert } from '../../types/entities.js';
+} from '../../data-access/contextCache';
+import type { DatabaseClient } from '../../db/client';
+import type { ContextCacheInsert } from '../../types/entities';
 
 describe('Context Cache Data Access', () => {
   let db: DatabaseClient;

@@ -4,8 +4,8 @@
  */
 
 import type { McpTool } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
-import { discoverOAuthEndpoints, type OAuthConfig } from './auth-detection.js';
+import { getLogger } from '../logger';
+import { discoverOAuthEndpoints, type OAuthConfig } from './auth-detection';
 
 const logger = getLogger('oauth-service');
 

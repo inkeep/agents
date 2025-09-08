@@ -8,8 +8,8 @@ import type {
   RunResult,
   StreamResponse,
   ToolCall,
-} from './types.js';
-import { MaxTurnsExceededError, ToolExecutionError } from './types.js';
+} from './types';
+import { MaxTurnsExceededError, ToolExecutionError } from './types';
 
 const logger = getLogger('runner');
 

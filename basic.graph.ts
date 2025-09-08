@@ -1,4 +1,4 @@
-import { agent, agentGraph } from './packages/agents-sdk/dist/index.js';
+import { agent, agentGraph } from './packages/agents-sdk/dist/index';
 
 const basicAgent = agent({
   id: 'basic-agent',

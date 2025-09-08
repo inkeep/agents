@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getDataComponent,
   listDataComponents,
@@ -13,9 +13,9 @@ import {
   getAgentsUsingDataComponent,
   isDataComponentAssociatedWithAgent,
   countDataComponents,
-} from '../../data-access/dataComponents.js';
-import type { DatabaseClient } from '../../db/client.js';
-import type { DataComponentInsert, ScopeConfig } from '../../types/index.js';
+} from '../../data-access/dataComponents';
+import type { DatabaseClient } from '../../db/client';
+import type { DataComponentInsert, ScopeConfig } from '../../types/index';
 
 describe('Data Components Data Access', () => {
   let db: DatabaseClient;

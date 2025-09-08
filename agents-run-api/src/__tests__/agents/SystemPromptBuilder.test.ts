@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { SystemPromptBuilder } from '../../agents/SystemPromptBuilder.js';
-import type { SystemPromptV1 } from '../../agents/types.js';
-import { V1Config } from '../../agents/versions/V1Config.js';
+import { SystemPromptBuilder } from '../../agents/SystemPromptBuilder';
+import type { SystemPromptV1 } from '../../agents/types';
+import { V1Config } from '../../agents/versions/V1Config';
 import type { McpTool } from '@inkeep/agents-core';
 
 // Mock the file system

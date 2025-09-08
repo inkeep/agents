@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client.js';
-import { contextCache } from '../db/schema.js';
-import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities.js';
-import type { ScopeConfig } from '../types/utility.js';
+import type { DatabaseClient } from '../db/client';
+import { contextCache } from '../db/schema';
+import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities';
+import type { ScopeConfig } from '../types/utility';
 
 /**
  * Get cached context data for a conversation with optional request hash validation

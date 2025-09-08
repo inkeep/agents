@@ -3,7 +3,7 @@ import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core'
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 import {
   type McpTool,
   type McpToolStatus,
@@ -30,9 +30,9 @@ import {
   checkToolHealth,
   syncToolDefinitions,
   updateToolHealth,
-} from '../data/tools.js';
-import { oauthService } from '../utils/oauth-service.js';
-import dbClient from '../data/db/dbClient.js';
+} from '../data/tools';
+import { oauthService } from '../utils/oauth-service';
+import dbClient from '../data/db/dbClient';
 
 type AppVariables = {
   serverConfig: ServerConfig;

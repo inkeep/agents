@@ -1,19 +1,14 @@
 import { and, eq, desc, count } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client.js';
-import { apiKeys } from '../db/schema.js';
-import type { ApiKeyInsert, ApiKeySelect, ApiKeyUpdate } from '../types/entities.js';
+import type { DatabaseClient } from '../db/client';
+import { apiKeys } from '../db/schema';
+import type { ApiKeyInsert, ApiKeySelect, ApiKeyUpdate } from '../types/entities';
 import type {
   PaginationConfig,
   ScopeConfig,
   CreateApiKeyParams,
   ApiKeyCreateResult,
-} from '../types/utility.js';
-import {
-  extractPublicId,
-  generateApiKey,
-  isApiKeyExpired,
-  validateApiKey,
-} from '../utils/apiKeys.js';
+} from '../types/utility';
+import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../utils/apiKeys';
 
 export const getApiKeyById =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; id: string }) => {

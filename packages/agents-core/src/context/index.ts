@@ -1,23 +1,28 @@
 // Context system exports
 
-export type { ContextConfigBuilderOptions } from './ContextConfig.js';
-export { ContextConfigBuilder, contextConfig, fetchDefinition, createRequestSchema } from './ContextConfig.js';
-export type { FetchResult } from './ContextFetcher.js';
-export { ContextFetcher } from './ContextFetcher.js';
+export type { ContextConfigBuilderOptions } from './ContextConfig';
+export {
+  ContextConfigBuilder,
+  contextConfig,
+  fetchDefinition,
+  createRequestSchema,
+} from './ContextConfig';
+export type { FetchResult } from './ContextFetcher';
+export { ContextFetcher } from './ContextFetcher';
 export type {
   ContextResolutionOptions,
   ContextResolutionResult,
   ResolvedContext,
-} from './ContextResolver.js';
-export { ContextResolver } from './ContextResolver.js';
+} from './ContextResolver';
+export { ContextResolver } from './ContextResolver';
 export type {
   TemplateContext,
   TemplateRenderOptions,
-} from './TemplateEngine.js';
-export { TemplateEngine } from './TemplateEngine.js';
-export { ContextCache } from './contextCache.js';
+} from './TemplateEngine';
+export { TemplateEngine } from './TemplateEngine';
+export { ContextCache } from './contextCache';
 export {
   handleContextResolution,
   handleContextConfigChange,
   determineContextTrigger,
-} from './context.js';
+} from './context';

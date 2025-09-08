@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
-import { ensureTestProject } from '../utils/testProject.js';
+import { ensureTestProject } from '../utils/testProject';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createTask } from '@inkeep/agents-core';
-import dbClient from '../../data/db/dbClient.js';
+import dbClient from '../../data/db/dbClient';
 import { agents, tasks } from '@inkeep/agents-core';
 
 describe('Delegation Task Creation Fixes', () => {

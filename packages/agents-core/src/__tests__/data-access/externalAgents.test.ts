@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   createExternalAgent,
   getExternalAgent,
@@ -11,8 +11,8 @@ import {
   externalAgentExists,
   externalAgentUrlExists,
   countExternalAgents,
-} from '../../data-access/externalAgents.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/externalAgents';
+import type { DatabaseClient } from '../../db/client';
 
 describe('External Agents Data Access', () => {
   let db: DatabaseClient;

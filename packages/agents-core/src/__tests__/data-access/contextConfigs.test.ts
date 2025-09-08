@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getContextConfigById,
   listContextConfigs,
@@ -10,8 +10,8 @@ import {
   hasContextConfig,
   countContextConfigs,
   getContextConfigsByName,
-} from '../../data-access/contextConfigs.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/contextConfigs';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Context Configs Data Access', () => {
   let db: DatabaseClient;

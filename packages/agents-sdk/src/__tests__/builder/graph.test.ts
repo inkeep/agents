@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Agent } from '../../agent.js';
-import { ExternalAgent } from '../../externalAgent.js';
-import { AgentGraph } from '../../graph.js';
-import { Tool } from '../../tool.js';
-import type { GenerateOptions, GraphConfig, MessageInput } from '../../types.js';
+import { Agent } from '../../agent';
+import { ExternalAgent } from '../../externalAgent';
+import { AgentGraph } from '../../graph';
+import { Tool } from '../../tool';
+import type { GenerateOptions, GraphConfig, MessageInput } from '../../types';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -1396,6 +1396,5 @@ describe('AgentGraph', () => {
       expect(agent.getDataComponents()).toEqual([dataComponent]);
       expect(agent.getArtifactComponents()).toEqual([artifactComponent]);
     });
-
   });
 });

@@ -1,12 +1,12 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
-import { agent, agentGraph, tool } from '../../index.js';
+import { agent, agentGraph, tool } from '../../index';
 import * as graphFullModule from '@inkeep/agents-core';
-import { createTestTenantId } from '../utils/testTenant.js';
+import { createTestTenantId } from '../utils/testTenant';
 
 // Mock @inkeep/agents-core
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     getLogger: () => ({

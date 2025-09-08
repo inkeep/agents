@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ExecutionApiClient, ManagementApiClient } from '../api.js';
+import { ExecutionApiClient, ManagementApiClient } from '../api';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

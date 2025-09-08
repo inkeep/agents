@@ -2,7 +2,7 @@ import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import { nanoid } from 'nanoid';
 import z from 'zod';
-import { A2AClient } from '../a2a/client.js';
+import { A2AClient } from '../a2a/client';
 import {
   createMessage,
   getCredentialReference,
@@ -12,13 +12,13 @@ import {
   ContextResolver,
   CredentialStoreRegistry,
 } from '@inkeep/agents-core';
-import { saveA2AMessageResponse } from '../data/conversations.js';
-import dbClient from '../data/db/dbClient.js';
-import { env } from '../env.js';
-import { getLogger } from '../logger.js';
-import { graphSessionManager } from '../utils/graph-session.js';
-import type { AgentConfig, DelegateRelation } from './Agent.js';
-import { toolSessionManager } from './ToolSessionManager.js';
+import { saveA2AMessageResponse } from '../data/conversations';
+import dbClient from '../data/db/dbClient';
+import { env } from '../env';
+import { getLogger } from '../logger';
+import { graphSessionManager } from '../utils/graph-session';
+import type { AgentConfig, DelegateRelation } from './Agent';
+import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
 
@@ -173,7 +173,11 @@ export function createDelegateToAgentTool({
         });
 
         // If the external agent has a credential reference ID or headers, resolve them
-        if (externalAgent && (externalAgent.credentialReferenceId || externalAgent.headers) && credentialStoreRegistry) {
+        if (
+          externalAgent &&
+          (externalAgent.credentialReferenceId || externalAgent.headers) &&
+          credentialStoreRegistry
+        ) {
           const contextResolver = new ContextResolver(
             tenantId,
             projectId,

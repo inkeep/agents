@@ -24,11 +24,11 @@ import {
   updateConversation,
   getRequestExecutionContext,
 } from '@inkeep/agents-core';
-import { ExecutionHandler } from '../handlers/executionHandler.js';
-import { getLogger } from '../logger.js';
-import { createMCPStreamHelper } from '../utils/stream-helpers.js';
+import { ExecutionHandler } from '../handlers/executionHandler';
+import { getLogger } from '../logger';
+import { createMCPStreamHelper } from '../utils/stream-helpers';
 import type { ExecutionContext } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
+import dbClient from '../data/db/dbClient';
 const logger = getLogger('mcp');
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getAgentRelationById,
   listAgentRelations,
@@ -18,8 +18,8 @@ import {
   validateInternalAgent,
   validateExternalAgent,
   getToolsForAgent,
-} from '../../data-access/agentRelations.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/agentRelations';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;

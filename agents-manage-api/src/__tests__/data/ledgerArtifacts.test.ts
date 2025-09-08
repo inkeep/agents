@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
-import { ensureTestProject } from '../utils/testProject.js';
+import { ensureTestProject } from '../utils/testProject';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
-import dbClient from '../../data/db/dbClient.js';
+import dbClient from '../../data/db/dbClient';
 import {
   agents,
   conversations,

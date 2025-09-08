@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentConfig, ExternalAgentConfig } from '../../agents/Agent.js';
-import { createDelegateToAgentTool, createTransferToAgentTool } from '../../agents/relationTools.js';
-import { saveA2AMessageResponse } from '../../data/conversations.js';
+import type { AgentConfig, ExternalAgentConfig } from '../../agents/Agent';
+import { createDelegateToAgentTool, createTransferToAgentTool } from '../../agents/relationTools';
+import { saveA2AMessageResponse } from '../../data/conversations';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const { createMessageMock, getCredentialReferenceMock, getExternalAgentMock } = vi.hoisted(() => {

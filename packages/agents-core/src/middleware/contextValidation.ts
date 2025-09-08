@@ -1,12 +1,12 @@
 import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
-import { ContextResolver } from '../context/ContextResolver.js';
-import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs.js';
-import { getContextConfigById } from '../data-access/contextConfigs.js';
-import type { ContextConfigSelect } from '../types/entities.js';
-import { getLogger } from '../utils/logger.js';
-import type { DatabaseClient } from '../db/client.js';
-import { getRequestExecutionContext } from '../utils/execution.js';
+import { ContextResolver } from '../context/ContextResolver';
+import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs';
+import { getContextConfigById } from '../data-access/contextConfigs';
+import type { ContextConfigSelect } from '../types/entities';
+import { getLogger } from '../utils/logger';
+import type { DatabaseClient } from '../db/client';
+import { getRequestExecutionContext } from '../utils/execution';
 
 const logger = getLogger('context-validation');
 

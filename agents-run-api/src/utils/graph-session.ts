@@ -1,19 +1,19 @@
 import { generateText, generateObject } from 'ai';
 import { z } from 'zod';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { ModelFactory } from '../agents/ModelFactory.js';
-import { getLogger } from '../logger.js';
-import { getGlobalTracer, createSpanName, handleSpanError } from '../tracer.js';
-import { statusUpdateOp } from './agent-operations.js';
-import { getStreamHelper } from './stream-registry.js';
+import { ModelFactory } from '../agents/ModelFactory';
+import { getLogger } from '../logger';
+import { getGlobalTracer, createSpanName, handleSpanError } from '../tracer';
+import { statusUpdateOp } from './agent-operations';
+import { getStreamHelper } from './stream-registry';
 import type {
   Artifact,
   StatusUpdateSettings,
   StatusComponent,
   ModelSettings,
 } from '@inkeep/agents-core';
-import { getFormattedConversationHistory } from '../data/conversations.js';
-import dbClient from '../data/db/dbClient.js';
+import { getFormattedConversationHistory } from '../data/conversations';
+import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('GraphSession');
 const tracer = getGlobalTracer();
@@ -649,7 +649,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const prompt = basePrompt;
 
           const model = ModelFactory.createModel(
-            (summarizerModel && summarizerModel.model?.trim()) ? summarizerModel : { model: 'openai/gpt-4.1-nano-2025-04-14' }
+            summarizerModel && summarizerModel.model?.trim()
+              ? summarizerModel
+              : { model: 'openai/gpt-4.1-nano-2025-04-14' }
           );
 
           const { text } = await generateText({
@@ -785,7 +787,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const prompt = basePrompt;
 
           const model = ModelFactory.createModel(
-            (summarizerModel && summarizerModel.model?.trim()) ? summarizerModel : { model: 'openai/gpt-4.1-nano-2025-04-14' }
+            summarizerModel && summarizerModel.model?.trim()
+              ? summarizerModel
+              : { model: 'openai/gpt-4.1-nano-2025-04-14' }
           );
 
           const { object } = await generateObject({

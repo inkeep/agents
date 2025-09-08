@@ -3,17 +3,17 @@ import {
   createTestDatabaseClient,
   cleanupTestDatabase,
   closeTestDatabase,
-} from '../../../db/test-client.js';
+} from '../../../db/test-client';
 import {
   createTool,
   getToolById,
   listTools,
   updateTool,
   deleteTool,
-} from '../../../data-access/tools.js';
-import type { DatabaseClient } from '../../../db/client.js';
-import { ToolInsertSchema } from '../../../validation/schemas.js';
-import type { ToolInsert } from '../../../types/index.js';
+} from '../../../data-access/tools';
+import type { DatabaseClient } from '../../../db/client';
+import { ToolInsertSchema } from '../../../validation/schemas';
+import type { ToolInsert } from '../../../types/index';
 
 // Helper function to create test tool data
 const createToolData = ({ suffix = '' }: { suffix?: string } = {}): ToolInsert => ({

@@ -1,7 +1,7 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 
 const logger = getLogger('ModelFactory');
 
@@ -33,7 +33,7 @@ export class ModelFactory {
 
     // Extract provider from model string (e.g., "anthropic/claude-4-sonnet" -> "anthropic")
     // Handle empty strings by falling back to default
-    const modelString = (modelSettings.model?.trim()) || ModelFactory.DEFAULT_MODEL_CONFIG.model!;
+    const modelString = modelSettings.model?.trim() || ModelFactory.DEFAULT_MODEL_CONFIG.model!;
     const { provider, modelName } = ModelFactory.parseModelString(modelString);
 
     logger.debug(
@@ -135,7 +135,10 @@ export class ModelFactory {
 
     // Handle AI Gateway configuration if present
     if (providerOptions?.gateway) {
-      logger.info({ gateway: providerOptions.gateway }, 'Setting up AI Gateway for Anthropic model');
+      logger.info(
+        { gateway: providerOptions.gateway },
+        'Setting up AI Gateway for Anthropic model'
+      );
       // AI Gateway configuration would go here
       // This depends on the specific gateway implementation
       Object.assign(anthropicConfig, providerOptions.gateway);
@@ -193,9 +196,7 @@ export class ModelFactory {
    * Get generation parameters from provider options
    * These are parameters that get passed to generateText/streamText calls
    */
-  static getGenerationParams(
-    providerOptions?: Record<string, unknown>
-  ): Record<string, unknown> {
+  static getGenerationParams(providerOptions?: Record<string, unknown>): Record<string, unknown> {
     if (!providerOptions) {
       return {};
     }
@@ -220,8 +221,10 @@ export class ModelFactory {
    * Returns model instance and generation parameters ready to spread into generateText/streamText
    * Includes maxDuration if specified in provider options (in seconds, following Vercel standard)
    */
-  static prepareGenerationConfig(modelSettings?: ModelSettings): { model: LanguageModel; maxDuration?: number } & Record<string, unknown> {
-    const modelString = (modelSettings?.model?.trim()) || 'anthropic/claude-4-sonnet-20250514';
+  static prepareGenerationConfig(
+    modelSettings?: ModelSettings
+  ): { model: LanguageModel; maxDuration?: number } & Record<string, unknown> {
+    const modelString = modelSettings?.model?.trim() || 'anthropic/claude-4-sonnet-20250514';
 
     // Create the model instance
     const model = ModelFactory.createModel({
@@ -230,9 +233,7 @@ export class ModelFactory {
     });
 
     // Get generation parameters (excludes maxDuration)
-    const generationParams = ModelFactory.getGenerationParams(
-      modelSettings?.providerOptions
-    );
+    const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);
 
     // Extract maxDuration if present (Vercel standard, in seconds)
     const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
@@ -261,7 +262,7 @@ export class ModelFactory {
       if (config.providerOptions.apiKey) {
         errors.push(
           'API keys should not be stored in provider options. ' +
-          'Use environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY) or credential store instead.'
+            'Use environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY) or credential store instead.'
         );
       }
 

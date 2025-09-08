@@ -1,4 +1,4 @@
-import { createManagementHono } from './app.js';
+import { createManagementHono } from './app';
 import {
   CredentialStoreRegistry,
   createDefaultCredentialStores,

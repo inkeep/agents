@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import * as schema from './schema.js';
+import * as schema from './schema';
 import { sql } from 'drizzle-orm';
 import { readFileSync, readdirSync, mkdirSync, unlinkSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -47,12 +47,12 @@ export async function createTestDatabaseClient(
     // Find the first migration file dynamically (drizzle uses random names)
     const drizzleDir = join(__dirname, '../../drizzle');
     const files = readdirSync(drizzleDir);
-    const migrationFile = files.find(f => f.startsWith('0000_') && f.endsWith('.sql'));
-    
+    const migrationFile = files.find((f) => f.startsWith('0000_') && f.endsWith('.sql'));
+
     if (!migrationFile) {
       throw new Error('No migration file found. Run: pnpm drizzle-kit generate');
     }
-    
+
     const migrationPath = join(drizzleDir, migrationFile);
     const migrationSql = readFileSync(migrationPath, 'utf8');
 

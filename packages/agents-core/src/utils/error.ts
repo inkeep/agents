@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
-import { getLogger } from './logger.js';
+import { getLogger } from './logger';
 
 export const ErrorCode = z.enum([
   'bad_request',

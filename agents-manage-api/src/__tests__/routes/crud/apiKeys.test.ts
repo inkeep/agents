@@ -1,10 +1,10 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { createFullGraphServerSide, extractPublicId } from '@inkeep/agents-core';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
-import { ensureTestProject } from '../../utils/testProject.js';
-import dbClient from '../../../data/db/dbClient.js';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
+import { ensureTestProject } from '../../utils/testProject';
+import dbClient from '../../../data/db/dbClient';
 
 describe('API Key CRUD Routes - Integration Tests', () => {
   // Helper function to create test agent data

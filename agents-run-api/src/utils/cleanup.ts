@@ -3,7 +3,7 @@
  * Helps prevent Node.js processes from hanging
  */
 
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 
 const logger = getLogger('cleanup');
 

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 
 const logger = getLogger('ToolSessionManager');
 

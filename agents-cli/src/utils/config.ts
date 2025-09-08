@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { ModelSettings } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
-import { importWithTypeScriptSupport } from './tsx-loader.js';
+import { importWithTypeScriptSupport } from './tsx-loader';
 
 // Load .env file from current directory if it exists
 dotenv.config({ quiet: true });

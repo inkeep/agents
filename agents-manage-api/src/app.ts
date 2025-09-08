@@ -6,11 +6,11 @@ import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
 import { handleApiError } from '@inkeep/agents-core';
-import { getLogger } from './logger.js';
-import crudRoutes from './routes/index.js';
-import { apiKeyAuth } from './middleware/auth.js';
-import oauthRoutes from './routes/oauth.js';
-import { setupOpenAPIRoutes } from './openapi.js';
+import { getLogger } from './logger';
+import crudRoutes from './routes/index';
+import { apiKeyAuth } from './middleware/auth';
+import oauthRoutes from './routes/oauth';
+import { setupOpenAPIRoutes } from './openapi';
 
 type AppVariables = {
   serverConfig: ServerConfig;

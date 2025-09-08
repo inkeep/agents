@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createKeyChainStore, type KeyChainStore } from '../../credential-stores/keychain-store.js';
+import { createKeyChainStore, type KeyChainStore } from '../../credential-stores/keychain-store';
 
 /**
  * Integration tests for KeyChainStore

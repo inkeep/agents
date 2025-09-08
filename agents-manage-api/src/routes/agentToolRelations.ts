@@ -22,7 +22,7 @@ import {
   updateAgentToolRelation,
   deleteAgentToolRelation,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
+import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
@@ -290,20 +290,21 @@ app.openapi(
     }
 
     try {
-    const agentToolRelation = await createAgentToolRelation(dbClient)({
-      scopes: { tenantId, projectId },
-      data: body,
-    });
-    return c.json({ data: agentToolRelation }, 201);
+      const agentToolRelation = await createAgentToolRelation(dbClient)({
+        scopes: { tenantId, projectId },
+        data: body,
+      });
+      return c.json({ data: agentToolRelation }, 201);
     } catch (error) {
       // Handle foreign key constraint violations
-      if (error instanceof Error && (
-        error.message.includes('FOREIGN KEY constraint failed') ||
-        error.message.includes('foreign key constraint') ||
-        error.message.includes('SQLITE_CONSTRAINT_FOREIGNKEY') ||
-        (error as any).code === 'SQLITE_CONSTRAINT_FOREIGNKEY' ||
-        (error as any)?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY'
-      )) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('FOREIGN KEY constraint failed') ||
+          error.message.includes('foreign key constraint') ||
+          error.message.includes('SQLITE_CONSTRAINT_FOREIGNKEY') ||
+          (error as any).code === 'SQLITE_CONSTRAINT_FOREIGNKEY' ||
+          (error as any)?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY')
+      ) {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid agent ID or tool ID - referenced entity does not exist',

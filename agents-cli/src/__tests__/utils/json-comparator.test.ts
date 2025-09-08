@@ -3,7 +3,7 @@ import {
   compareJsonObjects,
   getDifferenceSummary,
   normalizeJsonObject,
-} from '../../utils/json-comparator.js';
+} from '../../utils/json-comparator';
 
 describe('json-comparator', () => {
   describe('compareJsonObjects', () => {

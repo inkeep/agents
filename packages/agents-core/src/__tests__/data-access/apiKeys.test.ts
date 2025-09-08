@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getApiKeyById,
   getApiKeyByPublicId,
@@ -11,7 +11,7 @@ import {
   hasApiKey,
   updateApiKeyLastUsed,
   countApiKeys,
-} from '../../data-access/apiKeys.js';
+} from '../../data-access/apiKeys';
 import {
   extractPublicId,
   generateApiKey,
@@ -19,8 +19,8 @@ import {
   isApiKeyExpired,
   maskApiKey,
   validateApiKey,
-} from '../../utils/apiKeys.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../utils/apiKeys';
+import type { DatabaseClient } from '../../db/client';
 
 describe('API Keys Data Access', () => {
   let db: DatabaseClient;

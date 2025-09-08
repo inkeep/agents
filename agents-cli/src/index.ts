@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { configGetCommand, configListCommand, configSetCommand } from './commands/config.js';
-import { initCommand } from './commands/init.js';
-import { listGraphsCommand } from './commands/list-graphs.js';
-import { pullCommand } from './commands/pull.js';
-import { pushCommand } from './commands/push.js';
+import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
+import { initCommand } from './commands/init';
+import { listGraphsCommand } from './commands/list-graphs';
+import { pullCommand } from './commands/pull';
+import { pushCommand } from './commands/push';
 
 // Get the current directory for ESM
 const __filename = fileURLToPath(import.meta.url);

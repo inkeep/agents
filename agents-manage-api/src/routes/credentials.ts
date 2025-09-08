@@ -21,7 +21,7 @@ import {
   updateCredentialReference,
   getCredentialStoreLookupKeyFromRetrievalParams,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
+import dbClient from '../data/db/dbClient';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;

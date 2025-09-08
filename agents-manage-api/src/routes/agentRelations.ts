@@ -24,7 +24,7 @@ import {
   updateAgentRelation,
   deleteAgentRelation,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient.js';
+import dbClient from '../data/db/dbClient';
 import { nanoid } from 'nanoid';
 
 const app = new OpenAPIHono();

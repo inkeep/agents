@@ -1,8 +1,8 @@
-import type { RegisteredAgent } from '../a2a/types.js';
-import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler.js';
+import type { RegisteredAgent } from '../a2a/types';
+import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
 import { type AgentGraphSelect, getAgentById, getAgentGraph } from '@inkeep/agents-core';
-import dbClient from './db/dbClient.js';
+import dbClient from './db/dbClient';
 
 // Hydrate graph function
 async function hydrateGraph({

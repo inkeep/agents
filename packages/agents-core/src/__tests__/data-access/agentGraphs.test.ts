@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getAgentGraph,
   getAgentGraphById,
@@ -9,8 +9,8 @@ import {
   createAgentGraph,
   updateAgentGraph,
   deleteAgentGraph,
-} from '../../data-access/agentGraphs.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/agentGraphs';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Agent Graph Data Access', () => {
   let db: DatabaseClient;

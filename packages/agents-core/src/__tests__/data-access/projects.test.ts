@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   listProjects,
   listProjectsPaginated,
@@ -12,8 +12,8 @@ import {
   deleteProject,
   projectExistsInTable,
   projectHasResources,
-} from '../../data-access/projects.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/projects';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Projects Data Access', () => {
   let db: DatabaseClient;
@@ -468,22 +468,35 @@ describe('Projects Data Access', () => {
 
   describe('listProjectsPaginated', () => {
     it('should list projects with pagination', async () => {
-      const mockSelect = vi.fn()
-        .mockReturnValueOnce({ // First call - projects data
+      const mockSelect = vi
+        .fn()
+        .mockReturnValueOnce({
+          // First call - projects data
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({
                 offset: vi.fn().mockReturnValue({
                   orderBy: vi.fn().mockResolvedValue([
-                    { id: testProjectId1, tenantId: testTenantId, name: 'Project 1', description: 'Desc 1' },
-                    { id: testProjectId2, tenantId: testTenantId, name: 'Project 2', description: 'Desc 2' },
+                    {
+                      id: testProjectId1,
+                      tenantId: testTenantId,
+                      name: 'Project 1',
+                      description: 'Desc 1',
+                    },
+                    {
+                      id: testProjectId2,
+                      tenantId: testTenantId,
+                      name: 'Project 2',
+                      description: 'Desc 2',
+                    },
                   ]),
                 }),
               }),
             }),
           }),
         })
-        .mockReturnValueOnce({ // Second call - count
+        .mockReturnValueOnce({
+          // Second call - count
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockResolvedValue([{ count: 2 }]),
           }),
@@ -504,8 +517,10 @@ describe('Projects Data Access', () => {
     });
 
     it('should handle pagination with empty results', async () => {
-      const mockSelect = vi.fn()
-        .mockReturnValueOnce({ // First call - projects data
+      const mockSelect = vi
+        .fn()
+        .mockReturnValueOnce({
+          // First call - projects data
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({
@@ -516,7 +531,8 @@ describe('Projects Data Access', () => {
             }),
           }),
         })
-        .mockReturnValueOnce({ // Second call - count
+        .mockReturnValueOnce({
+          // Second call - count
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockResolvedValue([{ count: 0 }]),
           }),
@@ -684,15 +700,18 @@ describe('Projects Data Access', () => {
 
   describe('deleteProject', () => {
     it('should delete a project when it has no resources', async () => {
-      const mockSelect = vi.fn()
-        .mockReturnValueOnce({ // First call - projectExistsInTable (should return true)
+      const mockSelect = vi
+        .fn()
+        .mockReturnValueOnce({
+          // First call - projectExistsInTable (should return true)
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
             }),
           }),
         })
-        .mockReturnValue({ // Subsequent calls - projectExists checks (should return false/empty)
+        .mockReturnValue({
+          // Subsequent calls - projectExists checks (should return false/empty)
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockResolvedValue([]), // No resources
@@ -745,15 +764,18 @@ describe('Projects Data Access', () => {
     });
 
     it('should throw error when project has resources', async () => {
-      const mockSelect = vi.fn()
-        .mockReturnValueOnce({ // First call - projectExistsInTable (should return true)
+      const mockSelect = vi
+        .fn()
+        .mockReturnValueOnce({
+          // First call - projectExistsInTable (should return true)
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
             }),
           }),
         })
-        .mockReturnValue({ // Subsequent calls - projectExists checks (should return true/has resources)
+        .mockReturnValue({
+          // Subsequent calls - projectExists checks (should return true/has resources)
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
               limit: vi.fn().mockResolvedValue([{ id: 'agent-1' }]), // Has resources

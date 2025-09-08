@@ -3,7 +3,7 @@
  */
 
 import type { McpTool } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
+import { getLogger } from '../logger';
 
 const logger = getLogger('auth-detection');
 

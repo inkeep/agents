@@ -1,7 +1,7 @@
 import { type AllAuthCredentials, type AuthModeType, Nango } from '@nangohq/node';
 import { z } from 'zod';
-import type { CredentialStore } from '../types/server.js';
-import { getLogger } from '../utils/logger.js';
+import type { CredentialStore } from '../types/server';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('nango-credential-store');
 

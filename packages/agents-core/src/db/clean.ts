@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { env } from '../env.js';
+import { env } from '../env';
 import {
   agentArtifactComponents,
   agentDataComponents,
@@ -20,7 +20,7 @@ import {
   tasks,
   tools,
 } from '@inkeep/agents-core';
-import { createDatabaseClient } from './client.js';
+import { createDatabaseClient } from './client';
 
 const dbClient = createDatabaseClient({
   url: env.DB_FILE_NAME,

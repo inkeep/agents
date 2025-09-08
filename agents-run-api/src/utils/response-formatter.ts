@@ -1,8 +1,8 @@
 import { trace } from '@opentelemetry/api';
 import type { MessageContent } from '@inkeep/agents-core';
-import { getLogger } from '../logger.js';
-import { SERVICE_VERSION } from '../tracer.js';
-import { ArtifactParser, type StreamPart } from './artifact-parser.js';
+import { getLogger } from '../logger';
+import { SERVICE_VERSION } from '../tracer';
+import { ArtifactParser, type StreamPart } from './artifact-parser';
 
 const logger = getLogger('ResponseFormatter');
 

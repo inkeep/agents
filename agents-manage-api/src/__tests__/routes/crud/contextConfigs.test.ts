@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index.js';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
-import { ensureTestProject } from '../../utils/testProject.js';
+import app from '../../../index';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
+import { ensureTestProject } from '../../utils/testProject';
 
 describe('Context Config CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -700,7 +700,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Context Variables Removal', () => {
       it('should clear contextVariables when set to null via update', async () => {
         const tenantId = createTestTenantId('context-configs-clear-context-vars-null');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear contextVariables with null
@@ -719,7 +719,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should clear contextVariables when set to empty object via update', async () => {
         const tenantId = createTestTenantId('context-configs-clear-context-vars-empty');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear contextVariables with empty object
@@ -738,7 +738,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should create with empty contextVariables treated as null', async () => {
         const tenantId = createTestTenantId('context-configs-create-empty-context-vars');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const configData = {
           id: `empty-context-vars-config-${nanoid(6)}`,
           tenantId,
@@ -763,7 +763,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should preserve non-empty contextVariables', async () => {
         const tenantId = createTestTenantId('context-configs-preserve-context-vars');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({
           tenantId,
         });
@@ -801,7 +801,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Request Context Schema Removal', () => {
       it('should clear requestContextSchema when set to null via update', async () => {
         const tenantId = createTestTenantId('context-configs-clear-request-schema-null');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear requestContextSchema with null
@@ -820,7 +820,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should create with requestContextSchema as null', async () => {
         const tenantId = createTestTenantId('context-configs-create-null-request-schema');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const configData = {
           id: `null-request-schema-config-${nanoid(6)}`,
           tenantId,
@@ -845,7 +845,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should preserve non-null requestContextSchema', async () => {
         const tenantId = createTestTenantId('context-configs-preserve-request-schema');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to modify but not clear requestContextSchema
@@ -877,7 +877,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Combined Field Clearing', () => {
       it('should clear both contextVariables and requestContextSchema simultaneously', async () => {
         const tenantId = createTestTenantId('context-configs-clear-both-fields');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear both fields
@@ -900,7 +900,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should handle mixed clearing and updating of fields', async () => {
         const tenantId = createTestTenantId('context-configs-mixed-clear-update');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Clear contextVariables but update requestContextSchema
@@ -932,7 +932,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Default Values and Consistency', () => {
       it('should handle creation with minimal data and consistent null defaults', async () => {
         const tenantId = createTestTenantId('context-configs-minimal-with-nulls');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const minimalData = {
           id: `minimal-null-defaults-config-${nanoid(6)}`,
           tenantId,
@@ -957,7 +957,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should retrieve cleared fields as null consistently', async () => {
         const tenantId = createTestTenantId('context-configs-consistent-null-retrieval');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Clear both fields
@@ -988,7 +988,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should list configs with null fields correctly', async () => {
         const tenantId = createTestTenantId('context-configs-list-with-nulls');
-      await ensureTestProject(tenantId, projectId);
+        await ensureTestProject(tenantId, projectId);
 
         // Create config and clear its fields
         const { contextConfigId } = await createTestContextConfig({ tenantId });

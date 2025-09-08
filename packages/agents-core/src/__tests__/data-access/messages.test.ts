@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   getMessageById,
   listMessages,
@@ -10,8 +10,8 @@ import {
   updateMessage,
   deleteMessage,
   countMessagesByConversation,
-} from '../../data-access/messages.js';
-import type { DatabaseClient } from '../../db/client.js';
+} from '../../data-access/messages';
+import type { DatabaseClient } from '../../db/client';
 
 describe('Messages Data Access', () => {
   let db: DatabaseClient;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { InMemoryCredentialStore } from '../../credential-stores/memory-store.js';
+import { InMemoryCredentialStore } from '../../credential-stores/memory-store';
 
 describe('InMemoryCredentialStore', () => {
   let store: InMemoryCredentialStore;

@@ -1,6 +1,6 @@
 import { trace } from '@opentelemetry/api';
-import { A2AClient } from '../a2a/client.js';
-import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import { A2AClient } from '../a2a/client';
+import { executeTransfer, isTransferResponse } from '../a2a/transfer';
 import {
   type SendMessageResponse,
   createMessage,
@@ -10,20 +10,20 @@ import {
   updateTask,
   getFullGraph,
 } from '@inkeep/agents-core';
-import { env } from '../env.js';
-import { getLogger } from '../logger.js';
+import { env } from '../env';
+import { getLogger } from '../logger';
 import {
   agentInitializingOp,
   agentReadyOp,
   agentThinkingOp,
   completionOp,
   errorOp,
-} from '../utils/agent-operations.js';
-import { graphSessionManager } from '../utils/graph-session.js';
-import type { StreamHelper } from '../utils/stream-helpers.js';
-import { MCPStreamHelper } from '../utils/stream-helpers.js';
-import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import dbClient from '../data/db/dbClient.js';
+} from '../utils/agent-operations';
+import { graphSessionManager } from '../utils/graph-session';
+import type { StreamHelper } from '../utils/stream-helpers';
+import { MCPStreamHelper } from '../utils/stream-helpers';
+import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry';
+import dbClient from '../data/db/dbClient';
 import { nanoid } from 'nanoid';
 import type { ExecutionContext } from '@inkeep/agents-core';
 

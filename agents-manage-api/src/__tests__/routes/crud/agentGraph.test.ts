@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index.js';
-import { makeRequest } from '../../utils/testRequest.js';
-import { createTestTenantId } from '../../utils/testTenant.js';
-import { ensureTestProject } from '../../utils/testProject.js';
+import app from '../../../index';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
+import { ensureTestProject } from '../../utils/testProject';
 
 describe('Agent Graph CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
