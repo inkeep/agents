@@ -42,7 +42,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/inkeep/agent-framework.git",
+    "url": "git+https://github.com/inkeep/agents.git",
     "directory": "agents-ui"
   }
 }
