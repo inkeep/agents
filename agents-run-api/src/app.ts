@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type ExecutionContext,
-  type AgentFrameworkServerConfig,
+  type ServerConfig,
   type CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
@@ -21,12 +21,12 @@ import mcpRoutes from './routes/mcp.js';
 
 type AppVariables = {
   executionContext: ExecutionContext;
-  serverConfig: AgentFrameworkServerConfig;
+  serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
 };
 
 function createExecutionHono(
-  serverConfig: AgentFrameworkServerConfig,
+  serverConfig: ServerConfig,
   credentialStores: CredentialStoreRegistry
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();

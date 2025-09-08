@@ -112,7 +112,7 @@ export interface CorsConfig {
 /**
  * Base server configuration for all Inkeep services
  */
-export interface AgentFrameworkServerConfig {
+export interface ServerConfig {
   /**
    * Server port to listen on
    */

@@ -4,11 +4,11 @@ import {
   CredentialStoreRegistry,
   createDefaultCredentialStores,
   type CredentialStore,
-  type AgentFrameworkServerConfig,
+  type ServerConfig,
 } from '@inkeep/agents-core';
 
 // Create default configuration
-const defaultConfig: AgentFrameworkServerConfig = {
+const defaultConfig: ServerConfig = {
   port: 3003,
   serverOptions: {
     requestTimeout: 120000, // 120 seconds for execution requests
@@ -32,7 +32,7 @@ export { createExecutionHono };
 
 // Export a helper to create app with custom credential stores - fallsback to default configs
 export function createExecutionApp(config?: {
-  serverConfig?: AgentFrameworkServerConfig;
+  serverConfig?: ServerConfig;
   credentialStores?: CredentialStore[];
 }) {
   const serverConfig = config?.serverConfig ?? defaultConfig;

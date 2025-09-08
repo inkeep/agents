@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, AgentFrameworkServerConfig } from '@inkeep/agents-core';
+import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
@@ -35,7 +35,7 @@ import { oauthService } from '../utils/oauth-service.js';
 import dbClient from '../data/db/dbClient.js';
 
 type AppVariables = {
-  serverConfig: AgentFrameworkServerConfig;
+  serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
 };
 
@@ -482,7 +482,12 @@ app.openapi(
     }
 
     const credentialStores = c.get('credentialStores');
-    const updatedTool = await syncToolDefinitions({ tenantId, projectId, toolId: id, credentialStoreRegistry: credentialStores });
+    const updatedTool = await syncToolDefinitions({
+      tenantId,
+      projectId,
+      toolId: id,
+      credentialStoreRegistry: credentialStores,
+    });
 
     return c.json({
       data: dbResultToMcpTool(updatedTool),

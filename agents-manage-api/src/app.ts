@@ -1,9 +1,5 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import {
-  ExecutionContext,
-  AgentFrameworkServerConfig,
-  CredentialStoreRegistry,
-} from '@inkeep/agents-core';
+import type { ServerConfig, CredentialStoreRegistry } from '@inkeep/agents-core';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
@@ -17,12 +13,12 @@ import oauthRoutes from './routes/oauth.js';
 import { setupOpenAPIRoutes } from './openapi.js';
 
 type AppVariables = {
-  serverConfig: AgentFrameworkServerConfig;
+  serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
 };
 
 function createManagementHono(
-  serverConfig: AgentFrameworkServerConfig,
+  serverConfig: ServerConfig,
   credentialStores: CredentialStoreRegistry
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();

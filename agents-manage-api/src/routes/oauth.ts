@@ -18,14 +18,14 @@ import {
   getCredentialReference,
   updateCredentialReference,
   type CredentialStoreRegistry,
-  type AgentFrameworkServerConfig,
+  type ServerConfig,
 } from '@inkeep/agents-core';
 import { getLogger } from '../logger.js';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service.js';
 import dbClient from '../data/db/dbClient.js';
 
 type AppVariables = {
-  serverConfig: AgentFrameworkServerConfig;
+  serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
 };
 
