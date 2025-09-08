@@ -19,8 +19,8 @@ docker compose up -d
 ```
 
 **Services included:**
-- **Nango Server**: `http://localhost:3005` (Dashboard/API)
-- **Nango Connect UI**: `http://localhost:3009` (OAuth flows)
+- **Nango Server**: `http://localhost:3050` (Dashboard/API)
+- **Nango Connect UI**: `http://localhost:3051` (OAuth flows)
 - **PostgreSQL**: Database for Nango
 - **Redis**: Caching for Nango
 
@@ -32,7 +32,7 @@ Once Nango is running, configure the framework applications to connect to your l
 
 #### Get your Nango API Key
 
-1. Open the Nango Dashboard: `http://localhost:3005`
+1. Open the Nango Dashboard: `http://localhost:3050`
 2. Navigate to **Environment Settings** → **API Keys**
 3. Copy your **Secret Key** (starts with `123abc...`)
 
@@ -44,7 +44,7 @@ Once Nango is running, configure the framework applications to connect to your l
 NANGO_SECRET_KEY="123abc..."
 
 # Point to your integrated Nango instance
-NANGO_HOST="http://localhost:3005"
+NANGO_HOST="http://localhost:3050"
 ```
 
 **`/agents-manage-ui/.env`**
@@ -53,10 +53,10 @@ NANGO_HOST="http://localhost:3005"
 NANGO_SECRET_KEY="123abc..."
 
 # Frontend should point to your integrated Nango instance
-NEXT_PUBLIC_NANGO_HOST="http://localhost:3005"
+NEXT_PUBLIC_NANGO_HOST="http://localhost:3050"
 
 # Connect UI endpoint
-NEXT_PUBLIC_NANGO_CONNECT_BASE_URL="http://localhost:3009"
+NEXT_PUBLIC_NANGO_CONNECT_BASE_URL="http://localhost:3051"
 ```
 
 **Restart your development processes** to pick up the new environment variables.

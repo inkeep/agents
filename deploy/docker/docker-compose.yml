@@ -233,10 +233,10 @@ services:
       POSTGRES_PASSWORD: ${NANGO_DB_PASSWORD:-nango}
       POSTGRES_USER: ${NANGO_DB_USER:-nango}
       POSTGRES_DB: ${NANGO_DB_NAME:-nango}
-    ports:
-      - '5432:5432'
     volumes:
       - nango_data:/var/lib/postgresql/data
+    networks:
+      - nango-net
     restart: unless-stopped
 
   nango-server:
@@ -250,9 +250,9 @@ services:
       - NANGO_DB_HOST=nango-db
       - NANGO_DB_NAME=${NANGO_DB_NAME:-nango}
       - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER:-nango}:${NANGO_DB_PASSWORD:-nango}@nango-db:5432/${NANGO_DB_NAME:-nango}
-      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3005}
-      - NANGO_PUBLIC_SERVER_URL=${NANGO_PUBLIC_SERVER_URL:-http://localhost:3000}
-      - SERVER_PORT=${SERVER_PORT:-3005}
+      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
+      - NANGO_PUBLIC_SERVER_URL=${NANGO_PUBLIC_SERVER_URL:-http://localhost:3050}
+      - SERVER_PORT=${SERVER_PORT:-3050}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - FLAG_SERVE_CONNECT_UI=${FLAG_SERVE_CONNECT_UI:-true}
       - FLAG_AUTH_ENABLED=${FLAG_AUTH_ENABLED:-false}
@@ -262,8 +262,10 @@ services:
     volumes:
       - './providers.yaml:/app/nango/packages/providers/providers.yaml'
     ports:
-      - '3005:3005'
-      - '3009:3009'
+      - '3050:3050'
+      - '3051:3051'
+    networks:
+      - nango-net
     depends_on:
       - nango-db
       - nango-redis
@@ -272,8 +274,8 @@ services:
   nango-redis:
     image: redis:7.2.4
     container_name: nango-redis
-    ports:
-      - '6379:6379'
+    networks:
+      - nango-net
     restart: unless-stopped
 
 networks:
@@ -281,6 +283,8 @@ networks:
     driver: bridge
   signoz-net:
     name: signoz-local-net
+    driver: bridge
+  nango-net:
     driver: bridge
 
 volumes:
