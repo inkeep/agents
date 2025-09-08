@@ -48,6 +48,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string(),
   INKEEP_AGENTS_RUN_BYPASS_SECRET: z.string().optional(),
+  OTEL_TRACES_FORCE_FLUSH_ENABLED: z.string().optional(),
 });
 
 const parseEnv = () => {

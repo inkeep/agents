@@ -36,6 +36,7 @@ loadEnvFile();
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
   DB_FILE_NAME: z.string(),
+  OTEL_TRACES_FORCE_FLUSH_ENABLED: z.string().optional(),
 });
 
 const parseEnv = () => {

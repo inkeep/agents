@@ -6,6 +6,7 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { getLogger } from './logger.js';
+import { env } from '../env.js';
 
 const logger = getLogger('tracer');
 
@@ -110,30 +111,34 @@ export function getGlobalTracer(): Tracer {
  * is sent before the operation completes or fails
  */
 export async function forceFlushTracer(): Promise<void> {
-  const forceFlushSetting = process.env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
-  const isDevelopment = process.env.ENVIRONMENT === 'development';
+  const forceFlushSetting = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
+  const isDevelopment = env.ENVIRONMENT === 'development';
 
   const shouldForceFlush =
-    forceFlushSetting === 'true' ||
-    (forceFlushSetting == null && isDevelopment);
+    forceFlushSetting === 'true' || (forceFlushSetting == null && isDevelopment);
 
   if (!shouldForceFlush) {
-    logger.debug(
-      { message: 'Force flush skipped - disabled or not in development' },
-      'Force flush skipped'
-    );
     return;
   }
-  logger.debug({ message: 'Force flush starting' }, 'Force flush starting');
 
   try {
     // Get the tracer provider and force flush if available
     const tracerProvider = trace.getTracerProvider();
-    if (tracerProvider && 'forceFlush' in tracerProvider && typeof tracerProvider.forceFlush === 'function') {
+    if (
+      tracerProvider &&
+      'forceFlush' in tracerProvider &&
+      typeof tracerProvider.forceFlush === 'function'
+    ) {
       await (tracerProvider as any).forceFlush();
-      logger.debug({ message: 'Tracer provider force flush completed' }, 'Tracer provider force flush completed');
+      logger.debug(
+        { message: 'Tracer provider force flush completed' },
+        'Tracer provider force flush completed'
+      );
     } else {
-      logger.debug({ message: 'Tracer provider does not support force flush or is not available' }, 'Tracer provider does not support force flush or is not available');
+      logger.debug(
+        { message: 'Tracer provider does not support force flush or is not available' },
+        'Tracer provider does not support force flush or is not available'
+      );
     }
   } catch (error) {
     logger.warn({ error }, 'Failed to force flush tracer');
