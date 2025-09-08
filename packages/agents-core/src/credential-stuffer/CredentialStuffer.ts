@@ -1,4 +1,4 @@
-import type { BaseServer } from '../server/BaseServer.js';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
 import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils.js';
 import { getLogger, type Logger } from '../utils/logger.js';
 import { TemplateEngine } from '../context/TemplateEngine.js';
@@ -65,13 +65,13 @@ export interface ContextResolverInterface {
 
 /**
  * Manages credential retrieval and injection for MCP tools
- * Uses BaseServer for credential store management
+ * Uses CredentialStoreRegistry for credential store management
  */
 export class CredentialStuffer {
   private readonly logger: Logger;
 
   constructor(
-    private server: BaseServer,
+    private credentialStoreRegistry: CredentialStoreRegistry,
     private contextResolver?: ContextResolverInterface,
     logger?: Logger
   ) {
@@ -79,23 +79,23 @@ export class CredentialStuffer {
   }
 
   /**
-   * Retrieve credentials from server's credential store
+   * Retrieve credentials from credential store registry
    */
   async getCredentials(
     context: CredentialContext,
     storeReference: CredentialStoreReference,
     mcpType?: MCPToolConfig['mcpType']
   ): Promise<CredentialData | null> {
-    // Get the credential store from BaseServer
-    const credentialStore = this.server.getCredentialStore(storeReference.credentialStoreId);
+    // Get the credential store from registry
+    const credentialStore = this.credentialStoreRegistry.get(storeReference.credentialStoreId);
     if (!credentialStore) {
       this.logger.warn(
         {
           tenantId: context.tenantId,
           credentialStoreId: storeReference.credentialStoreId,
-          availableStores: this.server.getCredentialStores().map((s) => s.id),
+          availableStores: this.credentialStoreRegistry.getIds(),
         },
-        'Credential store not found in server'
+        'Credential store not found in registry'
       );
       return null;
     }

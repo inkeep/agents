@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import type { BaseServer } from '../../server/BaseServer.js';
+import { CredentialStoreRegistry } from '../../credential-stores/CredentialStoreRegistry.js';
 import {
   type CredentialContext,
   type CredentialStoreReference,
@@ -35,7 +35,7 @@ const mockContextResolver = {
 
 describe('CredentialStuffer', () => {
   let credentialStuffer: CredentialStuffer;
-  let mockFramework: BaseServer;
+  let mockRegistry: CredentialStoreRegistry;
   let mockNangoStore: CredentialStore;
   let mockGenericStore: CredentialStore;
   let mockTemplateRender: ReturnType<typeof vi.fn>;
@@ -59,17 +59,12 @@ describe('CredentialStuffer', () => {
       get: vi.fn().mockResolvedValue(null), // Default to null, override in tests
     } as any;
 
-    // Mock framework
-    mockFramework = {
-      getCredentialStore: vi.fn().mockImplementation((id: string) => {
-        if (id === 'nango-default') return mockNangoStore;
-        if (id === 'generic-store') return mockGenericStore;
-        return undefined;
-      }),
-      getCredentialStores: vi.fn().mockReturnValue([mockNangoStore, mockGenericStore]),
-    } as any;
+    // Create registry and add stores
+    mockRegistry = new CredentialStoreRegistry();
+    mockRegistry.add(mockNangoStore);
+    mockRegistry.add(mockGenericStore);
 
-    credentialStuffer = new CredentialStuffer(mockFramework, mockContextResolver);
+    credentialStuffer = new CredentialStuffer(mockRegistry, mockContextResolver);
   });
 
   describe('getCredentials', () => {

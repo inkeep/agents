@@ -4,6 +4,9 @@
   "description": "Execution API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {

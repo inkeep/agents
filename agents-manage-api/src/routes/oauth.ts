@@ -10,7 +10,6 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-
 import {
   dbResultToMcpTool,
   getToolById,
@@ -18,13 +17,19 @@ import {
   createCredentialReference,
   getCredentialReference,
   updateCredentialReference,
+  type CredentialStoreRegistry,
+  type AgentFrameworkServerConfig,
 } from '@inkeep/agents-core';
-import { managementServer } from '../server.js';
 import { getLogger } from '../logger.js';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service.js';
 import dbClient from '../data/db/dbClient.js';
 
-const app = new OpenAPIHono();
+type AppVariables = {
+  serverConfig: AgentFrameworkServerConfig;
+  credentialStores: CredentialStoreRegistry;
+};
+
+const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('oauth-callback');
 
 // OAuth callback endpoint schema
@@ -124,7 +129,8 @@ app.openapi(
       );
 
       // Store access token in keychain
-      const keychainStore = managementServer.getCredentialStore('keychain-default');
+      const credentialStores = c.get('credentialStores');
+      const keychainStore = credentialStores.get('keychain-default');
       const keychainKey = `oauth_token_${toolId}`;
       await keychainStore?.set(keychainKey, JSON.stringify(tokens));
 

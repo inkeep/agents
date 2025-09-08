@@ -1,7 +1,6 @@
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import { generateObject, generateText, streamText, type ToolSet, tool } from 'ai';
 import { z } from 'zod';
-import type { AgentExecutionServer } from '../AgentExecutionServer.js';
 import {
   getContextConfigById,
   getLedgerArtifacts,
@@ -13,6 +12,7 @@ import {
   TemplateEngine,
   McpClient,
   CredentialStuffer,
+  CredentialStoreRegistry,
   type McpServerConfig,
   type Artifact,
   type DataComponentApiInsert,
@@ -30,7 +30,6 @@ import {
 } from '../data/conversations.js';
 
 import dbClient from '../data/db/dbClient.js';
-import { executionServer } from '../server.js';
 import { getLogger } from '../logger.js';
 import { createSpanName, getGlobalTracer, handleSpanError, forceFlushTracer } from '../tracer.js';
 import { generateToolId } from '../utils/agent-operations.js';
@@ -143,8 +142,9 @@ export class Agent {
   private artifactComponents: ArtifactComponentApiInsert[] = [];
   private isDelegatedAgent: boolean = false;
   private contextResolver?: ContextResolver;
+  private credentialStoreRegistry?: CredentialStoreRegistry;
 
-  constructor(config: AgentConfig, framework?: AgentExecutionServer) {
+  constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
     // Store artifact components separately
     this.artifactComponents = config.artifactComponents || [];
 
@@ -172,16 +172,18 @@ export class Agent {
     };
     this.responseFormatter = new ResponseFormatter(config.tenantId);
 
-    // Use provided framework, fallback to global instance if available
-    const effectiveFramework = framework || executionServer;
-    if (effectiveFramework) {
+    // Store the credential store registry
+    this.credentialStoreRegistry = credentialStoreRegistry;
+
+    // Use provided credential store registry if available
+    if (credentialStoreRegistry) {
       this.contextResolver = new ContextResolver(
         config.tenantId,
         config.projectId,
         dbClient,
-        effectiveFramework
+        credentialStoreRegistry
       );
-      this.credentialStuffer = new CredentialStuffer(effectiveFramework, this.contextResolver);
+      this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry, this.contextResolver);
     }
   }
 
@@ -414,6 +416,7 @@ export class Agent {
               },
               sessionId,
               agent: this,
+              credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
             'delegation'

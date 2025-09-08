@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import type { BaseServer } from '../server/BaseServer.js';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
 import { ContextCache } from './contextCache.js';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index.js';
 import { createSpanName, getGlobalTracer, handleSpanError, getLogger } from '../utils/index.js';
@@ -47,17 +47,17 @@ export class ContextResolver {
     tenantId: string,
     projectId: string,
     dbClient: DatabaseClient,
-    agentFramework?: BaseServer
+    credentialStoreRegistry?: CredentialStoreRegistry
   ) {
     this.tenantId = tenantId;
     this.projectId = projectId;
-    this.fetcher = new ContextFetcher(tenantId, projectId, dbClient, agentFramework);
+    this.fetcher = new ContextFetcher(tenantId, projectId, dbClient, credentialStoreRegistry);
     this.cache = new ContextCache(tenantId, projectId, dbClient);
 
     logger.info(
       {
         tenantId: this.tenantId,
-        hasCredentialSupport: !!agentFramework,
+        hasCredentialSupport: !!credentialStoreRegistry,
       },
       'ContextResolver initialized'
     );

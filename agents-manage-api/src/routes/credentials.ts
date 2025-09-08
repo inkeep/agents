@@ -1,6 +1,9 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
-import { managementServer } from '../server.js';
+import {
+  commonGetErrorResponses,
+  createApiError,
+  type CredentialStoreRegistry,
+} from '@inkeep/agents-core';
 import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,
@@ -20,7 +23,11 @@ import {
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient.js';
 
-const app = new OpenAPIHono();
+type AppVariables = {
+  credentialStores: CredentialStoreRegistry;
+};
+
+const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
 app.openapi(
   createRoute({
@@ -232,7 +239,8 @@ app.openapi(
       });
     }
 
-    const credentialStore = managementServer.getCredentialStore(credential.credentialStoreId);
+    const credentialStores = c.get('credentialStores');
+    const credentialStore = credentialStores.get(credential.credentialStoreId);
 
     if (credentialStore && credential.retrievalParams) {
       const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
