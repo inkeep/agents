@@ -13,18 +13,10 @@ processors:
       - key: http.request.header.authorization
         value: "[REDACTED]"
         action: update
-
-  # Development: "immediate" batching (very small timeout/batch)
-  batch/development:
-    timeout: ${env:OTEL_TIMEOUT:-100ms}
-    send_batch_size: ${env:OTEL_SEND_BATCH_SIZE:-1}
-    send_batch_max_size: ${env:OTEL_SEND_BATCH_MAX_SIZE:-10}
-
-  # Default/other: "standard" batching (larger, efficient)
-  batch/production:
-    timeout: ${env:OTEL_TIMEOUT_STANDARD:-10000ms}
-    send_batch_size: ${env:OTEL_SEND_BATCH_SIZE_STANDARD:-512}
-    send_batch_max_size: ${env:OTEL_SEND_BATCH_MAX_SIZE_STANDARD:-1024}
+  
+  # Configure batch size for production
+  batch:
+    send_batch_size: 1
 
 exporters:
   # Export to Jaeger
@@ -43,7 +35,5 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors:
-        - attributes
-        - "batch/${env:ENVIRONMENT:-development}"
+      processors: [attributes, batch]
       exporters: [otlp/jaeger, otlp/signoz]

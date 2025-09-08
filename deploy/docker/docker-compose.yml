@@ -203,8 +203,6 @@ services:
     ports:
       - "14317:4317"   # OTLP gRPC receiver (routes to both systems)
       - "14318:4318"   # OTLP HTTP receiver (routes to both systems)
-    env_file:
-      - .env
     networks:
       - jaeger-network
       - signoz-net
