@@ -10,11 +10,11 @@ import {
   type CredentialStoreReference,
   CredentialStuffer,
   ContextResolver,
+  CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 import { saveA2AMessageResponse } from '../data/conversations.js';
 import dbClient from '../data/db/dbClient.js';
 import { env } from '../env.js';
-import { executionServer } from '../server.js';
 import { getLogger } from '../logger.js';
 import { graphSessionManager } from '../utils/graph-session.js';
 import type { AgentConfig, DelegateRelation } from './Agent.js';
@@ -104,6 +104,7 @@ export function createDelegateToAgentTool({
   metadata,
   sessionId,
   agent,
+  credentialStoreRegistry,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
@@ -119,6 +120,7 @@ export function createDelegateToAgentTool({
   };
   sessionId?: string;
   agent: any; // Will be properly typed as Agent, but avoiding circular import
+  credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
   return tool({
     description: generateDelegateToolDescription(delegateConfig.config),
@@ -171,14 +173,14 @@ export function createDelegateToAgentTool({
         });
 
         // If the external agent has a credential reference ID or headers, resolve them
-        if (externalAgent && (externalAgent.credentialReferenceId || externalAgent.headers)) {
+        if (externalAgent && (externalAgent.credentialReferenceId || externalAgent.headers) && credentialStoreRegistry) {
           const contextResolver = new ContextResolver(
             tenantId,
             projectId,
             dbClient,
-            executionServer
+            credentialStoreRegistry
           );
-          const credentialStuffer = new CredentialStuffer(executionServer, contextResolver);
+          const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
 
           const credentialContext = {
             tenantId,

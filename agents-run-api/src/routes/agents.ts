@@ -6,13 +6,18 @@ import {
   getAgentGraphWithDefaultAgent,
   getRequestExecutionContext,
   HeadersScopeSchema,
+  type CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 import { getRegisteredGraph } from '../data/agentGraph.js';
 import { getRegisteredAgent } from '../data/agents.js';
 import { getLogger } from '../logger.js';
 import dbClient from '../data/db/dbClient.js';
 
-const app = new OpenAPIHono();
+type AppVariables = {
+  credentialStores: CredentialStoreRegistry;
+};
+
+const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('agents');
 
 // A2A Agent Card Discovery (REST with OpenAPI)
@@ -80,7 +85,8 @@ app.openapi(
         'agent-level well-known agent.json'
       );
 
-      const agent = await getRegisteredAgent(executionContext);
+      const credentialStores = c.get('credentialStores');
+      const agent = await getRegisteredAgent(executionContext, credentialStores);
       logger.info({ agent }, 'agent registered: well-known agent.json');
       if (!agent) {
         return c.json({ error: 'Agent not found' }, 404);
@@ -144,7 +150,8 @@ app.post('/a2a', async (c: Context) => {
     );
 
     // Ensure agent is registered (lazy loading)
-    const agent = await getRegisteredAgent(executionContext);
+    const credentialStores = c.get('credentialStores');
+    const agent = await getRegisteredAgent(executionContext, credentialStores);
 
     if (!agent) {
       return c.json(
@@ -188,7 +195,8 @@ app.post('/a2a', async (c: Context) => {
     }
     executionContext.agentId = graph.defaultAgentId;
     // fetch the default agent and use it as entry point for the graph
-    const defaultAgent = await getRegisteredAgent(executionContext);
+    const credentialStores = c.get('credentialStores');
+    const defaultAgent = await getRegisteredAgent(executionContext, credentialStores);
 
     if (!defaultAgent) {
       return c.json(

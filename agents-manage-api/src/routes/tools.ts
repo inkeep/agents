@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
@@ -33,7 +34,12 @@ import {
 import { oauthService } from '../utils/oauth-service.js';
 import dbClient from '../data/db/dbClient.js';
 
-const app = new OpenAPIHono();
+type AppVariables = {
+  serverConfig: ServerConfig;
+  credentialStores: CredentialStoreRegistry;
+};
+
+const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
 // List tools
 app.openapi(
@@ -350,7 +356,8 @@ app.openapi(
       });
     }
 
-    const healthResult = await checkToolHealth(dbResultToMcpTool(tool));
+    const credentialStores = c.get('credentialStores');
+    const healthResult = await checkToolHealth(dbResultToMcpTool(tool), credentialStores);
 
     const updatedTool = await updateToolHealth({
       tenantId,
@@ -408,7 +415,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const results = await checkAllToolsHealth(tenantId, projectId);
+    const credentialStores = c.get('credentialStores');
+    const results = await checkAllToolsHealth(tenantId, projectId, credentialStores);
 
     const summary = {
       total: results.length,
@@ -473,7 +481,13 @@ app.openapi(
       });
     }
 
-    const updatedTool = await syncToolDefinitions({ tenantId, projectId, toolId: id });
+    const credentialStores = c.get('credentialStores');
+    const updatedTool = await syncToolDefinitions({
+      tenantId,
+      projectId,
+      toolId: id,
+      credentialStoreRegistry: credentialStores,
+    });
 
     return c.json({
       data: dbResultToMcpTool(updatedTool),

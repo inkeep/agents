@@ -3,8 +3,10 @@ import { ensureTestProject } from '../../utils/testProject.js';
 import { makeRequest } from '../../utils/testRequest.js';
 import { createTestTenantId } from '../../utils/testTenant.js';
 
-// Mock the agentFramework import
-vi.mock('../../../index.js', () => {
+// Mock the app import with credential stores in context
+vi.mock('../../../index.js', async (importOriginal) => {
+  const { createManagementHono } = await importOriginal() as any;
+  
   const mockCredentialStore = {
     id: 'mock-store',
     type: 'mock',
@@ -45,8 +47,9 @@ vi.mock('../../../index.js', () => {
     has: vi.fn(),
   };
 
-  const mockAgentFramework = {
-    getCredentialStore: vi.fn((storeId: string) => {
+  // Create mock credential store registry
+  const mockRegistry = {
+    get: vi.fn((storeId: string) => {
       if (storeId === 'mock-store') return mockCredentialStore;
       if (storeId === 'nango-store') return mockNangoStore;
       if (storeId === 'memory-store') return mockMemoryStore;
@@ -60,7 +63,7 @@ vi.mock('../../../index.js', () => {
       }
       return undefined;
     }),
-    getCredentialStores: vi.fn(() => [mockCredentialStore, mockNangoStore, mockMemoryStore]),
+    getAll: vi.fn(() => [mockCredentialStore, mockNangoStore, mockMemoryStore]),
   };
 
   // Store globally for test access
@@ -71,7 +74,13 @@ vi.mock('../../../index.js', () => {
     mockTrackingStore,
   };
 
-  return { managementServer: mockAgentFramework };
+  const mockConfig = { port: 3002, serverOptions: {} };
+  
+  return {
+    default: createManagementHono ? createManagementHono(mockConfig, mockRegistry) : { request: vi.fn() },
+    createManagementHono,
+    createManagementApp: vi.fn(),
+  };
 });
 
 // Make mock stores available globally for test access
@@ -90,7 +99,7 @@ declare global {
 }
 
 // Now import the app after mocking
-import app from '../../../app.js';
+import app from '../../../index.js';
 
 describe('Credential CRUD Routes - Integration Tests', () => {
   const projectId = 'default';

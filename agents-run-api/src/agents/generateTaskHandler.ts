@@ -15,6 +15,7 @@ import {
   getAgentById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
+  CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 
 import { getLogger } from '../logger.js';
@@ -52,7 +53,7 @@ export interface TaskHandlerConfig {
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
-export const createTaskHandler = (config: TaskHandlerConfig) => {
+export const createTaskHandler = (config: TaskHandlerConfig, credentialStoreRegistry?: CredentialStoreRegistry) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
     try {
       // Extract the user message from the task
@@ -214,7 +215,7 @@ export const createTaskHandler = (config: TaskHandlerConfig) => {
         artifactComponents: artifactComponents,
         contextConfigId: config.contextConfigId || undefined,
         conversationHistoryConfig: config.conversationHistoryConfig,
-      });
+      }, credentialStoreRegistry);
 
       // More robust contextId resolution for delegation scenarios
       let contextId = task.context?.conversationId;

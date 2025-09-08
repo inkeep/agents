@@ -1,4 +1,3 @@
-import { managementServer } from '../server.js';
 import { getLogger } from '../logger.js';
 import dbClient from './db/dbClient.js';
 
@@ -21,6 +20,7 @@ import {
   getToolById,
   detectAuthenticationRequired,
   ContextResolver,
+  type CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 
 /**
@@ -103,7 +103,8 @@ export const updateToolHealth = async ({
 };
 
 export const checkToolHealth = async (
-  tool: McpTool
+  tool: McpTool,
+  credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<{
   status: McpToolStatus;
   error?: string;
@@ -136,13 +137,16 @@ export const checkToolHealth = async (
       };
 
       // Use CredentialStuffer to build proper config with auth headers
+      if (!credentialStoreRegistry) {
+        throw new Error('CredentialStoreRegistry is required for authenticated tools');
+      }
       const contextResolver = new ContextResolver(
         tool.tenantId,
         tool.projectId,
         dbClient,
-        managementServer
+        credentialStoreRegistry
       );
-      const credentialStuffer = new CredentialStuffer(managementServer, contextResolver);
+      const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
       serverConfig = await credentialStuffer.buildMcpServerConfig(
         { tenantId: tool.tenantId, projectId: tool.projectId },
         convertToMCPToolConfig(tool),
@@ -209,7 +213,7 @@ export const checkToolHealth = async (
 };
 
 // Tool discovery
-export const discoverToolsFromServer = async (tool: McpTool): Promise<McpToolDefinition[]> => {
+export const discoverToolsFromServer = async (tool: McpTool, credentialStoreRegistry?: CredentialStoreRegistry): Promise<McpToolDefinition[]> => {
   try {
     const credentialReferenceId = tool.credentialReferenceId;
     let serverConfig: McpServerConfig;
@@ -232,13 +236,16 @@ export const discoverToolsFromServer = async (tool: McpTool): Promise<McpToolDef
       };
 
       // Use CredentialStuffer to build proper config with auth headers
+      if (!credentialStoreRegistry) {
+        throw new Error('CredentialStoreRegistry is required for authenticated tools');
+      }
       const contextResolver = new ContextResolver(
         tool.tenantId,
         tool.projectId,
         dbClient,
-        managementServer
+        credentialStoreRegistry
       );
-      const credentialStuffer = new CredentialStuffer(managementServer, contextResolver);
+      const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
       serverConfig = (await credentialStuffer.buildMcpServerConfig(
         { tenantId: tool.tenantId, projectId: tool.projectId },
         convertToMCPToolConfig(tool),
@@ -299,10 +306,12 @@ export const syncToolDefinitions = async ({
   tenantId,
   projectId,
   toolId,
+  credentialStoreRegistry,
 }: {
   tenantId: string;
   projectId: string;
   toolId: string;
+  credentialStoreRegistry?: CredentialStoreRegistry;
 }) => {
   const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
   if (!tool) {
@@ -312,7 +321,7 @@ export const syncToolDefinitions = async ({
   const mcpTool = dbResultToMcpTool(tool);
 
   try {
-    const availableTools = await discoverToolsFromServer(mcpTool);
+    const availableTools = await discoverToolsFromServer(mcpTool, credentialStoreRegistry);
 
     const updatedTool = await updateTool(dbClient)({
       scopes: { tenantId, projectId },
@@ -353,12 +362,12 @@ export const syncToolDefinitions = async ({
 };
 
 // Bulk health checking
-export const checkAllToolsHealth = async (tenantId: string, projectId: string) => {
+export const checkAllToolsHealth = async (tenantId: string, projectId: string, credentialStoreRegistry?: CredentialStoreRegistry) => {
   const toolsList = await listTools(dbClient)({ scopes: { tenantId, projectId } });
 
   const results = await Promise.allSettled(
     toolsList.data.map(async (tool) => {
-      const healthResult = await checkToolHealth(dbResultToMcpTool(tool));
+      const healthResult = await checkToolHealth(dbResultToMcpTool(tool), credentialStoreRegistry);
       return await updateToolHealth({
         tenantId,
         projectId: tool.projectId,

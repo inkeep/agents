@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import app from '../../../app.js';
+import app from '../../../index.js';
 import { makeRequest } from '../../utils/testRequest.js';
 import { createTestTenantId } from '../../utils/testTenant.js';
 import { ensureTestProject } from '../../utils/testProject.js';

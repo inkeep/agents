@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '@inkeep/agents-core';
-import app from '../../../app.js';
+import app from '../../../index.js';
 import dbClient from '../../../data/db/dbClient.js';
 import { makeRequest } from '../../utils/testRequest.js';
 import { createTestTenantId } from '../../utils/testTenant.js';

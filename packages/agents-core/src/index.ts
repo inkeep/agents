@@ -5,7 +5,6 @@ export * from './types/index.js';
 export * from './validation/index.js';
 export * from './data-access/index.js';
 export * from './utils/index.js';
-export * from './server/BaseServer.js';
 export * from './types/server.js';
 export * from './credential-stores/index.js';
 export * from './context/index.js';

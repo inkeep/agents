@@ -1,5 +1,5 @@
 import jmespath from 'jmespath';
-import type { BaseServer } from '../server/BaseServer.js';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
 import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer.js';
 import { getCredentialReference } from '../data-access/index.js';
 import type { ContextFetchDefinition } from '../types/utility.js';
@@ -44,7 +44,7 @@ export class ContextFetcher {
   private tenantId: string;
   private projectId: string;
   private defaultTimeout: number;
-  private agentFramework?: BaseServer;
+  private credentialStoreRegistry?: CredentialStoreRegistry;
   private credentialStuffer?: CredentialStuffer;
   private dbClient: DatabaseClient;
 
@@ -52,15 +52,15 @@ export class ContextFetcher {
     tenantId: string,
     projectId: string,
     dbClient: DatabaseClient,
-    agentFramework?: BaseServer,
+    credentialStoreRegistry?: CredentialStoreRegistry,
     defaultTimeout = 10000
   ) {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.defaultTimeout = defaultTimeout;
-    this.agentFramework = agentFramework;
-    if (agentFramework) {
-      this.credentialStuffer = new CredentialStuffer(agentFramework);
+    this.credentialStoreRegistry = credentialStoreRegistry;
+    if (credentialStoreRegistry) {
+      this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry);
     }
     this.dbClient = dbClient;
 

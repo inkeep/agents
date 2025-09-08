@@ -7,6 +7,7 @@ import {
   getAgentById,
   listAgents,
   getLogger,
+  CredentialStoreRegistry,
 } from '@inkeep/agents-core';
 
 // Agent hydration functions
@@ -21,11 +22,13 @@ async function hydrateAgent({
   graphId,
   baseUrl,
   apiKey,
+  credentialStoreRegistry,
 }: {
   dbAgent: AgentSelect;
   graphId: string;
   baseUrl: string;
   apiKey?: string;
+  credentialStoreRegistry?: CredentialStoreRegistry;
 }): Promise<RegisteredAgent> {
   try {
     // Create task handler for the agent
@@ -37,7 +40,7 @@ async function hydrateAgent({
       baseUrl: baseUrl,
       apiKey: apiKey,
     });
-    const taskHandler = createTaskHandler(taskHandlerConfig);
+    const taskHandler = createTaskHandler(taskHandlerConfig, credentialStoreRegistry);
 
     // Create AgentCard from database data using schema.ts types
     const agentCard: AgentCard = {
@@ -79,7 +82,8 @@ async function hydrateAgent({
 // A2A functions that hydrate agents on-demand
 
 export async function getRegisteredAgent(
-  executionContext: ExecutionContext
+  executionContext: ExecutionContext,
+  credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<RegisteredAgent | null> {
   const { tenantId, projectId, graphId, agentId, baseUrl } = executionContext;
 
@@ -96,5 +100,5 @@ export async function getRegisteredAgent(
 
   const agentFrameworkBaseUrl = `${baseUrl}/agents`;
 
-  return hydrateAgent({ dbAgent, graphId, baseUrl: agentFrameworkBaseUrl });
+  return hydrateAgent({ dbAgent, graphId, baseUrl: agentFrameworkBaseUrl, credentialStoreRegistry });
 }

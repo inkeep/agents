@@ -38,6 +38,18 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         stuffCredentials: vi.fn().mockResolvedValue({}),
       };
     }),
+    CredentialStoreRegistry: vi.fn().mockImplementation(function CredentialStoreRegistry() {
+      return {
+        get: vi.fn().mockReturnValue({
+          id: 'mock-store',
+          type: 'mock',
+          get: vi.fn().mockResolvedValue({}),
+        }),
+        getAll: vi.fn().mockReturnValue([]),
+        getIds: vi.fn().mockReturnValue(['mock-store']),
+        has: vi.fn().mockReturnValue(true),
+      };
+    }),
   };
 });
 
@@ -98,8 +110,8 @@ vi.mock('../../utils/stream-registry.js', () => ({
   getStreamHelper: vi.fn(),
 }));
 
-// Mock the executionServer to prevent loading heavy server infrastructure
-vi.mock('../../index.js', () => ({
+// Mock the server files to prevent loading heavy server infrastructure
+vi.mock('../../server.js', () => ({
   executionServer: {
     credentialStores: [],
     getLogger: vi.fn().mockReturnValue({
@@ -130,6 +142,7 @@ describe('Relationship Tools', () => {
   let mockAgentConfig: AgentConfig;
   let mockExternalAgentConfig: ExternalAgentConfig;
   let mockSendMessageInstance: any;
+  let mockCredentialStoreRegistry: any;
 
   const mockToolCallOptions = {
     toolCallId: 'test-tool-call-id',
@@ -143,6 +156,7 @@ describe('Relationship Tools', () => {
     },
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
+    projectId: 'test-project',
     graphId: 'test-graph',
     contextId: 'test-context',
     metadata: {
@@ -161,6 +175,7 @@ describe('Relationship Tools', () => {
     },
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
+    projectId: 'test-project',
     graphId: 'test-graph',
     contextId: 'test-context',
     metadata: {
@@ -170,10 +185,25 @@ describe('Relationship Tools', () => {
     agent: {
       getStreamingHelper: vi.fn().mockReturnValue(undefined),
     },
+    get credentialStoreRegistry() {
+      return mockCredentialStoreRegistry;
+    },
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Create mock credential store registry
+    mockCredentialStoreRegistry = {
+      get: vi.fn().mockReturnValue({
+        id: 'mock-store',
+        type: 'mock',
+        get: vi.fn().mockResolvedValue({}),
+      }),
+      getAll: vi.fn().mockReturnValue([]),
+      getIds: vi.fn().mockReturnValue(['mock-store']),
+      has: vi.fn().mockReturnValue(true),
+    };
 
     mockAgentConfig = {
       id: 'target-agent',
@@ -401,6 +431,7 @@ describe('Relationship Tools', () => {
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
           tenantId: 'test-tenant',
+          projectId: 'test-project',
           conversationId: 'test-context',
           role: 'agent',
           content: {
@@ -427,6 +458,7 @@ describe('Relationship Tools', () => {
 
       expect(vi.mocked(saveA2AMessageResponse)).toHaveBeenCalledWith(mockResponse, {
         tenantId: 'test-tenant',
+        projectId: 'test-project',
         conversationId: 'test-context',
         messageType: 'a2a-response',
         visibility: 'external',
@@ -519,6 +551,7 @@ describe('Relationship Tools', () => {
       expect(innerMock).toHaveBeenCalledWith(
         expect.objectContaining({
           tenantId: 'test-tenant',
+          projectId: 'test-project',
           conversationId: 'test-context',
           role: 'agent',
           content: {
