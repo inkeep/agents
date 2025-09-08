@@ -7,6 +7,23 @@ import { createTestTenantId } from '../../utils/testTenant';
 import { ensureTestProject } from '../../utils/testProject';
 import dbClient from '../../../data/db/dbClient';
 
+// Mock the logger
+vi.mock('../../../logger.js', () => {
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    child: vi.fn(),
+  };
+  // Make child return itself for chaining
+  mockLogger.child.mockReturnValue(mockLogger);
+  
+  return {
+    getLogger: () => mockLogger,
+  };
+});
+
 // Mock @inkeep/agents-core functions that are used by the chat data stream routes
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();

@@ -3,6 +3,14 @@ import { createSaveToolResultTool } from '../../agents/artifactTools';
 import { parseEmbeddedJson } from '../../agents/generateTaskHandler';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
 
+// Mock the ai package's tool function
+vi.mock('ai', () => ({
+  tool: (config: any) => ({
+    ...config,
+    execute: config.execute,
+  }),
+}));
+
 // Mock JMESPath
 vi.mock('jmespath', () => ({
   default: {

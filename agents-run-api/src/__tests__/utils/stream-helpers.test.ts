@@ -182,20 +182,16 @@ describe('VercelDataStreamHelper Memory Management', () => {
   });
 
   test('should not send duplicate content for same index', async () => {
-    mockParsePartialJson.mockResolvedValueOnce({
+    // Set up mock to always return the same parsed value
+    mockParsePartialJson.mockResolvedValue({
       value: [{ type: 'test', content: 'item1' }],
       state: 'successful-parse',
     });
 
-    // Write content
+    // Write content first time
     await helper.writeContent('duplicate');
 
-    // Reset mock to return same content
-    mockParsePartialJson.mockResolvedValueOnce({
-      value: [{ type: 'test', content: 'item1' }],
-      state: 'successful-parse',
-    });
-
+    // Write content second time (same content should be deduplicated)
     await helper.writeContent('duplicate');
 
     // Should only write once since content hasn't changed
