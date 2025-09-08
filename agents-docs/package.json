@@ -8,6 +8,7 @@
     "dev": "next dev -p 3010",
     "start": "next start",
     "lint": "biome check",
+    "format": "biome check --write",
     "postinstall": "fumadocs-mdx",
     "generate-openapi": "node scripts/generate-openapi-docs.mjs",
     "validate-link": "node scripts/validate-link.mjs"
@@ -46,6 +47,7 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.1.4",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/mdx": "^2.0.13",
     "@types/node": "24.0.7",

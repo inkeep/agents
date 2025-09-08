@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "biome check",
+    "format": "biome check --write",
     "preview": "vite preview",
     "test": "echo 'No tests configured for chat-widget'"
   },
@@ -18,6 +19,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.1.4",
     "@types/node": "^24.2.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
+    "format": "biome check --write",
     "typecheck": "tsc --noEmit",
     "test": "vitest --run",
     "test:coverage": "vitest --run --coverage"
