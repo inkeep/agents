@@ -29,19 +29,19 @@ vi.mock('ora', () => ({
   })),
 }));
 vi.mock('../../api.js', () => ({
-  ApiClient: {
+  ManagementApiClient: {
     create: vi.fn().mockResolvedValue({}),
   },
 }));
-vi.mock('../../config.js', () => ({
+vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    apiUrl: 'http://localhost:3002',
+    managementApiUrl: 'http://localhost:3002',
     sources: {
       tenantId: 'config',
       projectId: 'config',
-      apiUrl: 'config',
+      managementApiUrl: 'config',
     },
   }),
 }));

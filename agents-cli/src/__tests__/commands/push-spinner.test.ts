@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { spawn } from 'node:child_process';
 import { pushCommand } from '../../commands/push.js';
 import { existsSync } from 'node:fs';
+import * as core from '@inkeep/agents-core';
 
 // Mock dependencies
 vi.mock('node:fs');
-vi.mock('node:child_process');
 vi.mock('@inkeep/agents-core');
-vi.mock('../../config.js', () => ({
+vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
     projectId: 'test-project',
@@ -18,6 +17,11 @@ vi.mock('../../config.js', () => ({
       managementApiUrl: 'config',
     },
   }),
+}));
+vi.mock('../../api.js', () => ({
+  ManagementApiClient: {
+    create: vi.fn().mockResolvedValue({}),
+  },
 }));
 
 // Store the actual ora mock instance
@@ -37,11 +41,19 @@ vi.mock('ora', () => ({
   }),
 }));
 
-describe('Push Command - TypeScript Spinner Fix', () => {
-  let mockSpawn: Mock;
-  let mockExit: Mock;
+// Mock tsx-loader module
+vi.mock('../../utils/tsx-loader.js', () => ({
+  importWithTypeScriptSupport: vi.fn(),
+}));
 
-  beforeEach(() => {
+describe('Push Command - TypeScript Loading', () => {
+  let mockExit: Mock;
+  let mockDbClient: any;
+  let mockGetProject: Mock;
+  let mockCreateProject: Mock;
+  let mockImportWithTypeScriptSupport: Mock;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
     
     // Reset ora instance
@@ -61,101 +73,122 @@ describe('Push Command - TypeScript Spinner Fix', () => {
     vi.spyOn(console, 'log').mockImplementation(vi.fn());
     vi.spyOn(console, 'error').mockImplementation(vi.fn());
     
-    // Setup spawn mock
-    mockSpawn = vi.fn().mockReturnValue({
-      on: vi.fn((event, callback) => {
-        if (event === 'exit') {
-          // Simulate successful exit
-          setTimeout(() => callback(0), 10);
-        }
-      }),
+    // Setup database client mock
+    mockDbClient = {};
+    mockGetProject = vi.fn();
+    mockCreateProject = vi.fn();
+
+    (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
+    (core.getProject as Mock).mockReturnValue(mockGetProject);
+    (core.createProject as Mock).mockReturnValue(mockCreateProject);
+    
+    // Get the mocked tsx-loader import function
+    const tsxLoader = await import('../../utils/tsx-loader.js');
+    mockImportWithTypeScriptSupport = tsxLoader.importWithTypeScriptSupport as Mock;
+    
+    // Set DB_FILE_NAME to prevent database errors
+    process.env.DB_FILE_NAME = 'test.db';
+  });
+
+  it('should load TypeScript files using importWithTypeScriptSupport', async () => {
+    // Mock project exists
+    mockGetProject.mockResolvedValue({
+      id: 'test-project',
+      name: 'Test Project',
+      tenantId: 'test-tenant',
     });
-    (spawn as Mock).mockImplementation(mockSpawn);
-  });
-
-  it('should stop spinner before spawning tsx process for TypeScript files', async () => {
-    await pushCommand('/test/path/graph.ts', {});
     
-    // Wait for async operations
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
-    // Verify spinner was created and stopped
-    expect(oraInstance).toBeDefined();
-    expect(oraInstance.start).toHaveBeenCalled();
-    expect(oraInstance.stop).toHaveBeenCalled();
-    
-    // Verify spinner.stop() was called before spawn
-    const stopCallOrder = oraInstance.stop.mock.invocationCallOrder[0];
-    const spawnCallOrder = mockSpawn.mock.invocationCallOrder[0];
-    expect(stopCallOrder).toBeLessThan(spawnCallOrder);
-  });
-
-  it('should spawn tsx process with correct arguments for TypeScript files', async () => {
-    const options = {
-      tenantId: 'custom-tenant',
-      managementApiUrl: 'https://api.example.com',
-      configFilePath: '/path/to/config.json',
+    // Mock graph module
+    const mockGraph = {
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-graph'),
+      getName: vi.fn().mockReturnValue('Test Graph'),
+      getAgents: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({
+        agentCount: 1,
+        toolCount: 0,
+        relationCount: 0,
+      }),
+      getDefaultAgent: vi.fn().mockReturnValue(null),
+      setConfig: vi.fn(),
     };
     
-    await pushCommand('/test/path/graph.ts', options);
-    
-    // Wait for async operations
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
-    // Verify spawn was called with correct arguments
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'npx',
-      expect.arrayContaining([
-        'tsx',
-        expect.stringContaining('index.js'),
-        'push',
-        '/test/path/graph.ts',
-        '--tenant-id',
-        'custom-tenant',
-        '--management-api-url',
-        'https://api.example.com',
-        '--config-file-path',
-        '/path/to/config.json',
-      ]),
-      expect.objectContaining({
-        cwd: process.cwd(),
-        stdio: 'inherit',
-        env: expect.objectContaining({
-          TSX_RUNNING: '1',
-        }),
-      })
-    );
-  });
-
-  it('should handle spawn errors correctly without spinner', async () => {
-    // Setup spawn to simulate an error
-    mockSpawn.mockReturnValue({
-      on: vi.fn((event, callback) => {
-        if (event === 'error') {
-          setTimeout(() => callback(new Error('Spawn failed')), 10);
-        }
-      }),
+    mockImportWithTypeScriptSupport.mockResolvedValue({
+      default: mockGraph,
     });
+    
+    process.env.TSX_RUNNING = '1';
     
     await pushCommand('/test/path/graph.ts', {});
     
-    // Wait for async operations
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
-    // Verify spinner was stopped before error handling
-    expect(oraInstance.stop).toHaveBeenCalled();
-    
-    // Verify error was logged without using spinner.fail
-    expect(oraInstance.fail).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to load TypeScript file')
+    // Verify TypeScript loader was used
+    expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
+      expect.stringContaining('/test/path/graph.ts')
     );
+    
+    // Verify spinner was created and used correctly
+    expect(oraInstance).toBeDefined();
+    expect(oraInstance.start).toHaveBeenCalled();
+    expect(oraInstance.succeed).toHaveBeenCalled();
+  });
+
+  it('should handle TypeScript import errors gracefully', async () => {
+    // Mock import failure
+    mockImportWithTypeScriptSupport.mockRejectedValue(
+      new Error('Failed to load TypeScript file')
+    );
+    
+    process.env.TSX_RUNNING = '1';
+    
+    await pushCommand('/test/path/graph.ts', {});
+    
+    // Verify error handling
+    expect(oraInstance.fail).toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('Error'),
-      'Spawn failed'
+      'Failed to load TypeScript file'
+    );
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should work with JavaScript files without tsx loader', async () => {
+    // Mock project exists
+    mockGetProject.mockResolvedValue({
+      id: 'test-project',
+      name: 'Test Project',
+      tenantId: 'test-tenant',
+    });
+    
+    // Mock graph module
+    const mockGraph = {
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-graph'),
+      getName: vi.fn().mockReturnValue('Test Graph'),
+      getAgents: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({
+        agentCount: 1,
+        toolCount: 0,
+        relationCount: 0,
+      }),
+      getDefaultAgent: vi.fn().mockReturnValue(null),
+      setConfig: vi.fn(),
+    };
+    
+    mockImportWithTypeScriptSupport.mockResolvedValue({
+      default: mockGraph,
+    });
+    
+    process.env.TSX_RUNNING = '1';
+    
+    await pushCommand('/test/path/graph.js', {});
+    
+    // Verify loader was called for JS file too
+    expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
+      expect.stringContaining('/test/path/graph.js')
     );
     
-    // Verify process exited with error code
-    expect(mockExit).toHaveBeenCalledWith(1);
+    // Verify success
+    expect(oraInstance.succeed).toHaveBeenCalled();
+    expect(mockExit).toHaveBeenCalledWith(0);
   });
 });

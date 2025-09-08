@@ -6,7 +6,7 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch as any;
 
 // Mock config module
-vi.mock('../config.js', () => ({
+vi.mock('../utils/config.js', () => ({
   getApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
   getManagementApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
   getExecutionApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3003'),

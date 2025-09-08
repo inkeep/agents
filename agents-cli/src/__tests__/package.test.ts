@@ -36,7 +36,7 @@ describe('Package Configuration', () => {
     });
 
     it('should have correct main entry point', () => {
-      expect(packageJson.main).toBe('./dist/exports.js');
+      expect(packageJson.main).toBe('./dist/index.js');
     });
 
     it('should be set to module type', () => {

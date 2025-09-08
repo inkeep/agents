@@ -4,14 +4,21 @@ import { validateConfiguration } from '../utils/config.js';
 // Save original env and cwd
 const originalEnv = process.env;
 
-// Mock the file system to prevent finding actual config files
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => false),
+// Mock the tsx-loader to prevent loading actual files
+vi.mock('../utils/tsx-loader.js', () => ({
+  importWithTypeScriptSupport: vi.fn(() => Promise.resolve({
+    default: {
+      tenantId: 'config-tenant',
+      projectId: 'config-project',
+      managementApiUrl: 'http://config-management',
+      executionApiUrl: 'http://config-execution',
+    },
+  })),
 }));
 
-// Mock process.cwd to avoid loading the actual config file
-vi.mock('node:process', () => ({
-  cwd: () => '/tmp/test-cli',
+// Mock the file system to control when config files are found
+vi.mock('node:fs', () => ({
+  existsSync: vi.fn(() => false),
 }));
 
 describe('Configuration Validation', () => {
@@ -47,6 +54,22 @@ describe('Configuration Validation', () => {
       });
 
       it('should use environment variables when no flags provided', async () => {
+        // Mock existsSync to return true for config file
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        // Mock the tsx-loader to return a config with tenant ID
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'env-tenant',
+            managementApiUrl: 'http://localhost:9090',
+            executionApiUrl: 'http://localhost:9091',
+          },
+        });
+
         process.env.INKEEP_MANAGEMENT_API_URL = 'http://localhost:9090';
         process.env.INKEEP_EXECUTION_API_URL = 'http://localhost:9091';
 
@@ -119,6 +142,22 @@ describe('Configuration Validation', () => {
       });
 
       it('should correctly identify environment variable sources', async () => {
+        // Mock existsSync to return true for config file
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        // Mock the tsx-loader to return a config with tenant ID
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'env-tenant',
+            managementApiUrl: 'http://env-management',
+            executionApiUrl: 'http://env-execution',
+          },
+        });
+
         process.env.INKEEP_MANAGEMENT_API_URL = 'http://env-management';
         process.env.INKEEP_EXECUTION_API_URL = 'http://env-execution';
 
@@ -133,6 +172,22 @@ describe('Configuration Validation', () => {
       });
 
       it('should correctly identify mixed sources with env and flag', async () => {
+        // Mock existsSync to return true for config file
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        // Mock the tsx-loader to return a config with tenant ID
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'env-tenant',
+            managementApiUrl: 'http://env-management',
+            executionApiUrl: 'http://env-execution',
+          },
+        });
+
         process.env.INKEEP_MANAGEMENT_API_URL = 'http://env-management';
         process.env.INKEEP_EXECUTION_API_URL = 'http://env-execution';
 

@@ -31,6 +31,7 @@ function runCli(args: string[]): { stdout: string; stderr: string; exitCode: num
       env: { 
         ...process.env, 
         NODE_ENV: 'test',
+        ENVIRONMENT: 'test', // Required by the CLI
         CI: 'true', // Signal to CLI that it's running in CI
         NODE_OPTIONS: '--max-old-space-size=256', // Limit memory usage
       },

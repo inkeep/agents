@@ -4,7 +4,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/inkeep/agent-framework.git"
+    "url": "git+https://github.com/inkeep/agents.git"
   },
   "author": "Inkeep <support@inkeep.com>",
   "license": "SEE LICENSE IN LICENSE.md",

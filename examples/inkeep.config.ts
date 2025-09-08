@@ -1,9 +1,10 @@
-import { defineConfig } from '@inkeep/agents-cli';
+import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: 'inkeep',
   projectId: 'default',
-  apiUrl: 'http://localhost:3002',
+  managementApiUrl: 'http://localhost:3001',
+  executionApiUrl: 'http://localhost:3002',
   modelSettings: {
     model: 'anthropic/claude-sonnet-4-20250514',
     providerOptions: {

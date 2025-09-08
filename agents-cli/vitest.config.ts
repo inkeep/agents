@@ -4,6 +4,14 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['./vitest.setup.ts'],
+    env: {
+      ENVIRONMENT: 'test',
+      NODE_ENV: 'test',
+      DB_FILE_NAME: 'test.db',
+      INKEEP_MANAGEMENT_API_URL: 'http://localhost:3001',
+      INKEEP_EXECUTION_API_URL: 'http://localhost:3002',
+    },
     testTimeout: 120000, // 120 second timeout for CLI tests
     hookTimeout: 30000, // 30 second timeout for setup/teardown hooks
     // Use thread pool to prevent worker timeout issues

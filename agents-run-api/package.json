@@ -15,9 +15,9 @@
     "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_BYPASS_SECRET= vite",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "ENVIRONMENT=test vitest --run",
-    "test:watch": "ENVIRONMENT=test vitest",
-    "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -87,7 +87,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/inkeep/agent-framework.git",
+    "url": "git+https://github.com/inkeep/agents.git",
     "directory": "agents-run-api"
   }
 }
