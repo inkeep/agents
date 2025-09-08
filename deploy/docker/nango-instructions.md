@@ -14,7 +14,7 @@ cp .env.nango.example .env
 openssl rand -base64 32
 # Edit .env and replace REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY with the generated key
 
-# Start the full stack from agent-framework root (includes Nango + observability)
+# Start the full stack from deploy/docker (includes Nango + observability)
 docker compose up -d
 ```
 
@@ -67,13 +67,12 @@ Test that everything is working correctly:
 
 1. **Launch the Agent Builder app** (after configuring `.env` files above)
 2. **Navigate to the Credentials page**: `/credentials`
-3. **Click "Create new credential"**
-4. **Select in the form**:
-   - Auth type: Bearer Auth
-   - Credential type: Standalone Credential
-5. **Click "Create Credential"**
-6. **In the Nango auth pop-up**: Enter your API key
-7. **Click "Connect"**, then **"Finish"**
+3. **Click "New Credential"**
+4. **Select "Bearer Authentication"**:
+5. **Fill in the form**:
+    - Name: `your-api-key-name`
+    - API Key: `your-api-key`
+6. **Click "Create Credential"**
 8. **Refresh the Credentials page** and verify the new credential appears
 
 ### 4) Managing the integrated setup
