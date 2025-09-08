@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import chalk from 'chalk';
 import { Command } from 'commander';
-import { chatCommand } from './commands/chat.js';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config.js';
 import { initCommand } from './commands/init.js';
 import { listGraphsCommand } from './commands/list-graphs.js';

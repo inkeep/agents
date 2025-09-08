@@ -1,4 +1,9 @@
-import { getManagementApiUrl, getExecutionApiUrl, getProjectId, getTenantId } from './config.js';
+import {
+  getExecutionApiUrl,
+  getManagementApiUrl,
+  getProjectId,
+  getTenantId,
+} from './utils/config.js';
 
 abstract class BaseApiClient {
   protected apiUrl: string;

@@ -1,13 +1,12 @@
-import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 import chalk from 'chalk';
 import ora from 'ora';
-import { type ValidatedConfiguration, validateConfiguration } from '../config.js';
-import { compareJsonObjects, getDifferenceSummary } from '../utils/json-comparator.js';
-import { generateTypeScriptFileWithLLM } from './pull.llm-generate.js';
 import type { FullGraphDefinition } from '../types/graph.js';
+import { type ValidatedConfiguration, validateConfiguration } from '../utils/config.js';
+import { compareJsonObjects, getDifferenceSummary } from '../utils/json-comparator.js';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader.js';
+import { generateTypeScriptFileWithLLM } from './pull.llm-generate.js';
 
 export interface PullOptions {
   tenantId?: string;
@@ -31,77 +30,8 @@ export async function convertTypeScriptToJson(graphPath: string): Promise<FullGr
     throw new Error(`File not found: ${absolutePath}`);
   }
 
-  // Check if this is a TypeScript file
-  const ext = extname(absolutePath);
-  if (ext === '.ts') {
-    // For TypeScript files, we need to use tsx to run this entire command
-    // Check if we're already running under tsx
-    if (!process.env.TSX_RUNNING) {
-      // Re-run this function with tsx - just like push does
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const pullPath = resolve(__dirname, '../commands/pull.js');
-
-      return new Promise((resolve, reject) => {
-        const child = spawn('npx', ['tsx', pullPath, 'convert', graphPath], {
-          cwd: process.cwd(),
-          stdio: ['pipe', 'pipe', 'pipe'],
-          env: {
-            ...process.env,
-            TSX_RUNNING: '1',
-          },
-        });
-
-        let stdout = '';
-        let stderr = '';
-
-        child.stdout.on('data', (data) => {
-          stdout += data.toString();
-        });
-
-        child.stderr.on('data', (data) => {
-          stderr += data.toString();
-        });
-
-        child.on('error', (error) => {
-          reject(new Error(`Failed to load TypeScript file: ${error.message}`));
-        });
-
-        child.on('exit', (code) => {
-          if (code === 0) {
-            try {
-              // Look for JSON markers in stdout
-              const jsonStartMarker = '===JSON_START===';
-              const jsonEndMarker = '===JSON_END===';
-
-              const startIndex = stdout.indexOf(jsonStartMarker);
-              const endIndex = stdout.indexOf(jsonEndMarker);
-
-              if (startIndex === -1 || endIndex === -1) {
-                reject(new Error('JSON markers not found in output'));
-                return;
-              }
-
-              const jsonString = stdout
-                .substring(startIndex + jsonStartMarker.length, endIndex)
-                .trim();
-
-              const result = JSON.parse(jsonString);
-              resolve(result);
-            } catch (error) {
-              reject(new Error(`Failed to parse conversion result: ${error}`));
-            }
-          } else {
-            reject(new Error(`Conversion failed: ${stderr}`));
-          }
-        });
-      });
-    }
-  }
-
-  // Now we can import the module (either JS directly, or TS via tsx)
-  const fileUrl = pathToFileURL(absolutePath).href;
-  const module = await import(fileUrl);
+  // Import the module with TypeScript support
+  const module = await importWithTypeScriptSupport(absolutePath);
 
   // Validate that exactly one graph is exported
   const exports = Object.keys(module);

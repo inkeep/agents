@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { validateConfiguration } from '../config.js';
+import { validateConfiguration } from '../utils/config.js';
 
 // Save original env and cwd
 const originalEnv = process.env;
-const originalCwd = process.cwd();
 
 // Mock the file system to prevent finding actual config files
 vi.mock('node:fs', () => ({
@@ -56,15 +55,24 @@ describe('Configuration Validation', () => {
         expect(config.tenantId).toBe('env-tenant');
         expect(config.managementApiUrl).toBe('http://localhost:9090');
         expect(config.executionApiUrl).toBe('http://localhost:9091');
-        expect(config.sources.managementApiUrl).toBe('environment variable (INKEEP_MANAGEMENT_API_URL)');
-        expect(config.sources.executionApiUrl).toBe('environment variable (INKEEP_EXECUTION_API_URL)');
+        expect(config.sources.managementApiUrl).toBe(
+          'environment variable (INKEEP_MANAGEMENT_API_URL)'
+        );
+        expect(config.sources.executionApiUrl).toBe(
+          'environment variable (INKEEP_EXECUTION_API_URL)'
+        );
       });
 
       it('should allow command-line flags to override environment variables', async () => {
         process.env.INKEEP_MANAGEMENT_API_URL = 'http://localhost:9090';
         process.env.INKEEP_EXECUTION_API_URL = 'http://localhost:9091';
 
-        const config = await validateConfiguration('cli-tenant', 'http://cli-management', 'http://cli-execution', undefined);
+        const config = await validateConfiguration(
+          'cli-tenant',
+          'http://cli-management',
+          'http://cli-execution',
+          undefined
+        );
 
         expect(config.tenantId).toBe('cli-tenant');
         expect(config.managementApiUrl).toBe('http://cli-management');
@@ -83,21 +91,26 @@ describe('Configuration Validation', () => {
       });
 
       it('should reject --tenant-id without both API URLs', async () => {
-        await expect(validateConfiguration('test-tenant', undefined, undefined, undefined)).rejects.toThrow(
-          '--tenant-id requires --management-api-url and --execution-api-url'
-        );
+        await expect(
+          validateConfiguration('test-tenant', undefined, undefined, undefined)
+        ).rejects.toThrow('--tenant-id requires --management-api-url and --execution-api-url');
       });
 
       it('should reject when no configuration is provided', async () => {
-        await expect(validateConfiguration(undefined, undefined, undefined, undefined)).rejects.toThrow(
-          'No configuration found'
-        );
+        await expect(
+          validateConfiguration(undefined, undefined, undefined, undefined)
+        ).rejects.toThrow('No configuration found');
       });
     });
 
     describe('Configuration Source Tracking', () => {
       it('should correctly identify command-line flag sources', async () => {
-        const config = await validateConfiguration('cli-tenant', 'http://cli-management', 'http://cli-execution', undefined);
+        const config = await validateConfiguration(
+          'cli-tenant',
+          'http://cli-management',
+          'http://cli-execution',
+          undefined
+        );
 
         expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
         expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
@@ -111,8 +124,12 @@ describe('Configuration Validation', () => {
 
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
-        expect(config.sources.managementApiUrl).toBe('environment variable (INKEEP_MANAGEMENT_API_URL)');
-        expect(config.sources.executionApiUrl).toBe('environment variable (INKEEP_EXECUTION_API_URL)');
+        expect(config.sources.managementApiUrl).toBe(
+          'environment variable (INKEEP_MANAGEMENT_API_URL)'
+        );
+        expect(config.sources.executionApiUrl).toBe(
+          'environment variable (INKEEP_EXECUTION_API_URL)'
+        );
       });
 
       it('should correctly identify mixed sources with env and flag', async () => {
@@ -120,13 +137,20 @@ describe('Configuration Validation', () => {
         process.env.INKEEP_EXECUTION_API_URL = 'http://env-execution';
 
         // Override only the management API URL with a flag
-        const config = await validateConfiguration(undefined, 'http://override-management', undefined, undefined);
+        const config = await validateConfiguration(
+          undefined,
+          'http://override-management',
+          undefined,
+          undefined
+        );
 
         expect(config.tenantId).toBe('env-tenant');
         expect(config.managementApiUrl).toBe('http://override-management');
         expect(config.executionApiUrl).toBe('http://env-execution');
         expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
-        expect(config.sources.executionApiUrl).toBe('environment variable (INKEEP_EXECUTION_API_URL)');
+        expect(config.sources.executionApiUrl).toBe(
+          'environment variable (INKEEP_EXECUTION_API_URL)'
+        );
       });
     });
   });

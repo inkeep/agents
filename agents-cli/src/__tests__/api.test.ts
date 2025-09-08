@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ManagementApiClient, ExecutionApiClient } from '../api.js';
+import { ExecutionApiClient, ManagementApiClient } from '../api.js';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -89,7 +89,7 @@ describe('ApiClient', () => {
     });
 
     it('should throw error when tenant ID is not configured', async () => {
-      const { getTenantId } = await import('../config.js');
+      const { getTenantId } = await import('../utils/config.js');
       vi.mocked(getTenantId).mockResolvedValueOnce(undefined);
 
       const client = await ManagementApiClient.create();
@@ -321,7 +321,7 @@ describe('ApiClient', () => {
 
   describe('checkTenantId', () => {
     it('should throw error for all methods when tenant ID is not configured', async () => {
-      const { getTenantId } = await import('../config.js');
+      const { getTenantId } = await import('../utils/config.js');
       vi.mocked(getTenantId).mockResolvedValue(undefined);
 
       const client = await ManagementApiClient.create();

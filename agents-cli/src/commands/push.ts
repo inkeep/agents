@@ -1,13 +1,12 @@
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, extname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+import { createDatabaseClient, createProject, getProject } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import ora from 'ora';
 import inquirer from 'inquirer';
-import { createDatabaseClient, getProject, createProject } from '@inkeep/agents-core';
+import ora from 'ora';
 import { ManagementApiClient } from '../api.js';
-import { validateConfiguration } from '../config.js';
+import { validateConfiguration } from '../utils/config.js';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader.js';
 
 export interface PushOptions {
   tenantId?: string;
@@ -29,48 +28,9 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
       process.exit(1);
     }
 
-    // Check if this is a TypeScript file
-    const ext = extname(absolutePath);
-    if (ext === '.ts') {
-      // For TypeScript files, we need to use tsx to run this entire command
-      // Check if we're already running under tsx
-      if (!process.env.TSX_RUNNING) {
-        // Stop spinner before spawning child process to avoid conflicts with interactive prompts
-        spinner.stop();
-
-        // Re-run this command with tsx
-        // Find the inkeep CLI executable
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = dirname(__filename);
-        const cliPath = resolve(__dirname, '../index.js');
-        const args = [cliPath, 'push', graphPath];
-        if (options.tenantId) args.push('--tenant-id', options.tenantId);
-        if (options.managementApiUrl) args.push('--management-api-url', options.managementApiUrl);
-        if (options.configFilePath) args.push('--config-file-path', options.configFilePath);
-
-        const child = spawn('npx', ['tsx', ...args], {
-          cwd: process.cwd(),
-          stdio: 'inherit',
-          env: { ...process.env, TSX_RUNNING: '1' },
-        });
-
-        child.on('error', (error) => {
-          console.error(chalk.red('Failed to load TypeScript file'));
-          console.error(chalk.red('Error:'), error.message);
-          process.exit(1);
-        });
-
-        child.on('exit', (code) => {
-          process.exit(code || 0);
-        });
-
-        return;
-      }
-    }
-
-    // Now we can import the module (either JS directly, or TS via tsx)
-    const fileUrl = pathToFileURL(absolutePath).href;
-    const module = await import(fileUrl);
+    // Import the module with TypeScript support
+    spinner.text = 'Loading graph module...';
+    const module = await importWithTypeScriptSupport(absolutePath);
 
     // Validate that exactly one graph is exported
     const exports = Object.keys(module);

@@ -1,13 +1,10 @@
-import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { dirname, extname, resolve } from 'node:path';
 import * as readline from 'node:readline';
-import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
-import { ManagementApiClient, ExecutionApiClient } from '../api.js';
-import { validateConfiguration } from '../config.js';
+import { ExecutionApiClient, ManagementApiClient } from '../api.js';
+import type { ValidatedConfiguration } from '../utils/config.js';
+import { validateConfiguration } from '../utils/config.js';
 
 export interface ChatOptions {
   tenantId?: string;
@@ -17,83 +14,8 @@ export interface ChatOptions {
 }
 
 export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatOptions) {
-  // Check if we need to re-run with tsx for TypeScript config files
-  if (!process.env.TSX_RUNNING) {
-    // Helper function to find config file
-    function findConfigFile(startPath: string = process.cwd()): string | null {
-      let currentPath = resolve(startPath);
-      const root = '/';
-
-      const configNames = ['inkeep.config.ts', 'inkeep.config.js', '.inkeeprc.ts', '.inkeeprc.js'];
-
-      while (currentPath !== root) {
-        // Check for config files at this level
-        for (const configName of configNames) {
-          const configPath = resolve(currentPath, configName);
-          if (existsSync(configPath)) {
-            return configPath;
-          }
-        }
-
-        const parentPath = dirname(currentPath);
-        if (parentPath === currentPath) {
-          break; // Reached filesystem root
-        }
-        currentPath = parentPath;
-      }
-
-      return null;
-    }
-
-    // Determine if we have a TypeScript config that needs tsx
-    let configPath: string | null = null;
-
-    if (options?.configFilePath) {
-      // User specified a config path
-      configPath = resolve(process.cwd(), options.configFilePath);
-      if (!existsSync(configPath)) {
-        // Config file doesn't exist, let the normal flow handle the error
-        configPath = null;
-      }
-    } else {
-      // Search for config file
-      configPath = findConfigFile();
-    }
-
-    // If we found a TypeScript config file, re-run with tsx
-    if (configPath && extname(configPath) === '.ts') {
-      // Re-run this command with tsx
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const cliPath = resolve(__dirname, '../index.js');
-      const args = [cliPath, 'chat'];
-      if (graphIdInput) args.push(graphIdInput);
-      if (options?.tenantId) args.push('--tenant-id', options.tenantId);
-      if (options?.managementApiUrl) args.push('--management-api-url', options.managementApiUrl);
-      if (options?.executionApiUrl) args.push('--execution-api-url', options.executionApiUrl);
-      if (options?.configFilePath) args.push('--config-file-path', options.configFilePath);
-
-      const child = spawn('npx', ['tsx', ...args], {
-        cwd: process.cwd(),
-        stdio: 'inherit',
-        env: { ...process.env, TSX_RUNNING: '1' },
-      });
-
-      child.on('error', (error) => {
-        console.error(chalk.red('Failed to load TypeScript configuration:'), error.message);
-        process.exit(1);
-      });
-
-      child.on('exit', (code) => {
-        process.exit(code || 0);
-      });
-
-      return;
-    }
-  }
-
   // Validate configuration
-  let config;
+  let config: ValidatedConfiguration;
   try {
     config = await validateConfiguration(
       options?.tenantId,
@@ -113,8 +35,16 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   console.log(chalk.gray(`  • Execution API: ${config.sources.executionApiUrl}`));
   console.log();
 
-  const managementApi = await ManagementApiClient.create(config.managementApiUrl, options?.configFilePath, config.tenantId);
-  const executionApi = await ExecutionApiClient.create(config.executionApiUrl, options?.configFilePath, config.tenantId);
+  const managementApi = await ManagementApiClient.create(
+    config.managementApiUrl,
+    options?.configFilePath,
+    config.tenantId
+  );
+  const executionApi = await ExecutionApiClient.create(
+    config.executionApiUrl,
+    options?.configFilePath,
+    config.tenantId
+  );
 
   let graphId = graphIdInput;
 
