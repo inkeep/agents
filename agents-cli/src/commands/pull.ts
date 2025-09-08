@@ -322,15 +322,3 @@ export async function pullCommand(graphId: string, options: PullOptions) {
   }
 }
 
-// CLI entry point for conversion
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const command = process.argv[2];
-  const graphPath = process.argv[3];
-
-  if (command === 'convert' && graphPath) {
-    cliConvert(graphPath);
-  } else {
-    console.error('Usage: tsx pull.js convert <graph-path>');
-    process.exit(1);
-  }
-}

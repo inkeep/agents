@@ -13,9 +13,9 @@
     "dev": "vite",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "ENVIRONMENT=test vitest --run",
-    "test:watch": "ENVIRONMENT=test vitest",
-    "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
