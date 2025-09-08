@@ -9,6 +9,7 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import {
   createArtifactComponentAction,
   updateArtifactComponentAction,
@@ -52,6 +53,14 @@ export function ArtifactComponentForm({
   const { isSubmitting } = form.formState;
   const router = useRouter();
 
+  // Auto-prefill ID based on name field (only for new components)
+  useAutoPrefillId({
+    form,
+    nameField: 'name',
+    idField: 'id',
+    isEditing: !!id,
+  });
+
   const onSubmit = async (data: ArtifactComponentFormData) => {
     try {
       const payload = { ...data } as ArtifactComponent;
@@ -83,6 +92,13 @@ export function ArtifactComponentForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <GenericInput
           control={form.control}
+          name="name"
+          label="Name"
+          placeholder="Document Artifact"
+          isRequired
+        />
+        <GenericInput
+          control={form.control}
           name="id"
           label="Id"
           placeholder="my-artifact-component"
@@ -93,13 +109,6 @@ export function ArtifactComponentForm({
               ? ''
               : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
           }
-        />
-        <GenericInput
-          control={form.control}
-          name="name"
-          label="Name"
-          placeholder="Document Artifact"
-          isRequired
         />
         <GenericTextarea
           control={form.control}
