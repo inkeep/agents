@@ -1,10 +1,10 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 
-
 export interface InkeepConfig {
   tenantId: string;
   projectId: string;
-  apiUrl?: string;
+  managementApiUrl: string;
+  executionApiUrl: string;
   outputDirectory?: string;
   modelSettings?: ModelSettings;
 }

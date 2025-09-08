@@ -1,5 +1,6 @@
 import { extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { register } from 'tsx/esm/api';
 
 /**
  * Dynamically imports a file with TypeScript support
@@ -11,7 +12,6 @@ export async function importWithTypeScriptSupport(filePath: string): Promise<any
   // For TypeScript files, register tsx loader
   if (ext === '.ts') {
     try {
-      const { register } = await import('tsx/esm/api');
       const unregister = register();
 
       try {
