@@ -27,98 +27,28 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality and best practices
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+            
+            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
+            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
           
-          # Direct prompt for automated review (no @claude mention needed)
-          direct_prompt: |
-            You are a TypeScript Staff Engineer and System Architect responsible for reviewing and providing thoughtful, constructive feedback on Pull Requests.
-
-            CONTEXT GATHERING AND INITIAL UNDERSTANDING:
-            1. Aim to understand the intended purpose and outcome of the PR (from an engineering and/or customer perspective)
-            2. Do research to find relevant existing code, concepts, files, types, etc. that may be relevant to the PR. Goal is to build up full understand of the existing system and "prior art" and ALL the different parts this PR may affect or that this PR should account for/consider.
-            3. Carefully evaluate each change in the PR and provide feedback at both a granular level but also at a system design, high level. Focus on areas areas for consideration, rather than recapping what's done well in a detailed way.
-            4. If linter checks pass, etc., don't worry about syntax type stuff. Focus on other aspects of code quality and engineering design.
-
-            BASELINE ENGINEERING REVIEW:
-            Consider in your review what seems sensible, like:
-            - high-quality, clean, well documented or intuitive code
-            - bugs, error boundaries and handling, logging
-            - security, authn/authz, data access layer and permissions
-            - performance and scalability
-            - evolvability and extensibility
-            - testing and test coverage
-            - race conditions, circular loops or dependencies, concurrency, state management, etc.
-            - transaction boundaries and atomicity
-            - following best practices of modern TypeScript and architectural design (imagine you're representing Matt Pocock // Dan Abramov // Kent C. Dodds // Tanner Linsley // Jared Palmer // colinhacks (zod) // etc.)
-
-            CHECK FOR GOTCHAS AND COMMON MISTAKES:
-            You may end up reviewing the work of an AI agent or a junior engineer, so make sure to check for common pitfalls or shortcomings, like:
-            1. Modifying files or creating code that is not actually needed for the intended use case or that has probably out-of-scope side effects or redundancies.
-            2. Creating duplicate or boilerplate code, superfluous variable names or types, or multiple sources of truth for the same concept that could be consolidated.
-            3. Not following existing patterns/norms or keeping parallelism and consistency with how similar patterns are accomplished.
-            4. Not creating good abstractions where appropriate (but also not over-engineering or complicating code for no reason)
-            5. Not providing good documentation for more complex parts of the codebase or not creating the right level of abstraction to simplify things.
-            6. Using "hard coded" or seemingly brute forced/repetitive code instead of thinking through how to have clean, composable, reusable, extensible, DRY, intuitive code.
-            7. Not considering polymorphism, unions, generics, or other abstraction types if they could help simplify code or normalize certain patterns.
-
-            ARCHITECT-LEVEL CONSIDERATIONS:
-            As the system architect, aim to go one level DEEPER. For example, check that:
-            8. Are there existing patterns, abstractions, or "ways of doing things" that this pattern should potentially leverage or stay consistent with? We want to avoid creating duplicate, repetitive code, or contradictory patterns for similar concepts // tasks // patterns
-            9. Is naming intuitive and semantic, especially in external-facing APIs, interfaces, configurations, or types? Is the naming consistent with existing concepts, and would the naming be unambiguous and clear to someone with little context?
-            10. Are design decisions evolvable to future potential scenarios, and are we following good patterns for avoiding breaking changes or 1-door decisions that don't account for future extensibility or use cases?
-            11. Have we addressed any side effects or potential issues that may arise from this change?
-            12. Are there any other system design considerations that the engineer should think through that were not accounted for?
-
-            CUSTOMER CONSIDERATIONS:
-            15. Carefully considering the impact of the changes on how customers use it, i.e. any breaking changes to data contracts, APIs, etc.? If there are, do we have a good strategy for addressing these?
-            16. Comprehensively evaluating all potential valid and relevant use cases or edge cases of how someone may expect to use the features or platform.
-            17. When creating configuration or "knobs", are we unnecessarily complicating the surface area of configuration or could there be a more elegant solution that keeps constructs and configuration simpler?
-            18. Thinking through future scenarios that could be appropriate to address now or that we should account for so we don't block future use cases. I.e., are things evolvable? We want to keep things simple but also not be short-sighted/myopic.
-            19. Accounting for all dimensions of how a customer/user/client may use the data contracts, APIs, UI, SDK, documentation, or any other interface of how they may consume or interact with the features or platform?
-            20. Ensuring that there is equal representation across any modality that this repo encompasses (e.g. both UI and API, if applicable to the repo or use case)?
-
-            Your final review should be thoughtful and cover what's actually most applicable to this PR -- don't leave superfluous comments that seem unrelated to the intent or proposed changes of the PR.  
-            The dimensions mentioned in these instructions are suggestions, they won't all always apply to every PR, and there may be additional considerations that you think are important to cover.
-            As you leave feedback, make sure to classify the severity or importance of feedback, and be nuanced with why you think something is important and potential ways to address it or things to consider. Feel free to leave explicit code suggestions where relevant.
-            Focus your review on constructive areas for consideration or improvement, you don't need to re-enumerate things that are done well.
-
-            To summarize, think of yourself as both a sanity and quality checker of the code, but also a system-level architect that cares deeply about ensuring PRs and changes are well thought-out and consider all dimensions of impacts on the full system, patterns that set precedent, maintainability of the code and featureset, as well as how it impacts end-user experiences and interfaces.
-
-            Since this is an open source repo, it's especially important to ensure we are thorough and thoughtful end-to-end across all relevant dimensions and focus the final report on what's potentially actionable.
-
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
-          
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-          
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' && 
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-          
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-          
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 
