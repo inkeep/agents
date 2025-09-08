@@ -15,6 +15,7 @@ import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { type ProjectFormData, projectSchema } from './validation';
+import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 
 interface ProjectFormProps {
   tenantId: string;
