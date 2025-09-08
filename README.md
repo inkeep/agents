@@ -80,8 +80,7 @@ pnpm install
 Set the DB schema:
 
 ```bash
-cd packages/agents-core
-pnpm db:push
+pnpm --dir ./packages/agents-core db:push
 ```
 
 ### Running the Development Server
@@ -89,7 +88,7 @@ pnpm db:push
 At the root directory:
 
 ```bash
-ENVIRONMENT=development pnpm dev
+pnpm dev
 ```
 
 ### Running the test suite
