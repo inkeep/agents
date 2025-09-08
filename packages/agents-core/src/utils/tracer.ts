@@ -124,6 +124,7 @@ export async function forceFlushTracer(): Promise<void> {
     );
     return;
   }
+  logger.debug({ message: 'Force flush starting' }, 'Force flush starting');
 
   try {
     // Get the tracer provider and force flush if available

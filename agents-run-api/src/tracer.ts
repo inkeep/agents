@@ -121,6 +121,7 @@ export async function forceFlushTracer(): Promise<void> {
     );
     return;
   }
+  logger.debug({ message: 'Force flush starting' }, 'Force flush starting');
   try {
     // Import the span processor from instrumentation
     const { spanProcessor } = await import('./instrumentation.js');
