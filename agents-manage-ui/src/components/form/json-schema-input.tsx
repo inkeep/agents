@@ -12,6 +12,7 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   disabled?: boolean;
   description?: string;
   readOnly?: boolean;
+  isRequired?: boolean;
 }
 
 export function JsonSchemaInput<T extends FieldValues>({
@@ -22,9 +23,16 @@ export function JsonSchemaInput<T extends FieldValues>({
   disabled,
   description,
   readOnly,
+  isRequired = false,
 }: JsonSchemaInputProps<T>) {
   return (
-    <FormFieldWrapper control={control} name={name} label={label} description={description}>
+    <FormFieldWrapper
+      control={control}
+      name={name}
+      label={label}
+      description={description}
+      isRequired={isRequired}
+    >
       {(field) => (
         <StandaloneJsonEditor
           placeholder={placeholder}

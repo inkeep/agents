@@ -82,6 +82,7 @@ export function ProjectForm({
           placeholder="my-project"
           description="Choose a unique identifier for this project. This cannot be changed later."
           disabled={!!projectId}
+          isRequired
         />
         <GenericInput
           control={form.control}
@@ -89,6 +90,7 @@ export function ProjectForm({
           label="Project Name"
           placeholder="My Project"
           description="A friendly name for your project"
+          isRequired
         />
         <GenericTextarea
           control={form.control}
@@ -96,6 +98,7 @@ export function ProjectForm({
           label="Description"
           placeholder="Describe what this project is for..."
           className="min-h-[100px]"
+          isRequired
         />
 
         <Separator />

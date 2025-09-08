@@ -89,20 +89,29 @@ export function DataComponentForm({
               ? ''
               : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
           }
+          isRequired
         />
-        <GenericInput control={form.control} name="name" label="Name" placeholder="List orders" />
+        <GenericInput
+          control={form.control}
+          name="name"
+          label="Name"
+          placeholder="List orders"
+          isRequired
+        />
         <GenericTextarea
           control={form.control}
           name="description"
           label="Description"
           placeholder="Display a list of user orders with interactive options"
           className="min-h-[80px]"
+          isRequired
         />
         <JsonSchemaInput
           control={form.control}
           name="props"
           label="Props (JSON Schema)"
           placeholder="Enter a valid JSON Schema..."
+          isRequired
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

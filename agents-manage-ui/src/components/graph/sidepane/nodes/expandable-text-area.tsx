@@ -17,12 +17,14 @@ function ExpandedTextArea({ ...props }) {
 
 export function ExpandableTextArea({
   label,
+  isRequired = false,
   ...props
-}: { label: string } & React.ComponentProps<typeof Textarea>) {
+}: { label: string; isRequired?: boolean } & React.ComponentProps<typeof Textarea>) {
   return (
     <ExpandableField
       name={props.id || 'expandable-textarea'}
       label={label}
+      isRequired={isRequired}
       compactView={<Textarea {...props} />}
       expandedView={<ExpandedTextArea {...props} />}
     />

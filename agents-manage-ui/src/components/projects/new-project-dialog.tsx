@@ -52,7 +52,7 @@ export function NewProjectDialog({
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="!max-w-2xl">
         <DialogTitle>Create new project</DialogTitle>
         <DialogDescription>
           Create a new project to organize your agents, tools, and resources.

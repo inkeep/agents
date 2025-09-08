@@ -13,6 +13,7 @@ interface GenericInputProps<T extends FieldValues> {
   min?: string;
   disabled?: boolean;
   description?: string;
+  isRequired?: boolean;
 }
 
 export function GenericInput<T extends FieldValues>({
@@ -24,9 +25,16 @@ export function GenericInput<T extends FieldValues>({
   min,
   disabled,
   description,
+  isRequired = false,
 }: GenericInputProps<T>) {
   return (
-    <FormFieldWrapper control={control} name={name} label={label} description={description}>
+    <FormFieldWrapper
+      control={control}
+      name={name}
+      label={label}
+      description={description}
+      isRequired={isRequired}
+    >
       {(field) => (
         <Input
           type={type}

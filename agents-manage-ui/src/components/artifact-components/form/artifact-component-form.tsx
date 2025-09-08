@@ -87,6 +87,7 @@ export function ArtifactComponentForm({
           label="Id"
           placeholder="my-artifact-component"
           disabled={!!id}
+          isRequired
           description={
             id
               ? ''
@@ -98,6 +99,7 @@ export function ArtifactComponentForm({
           name="name"
           label="Name"
           placeholder="Document Artifact"
+          isRequired
         />
         <GenericTextarea
           control={form.control}
@@ -105,18 +107,21 @@ export function ArtifactComponentForm({
           label="Description"
           placeholder="Structured factual information extracted from search results"
           className="min-h-[80px]"
+          isRequired
         />
         <JsonSchemaInput
           control={form.control}
           name="summaryProps"
           label="Summary props (JSON Schema)"
           placeholder="Enter a valid JSON Schema..."
+          isRequired
         />
         <JsonSchemaInput
           control={form.control}
           name="fullProps"
           label="Full props (JSON Schema)"
           placeholder="Enter a valid JSON Schema..."
+          isRequired
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

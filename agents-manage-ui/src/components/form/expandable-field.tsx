@@ -20,6 +20,7 @@ interface ExpandableFieldProps {
   expandedView: ReactNode;
   actions?: ReactNode;
   expandButtonLabel?: string;
+  isRequired?: boolean;
 }
 
 export function ExpandableField({
@@ -30,13 +31,17 @@ export function ExpandableField({
   expandedView,
   actions,
   expandButtonLabel = 'Expand to full screen',
+  isRequired = false,
 }: ExpandableFieldProps) {
   return (
     <Dialog>
       <div className={className}>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor={name}>{label}</Label>
+            <Label className="gap-1" htmlFor={name}>
+              {label}
+              {isRequired && <span className="text-red-500">*</span>}
+            </Label>
             {actions && <div className="flex gap-2">{actions}</div>}
           </div>
           <div className="relative">

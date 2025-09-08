@@ -19,6 +19,7 @@ interface FormFieldWrapperProps<T extends FieldValues> {
   children: (field: FieldValues) => React.ReactNode;
   description?: string;
   rules?: RegisterOptions<T, FieldPath<T>>;
+  isRequired?: boolean;
 }
 
 export function FormFieldWrapper<T extends FieldValues>({
@@ -28,6 +29,7 @@ export function FormFieldWrapper<T extends FieldValues>({
   children,
   description,
   rules,
+  isRequired,
 }: FormFieldWrapperProps<T>) {
   return (
     <FormField
@@ -36,7 +38,7 @@ export function FormFieldWrapper<T extends FieldValues>({
       rules={rules}
       render={({ field }) => (
         <FormItem className="relative">
-          <FormLabel>{label}</FormLabel>
+          <FormLabel isRequired={isRequired}>{label}</FormLabel>
           <FormControl>{children(field)}</FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />

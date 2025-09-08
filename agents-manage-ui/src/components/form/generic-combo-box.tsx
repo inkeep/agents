@@ -25,6 +25,7 @@ interface GenericComboBoxProps<T extends FieldValues> {
   searchPlaceholder?: string;
   placeholder?: string;
   disabled?: boolean;
+  isRequired?: boolean;
 }
 
 export function GenericComboBox<T extends FieldValues>({
@@ -35,11 +36,12 @@ export function GenericComboBox<T extends FieldValues>({
   searchPlaceholder = 'Search...',
   placeholder,
   disabled = false,
+  isRequired = false,
 }: GenericComboBoxProps<T>) {
   const [open, setOpen] = useState(false);
 
   return (
-    <FormFieldWrapper control={control} name={name} label={label}>
+    <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>

@@ -105,12 +105,19 @@ export function MCPServerForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <GenericInput control={form.control} name="name" label="Name" placeholder="MCP Server" />
+        <GenericInput
+          control={form.control}
+          name="name"
+          label="Name"
+          placeholder="MCP Server"
+          isRequired
+        />
         <GenericInput
           control={form.control}
           name="config.mcp.server.url"
           label="URL"
           placeholder="https://api.example.com/mcp"
+          isRequired
         />
         <GenericSelect
           control={form.control}

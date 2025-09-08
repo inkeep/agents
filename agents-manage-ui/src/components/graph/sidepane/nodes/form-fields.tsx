@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface BaseFieldProps {
   id: string;
@@ -16,6 +17,8 @@ interface BaseFieldProps {
   className?: string;
   description?: string;
   tooltip?: string;
+  isRequired?: boolean;
+  disabled?: boolean;
 }
 
 interface InputFieldProps extends BaseFieldProps {
@@ -40,13 +43,16 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
       description,
       tooltip,
       type = 'text',
+      isRequired = false,
+      disabled = false,
     },
     ref
   ) => {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} className={error ? 'text-red-600' : ''}>
+        <Label htmlFor={id} className={cn(error ? 'text-red-600' : '', 'gap-1')}>
           {label}
+          {isRequired && <span className="text-red-500">*</span>}
           {tooltip && (
             <Tooltip>
               <TooltipTrigger>
@@ -66,6 +72,7 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
           placeholder={placeholder}
           data-invalid={error ? '' : undefined}
           className={`w-full data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300 ${className}`}
+          disabled={disabled}
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
@@ -89,6 +96,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
       className = '',
       description,
       maxHeight = 'max-h-96',
+      disabled = false,
     },
     ref
   ) => {
@@ -106,6 +114,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
           placeholder={placeholder}
           data-invalid={error ? '' : undefined}
           className={`w-full ${maxHeight} data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300 ${className}`}
+          disabled={disabled}
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         {description && <p className="text-sm text-muted-foreground">{description}</p>}

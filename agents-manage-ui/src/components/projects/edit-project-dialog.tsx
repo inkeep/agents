@@ -33,7 +33,7 @@ export function EditProjectDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="!max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit project</DialogTitle>
           <DialogDescription className="sr-only">Edit project details.</DialogDescription>

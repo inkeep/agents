@@ -24,6 +24,7 @@ interface GenericSelectProps<T extends FieldValues> {
   options: SelectOption[];
   disabled?: boolean;
   selectTriggerClassName?: string;
+  isRequired?: boolean;
 }
 
 export function GenericSelect<T extends FieldValues>({
@@ -34,9 +35,10 @@ export function GenericSelect<T extends FieldValues>({
   options,
   disabled = false,
   selectTriggerClassName,
+  isRequired = false,
 }: GenericSelectProps<T>) {
   return (
-    <FormFieldWrapper control={control} name={name} label={label}>
+    <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disabled}>
           <SelectTrigger disabled={disabled} className={selectTriggerClassName}>

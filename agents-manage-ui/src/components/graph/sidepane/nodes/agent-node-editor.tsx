@@ -35,7 +35,7 @@ export function AgentNodeEditor({
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
-  
+
   // Get project and graph data for inheritance indicators
   const { project } = useProjectData();
   const metadata = useGraphStore((state) => state.metadata);
@@ -76,6 +76,7 @@ export function AgentNodeEditor({
         onChange={(e) => updatePath('name', e.target.value)}
         placeholder="Support agent"
         error={getFieldError('name')}
+        isRequired
       />
 
       <TextareaField
@@ -100,14 +101,15 @@ export function AgentNodeEditor({
           data-invalid={errorHelpers?.hasFieldError('prompt') ? '' : undefined}
           className="w-full max-h-96 data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
           label="Prompt"
+          isRequired
         />
         {getFieldError('prompt') && (
           <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
         )}
       </div>
 
-      <ModelSection 
-        models={selectedNode.data.models} 
+      <ModelSection
+        models={selectedNode.data.models}
         updatePath={updateModelPath}
         projectModels={project?.models}
         graphModels={metadata?.models}
@@ -156,12 +158,24 @@ export function AgentNodeEditor({
         </div>
 
         <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">How execution limit inheritance works:</p>
+          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+            How execution limit inheritance works:
+          </p>
           <ul className="space-y-1 text-blue-800 dark:text-blue-200">
-            <li>• <strong>stepCountIs</strong>: Project → Agent only (agent-level execution limit)</li>
-            <li>• <strong>Explicit settings</strong> always take precedence over inherited values</li>
-            <li>• <strong>Agent scope</strong>: This limit applies only to this specific agent's execution steps</li>
-            <li>• <strong>Independent from transfers</strong>: Steps are counted per agent, transfers are counted per conversation</li>
+            <li>
+              • <strong>stepCountIs</strong>: Project → Agent only (agent-level execution limit)
+            </li>
+            <li>
+              • <strong>Explicit settings</strong> always take precedence over inherited values
+            </li>
+            <li>
+              • <strong>Agent scope</strong>: This limit applies only to this specific agent's
+              execution steps
+            </li>
+            <li>
+              • <strong>Independent from transfers</strong>: Steps are counted per agent, transfers
+              are counted per conversation
+            </li>
           </ul>
         </div>
       </div>

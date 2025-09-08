@@ -12,6 +12,7 @@ interface GenericTextareaProps<T extends FieldValues> {
   className?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  isRequired?: boolean;
 }
 
 export function GenericTextarea<T extends FieldValues>({
@@ -22,9 +23,10 @@ export function GenericTextarea<T extends FieldValues>({
   className,
   disabled,
   readOnly,
+  isRequired = false,
 }: GenericTextareaProps<T>) {
   return (
-    <FormFieldWrapper control={control} name={name} label={label}>
+    <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Textarea
           placeholder={placeholder}

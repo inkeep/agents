@@ -115,6 +115,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             name="name"
             label="Name"
             placeholder="e.g., production-api-key"
+            isRequired
           />
 
           <div className="space-y-3">
@@ -123,6 +124,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
               name="apiKeyToSet"
               label="API Key"
               placeholder="e.g., sk-1234567890abcdef1234567890abcdef"
+              isRequired
             />
             <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-md">
               <p className="mb-2">

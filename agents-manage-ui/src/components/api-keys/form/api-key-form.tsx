@@ -100,6 +100,7 @@ export function ApiKeyForm({
           placeholder="Select expiration date"
           options={EXPIRATION_DATE_OPTIONS}
           selectTriggerClassName="w-full"
+          isRequired
         />
         <GenericComboBox
           control={form.control}
@@ -108,6 +109,7 @@ export function ApiKeyForm({
           options={graphsOptions}
           placeholder="Select a graph"
           searchPlaceholder="Search graphs..."
+          isRequired
         />
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
