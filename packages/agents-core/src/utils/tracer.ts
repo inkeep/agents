@@ -10,6 +10,9 @@ import { env } from '../env.js';
 
 const logger = getLogger('tracer');
 
+// Environments where trace force flush should be enabled
+const FORCE_FLUSH_ENVIRONMENTS: readonly string[] = ['development'];
+
 // Base prefix for all span names - export this to use in other files
 export const BASE = 'inkeep-chat';
 
@@ -111,11 +114,11 @@ export function getGlobalTracer(): Tracer {
  * is sent before the operation completes or fails
  */
 export async function forceFlushTracer(): Promise<void> {
-  const isForceFlushSetting = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
-  const isDevelopment = env.ENVIRONMENT === 'development';
+  const isOtelTracesForceFlushEnabled = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
+  const isForceFlushEnvironment = env.ENVIRONMENT && FORCE_FLUSH_ENVIRONMENTS.includes(env.ENVIRONMENT);
 
   const shouldForceFlush =
-    isForceFlushSetting === 'true' || (isForceFlushSetting == null && isDevelopment);
+    isOtelTracesForceFlushEnabled === true || (isOtelTracesForceFlushEnabled == null && isForceFlushEnvironment);
 
   if (!shouldForceFlush) {
     return;

@@ -8,6 +8,9 @@ import {
 import { getLogger } from './logger.js';
 import { env } from './env.js';
 
+// Environments where trace force flush should be enabled
+const FORCE_FLUSH_ENVIRONMENTS: readonly string[] = ['development'];
+
 const logger = getLogger('tracer');
 
 // Base prefix for all span names - export this to use in other files
@@ -108,11 +111,11 @@ export function getGlobalTracer(): Tracer {
  * is sent before the operation completes or fails
  */
 export async function forceFlushTracer(): Promise<void> {
-  const isForceFlushSetting = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
-  const isDevelopment = env.ENVIRONMENT === 'development';
+  const isTracesForceFlushEnabled = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
+  const isForceFlushEnvironment = env.ENVIRONMENT && FORCE_FLUSH_ENVIRONMENTS.includes(env.ENVIRONMENT);
 
   const shouldForceFlush =
-    isForceFlushSetting === 'true' || (isForceFlushSetting == null && isDevelopment);
+    isTracesForceFlushEnabled === true || (isTracesForceFlushEnabled == null && isForceFlushEnvironment);
 
   if (!shouldForceFlush) {
     return;
