@@ -111,11 +111,11 @@ export function getGlobalTracer(): Tracer {
  * is sent before the operation completes or fails
  */
 export async function forceFlushTracer(): Promise<void> {
-  const isTracesForceFlushEnabled = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
+  const isOtelTracesForceFlushEnabled = env.OTEL_TRACES_FORCE_FLUSH_ENABLED;
   const isForceFlushEnvironment = env.ENVIRONMENT && FORCE_FLUSH_ENVIRONMENTS.includes(env.ENVIRONMENT);
 
   const shouldForceFlush =
-    isTracesForceFlushEnabled === true || (isTracesForceFlushEnabled == null && isForceFlushEnvironment);
+    isOtelTracesForceFlushEnabled === true || (isOtelTracesForceFlushEnabled == null && isForceFlushEnvironment);
 
   if (!shouldForceFlush) {
     return;
