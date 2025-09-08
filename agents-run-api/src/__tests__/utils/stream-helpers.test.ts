@@ -183,19 +183,30 @@ describe('VercelDataStreamHelper Memory Management', () => {
 
   test('should not send duplicate content for same index', async () => {
     // Set up mock to always return the same parsed value
-    mockParsePartialJson.mockResolvedValue({
+    mockParsePartialJson.mockImplementation(async () => ({
       value: [{ type: 'test', content: 'item1' }],
-      state: 'successful-parse',
-    });
+      state: 'successful-parse' as const,
+    }));
 
     // Write content first time
     await helper.writeContent('duplicate');
 
+    // Verify first write happened
+    expect(mockWriter.write).toHaveBeenCalledTimes(1);
+    expect(mockWriter.write).toHaveBeenCalledWith({
+      type: 'data-component',
+      id: expect.stringMatching(/^\d+-[a-z0-9]+-0$/),
+      data: { type: 'test', content: 'item1' },
+    });
+
+    // Clear the mock to ensure we can detect if it's called again
+    mockWriter.write.mockClear();
+
     // Write content second time (same content should be deduplicated)
     await helper.writeContent('duplicate');
 
-    // Should only write once since content hasn't changed
-    expect(mockWriter.write).toHaveBeenCalledTimes(1);
+    // Should NOT write again since content hasn't changed
+    expect(mockWriter.write).not.toHaveBeenCalled();
   });
 
   test('should handle malformed JSON gracefully', async () => {

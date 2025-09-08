@@ -7,6 +7,14 @@ import dbClient from '../../data/db/dbClient';
 // Functions now imported from @inkeep/agents-core and mocked above
 import { CredentialStoreRegistry } from '@inkeep/agents-core';
 
+// Mock the ai package's tool function
+vi.mock('ai', () => ({
+  tool: (config: any) => ({
+    ...config,
+    execute: config.execute,
+  }),
+}));
+
 const {
   createMessageMock,
   getCredentialReferenceMock,
