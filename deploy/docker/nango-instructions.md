@@ -7,12 +7,8 @@ This guide covers how to configure the Agent Framework to work with the **integr
 Nango runs as part of the main development stack:
 
 ```bash
-# First-time setup: Create .env file
-cp .env.nango.example .env
-
-# Generate encryption key and update .env
-openssl rand -base64 32
-# Edit .env and replace REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY with the generated key
+# Generate encryption key and create .env file
+cp deploy/docker/.env.nango.example deploy/docker/.env && encryption_key=$(openssl rand -base64 32) && sed -i '' "s|REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY|$encryption_key|" deploy/docker/.env && echo "Docker environment file created with auto-generated encryption key"
 
 # Start the full stack from deploy/docker (includes Nango + observability)
 docker compose up -d
@@ -38,25 +34,9 @@ Once Nango is running, configure the framework applications to connect to your l
 
 #### Configure Application Environment Files
 
-**`/agents-manage-api/.env` and `/agents-run-api/.env`**
 ```bash
-# Admin API key from your local Nango dashboard
-NANGO_SECRET_KEY="123abc..."
-
-# Point to your integrated Nango instance
-NANGO_HOST="http://localhost:3050"
-```
-
-**`/agents-manage-ui/.env`**
-```bash
-# Admin API key from your local Nango dashboard (server-side calls)
-NANGO_SECRET_KEY="123abc..."
-
-# Frontend should point to your integrated Nango instance
-NEXT_PUBLIC_NANGO_HOST="http://localhost:3050"
-
-# Connect UI endpoint
-NEXT_PUBLIC_NANGO_CONNECT_BASE_URL="http://localhost:3051"
+# Update .env files with your Nango secret key
+printf "Enter your Nango secret key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-manage-api/.env agents-run-api/.env agents-manage-ui/.env && echo "Application files updated with Nango secret key"
 ```
 
 **Restart your development processes** to pick up the new environment variables.
@@ -109,15 +89,6 @@ docker compose up -d
 ```
 
 ---
-
-## Alternative: Separate Nango Repository Setup
-
-If you prefer to use the official Nango repository separately (not recommended for development):
-
-1. **Clone Nango**: `git clone https://github.com/NangoHQ/nango && cd nango`
-2. **Configure**: `cp .env.example .env` (edit with your settings)
-3. **Start**: `docker compose up -d`
-4. **Configure framework**: Use the same application `.env` configurations above
 
 ## Alternative: Use Nango Cloud
 
