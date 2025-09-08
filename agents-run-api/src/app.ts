@@ -31,75 +31,8 @@ function createExecutionHono(
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-  // Request ID middleware
-  app.use('*', requestId());
-
-  // OpenTelemetry baggage middleware
-  app.use('*', async (c, next) => {
-    const reqId = c.get('requestId');
-    let bag = propagation.getBaggage(otelContext.active());
-    if (!bag) {
-      bag = propagation.createBaggage();
-    }
-    bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
-    const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-    return otelContext.with(ctxWithBag, () => next());
-  });
-
-  // Baggage middleware for execution API - extracts context from API key authentication
-  app.use('*', async (c, next) => {
-    // Get the API key context if available (set by auth middleware)
-    const executionContext = c.get('executionContext');
-
-    if (!executionContext) {
-      // No API key context, skip baggage setup
-      return next();
-    }
-
-    const { tenantId, projectId, graphId } = executionContext;
-
-    // Extract conversation ID from JSON body if present
-    let conversationId: string | undefined;
-    if (c.req.header('content-type')?.includes('application/json')) {
-      try {
-        const body = await c.req.json();
-        conversationId = body?.conversationId;
-      } catch (_) {
-        // Silently ignore parse errors for non-JSON bodies
-      }
-    }
-
-    const entries = Object.fromEntries(
-      Object.entries({
-        'graph.id': graphId,
-        'tenant.id': tenantId,
-        'project.id': projectId,
-        'conversation.id': conversationId,
-      }).filter((entry): entry is [string, string] => {
-        const [, v] = entry;
-        return typeof v === 'string' && v.length > 0;
-      })
-    );
-
-    if (!Object.keys(entries).length) {
-      return next();
-    }
-
-    const bag = Object.entries(entries).reduce(
-      (b, [key, value]) => b.setEntry(key, { value: value || '' }),
-      propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
-    );
-
-    const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-    return otelContext.with(ctxWithBag, () => next());
-  });
-
-  // Server config and credential stores middleware
-  app.use('*', async (c, next) => {
-    c.set('serverConfig', serverConfig);
-    c.set('credentialStores', credentialStores);
-    return next();
-  });
+// Request ID middleware
+app.use('*', requestId());
 
   // Logging middleware
   app.use(
@@ -217,11 +150,73 @@ function createExecutionHono(
     })
   );
 
-  // Apply API key authentication to all routes except health and docs
-  app.use('/tenants/*', apiKeyAuth());
-  app.use('/agents/*', apiKeyAuth());
-  app.use('/v1/*', apiKeyAuth());
-  app.use('/api/*', apiKeyAuth());
+// Apply API key authentication to all routes except health and docs
+app.use('/tenants/*', apiKeyAuth());
+app.use('/agents/*', apiKeyAuth());
+app.use('/v1/*', apiKeyAuth());
+app.use('/api/*', apiKeyAuth());
+
+app.use('*', async (c, next) => {
+  const reqId = c.get('requestId');
+  let bag = propagation.getBaggage(otelContext.active());
+  if (!bag) {
+    bag = propagation.createBaggage();
+  }
+  bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
+  const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
+  return otelContext.with(ctxWithBag, () => next());
+});
+
+// Baggage middleware for execution API - extracts context from API key authentication
+app.use('*', async (c, next) => {
+  
+  // Get the API key context if available (set by auth middleware)
+  const executionContext = c.get('executionContext');
+
+  if (!executionContext) {
+    // No API key context, skip baggage setup
+    return next();
+  }
+
+  const { tenantId, projectId, graphId } = executionContext;
+
+  // Extract conversation ID from JSON body if present
+  let conversationId: string | undefined;
+  if (c.req.header('content-type')?.includes('application/json')) {
+    try {
+      const body = await c.req.json();
+      conversationId = body?.conversationId;
+    } catch (_) {
+      // Silently ignore parse errors for non-JSON bodies
+    }
+  }
+
+  const entries = Object.fromEntries(
+    Object.entries({
+      'graph.id': graphId,
+      'tenant.id': tenantId,
+      'project.id': projectId,
+      'conversation.id': conversationId,
+    }).filter((entry): entry is [string, string] => {
+      const [, v] = entry;
+      return typeof v === 'string' && v.length > 0;
+    })
+  );
+
+  if (!Object.keys(entries).length) {
+    return next();
+  }
+
+
+  const bag = Object.entries(entries).reduce(
+    (b, [key, value]) => b.setEntry(key, { value: value || '' }),
+    propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
+  );
+
+
+  const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);  
+  return otelContext.with(ctxWithBag, () => next());
+});
 
   // Health check endpoint (no auth required)
   app.openapi(
