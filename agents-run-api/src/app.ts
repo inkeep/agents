@@ -31,8 +31,8 @@ function createExecutionHono(
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-// Request ID middleware
-app.use('*', requestId());
+  // Request ID middleware
+  app.use('*', requestId());
 
   // Logging middleware
   app.use(
