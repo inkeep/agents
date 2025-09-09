@@ -45,8 +45,9 @@ export function useAutoPrefillIdZustand({
         // If ID field is empty, reset manual edit flag to allow auto-generation
         hasManuallyEditedId.current = false;
         lastGeneratedId.current = '';
-      } else if (lastGeneratedId.current && idValue !== lastGeneratedId.current) {
-        // Only consider it a manual edit if user typed something different from our generated value
+      } else if (idValue !== lastGeneratedId.current) {
+        // Consider it a manual edit if user typed something different from our generated value
+        // This includes typing into an empty field (when lastGeneratedId is empty)
         hasManuallyEditedId.current = true;
       }
     }
