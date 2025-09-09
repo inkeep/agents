@@ -226,6 +226,59 @@ Build all packages:
 pnpm build
 ```
 
+# CLI Development
+
+## Running the CLI Locally
+
+When developing the CLI, you can run the local version directly without global installation:
+
+```bash
+# Build the CLI first
+cd agents-cli
+pnpm build
+
+# Run the local CLI from the repository root
+node agents-cli/dist/index.js --version
+
+# Or use the convenience script (if available)
+./scripts/inkeep-local.sh --version
+```
+
+## Testing CLI Changes
+
+1. **Build the CLI after making changes:**
+```bash
+cd agents-cli
+pnpm build
+```
+
+2. **Test commands locally:**
+```bash
+# From repository root
+node agents-cli/dist/index.js push examples/agent-configurations/graph.graph.ts
+node agents-cli/dist/index.js chat
+```
+
+3. **Run CLI tests:**
+```bash
+cd agents-cli
+pnpm test
+```
+
+## Switching Between Local and Published CLI
+
+During development, you may need to test both the local development version and the published npm package:
+
+```bash
+# Use local development version
+node /path/to/agents/agents-cli/dist/index.js --version
+
+# Use globally installed published version
+inkeep --version
+```
+
+For detailed information about switching between versions, see the `INKEEP_CLI_SWITCHING.md` file in the repository root.
+
 # Commit Messages
 
 We follow conventional commit format:
