@@ -112,18 +112,7 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
 				/>
 			)}
 
-			{/* Fallback: render default path if no relationships */}
-			{!hasTransfer && !hasDelegate && (
-				<BaseEdge
-					className={`${selected ? "!stroke-primary" : "!stroke-border dark:!stroke-muted-foreground"}`}
-					path={transferPath}
-					style={{
-						strokeWidth: 2,
-						strokeDasharray: "2,2",
-						fill: "none",
-					}}
-				/>
-			)}
+			{/* Don't render anything if there are no relationships */}
 
 			{/* Icon label */}
 			{(hasTransfer || hasDelegate) && (

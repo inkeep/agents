@@ -134,17 +134,7 @@ export function AgentToAgentEdge({
 				/>
 			)}
 
-			{/* Fallback: render default path if no relationships */}
-			{!hasTransfer && !hasDelegate && (
-				<BaseEdge
-					className={`${selected ? "!stroke-primary" : "!stroke-border dark:!stroke-muted-foreground"}`}
-					path={edgePath}
-					style={{
-						strokeWidth: 2,
-						strokeDasharray: "2,2",
-					}}
-				/>
-			)}
+			{/* Don't render anything if there are no relationships */}
 			{PrimaryIcon && (
 				<EdgeLabelRenderer>
 					<div

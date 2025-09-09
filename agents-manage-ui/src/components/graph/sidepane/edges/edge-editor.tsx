@@ -80,7 +80,7 @@ interface EdgeEditorProps {
 }
 
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
-	const { updateEdgeData } = useReactFlow();
+	const { updateEdgeData, setEdges } = useReactFlow();
 	const sourceNode = useNodesData(selectedEdge.source);
 	const targetNode = useNodesData(selectedEdge.target);
 	const markUnsaved = useGraphStore((state) => state.markUnsaved);
@@ -89,9 +89,12 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 	const isSelfLoop = selectedEdge.source === selectedEdge.target;
 
 	const handleCheckboxChange = (id: string, checked: boolean) => {
-		// For self-loops, when we toggle the checkbox, we should set both directions
-		// to maintain consistency (a self-loop is inherently bidirectional)
+		// Calculate the new relationships state
+		let newRelationships: A2AEdgeData["relationships"];
+		
 		if (isSelfLoop) {
+			// For self-loops, when we toggle the checkbox, we should set both directions
+			// to maintain consistency (a self-loop is inherently bidirectional)
 			const updates: Partial<A2AEdgeData["relationships"]> = {};
 			if (id === "transferSourceToTarget") {
 				updates.transferSourceToTarget = checked;
@@ -100,20 +103,34 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 				updates.delegateSourceToTarget = checked;
 				updates.delegateTargetToSource = checked;
 			}
-			updateEdgeData(selectedEdge.id, {
-				relationships: {
-					...(selectedEdge.data?.relationships as A2AEdgeData["relationships"]),
-					...updates,
-				},
-			});
+			newRelationships = {
+				...(selectedEdge.data?.relationships as A2AEdgeData["relationships"]),
+				...updates,
+			};
 		} else {
+			newRelationships = {
+				...(selectedEdge.data?.relationships as A2AEdgeData["relationships"]),
+				[id]: checked,
+			};
+		}
+
+		// Check if all relationships are now unchecked
+		const hasAnyRelationship = 
+			newRelationships.transferSourceToTarget ||
+			newRelationships.transferTargetToSource ||
+			newRelationships.delegateSourceToTarget ||
+			newRelationships.delegateTargetToSource;
+
+		if (!hasAnyRelationship) {
+			// Remove the edge if no relationships remain
+			setEdges((edges) => edges.filter((edge) => edge.id !== selectedEdge.id));
+		} else {
+			// Update the edge data with the new relationships
 			updateEdgeData(selectedEdge.id, {
-				relationships: {
-					...(selectedEdge.data?.relationships as A2AEdgeData["relationships"]),
-					[id]: checked,
-				},
+				relationships: newRelationships,
 			});
 		}
+		
 		markUnsaved();
 	};
 
