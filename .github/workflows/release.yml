@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - ".changeset/**"
+      - "packages/**"
+      - "agents-cli/**"
+      - "agents-manage-api/**"
+      - "agents-run-api/**"
     branches:
       - main
 
