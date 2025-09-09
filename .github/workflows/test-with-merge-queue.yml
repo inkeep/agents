@@ -44,6 +44,12 @@ jobs:
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
       
+      # Create necessary directories for postinstall scripts
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+      
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
