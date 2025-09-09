@@ -12,8 +12,8 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "examples",
-    "agents-ui",
-    "agents-docs"
+    "@inkeep/examples",
+    "@inkeep/agents-ui",
+    "@inkeep/agents-docs"
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@inkeep/examples",
+  "name": "examples",
   "version": "0.1.0",
   "description": "Example configurations and usage patterns for Inkeep Agent Framework",
   "type": "module",
