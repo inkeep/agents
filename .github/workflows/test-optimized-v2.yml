@@ -49,33 +49,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       
-      # Cache build outputs
-      - name: Setup build cache
-        id: build-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            **/dist
-            **/build
-            **/.turbo
-            !**/*.db
-            !**/*.sqlite
-            !**/local.db
-            !**/test.db
-          key: ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-v5-
-      
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
           # Ensure agents-manage-ui dependencies are properly installed
           cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
       
-      # Build only if not cached
       - name: Build packages
-        if: steps.build-cache.outputs.cache-hit != 'true'
         run: pnpm build --concurrency=200%
         env:
           TURBO_TELEMETRY_DISABLED: 1
@@ -83,6 +63,19 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
           NODE_OPTIONS: --max-old-space-size=4096
+      
+      # Upload build artifacts for other jobs
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-outputs
+          path: |
+            **/dist
+            **/build
+            **/.turbo
+            **/.next
+            !**/.next/cache
+          retention-days: 1
 
   # Run tests in parallel with typecheck
   test:
@@ -122,27 +115,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       
-      - name: Restore build cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            **/dist
-            **/build
-            **/.turbo
-            !**/*.db
-            !**/*.sqlite
-            !**/local.db
-            !**/test.db
-          key: ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-v5-
-      
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          # Ensure agents-manage-ui dependencies are properly installed
-          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        run: pnpm install --frozen-lockfile
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-outputs
       
       - name: Clean database files
         run: |
@@ -197,27 +176,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       
-      - name: Restore build cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            **/dist
-            **/build
-            **/.turbo
-            !**/*.db
-            !**/*.sqlite
-            !**/local.db
-            !**/test.db
-          key: ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-v5-
-      
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          # Ensure agents-manage-ui dependencies are properly installed
-          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        run: pnpm install --frozen-lockfile
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-outputs
       
       - name: Run typecheck
         run: pnpm typecheck
