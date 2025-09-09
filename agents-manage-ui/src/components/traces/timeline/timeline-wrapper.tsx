@@ -1,22 +1,21 @@
+import { AlertTriangle, ChevronDown, ChevronUp, Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { StickToBottom } from 'use-stick-to-bottom';
+import { ConversationTracesLink } from '@/components/traces/signoz-link';
+import { ActivityDetailsSidePane } from '@/components/traces/timeline/activity-details-sidepane';
 import { ActivityTimeline } from '@/components/traces/timeline/activity-timeline';
+import { renderPanelContent } from '@/components/traces/timeline/render-panel-content';
 import type {
   ActivityItem,
-  SelectedPanel,
-  PanelType,
   ConversationDetail,
+  PanelType,
+  SelectedPanel,
 } from '@/components/traces/timeline/types';
-import { ActivityDetailsSidePane } from '@/components/traces/timeline/activity-details-sidepane';
-import { ACTIVITY_TYPES } from '@/components/traces/timeline/types';
-import { TOOL_TYPES } from '@/components/traces/timeline/types';
-import { renderPanelContent } from '@/components/traces/timeline/render-panel-content';
-import { StickToBottom } from 'use-stick-to-bottom';
-import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
-import { Loader2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle } from 'lucide-react';
-import { ConversationTracesLink } from '@/components/traces/signoz-link';
-import { Button } from '@/components/ui/button';
+import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertTitle } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {

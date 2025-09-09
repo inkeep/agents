@@ -1,8 +1,8 @@
 'use server';
 
 import type {
-  CredentialReferenceApiSelect,
   CredentialReferenceApiInsert,
+  CredentialReferenceApiSelect,
   McpTool,
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';

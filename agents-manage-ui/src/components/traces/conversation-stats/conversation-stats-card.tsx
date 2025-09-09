@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
 import { ChevronLeft, ChevronRight, MessageSquare, Search, X } from 'lucide-react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

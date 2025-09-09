@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { getAllGraphsAction } from '@/lib/actions/graph-full';
-import { Combobox } from '@/components/ui/combobox';
-import { FilterTriggerComponent } from './filter-trigger';
+import { useEffect, useState } from 'react';
 import type { OptionType } from '@/components/ui/combobox';
+import { Combobox } from '@/components/ui/combobox';
+import { getAllGraphsAction } from '@/lib/actions/graph-full';
+import { FilterTriggerComponent } from './filter-trigger';
 
 interface GraphFilterProps {
   onSelect: (value: string | undefined) => void;

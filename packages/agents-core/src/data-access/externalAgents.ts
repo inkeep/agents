@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq } from 'drizzle-orm';
-import { externalAgents } from '../db/schema';
 import type { DatabaseClient } from '../db/client';
+import { externalAgents } from '../db/schema';
 import type {
   ExternalAgentInsert,
   ExternalAgentSelect,

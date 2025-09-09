@@ -1,19 +1,20 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
 import {
+  commonGetErrorResponses,
+  createApiError,
+  createDataComponent,
   DataComponentApiInsertSchema,
   DataComponentApiSelectSchema,
   DataComponentApiUpdateSchema,
+  deleteDataComponent,
   ErrorResponseSchema,
+  getDataComponent,
   IdParamsSchema,
   ListResponseSchema,
+  listDataComponentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  createDataComponent,
-  deleteDataComponent,
-  getDataComponent,
-  listDataComponentsPaginated,
   updateDataComponent,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';

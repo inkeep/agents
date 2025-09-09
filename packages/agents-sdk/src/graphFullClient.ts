@@ -3,8 +3,8 @@
  * These functions make HTTP requests to the server instead of direct database calls
  */
 
-import { getLogger } from '@inkeep/agents-core';
 import type { FullGraphDefinition } from '@inkeep/agents-core';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('graphFullClient');
 
@@ -63,7 +63,7 @@ export async function createFullGraphViaAPI(
     throw new Error(errorMessage);
   }
 
-  const result = await response.json() as { data: FullGraphDefinition };
+  const result = (await response.json()) as { data: FullGraphDefinition };
 
   logger.info(
     {
@@ -131,7 +131,7 @@ export async function updateFullGraphViaAPI(
     throw new Error(errorMessage);
   }
 
-  const result = await response.json() as { data: FullGraphDefinition };
+  const result = (await response.json()) as { data: FullGraphDefinition };
 
   logger.info(
     {
@@ -207,7 +207,7 @@ export async function getFullGraphViaAPI(
     throw new Error(errorMessage);
   }
 
-  const result = await response.json() as { data: FullGraphDefinition };
+  const result = (await response.json()) as { data: FullGraphDefinition };
 
   logger.info(
     {

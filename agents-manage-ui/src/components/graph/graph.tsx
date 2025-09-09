@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/graph/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/graph/commands/commands';
@@ -31,7 +31,6 @@ import { saveGraph } from '@/lib/services/save-graph';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';
 import { getErrorSummaryMessage, parseGraphValidationErrors } from '@/lib/utils/graph-error-parser';
-import { Playground } from './playground/playground';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import type { ContextConfig } from './configuration/graph-types';
 import {
@@ -47,6 +46,7 @@ import { GraphErrorSummary } from './error-display/graph-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
+import { Playground } from './playground/playground';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
 

@@ -1,7 +1,7 @@
-import { and, eq, desc, count } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { artifactComponents, agentArtifactComponents, agents, agentRelations } from '../db/schema';
+import { agentArtifactComponents, agentRelations, agents, artifactComponents } from '../db/schema';
 import type {
   ArtifactComponentInsert,
   ArtifactComponentSelect,

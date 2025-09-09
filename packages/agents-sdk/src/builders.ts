@@ -1,14 +1,14 @@
-import { z } from 'zod';
-import { Agent } from './agent';
-import { ArtifactComponent } from './artifact-component';
-import { DataComponent } from './data-component';
-import { Tool } from './tool';
 import {
   type CredentialReferenceApiInsert,
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
 } from '@inkeep/agents-core';
+import { z } from 'zod';
+import { Agent } from './agent';
+import { ArtifactComponent } from './artifact-component';
+import { DataComponent } from './data-component';
+import { Tool } from './tool';
 import type { AgentConfig, TransferConfig } from './types';
 
 /**

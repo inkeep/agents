@@ -1,6 +1,6 @@
+import type { ContextFetchDefinition } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContextFetcher } from '../../context/ContextFetcher';
-import type { ContextFetchDefinition } from '@inkeep/agents-core';
 import { dbClient } from '../setup';
 
 // Mock fetch globally

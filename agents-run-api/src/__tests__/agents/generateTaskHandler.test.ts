@@ -1,3 +1,4 @@
+import { TaskState } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../a2a/types';
 import {
@@ -8,7 +9,6 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../agents/generateTaskHandler';
-import { TaskState } from '@inkeep/agents-core';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {

@@ -1,7 +1,7 @@
-import type { RegisteredAgent } from '../a2a/types';
-import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
 import { type AgentGraphSelect, getAgentById, getAgentGraph } from '@inkeep/agents-core';
+import type { RegisteredAgent } from '../a2a/types';
+import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
 
 // Hydrate graph function

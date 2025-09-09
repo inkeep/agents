@@ -1,16 +1,26 @@
 import {
-  type ActivityItem,
-  type ActivityKind,
-  ACTIVITY_TYPES,
-} from '@/components/traces/timeline/types';
-import { User, Settings, Database, Hammer, Sparkles, ArrowRight, ArrowUpRight, ChevronDown, ChevronRight } from 'lucide-react';
-import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
-import { TagRow } from '@/components/traces/timeline/tag-row';
-import { TOOL_TYPES } from '@/components/traces/timeline/types';
-import { CheckCircle } from 'lucide-react';
-import { Flow } from '@/components/traces/timeline/flow';
+  ArrowRight,
+  ArrowUpRight,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Database,
+  Hammer,
+  Settings,
+  Sparkles,
+  User,
+} from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
+import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import { Flow } from '@/components/traces/timeline/flow';
+import { TagRow } from '@/components/traces/timeline/tag-row';
+import {
+  ACTIVITY_TYPES,
+  type ActivityItem,
+  type ActivityKind,
+  TOOL_TYPES,
+} from '@/components/traces/timeline/types';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -21,8 +31,10 @@ function truncateChars(s: string, n: number) {
 }
 
 function isAiMessage(activity: ActivityItem): boolean {
-  return activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE || 
-         activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT;
+  return (
+    activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
+    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+  );
 }
 
 function statusIcon(
@@ -64,12 +76,12 @@ interface TimelineItemProps {
   onToggleAiMessageCollapse?: (activityId: string) => void;
 }
 
-export function TimelineItem({ 
-  activity, 
-  isLast, 
-  onSelect, 
-  isAiMessageCollapsed = false, 
-  onToggleAiMessageCollapse 
+export function TimelineItem({
+  activity,
+  isLast,
+  onSelect,
+  isAiMessageCollapsed = false,
+  onToggleAiMessageCollapse,
 }: TimelineItemProps) {
   const typeForIcon =
     activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
@@ -128,7 +140,7 @@ export function TimelineItem({
                   type="button"
                   onClick={() => onToggleAiMessageCollapse(activity.id)}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  title={isAiMessageCollapsed ? "Expand AI response" : "Collapse AI response"}
+                  title={isAiMessageCollapsed ? 'Expand AI response' : 'Collapse AI response'}
                 >
                   {isAiMessageCollapsed ? (
                     <ChevronRight className="h-3 w-3" />
@@ -154,7 +166,11 @@ export function TimelineItem({
                   type="button"
                   onClick={() => onToggleAiMessageCollapse(activity.id)}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  title={isAiMessageCollapsed ? "Expand AI streaming response" : "Collapse AI streaming response"}
+                  title={
+                    isAiMessageCollapsed
+                      ? 'Expand AI streaming response'
+                      : 'Collapse AI streaming response'
+                  }
                 >
                   {isAiMessageCollapsed ? (
                     <ChevronRight className="h-3 w-3" />
@@ -165,9 +181,7 @@ export function TimelineItem({
                 </button>
               )}
               {!isAiMessageCollapsed && (
-                <Bubble>
-                  {truncateWords(activity.aiStreamTextContent, 100)}
-                </Bubble>
+                <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
               )}
             </div>
           )}

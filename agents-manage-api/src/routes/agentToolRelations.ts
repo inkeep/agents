@@ -1,27 +1,28 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { z } from 'zod';
-import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
 import {
   AgentToolRelationApiInsertSchema,
   AgentToolRelationApiSelectSchema,
   AgentToolRelationApiUpdateSchema,
   type AgentToolRelationSelect,
+  commonGetErrorResponses,
+  createAgentToolRelation,
+  createApiError,
+  deleteAgentToolRelation,
   ErrorResponseSchema,
+  getAgentsForTool,
+  getAgentToolRelationByAgent,
+  getAgentToolRelationById,
+  getAgentToolRelationByTool,
+  getToolsForAgent,
   IdParamsSchema,
   ListResponseSchema,
+  listAgentToolRelations,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  getAgentToolRelationById,
-  getAgentToolRelationByAgent,
-  getAgentToolRelationByTool,
-  listAgentToolRelations,
-  getToolsForAgent,
-  getAgentsForTool,
-  createAgentToolRelation,
   updateAgentToolRelation,
-  deleteAgentToolRelation,
 } from '@inkeep/agents-core';
+import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();

@@ -1,17 +1,17 @@
-import { SelectedPanel } from '@/components/traces/timeline/types';
-import { Section } from '@/components/traces/timeline/blocks';
-import { Info } from '@/components/traces/timeline/blocks';
 import { Streamdown } from 'streamdown';
-import { LabeledBlock } from '@/components/traces/timeline/blocks';
-import { Bubble } from '@/components/traces/timeline/bubble';
-import { StatusBadge } from '@/components/traces/timeline/blocks';
 import { formatDateTime } from '@/app/utils/format-date';
-import { Divider } from '@/components/traces/timeline/blocks';
-import { Badge } from '@/components/ui/badge';
-import type { ConversationDetail } from '@/components/traces/timeline/types';
-import { ModelBadge } from '@/components/traces/timeline/blocks';
-import { CodeBubble } from '@/components/traces/timeline/bubble';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
+import {
+  Divider,
+  Info,
+  LabeledBlock,
+  ModelBadge,
+  Section,
+  StatusBadge,
+} from '@/components/traces/timeline/blocks';
+import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
+import { Badge } from '@/components/ui/badge';
 
 export function renderPanelContent({
   selected,

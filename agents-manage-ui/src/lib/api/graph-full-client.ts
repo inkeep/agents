@@ -100,9 +100,12 @@ export async function deleteFullGraph(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(`tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`, {
-    method: 'DELETE',
-  });
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+    {
+      method: 'DELETE',
+    }
+  );
 }
 
 // Export the error class for use in server actions

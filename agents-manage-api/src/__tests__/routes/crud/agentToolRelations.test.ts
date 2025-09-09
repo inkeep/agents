@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import app from '../../../index';
+import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
-import { ensureTestProject } from '../../utils/testProject';
 
 // Mock the MCP client to avoid external dependencies
 vi.mock('../../../tools/mcp-client.js', () => ({

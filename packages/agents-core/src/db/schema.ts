@@ -9,20 +9,20 @@ import {
   text,
   unique,
 } from 'drizzle-orm/sqlite-core';
+import type { Part } from '../types/a2a';
 import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
-  Models,
-  ToolMcpConfig,
-  TaskMetadataConfig,
-  ToolServerCapabilities,
-  McpToolDefinition,
   ConversationMetadata,
+  McpToolDefinition,
   MessageContent,
   MessageMetadata,
+  Models,
   StatusUpdateSettings,
+  TaskMetadataConfig,
+  ToolMcpConfig,
+  ToolServerCapabilities,
 } from '../types/utility';
-import type { Part } from '../types/a2a';
 
 // Projects table: Stores project metadata
 export const projects = sqliteTable(

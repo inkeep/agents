@@ -1,8 +1,8 @@
+import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { tool } from 'ai';
 import jmespath from 'jmespath';
 import { nanoid } from 'nanoid';
 import z from 'zod';
-import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { graphSessionManager } from '../utils/graph-session';
 import { parseEmbeddedJson } from './generateTaskHandler';

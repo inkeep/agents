@@ -1,31 +1,32 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
 import {
-  ErrorResponseSchema,
-  IdParamsSchema,
-  ListResponseSchema,
-  PaginationQueryParamsSchema,
-  SingleResponseSchema,
-  TenantProjectParamsSchema,
-  AgentRelationQuerySchema,
   AgentRelationApiInsertSchema,
-  AgentRelationApiUpdateSchema,
+  type AgentRelationApiSelect,
   AgentRelationApiSelectSchema,
-  Pagination,
-  AgentRelationApiSelect,
+  AgentRelationApiUpdateSchema,
+  AgentRelationQuerySchema,
+  commonGetErrorResponses,
+  createAgentRelation,
+  createApiError,
+  deleteAgentRelation,
+  ErrorResponseSchema,
+  getAgentRelationById,
   getAgentRelationsBySource,
   getAgentRelationsByTarget,
   getExternalAgentRelations,
+  IdParamsSchema,
+  ListResponseSchema,
   listAgentRelations,
-  getAgentRelationById,
+  type Pagination,
+  PaginationQueryParamsSchema,
+  SingleResponseSchema,
+  TenantProjectParamsSchema,
+  updateAgentRelation,
   validateExternalAgent,
   validateInternalAgent,
-  createAgentRelation,
-  updateAgentRelation,
-  deleteAgentRelation,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { nanoid } from 'nanoid';
+import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import type { Project } from '@/lib/types/project';
+import { useEffect, useState } from 'react';
 import { fetchProjectAction } from '@/lib/actions/projects';
+import type { Project } from '@/lib/types/project';
 
 export function useProjectData() {
   const params = useParams();

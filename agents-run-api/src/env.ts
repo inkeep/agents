@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as dotenv from 'dotenv';
 import { z } from 'zod';
+
 dotenv.config({ quiet: true });
 
 const nodeEnvSchema = z.enum(['development', 'production']).default('development');

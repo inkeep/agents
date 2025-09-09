@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { File } from "@/components/sidebar/file";
-import { Folder, type SidebarPage } from "@/components/sidebar/folder";
+import { useEffect, useRef } from 'react';
+import { File } from '@/components/sidebar/file';
+import { Folder, type SidebarPage } from '@/components/sidebar/folder';
 import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-} from "@/components/ui/sidebar";
-import { useEffect, useRef } from "react";
+} from '@/components/ui/sidebar';
 
 export function List({ groups }: { groups: (SidebarPage | undefined)[] }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -19,7 +19,7 @@ export function List({ groups }: { groups: (SidebarPage | undefined)[] }) {
 
     if (activeItem) {
       activeItem.scrollIntoView({
-        block: "center",
+        block: 'center',
       });
     }
   }, []);
@@ -31,14 +31,12 @@ export function List({ groups }: { groups: (SidebarPage | undefined)[] }) {
 
         return (
           <SidebarGroup key={i}>
-            {group.group && (
-              <SidebarGroupLabel>{group.group}</SidebarGroupLabel>
-            )}
+            {group.group && <SidebarGroupLabel>{group.group}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.pages?.map((page, i) => {
                   if (!page) return;
-                  if ("group" in page) {
+                  if ('group' in page) {
                     return <Folder key={i} item={page} />;
                   }
                   return <File key={i} item={page} />;

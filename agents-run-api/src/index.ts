@@ -1,11 +1,11 @@
 import './instrumentation';
-import { createExecutionHono } from './app';
 import {
+  type CredentialStore,
   CredentialStoreRegistry,
   createDefaultCredentialStores,
-  type CredentialStore,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import { createExecutionHono } from './app';
 
 // Create default configuration
 const defaultConfig: ServerConfig = {

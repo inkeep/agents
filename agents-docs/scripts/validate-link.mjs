@@ -1,7 +1,7 @@
-import { printErrors, readFiles, scanURLs, validateFiles } from 'next-validate-link';
-import { getSlugs, parseFilePath } from 'fumadocs-core/source';
-import { getTableOfContents } from 'fumadocs-core/server';
 import path from 'node:path';
+import { getTableOfContents } from 'fumadocs-core/server';
+import { getSlugs, parseFilePath } from 'fumadocs-core/source';
+import { printErrors, readFiles, scanURLs, validateFiles } from 'next-validate-link';
 
 async function checkLinks() {
   const docsFiles = await readFiles('content/docs/**/*.{md,mdx}');

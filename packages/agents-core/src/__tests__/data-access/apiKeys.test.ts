@@ -1,17 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  countApiKeys,
+  createApiKey,
+  deleteApiKey,
   getApiKeyById,
   getApiKeyByPublicId,
+  hasApiKey,
   listApiKeys,
   listApiKeysPaginated,
-  createApiKey,
   updateApiKey,
-  deleteApiKey,
-  hasApiKey,
   updateApiKeyLastUsed,
-  countApiKeys,
 } from '../../data-access/apiKeys';
+import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   extractPublicId,
   generateApiKey,
@@ -20,7 +21,6 @@ import {
   maskApiKey,
   validateApiKey,
 } from '../../utils/apiKeys';
-import type { DatabaseClient } from '../../db/client';
 
 describe('API Keys Data Access', () => {
   let db: DatabaseClient;

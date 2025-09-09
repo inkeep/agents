@@ -1,27 +1,26 @@
-import { getLogger } from '../logger';
-import dbClient from './db/dbClient';
-
 import {
+  ContextResolver,
+  type CredentialStoreRegistry,
+  CredentialStuffer,
+  dbResultToMcpTool,
+  detectAuthenticationRequired,
+  getCredentialReference,
+  getToolById,
+  listTools,
+  type MCPToolConfig,
+  McpClient,
+  type McpServerCapabilities,
   type McpServerConfig,
   type McpSSEConfig,
   type McpStreamableHttpConfig,
-  type ToolUpdate,
-  type MCPToolConfig,
-  type McpServerCapabilities,
   type McpTool,
   type McpToolDefinition,
   type McpToolStatus,
-  McpClient,
-  CredentialStuffer,
-  getCredentialReference,
+  type ToolUpdate,
   updateTool,
-  dbResultToMcpTool,
-  listTools,
-  getToolById,
-  detectAuthenticationRequired,
-  ContextResolver,
-  type CredentialStoreRegistry,
 } from '@inkeep/agents-core';
+import { getLogger } from '../logger';
+import dbClient from './db/dbClient';
 
 /**
  * Extract input schema from MCP tool definition, handling multiple formats

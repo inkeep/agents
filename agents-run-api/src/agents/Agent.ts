@@ -1,29 +1,29 @@
+import {
+  type AgentConversationHistoryConfig,
+  type Artifact,
+  type ArtifactComponentApiInsert,
+  ContextResolver,
+  type CredentialStoreRegistry,
+  CredentialStuffer,
+  type DataComponentApiInsert,
+  getContextConfigById,
+  getCredentialReference,
+  getFullGraphDefinition,
+  getLedgerArtifacts,
+  graphHasArtifactComponents,
+  listTaskIdsByContextId,
+  type MCPToolConfig,
+  McpClient,
+  type McpServerConfig,
+  type McpTool,
+  type MessageContent,
+  type ModelSettings,
+  type Models,
+  TemplateEngine,
+} from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import { generateObject, generateText, streamText, type ToolSet, tool } from 'ai';
 import { z } from 'zod';
-import {
-  getContextConfigById,
-  getLedgerArtifacts,
-  getCredentialReference,
-  listTaskIdsByContextId,
-  getFullGraphDefinition,
-  graphHasArtifactComponents,
-  ContextResolver,
-  TemplateEngine,
-  McpClient,
-  CredentialStuffer,
-  CredentialStoreRegistry,
-  type McpServerConfig,
-  type Artifact,
-  type DataComponentApiInsert,
-  type McpTool,
-  type MessageContent,
-  type AgentConversationHistoryConfig,
-  type ArtifactComponentApiInsert,
-  type MCPToolConfig,
-  type Models,
-  type ModelSettings,
-} from '@inkeep/agents-core';
 import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
@@ -31,7 +31,7 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { createSpanName, getGlobalTracer, handleSpanError, forceFlushTracer } from '../tracer';
+import { createSpanName, forceFlushTracer, getGlobalTracer, handleSpanError } from '../tracer';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';

@@ -1,10 +1,10 @@
+import { Area, CartesianGrid, AreaChart as RechartsAreaChart, XAxis, YAxis } from 'recharts';
 import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from '@/components/ui/chart';
-import { AreaChart as RechartsAreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 export interface AreaChartProps<TData> {
   data?: TData[];

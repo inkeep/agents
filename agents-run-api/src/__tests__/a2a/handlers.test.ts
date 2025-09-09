@@ -1,8 +1,8 @@
+import { TaskState } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { a2aHandler } from '../../a2a/handlers';
 import type { A2ATaskResult, JsonRpcRequest, RegisteredAgent } from '../../a2a/types';
-import { TaskState } from '@inkeep/agents-core';
 
 // Setup mocks with vi.hoisted to ensure they're available before imports
 const { createMessageMock, createTaskMock, updateTaskMock } = vi.hoisted(() => {

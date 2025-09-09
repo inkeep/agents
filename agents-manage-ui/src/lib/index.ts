@@ -15,7 +15,7 @@ export {
   validateGraphData,
 } from './actions/graph-full';
 // API Configuration exports
-export { MANAGEMENT_API_BASE_URL, EXECUTION_API_BASE_URL } from './api/api-config';
+export { EXECUTION_API_BASE_URL, MANAGEMENT_API_BASE_URL } from './api/api-config';
 // API Client exports (for advanced use cases)
 export {
   ApiError,

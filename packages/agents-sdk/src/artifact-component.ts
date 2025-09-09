@@ -1,8 +1,8 @@
 import {
   type ArtifactComponentInsert as ArtifactComponentType,
   generateIdFromName,
+  getLogger,
 } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('artifactComponent');
 

@@ -1,13 +1,13 @@
 import '@/app/global.css';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
-import type { ReactNode } from 'react';
 import { ThemeProvider } from 'next-themes';
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { source } from '@/lib/source';
+import type { ReactNode } from 'react';
+import { Navbar } from '@/components/navbar';
 import { AppSidebar } from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { Navbar } from '@/components/navbar';
+import { source } from '@/lib/source';
 
 const inter = Inter({
   subsets: ['latin'],

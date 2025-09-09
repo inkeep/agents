@@ -1,7 +1,7 @@
+import type { DataComponentSelect, McpTool, MessageType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../agents/Agent';
 import { V1Config } from '../../agents/versions/V1Config';
-import type { DataComponentSelect, McpTool, MessageType } from '@inkeep/agents-core';
 
 // Mock the AI SDK functions
 vi.mock('ai', () => ({

@@ -2,11 +2,11 @@ import jmespath from 'jmespath';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer';
 import { getCredentialReference } from '../data-access/index';
+import type { DatabaseClient } from '../db/client';
+import { validateAgainstJsonSchema } from '../middleware/index';
 import type { ContextFetchDefinition } from '../types/utility';
 import { getLogger } from '../utils/logger';
-import { validateAgainstJsonSchema } from '../middleware/index';
 import { type TemplateContext, TemplateEngine } from './TemplateEngine';
-import type { DatabaseClient } from '../db/client';
 
 const logger = getLogger('context-fetcher');
 

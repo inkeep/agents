@@ -1,4 +1,10 @@
-import { getLogger } from '@inkeep/agents-core';
+import {
+  type ArtifactComponentApiInsert,
+  // getDataComponentsForAgent,
+  // getArtifactComponentsForAgent,
+  type DataComponentApiInsert,
+  getLogger,
+} from '@inkeep/agents-core';
 import { ArtifactComponent } from './artifact-component';
 import { DataComponent } from './data-component';
 import type {
@@ -11,12 +17,6 @@ import type {
   MessageInput,
   ToolCall,
 } from './types';
-import {
-  // getDataComponentsForAgent,
-  // getArtifactComponentsForAgent,
-  type DataComponentApiInsert,
-  type ArtifactComponentApiInsert,
-} from '@inkeep/agents-core';
 
 const logger = getLogger('agent');
 

@@ -1,5 +1,5 @@
-import type { SidebarPage } from "@/components/sidebar/folder";
-import { source } from "@/lib/source";
+import type { SidebarPage } from '@/components/sidebar/folder';
+import { source } from '@/lib/source';
 
 export const transformItems = (group: any) => {
   if (!group.pages) return;
@@ -9,7 +9,7 @@ export const transformItems = (group: any) => {
     pages: [] as any[],
   } as SidebarPage;
   grp.pages = group.pages.map((item: any) => {
-    if (typeof item === "string") {
+    if (typeof item === 'string') {
       const page = source.getPage([item]);
       if (!page) return;
 
@@ -33,7 +33,7 @@ export function flattenNav(navItems: any[]): any[] {
 
   function traverse(items: any[]) {
     for (const item of items) {
-      if (typeof item === "string") {
+      if (typeof item === 'string') {
         const page = source.getPage([item]);
         if (page) {
           flatList.push({

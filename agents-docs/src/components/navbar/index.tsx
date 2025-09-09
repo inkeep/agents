@@ -1,13 +1,13 @@
 // import { MobileSearchTrigger } from "@/components/navbar/mobile-search";
-import { SidebarTrigger } from '@/components/navbar/sidebar-trigger';
-// import { SearchToggle } from "@/components/search-trigger";
-import { ThemeToggle } from '@/components/theme-toggle';
+
+import Link from 'next/link';
 // import { Button } from "@/components/ui/button";
 // import { ChevronRight } from "lucide-react";
 import { Fade } from '@/components/fade';
 import { Logo } from '@/components/logo';
-
-import Link from 'next/link';
+import { SidebarTrigger } from '@/components/navbar/sidebar-trigger';
+// import { SearchToggle } from "@/components/search-trigger";
+import { ThemeToggle } from '@/components/theme-toggle';
 // import { ChatToggle } from "./chat-trigger";
 
 export const Navbar = () => {

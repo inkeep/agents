@@ -1,11 +1,11 @@
 import type {
   AgentApiInsert,
   AgentConversationHistoryConfig,
-  ArtifactComponentApiSelect,
   ArtifactComponentApiInsert,
+  ArtifactComponentApiSelect,
   CredentialReferenceApiInsert,
-  DataComponentApiSelect,
   DataComponentApiInsert,
+  DataComponentApiSelect,
   McpTransportConfig,
   ToolInsert,
 } from '@inkeep/agents-core';

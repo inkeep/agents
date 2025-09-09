@@ -1,11 +1,11 @@
+import type { z } from 'zod';
 import type {
   AgentDefinition,
   ExternalAgentApiInsert,
-  InternalAgentDefinition,
   FullGraphDefinition,
+  InternalAgentDefinition,
 } from '../types/entities';
 import { FullGraphDefinitionSchema } from '../validation/schemas';
-import type { z } from 'zod';
 
 // Type guard functions
 export function isInternalAgent(agent: AgentDefinition): agent is InternalAgentDefinition {

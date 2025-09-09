@@ -1,6 +1,6 @@
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { type ModelSettings, ModelFactory } from '../../agents/ModelFactory';
+import { ModelFactory, type ModelSettings } from '../../agents/ModelFactory';
 
 // Mock AI SDK providers
 vi.mock('@ai-sdk/anthropic', () => {

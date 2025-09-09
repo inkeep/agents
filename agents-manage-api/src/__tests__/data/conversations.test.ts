@@ -1,14 +1,14 @@
-import { and, desc, eq } from 'drizzle-orm';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   conversations,
-  messages,
-  createMessage,
   createOrGetConversation as createConversation,
+  createMessage,
   getConversation,
   getConversationHistory,
+  messages,
   updateConversation,
 } from '@inkeep/agents-core';
+import { and, desc, eq } from 'drizzle-orm';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 
 // Mock nanoid to return predictable IDs

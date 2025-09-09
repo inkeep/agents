@@ -1,15 +1,18 @@
+import type { ExecutionContext } from '@inkeep/agents-core';
+import {
+  createMessage,
+  createTask,
+  getActiveAgentForConversation,
+  getFullGraph,
+  getTask,
+  type SendMessageResponse,
+  updateTask,
+} from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
+import { nanoid } from 'nanoid';
 import { A2AClient } from '../a2a/client';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer';
-import {
-  type SendMessageResponse,
-  createMessage,
-  getActiveAgentForConversation,
-  createTask,
-  getTask,
-  updateTask,
-  getFullGraph,
-} from '@inkeep/agents-core';
+import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import {
@@ -23,9 +26,6 @@ import { graphSessionManager } from '../utils/graph-session';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { MCPStreamHelper } from '../utils/stream-helpers';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry';
-import dbClient from '../data/db/dbClient';
-import { nanoid } from 'nanoid';
-import type { ExecutionContext } from '@inkeep/agents-core';
 
 const logger = getLogger('ExecutionHandler');
 

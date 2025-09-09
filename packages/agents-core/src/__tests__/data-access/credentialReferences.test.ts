@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  countCredentialReferences,
+  createCredentialReference,
+  deleteCredentialReference,
   getCredentialReference,
+  getCredentialReferenceById,
   getCredentialReferenceWithTools,
+  hasCredentialReference,
   listCredentialReferences,
   listCredentialReferencesPaginated,
-  createCredentialReference,
   updateCredentialReference,
-  deleteCredentialReference,
-  hasCredentialReference,
-  getCredentialReferenceById,
-  countCredentialReferences,
 } from '../../data-access/credentialReferences';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
 
 describe('Credential References Data Access', () => {

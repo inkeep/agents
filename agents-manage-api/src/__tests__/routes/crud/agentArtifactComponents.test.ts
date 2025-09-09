@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
+import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
-import { ensureTestProject } from '../../utils/testProject';
 
 describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
   const projectId = 'default';

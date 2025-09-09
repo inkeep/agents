@@ -11,18 +11,18 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
-  dbResultToMcpTool,
-  getToolById,
-  updateTool,
-  createCredentialReference,
-  getCredentialReference,
-  updateCredentialReference,
   type CredentialStoreRegistry,
+  createCredentialReference,
+  dbResultToMcpTool,
+  getCredentialReference,
+  getToolById,
   type ServerConfig,
+  updateCredentialReference,
+  updateTool,
 } from '@inkeep/agents-core';
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
-import dbClient from '../data/db/dbClient';
 
 type AppVariables = {
   serverConfig: ServerConfig;

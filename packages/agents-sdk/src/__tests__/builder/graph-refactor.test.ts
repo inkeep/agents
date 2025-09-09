@@ -1,7 +1,7 @@
+import * as graphFullModule from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import { agent, agentGraph, tool } from '../../index';
-import * as graphFullModule from '@inkeep/agents-core';
 import { createTestTenantId } from '../utils/testTenant';
 
 // Mock @inkeep/agents-core

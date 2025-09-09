@@ -1,18 +1,18 @@
-import { nanoid } from 'nanoid';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  associateDataComponentWithAgent,
   createAgent,
   createAgentGraph,
-  associateDataComponentWithAgent,
   createDataComponent,
   getAgentsUsingDataComponent,
   getDataComponentsForAgent,
   isDataComponentAssociatedWithAgent,
   removeDataComponentFromAgent,
 } from '@inkeep/agents-core';
-import { createTestTenantId } from '../utils/testTenant';
-import { ensureTestProject } from '../utils/testProject';
+import { nanoid } from 'nanoid';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
+import { ensureTestProject } from '../utils/testProject';
+import { createTestTenantId } from '../utils/testTenant';
 
 describe('Data Component Agent Associations', () => {
   const tenantId = createTestTenantId('datacomponent-associations');

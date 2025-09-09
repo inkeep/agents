@@ -1,52 +1,51 @@
+import { and, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+import type { DatabaseClient } from '../db/client';
+import { agents, projects } from '../db/schema';
 import type {
-  ExternalAgentApiInsert,
-  InternalAgentDefinition,
-  FullGraphDefinition,
   AgentDefinition,
+  ExternalAgentApiInsert,
+  FullGraphDefinition,
+  InternalAgentDefinition,
 } from '../types/entities';
+import type { ScopeConfig } from '../types/utility';
 import {
+  isExternalAgent,
+  isInternalAgent,
   validateAndTypeGraphData,
   validateGraphStructure,
-  isInternalAgent,
-  isExternalAgent,
 } from '../validation/graphFull';
-import type { DatabaseClient } from '../db/client';
-import { and, eq } from 'drizzle-orm';
-import { agents, projects } from '../db/schema';
-
-import { upsertTool, upsertAgentToolRelation } from './tools';
-import { upsertContextConfig } from './contextConfigs';
 import {
-  upsertDataComponent,
-  upsertAgentDataComponentRelation,
-  associateDataComponentWithAgent,
-  deleteAgentDataComponentRelationByAgent,
-} from './dataComponents';
-import {
-  upsertArtifactComponent,
-  upsertAgentArtifactComponentRelation,
-  deleteAgentArtifactComponentRelationByAgent,
-  associateArtifactComponentWithAgent,
-} from './artifactComponents';
-import { upsertAgent } from './agents';
-import { upsertExternalAgent } from './externalAgents';
-import {
-  getFullGraphDefinition,
-  upsertAgentGraph,
-  getAgentGraphById,
-  updateAgentGraph,
   deleteAgentGraph,
+  getAgentGraphById,
+  getFullGraphDefinition,
+  updateAgentGraph,
+  upsertAgentGraph,
 } from './agentGraphs';
-import { upsertCredentialReference } from './credentialReferences';
 import {
-  deleteAgentToolRelationByAgent,
-  upsertAgentRelation,
+  createAgentRelation,
   createAgentToolRelation,
   deleteAgentRelationsByGraph,
-  createAgentRelation,
+  deleteAgentToolRelationByAgent,
+  upsertAgentRelation,
 } from './agentRelations';
-import { nanoid } from 'nanoid';
-import { ScopeConfig } from '../types/utility';
+import { upsertAgent } from './agents';
+import {
+  associateArtifactComponentWithAgent,
+  deleteAgentArtifactComponentRelationByAgent,
+  upsertAgentArtifactComponentRelation,
+  upsertArtifactComponent,
+} from './artifactComponents';
+import { upsertContextConfig } from './contextConfigs';
+import { upsertCredentialReference } from './credentialReferences';
+import {
+  associateDataComponentWithAgent,
+  deleteAgentDataComponentRelationByAgent,
+  upsertAgentDataComponentRelation,
+  upsertDataComponent,
+} from './dataComponents';
+import { upsertExternalAgent } from './externalAgents';
+import { upsertAgentToolRelation, upsertTool } from './tools';
 
 // Logger interface for dependency injection
 export interface GraphLogger {

@@ -3,10 +3,10 @@ import type { Context, Next } from 'hono';
 import { ContextResolver } from '../context/ContextResolver';
 import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs';
 import { getContextConfigById } from '../data-access/contextConfigs';
-import type { ContextConfigSelect } from '../types/entities';
-import { getLogger } from '../utils/logger';
 import type { DatabaseClient } from '../db/client';
+import type { ContextConfigSelect } from '../types/entities';
 import { getRequestExecutionContext } from '../utils/execution';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('context-validation');
 

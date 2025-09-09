@@ -104,8 +104,10 @@ export function ActiveToolsSelector<
         return availableTools.some((tool) => tool.name === toolName);
       case 'selective':
         // Only return true if tool is selected AND still exists in availableTools
-        return safeToolsConfig.tools.includes(toolName) && 
-               availableTools.some((tool) => tool.name === toolName);
+        return (
+          safeToolsConfig.tools.includes(toolName) &&
+          availableTools.some((tool) => tool.name === toolName)
+        );
       default:
         return false;
     }

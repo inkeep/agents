@@ -1,16 +1,16 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { ServerConfig, CredentialStoreRegistry } from '@inkeep/agents-core';
+import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
+import { handleApiError } from '@inkeep/agents-core';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
-import { handleApiError } from '@inkeep/agents-core';
 import { getLogger } from './logger';
-import crudRoutes from './routes/index';
 import { apiKeyAuth } from './middleware/auth';
-import oauthRoutes from './routes/oauth';
 import { setupOpenAPIRoutes } from './openapi';
+import crudRoutes from './routes/index';
+import oauthRoutes from './routes/oauth';
 
 type AppVariables = {
   serverConfig: ServerConfig;

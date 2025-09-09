@@ -1,7 +1,7 @@
 import type { CredentialStore } from '../types/server';
+import { createKeyChainStore } from './keychain-store';
 import { InMemoryCredentialStore } from './memory-store';
 import { createNangoCredentialStore } from './nango-store';
-import { createKeyChainStore } from './keychain-store';
 
 /**
  * Create default credential stores based on environment variables

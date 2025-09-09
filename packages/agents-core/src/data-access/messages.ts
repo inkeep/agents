@@ -1,12 +1,12 @@
-import { and, eq, asc, desc, inArray, count } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { messages } from '../db/schema';
 import type {
-  MessageVisibility,
-  ScopeConfig,
   MessageInsert,
   MessageUpdate,
+  MessageVisibility,
   PaginationConfig,
+  ScopeConfig,
 } from '../types/index';
 
 export const getMessageById =

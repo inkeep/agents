@@ -1,4 +1,4 @@
-import { resourceIdSchema, MAX_ID_LENGTH } from './schemas';
+import { MAX_ID_LENGTH, resourceIdSchema } from './schemas';
 /**
  * Valid URL-safe characters for resource IDs based on RFC 3986.
  *

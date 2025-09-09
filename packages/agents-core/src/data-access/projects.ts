@@ -1,34 +1,34 @@
 import { and, count, desc, eq } from 'drizzle-orm';
+import type { DatabaseClient } from '../db/client';
 import {
-  agents,
-  agentGraph,
-  tools,
-  contextConfigs,
-  externalAgents,
-  agentRelations,
-  agentToolRelations,
-  agentDataComponents,
   agentArtifactComponents,
-  dataComponents,
+  agentDataComponents,
+  agentGraph,
+  agentRelations,
+  agents,
+  agentToolRelations,
   artifactComponents,
-  tasks,
-  taskRelations,
-  conversations,
-  messages,
   contextCache,
+  contextConfigs,
+  conversations,
   credentialReferences,
+  dataComponents,
+  externalAgents,
   ledgerArtifacts,
+  messages,
   projects,
+  taskRelations,
+  tasks,
+  tools,
 } from '../db/schema';
+import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities';
 import type {
+  PaginationConfig,
+  PaginationResult,
+  ProjectInfo,
   ProjectResourceCounts,
   ScopeConfig,
-  PaginationConfig,
-  ProjectInfo,
-  PaginationResult,
 } from '../types/utility';
-import type { DatabaseClient } from '../db/client';
-import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities';
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables

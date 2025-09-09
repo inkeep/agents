@@ -1,8 +1,9 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  type ExecutionContext,
-  type ServerConfig,
   type CredentialStoreRegistry,
+  type ExecutionContext,
+  handleApiError,
+  type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { cors } from 'hono/cors';
@@ -10,7 +11,6 @@ import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
-import { handleApiError } from '@inkeep/agents-core';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';

@@ -1,23 +1,23 @@
-import { and, eq, desc, count, inArray, like } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, like } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import {
-  agents,
   agentArtifactComponents,
   agentDataComponents,
   agentGraph,
+  agents,
   agentToolRelations,
   artifactComponents,
   dataComponents,
-  tools,
   projects,
+  tools,
 } from '../db/schema';
 import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities';
 import type { PaginationConfig, ScopeConfig } from '../types/utility';
 import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
 import { getAgentById } from './agents';
-import { getExternalAgent } from './externalAgents';
 import { getContextConfigById } from './contextConfigs';
+import { getExternalAgent } from './externalAgents';
 
 export const getAgentGraph =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {

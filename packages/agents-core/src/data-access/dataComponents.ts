@@ -1,13 +1,13 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { agentDataComponents, dataComponents } from '../db/schema';
 import type { DatabaseClient } from '../db/client';
+import { agentDataComponents, dataComponents } from '../db/schema';
 import type {
   DataComponentInsert,
   DataComponentSelect,
   DataComponentUpdate,
-  ScopeConfig,
   PaginationConfig,
+  ScopeConfig,
 } from '../types/index';
 
 /**

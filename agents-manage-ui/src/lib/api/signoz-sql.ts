@@ -2,7 +2,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
 // Configure axios retry
-axiosRetry(axios, { 
+axiosRetry(axios, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
 });

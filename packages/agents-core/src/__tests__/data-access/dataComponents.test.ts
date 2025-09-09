@@ -1,20 +1,20 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  associateDataComponentWithAgent,
+  countDataComponents,
+  createDataComponent,
+  deleteDataComponent,
+  getAgentsUsingDataComponent,
   getDataComponent,
+  getDataComponentsForAgent,
+  isDataComponentAssociatedWithAgent,
   listDataComponents,
   listDataComponentsPaginated,
-  createDataComponent,
-  updateDataComponent,
-  deleteDataComponent,
-  getDataComponentsForAgent,
-  associateDataComponentWithAgent,
   removeDataComponentFromAgent,
-  getAgentsUsingDataComponent,
-  isDataComponentAssociatedWithAgent,
-  countDataComponents,
+  updateDataComponent,
 } from '../../data-access/dataComponents';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import type { DataComponentInsert, ScopeConfig } from '../../types/index';
 
 describe('Data Components Data Access', () => {

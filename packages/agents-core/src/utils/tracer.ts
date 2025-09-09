@@ -5,8 +5,8 @@ import {
   type Tracer,
   trace,
 } from '@opentelemetry/api';
-import { getLogger } from './logger';
 import { env } from '../env';
+import { getLogger } from './logger';
 
 const logger = getLogger('tracer');
 

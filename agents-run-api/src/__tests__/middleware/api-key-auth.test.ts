@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { type ApiKeySelect, updateApiKeyLastUsed, validateAndGetApiKey } from '@inkeep/agents-core';
 import { Hono } from 'hono';
-import { apiKeyAuth, optionalAuth } from '../../middleware/api-key-auth';
-import { type ApiKeySelect, validateAndGetApiKey, updateApiKeyLastUsed } from '@inkeep/agents-core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { env } from '../../env';
+import { apiKeyAuth, optionalAuth } from '../../middleware/api-key-auth';
 
 // Mock the dependencies
 vi.mock('@inkeep/agents-core', () => ({

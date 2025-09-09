@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  listConversations,
   createConversation,
-  updateConversation,
-  deleteConversation,
-  updateConversationActiveAgent,
-  getConversation,
   createOrGetConversation,
+  deleteConversation,
   getActiveAgentForConversation,
-  setActiveAgentForConversation,
+  getConversation,
   getConversationHistory,
+  listConversations,
+  setActiveAgentForConversation,
+  updateConversation,
+  updateConversationActiveAgent,
 } from '../../data-access/conversations';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import type { ConversationUpdate } from '../../types/index';
 
 describe('Conversations Data Access', () => {

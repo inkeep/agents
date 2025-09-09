@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getArtifactComponentById,
-  listArtifactComponents,
-  listArtifactComponentsPaginated,
-  createArtifactComponent,
-  updateArtifactComponent,
-  deleteArtifactComponent,
-  getArtifactComponentsForAgent,
   associateArtifactComponentWithAgent,
-  removeArtifactComponentFromAgent,
-  getAgentsUsingArtifactComponent,
-  isArtifactComponentAssociatedWithAgent,
-  graphHasArtifactComponents,
   countArtifactComponents,
   countArtifactComponentsForAgent,
+  createArtifactComponent,
+  deleteArtifactComponent,
+  getAgentsUsingArtifactComponent,
+  getArtifactComponentById,
+  getArtifactComponentsForAgent,
+  graphHasArtifactComponents,
+  isArtifactComponentAssociatedWithAgent,
+  listArtifactComponents,
+  listArtifactComponentsPaginated,
+  removeArtifactComponentFromAgent,
+  updateArtifactComponent,
 } from '../../data-access/artifactComponents';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 
 describe('Artifact Components Data Access', () => {
   let db: DatabaseClient;

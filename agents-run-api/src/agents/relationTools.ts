@@ -1,17 +1,17 @@
+import {
+  ContextResolver,
+  type CredentialStoreReference,
+  type CredentialStoreRegistry,
+  CredentialStuffer,
+  createMessage,
+  getCredentialReference,
+  getExternalAgent,
+} from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import { nanoid } from 'nanoid';
 import z from 'zod';
 import { A2AClient } from '../a2a/client';
-import {
-  createMessage,
-  getCredentialReference,
-  getExternalAgent,
-  type CredentialStoreReference,
-  CredentialStuffer,
-  ContextResolver,
-  CredentialStoreRegistry,
-} from '@inkeep/agents-core';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';

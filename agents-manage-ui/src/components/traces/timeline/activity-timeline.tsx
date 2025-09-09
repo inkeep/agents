@@ -1,5 +1,5 @@
-import type { ActivityItem } from '@/components/traces/timeline/types';
 import { TimelineItem } from '@/components/traces/timeline/timeline-item';
+import type { ActivityItem } from '@/components/traces/timeline/types';
 
 export function ActivityTimeline({
   activities,

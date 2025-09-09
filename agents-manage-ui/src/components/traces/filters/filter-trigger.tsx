@@ -1,7 +1,7 @@
 import { ChevronDown, type LucideIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PopoverTrigger } from '@/components/ui/popover';
 import type { OptionType } from '@/components/ui/combobox';
+import { PopoverTrigger } from '@/components/ui/popover';
 
 interface FilterTriggerComponentProps {
   Icon?: LucideIcon;

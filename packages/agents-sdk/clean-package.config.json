@@ -1,10 +1,10 @@
 {
-    "replace": {
-        "main": "dist/index.js",
-        "types": "dist/index.d.ts",
-        "exports": {
-            ".": "./dist/index.js",
-            "./package.json": "./package.json"
-        }
+  "replace": {
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+      ".": "./dist/index.js",
+      "./package.json": "./package.json"
     }
+  }
 }

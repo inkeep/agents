@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Link from "fumadocs-core/link";
-import { Button } from "@/components/ui/button";
-import { icon } from "@inkeep/docskit";
+import { icon } from '@inkeep/docskit';
+import Link from 'fumadocs-core/link';
+import { Button } from '@/components/ui/button';
 
 interface FooterLinkProps {
   href: string;
