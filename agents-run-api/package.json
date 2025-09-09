@@ -51,6 +51,7 @@
     "hono": "^4.8.10",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
+    "langfuse": "^3.38.5",
     "nanoid": "^5.1.5",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
