@@ -12,6 +12,8 @@ export interface InkeepConfig {
   projectId?: string;
   managementApiUrl?: string;
   executionApiUrl?: string;
+  manageUiUrl?: string;
+  outputDirectory?: string;
   modelSettings?: ModelSettings;
 }
 
@@ -20,6 +22,8 @@ export interface ValidatedConfiguration {
   projectId: string;
   managementApiUrl: string;
   executionApiUrl: string;
+  manageUiUrl?: string;
+  outputDirectory?: string;
   modelSettings?: ModelSettings;
   sources: {
     tenantId: string;
@@ -98,6 +102,7 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
   const config: InkeepConfig = {
     managementApiUrl: 'http://localhost:3002',
     executionApiUrl: 'http://localhost:3003',
+    manageUiUrl: 'http://localhost:3000',
   };
 
   // Try to load from inkeep.config.ts or specified config file
@@ -229,6 +234,7 @@ export async function validateConfiguration(
       projectId,
       managementApiUrl,
       executionApiUrl,
+      manageUiUrl: config.manageUiUrl,
       modelSettings: config.modelSettings || undefined,
       sources,
     };
@@ -247,6 +253,7 @@ export async function validateConfiguration(
       projectId: 'default',
       managementApiUrl: managementApiUrlFlag,
       executionApiUrl: executionApiUrlFlag,
+      manageUiUrl: undefined,
       modelSettings: undefined,
       sources,
     };
@@ -344,6 +351,7 @@ export async function validateConfiguration(
     projectId,
     managementApiUrl,
     executionApiUrl,
+    manageUiUrl: config.manageUiUrl,
     modelSettings: config.modelSettings || undefined,
     sources,
   };

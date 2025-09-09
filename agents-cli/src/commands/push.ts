@@ -275,6 +275,12 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
 
     // Provide next steps
     console.log(chalk.green('\n✨ Next steps:'));
+
+    // Add view graph link if manageUiUrl is available
+    const manageUiUrl = config.manageUiUrl || 'http://localhost:3000';
+    const viewGraphUrl = `${manageUiUrl}/${tenantId}/projects/${projectId}/graphs/${graphId}`;
+    console.log(chalk.gray(`  • View graph in UI: ${chalk.cyan(viewGraphUrl)}`));
+
     console.log(chalk.gray(`  • Test your graph: inkeep chat ${graphId}`));
     console.log(chalk.gray(`  • View all graphs: inkeep list-graphs`));
     console.log(chalk.gray(`  • Get graph details: inkeep get-graph ${graphId}`));
