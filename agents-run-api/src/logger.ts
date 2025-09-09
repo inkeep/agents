@@ -4,14 +4,13 @@ import { type LoggerOptions, pino } from 'pino';
 // import { createGcpLoggingPinoConfig } from '@google-cloud/pino-logging-gcp-config';
 import { env } from './env';
 
-// Create logger with safe defaults for test environment
 const logger = pino({
-  level: env?.LOG_LEVEL || 'debug',
+  level: env.LOG_LEVEL,
   serializers: {
     obj: (value) => ({ ...value }),
   },
   redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
-  transport: process.env.NODE_ENV === 'test' ? undefined : {
+  transport: {
     target: 'pino-pretty',
     options: {
       sync: true,
