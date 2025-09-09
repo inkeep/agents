@@ -1,3 +1,20 @@
+import { vi } from 'vitest';
+
+// Mock the logger module globally - this will be hoisted automatically by Vitest
+vi.mock('../logger.js', () => {
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  };
+  return {
+    getLogger: vi.fn(() => mockLogger),
+    withRequestContext: vi.fn(async (id, fn) => await fn()),
+  };
+});
+
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
@@ -9,20 +26,8 @@ const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 import { getLogger } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll } from 'vitest';
 import dbClient from '../data/db/dbClient';
-
-// Global mock for the agents-run-api logger to prevent undefined errors
-vi.mock('../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  }),
-  withRequestContext: vi.fn().mockImplementation(async (id, fn) => await fn()),
-}));
 
 getLogger('Test Setup').debug({}, 'Setting up instrumentation');
 
