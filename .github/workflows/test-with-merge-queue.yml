@@ -1,0 +1,135 @@
+name: Test with Merge Queue
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches: [main]
+
+jobs:
+  test-all:
+    runs-on: ubuntu-latest
+    
+    # Smart concurrency: Cancel PR runs but NEVER cancel merge queue runs
+    concurrency:
+      group: ${{ 
+        github.event_name == 'pull_request' && 
+        format('pr-{0}', github.event.pull_request.number) || 
+        format('merge-queue-{0}', github.sha) 
+      }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          # Fetch more history for merge queue to properly test against base
+          fetch-depth: ${{ github.event_name == 'merge_group' && 10 || 1 }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      # Cache build outputs
+      - name: Setup build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/dist
+            **/.next
+            **/build
+            **/.turbo
+            **/node_modules/.vite
+            **/node_modules/.cache
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      # Build with increased concurrency for merge queue
+      - name: Build packages
+        run: |
+          if [ "${{ github.event_name }}" = "merge_group" ]; then
+            echo "Building for merge queue with maximum concurrency"
+            pnpm build --concurrency=300%
+          else
+            pnpm build --concurrency=200%
+          fi
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          NODE_OPTIONS: --max-old-space-size=4096
+      
+      # Run tests and typecheck in parallel
+      - name: Run tests and typecheck in parallel
+        run: |
+          echo "Starting parallel test and typecheck..."
+          
+          # Add timeout for merge queue (stricter)
+          if [ "${{ github.event_name }}" = "merge_group" ]; then
+            TIMEOUT_SECONDS=300  # 5 minutes max for merge queue
+          else
+            TIMEOUT_SECONDS=600  # 10 minutes for regular PRs
+          fi
+          
+          # Start test with timeout
+          timeout $TIMEOUT_SECONDS pnpm test &
+          TEST_PID=$!
+          
+          # Start typecheck with timeout
+          timeout $TIMEOUT_SECONDS pnpm typecheck &
+          TYPECHECK_PID=$!
+          
+          # Wait and collect results
+          wait $TEST_PID
+          TEST_EXIT=$?
+          
+          wait $TYPECHECK_PID
+          TYPECHECK_EXIT=$?
+          
+          # Report results
+          if [ $TEST_EXIT -eq 124 ] || [ $TYPECHECK_EXIT -eq 124 ]; then
+            echo "❌ Tests or typecheck timed out after $TIMEOUT_SECONDS seconds"
+            exit 1
+          fi
+          
+          if [ $TEST_EXIT -ne 0 ] || [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "❌ Tests or typecheck failed"
+            exit 1
+          fi
+          
+          echo "✅ All checks passed successfully!"
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          ENVIRONMENT: test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
+          DB_FILE_NAME: test.db
+          NODE_OPTIONS: --max-old-space-size=4096

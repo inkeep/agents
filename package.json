@@ -33,7 +33,9 @@
     "clean:turbo": "turbo clean",
     "prepare": "husky",
     "release": "changeset publish",
-    "release-dev": "changeset version --snapshot dev && changeset publish --tag dev"
+    "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
+    "workflow:profile": "node scripts/workflows/profile.mjs",
+    "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose"
   },
   "version": "0.1.0",
   "dependencies": {

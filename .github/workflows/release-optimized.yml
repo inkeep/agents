@@ -1,0 +1,128 @@
+name: Publish Optimized
+
+on:
+  push:
+    paths:
+      - ".changeset/**"
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  packages: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # Cache build outputs to speed up builds significantly
+      - name: Setup build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/dist
+            **/.next
+            **/build
+            **/.turbo
+            **/node_modules/.vite
+            **/node_modules/.cache
+          key: ${{ runner.os }}-release-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-release-build-
+            ${{ runner.os }}-build-
+
+      # Cache TypeScript build info for incremental compilation
+      - name: Setup TypeScript cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/*.tsbuildinfo
+            **/tsconfig.tsbuildinfo
+          key: ${{ runner.os }}-tsbuildinfo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-tsbuildinfo-
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+          git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
+
+      - name: Configure npm and verify auth
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          echo "Verifying npm authentication..."
+          npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Parallel build with better caching and optimizations
+      - name: Build packages with cache
+        run: |
+          # Enable turbo remote caching if available
+          if [ -n "$TURBO_TOKEN" ]; then
+            echo "Using Turborepo remote cache"
+            pnpm build --cache-dir=.turbo --concurrency=200% --remote-cache
+          else
+            echo "Using local Turborepo cache"
+            pnpm build --cache-dir=.turbo --concurrency=200%
+          fi
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      - name: Publish packages
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release to dev tag
+        if: steps.changesets.outputs.published != 'true'
+        run: |
+          git checkout main
+          pnpm changeset version --snapshot dev
+          pnpm changeset publish --tag dev
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

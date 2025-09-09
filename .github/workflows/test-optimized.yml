@@ -1,0 +1,122 @@
+name: Test Optimized
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Single job that builds, tests, and typechecks in parallel
+  test-all:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      # Cache build outputs directly instead of using artifacts
+      - name: Setup build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/dist
+            **/.next
+            **/build
+            **/.turbo
+            **/node_modules/.vite
+            **/node_modules/.cache
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+      
+      # Cache TypeScript build info for incremental compilation
+      - name: Setup TypeScript cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/*.tsbuildinfo
+            **/tsconfig.tsbuildinfo
+          key: ${{ runner.os }}-tsbuildinfo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-tsbuildinfo-
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      # Build once, use everywhere
+      - name: Build packages
+        run: pnpm build --concurrency=200%
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          NODE_OPTIONS: --max-old-space-size=4096
+      
+      # Run test and typecheck in parallel
+      - name: Run tests and typecheck in parallel
+        run: |
+          echo "Starting parallel test and typecheck..."
+          
+          # Start test in background
+          pnpm test &
+          TEST_PID=$!
+          
+          # Start typecheck in background
+          pnpm typecheck &
+          TYPECHECK_PID=$!
+          
+          # Monitor progress
+          echo "Test PID: $TEST_PID, Typecheck PID: $TYPECHECK_PID"
+          
+          # Wait for both to complete and capture exit codes
+          wait $TEST_PID
+          TEST_EXIT=$?
+          echo "Test completed with exit code: $TEST_EXIT"
+          
+          wait $TYPECHECK_PID
+          TYPECHECK_EXIT=$?
+          echo "Typecheck completed with exit code: $TYPECHECK_EXIT"
+          
+          # Exit with failure if either failed
+          if [ $TEST_EXIT -ne 0 ] || [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "Tests or typecheck failed"
+            exit 1
+          fi
+          
+          echo "All checks passed successfully!"
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          ENVIRONMENT: test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
+          DB_FILE_NAME: test.db
+          NODE_OPTIONS: --max-old-space-size=4096
