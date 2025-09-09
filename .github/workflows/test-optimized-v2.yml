@@ -61,10 +61,10 @@ jobs:
             **/.turbo
             **/node_modules/.vite
             **/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
+          key: ${{ runner.os }}-build-v2-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-build-v2-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
+            ${{ runner.os }}-build-v2-
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,7 +72,7 @@ jobs:
       # Build only if not cached
       - name: Build packages
         if: steps.build-cache.outputs.cache-hit != 'true'
-        run: pnpm build --concurrency=200% --force
+        run: pnpm build --concurrency=200%
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
@@ -128,10 +128,10 @@ jobs:
             **/.turbo
             **/node_modules/.vite
             **/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
+          key: ${{ runner.os }}-build-v2-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-build-v2-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
+            ${{ runner.os }}-build-v2-
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -194,10 +194,10 @@ jobs:
             **/.turbo
             **/node_modules/.vite
             **/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
+          key: ${{ runner.os }}-build-v2-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-build-v2-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
+            ${{ runner.os }}-build-v2-
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
