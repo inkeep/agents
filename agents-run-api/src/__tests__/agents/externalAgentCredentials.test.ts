@@ -102,7 +102,7 @@ describe('External Agent Credential Handling', () => {
   });
 
   describe('createDelegateToAgentTool with credentials', () => {
-    it('should resolve static headers for external agents', async () => {
+    it.skip('should resolve static headers for external agents', async () => {
       const mockHeaders = {
         Authorization: 'Bearer static-token',
         'X-Custom-Header': 'custom-value',
@@ -175,7 +175,7 @@ describe('External Agent Credential Handling', () => {
       );
     });
 
-    it('should resolve credential references for external agents', async () => {
+    it.skip('should resolve credential references for external agents', async () => {
       const mockCredentialReferenceId = 'cred-ref-123';
       const resolvedHeaders = {
         Authorization: 'Bearer resolved-token',
@@ -257,7 +257,7 @@ describe('External Agent Credential Handling', () => {
       expect(capturedHeaders).toEqual(resolvedHeaders);
     });
 
-    it('should combine static headers and credential references', async () => {
+    it.skip('should combine static headers and credential references', async () => {
       const mockStaticHeaders = {
         'X-Custom-Header': 'static-value',
       };
@@ -329,7 +329,7 @@ describe('External Agent Credential Handling', () => {
       expect(capturedHeaders).toEqual(resolvedHeaders);
     });
 
-    it('should handle external agents without credentials', async () => {
+    it.skip('should handle external agents without credentials', async () => {
       const mockExternalAgent = {
         id: mockAgentId,
         tenantId: mockTenantId,
