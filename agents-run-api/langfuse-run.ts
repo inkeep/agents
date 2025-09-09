@@ -284,6 +284,7 @@ async function processDatasetRun({
             projectId,
             graphId,
           },
+          _datasetId: datasetId,
         });
 
         results.push({
@@ -463,6 +464,7 @@ async function runDatasetItemThroughChatAPI({
   chatBaseUrl,
   authKey,
   executionContext,
+  _datasetId,
 }: {
   conversationId: string;
   userMessage: string;
@@ -476,12 +478,14 @@ async function runDatasetItemThroughChatAPI({
     projectId: string;
     graphId: string;
   };
+  _datasetId: string;
 }): Promise<{
   success: boolean;
   response?: string;
   error?: string;
   iterations?: number;
   executionTime?: number;
+  traceId?: string;
 }> {
   const startTime = Date.now();
 
@@ -534,8 +538,8 @@ async function runDatasetItemThroughChatAPI({
       };
     }
 
-    // Parse the SSE stream to get the response
     const responseText = await response.text();
+    logger.info({ responseText }, 'Response text');
     const assistantResponse = parseSSEResponse(responseText);
 
     return {
@@ -573,11 +577,14 @@ function parseSSEResponse(sseText: string): string {
       try {
         const data = JSON.parse(line.slice(6));
         if (data.choices?.[0]?.delta?.content) {
-          assistantResponse += data.choices[0].delta.content;
+          const content = data.choices[0].delta.content;
+          // Filter out system metadata messages (data-operation type messages)
+          if (content.includes('"type":"data-operation"')) {
+            continue;
+          }
+          assistantResponse += content;
         }
       } catch {
-        // Skip invalid JSON lines
-        continue;
       }
     }
   }
