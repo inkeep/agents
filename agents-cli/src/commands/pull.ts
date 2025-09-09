@@ -67,41 +67,6 @@ export async function convertTypeScriptToJson(graphPath: string): Promise<FullGr
   return await graph.toFullGraphDefinition();
 }
 
-/**
- * CLI entry point for the converter (used when running with tsx)
- */
-async function cliConvert(graphPath: string): Promise<void> {
-  try {
-    // Suppress ALL console output except our JSON
-    const originalConsoleLog = console.log;
-    const originalConsoleError = console.error;
-    const originalConsoleWarn = console.warn;
-    const originalConsoleInfo = console.info;
-
-    // Suppress all console output
-    console.log = () => {};
-    console.error = () => {};
-    console.warn = () => {};
-    console.info = () => {};
-
-    const result = await convertTypeScriptToJson(graphPath);
-
-    // Restore console functions
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
-    console.warn = originalConsoleWarn;
-    console.info = originalConsoleInfo;
-
-    // Output a clear marker before JSON so parent process knows where to start parsing
-    console.log('===JSON_START===');
-    console.log(JSON.stringify(result, null, 2));
-    console.log('===JSON_END===');
-  } catch (error: any) {
-    console.error('Error:', error.message);
-    process.exit(1);
-  }
-}
-
 export async function pullCommand(graphId: string, options: PullOptions) {
   const spinner = ora('Loading configuration...').start();
 
