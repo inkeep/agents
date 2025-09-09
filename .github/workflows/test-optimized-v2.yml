@@ -62,10 +62,10 @@ jobs:
             !**/*.sqlite
             !**/local.db
             !**/test.db
-          key: ${{ runner.os }}-build-v4-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
+          key: ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-build-v4-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-v4-
+            ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
+            ${{ runner.os }}-build-v5-
       
       - name: Install dependencies
         run: |
@@ -76,7 +76,7 @@ jobs:
       # Build only if not cached
       - name: Build packages
         if: steps.build-cache.outputs.cache-hit != 'true'
-        run: pnpm build --concurrency=200% --force
+        run: pnpm build --concurrency=200%
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
@@ -133,10 +133,10 @@ jobs:
             !**/*.sqlite
             !**/local.db
             !**/test.db
-          key: ${{ runner.os }}-build-v4-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
+          key: ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-build-v4-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-v4-
+            ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
+            ${{ runner.os }}-build-v5-
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -205,10 +205,10 @@ jobs:
             !**/*.sqlite
             !**/local.db
             !**/test.db
-          key: ${{ runner.os }}-build-v4-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
+          key: ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-build-v4-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
-            ${{ runner.os }}-build-v4-
+            ${{ runner.os }}-build-v5-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
+            ${{ runner.os }}-build-v5-
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
