@@ -19,7 +19,7 @@ async function main() {
 
   try {
     await createAgents({
-      projectName,
+      dirName: projectName,
       openAiKey: options.openaiKey,
       anthropicKey: options.anthropicKey,
       nangoKey: options.nangoKey,
