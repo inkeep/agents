@@ -3,6 +3,7 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -46,6 +47,21 @@ function MetadataEditor() {
     [setMetadata, markUnsaved]
   );
 
+  const handleIdChange = useCallback(
+    (generatedId: string) => {
+      updateMetadata('id', generatedId);
+    },
+    [updateMetadata]
+  );
+
+  // Auto-prefill ID based on name field (only for new graphs)
+  useAutoPrefillIdZustand({
+    nameValue: name,
+    idValue: id,
+    onIdChange: handleIdChange,
+    isEditing: !!graphId,
+  });
+
   return (
     <div className="space-y-8">
       {graphId && (
@@ -67,6 +83,15 @@ function MetadataEditor() {
         </div>
       )}
       <InputField
+        id="name"
+        name="name"
+        label="Name"
+        value={name}
+        onChange={(e) => updateMetadata('name', e.target.value)}
+        placeholder="My graph"
+        isRequired
+      />
+      <InputField
         id="id"
         name="id"
         label="Id"
@@ -79,14 +104,6 @@ function MetadataEditor() {
             ? 'Choose a unique identifier for this graph. Using an existing id will replace that graph.'
             : undefined
         }
-      />
-      <InputField
-        id="name"
-        name="name"
-        label="Name"
-        value={name}
-        onChange={(e) => updateMetadata('name', e.target.value)}
-        placeholder="My graph"
         isRequired
       />
       <TextareaField

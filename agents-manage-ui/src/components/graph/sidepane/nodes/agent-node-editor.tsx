@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-graph-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
@@ -53,8 +54,35 @@ export function AgentNodeEditor({
     [updateNestedPath, selectedNode.data]
   );
 
+  const handleIdChange = useCallback(
+    (generatedId: string) => {
+      updatePath('id', generatedId);
+    },
+    [updatePath]
+  );
+
+  // Auto-prefill ID based on name field (always enabled for agent nodes)
+  useAutoPrefillIdZustand({
+    nameValue: selectedNode.data.name,
+    idValue: selectedNode.data.id,
+    onIdChange: handleIdChange,
+    isEditing: false,
+  });
+
   return (
     <div className="space-y-8 flex flex-col">
+      <InputField
+        ref={(el) => setFieldRef('name', el)}
+        id="name"
+        name="name"
+        label="Name"
+        value={selectedNode.data.name || ''}
+        onChange={(e) => updatePath('name', e.target.value)}
+        placeholder="Support agent"
+        error={getFieldError('name')}
+        isRequired
+      />
+
       <InputField
         ref={(el) => setFieldRef('id', el)}
         id="id"
@@ -65,17 +93,6 @@ export function AgentNodeEditor({
         placeholder="my-agent"
         error={getFieldError('id')}
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
-      />
-
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
-        label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={(e) => updatePath('name', e.target.value)}
-        placeholder="Support agent"
-        error={getFieldError('name')}
         isRequired
       />
 

@@ -50,7 +50,6 @@ import NodeLibrary from './node-library/node-library';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
 
-
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
   return `edge-${low}-${high}`;
@@ -76,7 +75,7 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {} }:
         id: nanoid(),
         type: NodeType.Agent,
         position: { x: 0, y: 0 },
-        data: { name: 'Agent', isDefault: true },
+        data: { name: '', isDefault: true },
         deletable: false,
       },
     ],
@@ -179,26 +178,6 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {} }:
     }
   }, []);
 
-  const generateUniqueName = useCallback(
-    (type: string) => {
-      if (type !== NodeType.Agent && type !== NodeType.ExternalAgent)
-        return newNodeDefaults[type as keyof typeof newNodeDefaults].name;
-
-      const agentNodes = nodes.filter(
-        (node) => node.type === NodeType.Agent || node.type === NodeType.ExternalAgent
-      );
-      const existingNames = new Set(agentNodes.map((node) => node.data.name));
-      let counter = 1;
-
-      while (existingNames.has(`Agent ${counter}`)) {
-        counter++;
-      }
-
-      return `Agent ${counter}`;
-    },
-    [nodes]
-  );
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped = useCallback((params: Connection) => {
     markUnsaved();
@@ -280,14 +259,13 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {} }:
         selected: true,
         data: {
           ...newNodeDefaults[nodeData.type as keyof typeof newNodeDefaults],
-          name: generateUniqueName(nodeData.type),
         },
       };
 
       clearSelection();
       commandManager.execute(new AddNodeCommand(newNode as Node));
     },
-    [screenToFlowPosition, generateUniqueName, clearSelection]
+    [screenToFlowPosition, clearSelection]
   );
 
   const onSelectionChange = useCallback(
@@ -400,7 +378,6 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {} }:
       dataComponentLookup,
       artifactComponentLookup
     );
-
 
     const res = await saveGraph(
       tenantId,

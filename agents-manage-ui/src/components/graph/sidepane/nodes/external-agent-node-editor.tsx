@@ -3,6 +3,8 @@ import type { ErrorHelpers } from '@/hooks/use-graph-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 import { InputField, TextareaField } from './form-fields';
+import { useCallback } from 'react';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
@@ -18,6 +20,23 @@ export function ExternalAgentNodeEditor({
     errorHelpers,
   });
 
+  const handleIdChange = useCallback(
+    (generatedId: string) => {
+      handleInputChange({
+        target: { name: 'id', value: generatedId },
+      } as React.ChangeEvent<HTMLInputElement>);
+    },
+    [handleInputChange]
+  );
+
+  // Auto-prefill ID based on name field (always enabled for agent nodes)
+  useAutoPrefillIdZustand({
+    nameValue: selectedNode.data.name,
+    idValue: selectedNode.data.id,
+    onIdChange: handleIdChange,
+    isEditing: false,
+  });
+
   return (
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">
@@ -25,6 +44,18 @@ export function ExternalAgentNodeEditor({
         (Agent-to-Agent) protocol. External agents enable you to delegate tasks between graphs
         within the agent framework or to third-party services.
       </p>
+
+      <InputField
+        ref={(el) => setFieldRef('name', el)}
+        id="name"
+        name="name"
+        label="Name"
+        value={selectedNode.data.name || ''}
+        onChange={handleInputChange}
+        placeholder="Support agent"
+        error={getFieldError('name')}
+        isRequired
+      />
 
       <InputField
         ref={(el) => setFieldRef('id', el)}
@@ -36,17 +67,7 @@ export function ExternalAgentNodeEditor({
         placeholder="my-external-agent"
         error={getFieldError('id')}
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
-      />
-
-      <InputField
-        ref={(el) => setFieldRef('name', el)}
-        id="name"
-        name="name"
-        label="Name"
-        value={selectedNode.data.name || ''}
-        onChange={handleInputChange}
-        placeholder="Support agent"
-        error={getFieldError('name')}
+        isRequired
       />
 
       <TextareaField

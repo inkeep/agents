@@ -1,6 +1,4 @@
-import type { Node } from '@xyflow/react';
 import { Bot, BotMessageSquare, Hammer } from 'lucide-react';
-import { nanoid } from 'nanoid';
 import type { MCPTool } from '@/lib/api/tools';
 import { AgentNode } from '../nodes/agent-node';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
@@ -9,7 +7,7 @@ import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
 import type { GraphModels } from './graph-types';
 
 interface NodeData {
-  name: string;
+  name?: string;
   isDefault?: boolean;
 }
 
@@ -58,10 +56,10 @@ export const externalAgentNodeTargetHandleId = 'target-external-agent';
 
 export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   [NodeType.Agent]: {
-    name: 'Agent',
+    name: '',
   },
   [NodeType.ExternalAgent]: {
-    name: 'External agent',
+    name: '',
   },
   [NodeType.MCP]: {
     name: 'MCP',

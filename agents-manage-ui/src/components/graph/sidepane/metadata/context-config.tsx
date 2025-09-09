@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { ContextConfig, GraphMetadata } from '../../configuration/graph-types';
+import { useCallback } from 'react';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 
 export function ContextConfigForm({
   contextConfig,
@@ -21,6 +23,21 @@ export function ContextConfigForm({
     updateMetadata('contextConfig', updatedContextConfig);
   };
 
+  const handleIdChange = useCallback(
+    (generatedId: string) => {
+      updateMetadata('contextConfig', { ...contextConfig, id: generatedId });
+    },
+    [updateMetadata]
+  );
+
+  // Auto-prefill ID based on name field (always enabled for context config)
+  useAutoPrefillIdZustand({
+    nameValue: name,
+    idValue: id,
+    onIdChange: handleIdChange,
+    isEditing: false,
+  });
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -28,6 +45,15 @@ export function ContextConfigForm({
         <p className="text-sm text-muted-foreground">Configure dynamic context for this graph.</p>
       </div>
       <div className="flex flex-col space-y-8">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => updateContextConfig('name', e.target.value)}
+            placeholder="My context"
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="id">Id</Label>
           <Input
@@ -40,15 +66,6 @@ export function ContextConfigForm({
             Choose a unique identifier for this configuration. Using an existing id will replace
             that configuration.
           </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => updateContextConfig('name', e.target.value)}
-            placeholder="My context"
-          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
