@@ -72,7 +72,7 @@ jobs:
       # Build only if not cached
       - name: Build packages
         if: steps.build-cache.outputs.cache-hit != 'true'
-        run: pnpm build --concurrency=200%
+        run: pnpm build --concurrency=200% --force
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
