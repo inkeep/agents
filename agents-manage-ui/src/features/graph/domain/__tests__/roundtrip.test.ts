@@ -6,6 +6,75 @@ import { deserializeGraphData } from "@/features/graph/domain/deserialize";
 import { serializeGraphData } from "@/features/graph/domain/serialize";
 
 describe("graph serialize/deserialize", () => {
+	it("handles self-referencing agents correctly", () => {
+		const nodes: Node[] = [
+			{
+				id: "goodbye-agent",
+				type: NodeType.Agent,
+				position: { x: 0, y: 0 },
+				data: { id: "goodbye-agent", name: "Goodbye Agent", prompt: "Say goodbye" },
+			},
+			{
+				id: "hello-agent",
+				type: NodeType.Agent,
+				position: { x: 0, y: 100 },
+				data: { id: "hello-agent", name: "Hello Agent", isDefault: true, prompt: "Say hello" },
+				deletable: false,
+			},
+		];
+		const edges: Edge[] = [
+			{
+				id: "edge-self-goodbye",
+				type: EdgeType.SelfLoop,
+				source: "goodbye-agent",
+				target: "goodbye-agent",
+				data: {
+					relationships: {
+						transferSourceToTarget: true,
+						transferTargetToSource: false,
+						delegateSourceToTarget: true,
+						delegateTargetToSource: false,
+					},
+				},
+			} as Edge,
+		];
+
+		const serialized = serializeGraphData(nodes, edges, {
+			id: "test-graph",
+			name: "Test Graph",
+			description: "Graph with self-referencing agent",
+			contextConfig: {
+				id: "",
+				name: "",
+				description: "",
+				contextVariables: "",
+				requestContextSchema: "",
+			},
+		});
+
+		expect(serialized.agents["goodbye-agent"]).toBeDefined();
+		const goodbyeAgent = serialized.agents["goodbye-agent"];
+		if ("canTransferTo" in goodbyeAgent) {
+			expect(goodbyeAgent.canTransferTo).toContain("goodbye-agent");
+		}
+		if ("canDelegateTo" in goodbyeAgent) {
+			expect(goodbyeAgent.canDelegateTo).toContain("goodbye-agent");
+		}
+
+		const deserialized = deserializeGraphData(serialized);
+		
+		// Should have the self-loop edge
+		const selfLoopEdge = deserialized.edges.find(
+			(e) => e.type === EdgeType.SelfLoop && e.source === "goodbye-agent" && e.target === "goodbye-agent"
+		);
+		expect(selfLoopEdge).toBeDefined();
+		if (selfLoopEdge?.data && typeof selfLoopEdge.data === 'object' && 'relationships' in selfLoopEdge.data) {
+			const relationships = selfLoopEdge.data.relationships as any;
+			expect(relationships.transferSourceToTarget).toBe(true);
+			expect(relationships.delegateSourceToTarget).toBe(true);
+		}
+	});
+
 	it("round-trips a simple agent with tool and a2a edge", () => {
 		const nodes: Node[] = [
 			{

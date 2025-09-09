@@ -203,10 +203,29 @@ function Flow({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
 	const onConnectWrapped = useCallback((params: Connection) => {
 		markUnsaved();
-		const id = getEdgeId(params.source, params.target);
+		const isSelfLoop = params.source === params.target;
+		const id = isSelfLoop 
+			? `edge-self-${params.source}` 
+			: getEdgeId(params.source, params.target);
 		let newEdge: Edge = { id, ...params };
 		const { sourceHandle, targetHandle } = params;
-		if (
+		
+		// Check for self-loop
+		if (isSelfLoop) {
+			newEdge = {
+				...newEdge,
+				type: EdgeType.SelfLoop,
+				selected: true,
+				data: {
+					relationships: {
+						transferTargetToSource: false,
+						transferSourceToTarget: true,
+						delegateTargetToSource: false,
+						delegateSourceToTarget: false,
+					},
+				},
+			};
+		} else if (
 			(sourceHandle === agentNodeSourceHandleId ||
 				sourceHandle === agentNodeTargetHandleId) &&
 			(targetHandle === agentNodeTargetHandleId ||
@@ -303,7 +322,7 @@ function Flow({
 		({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
 			const node = nodes.length === 1 ? nodes[0] : null;
 			const edge =
-				edges.length === 1 && edges[0]?.type === EdgeType.A2A ? edges[0] : null;
+				edges.length === 1 && (edges[0]?.type === EdgeType.A2A || edges[0]?.type === EdgeType.SelfLoop) ? edges[0] : null;
 			const defaultPane = isOpen ? "graph" : null;
 
 			setQueryState(

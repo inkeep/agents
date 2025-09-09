@@ -151,7 +151,7 @@ export function serializeGraphData(
 	}
 
 	for (const edge of edges) {
-		if (edge.type === EdgeType.A2A || edge.type === EdgeType.A2AExternal) {
+		if (edge.type === EdgeType.A2A || edge.type === EdgeType.A2AExternal || edge.type === EdgeType.SelfLoop) {
 			// edge.source and edge.target are the ids of the nodes (since we allow editing the agent ids we need to use node ids since those are stable)
 			// we need to find the agents based on the node ids and then update the agents canTransferTo and canDelegateTo with the agent ids not the node ids
 

@@ -173,7 +173,12 @@ export function deserializeGraphData(
 		if ("canTransferTo" in sourceAgent && sourceAgent.canTransferTo) {
 			for (const targetAgentId of sourceAgent.canTransferTo) {
 				if (data.agents[targetAgentId]) {
-					const pairKey = [sourceAgentId, targetAgentId].sort().join("-");
+					// Special handling for self-referencing edges
+					const isSelfReference = sourceAgentId === targetAgentId;
+					const pairKey = isSelfReference 
+						? `self-${sourceAgentId}` 
+						: [sourceAgentId, targetAgentId].sort().join("-");
+					
 					if (!processedPairs.has(pairKey)) {
 						processedPairs.add(pairKey);
 						const targetAgent = data.agents[targetAgentId];
@@ -198,8 +203,14 @@ export function deserializeGraphData(
 						const isTargetExternal = targetAgent.type === "external";
 
 						const edge = {
-							id: `edge-${targetAgentId}-${sourceAgentId}`,
-							type: isTargetExternal ? EdgeType.A2AExternal : EdgeType.A2A,
+							id: isSelfReference 
+								? `edge-self-${sourceAgentId}` 
+								: `edge-${targetAgentId}-${sourceAgentId}`,
+							type: isSelfReference 
+								? EdgeType.SelfLoop 
+								: isTargetExternal 
+									? EdgeType.A2AExternal 
+									: EdgeType.A2A,
 							source: sourceAgentId,
 							sourceHandle: agentNodeSourceHandleId,
 							target: targetAgentId,
@@ -225,7 +236,12 @@ export function deserializeGraphData(
 		if ("canDelegateTo" in sourceAgent && sourceAgent.canDelegateTo) {
 			for (const targetAgentId of sourceAgent.canDelegateTo) {
 				if (data.agents[targetAgentId]) {
-					const pairKey = [sourceAgentId, targetAgentId].sort().join("-");
+					// Special handling for self-referencing edges
+					const isSelfReference = sourceAgentId === targetAgentId;
+					const pairKey = isSelfReference 
+						? `self-${sourceAgentId}` 
+						: [sourceAgentId, targetAgentId].sort().join("-");
+					
 					if (!processedPairs.has(pairKey)) {
 						processedPairs.add(pairKey);
 						const targetAgent = data.agents[targetAgentId];
@@ -250,8 +266,14 @@ export function deserializeGraphData(
 						const isTargetExternal = targetAgent.type === "external";
 
 						const edge = {
-							id: `edge-${targetAgentId}-${sourceAgentId}`,
-							type: isTargetExternal ? EdgeType.A2AExternal : EdgeType.A2A,
+							id: isSelfReference 
+								? `edge-self-${sourceAgentId}` 
+								: `edge-${targetAgentId}-${sourceAgentId}`,
+							type: isSelfReference 
+								? EdgeType.SelfLoop 
+								: isTargetExternal 
+									? EdgeType.A2AExternal 
+									: EdgeType.A2A,
 							source: sourceAgentId,
 							sourceHandle: agentNodeSourceHandleId,
 							target: targetAgentId,
