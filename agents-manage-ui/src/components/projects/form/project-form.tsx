@@ -9,6 +9,7 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
+import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
@@ -37,6 +38,14 @@ export function ProjectForm({
 
   const { isSubmitting } = form.formState;
   const router = useRouter();
+
+  // Auto-prefill ID based on name field (only for new components)
+  useAutoPrefillId({
+    form,
+    nameField: 'name',
+    idField: 'id',
+    isEditing: !!projectId,
+  });
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
@@ -77,19 +86,19 @@ export function ProjectForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <GenericInput
           control={form.control}
+          name="name"
+          label="Project Name"
+          placeholder="My Project"
+          description="A friendly name for your project"
+          isRequired
+        />
+        <GenericInput
+          control={form.control}
           name="id"
           label="Project ID"
           placeholder="my-project"
           description="Choose a unique identifier for this project. This cannot be changed later."
           disabled={!!projectId}
-          isRequired
-        />
-        <GenericInput
-          control={form.control}
-          name="name"
-          label="Project Name"
-          placeholder="My Project"
-          description="A friendly name for your project"
           isRequired
         />
         <GenericTextarea

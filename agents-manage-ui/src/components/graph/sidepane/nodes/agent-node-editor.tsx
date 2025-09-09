@@ -11,6 +11,7 @@ import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import type { ErrorHelpers } from '@/hooks/use-graph-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { AgentNodeData } from '../../configuration/node-types';
@@ -53,20 +54,23 @@ export function AgentNodeEditor({
     [updateNestedPath, selectedNode.data]
   );
 
+  const handleIdChange = useCallback(
+    (generatedId: string) => {
+      updatePath('id', generatedId);
+    },
+    [updatePath]
+  );
+
+  // Auto-prefill ID based on name field (always enabled for agent nodes)
+  useAutoPrefillIdZustand({
+    nameValue: selectedNode.data.name,
+    idValue: selectedNode.data.id,
+    onIdChange: handleIdChange,
+    isEditing: false,
+  });
+
   return (
     <div className="space-y-8 flex flex-col">
-      <InputField
-        ref={(el) => setFieldRef('id', el)}
-        id="id"
-        name="id"
-        label="Id"
-        value={selectedNode.data.id || ''}
-        onChange={(e) => updatePath('id', e.target.value)}
-        placeholder="my-agent"
-        error={getFieldError('id')}
-        description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
-      />
-
       <InputField
         ref={(el) => setFieldRef('name', el)}
         id="name"
@@ -78,7 +82,18 @@ export function AgentNodeEditor({
         error={getFieldError('name')}
         isRequired
       />
-
+      <InputField
+        ref={(el) => setFieldRef('id', el)}
+        id="id"
+        name="id"
+        label="Id"
+        value={selectedNode.data.id || ''}
+        onChange={(e) => updatePath('id', e.target.value)}
+        placeholder="my-agent"
+        error={getFieldError('id')}
+        description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
+        isRequired
+      />
       <TextareaField
         ref={(el) => setFieldRef('description', el)}
         id="description"

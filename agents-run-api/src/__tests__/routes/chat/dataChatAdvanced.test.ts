@@ -1,41 +1,44 @@
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+// Hoist logger mocks to ensure they're available before any module loads
+const mockLogger = vi.hoisted(() => ({
+  info: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  warn: vi.fn(),
+  child: vi.fn(),
+}));
+
+// Make child return itself for chaining
+mockLogger.child.mockReturnValue(mockLogger);
+
 // Mock logger - must be before ALL imports to ensure it's hoisted
-vi.mock('../../../logger.js', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn(),
-  };
-  // Make child return itself for chaining
-  mockLogger.child.mockReturnValue(mockLogger);
-  
-  return {
-    getLogger: () => mockLogger,
-  };
-});
+vi.mock('../../../logger.js', () => ({
+  getLogger: () => mockLogger,
+}));
 
 // Mock the logger without .js extension as well (in case of different import styles)
-vi.mock('../../../logger', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn(),
-  };
-  // Make child return itself for chaining
-  mockLogger.child.mockReturnValue(mockLogger);
-  
+vi.mock('../../../logger', () => ({
+  getLogger: () => mockLogger,
+}));
+
+// Mock ExecutionHandler early to prevent errors
+vi.mock('../../../handlers/executionHandler', () => {
   return {
-    getLogger: () => mockLogger,
+    ExecutionHandler: vi.fn().mockImplementation(() => ({
+      execute: vi.fn().mockImplementation(async (args: any) => {
+        // Ensure sseHelper exists and has required methods
+        if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
+          await args.sseHelper.writeRole();
+          await args.sseHelper.writeContent('[{"type":"text", "text":"Mock agent response"}]');
+        }
+        return { success: true, iterations: 1 };
+      }),
+    })),
   };
 });
 
-import * as execModule from '../../../handlers/executionHandler';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
@@ -90,21 +93,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-const STREAM_TEXT = '[{"type":"text", "text":"Mock agent response"}]';
-
-beforeAll(() => {
-  vi.spyOn(execModule.ExecutionHandler.prototype, 'execute').mockImplementation(
-    async (args: any) => {
-      await args.sseHelper.writeRole();
-      await args.sseHelper.writeContent(STREAM_TEXT);
-      return { success: true, iterations: 1 } as any;
-    }
-  );
-});
-
-afterAll(() => {
-  vi.restoreAllMocks();
-});
+// No longer need beforeAll/afterAll since ExecutionHandler is mocked at module level
 
 describe('Chat Data Stream Advanced', () => {
   async function setupGraph() {

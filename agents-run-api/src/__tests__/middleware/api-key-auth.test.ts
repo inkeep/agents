@@ -1,13 +1,15 @@
-import { type ApiKeySelect, updateApiKeyLastUsed, validateAndGetApiKey } from '@inkeep/agents-core';
-import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { env } from '../../env';
-import { apiKeyAuth, optionalAuth } from '../../middleware/api-key-auth';
 
-// Mock the dependencies
+// Hoist the mock functions
+const { validateAndGetApiKeyMock, updateApiKeyLastUsedMock } = vi.hoisted(() => ({
+  validateAndGetApiKeyMock: vi.fn(),
+  updateApiKeyLastUsedMock: vi.fn(),
+}));
+
+// Mock the dependencies before imports
 vi.mock('@inkeep/agents-core', () => ({
-  validateAndGetApiKey: vi.fn(),
-  updateApiKeyLastUsed: vi.fn(),
+  validateAndGetApiKey: validateAndGetApiKeyMock,
+  updateApiKeyLastUsed: updateApiKeyLastUsedMock,
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -15,6 +17,11 @@ vi.mock('@inkeep/agents-core', () => ({
     warn: vi.fn(),
   }),
 }));
+
+import { type ApiKeySelect, updateApiKeyLastUsed, validateAndGetApiKey } from '@inkeep/agents-core';
+import { Hono } from 'hono';
+import { env } from '../../env';
+import { apiKeyAuth, optionalAuth } from '../../middleware/api-key-auth';
 
 vi.mock('../../data/db/dbClient.js', () => ({
   default: {},
@@ -100,7 +107,7 @@ describe('API Key Authentication Middleware', () => {
       expect(res.status).toBe(401);
       const body = await res.text();
       expect(body).toContain('Invalid or expired API key');
-      expect(validateAndGetApiKey).toHaveBeenCalledWith(
+      expect(validateAndGetApiKeyMock).toHaveBeenCalledWith(
         'sk_test_1234567890abcdef.verylongsecretkey',
         expect.any(Object)
       );
@@ -121,8 +128,8 @@ describe('API Key Authentication Middleware', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(validateAndGetApiKey).mockResolvedValueOnce(mockApiKey);
-      vi.mocked(updateApiKeyLastUsed).mockReturnValue(vi.fn().mockResolvedValue(undefined));
+      validateAndGetApiKeyMock.mockResolvedValueOnce(mockApiKey);
+      updateApiKeyLastUsedMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
 
       app.use('*', apiKeyAuth());
       app.get('/', (c) => {
@@ -146,7 +153,7 @@ describe('API Key Authentication Middleware', () => {
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });
-      expect(validateAndGetApiKey).toHaveBeenCalledWith(
+      expect(validateAndGetApiKeyMock).toHaveBeenCalledWith(
         'sk_test_1234567890abcdef.verylongsecretkey',
         expect.any(Object)
       );
@@ -226,7 +233,7 @@ describe('API Key Authentication Middleware', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(validateAndGetApiKey).mockResolvedValueOnce(mockApiKey);
+      validateAndGetApiKeyMock.mockResolvedValueOnce(mockApiKey);
 
       app.use('*', apiKeyAuth());
       app.get('/', (c) => {
@@ -323,8 +330,8 @@ describe('API Key Authentication Middleware', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      vi.mocked(validateAndGetApiKey).mockResolvedValueOnce(mockApiKey);
-      vi.mocked(updateApiKeyLastUsed).mockReturnValue(vi.fn().mockResolvedValue(undefined));
+      validateAndGetApiKeyMock.mockResolvedValueOnce(mockApiKey);
+      updateApiKeyLastUsedMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
 
       app.use('*', optionalAuth());
       app.get('/', (c) => {

@@ -1,10 +1,9 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { ExternalLink } from 'lucide-react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -126,15 +125,11 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
         )}
       </div>
 
-      <Link
+      <ExternalLink
         href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.id}/edit`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ExternalLink className="w-3 h-3" />
-        Click here to edit
-      </Link>
+        Edit MCP Server
+      </ExternalLink>
     </div>
   );
 }

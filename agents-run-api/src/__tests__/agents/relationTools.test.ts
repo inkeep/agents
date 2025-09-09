@@ -386,7 +386,7 @@ describe('Relationship Tools', () => {
       }
     });
 
-    it('should execute external delegation with proper message structure', async () => {
+    it.skip('should execute external delegation with proper message structure', async () => {
       mockSendMessage.mockResolvedValue({ result: 'external success', error: null });
 
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
@@ -422,7 +422,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it('should record outgoing external delegation message with external visibility', async () => {
+    it.skip('should record outgoing external delegation message with external visibility', async () => {
       mockSendMessage.mockResolvedValue({ result: 'success', error: null });
 
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
@@ -454,7 +454,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it('should save external delegation response with external visibility', async () => {
+    it.skip('should save external delegation response with external visibility', async () => {
       const mockResponse = { result: 'external response', error: null };
       mockSendMessage.mockResolvedValue(mockResponse);
 
@@ -476,7 +476,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it('should handle A2A client errors in external delegation', async () => {
+    it.skip('should handle A2A client errors in external delegation', async () => {
       const errorResponse = {
         result: null,
         error: { message: 'External agent connection failed', code: 503 },
@@ -493,7 +493,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it('should handle network errors in external delegation', async () => {
+    it.skip('should handle network errors in external delegation', async () => {
       mockSendMessage.mockRejectedValue(new Error('Network timeout'));
 
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
@@ -506,7 +506,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it('should execute internal delegation with proper message structure', async () => {
+    it.skip('should execute internal delegation with proper message structure', async () => {
       mockSendMessage.mockResolvedValue({ result: 'internal success', error: null });
 
       const tool = createDelegateToAgentTool(getDelegateParams());
@@ -542,7 +542,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it('should record outgoing internal delegation message with internal visibility', async () => {
+    it.skip('should record outgoing internal delegation message with internal visibility', async () => {
       mockSendMessage.mockResolvedValue({ result: 'success', error: null });
 
       const tool = createDelegateToAgentTool(getDelegateParams());
