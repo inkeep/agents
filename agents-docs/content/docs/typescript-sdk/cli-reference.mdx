@@ -9,7 +9,41 @@ The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framewo
 
 ## Installation
 
+Install the Inkeep CLI globally using npm or pnpm:
+
 ```bash
+# Using npm
+npm install -g @inkeep/agents-cli
+
+# Using pnpm
+pnpm add -g @inkeep/agents-cli
+
+# Using yarn
+yarn global add @inkeep/agents-cli
+```
+
+After installation, verify it's working:
+
+```bash
+inkeep --version
+```
+
+### Prerequisites
+
+- Node.js 20.x or higher
+- npm, pnpm, or yarn package manager
+
+### Troubleshooting Installation
+
+If you encounter permission errors during global installation:
+
+```bash
+# On macOS/Linux, you may need to use sudo
+sudo npm install -g @inkeep/agents-cli
+
+# Or configure npm to use a different directory
+npm config set prefix '~/.npm-global'
+export PATH=~/.npm-global/bin:$PATH
 npm install -g @inkeep/agents-cli
 ```
 
@@ -406,7 +440,9 @@ inkeep push src/agents/my-graph.ts
 inkeep chat my-graph
 ```
 
-### Local Development Setup
+### Working with a Self-Hosted Server
+
+When working with a self-hosted Inkeep server (for development or on-premise deployment):
 
 1. Initialize configuration:
 
@@ -414,10 +450,10 @@ inkeep chat my-graph
 inkeep init
 ```
 
-2. Start your local server:
+2. Configure your API URL to point to your server:
 
 ```bash
-pnpm dev
+inkeep config set apiUrl http://localhost:3002
 ```
 
 3. Push your agent configuration:
