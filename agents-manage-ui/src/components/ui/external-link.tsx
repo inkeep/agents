@@ -10,13 +10,13 @@ export function ExternalLink({ href, children, ...props }: ComponentProps<typeof
       target="_blank"
       rel="noreferrer noopener"
       className={cn(
-        'text-sm text-muted-foreground underline underline-offset-2 inline-flex items-center gap-1 hover:text-primary ml-1 group font-mono',
+        'text-sm text-muted-foreground underline underline-offset-2 inline-flex items-center gap-1 hover:text-primary ml-1 group/link font-mono uppercase transition-colors',
         props.className
       )}
       {...props}
     >
       {children}
-      <ArrowUpRight className="size-3.5 text-muted-foreground/60 group-hover:text-primary" />
+      <ArrowUpRight className="size-3.5 text-muted-foreground/60 group-hover/link:text-primary" />
     </Link>
   );
 }

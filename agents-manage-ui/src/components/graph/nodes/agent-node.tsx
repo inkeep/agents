@@ -79,7 +79,7 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Bot className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>{name || 'Agent'}</BaseNodeHeaderTitle>
           </div>
           {hasErrors && (
             <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />

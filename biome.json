@@ -40,9 +40,9 @@
         "useSemanticElements": "warn"
       },
       "correctness": {
-        "noUnusedVariables": "off",
+        "noUnusedVariables": "warn",
         "noUnusedImports": "warn",
-        "useExhaustiveDependencies": "off",
+        "useExhaustiveDependencies": "warn",
         "useJsxKeyInIterable": "warn"
       }
     }
