@@ -34,6 +34,17 @@ function createExecutionHono(
   // Request ID middleware
   app.use('*', requestId());
 
+  app.use('*', async (c, next) => {
+    const reqId = c.get('requestId');
+    let bag = propagation.getBaggage(otelContext.active());
+    if (!bag) {
+      bag = propagation.createBaggage();
+    }
+    bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
+    const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
+    return otelContext.with(ctxWithBag, () => next());
+  });
+
   // Logging middleware
   app.use(
     pinoLogger({
@@ -155,17 +166,6 @@ function createExecutionHono(
   app.use('/agents/*', apiKeyAuth());
   app.use('/v1/*', apiKeyAuth());
   app.use('/api/*', apiKeyAuth());
-
-  app.use('*', async (c, next) => {
-    const reqId = c.get('requestId');
-    let bag = propagation.getBaggage(otelContext.active());
-    if (!bag) {
-      bag = propagation.createBaggage();
-    }
-    bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
-    const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-    return otelContext.with(ctxWithBag, () => next());
-  });
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('*', async (c, next) => {
