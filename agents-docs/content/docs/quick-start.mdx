@@ -41,22 +41,20 @@ pnpm dev
 ### Step 6: Start building!
 Open `http://localhost:3000` in the browser and start building agents.
 
-# Set up live Traces
+# Set up live traces
 
 ### Step 1: Launch docker containers
 ```
-cd deploy/docker
-docker compose up -d
+docker compose -f deploy/docker/docker-compose.yml up -d
 ```
 
 ### Step 2: Fetch SigNoz API Key
 Open `http://localhost:3080` in the browser. Go to **Settings** → **Workspace Settings** → **API Keys** and copy the API key.
 
-### Step 3: Configure environment variables
-Create a `.env` file at `/agents-manage-ui/` with the following variables:
+### Step 3: Configure environment variable
+Create a `.env` file at `/agents-manage-ui/` with the following variable:
 
 ```
-SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key-here
 ```
 
@@ -70,3 +68,31 @@ Refresh the live traces panel on the right to see your agents in action.
   width="100%"
   style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
 />
+
+# Set up credentials
+
+### Step 1: Create .env file and generate encryption key 
+
+```bash
+cp deploy/docker/.env.nango.example deploy/docker/.env && encryption_key=$(openssl rand -base64 32) && sed -i '' "s|REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY|$encryption_key|" deploy/docker/.env && echo "Docker environment file created with auto-generated encryption key"
+```
+
+### Step 2: Restart the containers
+
+```bash
+docker compose -f deploy/docker/docker-compose.yml up -d
+```
+
+### Step 3: Get your Nango API key
+Open the Nango Dashboard: `http://localhost:3050` and navigate to **Environment Settings** → **API Keys** and copy the API key.
+
+### Step 4: Configure environment variables
+Paste the following command and enter your Nango API key when prompted:
+
+```bash
+printf "Enter your Nango API key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-manage-api/.env agents-run-api/.env agents-manage-ui/.env && echo "Application files updated with Nango API key"
+```
+
+### Step 5: Start creating credentials!
+
+Navigate to the Credentials tab in the left sidebar and click "Create credential".
