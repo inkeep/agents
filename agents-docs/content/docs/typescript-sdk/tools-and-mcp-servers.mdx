@@ -5,7 +5,7 @@ description: Learn how to add and configure MCP servers for your agents
 
 MCP tools connect to external servers that implement the MCP standard. This allows you to integrate with a wide ecosystem of existing tools and services.
 
-### Basic MCP Tool
+### Basic MCP Server
 
 ```typescript
 import { mcpTool } from "@inkeep/agents-manage-api/builders";
@@ -28,56 +28,109 @@ const qaAgent = agent({
 });
 ```
 
-### MCP Tool with Credentials
+## Authentication
 
-MCP tools can be configured with credentials to access external services. See [Credentials](/typescript-sdk/credentials) for how to store and retrieve credentials.
+MCP servers support various authentication methods (via credentials):
+
+- **No Authentication** - For public APIs or internal services
+- **API Key** - For services requiring API keys
+- **Bearer Token** - For JWT or similar token-based authentication  
+- **Token Authentication** - For custom token schemes
+- **OAuth Flows** - For standard OAuth 2.0 authentication
+- **OAuth 2.1 Flows** - For modern OAuth 2.1 authentication
+
+For OAuth flows and OAuth 2.1 flows, it's recommended to use the [Visual Builder](/visual-builder/credentials) for easier configuration.
+
+See [Credentials](/typescript-sdk/credentials) for detailed examples and implementation guidance for each authentication type.
+
+### Example with Authentication
 
 ```typescript
-const inkeepAnalyticsTool = mcpTool({
-  id: "inkeep-analytics",
-  tenantId: "your-tenant",
-  name: "inkeep_analytics",
-  description: "Get the latest stats from the Inkeep Analytics dashboard",
-  serverUrl: "https://analytics.inkeep.com/mcp",
-  credentialReferenceId: "3r24d939kd939kd", // Reference to stored credentials
-  mcpType: "generic", // Automatically handles auth headers
-  transport: {
-    type: "streamable_http",
+const apiKeyTool = mcpTool({
+  id: "weather-api",
+  name: "weather",
+  description: "Get weather information",
+  serverUrl: "https://api.weather.com/mcp",
+  credential: credential({
+    id: 'weather-api-credential',
+    type: 'memory',
+    credentialStoreId: 'memory-default',
+    retrievalParams: {
+      key: 'WEATHER_API_KEY',
+    },
+  }),
+});
+```
+
+### Custom Headers
+
+You can configure custom headers for your MCP server requests. Use credentials for sensitive information (API keys, tokens) and headers for non-sensitive metadata (user agent, version info, etc.).
+
+```typescript
+const customHeadersTool = mcpTool({
+  id: "enterprise-api",
+  name: "enterprise_data",
+  description: "Enterprise API with custom headers",
+  serverUrl: "https://enterprise.example.com/mcp",
+  headers: {
+    "User-Agent": "Inkeep-Agent/1.0",
+    "X-Client-Version": "2024.1",
   },
 });
 ```
 
-### Best Practices
+## Selective Tools
+
+### Selective Tool Activation
+
+Enable only specific tools from a server using MCP Server tool names in the `activeTools` field.
+
+```typescript
+const selectiveTool = mcpTool({
+  id: "limited-server",
+  name: "analytics_readonly",
+  description: "Analytics server with limited access",
+  serverUrl: "https://analytics.example.com/mcp",
+  activeTools: ["get_metrics", "generate_report"], // Only these tools
+});
+```
+
+
+## Best Practices
 
 To ensure agents properly utilize their tools, follow these best practices:
 
 1. **Give tools clear, descriptive names and descriptions** - Explain what the tool does and when it should be used
 2. **Reference the tool in the agent's prompt** - Explicitly mention that the agent has access to specific tools and describe scenarios where they should be used
+3. **Secure your credentials** - Store sensitive information using the credential system
+4. **Limit tool scope** - Use `activeTools` to expose only necessary functionality
 
-This helps the agent understand both what tools are available and when to use them. For example:
+Example with best practices applied:
 
 ```typescript
 const productTool = mcpTool({
-    id: 'product-tool',
-    name: 'product',
-    description: 'A basic product tool used to answer questions about the Inkeep product',
-    serverUrl: 'https://mcp.inkeep.com/inkeep/mcp',
+  id: 'product-tool',
+  name: 'product',
+  description: 'Search product information, pricing, and specifications',
+  serverUrl: 'https://mcp.inkeep.com/inkeep/mcp',
+  activeTools: ['search_products', 'get_pricing', 'get_specifications'], // Only enable needed tools
 });
 
 const productAgent = agent({
-    id: 'product-agent',
-    name: 'Product Agent',
-    description: 'A basic product agent that can answer questions about the Inkeep product and hand off to the router agent if needed',
-    prompt:
-      `You are a basic product agent. You are given questions about products and you need to answer them. 
-      
-      If you need to answer a question that is not about the Inkeep product, you should hand off to the router agent.
-      
-      The product tool is a tool that can be used to answer questions about the Inkeep product.
-      `,
-    tools: {
-        product: productTool,
-    },
-    canTransferTo: () => [routerAgent],
-  });
+  id: 'product-agent',
+  name: 'Product Agent',
+  description: 'Answers questions about the Inkeep product',
+  prompt: `You are a product specialist for Inkeep. You have access to the product tool to search for:
+  - Product features and specifications
+  - Pricing information
+  - Technical documentation
+  - Integration guides
+  
+  Use the product tool when customers ask about features, pricing, or technical details.
+  If questions are outside the Inkeep product scope, transfer to the router agent.`,
+  tools: {
+    product: productTool,
+  },
+  canTransferTo: () => [routerAgent],
+});
 ```
