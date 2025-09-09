@@ -11,6 +11,7 @@ import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
+import { pino } from 'pino';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -104,7 +105,7 @@ function createExecutionHono(
   // Logging middleware
   app.use(
     pinoLogger({
-      pino: getLogger(),
+      pino: getLogger() || pino({ level: 'debug' }),
       http: {
         onResLevel(c) {
           if (c.res.status >= 500) {
@@ -154,26 +155,32 @@ function createExecutionHono(
       if (!isExpectedError) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         const errorStack = err instanceof Error ? err.stack : undefined;
-        getLogger().error(
-          {
-            error: err,
-            message: errorMessage,
-            stack: errorStack,
-            path: c.req.path,
-            requestId,
-          },
-          'Unexpected server error occurred'
-        );
+        const logger = getLogger();
+        if (logger) {
+          logger.error(
+            {
+              error: err,
+              message: errorMessage,
+              stack: errorStack,
+              path: c.req.path,
+              requestId,
+            },
+            'Unexpected server error occurred'
+          );
+        }
       } else {
-        getLogger().error(
-          {
-            error: err,
-            path: c.req.path,
-            requestId,
-            status,
-          },
-          'Server error occurred'
-        );
+        const logger = getLogger();
+        if (logger) {
+          logger.error(
+            {
+              error: err,
+              path: c.req.path,
+              requestId,
+              status,
+            },
+            'Server error occurred'
+          );
+        }
       }
     }
 
@@ -182,7 +189,10 @@ function createExecutionHono(
         const response = err.getResponse();
         return response;
       } catch (responseError) {
-        getLogger().error({ error: responseError }, 'Error while handling HTTPException response');
+        const logger = getLogger();
+        if (logger) {
+          logger.error({ error: responseError }, 'Error while handling HTTPException response');
+        }
       }
     }
 
