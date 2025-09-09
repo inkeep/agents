@@ -30,7 +30,9 @@
     "typecheck": "turbo typecheck",
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "changeset publish",
+    "release-dev": "changeset version --snapshot dev && changeset publish --tag dev"
   },
   "version": "0.1.0",
   "dependencies": {
