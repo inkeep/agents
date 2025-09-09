@@ -12,7 +12,6 @@ export interface InkeepConfig {
   projectId?: string;
   managementApiUrl?: string;
   executionApiUrl?: string;
-  outputDirectory?: string;
   modelSettings?: ModelSettings;
 }
 
@@ -21,7 +20,6 @@ export interface ValidatedConfiguration {
   projectId: string;
   managementApiUrl: string;
   executionApiUrl: string;
-  outputDirectory?: string;
   modelSettings?: ModelSettings;
   sources: {
     tenantId: string;
@@ -232,7 +230,6 @@ export async function validateConfiguration(
       managementApiUrl,
       executionApiUrl,
       modelSettings: config.modelSettings || undefined,
-      outputDirectory: config.outputDirectory,
       sources,
     };
   }
@@ -348,7 +345,6 @@ export async function validateConfiguration(
     managementApiUrl,
     executionApiUrl,
     modelSettings: config.modelSettings || undefined,
-    outputDirectory: config.outputDirectory,
     sources,
   };
 }

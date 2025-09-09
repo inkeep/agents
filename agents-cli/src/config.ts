@@ -5,7 +5,6 @@ export interface InkeepConfig {
   projectId: string;
   managementApiUrl: string;
   executionApiUrl: string;
-  outputDirectory?: string;
   modelSettings?: ModelSettings;
 }
 
