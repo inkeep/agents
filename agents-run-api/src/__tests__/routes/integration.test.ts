@@ -109,14 +109,21 @@ vi.mock('../../env.js', () => ({
   },
 }));
 
-vi.mock('../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
+vi.mock('../../logger.js', () => {
+  const mockLogger = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-  }),
-}));
+    child: vi.fn(),
+  };
+  // Make child return itself for chaining
+  mockLogger.child.mockReturnValue(mockLogger);
+  
+  return {
+    getLogger: () => mockLogger,
+  };
+});
 
 describe('Integration Tests', () => {
   describe('ExecutionHandler', () => {
