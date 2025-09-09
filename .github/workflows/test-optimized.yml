@@ -86,38 +86,9 @@ jobs:
           TURBO_CACHE_DIR: .turbo
           NODE_OPTIONS: --max-old-space-size=4096
       
-      # Run test and typecheck in parallel
-      - name: Run tests and typecheck in parallel
-        run: |
-          echo "Starting parallel test and typecheck..."
-          
-          # Start test in background
-          pnpm test &
-          TEST_PID=$!
-          
-          # Start typecheck in background
-          pnpm typecheck &
-          TYPECHECK_PID=$!
-          
-          # Monitor progress
-          echo "Test PID: $TEST_PID, Typecheck PID: $TYPECHECK_PID"
-          
-          # Wait for both to complete and capture exit codes
-          wait $TEST_PID
-          TEST_EXIT=$?
-          echo "Test completed with exit code: $TEST_EXIT"
-          
-          wait $TYPECHECK_PID
-          TYPECHECK_EXIT=$?
-          echo "Typecheck completed with exit code: $TYPECHECK_EXIT"
-          
-          # Exit with failure if either failed
-          if [ $TEST_EXIT -ne 0 ] || [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "Tests or typecheck failed"
-            exit 1
-          fi
-          
-          echo "All checks passed successfully!"
+      # Run test and typecheck - Turbo handles parallelization internally
+      - name: Run tests
+        run: pnpm test
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
@@ -125,4 +96,11 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
           DB_FILE_NAME: test.db
+          NODE_OPTIONS: --max-old-space-size=4096
+      
+      - name: Run typecheck
+        run: pnpm typecheck
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
           NODE_OPTIONS: --max-old-space-size=4096
