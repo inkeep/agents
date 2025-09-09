@@ -20,7 +20,7 @@ export class SystemPromptBuilder<TConfig> {
 
     try {
       const currentDir = dirname(fileURLToPath(import.meta.url));
-      const templatesDir = join(currentDir, '..', 'templates', this.version);
+      const templatesDir = join(currentDir, '..', '..', 'templates', this.version);
 
       // Load all required template files for this version
       const templatePromises = this.versionConfig.templateFiles.map(async (filename) => {

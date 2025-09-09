@@ -28,8 +28,8 @@ describe('Configuration Validation', () => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.INKEEP_API_URL;
-    delete process.env.INKEEP_MANAGEMENT_API_URL;
-    delete process.env.INKEEP_EXECUTION_API_URL;
+    delete process.env.INKEEP_AGENTS_MANAGE_API_URL;
+    delete process.env.INKEEP_AGENTS_RUN_API_URL;
   });
 
   afterEach(() => {
@@ -72,8 +72,8 @@ describe('Configuration Validation', () => {
           },
         });
 
-        process.env.INKEEP_MANAGEMENT_API_URL = 'http://localhost:9090';
-        process.env.INKEEP_EXECUTION_API_URL = 'http://localhost:9091';
+        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://localhost:9090';
+        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://localhost:9091';
 
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
@@ -81,16 +81,16 @@ describe('Configuration Validation', () => {
         expect(config.managementApiUrl).toBe('http://localhost:9090');
         expect(config.executionApiUrl).toBe('http://localhost:9091');
         expect(config.sources.managementApiUrl).toBe(
-          'environment variable (INKEEP_MANAGEMENT_API_URL)'
+          'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
         );
         expect(config.sources.executionApiUrl).toBe(
-          'environment variable (INKEEP_EXECUTION_API_URL)'
+          'environment variable (INKEEP_AGENTS_RUN_API_URL)'
         );
       });
 
       it('should allow command-line flags to override environment variables', async () => {
-        process.env.INKEEP_MANAGEMENT_API_URL = 'http://localhost:9090';
-        process.env.INKEEP_EXECUTION_API_URL = 'http://localhost:9091';
+        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://localhost:9090';
+        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://localhost:9091';
 
         const config = await validateConfiguration(
           'cli-tenant',
@@ -160,16 +160,16 @@ describe('Configuration Validation', () => {
           },
         });
 
-        process.env.INKEEP_MANAGEMENT_API_URL = 'http://env-management';
-        process.env.INKEEP_EXECUTION_API_URL = 'http://env-execution';
+        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://env-management';
+        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://env-execution';
 
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
         expect(config.sources.managementApiUrl).toBe(
-          'environment variable (INKEEP_MANAGEMENT_API_URL)'
+          'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
         );
         expect(config.sources.executionApiUrl).toBe(
-          'environment variable (INKEEP_EXECUTION_API_URL)'
+          'environment variable (INKEEP_AGENTS_RUN_API_URL)'
         );
       });
 
@@ -190,8 +190,8 @@ describe('Configuration Validation', () => {
           },
         });
 
-        process.env.INKEEP_MANAGEMENT_API_URL = 'http://env-management';
-        process.env.INKEEP_EXECUTION_API_URL = 'http://env-execution';
+        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://env-management';
+        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://env-execution';
 
         // Override only the management API URL with a flag
         const config = await validateConfiguration(
@@ -206,7 +206,7 @@ describe('Configuration Validation', () => {
         expect(config.executionApiUrl).toBe('http://env-execution');
         expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
         expect(config.sources.executionApiUrl).toBe(
-          'environment variable (INKEEP_EXECUTION_API_URL)'
+          'environment variable (INKEEP_AGENTS_RUN_API_URL)'
         );
       });
     });

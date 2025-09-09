@@ -37,7 +37,7 @@ pnpm db:push
 
 Then:
 ```bash
-cd inkeep-execution-api
+cd agents-run-api
 pnpm install
 ```
 

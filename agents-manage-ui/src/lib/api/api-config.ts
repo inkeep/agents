@@ -10,23 +10,23 @@ const DEFAULT_MANAGEMENT_API_BASE_URL = 'http://localhost:3002';
 const DEFAULT_EXECUTION_API_BASE_URL = 'http://localhost:3003';
 
 // Management API (CRUD operations, configuration)
-if (!process.env.NEXT_PUBLIC_INKEEP_MANAGEMENT_API_URL) {
+if (!process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL) {
   console.warn(
-    `NEXT_PUBLIC_INKEEP_MANAGEMENT_API_URL is not set, falling back to: ${DEFAULT_MANAGEMENT_API_BASE_URL}`
+    `NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_MANAGEMENT_API_BASE_URL}`
   );
 }
 
 // Execution API (chat completions, agent execution)
-if (!process.env.NEXT_PUBLIC_INKEEP_EXECUTION_API_URL) {
+if (!process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL) {
   console.warn(
-    `NEXT_PUBLIC_INKEEP_EXECUTION_API_URL is not set, falling back to: ${DEFAULT_EXECUTION_API_BASE_URL}`
+    `NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL is not set, falling back to: ${DEFAULT_EXECUTION_API_BASE_URL}`
   );
 }
 
 export const MANAGEMENT_API_BASE_URL =
-  process.env.NEXT_PUBLIC_INKEEP_MANAGEMENT_API_URL || DEFAULT_MANAGEMENT_API_BASE_URL;
+  process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_MANAGEMENT_API_BASE_URL;
 export const EXECUTION_API_BASE_URL =
-  process.env.NEXT_PUBLIC_INKEEP_EXECUTION_API_URL || DEFAULT_EXECUTION_API_BASE_URL;
+  process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL || DEFAULT_EXECUTION_API_BASE_URL;
 
 async function makeApiRequestInternal<T>(
   baseUrl: string,

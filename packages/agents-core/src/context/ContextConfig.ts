@@ -88,7 +88,7 @@ export class ContextConfigBuilder {
   constructor(options: ContextConfigBuilderOptions) {
     this.tenantId = options.tenantId || 'default';
     this.projectId = options.projectId || 'default';
-    this.baseURL = process.env.INKEEP_MANAGEMENT_API_URL || 'http://localhost:3002';
+    this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 
     // Convert request schema to JSON schema if provided
     let requestContextSchema: any;

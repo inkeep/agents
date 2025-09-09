@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Agent Builder
 
-This application provides a UI for building and managing agent graphs. It integrates with the inkeep-management-api and inkeep-execution-api backend services to provide full CRUD operations for agent graph management and real-time chat execution.
+This application provides a UI for building and managing agent graphs. It integrates with the agents-manage-api and agents-run-api backend services to provide full CRUD operations for agent graph management and real-time chat execution.
 
 ### Features
 
@@ -48,8 +48,8 @@ Create a `.env.local` file with the following configuration:
 ```bash
 # Inkeep Configuration
 NEXT_PUBLIC_TENANT_ID="inkeep"
-NEXT_PUBLIC_INKEEP_MANAGEMENT_API_URL="http://localhost:3002" # URL where inkeep-management-api is running
-NEXT_PUBLIC_INKEEP_EXECUTION_API_URL="http://localhost:3003" # URL where inkeep-execution-api is running
+NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002" # URL where agents-manage-api is running
+NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
 NEXT_PUBLIC_INKEEP_AUTH_TOKEN=""
 
 # SigNoz Configuration (for Traces feature)
