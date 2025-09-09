@@ -45,7 +45,8 @@ Open `http://localhost:3000` in the browser and start building agents.
 
 ### Step 1: Launch docker containers
 ```
-docker compose -f deploy/docker/docker-compose.yml up -d
+cd deploy/docker
+docker compose up -d
 ```
 
 ### Step 2: Fetch SigNoz API Key
@@ -80,7 +81,8 @@ cp deploy/docker/.env.nango.example deploy/docker/.env && encryption_key=$(opens
 ### Step 2: Restart the containers
 
 ```bash
-docker compose -f deploy/docker/docker-compose.yml up -d
+cd deploy/docker
+docker compose up -d
 ```
 
 ### Step 3: Get your Nango API key
