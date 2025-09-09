@@ -3,6 +3,14 @@ import type { AgentConfig, ExternalAgentConfig } from '../../agents/Agent';
 import { createDelegateToAgentTool, createTransferToAgentTool } from '../../agents/relationTools';
 import { saveA2AMessageResponse } from '../../data/conversations';
 
+// Mock the ai package's tool function
+vi.mock('ai', () => ({
+  tool: (config: any) => ({
+    ...config,
+    execute: config.execute,
+  }),
+}));
+
 // Mock @inkeep/agents-core functions using hoisted pattern
 const { createMessageMock, getCredentialReferenceMock, getExternalAgentMock } = vi.hoisted(() => {
   const createMessageMock = vi.fn(() => vi.fn().mockResolvedValue({ id: 'mock-message-id' }));
