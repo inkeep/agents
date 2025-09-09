@@ -68,7 +68,10 @@ jobs:
             ${{ runner.os }}-build-v4-
       
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          # Ensure agents-manage-ui dependencies are properly installed
+          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
       
       # Build only if not cached
       - name: Build packages
