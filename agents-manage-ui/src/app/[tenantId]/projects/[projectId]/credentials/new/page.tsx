@@ -23,7 +23,7 @@ async function NewCredentialsPage({
   const credentialOptions: CredentialOption[] = [
     {
       id: 'providers',
-      icon: <Search className="w-6 h-6 mt-0.5 flex-shrink-0" />,
+      icon: <Search className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />,
       title: 'Browse Providers',
       description:
         'Connect to popular providers like GitHub, Google Drive, Slack, and more. This is useful when you want to give MCP Servers access to your providers.',
@@ -31,7 +31,7 @@ async function NewCredentialsPage({
     },
     {
       id: 'bearer',
-      icon: <Settings className="w-6 h-6 mt-0.5 flex-shrink-0" />,
+      icon: <Settings className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />,
       title: 'Bearer Authentication',
       description:
         'Create a bearer token for API authentication. Useful when you need to provide secure access tokens to your MCP Servers.',
@@ -40,10 +40,10 @@ async function NewCredentialsPage({
   ];
 
   const renderCredentialHeader = (option: CredentialOption) => (
-    <div className="flex items-start gap-3">
+    <div className="flex items-center gap-3">
       {option.icon}
       <div className="flex-1 min-w-0">
-        <CardTitle className="text-base truncate">{option.title}</CardTitle>
+        <CardTitle className="text-sm truncate font-medium">{option.title}</CardTitle>
       </div>
     </div>
   );

@@ -28,7 +28,6 @@ import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Badge } from '../ui/badge';
 import { CardTitle } from '../ui/card';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
-import { Label } from '../ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MCPToolImage } from './mcp-tool-image';
 
@@ -37,8 +36,8 @@ function URLDisplay({ url }: { url: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="bg-muted/50 rounded px-2 py-1 min-w-0">
-          <code className="text-xs text-muted-foreground block truncate">{url}</code>
+        <div className="rounded py-1 min-w-0">
+          <code className="text-sm text-muted-foreground block truncate">{url}</code>
         </div>
       </TooltipTrigger>
       <TooltipContent side="bottom" align="start" className="max-w-md">
@@ -143,7 +142,7 @@ export function MCPToolItem({
                 className="mt-0.5 flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-base truncate">
+                <CardTitle className="text-base truncate font-medium">
                   {getToolTypeAndName(tool).name || tool.name}
                 </CardTitle>
               </div>
@@ -157,42 +156,24 @@ export function MCPToolItem({
           <URLDisplay url={tool.config.mcp.server.url} />
 
           {/* Key metrics in a structured layout */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Auth Status</Label>
+          <div className="flex items-center gap-2 flex-wrap">
             {tool.status === 'needs_auth' ? (
               <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-                >
-                  Needs Login
-                </Badge>
+                <Badge variant="warning">Needs Login</Badge>
               </div>
             ) : tool.credentialReferenceId ? (
-              <Badge
-                variant="outline"
-                className="text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
-              >
+              <Badge variant="success">
                 <Lock className="w-3 h-3 mr-1" />
                 Secured
               </Badge>
             ) : (
-              <Badge
-                variant="outline"
-                className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-              >
+              <Badge variant="warning">
                 <LockOpen className="w-3 h-3 mr-1" />
                 Unsecured
               </Badge>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Active tools</Label>
-            <Badge
-              variant="code"
-              className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
-            >
-              {activeTools?.length ?? 0}
+            <Badge variant="code" className="uppercase bg-transparent">
+              {activeTools?.length ?? 0} Active tool{activeTools?.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         </div>

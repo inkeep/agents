@@ -33,7 +33,7 @@ const createTextFallback = (provider: string, size: string | number): React.Reac
 
   return (
     <div
-      className="rounded-sm bg-gray-200 text-gray-700 font-medium flex items-center justify-center"
+      className="rounded-sm bg-gray-100 dark:bg-muted/50 text-muted-foreground font-medium flex items-center justify-center"
       style={{
         width: size,
         height: size,

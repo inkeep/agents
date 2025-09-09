@@ -33,12 +33,13 @@ function ToolCard({ tool }: ToolCardProps) {
       {/* Tool header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono text-xs">
+          <Badge variant="code" className="bg-transparent text-foreground">
             {tool.name}
           </Badge>
           {parsedSchema?.hasProperties && (
-            <Badge variant="secondary" className="text-xs">
-              {parsedSchema.properties.length} parameters
+            <Badge variant="code">
+              {parsedSchema.properties.length} parameter
+              {parsedSchema.properties.length !== 1 ? 's' : ''}
             </Badge>
           )}
         </div>

@@ -11,6 +11,7 @@ import { CardTitle } from '@/components/ui/card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import EmptyState from '@/components/layout/empty-state';
 
 interface NangoProvidersGridProps {
   providers: ApiProvider[];
@@ -45,12 +46,12 @@ export function NangoProvidersGrid({ providers, error }: NangoProvidersGridProps
       {provider.categories && provider.categories.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {provider.categories.slice(0, 1).map((category) => (
-            <Badge key={category} variant="secondary" className="text-xs">
+            <Badge key={category} variant="code" className="text-2xs uppercase border-0">
               {category}
             </Badge>
           ))}
           {provider.categories.length > 1 && (
-            <Badge variant="secondary" className="text-xs text-muted-foreground">
+            <Badge variant="code" className="text-2xs text-muted-foreground uppercase border-0">
               +{provider.categories.length - 1}
             </Badge>
           )}
@@ -107,20 +108,22 @@ export function NangoProvidersGrid({ providers, error }: NangoProvidersGridProps
 
       {/* No results */}
       {filteredProviders.length === 0 && searchQuery && (
-        <div className="text-center p-8">
-          <h3 className="text-lg font-semibold mb-2">No providers found</h3>
-          <p className="text-muted-foreground mb-4">
-            No providers match "{searchQuery}". Try a different search term.
-          </p>
-          <Button variant="outline" onClick={() => setSearchQuery('')}>
-            Clear search
-          </Button>
-        </div>
+        <EmptyState
+          icon={<></>}
+          title="No providers found."
+          description={`No providers match "${searchQuery}". Try a different search term.`}
+          action={
+            <Button variant="outline" onClick={() => setSearchQuery('')}>
+              Clear search
+            </Button>
+          }
+        />
       )}
 
       {/* Provider grid */}
       {filteredProviders.length > 0 && (
         <CardGrid
+          cardClassName="py-4 shadow-none rounded-lg"
           items={filteredProviders}
           getKey={(provider) => provider.name}
           getHref={(provider) =>
@@ -128,7 +131,7 @@ export function NangoProvidersGrid({ providers, error }: NangoProvidersGridProps
           }
           renderHeader={renderProviderHeader}
           renderContent={renderProviderContent}
-          gridClassName="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+          gridClassName="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
         />
       )}
     </div>

@@ -9,6 +9,8 @@ import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Button } from '../ui/button';
 import { AvailableToolsCard } from './available-tools-card';
 import { MCPToolImage } from './mcp-tool-image';
+import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
+import { cn } from '@/lib/utils';
 
 export function ViewMCPServerDetails({
   tool,
@@ -29,19 +31,39 @@ export function ViewMCPServerDetails({
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'healthy':
-        return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800';
+        return 'success';
       case 'unhealthy':
-        return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800';
+        return 'error';
       case 'disabled':
-        return 'bg-muted text-muted-foreground border-border';
+        return 'code';
       case 'needs_auth':
-        return 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-800';
+        return 'warning';
       default:
-        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
+        return 'warning';
     }
+  };
+
+  const ItemLabel = ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => {
+    return <div className={cn('text-sm font-medium leading-none', className)}>{children}</div>;
+  };
+
+  const ItemValue = ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => {
+    return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
   };
 
   // Handle OAuth login for MCP tools that need authentication
@@ -100,10 +122,10 @@ export function ViewMCPServerDetails({
             name={tool.name}
             provider={provider}
             size={48}
-            className="rounded-lg shadow-sm"
+            className="rounded-lg"
           />
           <div>
-            <h2 className="text-xl font-bold tracking-tight">{tool.name}</h2>
+            <h2 className="text-xl font-medium tracking-tight">{tool.name}</h2>
             <p className="text-sm text-muted-foreground">MCP Server Details</p>
           </div>
         </div>
@@ -116,17 +138,15 @@ export function ViewMCPServerDetails({
       </div>
 
       {/* Basic Information */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 space-y-8">
           <div className="space-y-2">
-            <div className="text-sm font-medium leading-none">Name</div>
-            <div className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm">
-              {tool.name}
-            </div>
+            <ItemLabel>Name</ItemLabel>
+            <ItemValue>{tool.name}</ItemValue>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-medium leading-none">Status</div>
-            <div className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm items-center">
+            <ItemLabel>Status</ItemLabel>
+            <ItemValue className="items-center">
               {tool.status === 'needs_auth' ? (
                 <Badge
                   variant="outline"
@@ -140,57 +160,55 @@ export function ViewMCPServerDetails({
                   Click to Login
                 </Badge>
               ) : (
-                <Badge className={getStatusColor(tool.status)}>{tool.status}</Badge>
+                <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
+                  {tool.status}
+                </Badge>
               )}
-            </div>
+            </ItemValue>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-medium leading-none">Created At</div>
-            <div className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm">
+            <ItemLabel>Created At</ItemLabel>
+            <ItemValue>
               {formatDate(
                 typeof tool.createdAt === 'string' ? tool.createdAt : tool.createdAt.toISOString()
               )}
-            </div>
+            </ItemValue>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-medium leading-none">Updated At</div>
-            <div className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm">
+            <ItemLabel>Updated At</ItemLabel>
+            <ItemValue>
               {formatDate(
                 typeof tool.updatedAt === 'string' ? tool.updatedAt : tool.updatedAt.toISOString()
               )}
-            </div>
+            </ItemValue>
           </div>
         </div>
         {tool.imageUrl && (
           <div className="space-y-2">
-            <div className="text-sm font-medium leading-none">Image URL</div>
-            <div className="min-h-10 w-full rounded-md border bg-background px-3 py-2 text-sm font-mono break-all">
+            <ItemLabel>Image URL</ItemLabel>
+            <ItemValue>
               {tool.imageUrl.startsWith('data:image/') ? 'Base64 encoded image' : tool.imageUrl}
-            </div>
+            </ItemValue>
           </div>
         )}
 
         {/* Server URL */}
         <div className="space-y-2">
-          <div className="text-sm font-medium leading-none">Server URL</div>
-          <div className="min-h-10 w-full rounded-md border bg-background px-3 py-2 text-sm font-mono break-all">
-            {tool.config.mcp.server.url}
-          </div>
+          <ItemLabel>Server URL</ItemLabel>
+          <CopyableSingleLineCode code={tool.config.mcp.server.url} />
         </div>
 
         {/* Transport and Credential */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tool.config.mcp.transport && (
             <div className="space-y-2">
-              <div className="text-sm font-medium leading-none">Transport Type</div>
-              <div className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                {tool.config.mcp.transport.type}
-              </div>
+              <ItemLabel>Transport Type</ItemLabel>
+              <ItemValue>{tool.config.mcp.transport.type}</ItemValue>
             </div>
           )}
           <div className="space-y-2">
-            <div className="text-sm font-medium leading-none">Credential</div>
-            <div className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm items-center">
+            <ItemLabel>Credential</ItemLabel>
+            <ItemValue className="items-center">
               {tool.credentialReferenceId ? (
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
@@ -202,32 +220,32 @@ export function ViewMCPServerDetails({
                   </Link>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <Badge variant="warning" className="flex items-center gap-2">
                   <LockOpen className="w-4 h-4" />
-                  <span className="text-muted-foreground">Unsecured</span>
-                </div>
+                  Unsecured
+                </Badge>
               )}
-            </div>
+            </ItemValue>
           </div>
         </div>
 
         {/* Active Tools */}
         <div className="space-y-2">
           <div className="flex gap-2 items-center">
-            <div className="text-sm font-medium leading-none">Active Tools</div>
-            <Badge variant="code" className="border-none px-2 text-[10px] text-gray-700">
+            <ItemLabel>Active Tools</ItemLabel>
+            <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
               {tool.config.mcp.activeTools === undefined
                 ? (tool.availableTools?.length ?? 0)
                 : (tool.config.mcp.activeTools?.length ?? 0)}
             </Badge>
           </div>
-          <div className="min-h-10 w-full rounded-md border bg-background px-3 py-2">
+          <ItemValue>
             {tool.config.mcp.activeTools === undefined ? (
               // All tools are active (undefined means all)
               tool.availableTools && tool.availableTools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {tool.availableTools.map((toolInfo) => (
-                    <Badge key={toolInfo.name} variant="outline">
+                    <Badge key={toolInfo.name} className="" variant="primary">
                       {toolInfo.name}
                     </Badge>
                   ))}
@@ -239,7 +257,7 @@ export function ViewMCPServerDetails({
               // Specific tools are active
               <div className="flex flex-wrap gap-2">
                 {tool.config.mcp.activeTools.map((toolName) => (
-                  <Badge key={toolName} variant="outline">
+                  <Badge key={toolName} className="" variant="primary">
                     {toolName}
                   </Badge>
                 ))}
@@ -248,7 +266,7 @@ export function ViewMCPServerDetails({
               // No tools are active (empty array)
               <div className="text-sm text-muted-foreground">None</div>
             )}
-          </div>
+          </ItemValue>
         </div>
 
         {/* Available Tools */}

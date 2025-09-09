@@ -23,7 +23,7 @@ const buttonVariants = cva(
           'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 font-mono uppercase',
         ghost:
           'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 text-muted-foreground dark:text-muted-foreground font-mono uppercase',
-        link: 'text-primary underline-offset-4 hover:underline',
+        link: 'text-primary underline-offset-4 hover:underline font-mono uppercase',
         unstyled: 'font-inherit text-inherit text-[length:inherit] rounded-none',
       },
       size: {

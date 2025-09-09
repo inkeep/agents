@@ -1,5 +1,6 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { BotMessageSquare } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/graph/domain/deserialize';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import type { AgentNodeData } from '../configuration/node-types';
@@ -28,10 +29,13 @@ export function ExternalAgentNode(props: NodeProps & { data: AgentNodeData }) {
         style={{ width: NODE_WIDTH }}
       >
         <BaseNodeHeader className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <BotMessageSquare className="size-4 text-muted-foreground" />
             <BaseNodeHeaderTitle>{name || 'External agent'}</BaseNodeHeaderTitle>
           </div>
+          <Badge variant="primary" className="text-xs uppercase">
+            Agent
+          </Badge>
           {hasErrors && (
             <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
           )}

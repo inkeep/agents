@@ -19,9 +19,11 @@ const badgeVariants = cva(
         outline: 'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
         code: 'text-xs text-muted-foreground border bg-muted/80 dark:bg-muted/50 rounded-sm p-0.5 px-1.5 font-mono',
         success:
-          'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-emerald-50 border-emerald-200 text-emerald-800 uppercase',
+          'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-emerald-50 border-emerald-200 text-emerald-800 dark:text-emerald-300 dark:bg-emerald-950/40 uppercase',
         error:
           'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-red-50 border-red-200 text-red-800 dark:border-red-700 dark:text-red-300 dark:bg-red-950/40 uppercase',
+        warning:
+          'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-amber-50 border-amber-200 text-amber-800 dark:border-amber-700 dark:text-amber-300 dark:bg-amber-950/40 uppercase',
       },
     },
     defaultVariants: {

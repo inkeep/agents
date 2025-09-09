@@ -35,8 +35,8 @@ export function CardGrid<T>({
       {items.map((item) => {
         const cardContent = (
           <>
-            <CardHeader className="pb-3">{renderHeader(item)}</CardHeader>
-            <CardContent className="space-y-3">{renderContent(item)}</CardContent>
+            <CardHeader className="pb-4 px-4">{renderHeader(item)}</CardHeader>
+            <CardContent className="space-y-3 px-4">{renderContent(item)}</CardContent>
           </>
         );
 
