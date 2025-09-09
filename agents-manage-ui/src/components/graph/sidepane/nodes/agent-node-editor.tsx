@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -9,6 +8,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-graph-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
