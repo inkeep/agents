@@ -92,6 +92,9 @@ export class McpClient {
 
     this.transport = new SSEClientTransport(new URL(url), {
       eventSourceInit: config.eventSourceInit,
+      requestInit: {
+        headers: config.headers || {},
+      },
     });
 
     await this.client.connect(this.transport, {

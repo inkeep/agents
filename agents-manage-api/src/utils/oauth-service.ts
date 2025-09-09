@@ -103,7 +103,7 @@ class OAuthService {
       logoUri:
         config.logoUri ||
         process.env.OAUTH_CLIENT_LOGO_URI ||
-        'https://storage.googleapis.com/inkeep-static-assets/Favicon_gray_large.png',
+        'https://inkeep.com/images/logos/inkeep-logo-blue.svg',
       redirectBaseUrl:
         config.redirectBaseUrl || process.env.OAUTH_REDIRECT_BASE_URL || 'http://localhost:3002',
     };
