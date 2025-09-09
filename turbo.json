@@ -34,6 +34,12 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": ["coverage/**"]
     },
+    "@inkeep/agents-run-api#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": ["coverage/**"],
+      "env": ["CI"]
+    },
     "@inkeep/agents-cli#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
