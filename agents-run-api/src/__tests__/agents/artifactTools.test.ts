@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSaveToolResultTool } from '../../agents/artifactTools';
-import { parseEmbeddedJson } from '../../agents/generateTaskHandler';
-import { toolSessionManager } from '../../agents/ToolSessionManager';
 
-// Mock the ai package's tool function
+// Mock the ai package's tool function - must be before imports
 vi.mock('ai', () => ({
   tool: (config: any) => ({
     ...config,
@@ -17,6 +14,10 @@ vi.mock('jmespath', () => ({
     search: vi.fn(),
   },
 }));
+
+import { createSaveToolResultTool } from '../../agents/artifactTools';
+import { parseEmbeddedJson } from '../../agents/generateTaskHandler';
+import { toolSessionManager } from '../../agents/ToolSessionManager';
 
 // Mock the logger
 vi.mock('../../logger.js', () => ({

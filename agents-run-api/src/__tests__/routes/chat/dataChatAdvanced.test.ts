@@ -1,10 +1,7 @@
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import * as execModule from '../../../handlers/executionHandler';
-import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
 
-// Mock the logger
+// Mock logger - must be before imports
 vi.mock('../../../logger.js', () => {
   const mockLogger = {
     info: vi.fn(),
@@ -20,6 +17,10 @@ vi.mock('../../../logger.js', () => {
     getLogger: () => mockLogger,
   };
 });
+
+import * as execModule from '../../../handlers/executionHandler';
+import { makeRequest } from '../../utils/testRequest';
+import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock @inkeep/agents-core functions that are used by the chat data stream routes
 vi.mock('@inkeep/agents-core', async (importOriginal) => {

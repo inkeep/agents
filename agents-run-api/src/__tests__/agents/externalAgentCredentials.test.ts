@@ -1,18 +1,19 @@
 // Functions now imported from @inkeep/agents-core and mocked above
 import { CredentialStoreRegistry, CredentialStuffer } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { A2AClient } from '../../a2a/client';
-import { createDelegateToAgentTool } from '../../agents/relationTools';
-import { saveA2AMessageResponse } from '../../data/conversations';
-import dbClient from '../../data/db/dbClient';
 
-// Mock the ai package's tool function
+// Mock the ai package's tool function - must be before imports
 vi.mock('ai', () => ({
   tool: (config: any) => ({
     ...config,
     execute: config.execute,
   }),
 }));
+
+import { A2AClient } from '../../a2a/client';
+import { createDelegateToAgentTool } from '../../agents/relationTools';
+import { saveA2AMessageResponse } from '../../data/conversations';
+import dbClient from '../../data/db/dbClient';
 
 const {
   createMessageMock,
