@@ -34,6 +34,7 @@ function createExecutionHono(
   // Request ID middleware
   app.use('*', requestId());
 
+  // OpenTelemetry baggage middleware
   app.use('*', async (c, next) => {
     const reqId = c.get('requestId');
     let bag = propagation.getBaggage(otelContext.active());
