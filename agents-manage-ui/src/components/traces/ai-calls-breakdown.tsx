@@ -15,9 +15,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
-import { UNKNOWN_VALUE } from '@/constants/signoz';
 
 // Time range options
 const TIME_RANGES = {

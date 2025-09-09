@@ -1,27 +1,26 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import {
+  contextValidationMiddleware,
+  createMessage,
+  createOrGetConversation,
+  getActiveAgentForConversation,
+  getAgentById,
+  getAgentGraphWithDefaultAgent,
+  getFullGraph,
+  getRequestExecutionContext,
+  handleContextResolution,
+  setActiveAgentForConversation,
+} from '@inkeep/agents-core';
 // import { Hono } from 'hono';
 import { trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import { handleContextResolution } from '@inkeep/agents-core';
-import {
-  createMessage,
-  createOrGetConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
-  getActiveAgentForConversation,
-  setActiveAgentForConversation,
-  getFullGraph,
-  getRequestExecutionContext,
-} from '@inkeep/agents-core';
-
+import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
-import { contextValidationMiddleware } from '@inkeep/agents-core';
 import type { ContentItem, Message } from '../types/chat';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
-import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 const logger = getLogger('completionsHandler');

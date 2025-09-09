@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  countMessagesByConversation,
+  createMessage,
+  deleteMessage,
   getMessageById,
-  listMessages,
   getMessagesByConversation,
   getMessagesByTask,
   getVisibleMessages,
-  createMessage,
+  listMessages,
   updateMessage,
-  deleteMessage,
-  countMessagesByConversation,
 } from '../../data-access/messages';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 
 describe('Messages Data Access', () => {
   let db: DatabaseClient;

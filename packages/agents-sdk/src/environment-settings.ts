@@ -81,8 +81,7 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
     },
     getEnvironmentSettingKeys: (): string[] => {
       if (allEnvironments.length === 0) return [];
-      if (allEnvironments.length === 1)
-        return Object.keys(allEnvironments[0].credentials || {});
+      if (allEnvironments.length === 1) return Object.keys(allEnvironments[0].credentials || {});
 
       // Multiple environments - intersection logic
       let commonKeys = new Set(Object.keys(allEnvironments[0].credentials || {}));
@@ -97,14 +96,10 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
     hasEnvironmentSetting: (key: string): key is SettingKeys => {
       if (allEnvironments.length === 0) return false;
       if (allEnvironments.length === 1)
-        return !!(
-          allEnvironments[0].credentials && key in allEnvironments[0].credentials
-        );
+        return !!(allEnvironments[0].credentials && key in allEnvironments[0].credentials);
 
       // Multiple environments - must exist in ALL
-      return allEnvironments.every(
-        (env) => env.credentials && key in env.credentials
-      );
+      return allEnvironments.every((env) => env.credentials && key in env.credentials);
     },
   };
 }

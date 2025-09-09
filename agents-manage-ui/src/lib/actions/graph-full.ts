@@ -12,11 +12,15 @@ import {
   ApiError,
   createFullGraph as apiCreateFullGraph,
   deleteFullGraph as apiDeleteFullGraph,
+  fetchGraphs as apiFetchGraphs,
   getFullGraph as apiGetFullGraph,
   updateFullGraph as apiUpdateFullGraph,
-  fetchGraphs as apiFetchGraphs,
 } from '../api/graph-full-client';
-import { type FullGraphDefinition, FullGraphDefinitionSchema, Graph } from '../types/graph-full';
+import {
+  type FullGraphDefinition,
+  FullGraphDefinitionSchema,
+  type Graph,
+} from '../types/graph-full';
 
 /**
  * Result type for server actions - follows a consistent pattern

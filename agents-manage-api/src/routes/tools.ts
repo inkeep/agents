@@ -1,38 +1,39 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
-import { z } from 'zod';
-import { commonGetErrorResponses, createApiError } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
 import {
-  type McpTool,
-  type McpToolStatus,
-  ErrorResponseSchema,
-  IdParamsSchema,
-  ListResponseSchema,
-  PaginationQueryParamsSchema,
-  SingleResponseSchema,
-  TenantProjectParamsSchema,
-  ToolStatusSchema,
+  commonGetErrorResponses,
+  createApiError,
   createTool,
   dbResultToMcpTool,
   deleteTool,
+  ErrorResponseSchema,
   getToolById,
+  IdParamsSchema,
+  ListResponseSchema,
   listTools,
   listToolsByStatus,
-  updateTool,
+  type McpTool,
+  McpToolSchema,
+  type McpToolStatus,
+  PaginationQueryParamsSchema,
+  SingleResponseSchema,
+  TenantProjectParamsSchema,
   ToolApiInsertSchema,
   ToolApiUpdateSchema,
-  McpToolSchema,
+  ToolStatusSchema,
+  updateTool,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
+import { z } from 'zod';
+import dbClient from '../data/db/dbClient';
 import {
   checkAllToolsHealth,
   checkToolHealth,
   syncToolDefinitions,
   updateToolHealth,
 } from '../data/tools';
+import { getLogger } from '../logger';
 import { oauthService } from '../utils/oauth-service';
-import dbClient from '../data/db/dbClient';
 
 type AppVariables = {
   serverConfig: ServerConfig;

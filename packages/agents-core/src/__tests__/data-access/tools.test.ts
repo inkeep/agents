@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getToolById,
-  listTools,
-  getToolsByStatus,
-  createTool,
-  updateTool,
-  deleteTool,
   addToolToAgent,
+  createTool,
+  deleteTool,
+  getToolById,
+  getToolsByStatus,
+  listTools,
   removeToolFromAgent,
+  updateTool,
   updateToolStatus,
 } from '../../data-access/tools';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 import type { ToolInsert } from '../../types/index';
 
 describe('Tools Data Access', () => {

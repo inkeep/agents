@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Control, useController, useWatch } from 'react-hook-form';
+import { useState } from 'react';
+import { type Control, useController, useWatch } from 'react-hook-form';
+import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ModelSelector } from '@/components/graph/sidepane/nodes/model-selector';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { Label } from '@/components/ui/label';
-import { ModelSelector } from '@/components/graph/sidepane/nodes/model-selector';
 import type { ProjectFormData } from './validation';
 
 interface ProjectModelsSectionProps {
@@ -16,8 +16,11 @@ interface ProjectModelsSectionProps {
 
 function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
   const { field: modelField } = useController({ control, name: 'models.base.model' });
-  const { field: providerOptionsField } = useController({ control, name: 'models.base.providerOptions' });
-  
+  const { field: providerOptionsField } = useController({
+    control,
+    name: 'models.base.providerOptions',
+  });
+
   return (
     <div className="space-y-2">
       <ModelSelector
@@ -26,13 +29,13 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
         value={modelField.value || ''}
         onValueChange={modelField.onChange}
       />
-      <p className="text-xs text-muted-foreground">
-        Primary model for general agent responses
-      </p>
+      <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
       <ExpandableJsonEditor
         name="models.base.providerOptions"
         label="Provider Options"
-        value={providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''}
+        value={
+          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+        }
         onChange={(value) => {
           let parsedOptions;
           try {
@@ -53,8 +56,11 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
 
 function StructuredOutputModelSection({ control }: { control: Control<ProjectFormData> }) {
   const { field: modelField } = useController({ control, name: 'models.structuredOutput.model' });
-  const { field: providerOptionsField } = useController({ control, name: 'models.structuredOutput.providerOptions' });
-  
+  const { field: providerOptionsField } = useController({
+    control,
+    name: 'models.structuredOutput.providerOptions',
+  });
+
   return (
     <div className="space-y-2">
       <ModelSelector
@@ -69,7 +75,9 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
       <ExpandableJsonEditor
         name="models.structuredOutput.providerOptions"
         label="Provider Options"
-        value={providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''}
+        value={
+          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+        }
         onChange={(value) => {
           let parsedOptions;
           try {
@@ -90,8 +98,11 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
 
 function SummarizerModelSection({ control }: { control: Control<ProjectFormData> }) {
   const { field: modelField } = useController({ control, name: 'models.summarizer.model' });
-  const { field: providerOptionsField } = useController({ control, name: 'models.summarizer.providerOptions' });
-  
+  const { field: providerOptionsField } = useController({
+    control,
+    name: 'models.summarizer.providerOptions',
+  });
+
   return (
     <div className="space-y-2">
       <ModelSelector
@@ -106,7 +117,9 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
       <ExpandableJsonEditor
         name="models.summarizer.providerOptions"
         label="Provider Options"
-        value={providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''}
+        value={
+          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+        }
         onChange={(value) => {
           let parsedOptions;
           try {
@@ -145,7 +158,9 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
             size="sm"
             className="flex items-center justify-start gap-2 w-full"
           >
-            <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
+            <ChevronRight
+              className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+            />
             Configure Default Models
           </Button>
         </CollapsibleTrigger>
@@ -160,12 +175,25 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
           <SummarizerModelSection control={control} />
 
           <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-            <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">How model inheritance works:</p>
+            <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+              How model inheritance works:
+            </p>
             <ul className="space-y-1 text-blue-800 dark:text-blue-200">
-              <li>• <strong>Models</strong>: Project → Graph → Agent (partial inheritance - missing models only)</li>
-              <li>• <strong>Individual model types</strong> inherit independently (base, structuredOutput, summarizer)</li>
-              <li>• <strong>Explicit settings</strong> always take precedence over inherited values</li>
-              <li>• <strong>Provider options</strong> are inherited along with the model if not explicitly set</li>
+              <li>
+                • <strong>Models</strong>: Project → Graph → Agent (partial inheritance - missing
+                models only)
+              </li>
+              <li>
+                • <strong>Individual model types</strong> inherit independently (base,
+                structuredOutput, summarizer)
+              </li>
+              <li>
+                • <strong>Explicit settings</strong> always take precedence over inherited values
+              </li>
+              <li>
+                • <strong>Provider options</strong> are inherited along with the model if not
+                explicitly set
+              </li>
             </ul>
           </div>
         </CollapsibleContent>

@@ -1,4 +1,8 @@
-import type { DataComponentApiInsert, ArtifactComponentApiInsert, Artifact } from '@inkeep/agents-core';
+import type {
+  Artifact,
+  ArtifactComponentApiInsert,
+  DataComponentApiInsert,
+} from '@inkeep/agents-core';
 
 // Base interfaces for version-agnostic system prompt building
 export interface VersionConfig<TConfig> {

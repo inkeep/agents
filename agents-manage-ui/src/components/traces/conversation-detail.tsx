@@ -2,21 +2,20 @@
 
 import { Activity, ArrowLeft, MessageSquare, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import type {
   ActivityItem,
   ConversationDetail as ConversationDetailType,
 } from '@/components/traces/timeline/types';
-import { formatDateTime } from '@/app/utils/format-date';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResizablePanelGroup } from '@/components/ui/resizable';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ConversationErrors } from './conversation-errors';
 import { SignozLink } from './signoz-link';
-import { formatDuration } from '@/app/utils/format-date';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
-import { ResizablePanelGroup } from '@/components/ui/resizable';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -109,7 +108,10 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             </Badge>
             {(conversation.graphId || conversation.graphName) && (
               <Badge variant="code" className="text-xs">
-                Graph: {conversation.graphName ? `${conversation.graphName} (${conversation.graphId})` : conversation.graphId}
+                Graph:{' '}
+                {conversation.graphName
+                  ? `${conversation.graphName} (${conversation.graphId})`
+                  : conversation.graphId}
               </Badge>
             )}
           </div>

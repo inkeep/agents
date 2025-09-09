@@ -1,26 +1,24 @@
+import {
+  type AgentApiSelect,
+  type AgentConversationHistoryConfig,
+  type CredentialStoreRegistry,
+  getAgentById,
+  getAgentGraph,
+  getArtifactComponentsForAgent,
+  getDataComponentsForAgent,
+  getRelatedAgentsForGraph,
+  getToolsForAgent,
+  type McpTool,
+  type Part,
+  TaskState,
+} from '@inkeep/agents-core';
 import destr from 'destr'; // safe JSON.parse-if-JSON
 import { nanoid } from 'nanoid';
 import traverse from 'traverse'; // tiny object walker
-
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import {
-  type McpTool,
-  type Part,
-  type AgentApiSelect,
-  type AgentConversationHistoryConfig,
-  TaskState,
-  getAgentGraph,
-  getRelatedAgentsForGraph,
-  getToolsForAgent,
-  getAgentById,
-  getArtifactComponentsForAgent,
-  getDataComponentsForAgent,
-  CredentialStoreRegistry,
-} from '@inkeep/agents-core';
-
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { Agent } from './Agent';
-import dbClient from '../data/db/dbClient';
 
 /** Turn any string value that is valid JSON into an object/array (in place). */
 export function parseEmbeddedJson<T>(data: T): T {

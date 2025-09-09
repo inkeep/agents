@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import clsx from "clsx";
-import type { ButtonHTMLAttributes } from "react";
-import { Button } from "../ui/button";
+import clsx from 'clsx';
+import type { ButtonHTMLAttributes } from 'react';
+import { Button } from '../ui/button';
 
 export function ChatToggle(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (

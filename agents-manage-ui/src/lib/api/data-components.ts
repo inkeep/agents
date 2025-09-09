@@ -8,8 +8,8 @@
 'use server';
 
 import type {
-  DataComponentApiSelect,
   DataComponentApiInsert,
+  DataComponentApiSelect,
   DataComponentApiUpdate,
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';

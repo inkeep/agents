@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import {
   createProject,
   deleteProject,
@@ -11,7 +12,6 @@ import {
 import { ApiError } from '../types/errors';
 import type { Project } from '../types/project';
 import type { ActionResult } from './types';
-import type { ProjectFormData } from '@/components/projects/form/validation';
 
 /**
  * Fetch all projects

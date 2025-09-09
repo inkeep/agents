@@ -1,3 +1,7 @@
+import type { LucideIcon } from 'lucide-react';
+import { ArrowUpRight, Info } from 'lucide-react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,11 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { LucideIcon } from 'lucide-react';
-import { ArrowUpRight, Info } from 'lucide-react';
 import { ChartError } from './chart-error';
-import { Button } from '@/components/ui/button';
-import { ErrorBoundary } from 'react-error-boundary';
 
 export interface ChartCardProps {
   className?: string;

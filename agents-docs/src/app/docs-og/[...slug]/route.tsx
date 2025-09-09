@@ -1,6 +1,6 @@
-import { generateOGImage } from './og';
-import { metadataImage } from '@/lib/metadata';
 import { readFileSync } from 'node:fs';
+import { metadataImage } from '@/lib/metadata';
+import { generateOGImage } from './og';
 
 const font = readFileSync('./src/app/docs-og/[...slug]/Inter-Regular.ttf');
 const fontSemiBold = readFileSync('./src/app/docs-og/[...slug]/Inter-SemiBold.ttf');
@@ -17,7 +17,7 @@ function getSubheading(path: string) {
   return secondToLastItem.replace(/-/g, ' ');
 }
 
-export const GET = metadataImage.createAPI(page => {
+export const GET = metadataImage.createAPI((page) => {
   const subHeading = getSubheading(page.file.path);
   return generateOGImage({
     title: page.data.title,

@@ -1,12 +1,12 @@
-import { and, eq, desc, count } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { apiKeys } from '../db/schema';
 import type { ApiKeyInsert, ApiKeySelect, ApiKeyUpdate } from '../types/entities';
 import type {
+  ApiKeyCreateResult,
+  CreateApiKeyParams,
   PaginationConfig,
   ScopeConfig,
-  CreateApiKeyParams,
-  ApiKeyCreateResult,
 } from '../types/utility';
 import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../utils/apiKeys';
 

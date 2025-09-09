@@ -1,15 +1,15 @@
-import { and, eq, desc, count } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { conversations, messages } from '../db/schema';
 import type {
-  ConversationSelect,
-  ScopeConfig,
-  PaginationConfig,
-  ConversationInsert,
-  ConversationUpdate,
   ConversationHistoryConfig,
+  ConversationInsert,
+  ConversationSelect,
+  ConversationUpdate,
   MessageContent,
+  PaginationConfig,
+  ScopeConfig,
 } from '../types/index';
 
 export const listConversations =

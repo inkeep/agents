@@ -1,10 +1,10 @@
-"use client";
-import { ChevronRight } from "lucide-react";
-import { useBreadcrumb } from "fumadocs-core/breadcrumb";
-import Link from "next/link";
-import { Fragment } from "react";
-import { usePathname } from "next/navigation";
-import type { PageTree } from "fumadocs-core/server";
+'use client';
+import { useBreadcrumb } from 'fumadocs-core/breadcrumb';
+import type { PageTree } from 'fumadocs-core/server';
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Fragment } from 'react';
 
 export interface BreadcrumbProps {
   tree: PageTree.Root;
@@ -26,16 +26,11 @@ export function Breadcrumb({ tree }: BreadcrumbProps): React.ReactNode {
             <ChevronRight className="size-4 shrink-0 rtl:rotate-180 text-gray-300 dark:text-gray-700" />
           )}
           {item.url ? (
-            <Link
-              href={item.url}
-              className="truncate hover:text-fd-accent-foreground"
-            >
+            <Link href={item.url} className="truncate hover:text-fd-accent-foreground">
               {item.name}
             </Link>
           ) : (
-            <span className="truncate text-primary dark:text-primary-light">
-              {item.name}
-            </span>
+            <span className="truncate text-primary dark:text-primary-light">{item.name}</span>
           )}
         </Fragment>
       ))}

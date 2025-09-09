@@ -1,8 +1,8 @@
-import type { ConversationStats } from '@/lib/api/signoz-stats';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { TooltipContent, Tooltip, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ConversationStats } from '@/lib/api/signoz-stats';
 
 interface ConversationListItemProps {
   conversation: ConversationStats;
@@ -10,8 +10,17 @@ interface ConversationListItemProps {
 }
 
 export function ConversationListItem({ conversation, projectId }: ConversationListItemProps) {
-  const { conversationId, firstUserMessage, tenantId, graphId, graphName, hasErrors, totalErrors, toolsUsed, startTime } =
-    conversation;
+  const {
+    conversationId,
+    firstUserMessage,
+    tenantId,
+    graphId,
+    graphName,
+    hasErrors,
+    totalErrors,
+    toolsUsed,
+    startTime,
+  } = conversation;
 
   return (
     <Link
@@ -26,38 +35,40 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
             </div>
 
             <div className="flex items-center gap-2 text-xs">
-              <code className="font-mono text-gray-500 dark:text-white/50">
-                {conversationId}
-              </code>
-              {startTime && (() => {
-                try {
-                  const date = new Date(startTime);
-                  // Check if the date is valid
-                  if (isNaN(date.getTime())) return null;
-                  
-                  const isoString = date.toISOString();
-                  return (
-                    <>
-                      <span className="text-gray-400 dark:text-white/40">•</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-gray-400 dark:text-white/40 cursor-help">
-                            {formatDateAgo(isoString)}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">
-                            Started: {formatDateTime(isoString)}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </>
-                  );
-                } catch (error) {
-                  console.warn('Invalid startTime for conversation:', conversationId, startTime, error);
-                  return null;
-                }
-              })()}
+              <code className="font-mono text-gray-500 dark:text-white/50">{conversationId}</code>
+              {startTime &&
+                (() => {
+                  try {
+                    const date = new Date(startTime);
+                    // Check if the date is valid
+                    if (isNaN(date.getTime())) return null;
+
+                    const isoString = date.toISOString();
+                    return (
+                      <>
+                        <span className="text-gray-400 dark:text-white/40">•</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-gray-400 dark:text-white/40 cursor-help">
+                              {formatDateAgo(isoString)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Started: {formatDateTime(isoString)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </>
+                    );
+                  } catch (error) {
+                    console.warn(
+                      'Invalid startTime for conversation:',
+                      conversationId,
+                      startTime,
+                      error
+                    );
+                    return null;
+                  }
+                })()}
             </div>
           </div>
           <div className="flex items-center gap-2">

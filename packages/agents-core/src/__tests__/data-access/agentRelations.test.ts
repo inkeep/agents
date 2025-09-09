@@ -1,25 +1,25 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  createAgentRelation,
+  createAgentToolRelation,
+  createExternalAgentRelation,
+  deleteAgentRelation,
+  deleteAgentToolRelation,
   getAgentRelationById,
-  listAgentRelations,
   getAgentRelations,
   getAgentRelationsBySource,
   getAgentRelationsByTarget,
-  getRelatedAgentsForGraph,
-  createAgentRelation,
-  createExternalAgentRelation,
   getExternalAgentRelations,
-  updateAgentRelation,
-  deleteAgentRelation,
-  createAgentToolRelation,
-  updateAgentToolRelation,
-  deleteAgentToolRelation,
-  validateInternalAgent,
-  validateExternalAgent,
+  getRelatedAgentsForGraph,
   getToolsForAgent,
+  listAgentRelations,
+  updateAgentRelation,
+  updateAgentToolRelation,
+  validateExternalAgent,
+  validateInternalAgent,
 } from '../../data-access/agentRelations';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;

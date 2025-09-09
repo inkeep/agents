@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
-import {
-  createTestDatabaseClient,
-  cleanupTestDatabase,
-  closeTestDatabase,
-} from '../../../db/test-client';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   createTool,
+  deleteTool,
   getToolById,
   listTools,
   updateTool,
-  deleteTool,
 } from '../../../data-access/tools';
 import type { DatabaseClient } from '../../../db/client';
-import { ToolInsertSchema } from '../../../validation/schemas';
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  createTestDatabaseClient,
+} from '../../../db/test-client';
 import type { ToolInsert } from '../../../types/index';
+import { ToolInsertSchema } from '../../../validation/schemas';
 
 // Helper function to create test tool data
 const createToolData = ({ suffix = '' }: { suffix?: string } = {}): ToolInsert => ({

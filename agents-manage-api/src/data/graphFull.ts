@@ -1,7 +1,6 @@
+import { type FullGraphDefinition, validateAndTypeGraphData } from '@inkeep/agents-core';
 import { env } from '../env';
 import { getLogger } from '../logger';
-
-import { type FullGraphDefinition, validateAndTypeGraphData } from '@inkeep/agents-core';
 
 const logger = getLogger('graphFull');
 

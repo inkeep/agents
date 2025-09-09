@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { ChatWidget } from './chat-widget';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
-import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
-import { nanoid } from 'nanoid';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { nanoid } from 'nanoid';
+import { useState } from 'react';
+import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
+import { Button } from '@/components/ui/button';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
+import { ChatWidget } from './chat-widget';
 
 interface PlaygroundProps {
   graphId: string;

@@ -1,8 +1,8 @@
+import { createAgent } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import { createAgent } from '@inkeep/agents-core';
-import app from '../../../index';
 import dbClient from '../../../data/db/dbClient';
+import app from '../../../index';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 

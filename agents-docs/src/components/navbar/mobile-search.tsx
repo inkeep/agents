@@ -1,6 +1,6 @@
-import { buttonVariants } from '@/components/ui/button';
 import clsx from 'clsx';
 import { SearchIcon } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
 
 export function MobileSearchTrigger() {
   return (
@@ -12,7 +12,7 @@ export function MobileSearchTrigger() {
           variant: 'ghost',
           size: 'icon-sm',
           className: 'lg:hidden text-fd-muted-foreground hover:text-fd-accent-foreground',
-        }),
+        })
       )}
     >
       <SearchIcon className="size-4" />

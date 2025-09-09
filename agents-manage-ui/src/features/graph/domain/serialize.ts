@@ -44,7 +44,6 @@ function safeJsonParse(jsonString: string | undefined | null): any {
   }
 }
 
-
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
@@ -71,13 +70,13 @@ export function serializeGraphData(
       agentArtifactComponents.forEach((componentId) => usedArtifactComponents.add(componentId));
       // Process models - only include if it has non-empty, non-whitespace values
       const modelsData = node.data.models as GraphMetadata['models'] | undefined;
-      let processedModels: GraphMetadata['models'] | undefined = undefined;
-      
+      let processedModels: GraphMetadata['models'] | undefined;
+
       if (modelsData && typeof modelsData === 'object') {
-        const hasNonEmptyValue = Object.values(modelsData).some(value => 
-          value !== null && value !== undefined && String(value).trim() !== ''
+        const hasNonEmptyValue = Object.values(modelsData).some(
+          (value) => value !== null && value !== undefined && String(value).trim() !== ''
         );
-        
+
         if (hasNonEmptyValue) {
           processedModels = modelsData;
         }
@@ -247,15 +246,15 @@ export function serializeGraphData(
   if (metadata?.models) {
     (result as any).models = metadata.models;
   }
-  
+
   if (metadata?.stopWhen) {
     (result as any).stopWhen = metadata.stopWhen;
   }
-  
+
   if (metadata?.graphPrompt) {
     (result as any).graphPrompt = metadata.graphPrompt;
   }
-  
+
   if (metadata?.statusUpdates) {
     (result as any).statusUpdates = metadata.statusUpdates;
   }

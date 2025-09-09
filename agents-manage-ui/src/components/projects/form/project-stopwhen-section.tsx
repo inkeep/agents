@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Control } from 'react-hook-form';
+import { useState } from 'react';
+import type { Control } from 'react-hook-form';
+import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { GenericInput } from '@/components/form/generic-input';
 import { Label } from '@/components/ui/label';
 import type { ProjectFormData } from './validation';
 
@@ -33,7 +33,9 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
             size="sm"
             className="flex items-center justify-start gap-2 w-full"
           >
-            <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
+            <ChevronRight
+              className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+            />
             Configure Execution Limits
           </Button>
         </CollapsibleTrigger>
@@ -73,13 +75,25 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
           </div>
 
           <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-            <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">How inheritance works:</p>
+            <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+              How inheritance works:
+            </p>
             <ul className="space-y-1 text-blue-800 dark:text-blue-200">
-              <li>• <strong>transferCountIs</strong>: Project → Graph only (graph-level limit)</li>
-              <li>• <strong>stepCountIs</strong>: Project → Agent only (agent-level limit)</li>
-              <li>• <strong>Explicit settings</strong> always take precedence over inherited values</li>
-              <li>• <strong>Default fallback</strong>: transferCountIs = 10 if no value is set</li>
-              <li>• <strong>Error limit</strong> is hardcoded to 3 errors across all levels</li>
+              <li>
+                • <strong>transferCountIs</strong>: Project → Graph only (graph-level limit)
+              </li>
+              <li>
+                • <strong>stepCountIs</strong>: Project → Agent only (agent-level limit)
+              </li>
+              <li>
+                • <strong>Explicit settings</strong> always take precedence over inherited values
+              </li>
+              <li>
+                • <strong>Default fallback</strong>: transferCountIs = 10 if no value is set
+              </li>
+              <li>
+                • <strong>Error limit</strong> is hardcoded to 3 errors across all levels
+              </li>
             </ul>
           </div>
         </CollapsibleContent>

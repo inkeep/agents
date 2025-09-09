@@ -6,11 +6,11 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
+import { getLogger } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '@inkeep/agents-core';
 
 getLogger('Test Setup').debug({}, 'Setting up instrumentation');
 

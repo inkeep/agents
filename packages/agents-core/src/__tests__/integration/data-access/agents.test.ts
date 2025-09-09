@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import {
-  createTestDatabaseClient,
-  cleanupTestDatabase,
-  closeTestDatabase,
-} from '../../../db/test-client';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createAgent,
+  deleteAgent,
   getAgentById,
   listAgents,
   updateAgent,
-  deleteAgent,
 } from '../../../data-access/agents';
 import type { DatabaseClient } from '../../../db/client';
-import { AgentInsertSchema } from '../../../validation/schemas';
 import * as schema from '../../../db/schema';
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  createTestDatabaseClient,
+} from '../../../db/test-client';
+import { AgentInsertSchema } from '../../../validation/schemas';
 
 describe('Agents Data Access - Integration Tests', () => {
   let db: DatabaseClient;

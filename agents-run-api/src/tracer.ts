@@ -5,8 +5,8 @@ import {
   type Tracer,
   trace,
 } from '@opentelemetry/api';
-import { getLogger } from './logger';
 import { env } from './env';
+import { getLogger } from './logger';
 
 // Environments where trace force flush should be enabled
 const FORCE_FLUSH_ENVIRONMENTS: readonly string[] = ['development'];

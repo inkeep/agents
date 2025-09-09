@@ -1,5 +1,5 @@
-import './App.css'
-import {  } from '@inkeep/cxkit-react-oss'
+import './App.css';
+import {} from '@inkeep/cxkit-react-oss';
 
 function App() {
   return (
@@ -9,7 +9,7 @@ function App() {
         <p>This is a placeholder for the Inkeep Chat Widget.</p>
       </div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

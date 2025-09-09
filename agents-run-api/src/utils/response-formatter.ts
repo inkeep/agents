@@ -1,5 +1,5 @@
-import { trace } from '@opentelemetry/api';
 import type { MessageContent } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
 import { getLogger } from '../logger';
 import { SERVICE_VERSION } from '../tracer';
 import { ArtifactParser, type StreamPart } from './artifact-parser';

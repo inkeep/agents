@@ -1,5 +1,8 @@
-import { type DataComponentInsert as DataComponentType, generateIdFromName } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
+import {
+  type DataComponentInsert as DataComponentType,
+  generateIdFromName,
+  getLogger,
+} from '@inkeep/agents-core';
 
 const logger = getLogger('dataComponent');
 

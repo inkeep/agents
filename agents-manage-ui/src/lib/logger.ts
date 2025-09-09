@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import {pino } from 'pino';
+import { pino } from 'pino';
 
 // Environment configuration for Next.js
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -39,7 +39,6 @@ export function getLogger(name?: string) {
 export function withRequestContext<T>(reqId: string, fn: () => T): T {
   return asyncLocalStorage.run(new Map([['requestId', reqId]]), fn);
 }
-
 
 // Export the base logger for direct use if needed
 export { logger };

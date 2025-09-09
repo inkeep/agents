@@ -4,8 +4,8 @@ import type { AgentNodeData } from '@/components/graph/configuration/node-types'
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  InheritanceIndicator,
   getModelInheritanceStatus,
+  InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
 import { ModelSelector } from './model-selector';
 

@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import type { ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
+import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 
@@ -122,7 +122,7 @@ export class ArtifactReferenceSchema {
     return z.object({
       id: z.string(),
       name: z.literal('Artifact'),
-      props: jsonSchemaToZod(this.ARTIFACT_PROPS_SCHEMA),
+      props: jsonSchemaToZod(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
     });
   }
 
@@ -137,7 +137,7 @@ export class ArtifactReferenceSchema {
       name: 'Artifact',
       description:
         'Reference to saved content from tool results that grounds information in verifiable sources.',
-      props: this.ARTIFACT_PROPS_SCHEMA,
+      props: ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA,
     };
   }
 }

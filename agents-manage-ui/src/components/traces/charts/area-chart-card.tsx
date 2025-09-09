@@ -1,7 +1,7 @@
-import { Skeleton } from '@/components/ui/skeleton';
+import { AreaChart, type AreaChartProps } from '@/components/traces/charts/area-chart';
 import { ChartCard, type ChartCardProps } from '@/components/traces/charts/chart-card';
 import { ChartNoResults } from '@/components/traces/charts/chart-no-results';
-import { AreaChart, type AreaChartProps } from '@/components/traces/charts/area-chart';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type AreaChartCardProps<TData> = AreaChartProps<TData> &
   Pick<

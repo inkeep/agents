@@ -26,10 +26,10 @@ import {
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
-import { ConversationStatsCard } from './conversation-stats/conversation-stats-card';
-import { StatCard } from './charts/stat-card';
 import { AreaChartCard } from './charts/area-chart-card';
-import { DatePickerWithPresets, CUSTOM } from './filters/date-picker';
+import { StatCard } from './charts/stat-card';
+import { ConversationStatsCard } from './conversation-stats/conversation-stats-card';
+import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 import { GraphFilter } from './filters/graph-filter';
 
 // Time range options

@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  countProjects,
+  createProject,
+  deleteProject,
+  getProject,
+  getProjectResourceCounts,
   listProjects,
   listProjectsPaginated,
-  getProjectResourceCounts,
   projectExists,
-  countProjects,
-  getProject,
-  createProject,
-  updateProject,
-  deleteProject,
   projectExistsInTable,
   projectHasResources,
+  updateProject,
 } from '../../data-access/projects';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 
 describe('Projects Data Access', () => {
   let db: DatabaseClient;

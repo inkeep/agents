@@ -1,23 +1,21 @@
-import { Breadcrumb } from "@/components/breadcrumb";
-import { Markdown } from "@/components/markdown";
-import { getDocsGroupFirstChild, source } from "@/lib/source";
-import { createMetadata, metadataImage } from "@/lib/metadata";
-import { DocsBody, DocsPage, DocsTitle } from "fumadocs-ui/page";
-import { notFound, redirect } from "next/navigation";
-import { Footer } from "@/components/footer";
-import { getMDXComponents } from "@/mdx-components";
-import { createRelativeLink } from "fumadocs-ui/mdx";
-import { a } from "@inkeep/docskit";
+import { a } from '@inkeep/docskit';
+import { createRelativeLink } from 'fumadocs-ui/mdx';
+import { DocsBody, DocsPage, DocsTitle } from 'fumadocs-ui/page';
+import { notFound, redirect } from 'next/navigation';
+import { Breadcrumb } from '@/components/breadcrumb';
+import { Footer } from '@/components/footer';
+import { Markdown } from '@/components/markdown';
+import { createMetadata, metadataImage } from '@/lib/metadata';
+import { getDocsGroupFirstChild, source } from '@/lib/source';
+import { getMDXComponents } from '@/mdx-components';
 
-import { PageControls } from "./page-controls";
+import { PageControls } from './page-controls';
 
-export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
-}) {
+export default async function Page(props: { params: Promise<{ slug?: string[] }> }) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) {
-    const childPage = getDocsGroupFirstChild(params.slug?.join("/"));
+    const childPage = getDocsGroupFirstChild(params.slug?.join('/'));
     if (childPage) redirect(childPage.url);
     else notFound();
   }
@@ -29,7 +27,7 @@ export default async function Page(props: {
       toc={page.data.toc}
       full={page.data.full}
       tableOfContent={{
-        style: "clerk",
+        style: 'clerk',
         enabled: page.data.toc.length > 0,
       }}
       breadcrumb={{
@@ -39,25 +37,23 @@ export default async function Page(props: {
         component: <Footer url={page.url} />,
       }}
       container={{
-        className: "lg:pt-0! [&>#nd-toc]:!pt-0 [&>#nd-toc]:pb-4 h-full min-h-0",
+        className: 'lg:pt-0! [&>#nd-toc]:!pt-0 [&>#nd-toc]:pb-4 h-full min-h-0',
       }}
     >
       <div className="flex items-center justify-between">
         <DocsTitle className="tracking-tight">{page.data.title}</DocsTitle>
         <PageControls
           title={page.data.title}
-          description={page.data.description ?? ""}
+          description={page.data.description ?? ''}
           data={page.data.structuredData}
         />
       </div>
       {page.data.description && (
         <div>
           <Markdown
-            text={page.data.description ?? ""}
+            text={page.data.description ?? ''}
             components={{
-              p: (props) => (
-                <p {...props} className="text-lg text-fd-muted-foreground" />
-              ),
+              p: (props) => <p {...props} className="text-lg text-fd-muted-foreground" />,
             }}
           />
         </div>
@@ -78,9 +74,7 @@ export async function generateStaticParams() {
   return source.generateParams();
 }
 
-export async function generateMetadata(props: {
-  params: Promise<{ slug?: string[] }>;
-}) {
+export async function generateMetadata(props: { params: Promise<{ slug?: string[] }> }) {
   const params = await props.params;
   const page = source.getPage(params.slug);
 

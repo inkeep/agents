@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect, useCallback, type MouseEventHandler } from 'react';
+import { type MouseEventHandler, useCallback, useEffect, useRef, useState } from 'react';
 
 export function useCopyButton(onCopy: () => void): [checked: boolean, onClick: MouseEventHandler] {
   const [checked, setChecked] = useState(false);

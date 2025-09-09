@@ -15,7 +15,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { type FC, useEffect, useMemo, useState, useRef } from 'react';
+import { type FC, useEffect, useMemo, useRef, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -278,17 +278,17 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({ operation, isL
   const renderStructuredLabel = (operationType: string, context: any) => {
     // Convert snake_case to readable format
     const readableType = operationType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    
+
     // Try to find the most meaningful fields to display
     const meaningfulFields = Object.entries(context).filter(
       ([key, value]) => typeof value === 'string' && value.length > 0 && value.length < 100
     );
-    
+
     if (meaningfulFields.length > 0) {
       const [firstKey, firstValue] = meaningfulFields[0];
       return `${readableType}: ${firstValue}`;
     }
-    
+
     return readableType;
   };
 
@@ -315,20 +315,20 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({ operation, isL
 
   return (
     <div className="relative">
-    <div className="flex items-center gap-2 relative">
-      {/* Connection line */}
-      {!isLast && (
-        <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
-      )}
+      <div className="flex items-center gap-2 relative">
+        {/* Connection line */}
+        {!isLast && (
+          <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
+        )}
 
-      {/* Step indicator */}
-      <div className={cn('flex items-center justify-center w-3 h-3 z-10', getStepColor())}>
-        {getStepIcon()}
-      </div>
+        {/* Step indicator */}
+        <div className={cn('flex items-center justify-center w-3 h-3 z-10', getStepColor())}>
+          {getStepIcon()}
+        </div>
 
-      {/* Step label */}
-      <span className={cn('text-xs font-medium', getStepColor())}>{getStepLabel()}</span>
-        
+        {/* Step label */}
+        <span className={cn('text-xs font-medium', getStepColor())}>{getStepLabel()}</span>
+
         {/* Expand button for structured operations */}
         {isStructuredOperation && Object.keys(ctx).length > 1 && (
           <button

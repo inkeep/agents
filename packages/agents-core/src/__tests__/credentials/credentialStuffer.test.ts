@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { TemplateEngine } from '../../context/TemplateEngine';
 import { CredentialStoreRegistry } from '../../credential-stores/CredentialStoreRegistry';
 import {
   type CredentialContext,
   type CredentialStoreReference,
   CredentialStuffer,
 } from '../../credential-stuffer/CredentialStuffer';
-import type { MCPToolConfig } from '../../types/index';
-import { TemplateEngine } from '../../context/TemplateEngine';
-import type { CredentialStore } from '../../types/index';
+import type { CredentialStore, MCPToolConfig } from '../../types/index';
 import { dbClient } from '../setup';
 
 // Mock logger from utils

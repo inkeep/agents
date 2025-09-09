@@ -1,7 +1,7 @@
-import type { FullGraphDefinition, CredentialReferenceApiInsert } from '@inkeep/agents-core';
-import { getLogger, getProject, createDatabaseClient } from '@inkeep/agents-core';
-import { updateFullGraphViaAPI } from './graphFullClient';
+import type { CredentialReferenceApiInsert, FullGraphDefinition } from '@inkeep/agents-core';
+import { createDatabaseClient, getLogger, getProject } from '@inkeep/agents-core';
 import { ExternalAgent } from './externalAgent';
+import { updateFullGraphViaAPI } from './graphFullClient';
 import type {
   AgentInterface,
   AllAgentInterface,

@@ -2,12 +2,7 @@
 
 import { ArrowDown, Check, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface InheritanceIndicatorProps {
   /** Whether this value is explicitly set (not inherited) */
@@ -34,8 +29,8 @@ export function InheritanceIndicator({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`
                 ${size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm'}
                 ${position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex'}
@@ -60,8 +55,8 @@ export function InheritanceIndicator({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`
                 ${size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm'}
                 ${position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex'}
@@ -86,8 +81,8 @@ export function InheritanceIndicator({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge 
-            variant="outline" 
+          <Badge
+            variant="outline"
             className={`
               ${size === 'sm' ? 'h-5 px-1.5 text-xs' : 'h-6 px-2 text-sm'}
               ${position === 'absolute' ? 'absolute -top-2 -right-2' : 'inline-flex'}
@@ -118,9 +113,11 @@ export function getModelInheritanceStatus(
   inheritedFrom?: string;
   tooltip?: string;
 } {
-  const hasCurrentValue = currentValue !== undefined && currentValue !== null && currentValue !== '';
+  const hasCurrentValue =
+    currentValue !== undefined && currentValue !== null && currentValue !== '';
   const hasParentValue = parentValue !== undefined && parentValue !== null && parentValue !== '';
-  const hasGrandparentValue = grandparentValue !== undefined && grandparentValue !== null && grandparentValue !== '';
+  const hasGrandparentValue =
+    grandparentValue !== undefined && grandparentValue !== null && grandparentValue !== '';
 
   // For non-project levels: if current value matches parent value exactly, it's likely inherited
   // This handles the case where the builder resolves inheritance and stores the actual values
@@ -133,9 +130,15 @@ export function getModelInheritanceStatus(
         tooltip: `This model is inherited from the ${inheritedFromLevel.toLowerCase()} level`,
       };
     }
-    
+
     // For agent level: also check if it matches grandparent (when graph doesn't have it set)
-    if (currentLevel === 'agent' && hasCurrentValue && !hasParentValue && hasGrandparentValue && currentValue === grandparentValue) {
+    if (
+      currentLevel === 'agent' &&
+      hasCurrentValue &&
+      !hasParentValue &&
+      hasGrandparentValue &&
+      currentValue === grandparentValue
+    ) {
       return {
         isExplicit: false,
         inheritedFrom: 'Project',

@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  countExternalAgents,
   createExternalAgent,
+  deleteExternalAgent,
+  externalAgentExists,
+  externalAgentUrlExists,
   getExternalAgent,
   getExternalAgentByUrl,
   listExternalAgents,
   listExternalAgentsPaginated,
   updateExternalAgent,
-  deleteExternalAgent,
-  externalAgentExists,
-  externalAgentUrlExists,
-  countExternalAgents,
 } from '../../data-access/externalAgents';
 import type { DatabaseClient } from '../../db/client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 
 describe('External Agents Data Access', () => {
   let db: DatabaseClient;

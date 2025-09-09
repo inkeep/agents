@@ -1,12 +1,12 @@
-import { nanoid } from 'nanoid';
-import dbClient from './db/dbClient';
 import {
-  createMessage,
-  type ConversationScopeOptions,
-  type ConversationHistoryConfig,
   type AgentConversationHistoryConfig,
+  type ConversationHistoryConfig,
+  type ConversationScopeOptions,
+  createMessage,
   getConversationHistory,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
+import dbClient from './db/dbClient';
 
 /**
  * Creates default conversation history configuration

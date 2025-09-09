@@ -1,9 +1,9 @@
-import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils';
-import { getLogger, type Logger } from '../utils/logger';
 import { TemplateEngine } from '../context/TemplateEngine';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import type { NangoCredentialData } from '../credential-stores/nango-store';
 import type { MCPToolConfig } from '../types/index';
+import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils';
+import { getLogger, type Logger } from '../utils/logger';
 import type { McpServerConfig } from '../utils/mcp-client';
 
 /**

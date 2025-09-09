@@ -1,11 +1,11 @@
+import { createAgent, createAgentGraph } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createAgentGraph, createAgent } from '@inkeep/agents-core';
+import dbClient from '../../../data/db/dbClient';
 import * as execModule from '../../../handlers/executionHandler';
+import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
-import { ensureTestProject } from '../../utils/testProject';
-import dbClient from '../../../data/db/dbClient';
 
 // Mock the logger
 vi.mock('../../../logger.js', () => {
@@ -18,7 +18,7 @@ vi.mock('../../../logger.js', () => {
   };
   // Make child return itself for chaining
   mockLogger.child.mockReturnValue(mockLogger);
-  
+
   return {
     getLogger: () => mockLogger,
   };

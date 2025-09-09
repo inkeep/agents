@@ -1,18 +1,18 @@
 'use client';
 
+import { format } from 'date-fns';
+import { Check } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 import type { SelectOption } from '@/components/form/generic-select';
-import { FilterTriggerComponent } from './filter-trigger';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { useDisclosure } from '@/hooks/use-disclosure';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Check } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
-import type { DateRange } from 'react-day-picker';
 import type { TimeRange } from '@/hooks/use-traces-query-state';
+import { cn } from '@/lib/utils';
+import { FilterTriggerComponent } from './filter-trigger';
 
 interface DatePickerWithPresetsProps {
   label: string;

@@ -4,8 +4,8 @@ export type { ContextConfigBuilderOptions } from './ContextConfig';
 export {
   ContextConfigBuilder,
   contextConfig,
-  fetchDefinition,
   createRequestSchema,
+  fetchDefinition,
 } from './ContextConfig';
 export type { FetchResult } from './ContextFetcher';
 export { ContextFetcher } from './ContextFetcher';
@@ -15,14 +15,14 @@ export type {
   ResolvedContext,
 } from './ContextResolver';
 export { ContextResolver } from './ContextResolver';
+export {
+  determineContextTrigger,
+  handleContextConfigChange,
+  handleContextResolution,
+} from './context';
+export { ContextCache } from './contextCache';
 export type {
   TemplateContext,
   TemplateRenderOptions,
 } from './TemplateEngine';
 export { TemplateEngine } from './TemplateEngine';
-export { ContextCache } from './contextCache';
-export {
-  handleContextResolution,
-  handleContextConfigChange,
-  determineContextTrigger,
-} from './context';

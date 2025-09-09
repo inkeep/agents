@@ -1,14 +1,14 @@
+import {
+  type AgentSelect,
+  type CredentialStoreRegistry,
+  type ExecutionContext,
+  getAgentById,
+  getLogger,
+  listAgents,
+} from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
-import {
-  type AgentSelect,
-  ExecutionContext,
-  getAgentById,
-  listAgents,
-  getLogger,
-  CredentialStoreRegistry,
-} from '@inkeep/agents-core';
 
 // Agent hydration functions
 

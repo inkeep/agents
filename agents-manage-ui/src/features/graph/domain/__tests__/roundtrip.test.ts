@@ -46,16 +46,16 @@ describe('graph serialize/deserialize', () => {
       } as Edge,
     ];
 
-    const serialized = serializeGraphData(nodes, edges, { 
-      id: 'g1', 
-      name: 'G', 
+    const serialized = serializeGraphData(nodes, edges, {
+      id: 'g1',
+      name: 'G',
       description: 'D',
       contextConfig: {
         name: 'Context',
         description: 'Context description',
         contextVariables: '{}',
-        requestContextSchema: '{}'
-      }
+        requestContextSchema: '{}',
+      },
     });
     expect(serialized.id).toBe('g1');
     expect(serialized.agents['a1']).toBeDefined();

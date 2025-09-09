@@ -21,13 +21,13 @@ export const SPAN_KEYS = {
   HAS_ERROR: 'hasError',
   STATUS_MESSAGE: 'status_message',
   OTEL_STATUS_DESCRIPTION: 'otel.status_description',
-  
+
   // Graph attributes
   GRAPH_ID: 'graph.id',
   GRAPH_NAME: 'graph.name',
   TENANT_ID: 'tenant.id',
   PROJECT_ID: 'project.id',
-  
+
   // AI/Agent attributes
   AI_AGENT_NAME: 'ai.agentName',
   AI_AGENT_NAME_ALT: 'ai.agent.name',
@@ -39,7 +39,7 @@ export const SPAN_KEYS = {
   AI_MODEL_PROVIDER: 'ai.model.provider',
   AI_TELEMETRY_FUNCTION_ID: 'ai.telemetry.functionId',
   AI_MODEL_ID: 'ai.model.id',
-  
+
   // Tool attributes
   AI_TOOL_CALL_NAME: 'ai.toolCall.name',
   AI_TOOL_CALL_RESULT: 'ai.toolCall.result',
@@ -47,37 +47,37 @@ export const SPAN_KEYS = {
   AI_TOOL_CALL_ID: 'ai.toolCall.id',
   AI_TOOL_TYPE: 'ai.toolType',
   TOOL_PURPOSE: 'tool.purpose',
-  
+
   // Agent attributes
   AGENT_ID: 'agent.id',
   AGENT_NAME: 'agent.name',
-  
+
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
-  
+
   // Context attributes
   CONTEXT_URL: 'context.url',
   CONTEXT_CONFIG_ID: 'context.context_config_id',
   CONTEXT_AGENT_GRAPH_ID: 'context.agent_graph_id',
   CONTEXT_REQUEST_KEYS: 'context.request_context_keys',
-  
+
   // Message attributes
   MESSAGE_CONTENT: 'message.content',
   MESSAGE_TIMESTAMP: 'message.timestamp',
   MCP_TOOL_DESCRIPTION: 'mcp.tool.description',
-  
+
   // Delegation/Transfer attributes
   DELEGATION_FROM_AGENT_ID: 'delegation.from_agent_id',
   DELEGATION_TO_AGENT_ID: 'delegation.to_agent_id',
   TRANSFER_FROM_AGENT_ID: 'transfer.from_agent_id',
   TRANSFER_TO_AGENT_ID: 'transfer.to_agent_id',
-  
+
   // HTTP attributes
   HTTP_URL: 'http.url',
   HTTP_STATUS_CODE: 'http.status_code',
   HTTP_RESPONSE_BODY_SIZE: 'http.response.body_size',
-  
+
   // Core attributes
   NAME: 'name',
   PARENT_SPAN_ID: 'parentSpanID',
@@ -103,18 +103,17 @@ export const QUERY_FIELD_CONFIGS = {
   // String tag fields
   STRING_TAG: { dataType: DATA_TYPES.STRING, type: FIELD_TYPES.TAG, isColumn: false },
   STRING_TAG_COLUMN: { dataType: DATA_TYPES.STRING, type: FIELD_TYPES.TAG, isColumn: true },
-  
+
   // Numeric tag fields
   INT64_TAG: { dataType: DATA_TYPES.INT64, type: FIELD_TYPES.TAG, isColumn: false },
   INT64_TAG_COLUMN: { dataType: DATA_TYPES.INT64, type: FIELD_TYPES.TAG, isColumn: true },
   FLOAT64_TAG: { dataType: DATA_TYPES.FLOAT64, type: FIELD_TYPES.TAG, isColumn: false },
   FLOAT64_TAG_COLUMN: { dataType: DATA_TYPES.FLOAT64, type: FIELD_TYPES.TAG, isColumn: true },
-  
+
   // Boolean tag fields
   BOOL_TAG: { dataType: DATA_TYPES.BOOL, type: FIELD_TYPES.TAG, isColumn: false },
   BOOL_TAG_COLUMN: { dataType: DATA_TYPES.BOOL, type: FIELD_TYPES.TAG, isColumn: true },
 } as const;
-
 
 export const UNKNOWN_VALUE = 'unknown' as const;
 
@@ -174,15 +173,15 @@ export const OPERATORS = {
   GREATER_THAN: '>',
   LESS_THAN_OR_EQUAL: '<=',
   GREATER_THAN_OR_EQUAL: '>=',
-  
+
   // String operators
   LIKE: 'like',
   NOT_LIKE: 'nlike',
-  
+
   // Existence operators
   EXISTS: 'exists',
   NOT_EXISTS: 'nexists',
-  
+
   // Logical operators
   AND: 'AND',
   OR: 'OR',
@@ -276,5 +275,3 @@ export const QUERY_DEFAULTS = {
   LIMIT_1000: 1000,
   EMPTY_GROUP_BY: [],
 } as const;
-
-

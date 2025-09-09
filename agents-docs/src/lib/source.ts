@@ -1,7 +1,7 @@
-import { docs } from '@/.source';
 import { loader } from 'fumadocs-core/source';
-import navigation from '../../navigation';
+import { docs } from '@/.source';
 import { flattenNav, transformItems } from '@/components/sidebar/transform';
+import navigation from '../../navigation';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 export const source = loader({

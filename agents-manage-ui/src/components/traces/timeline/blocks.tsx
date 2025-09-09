@@ -1,7 +1,7 @@
-import { Badge } from '@/components/ui/badge';
-import type { ActivityItem } from './types';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { OpenAIIcon } from '@/components/icons/openai';
+import { Badge } from '@/components/ui/badge';
+import type { ActivityItem } from './types';
 
 export function LabeledBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (

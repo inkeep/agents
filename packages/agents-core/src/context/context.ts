@@ -1,14 +1,14 @@
-import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import { ContextResolver, type ResolvedContext } from './ContextResolver';
-import { getLogger } from '../utils/logger';
-import { createSpanName, getGlobalTracer, forceFlushTracer } from '../utils/tracer';
 import {
+  type DatabaseClient,
   getAgentGraphWithDefaultAgent,
+  getContextConfigById,
   getConversation,
   updateConversation,
-  getContextConfigById,
-  type DatabaseClient,
 } from '@inkeep/agents-core';
+import { type Span, SpanStatusCode } from '@opentelemetry/api';
+import { getLogger } from '../utils/logger';
+import { createSpanName, forceFlushTracer, getGlobalTracer } from '../utils/tracer';
+import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
 

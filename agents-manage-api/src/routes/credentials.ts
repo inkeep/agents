@@ -1,25 +1,23 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  commonGetErrorResponses,
-  createApiError,
-  type CredentialStoreRegistry,
-} from '@inkeep/agents-core';
-import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,
   CredentialReferenceApiUpdateSchema,
+  type CredentialStoreRegistry,
+  commonGetErrorResponses,
+  createApiError,
+  createCredentialReference,
+  deleteCredentialReference,
   ErrorResponseSchema,
+  getCredentialReferenceById,
+  getCredentialStoreLookupKeyFromRetrievalParams,
   IdParamsSchema,
   ListResponseSchema,
+  listCredentialReferencesPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  createCredentialReference,
-  deleteCredentialReference,
-  getCredentialReferenceById,
-  listCredentialReferencesPaginated,
   updateCredentialReference,
-  getCredentialStoreLookupKeyFromRetrievalParams,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 

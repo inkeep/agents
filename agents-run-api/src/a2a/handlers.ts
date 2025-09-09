@@ -1,18 +1,18 @@
-import type { Context } from 'hono';
-import { streamSSE } from 'hono/streaming';
-import { nanoid } from 'nanoid';
 import {
   createMessage,
   createTask,
-  updateTask,
   getRequestExecutionContext,
   type Message,
   type MessageSendParams,
   type Task,
+  TaskState,
+  updateTask,
 } from '@inkeep/agents-core';
+import type { Context } from 'hono';
+import { streamSSE } from 'hono/streaming';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { TaskState } from '@inkeep/agents-core';
 import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types';
 
 const logger = getLogger('a2aHandler');

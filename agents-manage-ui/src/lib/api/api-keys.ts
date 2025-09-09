@@ -7,7 +7,10 @@
 
 'use server';
 
-import type { ApiKeyApiSelect, ApiKeyApiCreationResponse } from '@inkeep/agents-core/client-exports';
+import type {
+  ApiKeyApiCreationResponse,
+  ApiKeyApiSelect,
+} from '@inkeep/agents-core/client-exports';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';

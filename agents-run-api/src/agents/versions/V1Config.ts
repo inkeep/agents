@@ -1,4 +1,4 @@
-import type { DataComponentApiInsert, McpTool, Artifact } from '@inkeep/agents-core';
+import type { Artifact, DataComponentApiInsert, McpTool } from '@inkeep/agents-core';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../types';
 
 export class V1Config implements VersionConfig<SystemPromptV1> {

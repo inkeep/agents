@@ -1,10 +1,10 @@
 'use client';
-import { useRef, useEffect } from 'react';
 import { InkeepEmbeddedChat } from '@inkeep/cxkit-react-oss';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/cxkit-react-oss/types';
+import { nanoid } from 'nanoid';
+import { useEffect, useRef } from 'react';
 import { EXECUTION_API_BASE_URL } from '@/lib/api/api-config';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
-import { nanoid } from 'nanoid';
 
 interface ChatWidgetProps {
   graphId?: string;

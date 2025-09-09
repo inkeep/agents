@@ -1,5 +1,5 @@
-import { getLogger } from '@inkeep/agents-core';
 import type { MCPToolConfig } from '@inkeep/agents-core';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('tool');
 

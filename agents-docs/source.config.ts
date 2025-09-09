@@ -1,9 +1,9 @@
-import { defineConfig, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
-import { z } from 'zod';
-import { remarkSourceCode } from 'remark-source-code';
-import { mdxSnippet } from 'remark-mdx-snippets';
-import emoji from 'remark-emoji';
 import html from '@shikijs/langs/html';
+import { defineConfig, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
+import emoji from 'remark-emoji';
+import { mdxSnippet } from 'remark-mdx-snippets';
+import { remarkSourceCode } from 'remark-source-code';
+import { z } from 'zod';
 
 // You can customise Zod schemas for frontmatter here
 // see https://fumadocs.vercel.app/docs/mdx/collections#define-docs

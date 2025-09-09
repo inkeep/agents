@@ -52,7 +52,7 @@ export default {
             'talk-to-your-agents/react/side-bar-chat',
             'talk-to-your-agents/react/embedded-chat',
           ],
-        }
+        },
       ],
     },
     {

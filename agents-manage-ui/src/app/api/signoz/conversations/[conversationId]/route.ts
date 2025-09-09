@@ -1,14 +1,33 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
-import { SPAN_NAMES, AI_OPERATIONS, SPAN_KEYS, QUERY_FIELD_CONFIGS, UNKNOWN_VALUE, OPERATORS, QUERY_EXPRESSIONS, DATA_SOURCES, PANEL_TYPES, QUERY_TYPES, AGGREGATE_OPERATORS, ORDER_DIRECTIONS, QUERY_DEFAULTS, ACTIVITY_TYPES, ACTIVITY_STATUS, AGENT_IDS, ACTIVITY_NAMES, TOOL_NAMES } from '@/constants/signoz';
+import { type NextRequest, NextResponse } from 'next/server';
+import {
+  ACTIVITY_NAMES,
+  ACTIVITY_STATUS,
+  ACTIVITY_TYPES,
+  AGENT_IDS,
+  AGGREGATE_OPERATORS,
+  AI_OPERATIONS,
+  DATA_SOURCES,
+  OPERATORS,
+  ORDER_DIRECTIONS,
+  PANEL_TYPES,
+  QUERY_DEFAULTS,
+  QUERY_EXPRESSIONS,
+  QUERY_FIELD_CONFIGS,
+  QUERY_TYPES,
+  SPAN_KEYS,
+  SPAN_NAMES,
+  TOOL_NAMES,
+  UNKNOWN_VALUE,
+} from '@/constants/signoz';
+import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
 
 // Configure axios retry
-axiosRetry(axios, { 
+axiosRetry(axios, {
   retries: 3,
-  retryDelay: axiosRetry.exponentialDelay 
+  retryDelay: axiosRetry.exponentialDelay,
 });
 
 export const dynamic = 'force-dynamic';
@@ -16,8 +35,6 @@ export const dynamic = 'force-dynamic';
 const SIGNOZ_URL = process.env.SIGNOZ_URL || 'http://localhost:3080';
 const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
-
-   
 // ---------- Types
 
 type SigNozListItem = { data?: Record<string, any>; [k: string]: any };
@@ -26,8 +43,6 @@ type SigNozResp = {
 };
 
 const START_2020_MS = new Date('2020-01-01T00:00:00Z').getTime();
-
-
 
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
@@ -58,12 +73,15 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
       timeout: 30000,
     });
     const json = response.data as SigNozResp;
-    const responseData = json?.data?.result?.map((r) => ({ queryName: r.queryName, count: r.list?.length }));
+    const responseData = json?.data?.result?.map((r) => ({
+      queryName: r.queryName,
+      count: r.list?.length,
+    }));
     logger.info({ responseData }, 'SigNoz response (truncated)');
     return json;
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
-    
+
     // Re-throw the error with more context for proper error handling
     if (axios.isAxiosError(e)) {
       if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' || e.code === 'ETIMEDOUT') {
@@ -233,7 +251,7 @@ function buildConversationListPayload(
               key: { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN },
               op: OPERATORS.EQUALS,
               value: true,
-            }, 
+            },
           ],
           [
             { key: SPAN_KEYS.SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
@@ -254,7 +272,7 @@ function buildConversationListPayload(
               key: { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN },
               op: OPERATORS.EQUALS,
               value: true,
-            }, 
+            },
           ],
           [
             { key: SPAN_KEYS.SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
@@ -382,10 +400,9 @@ function buildConversationListPayload(
           ]
         ),
 
-
         durationSpans: listQuery(
           QUERY_EXPRESSIONS.DURATION_SPANS,
-          [], 
+          [],
           [
             { key: SPAN_KEYS.TRACE_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
             { key: SPAN_KEYS.PARENT_SPAN_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
@@ -586,7 +603,8 @@ export async function GET(
     for (const span of contextResolutionSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const statusMessage =
-        getString(span, SPAN_KEYS.STATUS_MESSAGE) || getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
+        getString(span, SPAN_KEYS.STATUS_MESSAGE) ||
+        getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
 
       // context keys maybe JSON
       let keys: string[] | undefined;
@@ -615,7 +633,8 @@ export async function GET(
     for (const span of contextHandleSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const statusMessage =
-        getString(span, SPAN_KEYS.STATUS_MESSAGE) || getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
+        getString(span, SPAN_KEYS.STATUS_MESSAGE) ||
+        getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
 
       // context keys maybe JSON
       let keys: string[] | undefined;
@@ -687,7 +706,7 @@ export async function GET(
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
         name: ACTIVITY_NAMES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
-        timestamp:getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
+        timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         agentId: AGENT_IDS.AI_ASSISTANT,
         agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -708,7 +727,7 @@ export async function GET(
         type: ACTIVITY_TYPES.AI_GENERATION,
         name: ACTIVITY_NAMES.AI_TEXT_GENERATION,
         description: 'AI model generating text response',
-        timestamp:span.timestamp,
+        timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         agentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
         agentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
@@ -747,7 +766,6 @@ export async function GET(
 
     // context fetchers
     for (const span of contextFetcherSpans) {
-
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
@@ -758,7 +776,9 @@ export async function GET(
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         agentId: UNKNOWN_VALUE,
         agentName: 'Context Fetcher',
-        result: hasError ? 'Context fetch failed' : getString(span, SPAN_KEYS.HTTP_URL, 'Unknown URL'),
+        result: hasError
+          ? 'Context fetch failed'
+          : getString(span, SPAN_KEYS.HTTP_URL, 'Unknown URL'),
       });
     }
 
@@ -796,13 +816,15 @@ export async function GET(
     let totalOutputTokens = 0;
     for (const activity of activities) {
       if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION || activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
+        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
         typeof activity.inputTokens === 'number'
       ) {
         totalInputTokens += activity.inputTokens;
       }
       if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION || activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
+        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
         typeof activity.outputTokens === 'number'
       ) {
         totalOutputTokens += activity.outputTokens;
@@ -810,10 +832,6 @@ export async function GET(
     }
 
     const openAICallsCount = aiGenerationSpans.length;
-
-
-
-
 
     let allSpanAttributes: Array<{
       spanId: string;
@@ -832,7 +850,6 @@ export async function GET(
       logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
     }
 
-
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
@@ -841,11 +858,15 @@ export async function GET(
       totalMessages: (() => {
         let count = 0;
         for (const a of activities) {
-          if (a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE) count++;
+          if (
+            a.type === ACTIVITY_TYPES.USER_MESSAGE ||
+            a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
+          )
+            count++;
         }
         return count;
       })(),
-      totalToolCalls: activities.filter(a => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
+      totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
       totalErrors: errorCount,
       totalOpenAICalls: openAICallsCount,
     };
@@ -868,7 +889,7 @@ export async function GET(
       conversationDuration: conversationDurationMs,
       totalInputTokens,
       totalOutputTokens,
-      mcpToolErrors: [], 
+      mcpToolErrors: [],
       contextErrors,
       agentGenerationErrors,
       graphId,
@@ -878,10 +899,11 @@ export async function GET(
   } catch (error) {
     const logger = getLogger('conversation-details');
     logger.error({ error }, 'Error fetching conversation details');
-    
+
     // Provide more specific error responses based on the error type
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch conversation details';
-    
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to fetch conversation details';
+
     if (errorMessage.includes('SigNoz service unavailable')) {
       return NextResponse.json({ error: errorMessage }, { status: 503 });
     }

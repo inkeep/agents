@@ -1,4 +1,3 @@
-import { getLogger } from '../logger';
 import type {
   A2AError,
   AgentCard,
@@ -22,6 +21,7 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core'; // Updated to use the consolidated schema
+import { getLogger } from '../logger';
 
 const logger = getLogger('a2aClient');
 

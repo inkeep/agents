@@ -1,19 +1,19 @@
-import { generateText, generateObject } from 'ai';
-import { z } from 'zod';
-import { SpanStatusCode } from '@opentelemetry/api';
-import { ModelFactory } from '../agents/ModelFactory';
-import { getLogger } from '../logger';
-import { getGlobalTracer, createSpanName, handleSpanError } from '../tracer';
-import { statusUpdateOp } from './agent-operations';
-import { getStreamHelper } from './stream-registry';
 import type {
   Artifact,
-  StatusUpdateSettings,
-  StatusComponent,
   ModelSettings,
+  StatusComponent,
+  StatusUpdateSettings,
 } from '@inkeep/agents-core';
+import { SpanStatusCode } from '@opentelemetry/api';
+import { generateObject, generateText } from 'ai';
+import { z } from 'zod';
+import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { getLogger } from '../logger';
+import { createSpanName, getGlobalTracer, handleSpanError } from '../tracer';
+import { statusUpdateOp } from './agent-operations';
+import { getStreamHelper } from './stream-registry';
 
 const logger = getLogger('GraphSession');
 const tracer = getGlobalTracer();

@@ -1,4 +1,4 @@
-import { Settings, Play } from 'lucide-react';
+import { Play, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';

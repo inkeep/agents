@@ -1,5 +1,5 @@
-import { env } from '../../env';
 import { createDatabaseClient } from '@inkeep/agents-core';
+import { env } from '../../env';
 
 // Create database URL - use in-memory for tests, file for other environments
 const getDbUrl = () => {

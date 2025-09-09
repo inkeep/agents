@@ -1,7 +1,11 @@
 import type { z } from 'zod';
-import type { ModelSchema, StatusUpdateSchema, StatusComponentSchema } from '../validation/schemas';
-import type { McpTransportConfigSchema } from '../validation/schemas';
 import type { ApiKeySelect } from '../index';
+import type {
+  McpTransportConfigSchema,
+  ModelSchema,
+  StatusComponentSchema,
+  StatusUpdateSchema,
+} from '../validation/schemas';
 
 // Utility types
 export type MessageVisibility = 'user-facing' | 'internal' | 'system' | 'external';

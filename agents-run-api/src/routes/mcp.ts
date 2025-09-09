@@ -1,34 +1,35 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { contextValidationMiddleware, HeadersScopeSchema } from '@inkeep/agents-core';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod/v3';
-import { contextValidationMiddleware, HeadersScopeSchema } from '@inkeep/agents-core';
 
 // Type bridge for MCP SDK compatibility with Zod v4
 function createMCPSchema<T>(schema: z.ZodType<T>): any {
   return schema;
 }
 
-import { trace } from '@opentelemetry/api';
-import { toFetchResponse, toReqRes } from 'fetch-to-node';
-import { nanoid } from 'nanoid';
-import { handleContextResolution } from '@inkeep/agents-core';
+import type { ExecutionContext } from '@inkeep/agents-core';
 import {
   createMessage,
   createOrGetConversation,
+  getAgentById,
   getAgentGraphWithDefaultAgent,
   getConversation,
-  getAgentById,
-  updateConversation,
   getRequestExecutionContext,
+  handleContextResolution,
+  updateConversation,
 } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
+import { toFetchResponse, toReqRes } from 'fetch-to-node';
+import { nanoid } from 'nanoid';
+import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import { createMCPStreamHelper } from '../utils/stream-helpers';
-import type { ExecutionContext } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+
 const logger = getLogger('mcp');
 
 /**

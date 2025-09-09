@@ -1,9 +1,9 @@
+import { type ExecutionContext, getLogger, validateAndGetApiKey } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { type ExecutionContext, validateAndGetApiKey, getLogger } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
-import { createExecutionContext } from '../types/execution-context';
 import { env } from '../env';
+import { createExecutionContext } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
 /**

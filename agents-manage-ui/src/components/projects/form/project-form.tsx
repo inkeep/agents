@@ -11,9 +11,9 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { defaultValues } from './form-configuration';
-import { type ProjectFormData, projectSchema } from './validation';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
+import { type ProjectFormData, projectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;
