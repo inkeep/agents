@@ -15,7 +15,7 @@ MCP servers provide tools that your agents can use to interact with external API
 |-------|-------------|
 | `Name` | Server name |
 | `URL` | Endpoint URL of a remote MCP server |
-| `Transport Type` | HTTP or SSE protocol |
+| `Transport Type` | Streamable HTTP or SSE protocol |
 
 3. Optionally, configure additional settings:
 
@@ -28,14 +28,21 @@ MCP servers provide tools that your agents can use to interact with external API
 
 ## Viewing server details
 
-After creating an MCP server, you can view its status and available tools:
+After creating an MCP server, you can view its details:
 
 1. Click on your created MCP server from the list
 2. The server details page shows:
    - **Server information** - URL, transport type, creation date, etc.
-   - **Status** - Healthy, needs authentication, or unhealthy (shows "Click to Login" button if OAuth 2.1/PKCE flow is detected)
+   - **Status** - healthy, unhealthy, unknown, disabled, or shows a "Click to Login" button if OAuth 2.1/PKCE flow is detected
    - **Active tools** - Currently enabled tools for the server
    - **Available tools** - All tools discovered from the server with descriptions and parameters
+
+<img
+  src="/images/mcp-server-healthy-status.png"
+  alt="MCP server healthy status"
+  width="60%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", display: "block", margin: "0 auto" }}
+/>
 
 <Note>Tool discovery requires a successful connection to the MCP server. If the server shows "Click to Login" in the status, use the button to initiate the authentication process.</Note>
 
@@ -47,6 +54,13 @@ To modify an existing MCP server:
 2. The edit form shows all the same fields as creation, plus the ability to update **Active Tools**. By default, all available tools are enabled. You can select specific tools to enable.
 3. Click **Save** to apply changes
 
+<img
+  src="/images/mcp-server-edit-form.png"
+  alt="MCP server healthy status"
+  width="60%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", display: "block", margin: "0 auto" }}
+/>
+
 ## Authentication setup
 
 If your MCP server requires authentication, you have two options: either use the **"Click to Login"** button to authenticate or manually create a credential to use with the MCP server.
@@ -57,20 +71,27 @@ If your MCP server requires authentication, you have two options: either use the
 3. Complete the OAuth authentication flow in your browser
 4. The credential will be automatically created and saved to your keychain
 
+<img
+  src="/images/mcp-server-click-to-login.png"
+  alt="MCP server click to login"
+  width="60%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", display: "block", margin: "0 auto" }}
+/>
+
 #### Popular MCP servers with OAuth 2.1/PKCE support
 
-| Name | URL | Docs Link |
-|------|-----|-----------|
-| Atlassian (SSE) | https://mcp.atlassian.com/v1/sse | https://developer.atlassian.com/cloud/mcp/mcp-server/ |
-| Canva | https://mcp.canva.com/mcp | https://www.canva.dev/docs/connect/canva-mcp-server-setup/ |
-| Hugging Face | https://huggingface.co/mcp?login | https://huggingface.co/mcp |
-| Intercom | https://mcp.intercom.com/mcp | https://developers.intercom.com/docs/mcp-server |
-| Linear | https://mcp.linear.app/mcp | https://linear.app/docs/mcp |
-| Neon | https://mcp.neon.tech/mcp | https://neon.com/docs/ai/neon-mcp-server |
-| Notion | https://mcp.notion.com/mcp | https://developers.notion.com/docs/get-started-with-mcp |
-| Prisma | https://mcp.prisma.io/mcp | https://www.prisma.io/docs/postgres/integrations/mcp-server#remote-mcp-server |
-| Sentry | https://mcp.sentry.dev/mcp | https://docs.sentry.io/product/sentry-mcp/ |
-| Vercel | https://mcp.vercel.com | https://vercel.com/docs/mcp/vercel-mcp |
+| Name | URL |
+|------|-----|
+| [Atlassian (SSE)](https://support.atlassian.com/rovo/docs/getting-started-with-the-atlassian-remote-mcp-server/) | https://mcp.atlassian.com/v1/sse |
+| [Canva](https://www.canva.dev/docs/connect/canva-mcp-server-setup/) | https://mcp.canva.com/mcp |
+| [Hugging Face](https://huggingface.co/mcp) | https://huggingface.co/mcp?login |
+| [Intercom](https://developers.intercom.com/docs/guides/mcp) | https://mcp.intercom.com/mcp |
+| [Linear](https://linear.app/docs/mcp) | https://mcp.linear.app/mcp |
+| [Neon](https://neon.com/docs/ai/neon-mcp-server) | https://mcp.neon.tech/mcp |
+| [Notion](https://developers.notion.com/docs/get-started-with-mcp) | https://mcp.notion.com/mcp |
+| [Prisma](https://www.prisma.io/docs/postgres/integrations/mcp-server#remote-mcp-server) | https://mcp.prisma.io/mcp |
+| [Sentry](https://docs.sentry.io/product/sentry-mcp/) | https://mcp.sentry.dev/mcp |
+| [Vercel](https://vercel.com/docs/mcp/vercel-mcp) | https://mcp.vercel.com |
 
 
 ### Manual credential setup
@@ -89,29 +110,29 @@ For additional remote MCP servers you can connect to:
 
 ## Using stdio-based MCP servers
 
-Many popular MCP servers run in **stdio mode** by default. The Visual Builder requires **Streamable HTTP or SSE transport** to connect to MCP servers.
-
-### What's needed to bridge stdio → HTTP/SSE
-
-**Option 1: Use existing bridge services**
-- **`mcp-proxy`** - Community tools that wrap stdio MCP servers with Streamable HTTP
-- **Docker containers** - Pre-built images that handle the bridging automatically
-- **Cloudflare Tunnels** - Can expose local stdio servers via Streamable HTTP
-
-**Option 2: Simple Streamable HTTP wrapper**
-Create a basic Node.js server that:
-- Spawns the MCP server as a child process
-- Forwards Streamable HTTP POST requests to stdin
-- Returns stdout as Streamable HTTP responses
+The Visual Builder requires **Streamable HTTP or SSE transport** to connect to MCP servers. If you have an MCP server that runs in **stdio mode** locally, you can use the following setup to connect to it.
 
 ### Setup outline
 
-1. **Deploy your bridge** (locally or cloud)
+1. **Deploy your stdio -> Streamable HTTP/SSE bridge** (locally or cloud)
 2. **Set environment variables** (API tokens, etc.)  
 3. **Verify it's running** (i.e. on port `4000`, `4001`, etc.)
 4. **Add to Visual Builder**:
    - **URL**: `http://localhost:4000/mcp` (or your server URL)
-   - **Transport Type**: `HTTP` or `SSE`
+   - **Transport Type**: `Streamable HTTP` or `SSE`
+
+### Example using `mcp-proxy`
+
+1. Get familiar with [mcp-proxy](https://github.com/punkpeye/mcp-proxy) - proxy for MCP servers that use stdio transport
+2. [Supabase MCP server](https://github.com/supabase-community/supabase-mcp)
+3. Run the server locally:
+```bash
+SUPABASE_ACCESS_TOKEN=YOUR_SUPABASE_ACCESS_TOKEN mcp-proxy --port 4444 --shell "npx -y @supabase/mcp-server-supabase@latest --read-only"
+```
+4. Add to Visual Builder with the following settings:
+   - **URL**: `http://localhost:4444/mcp`
+   - **Transport Type**: `Streamable HTTP`
+
 
 ## Adding servers to graphs
 
@@ -121,5 +142,12 @@ Once you have created an MCP server, you can add it to your graphs:
 2. Drag and drop an MCP server into your graph
 3. Connect the MCP server to an agent by dragging from the server's connector to the agent
 4. Your agent can now use the tools provided by that MCP server
+
+<img
+  src="/images/mcp-server-add-to-graph.png"
+  alt="MCP server add to graph"
+  width="60%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", display: "block", margin: "0 auto" }}
+/>
 
 For detailed instructions on working with MCP servers in graphs, see the [Graphs](/visual-builder/graphs#adding-tools) page.
