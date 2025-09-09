@@ -34,6 +34,7 @@
 		"@inkeep/agents-core": "workspace:^",
 		"@inkeep/cxkit-react": "0.0.0-rc-20250905022240",
 		"@inkeep/cxkit-react-oss": "0.0.0-rc-20250905022240",
+		"@lezer/highlight": "^1.2.1",
 		"@nangohq/frontend": "^0.66.0",
 		"@nangohq/node": "^0.66.0",
 		"@nangohq/types": "^0.66.0",
