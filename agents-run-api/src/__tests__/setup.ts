@@ -9,8 +9,20 @@ const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 import { getLogger } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import dbClient from '../data/db/dbClient';
+
+// Global mock for the agents-run-api logger to prevent undefined errors
+vi.mock('../logger.js', () => ({
+  getLogger: vi.fn().mockReturnValue({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  }),
+  withRequestContext: vi.fn().mockImplementation(async (id, fn) => await fn()),
+}));
 
 getLogger('Test Setup').debug({}, 'Setting up instrumentation');
 

@@ -89,15 +89,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 // Remove the old conversations mock since functions moved to @inkeep/agents-core
 
-vi.mock('../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-  withRequestContext: vi.fn().mockImplementation(async (id, fn) => await fn()),
-}));
+// Logger mock is now in setup.ts globally
 
 vi.mock('../../data/threads.js', () => ({
   getActiveAgentForThread: vi.fn().mockResolvedValue(null),

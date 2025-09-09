@@ -35,9 +35,9 @@ describe('VercelDataStreamHelper Memory Management', () => {
   });
 
   test('should allow buffer to grow during request but prevent catastrophic growth', async () => {
-    // Mock parsePartialJson to return successful parse with empty array
+    // Mock parsePartialJson to return successful parse with some items so writes happen
     mockParsePartialJson.mockResolvedValue({
-      value: [],
+      value: [{ type: 'test', content: 'item' }],
       state: 'successful-parse',
     });
 
@@ -51,6 +51,9 @@ describe('VercelDataStreamHelper Memory Management', () => {
 
     // Should not throw and should continue working
     expect(mockParsePartialJson).toHaveBeenCalledTimes(3);
+
+    // Should have written to the writer
+    expect(mockWriter.write).toHaveBeenCalled();
 
     // Check memory stats show buffer growth
     const stats = helper.getMemoryStats();
@@ -70,7 +73,7 @@ describe('VercelDataStreamHelper Memory Management', () => {
     // Verify memory is being used
     let stats = helper.getMemoryStats();
     expect(stats.bufferSize).toBeGreaterThan(0);
-    expect(stats.sentItemsCount).toBeGreaterThan(0);
+    expect(stats.sentItemsCount).toBe(1); // We have 1 item in the mock
     expect(stats.isCompleted).toBe(false);
 
     // Complete the stream
@@ -144,7 +147,9 @@ describe('VercelDataStreamHelper Memory Management', () => {
     expect(stats.isCompleted).toBe(false);
 
     // Add content
-    await helper.writeContent('test content with some length');
+    await helper.writeContent(
+      '[{"type":"test","content":"item1"},{"type":"test","content":"item2"}]'
+    );
 
     // Should show memory usage
     stats = helper.getMemoryStats();
@@ -167,12 +172,12 @@ describe('VercelDataStreamHelper Memory Management', () => {
     });
 
     // Add content
-    await helper.writeContent('test content');
+    await helper.writeContent('[{"type":"test","content":"item1"}]');
 
     // Verify memory usage
     let stats = helper.getMemoryStats();
     expect(stats.bufferSize).toBeGreaterThan(0);
-    expect(stats.sentItemsCount).toBeGreaterThan(0);
+    expect(stats.sentItemsCount).toBe(1); // We have 1 item in the mock
 
     // Manual cleanup
     helper.cleanup();
@@ -191,8 +196,8 @@ describe('VercelDataStreamHelper Memory Management', () => {
       state: 'successful-parse' as const,
     }));
 
-    // Write content first time
-    await helper.writeContent('duplicate');
+    // Write content first time with JSON that will be parsed
+    await helper.writeContent('[{"type":"test","content":"item1"}]');
 
     // Verify first write happened
     expect(mockWriter.write).toHaveBeenCalledTimes(1);
@@ -206,7 +211,7 @@ describe('VercelDataStreamHelper Memory Management', () => {
     mockWriter.write.mockClear();
 
     // Write content second time (same content should be deduplicated)
-    await helper.writeContent('duplicate');
+    await helper.writeContent('[{"type":"test","content":"item1"}]');
 
     // Should NOT write again since content hasn't changed
     expect(mockWriter.write).not.toHaveBeenCalled();
