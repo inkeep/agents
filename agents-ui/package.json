@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "biome check",
+    "format": "biome check --write",
     "preview": "vite preview",
     "test": "echo 'No tests configured for chat-widget'"
   },
@@ -18,17 +19,12 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.30.1",
+    "@biomejs/biome": "2.1.4",
     "@types/node": "^24.2.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.30.1",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
     "typescript": "~5.9.2",
-    "typescript-eslint": "^8.35.1",
     "vite": "^7.0.4"
   },
   "publishConfig": {
