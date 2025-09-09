@@ -139,7 +139,10 @@ jobs:
             ${{ runner.os }}-build-v5-
       
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          # Ensure agents-manage-ui dependencies are properly installed
+          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
       
       - name: Clean database files
         run: |
@@ -211,7 +214,10 @@ jobs:
             ${{ runner.os }}-build-v5-
       
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          # Ensure agents-manage-ui dependencies are properly installed
+          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
       
       - name: Run typecheck
         run: pnpm typecheck
