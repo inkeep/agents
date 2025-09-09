@@ -59,7 +59,7 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=20.x"
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "restricted",

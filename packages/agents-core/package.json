@@ -73,6 +73,9 @@
     "typescript": "^5.9.2",
     "vitest": "^3.1.4"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "publishConfig": {
     "access": "restricted",
     "registry": "https://registry.npmjs.org/"
