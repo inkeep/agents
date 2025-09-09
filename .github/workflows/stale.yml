@@ -1,0 +1,92 @@
+name: Mark stale pull requests
+
+on:
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Mark stale pull requests
+        uses: actions/stale@v9
+        with:
+          # Configuration for pull requests
+          stale-pr-message: |
+            This pull request has been automatically marked as stale because it has not had recent activity. 
+            It will be closed in 7 days if no further activity occurs.
+            
+            If this PR is still relevant:
+            - Rebase it on the latest main branch
+            - Add a comment explaining its current status
+            - Request a review if it's ready
+            
+            Thank you for your contributions!
+          
+          close-pr-message: |
+            This pull request has been automatically closed due to inactivity.
+            
+            If you'd like to continue working on this, please:
+            1. Create a new branch from the latest main
+            2. Cherry-pick your commits or rebase your changes
+            3. Open a new pull request
+            
+            Thank you for your understanding!
+          
+          # Number of days of inactivity before marking PR as stale
+          days-before-pr-stale: 30
+          
+          # Number of days after stale label before closing PR
+          days-before-pr-close: 7
+          
+          # Label to use when marking PR as stale
+          stale-pr-label: 'stale'
+          
+          # Labels that prevent marking as stale
+          exempt-pr-labels: 'pinned,security,work-in-progress'
+          
+          # Exempt draft PRs from being marked as stale
+          exempt-draft-pr: true
+          
+          # Remove stale label when PR is updated
+          remove-stale-when-updated: true
+          
+          # Delete branch after closing stale PR
+          delete-branch: true
+          
+          # Limit the number of operations per run to prevent hitting API rate limits
+          operations-per-run: 30
+          
+          # Enable debug logs to see what the action is doing
+          debug-only: false
+          
+          # Don't process issues, only pull requests
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          
+          # Order to process PRs (false = oldest first, true = newest first)
+          ascending: false
+          
+          # Labels to add when PR becomes stale
+          labels-to-add-when-unstale: ''
+          
+          # Labels to remove when PR becomes stale
+          labels-to-remove-when-stale: ''
+          
+          # Enable statistics at the end of the run
+          enable-statistics: true
+          
+          # Ignore PRs with assignees (false = process all PRs)
+          ignore-pr-updates: false
+          
+          # Exempt all PRs with milestones from being marked as stale
+          exempt-all-pr-milestones: false
