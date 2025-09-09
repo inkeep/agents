@@ -7,11 +7,32 @@ dotenv.config({ quiet: true });
 
 const environmentSchema = z.enum(['development', 'pentest', 'production', 'test']);
 
-const criticalEnv = z
-  .object({
-    ENVIRONMENT: environmentSchema,
-  })
-  .parse(process.env);
+// Parse critical environment with a default fallback for CLI usage
+const criticalEnv = (() => {
+  try {
+    return z
+      .object({
+        ENVIRONMENT: environmentSchema,
+      })
+      .parse(process.env);
+  } catch (error) {
+    // For CLI usage, provide a sensible default if ENVIRONMENT is not set
+    // This allows the CLI to run without requiring ENVIRONMENT for simple operations
+    if (!process.env.ENVIRONMENT) {
+      // Check if we're running from a globally installed package (production)
+      // or from a local development environment
+      const isGlobalInstall = 
+        __dirname.includes('node_modules/@inkeep/agents-cli') ||
+        __dirname.includes('.nvm') ||
+        __dirname.includes('.npm');
+      
+      const defaultEnv = isGlobalInstall ? 'production' : 'development';
+      process.env.ENVIRONMENT = defaultEnv;
+      return { ENVIRONMENT: defaultEnv as 'production' | 'development' };
+    }
+    throw error;
+  }
+})();
 
 const loadEnvFile = () => {
   // Priority of environment variables:
