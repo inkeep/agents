@@ -60,8 +60,9 @@ jobs:
             **/.turbo
             **/node_modules/.vite
             **/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx') }}
           restore-keys: |
+            ${{ runner.os }}-build-${{ hashFiles('**/package.json', '**/pnpm-lock.yaml', 'turbo.json') }}
             ${{ runner.os }}-build-
       
       # Cache TypeScript build info for incremental compilation
