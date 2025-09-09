@@ -28,8 +28,8 @@ function runCli(args: string[]): { stdout: string; stderr: string; exitCode: num
       timeout: 15000, // Increased to 15 second timeout for CI
       killSignal: 'SIGTERM', // Use SIGTERM first for cleaner shutdown
       windowsHide: true, // Hide windows on Windows
-      env: { 
-        ...process.env, 
+      env: {
+        ...process.env,
         NODE_ENV: 'test',
         ENVIRONMENT: 'test', // Required by the CLI
         CI: 'true', // Signal to CLI that it's running in CI
@@ -46,7 +46,7 @@ function runCli(args: string[]): { stdout: string; stderr: string; exitCode: num
         exitCode: 124, // Standard timeout exit code
       };
     }
-    
+
     return {
       stdout: error.stdout || '',
       stderr: error.stderr || error.message || 'Unknown error',
@@ -65,7 +65,7 @@ describe('Inkeep CLI', () => {
   afterEach(async () => {
     vi.restoreAllMocks();
     // Small delay to allow processes to fully terminate
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     // Force garbage collection to clean up any hanging references
     if (global.gc) {
       global.gc();

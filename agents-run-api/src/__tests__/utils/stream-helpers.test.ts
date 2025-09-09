@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Hoist the mock function - must use vi.hoisted to access in vi.mock
 const { mockParsePartialJson } = vi.hoisted(() => {
-  return { 
-    mockParsePartialJson: vi.fn()
+  return {
+    mockParsePartialJson: vi.fn(),
   };
 });
 

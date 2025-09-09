@@ -119,7 +119,7 @@ vi.mock('../../logger.js', () => {
   };
   // Make child return itself for chaining
   mockLogger.child.mockReturnValue(mockLogger);
-  
+
   return {
     getLogger: () => mockLogger,
   };

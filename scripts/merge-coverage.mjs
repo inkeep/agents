@@ -246,7 +246,7 @@ async function main() {
     });
 
     // Fail if critical packages are missing
-    const criticalPackages = ['inkeep-management-api', 'inkeep-execution-api', 'packages/core' ];
+    const criticalPackages = ['inkeep-management-api', 'inkeep-execution-api', 'packages/core'];
     const criticalMissing = packagesWithErrors.filter((pkg) =>
       criticalPackages.includes(pkg.package)
     );

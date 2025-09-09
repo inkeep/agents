@@ -15,7 +15,7 @@ const targetPackages = [
   './agents-cli',
   './agents-ui',
   './packages/agents-sdk',
-  './packages/agents-core'
+  './packages/agents-core',
 ];
 
 // Header to add to generated LICENSE files
@@ -39,15 +39,15 @@ function syncLicenses() {
 
   // Read source LICENSE content
   const licenseContent = readFileSync(sourceLicensePath, 'utf8');
-  
+
   let successCount = 0;
   let errorCount = 0;
 
   // Copy to each target package
-  targetPackages.forEach(packagePath => {
+  targetPackages.forEach((packagePath) => {
     const targetPath = join(rootDir, packagePath, 'LICENSE.md');
     const packageName = packagePath.split('/').pop();
-    
+
     try {
       // Write LICENSE with header indicating it's auto-generated
       writeFileSync(targetPath, generatedHeader + licenseContent);
@@ -65,7 +65,7 @@ function syncLicenses() {
     console.log(`   ❌ Failed: ${errorCount} packages`);
     process.exit(1);
   }
-  
+
   console.log('\n✨ License sync completed successfully!');
 }
 

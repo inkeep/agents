@@ -16,12 +16,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@inkeep/agents-core": [
-        "./src/index.ts"
-      ],
-      "@inkeep/agents-core/*": [
-        "./src/*"
-      ]
+      "@inkeep/agents-core": ["./src/index.ts"],
+      "@inkeep/agents-core/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],
