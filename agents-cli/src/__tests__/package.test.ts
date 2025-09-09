@@ -66,7 +66,7 @@ describe('Package Configuration', () => {
     });
 
     it('should have correct Node.js engine requirement', () => {
-      expect(packageJson.engines.node).toBe('>=20.x');
+      expect(packageJson.engines.node).toBe('>=22.0.0');
     });
 
     it('should have correct author', () => {
