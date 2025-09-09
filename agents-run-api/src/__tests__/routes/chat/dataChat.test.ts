@@ -18,6 +18,23 @@ vi.mock('../../../logger.js', () => {
   };
 });
 
+// Mock the logger without .js extension as well (in case of different import styles)
+vi.mock('../../../logger', () => {
+  const mockLogger = {
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    child: vi.fn(),
+  };
+  // Make child return itself for chaining
+  mockLogger.child.mockReturnValue(mockLogger);
+  
+  return {
+    getLogger: () => mockLogger,
+  };
+});
+
 import { createAgent, createAgentGraph } from '@inkeep/agents-core';
 import dbClient from '../../../data/db/dbClient';
 import * as execModule from '../../../handlers/executionHandler';
