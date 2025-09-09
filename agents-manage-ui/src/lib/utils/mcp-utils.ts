@@ -1,4 +1,4 @@
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/api/tools";
 
 /**
  * Parses an MCP tool name to extract the type and name components.
@@ -13,6 +13,6 @@ import type { MCPTool } from '@/lib/api/tools';
  * // type: "gmail", name: "send_email"
  */
 export const getToolTypeAndName = (tool: MCPTool) => {
-  const [type, name] = tool.name.split('::');
-  return { type, name };
+	const [type, name] = tool.name.split("::");
+	return { type, name };
 };

@@ -1,91 +1,97 @@
-import { notFound } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
-import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
-import type { MCPToolFormData } from '@/components/mcp-servers/form/validation';
-import { type Credential, fetchCredentials } from '@/lib/api/credentials';
-import { fetchMCPTool, type MCPTool } from '@/lib/api/tools';
+import { notFound } from "next/navigation";
+import { BodyTemplate } from "@/components/layout/body-template";
+import { MainContent } from "@/components/layout/main-content";
+import { MCPServerForm } from "@/components/mcp-servers/form/mcp-server-form";
+import type { MCPToolFormData } from "@/components/mcp-servers/form/validation";
+import { type Credential, fetchCredentials } from "@/lib/api/credentials";
+import { fetchMCPTool, type MCPTool } from "@/lib/api/tools";
 
 interface EditMCPPageProps {
-  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
+	params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
 }
 
 async function EditMCPPage({ params }: EditMCPPageProps) {
-  const { mcpServerId, tenantId, projectId } = await params;
+	const { mcpServerId, tenantId, projectId } = await params;
 
-  // Fetch both in parallel with individual error handling
-  const [mcpToolResult, credentialsResult] = await Promise.allSettled([
-    fetchMCPTool(tenantId, projectId, mcpServerId),
-    fetchCredentials(tenantId, projectId),
-  ]);
+	// Fetch both in parallel with individual error handling
+	const [mcpToolResult, credentialsResult] = await Promise.allSettled([
+		fetchMCPTool(tenantId, projectId, mcpServerId),
+		fetchCredentials(tenantId, projectId),
+	]);
 
-  // Handle MCP tool result (required)
-  let mcpTool: MCPTool;
-  if (mcpToolResult.status === 'fulfilled') {
-    mcpTool = mcpToolResult.value;
-  } else {
-    console.error('Failed to load MCP tool:', mcpToolResult.reason);
-    notFound();
-  }
+	// Handle MCP tool result (required)
+	let mcpTool: MCPTool;
+	if (mcpToolResult.status === "fulfilled") {
+		mcpTool = mcpToolResult.value;
+	} else {
+		console.error("Failed to load MCP tool:", mcpToolResult.reason);
+		notFound();
+	}
 
-  // Handle credentials result (optional - fallback to empty array)
-  let credentials: Credential[] = [];
-  if (credentialsResult.status === 'fulfilled') {
-    credentials = credentialsResult.value;
-  } else {
-    console.error('Failed to load credentials:', credentialsResult.reason);
-    // Continue without credentials
-  }
+	// Handle credentials result (optional - fallback to empty array)
+	let credentials: Credential[] = [];
+	if (credentialsResult.status === "fulfilled") {
+		credentials = credentialsResult.value;
+	} else {
+		console.error("Failed to load credentials:", credentialsResult.reason);
+		// Continue without credentials
+	}
 
-  // Convert MCPTool to MCPToolFormData format
-  const initialFormData: MCPToolFormData = {
-    name: mcpTool.name,
-    config: {
-      type: 'mcp' as const,
-      mcp: {
-        server: {
-          url: mcpTool.config.mcp.server.url,
-        },
-        transport: {
-          type: mcpTool.config.mcp.transport?.type || 'streamable_http',
-        },
-        toolsConfig:
-          mcpTool.config.mcp.activeTools === undefined
-            ? { type: 'all' as const }
-            : { type: 'selective' as const, tools: mcpTool.config.mcp.activeTools },
-      },
-    },
-    credentialReferenceId: mcpTool.credentialReferenceId || 'none',
-    imageUrl: mcpTool.imageUrl?.trim() || undefined,
-  };
+	// Convert MCPTool to MCPToolFormData format
+	const initialFormData: MCPToolFormData = {
+		name: mcpTool.name,
+		config: {
+			type: "mcp" as const,
+			mcp: {
+				server: {
+					url: mcpTool.config.mcp.server.url,
+				},
+				transport: {
+					type: mcpTool.config.mcp.transport?.type || "streamable_http",
+				},
+				toolsConfig:
+					mcpTool.config.mcp.activeTools === undefined
+						? { type: "all" as const }
+						: {
+								type: "selective" as const,
+								tools: mcpTool.config.mcp.activeTools,
+							},
+			},
+		},
+		credentialReferenceId: mcpTool.credentialReferenceId || "none",
+		imageUrl: mcpTool.imageUrl?.trim() || undefined,
+	};
 
-  // MCPServerForm handles all the form logic
+	// MCPServerForm handles all the form logic
 
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        { label: 'MCP servers', href: `/${tenantId}/projects/${projectId}/mcp-servers` },
-        {
-          label: mcpTool.name,
-          href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
-        },
-        { label: 'Edit' },
-      ]}
-    >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <MCPServerForm
-            initialData={initialFormData}
-            mode="update"
-            tool={mcpTool}
-            credentials={credentials}
-            tenantId={tenantId}
-            projectId={projectId}
-          />
-        </div>
-      </MainContent>
-    </BodyTemplate>
-  );
+	return (
+		<BodyTemplate
+			breadcrumbs={[
+				{
+					label: "MCP servers",
+					href: `/${tenantId}/projects/${projectId}/mcp-servers`,
+				},
+				{
+					label: mcpTool.name,
+					href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
+				},
+				{ label: "Edit" },
+			]}
+		>
+			<MainContent>
+				<div className="max-w-2xl mx-auto py-4">
+					<MCPServerForm
+						initialData={initialFormData}
+						mode="update"
+						tool={mcpTool}
+						credentials={credentials}
+						tenantId={tenantId}
+						projectId={projectId}
+					/>
+				</div>
+			</MainContent>
+		</BodyTemplate>
+	);
 }
 
 export default EditMCPPage;

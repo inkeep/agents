@@ -1,51 +1,51 @@
 export type ModelSettings = {
-  model: string;
-  providerOptions?: Record<string, any>;
+	model: string;
+	providerOptions?: Record<string, any>;
 };
 
 export type GraphModels = {
-  base?: ModelSettings;
-  structuredOutput?: ModelSettings;
-  summarizer?: ModelSettings;
+	base?: ModelSettings;
+	structuredOutput?: ModelSettings;
+	summarizer?: ModelSettings;
 };
 
 export type GraphStopWhen = {
-  transferCountIs?: number;
-  // stepCountIs is agent-level only, not graph-level
+	transferCountIs?: number;
+	// stepCountIs is agent-level only, not graph-level
 };
 
 export type StatusUpdateSettings = {
-  enabled?: boolean;
-  prompt?: string;
-  numEvents?: number; // Trigger after N events (default: 10)
-  timeInSeconds?: number; // Trigger after N seconds (default: 30)
-  statusComponents?: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    schema: {
-      type: 'object';
-      properties: Record<string, any>;
-      required?: string[];
-    };
-  }>;
+	enabled?: boolean;
+	prompt?: string;
+	numEvents?: number; // Trigger after N events (default: 10)
+	timeInSeconds?: number; // Trigger after N seconds (default: 30)
+	statusComponents?: Array<{
+		id: string;
+		name: string;
+		description?: string;
+		schema: {
+			type: "object";
+			properties: Record<string, any>;
+			required?: string[];
+		};
+	}>;
 };
 
 export type GraphMetadata = {
-  id?: string;
-  name: string;
-  description: string;
-  contextConfig: ContextConfig;
-  models?: GraphModels;
-  stopWhen?: GraphStopWhen;
-  graphPrompt?: string;
-  statusUpdates?: StatusUpdateSettings;
+	id?: string;
+	name: string;
+	description: string;
+	contextConfig: ContextConfig;
+	models?: GraphModels;
+	stopWhen?: GraphStopWhen;
+	graphPrompt?: string;
+	statusUpdates?: StatusUpdateSettings;
 };
 
 export type ContextConfig = {
-  id?: string;
-  name: string;
-  description: string;
-  contextVariables: string; // JSON string
-  requestContextSchema: string; // JSON string
+	id?: string;
+	name: string;
+	description: string;
+	contextVariables: string; // JSON string
+	requestContextSchema: string; // JSON string
 };

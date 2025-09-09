@@ -13,19 +13,10 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@inkeep/agents-core": [
-        "../packages/agents-core/src/index.ts"
-      ],
-      "@inkeep/agents-core/*": [
-        "../packages/agents-core/src/*"
-      ]
+      "@inkeep/agents-core": ["../packages/agents-core/src/index.ts"],
+      "@inkeep/agents-core/*": ["../packages/agents-core/src/*"]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

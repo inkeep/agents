@@ -1,5 +1,5 @@
-import { agent, agentGraph, credential } from '@inkeep/agents-sdk';
 import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
+import { agent, agentGraph, credential } from '@inkeep/agents-sdk';
 import { z } from 'zod';
 
 // // Check for required INKEEP_API_KEY environment variable

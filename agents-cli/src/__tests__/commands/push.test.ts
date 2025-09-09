@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { pushCommand } from '../../commands/push';
-import * as core from '@inkeep/agents-core';
-import inquirer from 'inquirer';
-import chalk from 'chalk';
 import { existsSync } from 'node:fs';
+import * as core from '@inkeep/agents-core';
+import chalk from 'chalk';
+import inquirer from 'inquirer';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { pushCommand } from '../../commands/push';
 
 // Mock all external dependencies
 vi.mock('node:fs');

@@ -1,60 +1,60 @@
 {
-  "name": "@inkeep/agents-sdk",
-  "version": "0.1.1",
-  "description": "SDK for building and managing agents in the Inkeep Agent Framework",
-  "main": "src/index.ts",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "test": "ENVIRONMENT=test vitest --run",
-    "test:watch": "ENVIRONMENT=test vitest",
-    "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
-    "typecheck": "tsc --noEmit",
-    "lint": "biome check --apply .",
-    "format": "biome format --write .",
-    "prepack": "clean-package",
-    "postpack": "clean-package restore"
-  },
-  "clean-package": "./clean-package.config.json",
-  "dependencies": {
-    "@inkeep/agents-core": "workspace:^",
-    "nanoid": "^5.1.5",
-    "zod": "^4.1.5"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.1.4",
-    "@types/node": "^20.11.24",
-    "@vitest/coverage-v8": "^2.0.0",
-    "clean-package": "^2.2.0",
-    "tsx": "^4.7.1",
-    "typescript": "^5.3.3",
-    "vitest": "^3.1.4"
-  },
-  "packageManager": "pnpm@10.11.0",
-  "engines": {
-    "node": ">=22.0.0"
-  },
-  "publishConfig": {
-    "access": "restricted",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE.md"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/inkeep/agents.git",
-    "directory": "packages/agents-sdk"
-  },
-  "keywords": [
-    "agents",
-    "ai",
-    "framework",
-    "sdk",
-    "inkeep"
-  ],
-  "author": "Inkeep",
-  "license": "SEE LICENSE IN LICENSE.md"
+	"name": "@inkeep/agents-sdk",
+	"version": "0.1.1",
+	"description": "SDK for building and managing agents in the Inkeep Agent Framework",
+	"main": "src/index.ts",
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"test": "ENVIRONMENT=test vitest --run",
+		"test:watch": "ENVIRONMENT=test vitest",
+		"test:coverage": "ENVIRONMENT=test vitest --run --coverage",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check --apply .",
+		"format": "biome format --write .",
+		"prepack": "clean-package",
+		"postpack": "clean-package restore"
+	},
+	"clean-package": "./clean-package.config.json",
+	"dependencies": {
+		"@inkeep/agents-core": "workspace:^",
+		"nanoid": "^5.1.5",
+		"zod": "^4.1.5"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.1.4",
+		"@types/node": "^20.11.24",
+		"@vitest/coverage-v8": "^2.0.0",
+		"clean-package": "^2.2.0",
+		"tsx": "^4.7.1",
+		"typescript": "^5.3.3",
+		"vitest": "^3.1.4"
+	},
+	"packageManager": "pnpm@10.11.0",
+	"engines": {
+		"node": ">=22.0.0"
+	},
+	"publishConfig": {
+		"access": "restricted",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE.md"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/inkeep/agents.git",
+		"directory": "packages/agents-sdk"
+	},
+	"keywords": [
+		"agents",
+		"ai",
+		"framework",
+		"sdk",
+		"inkeep"
+	],
+	"author": "Inkeep",
+	"license": "SEE LICENSE IN LICENSE.md"
 }
