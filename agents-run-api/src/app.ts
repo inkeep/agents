@@ -42,9 +42,13 @@ function createExecutionHono(
     if (!bag) {
       bag = propagation.createBaggage();
     }
-    bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
-    const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-    return otelContext.with(ctxWithBag, () => next());
+    // Safety check for test environment where createBaggage might return undefined
+    if (bag && typeof bag.setEntry === 'function') {
+      bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
+      const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
+      return otelContext.with(ctxWithBag, () => next());
+    }
+    return next();
   });
 
   // Baggage middleware for execution API - extracts context from API key authentication
