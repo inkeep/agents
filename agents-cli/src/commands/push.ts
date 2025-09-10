@@ -7,6 +7,7 @@ import ora from 'ora';
 import { ManagementApiClient } from '../api';
 import { validateConfiguration } from '../utils/config';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { buildGraphViewUrl } from '../utils/url';
 
 export interface PushOptions {
   tenantId?: string;
@@ -277,9 +278,13 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
     console.log(chalk.green('\n✨ Next steps:'));
 
     // Add view graph link if manageUiUrl is available
-    const manageUiUrl = config.manageUiUrl || 'http://localhost:3000';
-    const viewGraphUrl = `${manageUiUrl}/${tenantId}/projects/${projectId}/graphs/${graphId}`;
-    console.log(chalk.gray(`  • View graph in UI: ${chalk.cyan(viewGraphUrl)}`));
+    try {
+      const viewGraphUrl = buildGraphViewUrl(config.manageUiUrl, tenantId, projectId, graphId);
+      console.log(chalk.gray(`  • View graph in UI: ${chalk.cyan(viewGraphUrl)}`));
+    } catch (error) {
+      // If URL construction fails, just skip displaying the link
+      console.debug('Could not generate UI link:', error);
+    }
 
     console.log(chalk.gray(`  • Test your graph: inkeep chat ${graphId}`));
     console.log(chalk.gray(`  • View all graphs: inkeep list-graphs`));
