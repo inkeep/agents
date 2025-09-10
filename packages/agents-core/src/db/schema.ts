@@ -402,7 +402,18 @@ export const tools = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.credentialReferenceId],
+      foreignColumns: [
+        credentialReferences.tenantId,
+        credentialReferences.projectId,
+        credentialReferences.id,
+      ],
+      name: 'tools_credential_reference_fk',
+    }).onDelete('set null'),
+  ]
 );
 
 export const agentToolRelations = sqliteTable(

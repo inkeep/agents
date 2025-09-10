@@ -193,7 +193,9 @@ export const deleteCredentialReference =
       return false;
     }
 
-    // Update all tools that reference this credential to set credentialReferenceId to null
+    // Manually update all tools that reference this credential to set credentialReferenceId to null
+    // This is needed for test environments where foreign key constraints may not be enabled
+    // In production, the foreign key constraint with onDelete('set null') will handle this automatically
     await db
       .update(tools)
       .set({
@@ -208,7 +210,7 @@ export const deleteCredentialReference =
         )
       );
 
-    // Update all external agents that reference this credential to set credentialReferenceId to null
+    // Manually update all external agents that reference this credential to set credentialReferenceId to null
     await db
       .update(externalAgents)
       .set({
