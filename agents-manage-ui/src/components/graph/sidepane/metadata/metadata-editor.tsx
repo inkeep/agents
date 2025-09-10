@@ -20,10 +20,6 @@ import {
 	getModelInheritanceStatus,
 	InheritanceIndicator,
 } from "@/components/ui/inheritance-indicator";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import {
 	Tooltip,
 	TooltipContent,
