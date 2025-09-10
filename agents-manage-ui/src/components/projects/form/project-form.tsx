@@ -36,7 +36,10 @@ export function ProjectForm({
 }: ProjectFormProps) {
 	const form = useForm<ProjectFormData>({
 		resolver: zodResolver(projectSchema),
-		defaultValues: initialData || defaultValues,
+		defaultValues: {
+			...defaultValues,
+			...initialData,
+		},
 	});
 
 	const { isSubmitting } = form.formState;
@@ -122,7 +125,9 @@ export function ProjectForm({
 
 				<ProjectStopWhenSection control={form.control} />
 
-				<div className="flex gap-3 justify-end">
+				<div
+					className={`flex gap-3 ${onCancel ? "justify-end" : "justify-start"}`}
+				>
 					{onCancel && (
 						<Button
 							type="button"

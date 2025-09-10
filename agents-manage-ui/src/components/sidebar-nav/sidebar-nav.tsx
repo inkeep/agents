@@ -10,6 +10,7 @@ import {
 	LifeBuoy,
 	Lock,
 	type LucideIcon,
+	Settings,
 	Workflow,
 } from "lucide-react";
 import Link from "next/link";
@@ -87,6 +88,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 						title: "Traces",
 						url: `/${tenantId}/projects/${projectId}/traces`,
 						icon: Activity,
+					},
+					{
+						title: "Settings",
+						url: `/${tenantId}/projects/${projectId}/settings`,
+						icon: Settings,
 					},
 				]
 			: [

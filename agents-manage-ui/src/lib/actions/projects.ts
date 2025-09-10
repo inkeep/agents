@@ -113,6 +113,8 @@ export async function updateProjectAction(
 	try {
 		const result = await updateProject(tenantId, projectId, project);
 		revalidatePath(`/${tenantId}/projects`);
+		revalidatePath(`/${tenantId}/projects/${projectId}`);
+		revalidatePath(`/${tenantId}/projects/${projectId}/settings`);
 
 		return {
 			success: true,

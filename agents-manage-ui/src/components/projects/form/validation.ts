@@ -11,14 +11,16 @@ const projectModelsSchema = z
 		structuredOutput: modelSettingsSchema.optional(),
 		summarizer: modelSettingsSchema.optional(),
 	})
-	.optional();
+	.optional()
+	.nullable();
 
 const projectStopWhenSchema = z
 	.object({
 		transferCountIs: z.number().min(1).max(100).optional(),
 		stepCountIs: z.number().min(1).max(1000).optional(),
 	})
-	.optional();
+	.optional()
+	.nullable();
 
 export const projectSchema = z.object({
 	id: z
