@@ -121,7 +121,6 @@ export function ExpandableJsonEditor({
 				<>
 					<JsonEditor
 						id={name}
-						autoFocus
 						value={value || ""}
 						onChange={onChange}
 						placeholder={placeholder}

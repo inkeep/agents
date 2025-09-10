@@ -131,18 +131,37 @@ export const useGraphStore = create<GraphState>()(
 			}));
 		},
 		onNodesChange(changes) {
+			// Check if any change type would modify the graph (not just selection changes)
+			const hasModifyingChange = changes.some(
+				(change) =>
+					change.type === "remove" ||
+					change.type === "add" ||
+					change.type === "replace" ||
+					change.type === "position",
+			);
+
 			set((state) => ({
 				history: [...state.history, { nodes: state.nodes, edges: state.edges }],
 				nodes: applyNodeChanges(changes, state.nodes),
+				dirty: hasModifyingChange ? true : state.dirty,
 			}));
 		},
 		onEdgesChange(changes) {
+			// Check if any change type would modify the graph (not just selection changes)
+			const hasModifyingChange = changes.some(
+				(change) =>
+					change.type === "remove" ||
+					change.type === "add" ||
+					change.type === "replace",
+			);
+
 			set((state) => ({
 				history: [...state.history, { nodes: state.nodes, edges: state.edges }],
 			}));
 			set((state) => ({
 				history: [...state.history, { nodes: state.nodes, edges: state.edges }],
 				edges: applyEdgeChanges(changes, state.edges),
+				dirty: hasModifyingChange ? true : state.dirty,
 			}));
 		},
 		onConnect(connection) {

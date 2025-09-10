@@ -91,7 +91,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 	const handleCheckboxChange = (id: string, checked: boolean) => {
 		// Calculate the new relationships state
 		let newRelationships: A2AEdgeData["relationships"];
-		
+
 		if (isSelfLoop) {
 			// For self-loops, when we toggle the checkbox, we should set both directions
 			// to maintain consistency (a self-loop is inherently bidirectional)
@@ -115,11 +115,14 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 		}
 
 		// Check if all relationships are now unchecked
-		const hasAnyRelationship = 
+		const hasAnyRelationship =
 			newRelationships.transferSourceToTarget ||
 			newRelationships.transferTargetToSource ||
 			newRelationships.delegateSourceToTarget ||
 			newRelationships.delegateTargetToSource;
+
+		// Always mark as unsaved when relationships change
+		markUnsaved();
 
 		if (!hasAnyRelationship) {
 			// Remove the edge if no relationships remain
@@ -130,8 +133,6 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 				relationships: newRelationships,
 			});
 		}
-		
-		markUnsaved();
 	};
 
 	const transferOptions = isSelfLoop
@@ -140,7 +141,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 					id: "transferSourceToTarget",
 					label: `${sourceNode?.data.name} can transfer to itself`,
 				},
-		  ]
+			]
 		: [
 				{
 					id: "transferSourceToTarget",
@@ -150,7 +151,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 					id: "transferTargetToSource",
 					label: `${targetNode?.data.name} can transfer to ${sourceNode?.data.name}`,
 				},
-		  ];
+			];
 
 	const delegateOptions = isSelfLoop
 		? [
@@ -158,7 +159,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 					id: "delegateSourceToTarget",
 					label: `${sourceNode?.data.name} can delegate to itself`,
 				},
-		  ]
+			]
 		: [
 				{
 					id: "delegateSourceToTarget",
@@ -168,7 +169,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 					id: "delegateTargetToSource",
 					label: `${targetNode?.data.name} can delegate to ${sourceNode?.data.name}`,
 				},
-		  ];
+			];
 
 	return (
 		<div className="space-y-8">
