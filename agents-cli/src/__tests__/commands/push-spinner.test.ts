@@ -10,11 +10,11 @@ vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    managementApiUrl: 'http://localhost:3002',
+    agentsManageApiUrl: 'http://localhost:3002',
     sources: {
       tenantId: 'config',
       projectId: 'config',
-      managementApiUrl: 'config',
+      agentsManageApiUrl: 'config',
     },
   }),
 }));

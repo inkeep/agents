@@ -10,8 +10,8 @@ dotenv.config({ quiet: true });
 export interface InkeepConfig {
   tenantId?: string;
   projectId?: string;
-  managementApiUrl?: string;
-  executionApiUrl?: string;
+  agentsManageApiUrl?: string;
+  agentsRunApiUrl?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
   modelSettings?: ModelSettings;
@@ -20,16 +20,16 @@ export interface InkeepConfig {
 export interface ValidatedConfiguration {
   tenantId: string;
   projectId: string;
-  managementApiUrl: string;
-  executionApiUrl: string;
+  agentsManageApiUrl: string;
+  agentsRunApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
   modelSettings?: ModelSettings;
   sources: {
     tenantId: string;
     projectId: string;
-    managementApiUrl: string;
-    executionApiUrl: string;
+    agentsManageApiUrl: string;
+    agentsRunApiUrl: string;
     configFile?: string;
   };
 }
@@ -100,8 +100,8 @@ async function loadConfigFromFile(configPath?: string): Promise<InkeepConfig | n
 export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
   // Default config
   const config: InkeepConfig = {
-    managementApiUrl: 'http://localhost:3002',
-    executionApiUrl: 'http://localhost:3003',
+    agentsManageApiUrl: 'http://localhost:3002',
+    agentsRunApiUrl: 'http://localhost:3003',
     manageUiUrl: 'http://localhost:3000',
   };
 
@@ -113,10 +113,10 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
 
   // Override with environment variables if present
   if (process.env.INKEEP_AGENTS_MANAGE_API_URL) {
-    config.managementApiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL;
+    config.agentsManageApiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL;
   }
   if (process.env.INKEEP_AGENTS_RUN_API_URL) {
-    config.executionApiUrl = process.env.INKEEP_AGENTS_RUN_API_URL;
+    config.agentsRunApiUrl = process.env.INKEEP_AGENTS_RUN_API_URL;
   }
 
   return config;
@@ -132,7 +132,7 @@ export async function getProjectId(configPath?: string): Promise<string> {
   return config.projectId || 'default';
 }
 
-export async function getManagementApiUrl(
+export async function getAgentsManageApiUrl(
   overrideUrl?: string,
   configPath?: string
 ): Promise<string> {
@@ -142,10 +142,10 @@ export async function getManagementApiUrl(
   }
 
   const config = await loadConfig(configPath);
-  return config.managementApiUrl || 'http://localhost:3002';
+  return config.agentsManageApiUrl || 'http://localhost:3002';
 }
 
-export async function getExecutionApiUrl(
+export async function getAgentsRunApiUrl(
   overrideUrl?: string,
   configPath?: string
 ): Promise<string> {
@@ -155,26 +155,26 @@ export async function getExecutionApiUrl(
   }
 
   const config = await loadConfig(configPath);
-  return config.executionApiUrl || 'http://localhost:3003';
+  return config.agentsRunApiUrl || 'http://localhost:3003';
 }
 
 /**
  * Validates configuration according to these rules:
  * 1. If --config-file-path is provided, use it (cannot be combined with --tenant-id)
- * 2. If --tenant-id AND --management-api-url AND --execution-api-url are provided, use them (cannot be combined with --config-file-path)
- * 3. If only --management-api-url and --execution-api-url are provided, it overrides the managementApiUrl and executionApiUrl from default config
+ * 2. If --tenant-id AND --agents-manage-api-url AND --agents-run-api-url are provided, use them (cannot be combined with --config-file-path)
+ * 3. If only --agents-manage-api-url and --agents-run-api-url are provided, it overrides the agentsManageApiUrl and agentsRunApiUrl from default config
  * 4. Otherwise, look for default config file (inkeep.config.ts)
  *
  * @param tenantIdFlag - tenantId from command line flag
- * @param managementApiUrlFlag - managementApiUrl from command line flag
- * @param executionApiUrlFlag - executionApiUrl from command line flag
+ * @param agentsManageApiUrlFlag - agentsManageApiUrl from command line flag
+ * @param agentsRunApiUrlFlag - agentsRunApiUrl from command line flag
  * @param configFilePath - explicit path to config file
- * @returns configuration with tenantId, managementApiUrl, and sources used
+ * @returns configuration with tenantId, agentsManageApiUrl, and sources used
  */
 export async function validateConfiguration(
   tenantIdFlag?: string,
-  managementApiUrlFlag?: string,
-  executionApiUrlFlag?: string,
+  agentsManageApiUrlFlag?: string,
+  agentsRunApiUrlFlag?: string,
   configFilePath?: string
 ): Promise<ValidatedConfiguration> {
   // Validation: Cannot combine --config-file-path with --tenant-id
@@ -184,7 +184,7 @@ export async function validateConfiguration(
         'Cannot use --config-file-path with --tenant-id.\n' +
         'Please use either:\n' +
         '  1. --config-file-path alone\n' +
-        '  2. --tenant-id with --management-api-url and --execution-api-url\n' +
+        '  2. --tenant-id with --agents-manage-api-url and --agents-run-api-url\n' +
         '  3. Default config file (inkeep.config.ts)'
     );
   }
@@ -194,8 +194,8 @@ export async function validateConfiguration(
     const config = await loadConfig(configFilePath);
     const tenantId = config.tenantId;
     const projectId = config.projectId || 'default';
-    const managementApiUrl = managementApiUrlFlag || config.managementApiUrl; // Allow ---management-api-url to override
-    const executionApiUrl = executionApiUrlFlag || config.executionApiUrl; // Allow --execution-api-url to override
+    const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl; // Allow ---agents-manage-api-url to override
+    const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl; // Allow --agents-run-api-url to override
 
     if (!tenantId) {
       throw new Error(
@@ -204,27 +204,27 @@ export async function validateConfiguration(
       );
     }
 
-    if (!managementApiUrl) {
+    if (!agentsManageApiUrl) {
       throw new Error(
-        `Management API URL is missing from configuration file: ${configFilePath}\n` +
-          'Please ensure your config file exports a valid configuration with managementApiUrl.'
+        `Agents Manage API URL is missing from configuration file: ${configFilePath}\n` +
+          'Please ensure your config file exports a valid configuration with agentsManageApiUrl.'
       );
     }
-    if (!executionApiUrl) {
+    if (!agentsRunApiUrl) {
       throw new Error(
-        `Execution API URL is missing from configuration file: ${configFilePath}\n` +
-          'Please ensure your config file exports a valid configuration with executionApiUrl.'
+        `Agents Run API URL is missing from configuration file: ${configFilePath}\n` +
+          'Please ensure your config file exports a valid configuration with agentsRunApiUrl.'
       );
     }
 
     const sources = {
       tenantId: `config file (${configFilePath})`,
       projectId: config.projectId ? `config file (${configFilePath})` : 'default',
-      managementApiUrl: managementApiUrlFlag
-        ? 'command-line flag (--management-api-url)'
+      agentsManageApiUrl: agentsManageApiUrlFlag
+        ? 'command-line flag (--agents-manage-api-url)'
         : `config file (${configFilePath})`,
-      executionApiUrl: executionApiUrlFlag
-        ? 'command-line flag (--execution-api-url)'
+      agentsRunApiUrl: agentsRunApiUrlFlag
+        ? 'command-line flag (--agents-run-api-url)'
         : `config file (${configFilePath})`,
       configFile: configFilePath,
     };
@@ -232,27 +232,27 @@ export async function validateConfiguration(
     return {
       tenantId,
       projectId,
-      managementApiUrl,
-      executionApiUrl,
+      agentsManageApiUrl,
+      agentsRunApiUrl,
       manageUiUrl: config.manageUiUrl,
       modelSettings: config.modelSettings || undefined,
       sources,
     };
   }
 
-  // Case 2: Both --tenant-id and --management-api-url and --execution-api-url provided
-  if (tenantIdFlag && managementApiUrlFlag && executionApiUrlFlag) {
+  // Case 2: Both --tenant-id and --agents-manage-api-url and --agents-run-api-url provided
+  if (tenantIdFlag && agentsManageApiUrlFlag && agentsRunApiUrlFlag) {
     const sources = {
       tenantId: 'command-line flag (--tenant-id)',
       projectId: 'default',
-      managementApiUrl: 'command-line flag (--management-api-url)',
-      executionApiUrl: 'command-line flag (--execution-api-url)',
+      agentsManageApiUrl: 'command-line flag (--agents-manage-api-url)',
+      agentsRunApiUrl: 'command-line flag (--agents-run-api-url)',
     };
     return {
       tenantId: tenantIdFlag,
       projectId: 'default',
-      managementApiUrl: managementApiUrlFlag,
-      executionApiUrl: executionApiUrlFlag,
+      agentsManageApiUrl: agentsManageApiUrlFlag,
+      agentsRunApiUrl: agentsRunApiUrlFlag,
       manageUiUrl: undefined,
       modelSettings: undefined,
       sources,
@@ -260,11 +260,11 @@ export async function validateConfiguration(
   }
 
   // Case 3: Only --tenant-id provided (invalid)
-  if (tenantIdFlag && !managementApiUrlFlag && !executionApiUrlFlag) {
+  if (tenantIdFlag && !agentsManageApiUrlFlag && !agentsRunApiUrlFlag) {
     throw new Error(
       'Invalid configuration:\n' +
-        '--tenant-id requires --management-api-url and --execution-api-url to be provided as well.\n' +
-        'Please provide both --tenant-id and --management-api-url and --execution-api-url together.'
+        '--tenant-id requires --agents-manage-api-url and --agents-run-api-url to be provided as well.\n' +
+        'Please provide both --tenant-id and --agents-manage-api-url and --agents-run-api-url together.'
     );
   }
 
@@ -272,8 +272,8 @@ export async function validateConfiguration(
   const config = await loadConfig();
   const tenantId = config.tenantId;
   const projectId = config.projectId || 'default';
-  const managementApiUrl = managementApiUrlFlag || config.managementApiUrl; // Allow --management-api-url to override
-  const executionApiUrl = executionApiUrlFlag || config.executionApiUrl; // Allow --execution-api-url to override
+  const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl; // Allow --agents-manage-api-url to override
+  const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl; // Allow --agents-run-api-url to override
 
   if (!tenantId) {
     // Check if a default config file exists
@@ -283,55 +283,55 @@ export async function validateConfiguration(
         'No configuration found. Please use one of:\n' +
           '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
           '  2. Provide --config-file-path to specify a config file\n' +
-          '  3. Provide both --tenant-id and --management-api-url and --execution-api-url flags\n' +
-          '  4. Set INKEEP_API_URL environment variable'
+          '  3. Provide both --tenant-id and --agents-manage-api-url and --agents-run-api-url flags\n' +
+          '  4. Set INKEEP_AGENTS_MANAGE_API_URL and INKEEP_AGENTS_RUN_API_URL environment variables'
       );
     } else {
       throw new Error(
         `Tenant ID is missing from configuration file: ${configFile}\n` +
           'Please either:\n' +
           '  1. Update your configuration file with a tenantId\n' +
-          '  2. Provide both --tenant-id and --management-api-url and --execution-api-url flags\n'
+          '  2. Provide both --tenant-id and --agents-manage-api-url and --agents-run-api-url flags\n'
       );
     }
   }
 
-  if (!managementApiUrl) {
+  if (!agentsManageApiUrl) {
     throw new Error(
-      'Management API URL is missing. Please either:\n' +
-        '  1. Provide --management-api-url flag\n' +
+      'Agents Management API URL is missing. Please either:\n' +
+        '  1. Provide --agents-manage-api-url flag\n' +
         '  2. Set INKEEP_AGENTS_MANAGE_API_URL environment variable\n' +
-        '  3. Add managementApiUrl to your configuration file'
+        '  3. Add agentsManageApiUrl to your configuration file'
     );
   }
 
-  if (!executionApiUrl) {
+  if (!agentsRunApiUrl) {
     throw new Error(
-      'Execution API URL is missing. Please either:\n' +
-        '  1. Provide --execution-api-url flag\n' +
+      'Agents Run API URL is missing. Please either:\n' +
+        '  1. Provide --agents-run-api-url flag\n' +
         '  2. Set INKEEP_AGENTS_RUN_API_URL environment variable\n' +
-        '  3. Add executionApiUrl to your configuration file'
+        '  3. Add agentsRunApiUrl to your configuration file'
     );
   }
 
   // Determine sources for Case 4
   const configFile = findConfigFile();
-  let managementApiUrlSource = configFile ? `config file (${configFile})` : 'default';
-  let executionApiUrlSource = configFile ? `config file (${configFile})` : 'default';
+  let agentsManageApiUrlSource = configFile ? `config file (${configFile})` : 'default';
+  let agentsRunApiUrlSource = configFile ? `config file (${configFile})` : 'default';
 
-  if (managementApiUrlFlag) {
-    managementApiUrlSource = 'command-line flag (--management-api-url)';
-  } else if (process.env.INKEEP_AGENTS_MANAGE_API_URL === managementApiUrl) {
-    managementApiUrlSource = 'environment variable (INKEEP_AGENTS_MANAGE_API_URL)';
-  } else if (managementApiUrl === 'http://localhost:3002' && !configFile) {
-    managementApiUrlSource = 'default value';
+  if (agentsManageApiUrlFlag) {
+    agentsManageApiUrlSource = 'command-line flag (--agents-manage-api-url)';
+  } else if (process.env.INKEEP_AGENTS_MANAGE_API_URL === agentsManageApiUrl) {
+    agentsManageApiUrlSource = 'environment variable (INKEEP_AGENTS_MANAGE_API_URL)';
+  } else if (agentsManageApiUrl === 'http://localhost:3002' && !configFile) {
+    agentsManageApiUrlSource = 'default value';
   }
-  if (executionApiUrlFlag) {
-    executionApiUrlSource = 'command-line flag (--execution-api-url)';
-  } else if (process.env.INKEEP_AGENTS_RUN_API_URL === executionApiUrl) {
-    executionApiUrlSource = 'environment variable (INKEEP_AGENTS_RUN_API_URL)';
-  } else if (executionApiUrl === 'http://localhost:3003' && !configFile) {
-    executionApiUrlSource = 'default value';
+  if (agentsRunApiUrlFlag) {
+    agentsRunApiUrlSource = 'command-line flag (--agents-run-api-url)';
+  } else if (process.env.INKEEP_AGENTS_RUN_API_URL === agentsRunApiUrl) {
+    agentsRunApiUrlSource = 'environment variable (INKEEP_AGENTS_RUN_API_URL)';
+  } else if (agentsRunApiUrl === 'http://localhost:3003' && !configFile) {
+    agentsRunApiUrlSource = 'default value';
   }
 
   const sources = {
@@ -341,16 +341,16 @@ export async function validateConfiguration(
         ? `config file (${configFile})`
         : 'config'
       : 'default',
-    managementApiUrl: managementApiUrlSource,
-    executionApiUrl: executionApiUrlSource,
+    agentsManageApiUrl: agentsManageApiUrlSource,
+    agentsRunApiUrl: agentsRunApiUrlSource,
     configFile: configFile || undefined,
   };
 
   return {
     tenantId,
     projectId,
-    managementApiUrl,
-    executionApiUrl,
+    agentsManageApiUrl,
+    agentsRunApiUrl,
     manageUiUrl: config.manageUiUrl,
     modelSettings: config.modelSettings || undefined,
     sources,

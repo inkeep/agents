@@ -38,11 +38,11 @@ vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    managementApiUrl: 'http://localhost:3002',
+    agentsManageApiUrl: 'http://localhost:3002',
     sources: {
       tenantId: 'config',
       projectId: 'config',
-      managementApiUrl: 'config',
+      agentsManageApiUrl: 'config',
     },
   }),
 }));
@@ -60,7 +60,7 @@ describe('Push Command - Project Validation', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     // Ensure tsx-loader is not mocked for these tests
     (importWithTypeScriptSupport as Mock).mockReset();
 
@@ -90,14 +90,14 @@ describe('Push Command - Project Validation', () => {
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      managementApiUrl: 'http://localhost:3002',
-      executionApiUrl: 'http://localhost:3001',
+      agentsManageApiUrl: 'http://localhost:3002',
+      agentsRunApiUrl: 'http://localhost:3001',
       manageUiUrl: 'http://localhost:3000',
       sources: {
         tenantId: 'config',
         projectId: 'config',
-        managementApiUrl: 'config',
-        executionApiUrl: 'config',
+        agentsManageApiUrl: 'config',
+        agentsRunApiUrl: 'config',
       },
     });
 
@@ -390,7 +390,7 @@ describe('Push Command - UI Link Generation', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     // Reset the tsx-loader mock
     (importWithTypeScriptSupport as Mock).mockReset();
 
@@ -403,7 +403,9 @@ describe('Push Command - UI Link Generation', () => {
       selectFrom: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
-      execute: vi.fn().mockResolvedValue([{ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' }]),
+      execute: vi
+        .fn()
+        .mockResolvedValue([{ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' }]),
       insertInto: vi.fn().mockReturnThis(),
       values: vi.fn().mockReturnThis(),
       returning: vi.fn().mockReturnThis(),
@@ -414,8 +416,12 @@ describe('Push Command - UI Link Generation', () => {
     };
 
     // Mock core functions - ensure project exists to bypass creation prompts
-    mockGetProject = vi.fn().mockResolvedValue({ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' });
-    mockCreateProject = vi.fn().mockResolvedValue({ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' });
+    mockGetProject = vi
+      .fn()
+      .mockResolvedValue({ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' });
+    mockCreateProject = vi
+      .fn()
+      .mockResolvedValue({ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' });
 
     (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
     (core.getProject as Mock).mockReturnValue(mockGetProject);
@@ -436,7 +442,7 @@ describe('Push Command - UI Link Generation', () => {
     const mockError = vi.fn();
     console.error = mockError;
     console.debug = vi.fn();
-    
+
     // Mock ManagementApiClient with default successful push
     const { ManagementApiClient } = await import('../../api.js');
     const mockApi = {
@@ -449,7 +455,7 @@ describe('Push Command - UI Link Generation', () => {
       }),
     };
     (ManagementApiClient.create as Mock).mockResolvedValue(mockApi);
-    
+
     // Mock inquirer to prevent prompts
     (inquirer.prompt as unknown as Mock).mockResolvedValue({ shouldCreate: false });
   });
@@ -460,18 +466,18 @@ describe('Push Command - UI Link Generation', () => {
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      managementApiUrl: 'http://localhost:3002',
+      agentsManageApiUrl: 'http://localhost:3002',
       manageUiUrl: 'https://app.example.com',
       sources: {
         tenantId: 'config',
         projectId: 'config',
-        managementApiUrl: 'config',
+        agentsManageApiUrl: 'config',
       },
     });
 
     // Mock graph with required methods and id
     const mockGraph = {
-      id: 'test-graph-id',  // Add graph ID
+      id: 'test-graph-id', // Add graph ID
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-graph-id'),
       getName: vi.fn().mockReturnValue('Test Graph'),
@@ -503,11 +509,11 @@ describe('Push Command - UI Link Generation', () => {
     }
 
     // Verify the UI link is displayed with correct URL
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('View graph in UI:'));
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('View graph in UI:')
-    );
-    expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('https://app.example.com/test-tenant/projects/test-project/graphs/test-graph-id')
+      expect.stringContaining(
+        'https://app.example.com/test-tenant/projects/test-project/graphs/test-graph-id'
+      )
     );
   });
 
@@ -517,12 +523,12 @@ describe('Push Command - UI Link Generation', () => {
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      managementApiUrl: 'http://localhost:3002',
+      agentsManageApiUrl: 'http://localhost:3002',
       manageUiUrl: undefined,
       sources: {
         tenantId: 'config',
         projectId: 'config',
-        managementApiUrl: 'config',
+        agentsManageApiUrl: 'config',
       },
     });
 
@@ -558,11 +564,11 @@ describe('Push Command - UI Link Generation', () => {
     }
 
     // Verify the UI link is displayed with default URL
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('View graph in UI:'));
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('View graph in UI:')
-    );
-    expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph-id')
+      expect.stringContaining(
+        'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph-id'
+      )
     );
   });
 
@@ -572,12 +578,12 @@ describe('Push Command - UI Link Generation', () => {
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      managementApiUrl: 'http://localhost:3002',
+      agentsManageApiUrl: 'http://localhost:3002',
       manageUiUrl: 'not-a-valid-url',
       sources: {
         tenantId: 'config',
         projectId: 'config',
-        managementApiUrl: 'config',
+        agentsManageApiUrl: 'config',
       },
     });
 
@@ -611,13 +617,13 @@ describe('Push Command - UI Link Generation', () => {
     } catch (error: any) {
       expect(error.message).toMatch(/Process exited with code/);
     }
-    
+
     // The UI link line should not be displayed
-    const viewGraphCalls = mockLog.mock.calls.filter((call: any[]) => 
+    const viewGraphCalls = mockLog.mock.calls.filter((call: any[]) =>
       call.some((arg: any) => typeof arg === 'string' && arg.includes('View graph in UI'))
     );
     expect(viewGraphCalls.length).toBe(0);
-    
+
     // Debug log should have been called
     expect(console.debug).toHaveBeenCalledWith('Could not generate UI link:', expect.any(Error));
   });
@@ -628,12 +634,12 @@ describe('Push Command - UI Link Generation', () => {
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      managementApiUrl: 'http://localhost:3002',
+      agentsManageApiUrl: 'http://localhost:3002',
       manageUiUrl: 'https://app.example.com///',
       sources: {
         tenantId: 'config',
         projectId: 'config',
-        managementApiUrl: 'config',
+        agentsManageApiUrl: 'config',
       },
     });
 
@@ -669,14 +675,14 @@ describe('Push Command - UI Link Generation', () => {
     }
 
     // Verify the UI link is displayed with normalized URL (no trailing slashes)
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('View graph in UI:'));
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('View graph in UI:')
-    );
-    expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('https://app.example.com/test-tenant/projects/test-project/graphs/test-graph-id')
+      expect.stringContaining(
+        'https://app.example.com/test-tenant/projects/test-project/graphs/test-graph-id'
+      )
     );
     // Ensure no double slashes after the domain
-    const urlCalls = mockLog.mock.calls.filter((call: any[]) => 
+    const urlCalls = mockLog.mock.calls.filter((call: any[]) =>
       call.some((arg: any) => typeof arg === 'string' && arg.includes('https://app.example.com'))
     );
     urlCalls.forEach((call: any[]) => {

@@ -11,7 +11,7 @@ import { buildGraphViewUrl } from '../utils/url';
 
 export interface PushOptions {
   tenantId?: string;
-  managementApiUrl?: string;
+  agentsManageApiUrl?: string;
   configFilePath?: string;
 }
 
@@ -72,8 +72,8 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
     try {
       config = await validateConfiguration(
         options.tenantId,
-        options.managementApiUrl,
-        undefined, // executionApiUrl not needed for push
+        options.agentsManageApiUrl,
+        undefined, // agentsRunApiUrl not needed for push
         options.configFilePath
       );
     } catch (error: any) {
@@ -88,11 +88,11 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
     console.log(chalk.gray('Configuration sources:'));
     console.log(chalk.gray(`  • Tenant ID: ${config.sources.tenantId}`));
     console.log(chalk.gray(`  • Project ID: ${config.sources.projectId}`));
-    console.log(chalk.gray(`  • API URL: ${config.sources.managementApiUrl}`));
+    console.log(chalk.gray(`  • API URL: ${config.sources.agentsManageApiUrl}`));
 
     const tenantId = config.tenantId;
     const projectId = config.projectId;
-    const managementApiUrl = config.managementApiUrl;
+    const agentsManageApiUrl = config.agentsManageApiUrl;
 
     // Check if project exists in the database
     spinner.text = 'Validating project...';
@@ -191,14 +191,14 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
 
     // Create API client with validated configuration (not used directly since graph handles its own API calls)
     await ManagementApiClient.create(
-      config.managementApiUrl,
+      config.agentsManageApiUrl,
       options.configFilePath,
       config.tenantId
     );
 
     // Inject configuration into the graph
     if (typeof graph.setConfig === 'function') {
-      graph.setConfig(tenantId, projectId, managementApiUrl);
+      graph.setConfig(tenantId, projectId, agentsManageApiUrl);
     }
 
     spinner.start('Initializing graph...');

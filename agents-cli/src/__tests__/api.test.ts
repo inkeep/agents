@@ -8,8 +8,8 @@ global.fetch = mockFetch as any;
 // Mock config module
 vi.mock('../utils/config.js', () => ({
   getApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
-  getManagementApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
-  getExecutionApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3003'),
+  getAgentsManageApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
+  getAgentsRunApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3003'),
   getTenantId: vi.fn(async () => 'test-tenant-id'),
   getProjectId: vi.fn(async () => 'test-project-id'),
   loadConfig: vi.fn(),

@@ -28,10 +28,13 @@ program
 // Create command
 program
   .command('create [directory]')
-  .description('Create a new Inkeep Agent Framework project')
+  .description('Create a new Inkeep Agent Framework Starter Directory')
+  .option('--tenant-id <tenant-id>', 'Tenant ID')
+  .option('--project-id <project-id>', 'Project ID')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--nango-key <nango-key>', 'Nango API key')
+  .option('--manage-api-port <port>', 'Management API port', '3002')
+  .option('--run-api-port <port>', 'Run API port', '3003')
   .action(async (directory, options) => {
     await createCommand(directory, options);
   });

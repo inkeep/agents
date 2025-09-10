@@ -12,7 +12,8 @@ program
   .option('--project-id <project-id>', 'Project ID')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--nango-key <nango-key>', 'Nango API key')
+  .option('--manage-api-port <port>', 'Management API port', '3002')
+  .option('--run-api-port <port>', 'Run API port', '3003')
   .parse();
 
 async function main() {
@@ -27,6 +28,8 @@ async function main() {
       nangoKey: options.nangoKey,
       tenantId: options.tenantId,
       projectId: options.projectId,
+      manageApiPort: options.manageApiPort,
+      runApiPort: options.runApiPort,
     });
   } catch (error) {
     console.error('Failed to create project:', error);

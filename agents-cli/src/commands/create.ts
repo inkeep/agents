@@ -7,6 +7,17 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
+type FileConfig = {
+  dirName: string;
+  tenantId?: string;
+  projectId?: string;
+  openAiKey?: string;
+  anthropicKey?: string;
+  nangoKey?: string;
+  manageApiPort: string;
+  runApiPort: string;
+};
+
 export const createAgents = async (
   args: {
     tenantId?: string;
@@ -15,9 +26,20 @@ export const createAgents = async (
     openAiKey?: string;
     anthropicKey?: string;
     nangoKey?: string;
+    manageApiPort?: string;
+    runApiPort?: string;
   } = {}
 ) => {
-  let { tenantId, projectId, dirName, openAiKey, anthropicKey, nangoKey } = args;
+  let {
+    tenantId,
+    projectId,
+    dirName,
+    openAiKey,
+    anthropicKey,
+    nangoKey,
+    manageApiPort,
+    runApiPort,
+  } = args;
 
   p.intro(color.inverse(' Create Agents Project '));
 
@@ -102,20 +124,20 @@ export const createAgents = async (
     openAiKey = (openAiKeyResponse as string) || undefined;
   }
 
-  // Prompt for Nango API key (optional)
-  if (!nangoKey) {
-    const nangoKeyResponse = await p.text({
-      message: 'Enter your Nango Secret key (optional):',
-      placeholder: 'nango-secret-key',
-      defaultValue: '',
-    });
+  // // Prompt for Nango API key (optional)
+  // if (!nangoKey) {
+  //   const nangoKeyResponse = await p.text({
+  //     message: 'Enter your Nango Secret key (optional):',
+  //     placeholder: 'nango-secret-key',
+  //     defaultValue: '',
+  //   });
 
-    if (p.isCancel(nangoKeyResponse)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-    nangoKey = (nangoKeyResponse as string) || undefined;
-  }
+  //   if (p.isCancel(nangoKeyResponse)) {
+  //     p.cancel('Operation cancelled');
+  //     process.exit(0);
+  //   }
+  //   nangoKey = (nangoKeyResponse as string) || undefined;
+  // }
 
   const s = p.spinner();
   s.start('Creating project structure...');
@@ -142,6 +164,17 @@ export const createAgents = async (
     await fs.ensureDir(projectPath);
     process.chdir(projectPath);
 
+    const config = {
+      dirName,
+      tenantId,
+      projectId,
+      openAiKey,
+      anthropicKey,
+      nangoKey,
+      manageApiPort: manageApiPort || '3002',
+      runApiPort: runApiPort || '3003',
+    };
+
     // Create workspace structure
     s.message('Setting up workspace structure...');
     await createWorkspaceStructure(projectId);
@@ -152,27 +185,15 @@ export const createAgents = async (
 
     // Create environment files
     s.message('Setting up environment files...');
-    await createEnvironmentFiles({
-      tenantId,
-      projectId,
-      openAiKey,
-      anthropicKey,
-      nangoKey,
-    });
+    await createEnvironmentFiles(config);
 
     // Create service files
     s.message('Creating service files...');
-    await createServiceFiles({
-      projectId,
-      tenantId,
-      anthropicKey,
-      openAiKey,
-      nangoKey,
-    });
+    await createServiceFiles(config);
 
     // Create documentation
     s.message('Creating documentation...');
-    await createDocumentation(dirName);
+    await createDocumentation(config);
 
     // Create turbo config
     s.message('Setting up Turbo...');
@@ -196,8 +217,8 @@ export const createAgents = async (
         `  npm run dev:apis (for APIs only)\n` +
         `  npx inkeep dev (for APIs + Management Dashboard)\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Management API: http://localhost:3002\n` +
-        `  • Execution API: http://localhost:3003\n` +
+        `  • Management API: http://localhost:${manageApiPort || '3002'}\n` +
+        `  • Execution API: http://localhost:${runApiPort || '3003'}\n` +
         `  • Management Dashboard: Available with 'npx inkeep dev'\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -230,16 +251,7 @@ async function setupPackageConfigurations(dirName: string) {
     private: true,
     type: 'module',
     scripts: {
-      build: 'turbo build',
       dev: 'turbo dev',
-      'dev:apis': 'turbo dev:apis',
-      test: 'turbo test',
-      'test:watch': 'turbo test:watch',
-      'test:coverage': 'turbo test:coverage',
-      lint: 'turbo lint',
-      format: 'biome check --write .',
-      typecheck: 'turbo typecheck',
-      clean: 'npm run clean --workspaces',
       'db:push': 'drizzle-kit push',
     },
     dependencies: {},
@@ -280,9 +292,6 @@ async function setupPackageConfigurations(dirName: string) {
       build: 'tsc',
       dev: 'tsx watch src/index.ts',
       start: 'node dist/index.js',
-      test: 'vitest',
-      lint: 'biome check .',
-      typecheck: 'tsc --noEmit',
     },
     dependencies: {
       '@inkeep/agents-manage-api': '^0.1.1',
@@ -293,7 +302,6 @@ async function setupPackageConfigurations(dirName: string) {
       '@types/node': '^20.12.0',
       tsx: '^4.19.0',
       typescript: '^5.4.0',
-      vitest: '^1.6.0',
     },
     engines: {
       node: '>=20.x',
@@ -309,12 +317,8 @@ async function setupPackageConfigurations(dirName: string) {
     description: 'Execution API for agents',
     type: 'module',
     scripts: {
-      build: 'tsc',
       dev: 'tsx watch src/index.ts',
       start: 'node dist/index.js',
-      test: 'vitest',
-      lint: 'biome check .',
-      typecheck: 'tsc --noEmit',
     },
     dependencies: {
       '@inkeep/agents-run-api': '^0.1.1',
@@ -325,7 +329,6 @@ async function setupPackageConfigurations(dirName: string) {
       '@types/node': '^20.12.0',
       tsx: '^4.19.0',
       typescript: '^5.4.0',
-      vitest: '^1.6.0',
     },
     engines: {
       node: '>=20.x',
@@ -362,13 +365,7 @@ async function setupPackageConfigurations(dirName: string) {
   // No tsconfig needed for UI since we're using the packaged version
 }
 
-async function createEnvironmentFiles(config: {
-  tenantId?: string;
-  projectId?: string;
-  openAiKey?: string;
-  anthropicKey?: string;
-  nangoKey?: string;
-}) {
+async function createEnvironmentFiles(config: FileConfig) {
   // Root .env file
   const envContent = `# Environment
 ENVIRONMENT=development
@@ -380,15 +377,16 @@ DB_FILE_NAME=file:./local.db
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 
-# Nango (optional)
-${config.nangoKey ? `NANGO_SECRET_KEY=${config.nangoKey}` : '# NANGO_SECRET_KEY=your-nango-secret-key'}
-
 # Logging
 LOG_LEVEL=debug
 
 # Service Ports
-MANAGEMENT_API_PORT=3002
-EXECUTION_API_PORT=3003
+MANAGE_API_PORT=${config.manageApiPort}
+RUN_API_PORT=${config.runApiPort}
+
+# UI Configuration (for dashboard)
+NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
+NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
 `;
 
   await fs.writeFile('.env', envContent);
@@ -398,7 +396,7 @@ EXECUTION_API_PORT=3003
   await fs.writeFile('.env.example', envExample);
 
   // Create .env files for each API service
-  const apiEnvContent = `# Environment
+  const runApiEnvContent = `# Environment
 ENVIRONMENT=development
 
 # Database (relative path from API directory)
@@ -407,16 +405,17 @@ DB_FILE_NAME=file:../../local.db
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-
-# Nango (optional)
-${config.nangoKey ? `NANGO_SECRET_KEY=${config.nangoKey}` : '# NANGO_SECRET_KEY=your-nango-secret-key'}
-
-# Logging
-LOG_LEVEL=debug
 `;
 
-  await fs.writeFile('apps/manage-api/.env', apiEnvContent);
-  await fs.writeFile('apps/run-api/.env', apiEnvContent);
+  const manageApiEnvContent = `# Environment
+ENVIRONMENT=development
+
+# Database (relative path from API directory)
+DB_FILE_NAME=file:../../local.db
+`;
+
+  await fs.writeFile('apps/manage-api/.env', manageApiEnvContent);
+  await fs.writeFile('apps/run-api/.env', runApiEnvContent);
 
   // Create .gitignore
   const gitignore = `# Dependencies
@@ -500,13 +499,7 @@ pids/
   await fs.writeJson('biome.json', biomeConfig, { spaces: 2 });
 }
 
-async function createServiceFiles(config: {
-  projectId: string;
-  tenantId: string;
-  anthropicKey?: string;
-  openAiKey?: string;
-  nangoKey?: string;
-}) {
+async function createServiceFiles(config: FileConfig) {
   const agentsGraph = `import { agent, agentGraph } from '@inkeep/agents-sdk';
 
 // Router agent - the entry point that routes users to specialist agents
@@ -535,8 +528,8 @@ export const graph = agentGraph({
     const config = defineConfig({
       tenantId: "${config.tenantId}",
       projectId: "${config.projectId}",
-      managementApiUrl: process.env.INKEEP_API_URL || 'http://localhost:3002',
-      executionApiUrl: process.env.INKEEP_API_KEY || 'http://localhost:3003',
+      agentsManageApiUrl: \`http://localhost:\${process.env.MANAGE_API_PORT || '3002'}\`,
+      agentsRunApiUrl: \`http://localhost:\${process.env.RUN_API_PORT || '3003'}\`,
     });
     
     export default config;`;
@@ -550,15 +543,10 @@ ENVIRONMENT=development
 # Database (relative path from project directory)
 DB_FILE_NAME=file:../../local.db
 
-# AI Provider Keys  
-ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
-OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
+# UI Configuration (for dashboard)
+NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
+NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
 
-# Nango (optional)
-${config.nangoKey ? `NANGO_SECRET_KEY=${config.nangoKey}` : '# NANGO_SECRET_KEY=your-nango-secret-key'}
-
-# Logging
-LOG_LEVEL=debug
 `;
 
   await fs.writeFile(`src/${config.projectId}/.env`, projectEnvContent);
@@ -598,7 +586,7 @@ const logger = getLogger('management-api');
 // Create the Hono app
 const app = createManagementApp({
   serverConfig: {
-    port: Number(process.env.MANAGEMENT_API_PORT) || 3002,
+    port: Number(process.env.MANAGE_API_PORT) || 3002,
     serverOptions: {
       requestTimeout: 60000,
       keepAliveTimeout: 60000,
@@ -608,7 +596,7 @@ const app = createManagementApp({
   credentialStores,
 });
 
-const port = Number(process.env.MANAGEMENT_API_PORT) || 3002;
+const port = Number(process.env.MANAGE_API_PORT) || 3002;
 
 // Start the server using @hono/node-server
 serve(
@@ -636,7 +624,7 @@ const logger = getLogger('execution-api');
 // Create the Hono app
 const app = createExecutionApp({
   serverConfig: {
-    port: Number(process.env.EXECUTION_API_PORT) || 3003,
+    port: Number(process.env.RUN_API_PORT) || 3003,
     serverOptions: {
       requestTimeout: 120000,
       keepAliveTimeout: 60000,
@@ -646,7 +634,7 @@ const app = createExecutionApp({
   credentialStores,
 });
 
-const port = Number(process.env.EXECUTION_API_PORT) || 3003;
+const port = Number(process.env.RUN_API_PORT) || 3003;
 
 // Start the server using @hono/node-server
 serve(
@@ -714,36 +702,9 @@ async function createTurboConfig() {
         dependsOn: ['build'],
         cache: false,
       },
-      test: {
-        dependsOn: ['^build'],
-        inputs: ['$TURBO_DEFAULT$', '**/*.{test,spec}.{js,jsx,ts,tsx}'],
-        outputs: ['coverage/**'],
-      },
-      'test:watch': {
-        cache: false,
-        persistent: true,
-      },
-      'test:coverage': {
-        dependsOn: ['^build'],
-        inputs: ['$TURBO_DEFAULT$', '**/*.{test,spec}.{js,jsx,ts,tsx}'],
-        outputs: ['coverage/**'],
-      },
-      lint: {
-        inputs: ['$TURBO_DEFAULT$'],
-        outputs: [],
-      },
-      typecheck: {
-        dependsOn: ['^build'],
-        inputs: ['$TURBO_DEFAULT$'],
-        outputs: [],
-      },
       'db:push': {
         cache: false,
         inputs: ['drizzle.config.ts', 'src/data/db/schema.ts'],
-      },
-      'dev:apis': {
-        cache: false,
-        persistent: true,
       },
     },
   };
@@ -751,8 +712,8 @@ async function createTurboConfig() {
   await fs.writeJson('turbo.json', turboConfig, { spaces: 2 });
 }
 
-async function createDocumentation(projectName: string) {
-  const readme = `# ${projectName}
+async function createDocumentation(config: FileConfig) {
+  const readme = `# ${config.dirName}
 
 An Inkeep Agent Framework project with multi-service architecture.
 
@@ -760,58 +721,41 @@ An Inkeep Agent Framework project with multi-service architecture.
 
 This project follows a workspace structure with the following services:
 
-- **Management API** (Port 3002): Agent configuration and management
-- **Execution API** (Port 3003): Agent execution and chat processing  
-- **Management Dashboard**: Web interface available via \`npx inkeep dev\`
-- **Shared Source**: Agent definitions and tools in \`src/\`
+- **Agents Management API** (Port ${config.manageApiPort}): Agent configuration and management
+- **Agents Run API** (Port ${config.runApiPort}): Agent execution and chat processing  
+- **Management Dashboard** (Port 3000): Web interface available via \`npx inkeep dev\`
 
 ## Quick Start
 
-1. **Install dependencies:**
+1. **Start services:**
    \`\`\`bash
-   npm install
-   \`\`\`
-
-2. **Configure environment variables:**
-   \`\`\`bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   \`\`\`
-
-3. **Start services:**
-   \`\`\`bash
-   # Start APIs only
-   npm run dev:apis
+   # Start Agents Management API and Agents Run API
+   npm run dev
    
-   # Start APIs + Management Dashboard
+   # Start Dashboard
    npx inkeep dev
    \`\`\`
 
-4. **Access your services:**
-   - Management API: http://localhost:3002  
-   - Execution API: http://localhost:3003
-   - Management Dashboard: Available when using \`npx inkeep dev\`
-
-## Available Scripts
-
-- \`npm run dev\` - Start API services in development mode
-- \`npm run dev:apis\` - Start API services (same as npm run dev)
-- \`npx inkeep dev\` - Start APIs + Management Dashboard
-- \`npm run build\` - Build all packages
-- \`npm run test\` - Run tests across all packages
-- \`npm run lint\` - Run linting across all packages
-- \`npm run typecheck\` - Run type checking
+3. **Deploy your first agent graph:**
+   \`\`\`bash
+   # Navigate to your project's graph directory
+   cd src/${config.projectId}/
+   
+   # Push the hello graph to create it
+   npx inkeep push hello.graph.ts
+   \`\`\`
+  - Follow the prompts to create the project and graph
+  - Click on the \"View graph in UI:\" link to see the graph in the management dashboard
 
 ## Project Structure
 
 \`\`\`
-${projectName}/
+${config.dirName}/
 ├── src/
-│   ├── agents/              # Agent configurations
-│   └── tools/               # Tool implementations
+│   ├── /${config.projectId}              # Agent configurations
 ├── apps/
-│   ├── manage-api/          # Management API service
-│   └── run-api/             # Execution API service
+│   ├── manage-api/          # Agents Management API service
+│   └── run-api/             # Agents Run API service
 ├── turbo.json               # Turbo configuration
 └── package.json             # Root package configuration with npm workspaces
 \`\`\`
@@ -820,77 +764,86 @@ ${projectName}/
 
 ### Environment Variables
 
-Edit the \`.env\` file with your configuration:
+Environment variables are defined in the following places:
+
+- \`apps/manage-api/.env\`: Agents Management API environment variables
+- \`apps/run-api/.env\`: Agents Run API environment variables
+- \`src/${config.projectId}/.env\`: Inkeep CLI environment variables
+
+To change the API keys used by your agents modify \`apps/run-api/.env\`. You are required to define at least one LLM provider key.
 
 \`\`\`bash
-# AI Provider Keys (Required)
+# AI Provider Keys
 ANTHROPIC_API_KEY=your-anthropic-key-here
 OPENAI_API_KEY=your-openai-key-here
+\`\`\`
 
-# Optional integrations
-NANGO_SECRET_KEY=your-nango-secret-key
+To change the ports used by your services modify \`apps/manage-api/.env\` and \`apps/run-api/.env\` respectively:
 
-# Database
-DB_FILE_NAME=file:./local.db
+\`\`\`bash
+# Service port for apps/run-api 
+RUN_API_PORT=3003
 
-# Service Ports (default values)
-MANAGEMENT_API_PORT=3002
-EXECUTION_API_PORT=3003
+# Service port for apps/manage-api
+MANAGE_API_PORT
+\`\`\`
+
+After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`npx inkeep dev\`:
+
+\`\`\`bash
+# UI Configuration (for dashboard)
+NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
+NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
 \`\`\`
 
 ### Agent Configuration
 
-Your agents are defined in \`src/agents/index.ts\`. The default setup includes:
+Your agents are defined in \`src/${config.projectId}/index.ts\`. The default setup includes:
 
-- **Router Agent**: Routes requests to appropriate specialist agents
-- **QA Agent**: Handles questions and information requests
-- **Task Agent**: Manages action-oriented requests
+- **Hello Agent**: A hello agent that just says hello.
 
-### Tools
+Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.ts\`. The inkeep configuration is used to configure defaults for the inkeep CLI. The configuration includes:
 
-Custom tools are defined in \`src/tools/\`. The default setup includes a search tool example.
+- \`tenantId\`: The tenant ID
+- \`projectId\`: The project ID
+- \`agentsManageApiUrl\`: The management API URL
+- \`agentsRunApiUrl\`: The execution API URL
+
 
 ## Development
 
-### Adding New Agents
+### Updating Your Agents
 
-1. Edit \`src/agents/index.ts\`
-2. Define your agent with \`agent()\` function
-3. Add it to the \`agents\` array in \`agentGraph()\`
-4. Restart the services: \`npm run dev\`
-
-### Adding New Tools  
-
-1. Create a new tool file in \`src/tools/\`
-2. Export it from \`src/tools/index.ts\`
-3. Import and use it in your agent definitions
+1. Edit \`src/${config.projectId}/index.ts\`
+2. Push the graph to the platform to update: \`npx inkeep push hello.graph.ts\` 
 
 ### API Documentation
 
 Once services are running, view the OpenAPI documentation:
 
-- Management API: http://localhost:3002/openapi.json
-- Execution API: http://localhost:3003/openapi.json
+- Management API: http://localhost:${config.manageApiPort}/docs
+- Execution API: http://localhost:${config.runApiPort}/docs
 
 ## Learn More
 
 - [Inkeep Documentation](https://docs.inkeep.com)
-- [Agents Framework Guide](https://docs.inkeep.com/agents)
-- [Turbo Documentation](https://turbo.build/repo/docs)
 
 ## Troubleshooting
+
+## Inkeep CLI commands
+
+- Ensure you are runnning commands from \`cd src/${config.projectId}\`.
+- Validate the \`inkeep.config.ts\` file has the correct api urls.
+- Validate that the \`.env\` file in \`src/${config.projectId}\` has the correct \`DB_FILE_NAME\`.
 
 ### Services won't start
 
 1. Ensure all dependencies are installed: \`npm install\`
 2. Check that ports 3000-3003 are available
-3. Verify your \`.env\` file has the required API keys
 
-### Build errors
+### Agents won't respond
 
-1. Run \`npm run clean\` to clear build cache
-2. Run \`npm run build\` to rebuild all packages
-3. Check for TypeScript errors with \`npm run typecheck\`
+1. Ensure that the Agents Run API is running and includes a valid Anthropic or OpenAI API key in its .env file
 `;
 
   await fs.writeFile('README.md', readme);
