@@ -199,6 +199,63 @@ describe('Tool-Credential Integration Tests', () => {
       expect(tool2Body.data.credentialReferenceId).toBe(credentialId);
     });
 
+    it('should set credentialReferenceId to null on tools when credential is deleted', async () => {
+      const tenantId = createTestTenantId('tool-cred-delete-propagate');
+      await ensureTestProject(tenantId, projectId);
+
+      // Create one credential shared by two tools
+      const { credentialId } = await createTestCredential(tenantId);
+      const { toolId: tool1Id } = await createTestTool(tenantId, credentialId);
+      const { toolId: tool2Id } = await createTestTool(tenantId, credentialId);
+
+      // Verify tools have the credential reference
+      let tool1Res = await app.request(
+        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool1Id}`
+      );
+      let tool2Res = await app.request(
+        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool2Id}`
+      );
+      
+      let tool1Body = await tool1Res.json();
+      let tool2Body = await tool2Res.json();
+      
+      expect(tool1Body.data.credentialReferenceId).toBe(credentialId);
+      expect(tool2Body.data.credentialReferenceId).toBe(credentialId);
+
+      // Delete the credential
+      const deleteRes = await app.request(
+        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      expect(deleteRes.status).toBe(204);
+
+      // Verify credential is deleted
+      const credRes = await app.request(
+        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`
+      );
+      expect(credRes.status).toBe(404);
+
+      // Verify both tools still exist but have null credentialReferenceId
+      tool1Res = await app.request(
+        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool1Id}`
+      );
+      tool2Res = await app.request(
+        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool2Id}`
+      );
+      
+      expect(tool1Res.status).toBe(200);
+      expect(tool2Res.status).toBe(200);
+      
+      tool1Body = await tool1Res.json();
+      tool2Body = await tool2Res.json();
+      
+      // Tools should now be credential-less (null credentialReferenceId)
+      expect(tool1Body.data.credentialReferenceId).toBeUndefined();
+      expect(tool2Body.data.credentialReferenceId).toBeUndefined();
+    });
+
     it('should allow deleting a tool without affecting shared credential or other tools', async () => {
       const tenantId = createTestTenantId('tool-cred-delete-sharing');
       await ensureTestProject(tenantId, projectId);

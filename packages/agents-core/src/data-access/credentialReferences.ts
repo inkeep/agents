@@ -1,6 +1,6 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { credentialReferences, tools } from '../db/schema';
+import { credentialReferences, externalAgents, tools } from '../db/schema';
 import type {
   CredentialReferenceInsert,
   CredentialReferenceSelect,
@@ -192,6 +192,36 @@ export const deleteCredentialReference =
     if (!existingCredential) {
       return false;
     }
+
+    // Update all tools that reference this credential to set credentialReferenceId to null
+    await db
+      .update(tools)
+      .set({
+        credentialReferenceId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(tools.tenantId, params.scopes.tenantId),
+          eq(tools.projectId, params.scopes.projectId),
+          eq(tools.credentialReferenceId, params.id)
+        )
+      );
+
+    // Update all external agents that reference this credential to set credentialReferenceId to null
+    await db
+      .update(externalAgents)
+      .set({
+        credentialReferenceId: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(externalAgents.tenantId, params.scopes.tenantId),
+          eq(externalAgents.projectId, params.scopes.projectId),
+          eq(externalAgents.credentialReferenceId, params.id)
+        )
+      );
 
     // Delete the credential reference
     await db
