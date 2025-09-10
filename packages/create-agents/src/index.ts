@@ -25,7 +25,6 @@ async function main() {
       dirName: directoryName,
       openAiKey: options.openaiKey,
       anthropicKey: options.anthropicKey,
-      nangoKey: options.nangoKey,
       tenantId: options.tenantId,
       projectId: options.projectId,
       manageApiPort: options.manageApiPort,

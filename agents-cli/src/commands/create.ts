@@ -13,7 +13,6 @@ type FileConfig = {
   projectId?: string;
   openAiKey?: string;
   anthropicKey?: string;
-  nangoKey?: string;
   manageApiPort: string;
   runApiPort: string;
 };
@@ -25,21 +24,11 @@ export const createAgents = async (
     dirName?: string;
     openAiKey?: string;
     anthropicKey?: string;
-    nangoKey?: string;
     manageApiPort?: string;
     runApiPort?: string;
   } = {}
 ) => {
-  let {
-    tenantId,
-    projectId,
-    dirName,
-    openAiKey,
-    anthropicKey,
-    nangoKey,
-    manageApiPort,
-    runApiPort,
-  } = args;
+  let { tenantId, projectId, dirName, openAiKey, anthropicKey, manageApiPort, runApiPort } = args;
 
   p.intro(color.inverse(' Create Agents Directory '));
 
@@ -124,21 +113,6 @@ export const createAgents = async (
     openAiKey = (openAiKeyResponse as string) || undefined;
   }
 
-  // // Prompt for Nango API key (optional)
-  // if (!nangoKey) {
-  //   const nangoKeyResponse = await p.text({
-  //     message: 'Enter your Nango Secret key (optional):',
-  //     placeholder: 'nango-secret-key',
-  //     defaultValue: '',
-  //   });
-
-  //   if (p.isCancel(nangoKeyResponse)) {
-  //     p.cancel('Operation cancelled');
-  //     process.exit(0);
-  //   }
-  //   nangoKey = (nangoKeyResponse as string) || undefined;
-  // }
-
   const s = p.spinner();
   s.start('Creating directory structure...');
 
@@ -170,7 +144,6 @@ export const createAgents = async (
       projectId,
       openAiKey,
       anthropicKey,
-      nangoKey,
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
     };
