@@ -12,6 +12,7 @@ vi.mock('ai', () => ({
   parsePartialJson: mockParsePartialJson,
   tool: vi.fn((config) => config),
 }));
+
 import {
   createVercelStreamHelper,
   type VercelDataStreamHelper,

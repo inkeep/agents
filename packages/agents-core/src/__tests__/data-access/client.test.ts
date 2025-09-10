@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createDatabaseClient, createInMemoryDatabaseClient } from '../../db/client';
 
 describe('Database Client', () => {

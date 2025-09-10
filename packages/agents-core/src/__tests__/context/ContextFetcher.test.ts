@@ -9,7 +9,7 @@ global.fetch = mockFetch;
 
 // Mock Date.now for consistent timing tests
 const mockDateNow = vi.fn();
-const originalDateNow = Date.now;
+const _originalDateNow = Date.now;
 Date.now = mockDateNow;
 
 describe('ContextFetcher', () => {

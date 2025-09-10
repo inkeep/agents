@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
-import { pushCommand } from '../../commands/push';
+import { existsSync } from 'node:fs';
 import * as core from '@inkeep/agents-core';
 import inquirer from 'inquirer';
-import chalk from 'chalk';
-import { existsSync } from 'node:fs';
+import { beforeEach, describe, expect, it, type Mock, vi, afterEach } from 'vitest';
+import { pushCommand } from '../../commands/push';
 import { importWithTypeScriptSupport } from '../../utils/tsx-loader';
 
 // Mock all external dependencies

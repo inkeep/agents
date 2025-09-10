@@ -25,7 +25,7 @@ const shouldSkip = isCI || !keytarAvailable;
 
 describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
   let store: KeyChainStore;
-  const testServicePrefix = 'inkeep-test-' + Date.now(); // Unique prefix to avoid conflicts
+  const testServicePrefix = `inkeep-test-${Date.now()}`; // Unique prefix to avoid conflicts
 
   beforeEach(async () => {
     store = createKeyChainStore('integration-test', {
@@ -39,7 +39,7 @@ describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
   describe('Real Keychain Operations', () => {
     it('should store and retrieve credentials from system keychain', async () => {
       const key = 'TEST_INTEGRATION_KEY';
-      const value = 'test_integration_value_' + Date.now();
+      const value = `test_integration_value_${Date.now()}`;
 
       // Store credential
       await store.set(key, value);

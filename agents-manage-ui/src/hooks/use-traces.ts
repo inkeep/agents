@@ -8,7 +8,7 @@ import {
 	type SpanFilterOptions,
 } from "@/lib/api/signoz-stats";
 
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const _MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface UseConversationStatsResult {
 	stats: ConversationStats[];
@@ -114,6 +114,7 @@ export function useConversationStats(
 			options?.searchQuery,
 			paginationEnabled,
 			pageSize,
+			currentPage,
 		],
 	); // Use stable values instead of options object
 
@@ -163,14 +164,7 @@ export function useConversationStats(
 		if (paginationEnabled) {
 			setCurrentPage(1);
 		}
-	}, [
-		options?.startTime,
-		options?.endTime,
-		options?.filters,
-		options?.projectId,
-		options?.searchQuery,
-		paginationEnabled,
-	]);
+	}, [paginationEnabled]);
 
 	return {
 		stats,

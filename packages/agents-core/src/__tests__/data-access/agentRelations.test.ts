@@ -99,7 +99,7 @@ describe('Agent Relations Data Access', () => {
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields && fields.count) {
+        if (fields?.count) {
           // This is the count query
           return {
             from: vi.fn().mockReturnValue({
@@ -190,7 +190,7 @@ describe('Agent Relations Data Access', () => {
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields && fields.count) {
+        if (fields?.count) {
           // This is the count query
           return {
             from: vi.fn().mockReturnValue({
@@ -247,7 +247,7 @@ describe('Agent Relations Data Access', () => {
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields && fields.count) {
+        if (fields?.count) {
           // This is the count query
           return {
             from: vi.fn().mockReturnValue({
@@ -353,7 +353,7 @@ describe('Agent Relations Data Access', () => {
       const expectedTools = [{ id: 'tool-1', name: 'Test Tool', config: {} }];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields && fields.count) {
+        if (fields?.count) {
           // This is the count query
           return {
             from: vi.fn().mockReturnValue({
@@ -542,7 +542,7 @@ describe('Agent Relations Data Access', () => {
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields && fields.count) {
+        if (fields?.count) {
           // This is the count query
           return {
             from: vi.fn().mockReturnValue({

@@ -166,17 +166,15 @@ export function renderPanelContent({
 
 		case "context_fetch":
 			return (
-				<>
-					<Section>
-						<LabeledBlock label="URL">
-							<Bubble className=" break-all">
-								{a.toolResult || "URL not available"}
-							</Bubble>
-						</LabeledBlock>
-						<StatusBadge status={a.status} />
-						<Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-					</Section>
-				</>
+				<Section>
+					<LabeledBlock label="URL">
+						<Bubble className=" break-all">
+							{a.toolResult || "URL not available"}
+						</Bubble>
+					</LabeledBlock>
+					<StatusBadge status={a.status} />
+					<Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+				</Section>
 			);
 
 		case "context_resolution":

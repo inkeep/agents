@@ -13,7 +13,7 @@ function createMCPSchema<T>(schema: z.ZodType<T>): any {
 
 import type { ExecutionContext } from '@inkeep/agents-core';
 import {
-  CredentialStoreRegistry,
+  type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
   getAgentById,

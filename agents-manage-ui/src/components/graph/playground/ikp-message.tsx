@@ -1,19 +1,12 @@
 import type { Message } from "@inkeep/cxkit-react-oss/types";
 import {
 	AlertCircle,
-	ArrowRight,
 	BookOpen,
-	Brain,
 	Check,
 	CheckCircle,
 	ChevronRight,
-	Clock,
-	Database,
-	FileText,
 	LoaderCircle,
-	Play,
 	Sparkles,
-	Users,
 } from "lucide-react";
 import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import supersub from "remark-supersub";
@@ -309,12 +302,12 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
 
 		// Try to find the most meaningful fields to display
 		const meaningfulFields = Object.entries(context).filter(
-			([key, value]) =>
+			([_key, value]) =>
 				typeof value === "string" && value.length > 0 && value.length < 100,
 		);
 
 		if (meaningfulFields.length > 0) {
-			const [firstKey, firstValue] = meaningfulFields[0];
+			const [_firstKey, firstValue] = meaningfulFields[0];
 			return `${readableType}: ${firstValue}`;
 		}
 

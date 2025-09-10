@@ -1,4 +1,4 @@
-import type { Context, ExecutionContext } from 'hono';
+import type { Context } from 'hono';
 
 /**
  * Credential store interface for managing different types of credentials

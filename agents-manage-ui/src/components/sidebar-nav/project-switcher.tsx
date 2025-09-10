@@ -55,21 +55,17 @@ export function ProjectSwitcher() {
 		<div className="flex flex-col gap-2">
 			{isLoading ? (
 				<Skeleton className="h-14 w-full" />
+			) : projects.length === 0 ? (
+				<div className="flex flex-col gap-2 px-2">
+					<p className="text-sm text-muted-foreground">No projects yet</p>
+					<NewProjectDialog tenantId={tenantId as string} />
+				</div>
 			) : (
-				<>
-					{projects.length === 0 ? (
-						<div className="flex flex-col gap-2 px-2">
-							<p className="text-sm text-muted-foreground">No projects yet</p>
-							<NewProjectDialog tenantId={tenantId as string} />
-						</div>
-					) : (
-						<ProjectSelector
-							projects={projects}
-							selectedProjectId={projectId as string}
-							tenantId={tenantId as string}
-						/>
-					)}
-				</>
+				<ProjectSelector
+					projects={projects}
+					selectedProjectId={projectId as string}
+					tenantId={tenantId as string}
+				/>
 			)}
 		</div>
 	);

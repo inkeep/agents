@@ -51,7 +51,7 @@ describe('Delegation Task Creation Fixes', () => {
   it('should create tasks with correct contextId and message content', async () => {
     // Test the createTask function directly
     const taskId = `test-task-${nanoid()}`;
-    const userMessage = 'Please help me with delegation testing';
+    const _userMessage = 'Please help me with delegation testing';
 
     const task = await createTask(dbClient)({
       id: taskId,
@@ -151,7 +151,7 @@ describe('Delegation Task Creation Fixes', () => {
   it('should verify task creation produces correct database entries', async () => {
     // This test verifies the end-to-end task creation
     const testContextId = conversationId;
-    const testMessage = 'Test delegation message';
+    const _testMessage = 'Test delegation message';
 
     const task = await createTask(dbClient)({
       id: `delegation-test-${nanoid()}`,

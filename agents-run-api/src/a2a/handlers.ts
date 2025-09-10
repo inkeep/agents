@@ -139,13 +139,13 @@ async function handleMessageSend(
     }
 
     // Enhanced message content handling
-    let messageContent = '';
+    let _messageContent = '';
     try {
       if (params.message && Object.keys(params.message).length > 0) {
-        messageContent = JSON.stringify(params.message);
+        _messageContent = JSON.stringify(params.message);
       } else {
         // Fallback: create a minimal message structure
-        messageContent = JSON.stringify({
+        _messageContent = JSON.stringify({
           role: 'agent',
           parts: [{ text: 'Delegation task', kind: 'text' }],
           contextId: effectiveContextId,
@@ -163,7 +163,7 @@ async function handleMessageSend(
       }
     } catch (error) {
       logger.error({ error, taskId: task.id }, 'Failed to serialize message');
-      messageContent = JSON.stringify({
+      _messageContent = JSON.stringify({
         error: 'Failed to serialize message',
         taskId: task.id,
         contextId: effectiveContextId,
@@ -583,7 +583,7 @@ async function handleMessageStream(
 
 async function handleTasksGet(
   c: Context,
-  agent: RegisteredAgent,
+  _agent: RegisteredAgent,
   request: JsonRpcRequest
 ): Promise<Response> {
   try {
@@ -631,11 +631,11 @@ async function handleTasksGet(
 
 async function handleTasksCancel(
   c: Context,
-  agent: RegisteredAgent,
+  _agent: RegisteredAgent,
   request: JsonRpcRequest
 ): Promise<Response> {
   try {
-    const params = request.params as { id: string };
+    const _params = request.params as { id: string };
 
     // For now, just return success
     return c.json({

@@ -1301,7 +1301,7 @@ export class AgentGraph implements GraphInterface {
 					if (delta) {
 						content += delta;
 					}
-				} catch (e) {
+				} catch (_e) {
 					// Skip invalid JSON lines
 				}
 			}

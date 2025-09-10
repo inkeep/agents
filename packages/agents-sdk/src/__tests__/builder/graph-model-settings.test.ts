@@ -80,7 +80,7 @@ describe("Graph Model Settings", () => {
 		});
 
 		// Create graph with model settingsuration
-		const testGraph = agentGraph({
+		const _testGraph = agentGraph({
 			id: "test-graph",
 			name: "Test Graph",
 			models: {

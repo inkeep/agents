@@ -134,7 +134,7 @@ vi.mock('@opentelemetry/api', () => ({
   },
   context: {
     active: vi.fn().mockReturnValue({}),
-    with: vi.fn((ctx, fn) => fn()),
+    with: vi.fn((_ctx, fn) => fn()),
   },
   propagation: {
     getBaggage: vi.fn().mockReturnValue(null),

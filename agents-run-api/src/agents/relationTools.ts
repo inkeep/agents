@@ -14,7 +14,6 @@ import z from 'zod';
 import { A2AClient } from '../a2a/client';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
-import { env } from '../env';
 import { getLogger } from '../logger';
 import { graphSessionManager } from '../utils/graph-session';
 import type { AgentConfig, DelegateRelation } from './Agent';
@@ -157,11 +156,11 @@ export function createDelegateToAgentTool({
       const isInternal = delegateConfig.type === 'internal';
 
       // Get the base URL for the agent
-      let agentBaseUrl: string;
+      let _agentBaseUrl: string;
       let resolvedHeaders: Record<string, string> = {};
 
       if (!isInternal) {
-        agentBaseUrl = delegateConfig.config.baseUrl;
+        _agentBaseUrl = delegateConfig.config.baseUrl;
 
         // For external agents, fetch configuration
         const externalAgent = await getExternalAgent(dbClient)({

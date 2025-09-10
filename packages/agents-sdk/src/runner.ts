@@ -9,7 +9,7 @@ import type {
 	StreamResponse,
 	ToolCall,
 } from "./types";
-import { MaxTurnsExceededError, ToolExecutionError } from "./types";
+import { MaxTurnsExceededError } from "./types";
 
 const logger = getLogger("runner");
 
@@ -28,7 +28,7 @@ export class Runner {
 		let turnCount = 0;
 		const messageHistory = Runner.normalizeToMessageHistory(messages);
 		const allToolCalls: ToolCall[] = [];
-		const allTransfers: Array<{ from: string; to: string; reason?: string }> =
+		const _allTransfers: Array<{ from: string; to: string; reason?: string }> =
 			[];
 
 		logger.info(

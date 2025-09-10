@@ -35,7 +35,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create test agent graph data
-  const createAgentGraphData = ({
+  const _createAgentGraphData = ({
     defaultAgentId,
     suffix = '',
   }: {

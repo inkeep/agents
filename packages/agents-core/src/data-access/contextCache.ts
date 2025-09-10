@@ -88,21 +88,17 @@ export const setCacheEntry =
 export const clearConversationCache =
   (db: DatabaseClient) =>
   async (params: { scopes: ScopeConfig; conversationId: string }): Promise<number> => {
-    try {
-      const result = await db
-        .delete(contextCache)
-        .where(
-          and(
-            eq(contextCache.tenantId, params.scopes.tenantId),
-            eq(contextCache.projectId, params.scopes.projectId),
-            eq(contextCache.conversationId, params.conversationId)
-          )
-        );
+    const result = await db
+      .delete(contextCache)
+      .where(
+        and(
+          eq(contextCache.tenantId, params.scopes.tenantId),
+          eq(contextCache.projectId, params.scopes.projectId),
+          eq(contextCache.conversationId, params.conversationId)
+        )
+      );
 
-      return result.rowsAffected || 0;
-    } catch (error) {
-      throw error;
-    }
+    return result.rowsAffected || 0;
   };
 
 /**
@@ -111,21 +107,17 @@ export const clearConversationCache =
 export const clearContextConfigCache =
   (db: DatabaseClient) =>
   async (params: { scopes: ScopeConfig; contextConfigId: string }): Promise<number> => {
-    try {
-      const result = await db
-        .delete(contextCache)
-        .where(
-          and(
-            eq(contextCache.tenantId, params.scopes.tenantId),
-            eq(contextCache.projectId, params.scopes.projectId),
-            eq(contextCache.contextConfigId, params.contextConfigId)
-          )
-        );
+    const result = await db
+      .delete(contextCache)
+      .where(
+        and(
+          eq(contextCache.tenantId, params.scopes.tenantId),
+          eq(contextCache.projectId, params.scopes.projectId),
+          eq(contextCache.contextConfigId, params.contextConfigId)
+        )
+      );
 
-      return result.rowsAffected || 0;
-    } catch (error) {
-      throw error;
-    }
+    return result.rowsAffected || 0;
   };
 
 /**
@@ -134,20 +126,16 @@ export const clearContextConfigCache =
 export const cleanupTenantCache =
   (db: DatabaseClient) =>
   async (params: { scopes: ScopeConfig }): Promise<number> => {
-    try {
-      const result = await db
-        .delete(contextCache)
-        .where(
-          and(
-            eq(contextCache.tenantId, params.scopes.tenantId),
-            eq(contextCache.projectId, params.scopes.projectId)
-          )
-        );
+    const result = await db
+      .delete(contextCache)
+      .where(
+        and(
+          eq(contextCache.tenantId, params.scopes.tenantId),
+          eq(contextCache.projectId, params.scopes.projectId)
+        )
+      );
 
-      return result.rowsAffected || 0;
-    } catch (error) {
-      throw error;
-    }
+    return result.rowsAffected || 0;
   };
 
 /**
@@ -160,23 +148,19 @@ export const invalidateRequestContextCache =
     conversationId: string;
     contextConfigId: string;
   }): Promise<number> => {
-    try {
-      const result = await db
-        .delete(contextCache)
-        .where(
-          and(
-            eq(contextCache.tenantId, params.scopes.tenantId),
-            eq(contextCache.projectId, params.scopes.projectId),
-            eq(contextCache.conversationId, params.conversationId),
-            eq(contextCache.contextConfigId, params.contextConfigId),
-            eq(contextCache.contextVariableKey, 'requestContext')
-          )
-        );
+    const result = await db
+      .delete(contextCache)
+      .where(
+        and(
+          eq(contextCache.tenantId, params.scopes.tenantId),
+          eq(contextCache.projectId, params.scopes.projectId),
+          eq(contextCache.conversationId, params.conversationId),
+          eq(contextCache.contextConfigId, params.contextConfigId),
+          eq(contextCache.contextVariableKey, 'requestContext')
+        )
+      );
 
-      return result.rowsAffected || 0;
-    } catch (error) {
-      throw error;
-    }
+    return result.rowsAffected || 0;
   };
 
 /**
@@ -190,29 +174,25 @@ export const invalidateInvocationDefinitionsCache =
     contextConfigId: string;
     invocationDefinitionIds: string[];
   }): Promise<number> => {
-    try {
-      let totalRowsAffected = 0;
+    let totalRowsAffected = 0;
 
-      for (const definitionId of params.invocationDefinitionIds) {
-        const result = await db
-          .delete(contextCache)
-          .where(
-            and(
-              eq(contextCache.tenantId, params.scopes.tenantId),
-              eq(contextCache.projectId, params.scopes.projectId),
-              eq(contextCache.conversationId, params.conversationId),
-              eq(contextCache.contextConfigId, params.contextConfigId),
-              eq(contextCache.contextVariableKey, definitionId)
-            )
-          );
+    for (const definitionId of params.invocationDefinitionIds) {
+      const result = await db
+        .delete(contextCache)
+        .where(
+          and(
+            eq(contextCache.tenantId, params.scopes.tenantId),
+            eq(contextCache.projectId, params.scopes.projectId),
+            eq(contextCache.conversationId, params.conversationId),
+            eq(contextCache.contextConfigId, params.contextConfigId),
+            eq(contextCache.contextVariableKey, definitionId)
+          )
+        );
 
-        totalRowsAffected += result.rowsAffected || 0;
-      }
-
-      return totalRowsAffected;
-    } catch (error) {
-      throw error;
+      totalRowsAffected += result.rowsAffected || 0;
     }
+
+    return totalRowsAffected;
   };
 
 /**

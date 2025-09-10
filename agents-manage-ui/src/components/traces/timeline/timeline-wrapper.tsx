@@ -182,7 +182,7 @@ export function TimelineWrapper({
 			setAiMessagesGloballyCollapsed(false);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [sortedActivities.length, enableAutoScroll]); //  Run when activities count or view type changes
+	}, [enableAutoScroll, sortedActivities.filter]); //  Run when activities count or view type changes
 
 	// Functions to handle expand/collapse all
 	const expandAllAiMessages = () => {

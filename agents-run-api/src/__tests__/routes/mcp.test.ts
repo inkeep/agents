@@ -61,7 +61,7 @@ vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: vi.fn().mockImplementation((options) => ({
     sessionIdGenerator: options?.sessionIdGenerator || (() => 'default-session'),
     start: vi.fn().mockResolvedValue(undefined), // Add the missing start method
-    handleRequest: vi.fn().mockImplementation(async (req, res, body) => {
+    handleRequest: vi.fn().mockImplementation(async (_req, res, body) => {
       // Mock successful initialization response
       if (body?.method === 'initialize') {
         res.setHeader('Mcp-Session-Id', options?.sessionIdGenerator() || 'default-session');
@@ -167,7 +167,7 @@ vi.mock('../../logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   }),
-  withRequestContext: vi.fn().mockImplementation(async (id, fn) => await fn()),
+  withRequestContext: vi.fn().mockImplementation(async (_id, fn) => await fn()),
 }));
 
 // Remove this - moved to the @inkeep/agents-core mock
@@ -198,7 +198,7 @@ vi.mock('@opentelemetry/api', () => ({
   },
   context: {
     active: vi.fn().mockReturnValue({}),
-    with: vi.fn((ctx, fn) => fn()),
+    with: vi.fn((_ctx, fn) => fn()),
   },
   propagation: {
     getBaggage: vi.fn().mockReturnValue(null),
@@ -744,7 +744,7 @@ describe('MCP Routes', () => {
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(
         (options) => ({
           sessionIdGenerator: options?.sessionIdGenerator || (() => 'tool-test-session'),
-          handleRequest: vi.fn().mockImplementation(async (req, res, body) => {
+          handleRequest: vi.fn().mockImplementation(async (_req, res, body) => {
             // Simulate successful tool execution
             res.statusCode = 200;
             res.end(
@@ -819,7 +819,7 @@ describe('MCP Routes', () => {
 
   describe('Context Validation', () => {
     it('should apply context validation middleware to POST requests', async () => {
-      const response = await makeRequest(`/v1/mcp`, {
+      const _response = await makeRequest(`/v1/mcp`, {
         method: 'POST',
         body: JSON.stringify({
           jsonrpc: '2.0',
@@ -870,7 +870,7 @@ describe('MCP Routes', () => {
       );
 
       // Mock the transport to verify spoofing
-      const handleRequestMock = vi.fn().mockImplementation(async (req, res, body) => {
+      const handleRequestMock = vi.fn().mockImplementation(async (_req, res, body) => {
         // First call should be the spoof initialization
         if (body?.method === 'initialize') {
           expect(body.params.protocolVersion).toBe('2025-07-01');
@@ -954,7 +954,7 @@ describe('MCP Routes', () => {
         })
       );
 
-      const handleRequestMock = vi.fn().mockImplementation(async (req, res, body) => {
+      const handleRequestMock = vi.fn().mockImplementation(async (_req, res, body) => {
         // Check spoof initialization has default protocol version
         if (body?.method === 'initialize') {
           expect(body.params.protocolVersion).toBe('2025-06-18'); // Default

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Tool } from "../../tool";
-import type { ToolConfig, ToolType } from "../../types";
+import type { ToolConfig } from "../../types";
 
 // Mock dependencies
 vi.mock("@inkeep/agents-core", () => ({

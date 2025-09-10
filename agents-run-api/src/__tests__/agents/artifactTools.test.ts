@@ -263,7 +263,7 @@ describe('Artifact Tools', () => {
       toolSessionManager.recordToolResult(sessionId, toolResult);
 
       // Mock JMESPath for main selector
-      vi.mocked(jmespath.search).mockImplementation((data, expr) => {
+      vi.mocked(jmespath.search).mockImplementation((_data, expr) => {
         if (expr === 'result.documents[?record_type==`api`]') {
           return [toolResult.result.documents[0]];
         }

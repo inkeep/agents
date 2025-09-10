@@ -237,14 +237,14 @@ describe('Ledger Artifacts – Data Layer', () => {
     const sharedTaskId = `shared-task-${nanoid()}`;
 
     // Create test data for both tenants with unique conversation IDs
-    await createTestData(sharedContextId + '-1', sharedTaskId + '-1', tenant1Id);
-    await createTestData(sharedContextId + '-2', sharedTaskId + '-2', tenant2Id);
+    await createTestData(`${sharedContextId}-1`, `${sharedTaskId}-1`, tenant1Id);
+    await createTestData(`${sharedContextId}-2`, `${sharedTaskId}-2`, tenant2Id);
 
     // Create artifacts for tenant 1
     await addLedgerArtifacts(dbClient)({
       scopes: { tenantId: tenant1Id, projectId },
-      contextId: sharedContextId + '-1',
-      taskId: sharedTaskId + '-1',
+      contextId: `${sharedContextId}-1`,
+      taskId: `${sharedTaskId}-1`,
       artifacts: [
         {
           artifactId: 'tenant1-artifact',
@@ -263,8 +263,8 @@ describe('Ledger Artifacts – Data Layer', () => {
     // Create artifacts for tenant 2
     await addLedgerArtifacts(dbClient)({
       scopes: { tenantId: tenant2Id, projectId },
-      contextId: sharedContextId + '-2',
-      taskId: sharedTaskId + '-2',
+      contextId: `${sharedContextId}-2`,
+      taskId: `${sharedTaskId}-2`,
       artifacts: [
         {
           artifactId: 'tenant2-artifact',
@@ -299,14 +299,14 @@ describe('Ledger Artifacts – Data Layer', () => {
     // Each tenant should only see their own artifacts
     const tenant1Results = await getLedgerArtifacts(dbClient)({
       scopes: { tenantId: tenant1Id, projectId },
-      taskId: sharedTaskId + '-1',
+      taskId: `${sharedTaskId}-1`,
     });
     expect(tenant1Results).toHaveLength(1);
     expect(tenant1Results[0].artifactId).toBe('tenant1-artifact');
 
     const tenant2Results = await getLedgerArtifacts(dbClient)({
       scopes: { tenantId: tenant2Id, projectId },
-      taskId: sharedTaskId + '-2',
+      taskId: `${sharedTaskId}-2`,
     });
     expect(tenant2Results).toHaveLength(1);
     expect(tenant2Results[0].artifactId).toBe('tenant2-artifact');

@@ -165,7 +165,7 @@ export const deleteTool =
       )
       .returning();
 
-    return deleted ? true : false;
+    return !!deleted;
   };
 
 export const addToolToAgent =

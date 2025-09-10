@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { FormFieldWrapper } from "./form-field-wrapper";
 
 interface GenericKeyValueInputProps<T extends FieldValues> {

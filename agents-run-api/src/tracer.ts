@@ -45,7 +45,7 @@ const createNoOpSpan = (): Span => ({
 // No-op tracer implementation for when OpenTelemetry is not available
 const noopTracer = {
   startActiveSpan<T>(
-    name: string,
+    _name: string,
     arg1?: SpanOptions | ((span: Span) => T),
     arg2?: ((span: Span) => T) | undefined,
     arg3?: ((span: Span) => T) | undefined
@@ -54,7 +54,7 @@ const noopTracer = {
     if (!fn) throw new Error('No callback function provided');
     return fn(createNoOpSpan());
   },
-  startSpan(name: string, options?: SpanOptions): Span {
+  startSpan(_name: string, _options?: SpanOptions): Span {
     return createNoOpSpan();
   },
 } as Tracer;
@@ -97,7 +97,7 @@ export function getGlobalTracer(): Tracer {
   if (!globalTracerInstance) {
     try {
       globalTracerInstance = trace.getTracer(SERVICE_NAME, SERVICE_VERSION);
-    } catch (error) {
+    } catch (_error) {
       logger.debug('OpenTelemetry tracer not available, using no-op tracer');
       globalTracerInstance = noopTracer;
     }

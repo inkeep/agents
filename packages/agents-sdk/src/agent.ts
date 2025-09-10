@@ -7,16 +7,7 @@ import {
 } from "@inkeep/agents-core";
 import { ArtifactComponent } from "./artifact-component";
 import { DataComponent } from "./data-component";
-import type {
-	AgentConfig,
-	AgentInterface,
-	AgentResponse,
-	AllAgentInterface,
-	GenerateOptions,
-	Message,
-	MessageInput,
-	ToolCall,
-} from "./types";
+import type { AgentConfig, AgentInterface, AllAgentInterface } from "./types";
 
 const logger = getLogger("agent");
 
@@ -116,7 +107,7 @@ export class Agent implements AgentInterface {
 		return resolveGetter(this.config.artifactComponents) || [];
 	}
 
-	addTool(name: string, tool: unknown): void {
+	addTool(_name: string, tool: unknown): void {
 		// Tools must now be a getter function returning an array
 		const existingTools = this.config.tools ? this.config.tools() : [];
 		this.config.tools = () => [...existingTools, tool];
@@ -260,19 +251,6 @@ export class Agent implements AgentInterface {
 		throw new Error(
 			`Failed to update agent: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`,
 		);
-	}
-
-	// Private implementation methods
-	private normalizeMessages(messages: MessageInput): Message[] {
-		if (typeof messages === "string") {
-			return [{ role: "user", content: messages }];
-		}
-		if (Array.isArray(messages)) {
-			return messages.map((msg) =>
-				typeof msg === "string" ? { role: "user", content: msg } : msg,
-			);
-		}
-		return [messages];
 	}
 
 	private async saveToolsAndRelations(): Promise<void> {
@@ -703,121 +681,6 @@ export class Agent implements AgentInterface {
 				`Failed to create agent-tool relation: ${relationResponse.status} - ${errorBody}`,
 			);
 		}
-	}
-
-	/**
-	 * Resolve context and apply templates to agent prompt
-	 */
-
-	private async executeGeneration(
-		messages: Message[],
-		options?: GenerateOptions,
-		processedInstructions?: string,
-	): Promise<AgentResponse> {
-		// This is where you'd integrate with your actual agent execution logic
-		// For now, we'll return a basic response structure
-
-		const lastMessage = messages[messages.length - 1];
-		const userInput = lastMessage?.content || "";
-		const prompt = processedInstructions || this.config.prompt;
-
-		// Log the prompt being used (helpful for debugging context application)
-		logger.debug(
-			{
-				agentId: this.getId(),
-				promptLength: prompt.length,
-				hasProcessedInstructions: !!processedInstructions,
-			},
-			"Executing generation with prompt",
-		);
-
-		// Example: Check for transfer conditions
-		const transferAgent = this.shouldTransfer(userInput);
-		if (transferAgent) {
-			return {
-				text: `I'm handing this over to ${transferAgent.getName()} who can better assist you.`,
-				toolCalls: [],
-				transfer: {
-					agent: transferAgent,
-					description: `Transfer to ${transferAgent.getName()}`,
-				},
-				finishReason: "transfer",
-				usage: { inputTokens: 0, outputTokens: 0 },
-			};
-		}
-
-		// Example: Check for tool usage
-		const toolCalls = this.identifyToolCalls(userInput);
-		if (toolCalls.length > 0) {
-			return {
-				text: `I'll help you with that. Let me use the appropriate tools.`,
-				toolCalls,
-				finishReason: "tool_calls",
-				usage: { inputTokens: 0, outputTokens: 0 },
-			};
-		}
-
-		// Default response
-		return {
-			text: `Hello! I'm ${this.config.name}. ${userInput ? `You said: "${userInput}"` : "How can I help you today?"}`,
-			toolCalls: [],
-			finishReason: "completed",
-			usage: { inputTokens: userInput.length, outputTokens: 50 },
-		};
-	}
-
-	private async *createTextStream(
-		messages: Message[],
-		options?: GenerateOptions,
-	): AsyncGenerator<string> {
-		const response = await this.executeGeneration(messages, options);
-
-		// Simulate streaming by yielding chunks
-		const words = response.text.split(" ");
-		for (const word of words) {
-			yield `${word} `;
-			// Add small delay to simulate real streaming
-			await new Promise((resolve) => setTimeout(resolve, 50));
-		}
-	}
-
-	private shouldTransfer(input: string): AgentInterface | null {
-		// Simple transfer logic - you can make this more sophisticated
-		const transfers = this.getTransfers();
-
-		for (const agent of transfers) {
-			const agentName = agent.getName().toLowerCase();
-			if (
-				input.toLowerCase().includes(agentName) ||
-				input.toLowerCase().includes("transfer") ||
-				input.toLowerCase().includes("transfer")
-			) {
-				return agent;
-			}
-		}
-
-		return null;
-	}
-
-	private identifyToolCalls(input: string): ToolCall[] {
-		const tools = this.getTools();
-		const toolCalls: ToolCall[] = [];
-
-		// Simple tool identification logic
-		for (const [toolName, toolConfig] of Object.entries(tools)) {
-			if (input.toLowerCase().includes(toolName.toLowerCase())) {
-				toolCalls.push({
-					id: crypto.randomUUID(),
-					type: "function",
-					function: {
-						name: toolName,
-						arguments: JSON.stringify({ input }),
-					},
-				});
-			}
-		}
-
-		return toolCalls;
 	}
 }
 

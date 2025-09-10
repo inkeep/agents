@@ -236,7 +236,7 @@ export class NangoCredentialStore implements CredentialStore {
   /**
    * Set credentials - not supported for Nango (OAuth flow handles this)
    */
-  async set(key: string, value: string): Promise<void> {
+  async set(_key: string, _value: string): Promise<void> {
     throw new Error('Setting credentials not supported for Nango store - use OAuth flow instead');
   }
 

@@ -899,7 +899,7 @@ describe("AgentGraph", () => {
 
 		it("should support complex partial inheritance across entire chain", async () => {
 			// Project has all three model types
-			const projectModels = {
+			const _projectModels = {
 				base: { model: "gpt-4o" },
 				structuredOutput: { model: "gpt-4o-mini" },
 				summarizer: { model: "gpt-3.5-turbo" },
@@ -1267,7 +1267,7 @@ describe("AgentGraph", () => {
 
 		it("should work with full stopWhen inheritance chain: project -> graph -> agents", async () => {
 			// Set up inheritance chain
-			const projectStopWhen = {
+			const _projectStopWhen = {
 				transferCountIs: 15,
 				stepCountIs: 25,
 			};

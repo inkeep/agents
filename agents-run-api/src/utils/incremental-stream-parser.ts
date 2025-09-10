@@ -18,7 +18,6 @@ export class IncrementalStreamParser {
   private pendingTextBuffer = '';
   private streamHelper: StreamHelper;
   private artifactParser: ArtifactParser;
-  private contextId: string;
   private hasStartedRole = false;
   private collectedParts: StreamPart[] = [];
 
@@ -66,17 +65,17 @@ export class IncrementalStreamParser {
    * Process tool call stream for structured output, streaming components as they complete
    */
   async processToolCallStream(stream: AsyncIterable<any>, targetToolName: string): Promise<void> {
-    let jsonBuffer = '';
+    let _jsonBuffer = '';
     let componentBuffer = '';
     let depth = 0;
-    let inDataComponents = false;
+    let _inDataComponents = false;
     let componentsStreamed = 0;
 
     for await (const part of stream) {
       // Look for tool call deltas with incremental JSON
       if (part.type === 'tool-call-delta' && part.toolName === targetToolName) {
         const delta = part.argsTextDelta || '';
-        jsonBuffer += delta;
+        _jsonBuffer += delta;
 
         // Parse character by character to detect complete components
         for (const char of delta) {
@@ -117,7 +116,7 @@ export class IncrementalStreamParser {
 
           // Detect when we enter dataComponents array
           if (componentBuffer.includes('"dataComponents"') && componentBuffer.includes('[')) {
-            inDataComponents = true;
+            _inDataComponents = true;
           }
         }
       }

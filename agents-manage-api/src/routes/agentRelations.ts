@@ -99,7 +99,7 @@ app.openapi(
       }
 
       return c.json(result);
-    } catch (error) {
+    } catch (_error) {
       throw createApiError({
         code: 'internal_server_error',
         message: 'Failed to retrieve agent relations',

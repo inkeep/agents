@@ -1,8 +1,10 @@
 // Import builders from management-api
-import { agent, agentGraph } from '@inkeep/agents-sdk';
+
 // Import context functions from core
 import { contextConfig, createRequestSchema } from '@inkeep/agents-core';
+import { agent, agentGraph } from '@inkeep/agents-sdk';
 import { z } from 'zod';
+
 /**
  * Simple Context Test Graph
  *

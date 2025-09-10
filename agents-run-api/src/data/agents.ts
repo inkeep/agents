@@ -4,7 +4,6 @@ import {
   type ExecutionContext,
   getAgentById,
   getLogger,
-  listAgents,
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
@@ -12,7 +11,7 @@ import dbClient from './db/dbClient';
 
 // Agent hydration functions
 
-const logger = getLogger('agents');
+const _logger = getLogger('agents');
 /**
  * Create a RegisteredAgent from database agent data
  * Hydrates agent directly from database schema using types from schema.ts

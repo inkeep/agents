@@ -12,13 +12,22 @@ describe("graph serialize/deserialize", () => {
 				id: "goodbye-agent",
 				type: NodeType.Agent,
 				position: { x: 0, y: 0 },
-				data: { id: "goodbye-agent", name: "Goodbye Agent", prompt: "Say goodbye" },
+				data: {
+					id: "goodbye-agent",
+					name: "Goodbye Agent",
+					prompt: "Say goodbye",
+				},
 			},
 			{
 				id: "hello-agent",
 				type: NodeType.Agent,
 				position: { x: 0, y: 100 },
-				data: { id: "hello-agent", name: "Hello Agent", isDefault: true, prompt: "Say hello" },
+				data: {
+					id: "hello-agent",
+					name: "Hello Agent",
+					isDefault: true,
+					prompt: "Say hello",
+				},
 				deletable: false,
 			},
 		];
@@ -62,13 +71,20 @@ describe("graph serialize/deserialize", () => {
 		}
 
 		const deserialized = deserializeGraphData(serialized);
-		
+
 		// Should have the self-loop edge
 		const selfLoopEdge = deserialized.edges.find(
-			(e) => e.type === EdgeType.SelfLoop && e.source === "goodbye-agent" && e.target === "goodbye-agent"
+			(e) =>
+				e.type === EdgeType.SelfLoop &&
+				e.source === "goodbye-agent" &&
+				e.target === "goodbye-agent",
 		);
 		expect(selfLoopEdge).toBeDefined();
-		if (selfLoopEdge?.data && typeof selfLoopEdge.data === 'object' && 'relationships' in selfLoopEdge.data) {
+		if (
+			selfLoopEdge?.data &&
+			typeof selfLoopEdge.data === "object" &&
+			"relationships" in selfLoopEdge.data
+		) {
 			const relationships = selfLoopEdge.data.relationships as any;
 			expect(relationships.transferSourceToTarget).toBe(true);
 			expect(relationships.delegateSourceToTarget).toBe(true);
@@ -132,9 +148,9 @@ describe("graph serialize/deserialize", () => {
 			},
 		});
 		expect(serialized.id).toBe("g1");
-		expect(serialized.agents["a1"]).toBeDefined();
-		expect(serialized.tools["t1"]).toBeDefined();
-		const a1 = serialized.agents["a1"];
+		expect(serialized.agents.a1).toBeDefined();
+		expect(serialized.tools.t1).toBeDefined();
+		const a1 = serialized.agents.a1;
 		if ("tools" in a1) {
 			expect(a1.tools).toContain("t1");
 		}

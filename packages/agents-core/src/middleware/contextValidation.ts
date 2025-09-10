@@ -1,13 +1,13 @@
 import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
 import { ContextResolver } from '../context/ContextResolver';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect } from '../types/entities';
 import { getRequestExecutionContext } from '../utils/execution';
 import { getLogger } from '../utils/logger';
-import { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 
 const logger = getLogger('context-validation');
 
@@ -472,7 +472,7 @@ export async function validateRequestContext(
             dbClient,
             credentialStores,
           });
-        } catch (error) {
+        } catch (_error) {
           // Cache fallback failed, return original validation errors
           errors.push({
             field: 'requestContext',

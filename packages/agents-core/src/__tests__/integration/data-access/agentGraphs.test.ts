@@ -159,7 +159,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       // Set up test data that all tests in this describe block need
       // First create a default agent
       const defaultAgentData = createTestAgentData(testTenantId, testProjectId, '3');
-      const defaultAgent = await createAgent(db)(defaultAgentData);
+      const _defaultAgent = await createAgent(db)(defaultAgentData);
 
       // Create test graphs with defaultAgentId
       const graphsData = [
@@ -248,7 +248,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       const graphData = createTestGraphData(testTenantId, testProjectId, '7');
 
-      const createdGraph = await createAgentGraph(db)(graphData);
+      const _createdGraph = await createAgentGraph(db)(graphData);
 
       // Update graph
       const updateData = {
@@ -339,7 +339,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       // Create graph
       const graphData = createTestGraphData(testTenantId, testProjectId, '12');
 
-      const createdGraph = await createAgentGraph(db)(graphData);
+      const _createdGraph = await createAgentGraph(db)(graphData);
 
       // Create a relation in this graph
       const relationData = createTestRelationData(testTenantId, testProjectId, '12');

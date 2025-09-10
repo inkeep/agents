@@ -6,7 +6,7 @@ import { MainContent } from "@/components/layout/main-content";
 import { TracesOverview } from "@/components/traces/traces-overview";
 
 function TracesPage() {
-	const [refreshKey, setRefreshKey] = useState(0);
+	const [refreshKey, _setRefreshKey] = useState(0);
 
 	return (
 		<BodyTemplate breadcrumbs={[{ label: "Traces" }]}>

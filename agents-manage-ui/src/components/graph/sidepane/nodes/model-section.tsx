@@ -27,7 +27,7 @@ export function ModelSection({
 	graphModels,
 }: ModelSectionProps) {
 	const hasAdvancedOptions = models?.structuredOutput || models?.summarizer;
-	const hasAnyModel =
+	const _hasAnyModel =
 		models?.base || models?.structuredOutput || models?.summarizer;
 
 	return (

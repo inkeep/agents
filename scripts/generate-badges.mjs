@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
@@ -10,7 +10,7 @@ const rootDir = join(__dirname, '..');
 /**
  * Generate color based on coverage percentage with more nuanced thresholds
  */
-function getColorForCoverage(percentage, metric = 'overall') {
+function getColorForCoverage(percentage, _metric = 'overall') {
   // More granular color coding for better visual feedback
   if (percentage >= 90) return 'brightgreen';
   else if (percentage >= 80) return 'green';
@@ -73,14 +73,14 @@ function generateBadgeMarkdown(summary, packageReports) {
   markdown += '## Overall Coverage\n\n';
 
   // Composite badge
-  markdown += generateCompositeBadge(summary.total) + '\n\n';
+  markdown += `${generateCompositeBadge(summary.total)}\n\n`;
 
   // Individual metric badges
   markdown += '### By Metric\n\n';
-  markdown += generateMetricBadge('Lines', summary.total.lines.pct, 'lines') + ' ';
-  markdown += generateMetricBadge('Statements', summary.total.statements.pct, 'statements') + ' ';
-  markdown += generateMetricBadge('Functions', summary.total.functions.pct, 'functions') + ' ';
-  markdown += generateMetricBadge('Branches', summary.total.branches.pct, 'branches') + '\n\n';
+  markdown += `${generateMetricBadge('Lines', summary.total.lines.pct, 'lines')} `;
+  markdown += `${generateMetricBadge('Statements', summary.total.statements.pct, 'statements')} `;
+  markdown += `${generateMetricBadge('Functions', summary.total.functions.pct, 'functions')} `;
+  markdown += `${generateMetricBadge('Branches', summary.total.branches.pct, 'branches')}\n\n`;
 
   // Package-specific badges
   if (packageReports && packageReports.length > 0) {
@@ -92,7 +92,7 @@ function generateBadgeMarkdown(summary, packageReports) {
 
       // Add status indicator
       const statusIcon = report.error ? '❌ ' : report.missing ? '⚠️ ' : '';
-      markdown += statusIcon + generatePackageBadge(report.package, coverage) + '\n';
+      markdown += `${statusIcon + generatePackageBadge(report.package, coverage)}\n`;
     });
     markdown += '\n';
   }

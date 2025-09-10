@@ -50,7 +50,7 @@ export function ConversationListItem({
 									try {
 										const date = new Date(startTime);
 										// Check if the date is valid
-										if (isNaN(date.getTime())) return null;
+										if (Number.isNaN(date.getTime())) return null;
 
 										const isoString = date.toISOString();
 										return (
