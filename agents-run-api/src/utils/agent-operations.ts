@@ -63,6 +63,7 @@ export interface AgentThinkingEvent {
  */
 export interface StatusUpdateEvent {
   type: 'status_update';
+  label?: string; // LLM-generated label for the UI
   ctx: {
     summary?: string; // Unstructured summary text
     [key: string]: any; // Structured data from graph session

@@ -49,10 +49,11 @@ export class ArtifactParser {
    * More robust detection that handles streaming fragments
    */
   hasIncompleteArtifact(text: string): boolean {
+    // Use safe, non-backtracking patterns to prevent ReDoS attacks
     // Check if text ends with any partial artifact pattern
     return (
-      /<(a(r(t(i(f(a(c(t(:(r(e(f?)?)?)?)?)?)?)?)?)?)?)?)?$/.test(text) ||
-      /<artifact:ref[^>]*$/.test(text) || // Incomplete artifact:ref at end
+      /^.*<(?:artifact(?::ref)?|a(?:r(?:t(?:i(?:f(?:a(?:c(?:t(?::(?:r(?:e(?:f)?)?)?)?)?)?)?)?)?)?)?)?$/.test(text) ||
+      /^.*<artifact:ref(?:[^>]*)$/.test(text) || // Incomplete artifact:ref at end
       this.findSafeTextBoundary(text) < text.length
     );
   }
@@ -63,9 +64,10 @@ export class ArtifactParser {
    */
   findSafeTextBoundary(text: string): number {
     // First check for incomplete artifact patterns at the end
+    // Use safe patterns that don't cause exponential backtracking
     const endPatterns = [
-      /<artifact:ref(?![^>]*\/>).*$/, // artifact:ref that doesn't end with />
-      /<(a(r(t(i(f(a(c(t(:(r(e(f?)?)?)?)?)?)?)?)?)?)?)?)?$/, // Any partial artifact pattern at end
+      /^.*<artifact:ref(?:[^/>]+(?:[^>]*[^/])?)?$/, // artifact:ref that doesn't end with />
+      /^.*<(?:artifact(?::ref)?|a(?:r(?:t(?:i(?:f(?:a(?:c(?:t(?::(?:r(?:e(?:f)?)?)?)?)?)?)?)?)?)?)?)?$/, // Safe partial artifact pattern
     ];
 
     for (const pattern of endPatterns) {

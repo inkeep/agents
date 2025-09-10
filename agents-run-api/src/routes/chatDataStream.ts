@@ -202,6 +202,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
         } catch (err) {
           logger.error({ err }, 'Streaming error');
           await streamHelper.writeError('Internal server error');
+        } finally {
+          // Clean up stream helper resources if it has cleanup method
+          if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
+            streamHelper.cleanup();
+          }
         }
       },
     });

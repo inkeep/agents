@@ -20,6 +20,7 @@ const tracer = getGlobalTracer();
 
 export type GraphSessionEventType =
   | 'agent_generate'
+  | 'agent_reasoning'
   | 'transfer'
   | 'delegation_sent'
   | 'delegation_returned'
@@ -35,6 +36,7 @@ export interface GraphSessionEvent {
 
 export type EventData =
   | AgentGenerateData
+  | AgentReasoningData
   | TransferData
   | DelegationSentData
   | DelegationReturnedData
@@ -49,7 +51,17 @@ export interface AgentGenerateData {
     args?: any;
     result?: any;
   }>;
-  generationType: 'text_generation' | 'object_generation' | 'artifact_name_description';
+  generationType: 'text_generation' | 'object_generation';
+}
+
+export interface AgentReasoningData {
+  parts: Array<{
+    type: 'text' | 'tool_call' | 'tool_result';
+    content?: string;
+    toolName?: string;
+    args?: any;
+    result?: any;
+  }>;
 }
 
 export interface TransferData {
@@ -103,6 +115,7 @@ interface StatusUpdateState {
   startTime: number;
   config: StatusUpdateSettings;
   summarizerModel?: ModelSettings;
+  updateLock?: boolean;  // Atomic lock for status updates
 }
 
 /**
@@ -117,6 +130,11 @@ export class GraphSession {
   private isEnded: boolean = false;
   private isTextStreaming: boolean = false;
   private isGeneratingUpdate: boolean = false;
+  private pendingArtifacts = new Set<string>(); // Track pending artifact processing
+  private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
+  private readonly MAX_ARTIFACT_RETRIES = 3;
+  private readonly MAX_PENDING_ARTIFACTS = 100; // Prevent unbounded growth
+  private scheduledTimeouts?: Set<NodeJS.Timeout>; // Track scheduled timeouts for cleanup
 
   constructor(
     public readonly sessionId: string,
@@ -201,20 +219,56 @@ export class GraphSession {
 
     // Process artifact if it's pending generation
     if (eventType === 'artifact_saved' && (data as ArtifactSavedData).pendingGeneration) {
+      const artifactId = (data as ArtifactSavedData).artifactId;
+      
+      // Check for backpressure - prevent unbounded growth of pending artifacts
+      if (this.pendingArtifacts.size >= this.MAX_PENDING_ARTIFACTS) {
+        logger.warn({
+          sessionId: this.sessionId,
+          artifactId,
+          pendingCount: this.pendingArtifacts.size,
+          maxAllowed: this.MAX_PENDING_ARTIFACTS
+        }, 'Too many pending artifacts, skipping processing');
+        return;
+      }
+      
+      // Track this artifact as pending
+      this.pendingArtifacts.add(artifactId);
+      
       // Fire and forget - process artifact completely asynchronously without any blocking
       setImmediate(() => {
         // No await, no spans at trigger level - truly fire and forget
-        this.processArtifact(data as ArtifactSavedData).catch((error) => {
-          logger.error(
-            {
+        this.processArtifact(data as ArtifactSavedData)
+          .then(() => {
+            // Remove from pending on success
+            this.pendingArtifacts.delete(artifactId);
+            this.artifactProcessingErrors.delete(artifactId);
+          })
+          .catch((error) => {
+            // Track error count
+            const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
+            this.artifactProcessingErrors.set(artifactId, errorCount);
+            
+            // Remove from pending after max retries
+            if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
+              this.pendingArtifacts.delete(artifactId);
+              logger.error({
               sessionId: this.sessionId,
-              artifactId: (data as ArtifactSavedData).artifactId,
+                artifactId,
+                errorCount,
+                maxRetries: this.MAX_ARTIFACT_RETRIES,
               error: error instanceof Error ? error.message : 'Unknown error',
               stack: error instanceof Error ? error.stack : undefined,
-              artifactData: data,
-            },
-            'Failed to process artifact - fire and forget error'
-          );
+              }, 'Artifact processing failed after max retries, giving up');
+            } else {
+              // Keep in pending for potential retry
+              logger.warn({
+                sessionId: this.sessionId,
+                artifactId,
+                errorCount,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              }, 'Artifact processing failed, may retry');
+            }
         });
       });
     }
@@ -247,34 +301,8 @@ export class GraphSession {
     // Store reference to prevent race condition during async execution
     const statusUpdateState = this.statusUpdateState;
 
-    // Run async without blocking the main flow
-    setImmediate(async () => {
-      try {
-        // Check if session is still active and statusUpdateState hasn't been cleaned up or text is streaming
-        if (this.isEnded || !statusUpdateState || this.isTextStreaming) {
-          return;
-        }
-
-        const currentEventCount = this.events.length;
-        const numEventsThreshold = statusUpdateState.config.numEvents;
-
-        const shouldUpdateByEvents =
-          numEventsThreshold &&
-          currentEventCount >= statusUpdateState.lastEventCount + numEventsThreshold;
-
-        if (shouldUpdateByEvents) {
-          await this.generateAndSendUpdate();
-        }
-      } catch (error) {
-        logger.error(
-          {
-            sessionId: this.sessionId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-          'Failed to check status updates during event recording'
-        );
-      }
-    });
+    // Schedule async update check with proper error handling
+    this.scheduleStatusUpdateCheck(statusUpdateState);
   }
 
   /**
@@ -397,6 +425,18 @@ export class GraphSession {
       this.statusUpdateTimer = undefined;
     }
     this.statusUpdateState = undefined;
+    
+    // Clean up artifact tracking maps to prevent memory leaks
+    this.pendingArtifacts.clear();
+    this.artifactProcessingErrors.clear();
+    
+    // Clear any scheduled timeouts to prevent race conditions
+    if (this.scheduledTimeouts) {
+      for (const timeoutId of this.scheduledTimeouts) {
+        clearTimeout(timeoutId);
+      }
+      this.scheduledTimeouts.clear();
+    }
   }
 
   /**
@@ -496,7 +536,10 @@ export class GraphSession {
               type: 'status_update' as const,
               ctx: {
                 operationType: op.type,
-                data: op.data,
+                label: op.data.label,
+                data: Object.fromEntries(
+                  Object.entries(op.data).filter(([key]) => !['label', 'type'].includes(key))
+                ),
               },
             };
 
@@ -583,6 +626,93 @@ export class GraphSession {
   }
 
   /**
+   * Schedule status update check without setImmediate race conditions
+   */
+  private scheduleStatusUpdateCheck(statusUpdateState: StatusUpdateState): void {
+    // Use setTimeout with 0 delay instead of setImmediate for better control
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Double-check session is still valid before proceeding
+        if (this.isEnded || !this.statusUpdateState) {
+          return;
+        }
+
+        // Acquire update lock with atomic check
+        if (!this.acquireUpdateLock()) {
+          return; // Another update is in progress
+        }
+
+        try {
+          // Final validation before processing
+          if (this.isEnded || !statusUpdateState || this.isTextStreaming) {
+            return;
+          }
+
+          const currentEventCount = this.events.length;
+          const numEventsThreshold = statusUpdateState.config.numEvents;
+
+          const shouldUpdateByEvents =
+            numEventsThreshold &&
+            currentEventCount >= statusUpdateState.lastEventCount + numEventsThreshold;
+
+          if (shouldUpdateByEvents) {
+            await this.generateAndSendUpdate();
+          }
+        } finally {
+          // Always release the lock
+          this.releaseUpdateLock();
+        }
+      } catch (error) {
+        logger.error(
+          {
+            sessionId: this.sessionId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to check status updates during event recording'
+        );
+        // Ensure lock is released on error
+        this.releaseUpdateLock();
+      }
+    }, 0);
+
+    // Track timeout for cleanup if session ends
+    if (!this.scheduledTimeouts) {
+      this.scheduledTimeouts = new Set();
+    }
+    this.scheduledTimeouts.add(timeoutId);
+
+    // Auto-cleanup timeout reference
+    setTimeout(() => {
+      if (this.scheduledTimeouts) {
+        this.scheduledTimeouts.delete(timeoutId);
+      }
+    }, 1000);
+  }
+
+  /**
+   * Acquire update lock with atomic check
+   */
+  private acquireUpdateLock(): boolean {
+    // Atomic check-and-set
+    if (this.statusUpdateState?.updateLock) {
+      return false; // Already locked
+    }
+    if (this.statusUpdateState) {
+      this.statusUpdateState.updateLock = true;
+    }
+    return true;
+  }
+
+  /**
+   * Release update lock
+   */
+  private releaseUpdateLock(): void {
+    if (this.statusUpdateState) {
+      this.statusUpdateState.updateLock = false;
+    }
+  }
+
+  /**
    * Generate user-focused progress summary hiding internal operations
    */
   private async generateProgressSummary(
@@ -638,11 +768,11 @@ export class GraphSession {
               : '';
 
           // Use custom prompt if provided, otherwise use default
-          const basePrompt = `Generate a brief status update for what is happening now to the user. Please keep it short and concise and informative based on what the user has asked for.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
+          const basePrompt = `Generate a meaningful status update that tells the user what specific information or result was just found/achieved.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
 
-What's happening now?
+Describe the ACTUAL finding, result, or specific information discovered (e.g., "Found Slack bot requires admin permissions", "Identified 3 channel types for ingestion", "Configuration requires OAuth token").
 
 ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
@@ -761,10 +891,10 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               ],
               // Add all other component schemas
               ...statusComponents.map((component) => [
-                component.id,
-                this.buildZodSchema(component.schema)
+                component.type,
+                this.getComponentSchema(component)
                   .optional()
-                  .describe(component.description || component.name),
+                  .describe(component.description || component.type),
               ]),
             ])
           );
@@ -774,13 +904,21 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
 
-Available components: no_relevant_updates, ${statusComponents.map((c) => c.id).join(', ')}
+Available components: no_relevant_updates, ${statusComponents.map((c) => c.type).join(', ')}
 
 Rules:
 - Fill in data for relevant components only
-- Use 'no_relevant_updates' if nothing substantially new to report
-- Never repeat previous values
+- Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
+- Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
+- Labels MUST contain the ACTUAL information discovered ("Found X", "Learned Y", "Discovered Z requires A")
+- DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
+- Include specific details, numbers, requirements, or insights discovered
 - You are ONE AI (no agents/delegations)
+- Anonymize all internal operations so that the information appears descriptive and USER FRIENDLY. HIDE INTERNAL OPERATIONS!
+- Bad examples: "Searching docs", "Processing request", "Status update", or not using the no_relevant_updates: e.g. "No New Updates", "No new info to report"
+- Good examples: "Slack bot needs admin privileges", "Found 3-step OAuth flow required", "Channel limit is 500 per workspace", or use the no_relevant_updates component if nothing new to report.
+
+REMEMBER YOU CAN ONLY USE 'no_relevant_updates' ALONE! IT CANNOT BE CONCATENATED WITH OTHER STATUS UPDATES!
 
 ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
@@ -847,35 +985,109 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
   }
 
   /**
-   * Build Zod schema from JSON schema configuration
+   * Build Zod schema from JSON schema configuration or use pre-defined schemas
    */
-  private buildZodSchema(jsonSchema: {
+  private getComponentSchema(component: StatusComponent): z.ZodType<any> {
+    // Check if we have a JSON schema to convert
+    if (component.detailsSchema && 'properties' in component.detailsSchema) {
+      return this.buildZodSchemaFromJson(component.detailsSchema);
+    }
+
+    // Fallback to a simple object with just label if no schema provided
+    return z.object({
+      label: z
+        .string()
+        .describe(
+          'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The ACTUAL finding or result, not the action. What specific information was discovered? (e.g., "Slack requires OAuth 2.0 setup", "Found 5 integration methods", "API rate limit is 100/minute"). Include the actual detail or insight, not just that you searched or processed.'
+        ),
+    });
+  }
+
+  /**
+   * Build Zod schema from JSON schema with improved type handling
+   */
+  private buildZodSchemaFromJson(jsonSchema: {
     type: string;
     properties: Record<string, any>;
     required?: string[];
   }): z.ZodType<any> {
     const properties: Record<string, z.ZodType<any>> = {};
 
+    // Always add label field
+    properties['label'] = z
+      .string()
+      .describe(
+        'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known?'
+      );
+
     for (const [key, value] of Object.entries(jsonSchema.properties)) {
-      // Simple type mapping - can be expanded as needed
-      if (value.type === 'string') {
-        properties[key] = z.string();
-      } else if (value.type === 'number') {
-        properties[key] = z.number();
+      let zodType: z.ZodType<any>;
+
+      // Check for enum first
+      if (value.enum && Array.isArray(value.enum)) {
+        // Handle enum types
+        if (value.enum.length === 1) {
+          zodType = z.literal(value.enum[0]);
+        } else {
+          const [first, ...rest] = value.enum;
+          zodType = z.enum([first, ...rest] as [string, ...string[]]);
+        }
+      } else if (value.type === 'string') {
+        zodType = z.string();
+        // Add string-specific validations if present
+        if (value.minLength) zodType = (zodType as z.ZodString).min(value.minLength);
+        if (value.maxLength) zodType = (zodType as z.ZodString).max(value.maxLength);
+        if (value.format === 'email') zodType = (zodType as z.ZodString).email();
+        if (value.format === 'url' || value.format === 'uri')
+          zodType = (zodType as z.ZodString).url();
+      } else if (value.type === 'number' || value.type === 'integer') {
+        zodType = value.type === 'integer' ? z.number().int() : z.number();
+        // Add number-specific validations if present
+        if (value.minimum !== undefined) zodType = (zodType as z.ZodNumber).min(value.minimum);
+        if (value.maximum !== undefined) zodType = (zodType as z.ZodNumber).max(value.maximum);
       } else if (value.type === 'boolean') {
-        properties[key] = z.boolean();
+        zodType = z.boolean();
       } else if (value.type === 'array') {
-        properties[key] = z.array(z.any());
+        // Handle array items if specified
+        if (value.items) {
+          if (value.items.enum && Array.isArray(value.items.enum)) {
+            // Array of enum values
+            const [first, ...rest] = value.items.enum;
+            zodType = z.array(z.enum([first, ...rest] as [string, ...string[]]));
+          } else if (value.items.type === 'string') {
+            zodType = z.array(z.string());
+          } else if (value.items.type === 'number') {
+            zodType = z.array(z.number());
+          } else if (value.items.type === 'boolean') {
+            zodType = z.array(z.boolean());
+          } else if (value.items.type === 'object') {
+            zodType = z.array(z.record(z.string(), z.any()));
+          } else {
+            zodType = z.array(z.any());
+          }
+        } else {
+          zodType = z.array(z.any());
+        }
+        // Add array-specific validations
+        if (value.minItems) zodType = (zodType as z.ZodArray<any>).min(value.minItems);
+        if (value.maxItems) zodType = (zodType as z.ZodArray<any>).max(value.maxItems);
       } else if (value.type === 'object') {
-        properties[key] = z.record(z.string(), z.any());
+        zodType = z.record(z.string(), z.any());
       } else {
-        properties[key] = z.any();
+        zodType = z.any();
       }
 
-      // Make optional if not in required array
-      if (!jsonSchema.required?.includes(key)) {
-        properties[key] = properties[key].optional();
+      // Add description if present in JSON schema
+      if (value.description) {
+        zodType = zodType.describe(value.description);
       }
+
+      // Make optional if not in required array OR if marked as optional
+      if (!jsonSchema.required?.includes(key) || value.optional === true) {
+        zodType = zodType.optional();
+      }
+
+      properties[key] = zodType;
     }
 
     return z.object(properties);
@@ -942,14 +1154,21 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           break;
         }
 
+        case 'agent_reasoning': {
+          const data = event.data as AgentReasoningData;
+          activities.push(
+            `⚙️ **Reasoning**: reasoning\n` +
+              `   Full Details: ${JSON.stringify(data.parts, null, 2)}`
+          );
+          break;
+        }
+
         case 'agent_generate': {
           const data = event.data as AgentGenerateData;
-          if (data.generationType !== 'artifact_name_description') {
-            activities.push(
-              `⚙️ **Generation**: ${data.generationType}\n` +
-                `   Full Details: ${JSON.stringify(data.parts, null, 2)}`
-            );
-          }
+          activities.push(
+            `⚙️ **Generation**: ${data.generationType}\n` +
+              `   Full Details: ${JSON.stringify(data.parts, null, 2)}`
+          );
           break;
         }
 
@@ -1019,10 +1238,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           span.setAttributes({ 'validation.passed': true });
 
-          // Get conversation history for context
-          span.setAttributes({ step: 'importing_conversations' });
           const { getFormattedConversationHistory } = await import('../data/conversations.js');
-          span.setAttributes({ step: 'fetching_conversation_history' });
           const conversationHistory = await getFormattedConversationHistory({
             tenantId: artifactData.tenantId,
             projectId: artifactData.projectId,
@@ -1032,10 +1248,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               includeInternal: false, // Focus on user messages
               messageTypes: ['chat'],
             },
-          });
-          span.setAttributes({
-            step: 'conversation_history_fetched',
-            'conversation_history.length': conversationHistory.length,
           });
 
           // Find the specific tool call that generated this artifact
@@ -1048,30 +1260,17 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               event.data.toolId === artifactData.metadata?.toolCallId
           ) as GraphSessionEvent | undefined;
 
-          const toolResultEvent = this.events.find(
-            (event) =>
-              event.eventType === 'tool_execution' &&
-              event.data &&
-              'toolId' in event.data &&
-              event.data.toolId === artifactData.metadata?.toolCallId
-          ) as GraphSessionEvent | undefined;
-
           // Prepare context for name/description generation
-          const _toolContext = toolCallEvent
+          const toolContext = toolCallEvent
             ? {
                 toolName: (toolCallEvent.data as any).toolName,
                 args: (toolCallEvent.data as any).args,
               }
             : null;
 
-          const _toolResult = toolResultEvent
-            ? {
-                result: (toolResultEvent.data as any).result,
-              }
-            : null;
-
           const prompt = `Name this artifact (max 50 chars) and describe it (max 150 chars).
 
+Tool Context: ${toolContext ? JSON.stringify(toolContext, null, 2) : 'No tool context'}
 Context: ${conversationHistory?.slice(-200) || 'Processing'}
 Type: ${artifactData.artifactType || 'data'}
 Summary: ${JSON.stringify(artifactData.summaryProps, null, 2)}

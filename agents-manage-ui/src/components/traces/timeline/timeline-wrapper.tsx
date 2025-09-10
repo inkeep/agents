@@ -5,7 +5,7 @@ import {
 	Loader2,
 	RefreshCw,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { StickToBottom } from "use-stick-to-bottom";
 import { ConversationTracesLink } from "@/components/traces/signoz-link";
@@ -138,20 +138,26 @@ export function TimelineWrapper({
 		}
 	}, [selected]);
 
-	// Calculate activities and sorted activities first
-	const activities =
-		(conversation?.activities && conversation.activities.length > 0
-			? conversation.activities
-			: conversation?.toolCalls?.map((tc: ActivityItem) => ({
-					...tc, // keep saveResultSaved, saveSummaryData, etc.
-					id: tc.id ?? `tool-call-${Date.now()}`,
-					type: "tool_call" as const,
-					description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ""}`,
-					timestamp: new Date(tc.timestamp).toISOString(),
-					agentName: tc.agentName || "AI Agent",
-					toolResult: tc.result ?? tc.toolResult ?? "Tool call completed",
-				}))) || [];
+	// Memoize activities calculation to prevent expensive operations on every render
+	const activities = useMemo(() => {
+		if (conversation?.activities && conversation.activities.length > 0) {
+			return conversation.activities;
+		}
 
+		return (
+			conversation?.toolCalls?.map((tc: ActivityItem) => ({
+				...tc, // keep saveResultSaved, saveSummaryData, etc.
+				id: tc.id ?? `tool-call-${Date.now()}`,
+				type: "tool_call" as const,
+				description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ""}`,
+				timestamp: new Date(tc.timestamp).toISOString(),
+				agentName: tc.agentName || "AI Agent",
+				toolResult: tc.result ?? tc.toolResult ?? "Tool call completed",
+			})) || []
+		);
+	}, [conversation?.activities, conversation?.toolCalls]);
+
+	// Memoize sorted activities to prevent re-sorting on every render
 	const sortedActivities = useMemo(() => {
 		const list = [...activities];
 		list.sort((a, b) => {
@@ -162,16 +168,19 @@ export function TimelineWrapper({
 		return list;
 	}, [activities]);
 
-	// Initialize AI messages based on view type when activities change
-	useEffect(() => {
-		const aiMessageIds = sortedActivities
+	// Memoize AI message IDs to avoid recalculating on every render
+	const aiMessageIds = useMemo(() => {
+		return sortedActivities
 			.filter(
 				(activity) =>
 					activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
 					activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
 			)
 			.map((activity) => activity.id);
+	}, [sortedActivities]);
 
+	// Initialize AI messages based on view type when activities change
+	useEffect(() => {
 		if (enableAutoScroll) {
 			// Live trace view: default collapsed
 			setCollapsedAiMessages(new Set(aiMessageIds));
@@ -181,26 +190,19 @@ export function TimelineWrapper({
 			setCollapsedAiMessages(new Set());
 			setAiMessagesGloballyCollapsed(false);
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [enableAutoScroll, sortedActivities.filter]); //  Run when activities count or view type changes
+	}, [aiMessageIds, enableAutoScroll]);
 
-	// Functions to handle expand/collapse all
-	const expandAllAiMessages = () => {
+	// Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
+	const expandAllAiMessages = useCallback(() => {
 		setCollapsedAiMessages(new Set());
 		setAiMessagesGloballyCollapsed(false);
-	};
+	}, []);
 
-	const collapseAllAiMessages = () => {
-		const aiMessageIds = sortedActivities
-			.filter(
-				(activity) =>
-					activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-					activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-			)
-			.map((activity) => activity.id);
+	const collapseAllAiMessages = useCallback(() => {
+		// Use the memoized aiMessageIds instead of recalculating
 		setCollapsedAiMessages(new Set(aiMessageIds));
 		setAiMessagesGloballyCollapsed(true);
-	};
+	}, [aiMessageIds]);
 
 	const toggleAiMessageCollapse = (activityId: string) => {
 		const newCollapsed = new Set(collapsedAiMessages);
@@ -361,9 +363,9 @@ export function TimelineWrapper({
 													className=" text-xs bg-background/80 backdrop-blur-sm  hover:bg-background/90 transition-all duration-200 opacity-70 hover:opacity-100"
 												>
 													{isRefreshing ? (
-														<Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+														<Loader2 className="h-3 w-3 animate-spin" />
 													) : (
-														<RefreshCw className="h-3 w-3 mr-1.5" />
+														<RefreshCw className="h-3 w-3" />
 													)}
 													{isRefreshing ? "Refreshing..." : "Refresh"}
 												</Button>

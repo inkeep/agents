@@ -186,9 +186,10 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   async writeOperation(operation: OperationEvent): Promise<void> {
-    if (operation.type === 'status_update' && operation.ctx.operationType) {
+    if (operation.type === 'status_update' && operation.ctx.label) {
       operation = {
-        type: operation.ctx.operationType,
+        type: operation.type,
+        label: operation.ctx.label,
         ctx: operation.ctx.data,
       };
     }
@@ -255,7 +256,20 @@ export class VercelDataStreamHelper implements StreamHelper {
   private isTextStreaming: boolean = false;
   private queuedOperations: OperationEvent[] = [];
 
-  constructor(private writer: VercelUIWriter) {}
+  // Timing tracking for text sequences (text-end to text-start gap)
+  private lastTextEndTimestamp: number = 0;
+  private readonly TEXT_GAP_THRESHOLD = 1000; // milliseconds - if gap between text sequences is less than this, queue operations
+
+  // Connection management and forced cleanup
+  private connectionDropTimer?: NodeJS.Timeout;
+  private readonly MAX_LIFETIME_MS = 600_000; // 10 minutes max lifetime
+
+  constructor(private writer: VercelUIWriter) {
+    // Set maximum lifetime timer to prevent memory leaks from abandoned connections
+    this.connectionDropTimer = setTimeout(() => {
+      this.forceCleanup('Connection lifetime exceeded');
+    }, this.MAX_LIFETIME_MS);
+  }
 
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;
@@ -276,9 +290,21 @@ export class VercelDataStreamHelper implements StreamHelper {
 
     // Only prevent catastrophic buffer growth during request
     if (this.jsonBuffer.length + content.length > VercelDataStreamHelper.MAX_BUFFER_SIZE) {
-      // Keep more context since we're not cleaning up during request
-      const keepSize = Math.floor(VercelDataStreamHelper.MAX_BUFFER_SIZE * 0.8);
-      this.jsonBuffer = this.jsonBuffer.slice(-keepSize);
+      // JSON-aware truncation to prevent corruption
+      const newBuffer = this.truncateJsonBufferSafely(this.jsonBuffer);
+      
+      // If we couldn't find a safe truncation point, clear the buffer entirely
+      // This is safer than keeping potentially corrupted JSON
+      if (newBuffer.length === this.jsonBuffer.length) {
+        console.warn('VercelDataStreamHelper: Could not find safe JSON truncation point, clearing buffer');
+        this.jsonBuffer = '';
+        // Clear tracking as we're starting fresh
+        this.sentItems.clear();
+      } else {
+        this.jsonBuffer = newBuffer;
+        // Update tracking indices based on the new buffer content
+        this.reindexSentItems();
+      }
     }
 
     this.jsonBuffer += content;
@@ -318,16 +344,26 @@ export class VercelDataStreamHelper implements StreamHelper {
     // For plain text, write directly to the stream as text chunks
     if (!this.textId) this.textId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    const words = text.split(' ');
-
     // ------------------------------
     // New Vercel data-stream v2 format
     // ------------------------------
-    // Emit "text-start" once at the beginning, followed by "text-delta" chunks
-    // for each word (with preceding space when necessary) and finish with
-    // a single "text-end".
+    // Emit "text-start" once at the beginning, followed by a single "text-delta"
+    // for the entire text chunk, and finish with "text-end".
+    // Don't artificially split by words - let the agent determine chunk boundaries.
 
     const id = this.textId;
+
+    // Check gap from last text-end to this text-start
+    const startTime = Date.now();
+    const gapFromLastSequence =
+      this.lastTextEndTimestamp > 0
+        ? startTime - this.lastTextEndTimestamp
+        : Number.MAX_SAFE_INTEGER;
+
+    // If gap is large enough, flush any queued operations before starting new text
+    if (gapFromLastSequence >= this.TEXT_GAP_THRESHOLD) {
+      await this.flushQueuedOperations();
+    }
 
     // Mark that text streaming is starting
     this.isTextStreaming = true;
@@ -338,39 +374,56 @@ export class VercelDataStreamHelper implements StreamHelper {
         id,
       });
 
-      // Deltas (optionally throttled)
-      for (let i = 0; i < words.length; i++) {
+      // Optional delay before sending the text chunk
         if (delayMs > 0) {
           await new Promise((r) => setTimeout(r, delayMs));
         }
 
-        const delta = i === 0 ? words[i] : ` ${words[i]}`;
-
+      // Send the entire text as a single delta
         this.writer.write({
           type: 'text-delta',
           id,
-          delta,
+        delta: text,
         });
-      }
 
       // End
       this.writer.write({
         type: 'text-end',
         id,
       });
+
+      // Track when this text sequence ended
+      this.lastTextEndTimestamp = Date.now();
     } finally {
       // Mark that text streaming has finished
       this.isTextStreaming = false;
 
-      // Flush any queued operations now that text sequence is complete
-      await this.flushQueuedOperations();
+      // DO NOT flush operations here - wait for gap threshold
     }
   }
 
-  async writeData(type: 'operation', data: { type: string; ctx: any }): Promise<void> {
+  async writeData(type: string, data: any): Promise<void> {
     if (this.isCompleted) {
       console.warn('Attempted to write data to completed stream');
       return;
+    }
+
+    // For data-artifact, check if we should delay it based on text timing
+    if (type === 'data-artifact') {
+      const now = Date.now();
+      const gapFromLastTextEnd =
+        this.lastTextEndTimestamp > 0 ? now - this.lastTextEndTimestamp : Number.MAX_SAFE_INTEGER;
+
+      // If we're within the gap threshold from last text-end, it means more text might be coming
+      // In this case, write the artifact but don't reset timing - let operations stay queued
+      if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+        // Artifact arrives during or shortly after text - maintain timing continuity
+        this.writer.write({
+          type: `${type}`,
+          data,
+        });
+        return;
+      }
     }
 
     this.writer.write({
@@ -434,12 +487,114 @@ export class VercelDataStreamHelper implements StreamHelper {
    * Should be called when the stream helper is no longer needed
    */
   public cleanup(): void {
+    // Clear the connection drop timer
+    if (this.connectionDropTimer) {
+      clearTimeout(this.connectionDropTimer);
+      this.connectionDropTimer = undefined;
+    }
+    
     this.jsonBuffer = '';
     this.sentItems.clear();
     this.completedItems.clear();
     this.textId = null;
     this.queuedOperations = [];
     this.isTextStreaming = false;
+  }
+
+  /**
+   * JSON-aware buffer truncation that preserves complete JSON structures
+   */
+  private truncateJsonBufferSafely(buffer: string): string {
+    const keepSize = Math.floor(VercelDataStreamHelper.MAX_BUFFER_SIZE * 0.6); // Be more conservative
+    if (buffer.length <= keepSize) return buffer;
+    
+    // Start from the end and work backwards to find complete JSON structures
+    let depth = 0;
+    let inString = false;
+    let escaping = false;
+    let lastCompleteStructureEnd = -1;
+    
+    // Scan backwards from the target keep size
+    for (let i = Math.min(keepSize + 1000, buffer.length - 1); i >= keepSize; i--) {
+      const char = buffer[i];
+      
+      if (escaping) {
+        escaping = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escaping = true;
+        continue;
+      }
+      
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      
+      if (inString) continue;
+      
+      if (char === '}' || char === ']') {
+        depth++;
+      } else if (char === '{' || char === '[') {
+        depth--;
+        // If we've returned to depth 0, we have a complete structure
+        if (depth === 0) {
+          lastCompleteStructureEnd = i - 1;
+          break;
+        }
+      }
+    }
+    
+    // If we found a safe truncation point, use it
+    if (lastCompleteStructureEnd > 0) {
+      return buffer.slice(lastCompleteStructureEnd + 1);
+    }
+    
+    // Fallback: look for newlines between structures
+    for (let i = keepSize; i < Math.min(keepSize + 500, buffer.length); i++) {
+      if (buffer[i] === '\n' && buffer[i + 1] && buffer[i + 1].match(/[{[]]/)) {
+        return buffer.slice(i + 1);
+      }
+    }
+    
+    // Return original buffer if no safe point found (caller will handle clearing)
+    return buffer;
+  }
+  
+  /**
+   * Reindex sent items after buffer truncation
+   */
+  private reindexSentItems(): void {
+    // After truncation, we need to clear sent items as indices are no longer valid
+    this.sentItems.clear();
+    this.completedItems.clear();
+  }
+
+  /**
+   * Force cleanup on connection drop or timeout
+   */
+  private forceCleanup(reason: string): void {
+    console.warn(`VercelDataStreamHelper: Forcing cleanup - ${reason}`);
+    
+    // Mark as completed to prevent further writes
+    this.isCompleted = true;
+    
+    // Clean up all resources
+    this.cleanup();
+    
+    // Try to write an error if the writer is still available
+    try {
+      if (this.writer && !this.isCompleted) {
+        this.writer.write({
+          type: 'error',
+          errorText: `Stream terminated: ${reason}`,
+        });
+      }
+    } catch (e) {
+      // Writer may be unavailable, ignore errors
+    }
   }
 
   /**
@@ -467,20 +622,28 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
-    if (operation.type === 'status_update' && operation.ctx.operationType) {
+    if (operation.type === 'status_update' && operation.ctx.label) {
       operation = {
-        type: operation.ctx.operationType,
+        type: operation.type,
+        label: operation.ctx.label, // Preserve the label for the UI
         ctx: operation.ctx.data,
       };
     }
 
-    // Queue operation if text is currently streaming
-    if (this.isTextStreaming) {
+    // Check timing gap from last text-end
+    const now = Date.now();
+    const gapFromLastTextEnd =
+      this.lastTextEndTimestamp > 0 ? now - this.lastTextEndTimestamp : Number.MAX_SAFE_INTEGER;
+
+    // ALWAYS queue operation if:
+    // 1. Text is currently streaming, OR
+    // 2. We're within the gap threshold from last text-end (more text might be coming)
+    if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
       this.queuedOperations.push(operation);
       return;
     }
 
-    // If not streaming, flush any queued operations first, then send this one
+    // If not streaming and gap is large enough, flush any queued operations first, then send this one
     await this.flushQueuedOperations();
 
     this.writer.write({
