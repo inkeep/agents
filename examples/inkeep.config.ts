@@ -2,7 +2,7 @@ import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: 'inkeep',
-  projectId: 'cm8q9j9l0005gs601sm5eg58l',
+  projectId: 'default',
   managementApiUrl: 'http://localhost:3002',
   executionApiUrl: 'http://localhost:3003',
   modelSettings: {
