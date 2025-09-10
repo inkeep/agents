@@ -1,3 +1,4 @@
+import { Hono } from 'hono';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import { handleApiError } from '@inkeep/agents-core';
@@ -180,7 +181,10 @@ function createManagementHono(
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
-  return app;
+  const baseApp = new Hono();
+  baseApp.route('/', app);
+  
+  return baseApp;
 }
 
 export { createManagementHono };
