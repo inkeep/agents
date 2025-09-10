@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "ENVIRONMENT=development tsup",
+    "dev": "MODE=watch tsup",
     "prepare": "tsup",
     "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
     "test:debug": "vitest --run --reporter=verbose --no-coverage",
