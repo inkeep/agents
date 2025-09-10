@@ -34,7 +34,7 @@ describe("credential builder function", () => {
 			},
 		});
 
-		expect(oauthCredential.type).toBe("oauth");
+		expect(oauthCredential.type).toBe(CredentialStoreType.nango);
 		expect(oauthCredential.retrievalParams).toEqual({
 			clientId: "client123",
 			scope: "read:all",
@@ -52,7 +52,7 @@ describe("credential builder function", () => {
 			},
 		});
 
-		expect(vaultCredential.type).toBe("vault");
+		expect(vaultCredential.type).toBe(CredentialStoreType.keychain);
 		expect(vaultCredential.credentialStoreId).toBe("hashicorp-vault");
 	});
 

@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { CredentialStoreType } from './types';
+import { CredentialStoreType, MCPTransportType } from './types';
 
 // Common parameter schemas
 export const TenantParamsSchema = z.object({
@@ -300,3 +300,6 @@ export function generateIdFromName(name: string): string {
 // Type aliases for backward compatibility
 export type ToolInsert = ToolApiInsert;
 export type AgentGraphInsert = AgentGraphApiInsert;
+
+// Re-export utility types for client use
+export { CredentialStoreType, MCPTransportType };

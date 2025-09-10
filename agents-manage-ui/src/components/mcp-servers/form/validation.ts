@@ -1,4 +1,4 @@
-import { MCPTransportType } from "@inkeep/agents-core";
+import { MCPTransportType } from "@inkeep/agents-core/client-exports";
 import { z } from "zod/v4";
 
 // Discriminated union for tool selection

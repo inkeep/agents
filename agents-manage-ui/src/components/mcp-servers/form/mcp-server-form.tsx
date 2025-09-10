@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MCPTransportType } from "@inkeep/agents-core";
+import { MCPTransportType } from "@inkeep/agents-core/client-exports";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";

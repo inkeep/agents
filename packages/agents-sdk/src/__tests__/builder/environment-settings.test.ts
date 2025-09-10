@@ -109,11 +109,11 @@ describe("Credential Environment Settings System", () => {
 			// Test environment-specific environment setting resolution
 			process.env.NODE_ENV = "production";
 			const sharedCredential = await getEnvironmentSetting("shared");
-			expect(sharedCredential.type).toBe("oauth"); // Should use prod version
+			expect(sharedCredential.type).toBe(CredentialStoreType.nango); // Should use prod version
 
 			process.env.NODE_ENV = "development";
 			const devSharedCredential = await getEnvironmentSetting("shared");
-			expect(devSharedCredential.type).toBe("memory"); // Should use dev version
+			expect(devSharedCredential.type).toBe(CredentialStoreType.memory); // Should use dev version
 		});
 
 		it("should handle empty environments gracefully", () => {
@@ -260,8 +260,8 @@ describe("Credential Environment Settings System", () => {
 			const memoryResult = await getEnvironmentSetting("memory1");
 			const oauthResult = await getEnvironmentSetting("oauth1");
 
-			expect(memoryResult.type).toBe("memory");
-			expect(oauthResult.type).toBe("oauth");
+			expect(memoryResult.type).toBe(CredentialStoreType.memory);
+			expect(oauthResult.type).toBe(CredentialStoreType.nango);
 			expect(oauthResult.credentialStoreId).toBe("nango-oauth");
 		});
 
