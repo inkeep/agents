@@ -648,6 +648,36 @@ export const ProjectApiSelectSchema = ProjectSelectSchema.omit({ tenantId: true 
 export const ProjectApiInsertSchema = ProjectInsertSchema.omit({ tenantId: true });
 export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true });
 
+// Full project definition schema - includes all related entities
+export const FullProjectDefinitionSchema = ProjectApiSelectSchema.extend({
+  // All agent graphs in the project with their full definitions
+  agentGraphs: z.record(z.string(), FullGraphDefinitionSchema),
+  // All agents across all graphs
+  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  // All tools in the project
+  tools: z.record(z.string(), ToolApiInsertSchema),
+  // All context configs in the project
+  contextConfigs: z.record(z.string(), ContextConfigApiInsertSchema),
+  // All external agents in the project
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema),
+  // All data components in the project
+  dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
+  // All artifact components in the project
+  artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
+  // API keys for the project (with masked values for security)
+  apiKeys: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      keyPrefix: z.string(), // Only show prefix, not full key
+      graphId: z.string().nullable(),
+      createdAt: z.string(),
+      lastUsedAt: z.string().nullable(),
+      expiresAt: z.string().nullable(),
+    })
+  ).optional(),
+});
+
 // === Common parameter schemas ===
 export const HeadersScopeSchema = z.object({
   'x-inkeep-tenant-id': z.string().optional().openapi({

@@ -15,6 +15,7 @@ export * from './dataComponents';
 export * from './externalAgents';
 export * from './graphFull';
 export * from './ledgerArtifacts';
+export * from './projectFull';
 export * from './messages';
 export * from './projects';
 export * from './tasks';

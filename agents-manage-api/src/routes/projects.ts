@@ -5,6 +5,8 @@ import {
   createProject,
   deleteProject,
   ErrorResponseSchema,
+  FullProjectDefinitionSchema,
+  getFullProject,
   getProject,
   ListResponseSchema,
   listProjectsPaginated,
@@ -19,6 +21,7 @@ import {
 } from '@inkeep/agents-core';
 
 import dbClient from '../data/db/dbClient';
+import { getLogger } from '../logger';
 
 const app = new OpenAPIHono();
 
@@ -94,6 +97,64 @@ app.openapi(
     }
 
     return c.json({ data: project });
+  }
+);
+
+// Get full project by ID with all related entities
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/{id}/full',
+    summary: 'Get Full Project',
+    description: 'Get a complete project definition with all related entities (graphs, agents, tools, etc.)',
+    operationId: 'get-full-project',
+    tags: ['Projects'],
+    request: {
+      params: TenantIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Full project found',
+        content: {
+          'application/json': {
+            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, id } = c.req.valid('param');
+    const logger = getLogger('projectFull');
+    
+    try {
+      const fullProject = await getFullProject(dbClient, logger)({
+        tenantId,
+        projectId: id,
+      });
+
+      if (!fullProject) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
+
+      return c.json({ data: fullProject });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
+
+      throw createApiError({
+        code: 'internal_server_error',
+        message: error instanceof Error ? error.message : 'Failed to retrieve full project',
+      });
+    }
   }
 );
 
