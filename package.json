@@ -12,7 +12,7 @@
     "sync:licenses": "node scripts/sync-licenses.mjs",
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build",
-    "dev": "ENVIRONMENT=development turbo dev",
+    "dev": "turbo dev",
     "dev:apis": "turbo dev:apis",
     "pretest": "pnpm install --frozen-lockfile",
     "test": "turbo test",
@@ -25,12 +25,24 @@
     "coverage:enforce": "node scripts/enforce-coverage-change.mjs",
     "coverage:check": "pnpm coverage:diff && pnpm coverage:enforce",
     "lint": "turbo lint",
-    "format": "biome check --write agents-manage-ui agents-manage-api agents-run-api examples agents-cli",
+    "format": "biome format --write",
+    "format:check": "biome check --write",
     "pretypecheck": "pnpm install --frozen-lockfile",
     "typecheck": "turbo typecheck",
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "changeset publish",
+    "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
+    "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
+    "db:push": "pnpm --filter @inkeep/agents-core db:push",
+    "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
+    "db:studio": "pnpm --filter @inkeep/agents-core db:studio",
+    "db:clean": "pnpm --filter @inkeep/agents-core db:clean",
+    "db:check": "pnpm --filter @inkeep/agents-core db:check",
+    "db:reset-schema": "pnpm --filter @inkeep/agents-core db:reset-schema",
+    "workflow:profile": "node scripts/workflows/profile.mjs",
+    "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose"
   },
   "version": "0.1.0",
   "dependencies": {
@@ -38,6 +50,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.4",
+    "@changesets/cli": "^2.29.6",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
     "turbo": "^2.5.5"

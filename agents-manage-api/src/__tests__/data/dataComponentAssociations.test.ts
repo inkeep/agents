@@ -1,7 +1,6 @@
 import {
   associateDataComponentWithAgent,
   createAgent,
-  createAgentGraph,
   createDataComponent,
   getAgentsUsingDataComponent,
   getDataComponentsForAgent,

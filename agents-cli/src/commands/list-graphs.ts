@@ -76,7 +76,7 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
       ]);
     }
 
-    console.log('\n' + table.toString());
+    console.log(`\n${table.toString()}`);
   } catch (error) {
     spinner.fail('Failed to fetch graphs');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);

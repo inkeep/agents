@@ -570,7 +570,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       );
 
       expect(res.status).toBe(404);
-      const body = await res.json();
+      const _body = await res.json();
     });
 
     it('should enforce tenant isolation for deletes', async () => {

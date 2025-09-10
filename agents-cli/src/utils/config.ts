@@ -12,6 +12,7 @@ export interface InkeepConfig {
   projectId?: string;
   managementApiUrl?: string;
   executionApiUrl?: string;
+  manageUiUrl?: string;
   outputDirectory?: string;
   modelSettings?: ModelSettings;
 }
@@ -21,6 +22,7 @@ export interface ValidatedConfiguration {
   projectId: string;
   managementApiUrl: string;
   executionApiUrl: string;
+  manageUiUrl?: string;
   outputDirectory?: string;
   modelSettings?: ModelSettings;
   sources: {
@@ -100,6 +102,7 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
   const config: InkeepConfig = {
     managementApiUrl: 'http://localhost:3002',
     executionApiUrl: 'http://localhost:3003',
+    manageUiUrl: 'http://localhost:3000',
   };
 
   // Try to load from inkeep.config.ts or specified config file
@@ -109,11 +112,11 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
   }
 
   // Override with environment variables if present
-  if (process.env.INKEEP_MANAGEMENT_API_URL) {
-    config.managementApiUrl = process.env.INKEEP_MANAGEMENT_API_URL;
+  if (process.env.INKEEP_AGENTS_MANAGE_API_URL) {
+    config.managementApiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL;
   }
-  if (process.env.INKEEP_EXECUTION_API_URL) {
-    config.executionApiUrl = process.env.INKEEP_EXECUTION_API_URL;
+  if (process.env.INKEEP_AGENTS_RUN_API_URL) {
+    config.executionApiUrl = process.env.INKEEP_AGENTS_RUN_API_URL;
   }
 
   return config;
@@ -231,8 +234,8 @@ export async function validateConfiguration(
       projectId,
       managementApiUrl,
       executionApiUrl,
+      manageUiUrl: config.manageUiUrl,
       modelSettings: config.modelSettings || undefined,
-      outputDirectory: config.outputDirectory,
       sources,
     };
   }
@@ -250,6 +253,7 @@ export async function validateConfiguration(
       projectId: 'default',
       managementApiUrl: managementApiUrlFlag,
       executionApiUrl: executionApiUrlFlag,
+      manageUiUrl: undefined,
       modelSettings: undefined,
       sources,
     };
@@ -296,7 +300,7 @@ export async function validateConfiguration(
     throw new Error(
       'Management API URL is missing. Please either:\n' +
         '  1. Provide --management-api-url flag\n' +
-        '  2. Set INKEEP_MANAGEMENT_API_URL environment variable\n' +
+        '  2. Set INKEEP_AGENTS_MANAGE_API_URL environment variable\n' +
         '  3. Add managementApiUrl to your configuration file'
     );
   }
@@ -305,7 +309,7 @@ export async function validateConfiguration(
     throw new Error(
       'Execution API URL is missing. Please either:\n' +
         '  1. Provide --execution-api-url flag\n' +
-        '  2. Set INKEEP_EXECUTION_API_URL environment variable\n' +
+        '  2. Set INKEEP_AGENTS_RUN_API_URL environment variable\n' +
         '  3. Add executionApiUrl to your configuration file'
     );
   }
@@ -317,15 +321,15 @@ export async function validateConfiguration(
 
   if (managementApiUrlFlag) {
     managementApiUrlSource = 'command-line flag (--management-api-url)';
-  } else if (process.env.INKEEP_MANAGEMENT_API_URL === managementApiUrl) {
-    managementApiUrlSource = 'environment variable (INKEEP_MANAGEMENT_API_URL)';
+  } else if (process.env.INKEEP_AGENTS_MANAGE_API_URL === managementApiUrl) {
+    managementApiUrlSource = 'environment variable (INKEEP_AGENTS_MANAGE_API_URL)';
   } else if (managementApiUrl === 'http://localhost:3002' && !configFile) {
     managementApiUrlSource = 'default value';
   }
   if (executionApiUrlFlag) {
     executionApiUrlSource = 'command-line flag (--execution-api-url)';
-  } else if (process.env.INKEEP_EXECUTION_API_URL === executionApiUrl) {
-    executionApiUrlSource = 'environment variable (INKEEP_EXECUTION_API_URL)';
+  } else if (process.env.INKEEP_AGENTS_RUN_API_URL === executionApiUrl) {
+    executionApiUrlSource = 'environment variable (INKEEP_AGENTS_RUN_API_URL)';
   } else if (executionApiUrl === 'http://localhost:3003' && !configFile) {
     executionApiUrlSource = 'default value';
   }
@@ -347,8 +351,8 @@ export async function validateConfiguration(
     projectId,
     managementApiUrl,
     executionApiUrl,
+    manageUiUrl: config.manageUiUrl,
     modelSettings: config.modelSettings || undefined,
-    outputDirectory: config.outputDirectory,
     sources,
   };
 }

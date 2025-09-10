@@ -1,14 +1,14 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  watch: process.env.ENVIRONMENT === 'development',
+  watch: process.env.MODE === 'watch',
   entry: {
     index: 'src/index.ts',
     config: 'src/config.ts',
   },
   format: ['esm'],
   target: 'node20',
-  dts: process.env.ENVIRONMENT !== 'development',
+  dts: process.env.MODE !== 'watch',
   bundle: true,
   // Minimal external list - just problematic packages
   external: [

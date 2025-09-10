@@ -167,7 +167,7 @@ export class ContextResolver {
           }
 
           // Separate definitions by trigger type for cache invalidation logic
-          const initializationDefs = contextVariableEntries.filter(
+          const _initializationDefs = contextVariableEntries.filter(
             ([, def]) => def.trigger === 'initialization'
           );
           const invocationDefs = contextVariableEntries.filter(

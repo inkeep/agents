@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -15,6 +15,65 @@ export interface PullOptions {
   outputPath?: string;
   json?: boolean;
   maxRetries?: number;
+}
+
+/**
+ * Determine if the output path is a directory or file and return the appropriate file path
+ */
+function resolveOutputFilePath(
+  outputPath: string,
+  graphId: string,
+  isJson: boolean
+): {
+  filePath: string;
+  isExistingFile: boolean;
+} {
+  const absoluteOutputPath = resolve(process.cwd(), outputPath);
+
+  // Check if the path exists
+  if (existsSync(absoluteOutputPath)) {
+    const stats = statSync(absoluteOutputPath);
+
+    if (stats.isDirectory()) {
+      // It's a directory, create file path with graph ID
+      const extension = isJson ? '.json' : '.graph.ts';
+      const filePath = join(absoluteOutputPath, `${graphId}${extension}`);
+      return {
+        filePath,
+        isExistingFile: existsSync(filePath),
+      };
+    } else {
+      // It's a file, use it directly
+      return {
+        filePath: absoluteOutputPath,
+        isExistingFile: true,
+      };
+    }
+  } else {
+    // Path doesn't exist, check if it has an extension
+    const extension = extname(absoluteOutputPath);
+
+    if (extension) {
+      // It's a file path (has extension), create parent directory if needed
+      const parentDir = dirname(absoluteOutputPath);
+      if (!existsSync(parentDir)) {
+        mkdirSync(parentDir, { recursive: true });
+      }
+      return {
+        filePath: absoluteOutputPath,
+        isExistingFile: false,
+      };
+    } else {
+      // It's a directory path, create it and return file path
+      mkdirSync(absoluteOutputPath, { recursive: true });
+      const extension = isJson ? '.json' : '.graph.ts';
+      const filePath = join(absoluteOutputPath, `${graphId}${extension}`);
+      return {
+        filePath,
+        isExistingFile: false,
+      };
+    }
+  }
 }
 
 /**
@@ -67,41 +126,6 @@ export async function convertTypeScriptToJson(graphPath: string): Promise<FullGr
   return await graph.toFullGraphDefinition();
 }
 
-/**
- * CLI entry point for the converter (used when running with tsx)
- */
-async function cliConvert(graphPath: string): Promise<void> {
-  try {
-    // Suppress ALL console output except our JSON
-    const originalConsoleLog = console.log;
-    const originalConsoleError = console.error;
-    const originalConsoleWarn = console.warn;
-    const originalConsoleInfo = console.info;
-
-    // Suppress all console output
-    console.log = () => {};
-    console.error = () => {};
-    console.warn = () => {};
-    console.info = () => {};
-
-    const result = await convertTypeScriptToJson(graphPath);
-
-    // Restore console functions
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
-    console.warn = originalConsoleWarn;
-    console.info = originalConsoleInfo;
-
-    // Output a clear marker before JSON so parent process knows where to start parsing
-    console.log('===JSON_START===');
-    console.log(JSON.stringify(result, null, 2));
-    console.log('===JSON_END===');
-  } catch (error: any) {
-    console.error('Error:', error.message);
-    process.exit(1);
-  }
-}
-
 export async function pullCommand(graphId: string, options: PullOptions) {
   const spinner = ora('Loading configuration...').start();
 
@@ -120,15 +144,15 @@ export async function pullCommand(graphId: string, options: PullOptions) {
       process.exit(1);
     }
 
-    // Get output directory from options or config
-    const outputDirectory =
-      options.outputPath || config.outputDirectory || './agent-configurations';
+    // Get output path from options or use default
+    const outputPath = options.outputPath || './graphs';
 
-    // Create output directory if it doesn't exist
-    const absoluteOutputPath = resolve(process.cwd(), outputDirectory);
-    if (!existsSync(absoluteOutputPath)) {
-      mkdirSync(absoluteOutputPath, { recursive: true });
-    }
+    // Resolve the output file path and determine if it's an existing file
+    const { filePath: outputFilePath, isExistingFile } = resolveOutputFilePath(
+      outputPath,
+      graphId,
+      !!options.json
+    );
 
     spinner.text = 'Fetching graph from API...';
 
@@ -158,21 +182,19 @@ export async function pullCommand(graphId: string, options: PullOptions) {
     if (options.json) {
       // Output JSON file
       spinner.text = 'Writing JSON file...';
-      const jsonFilePath = join(absoluteOutputPath, `${graphId}.json`);
-      writeFileSync(jsonFilePath, JSON.stringify(graphData, null, 2), 'utf-8');
+      writeFileSync(outputFilePath, JSON.stringify(graphData, null, 2), 'utf-8');
 
       spinner.succeed(`Graph "${graphData.name}" pulled successfully`);
-      console.log(chalk.green(`✅ JSON file created: ${jsonFilePath}`));
+      console.log(
+        chalk.green(`✅ JSON file ${isExistingFile ? 'updated' : 'created'}: ${outputFilePath}`)
+      );
 
       // Display next steps for JSON
       console.log(chalk.cyan('\n✨ Next steps:'));
-      console.log(chalk.gray(`  • View the file: ${jsonFilePath}`));
+      console.log(chalk.gray(`  • View the file: ${outputFilePath}`));
       console.log(chalk.gray(`  • Use the data in your application`));
     } else {
       // Generate TypeScript file using LLM
-      spinner.text = 'Generating TypeScript file with LLM...';
-      const outputFilePath = join(absoluteOutputPath, `${graphId}.graph.ts`);
-
       if (!config.modelSettings) {
         spinner.fail('Model Settings is required for TypeScript generation');
         console.error(chalk.red('Error: No modelSettings found in configuration.'));
@@ -191,11 +213,16 @@ export async function pullCommand(graphId: string, options: PullOptions) {
       let validationPassed = false;
       let previousDifferences: string[] = [];
 
-      while (attempt <= maxRetries && !validationPassed) {
+      // Only validate when merging into existing file, not when creating new file
+      const shouldValidate = isExistingFile;
+
+      while (attempt <= maxRetries && (!shouldValidate || !validationPassed)) {
         if (attempt > 1) {
           spinner.text = `Regenerating TypeScript file (attempt ${attempt}/${maxRetries})...`;
         } else {
-          spinner.text = 'Generating TypeScript file with LLM...';
+          spinner.text = isExistingFile
+            ? 'Merging into existing TypeScript file with LLM...'
+            : 'Generating TypeScript file with LLM...';
         }
 
         await generateTypeScriptFileWithLLM(
@@ -210,47 +237,89 @@ export async function pullCommand(graphId: string, options: PullOptions) {
           }
         );
 
-        // Always validate the generated TypeScript file
-        spinner.text = 'Validating generated TypeScript file...';
+        // Only validate when merging into existing file
+        if (shouldValidate) {
+          spinner.text = 'Validating generated TypeScript file...';
 
-        try {
-          // Convert the generated TypeScript back to JSON
-          const convertedResult = await convertTypeScriptToJson(outputFilePath);
+          try {
+            // Convert the generated TypeScript back to JSON
+            const convertedResult = await convertTypeScriptToJson(outputFilePath);
 
-          // Compare with the original graph data
-          const comparison = compareJsonObjects(graphData, convertedResult, {
-            ignoreArrayOrder: true,
-            ignoreCase: false,
-            ignoreWhitespace: false,
-            showDetails: true,
-          });
+            // Compare with the original graph data
+            const comparison = compareJsonObjects(graphData, convertedResult, {
+              ignoreArrayOrder: true,
+              ignoreCase: false,
+              ignoreWhitespace: false,
+              showDetails: true,
+            });
 
-          if (comparison.isEqual) {
-            validationPassed = true;
-            spinner.succeed('TypeScript file validation passed');
-            console.log(chalk.green('✅ Generated TypeScript file matches original graph data'));
-          } else {
-            // Collect differences for next retry
-            previousDifferences = comparison.differences.map(
-              (diff) => `${diff.path}: ${diff.description}`
-            );
+            if (comparison.isEqual) {
+              validationPassed = true;
+              spinner.succeed('TypeScript file validation passed');
+              console.log(chalk.green('✅ Generated TypeScript file matches original graph data'));
+            } else {
+              // Collect differences for next retry
+              previousDifferences = comparison.differences.map(
+                (diff) => `${diff.path}: ${diff.description}`
+              );
+
+              if (attempt < maxRetries) {
+                spinner.warn(`Validation failed (attempt ${attempt}/${maxRetries}), retrying...`);
+                console.log(
+                  chalk.yellow(
+                    '⚠️  Generated TypeScript file has differences from original graph data:'
+                  )
+                );
+                console.log(chalk.gray(getDifferenceSummary(comparison)));
+
+                console.log(chalk.gray('\n🔄 Retrying with improved prompt...'));
+              } else {
+                // Final attempt failed
+                spinner.fail('TypeScript file validation failed after all retries');
+                console.log(
+                  chalk.red('❌ Generated TypeScript file has differences from original:')
+                );
+                console.log(chalk.gray(getDifferenceSummary(comparison)));
+
+                console.log(
+                  chalk.yellow(
+                    '\n💡 You may need to manually edit the generated file or check the LLM configuration.'
+                  )
+                );
+              }
+            }
+          } catch (validationError: any) {
+            // Collect validation error for next retry
+            previousDifferences = [`Validation error: ${validationError.message}`];
 
             if (attempt < maxRetries) {
               spinner.warn(`Validation failed (attempt ${attempt}/${maxRetries}), retrying...`);
               console.log(
                 chalk.yellow(
-                  '⚠️  Generated TypeScript file has differences from original graph data:'
+                  '⚠️  Could not validate generated TypeScript file against original graph data:'
                 )
               );
-              console.log(chalk.gray(getDifferenceSummary(comparison)));
-
+              console.log(chalk.gray(validationError.message));
+              console.log(
+                chalk.gray(
+                  'This might be due to the generated file having syntax errors or missing dependencies.'
+                )
+              );
               console.log(chalk.gray('\n🔄 Retrying with improved prompt...'));
             } else {
               // Final attempt failed
               spinner.fail('TypeScript file validation failed after all retries');
-              console.log(chalk.red('❌ Generated TypeScript file has differences from original:'));
-              console.log(chalk.gray(getDifferenceSummary(comparison)));
-
+              console.log(
+                chalk.red(
+                  '❌ Could not validate generated TypeScript file against original graph data:'
+                )
+              );
+              console.log(chalk.gray(validationError.message));
+              console.log(
+                chalk.gray(
+                  'This might be due to the generated file having syntax errors or missing dependencies.'
+                )
+              );
               console.log(
                 chalk.yellow(
                   '\n💡 You may need to manually edit the generated file or check the LLM configuration.'
@@ -258,51 +327,20 @@ export async function pullCommand(graphId: string, options: PullOptions) {
               );
             }
           }
-        } catch (validationError: any) {
-          // Collect validation error for next retry
-          previousDifferences = [`Validation error: ${validationError.message}`];
-
-          if (attempt < maxRetries) {
-            spinner.warn(`Validation failed (attempt ${attempt}/${maxRetries}), retrying...`);
-            console.log(
-              chalk.yellow(
-                '⚠️  Could not validate generated TypeScript file against original graph data:'
-              )
-            );
-            console.log(chalk.gray(validationError.message));
-            console.log(
-              chalk.gray(
-                'This might be due to the generated file having syntax errors or missing dependencies.'
-              )
-            );
-            console.log(chalk.gray('\n🔄 Retrying with improved prompt...'));
-          } else {
-            // Final attempt failed
-            spinner.fail('TypeScript file validation failed after all retries');
-            console.log(
-              chalk.red(
-                '❌ Could not validate generated TypeScript file against original graph data:'
-              )
-            );
-            console.log(chalk.gray(validationError.message));
-            console.log(
-              chalk.gray(
-                'This might be due to the generated file having syntax errors or missing dependencies.'
-              )
-            );
-            console.log(
-              chalk.yellow(
-                '\n💡 You may need to manually edit the generated file or check the LLM configuration.'
-              )
-            );
-          }
+        } else {
+          // No validation needed for new files
+          validationPassed = true;
         }
 
         attempt++;
       }
 
       spinner.succeed(`Graph "${graphData.name}" pulled successfully`);
-      console.log(chalk.green(`✅ TypeScript file created: ${outputFilePath}`));
+      console.log(
+        chalk.green(
+          `✅ TypeScript file ${isExistingFile ? 'updated' : 'created'}: ${outputFilePath}`
+        )
+      );
 
       // Display next steps
       console.log(chalk.cyan('\n✨ Next steps:'));

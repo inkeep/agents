@@ -137,7 +137,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should handle pagination with multiple pages', async () => {
       const tenantId = createTestTenantId('context-configs-list-multipages');
       await ensureTestProject(tenantId, projectId);
-      const contextConfigs = await createMultipleContextConfigs({ tenantId, count: 5 });
+      const _contextConfigs = await createMultipleContextConfigs({ tenantId, count: 5 });
 
       // Test first page with limit 2
       const page1Res = await app.request(
@@ -217,7 +217,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should handle large page size (larger than total items)', async () => {
       const tenantId = createTestTenantId('context-configs-list-large-limit');
       await ensureTestProject(tenantId, projectId);
-      const contextConfigs = await createMultipleContextConfigs({ tenantId, count: 3 });
+      const _contextConfigs = await createMultipleContextConfigs({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
       const res = await app.request(

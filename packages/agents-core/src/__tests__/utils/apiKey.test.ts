@@ -349,7 +349,7 @@ describe('API Key Utilities', () => {
   describe('Error handling and edge cases', () => {
     it('should handle crypto operations failures gracefully', async () => {
       // Mock randomBytes to throw an error
-      const originalRandomBytes = randomBytes;
+      const _originalRandomBytes = randomBytes;
       vi.doMock('node:crypto', () => ({
         ...vi.importActual('node:crypto'),
         randomBytes: vi.fn().mockImplementation(() => {

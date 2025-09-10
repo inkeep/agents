@@ -186,7 +186,7 @@ describe('Agent Graph Data Access', () => {
       const mockDb = {
         ...db,
         select: vi.fn().mockImplementation((fields) => {
-          if (fields && fields.count) {
+          if (fields?.count) {
             // This is the count query
             return {
               from: vi.fn().mockReturnValue({

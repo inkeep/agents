@@ -1,0 +1,61 @@
+name: Publish
+
+on:
+  push:
+    paths:
+      - ".changeset/**"
+      - "packages/**"
+      - "agents-cli/**"
+      - "agents-manage-api/**"
+      - "agents-run-api/**"
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  packages: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure npm and verify auth
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          echo "Verifying npm authentication..."
+          npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install
+        uses: ./.github/composite-actions/install
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Publish packages
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release to dev tag
+        if: steps.changesets.outputs.published != 'true'
+        run: |
+          git checkout main
+          pnpm changeset version --snapshot dev
+          pnpm changeset publish --tag dev
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

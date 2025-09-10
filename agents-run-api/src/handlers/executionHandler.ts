@@ -13,7 +13,6 @@ import { nanoid } from 'nanoid';
 import { A2AClient } from '../a2a/client';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer';
 import dbClient from '../data/db/dbClient';
-import { env } from '../env';
 import { getLogger } from '../logger';
 import {
   agentInitializingOp,

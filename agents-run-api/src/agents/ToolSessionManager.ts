@@ -142,45 +142,6 @@ export class ToolSessionManager {
       logger.info({ expiredCount: expiredSessions.length }, 'Cleaned up expired tool sessions');
     }
   }
-
-  /**
-   * Get detailed session information for logging
-   */
-  private getSessionDetails(sessionId: string): any {
-    const session = this.sessions.get(sessionId);
-    if (!session) return null;
-
-    return {
-      tenantId: session.tenantId,
-      contextId: session.contextId,
-      taskId: session.taskId,
-      createdAt: new Date(session.createdAt).toISOString(),
-      ageMs: Date.now() - session.createdAt,
-      toolResults: Array.from(session.toolResults.entries()).map(([id, result]) => ({
-        id,
-        toolName: result.toolName,
-        timestamp: new Date(result.timestamp).toISOString(),
-        hasResult: !!result.result,
-      })),
-    };
-  }
-
-  /**
-   * Get summary of all sessions for logging
-   */
-  private getSessionSummary(): any {
-    return {
-      totalSessions: this.sessions.size,
-      sessions: Array.from(this.sessions.entries()).map(([id, session]) => ({
-        sessionId: id,
-        tenantId: session.tenantId,
-        contextId: session.contextId,
-        taskId: session.taskId,
-        toolResultCount: session.toolResults.size,
-        ageMs: Date.now() - session.createdAt,
-      })),
-    };
-  }
 }
 
 // Export singleton instance

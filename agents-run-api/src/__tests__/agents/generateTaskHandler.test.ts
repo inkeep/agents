@@ -146,7 +146,7 @@ vi.mock('../../agents/Agent.js', () => ({
       lastAgentConstructorArgs = config;
     }
 
-    async generate(message: string, options: any) {
+    async generate(message: string, _options: any) {
       // Mock different response types based on message content
       if (message.includes('transfer')) {
         return {
@@ -209,7 +209,7 @@ vi.mock('../../agents/Agent.js', () => ({
       };
     }
 
-    setDelegationStatus(isDelegated: boolean) {
+    setDelegationStatus(_isDelegated: boolean) {
       // Mock implementation
     }
   },

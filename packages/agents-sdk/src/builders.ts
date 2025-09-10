@@ -1,16 +1,16 @@
 import {
-  type CredentialReferenceApiInsert,
-  CredentialReferenceApiInsertSchema,
-  type MCPToolConfig,
-  MCPToolConfigSchema,
-  type MCPTransportType,
-} from '@inkeep/agents-core';
-import { z } from 'zod';
-import { Agent } from './agent';
-import { ArtifactComponent } from './artifact-component';
-import { DataComponent } from './data-component';
-import { Tool } from './tool';
-import type { AgentConfig, TransferConfig } from './types';
+	type CredentialReferenceApiInsert,
+	CredentialReferenceApiInsertSchema,
+	type MCPToolConfig,
+	MCPToolConfigSchema,
+	type MCPTransportType,
+} from "@inkeep/agents-core";
+import { z } from "zod";
+import { Agent } from "./agent";
+import { ArtifactComponent } from "./artifact-component";
+import { DataComponent } from "./data-component";
+import { Tool } from "./tool";
+import type { AgentConfig, TransferConfig } from "./types";
 
 /**
  * Creates a new agent with stable ID enforcement.
@@ -29,25 +29,25 @@ import type { AgentConfig, TransferConfig } from './types';
  * ```
  */
 export function agent(config: AgentConfig): Agent {
-  return new Agent(config);
+	return new Agent(config);
 }
 
 export function credential(config: CredentialReferenceApiInsert) {
-  return CredentialReferenceApiInsertSchema.parse(config);
+	return CredentialReferenceApiInsertSchema.parse(config);
 }
 
 // Separate schema for non-function properties
 export const ToolConfigSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  description: z.string(),
-  parameters: z.record(z.string(), z.any()).optional(),
-  schema: z.unknown().optional(),
+	id: z.string().optional(),
+	name: z.string(),
+	description: z.string(),
+	parameters: z.record(z.string(), z.any()).optional(),
+	schema: z.unknown().optional(),
 });
 
 // Keep the old schema name for backward compatibility, but make it clear it's partial
 export const ToolSchema = ToolConfigSchema.extend({
-  execute: z.any(), // Function - validated separately at runtime
+	execute: z.any(), // Function - validated separately at runtime
 });
 
 /**
@@ -70,39 +70,39 @@ export const ToolSchema = ToolConfigSchema.extend({
  * ```
  */
 export function tool(config: {
-  name: string;
-  description: string;
-  execute: (params: any) => Promise<any>;
-  parameters?: Record<string, any>;
-  schema?: z.ZodJSONSchema;
+	name: string;
+	description: string;
+	execute: (params: any) => Promise<any>;
+	parameters?: Record<string, any>;
+	schema?: z.ZodJSONSchema;
 }) {
-  // Validate function separately with clear error message
-  if (typeof config.execute !== 'function') {
-    throw new Error('execute must be a function');
-  }
+	// Validate function separately with clear error message
+	if (typeof config.execute !== "function") {
+		throw new Error("execute must be a function");
+	}
 
-  // Validate non-function properties with schema
-  const { execute, ...configWithoutFunction } = config;
-  const validatedConfig = ToolConfigSchema.parse(configWithoutFunction);
+	// Validate non-function properties with schema
+	const { execute, ...configWithoutFunction } = config;
+	const validatedConfig = ToolConfigSchema.parse(configWithoutFunction);
 
-  // Combine validated config with function
-  const fullConfig = { ...validatedConfig, execute };
+	// Combine validated config with function
+	const fullConfig = { ...validatedConfig, execute };
 
-  // Return function tool format
-  const computedId = fullConfig.name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+	// Return function tool format
+	const computedId = fullConfig.name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
 
-  return {
-    id: computedId,
-    name: fullConfig.name,
-    description: fullConfig.description,
-    execute: fullConfig.execute,
-    parameters: fullConfig.parameters,
-    schema: fullConfig.schema,
-    type: 'function' as const,
-  };
+	return {
+		id: computedId,
+		name: fullConfig.name,
+		description: fullConfig.description,
+		execute: fullConfig.execute,
+		parameters: fullConfig.parameters,
+		schema: fullConfig.schema,
+		type: "function" as const,
+	};
 }
 
 /**
@@ -135,113 +135,113 @@ export function tool(config: {
  * ```
  */
 export function mcpServer(config: {
-  // Basic configuration
-  name: string;
-  description: string;
+	// Basic configuration
+	name: string;
+	description: string;
 
-  // Deployment configuration
-  deployment?: 'local' | 'remote';
+	// Deployment configuration
+	deployment?: "local" | "remote";
 
-  // For local MCP servers
-  execute?: (params: any) => Promise<any>;
-  port?: number; // Optional fixed port, otherwise dynamically allocated
+	// For local MCP servers
+	execute?: (params: any) => Promise<any>;
+	port?: number; // Optional fixed port, otherwise dynamically allocated
 
-  // For remote MCP servers
-  serverUrl?: string;
+	// For remote MCP servers
+	serverUrl?: string;
 
-  // Additional configuration
-  id?: string;
-  parameters?: Record<string, z.ZodJSONSchema>;
-  credential?: CredentialReferenceApiInsert;
-  tenantId?: string;
-  transport?: keyof typeof MCPTransportType;
-  activeTools?: string[];
-  headers?: Record<string, string>;
+	// Additional configuration
+	id?: string;
+	parameters?: Record<string, z.ZodJSONSchema>;
+	credential?: CredentialReferenceApiInsert;
+	tenantId?: string;
+	transport?: keyof typeof MCPTransportType;
+	activeTools?: string[];
+	headers?: Record<string, string>;
 }): Tool {
-  // Auto-detect deployment type
-  const deployment = config.deployment || (config.execute ? 'local' : 'remote');
+	// Auto-detect deployment type
+	const deployment = config.deployment || (config.execute ? "local" : "remote");
 
-  // Generate ID if not provided
-  const id =
-    config.id ||
-    config.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+	// Generate ID if not provided
+	const id =
+		config.id ||
+		config.name
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "");
 
-  if (deployment === 'local') {
-    // Local MCP server with execute function
-    if (!config.execute) {
-      throw new Error('Local MCP server requires an execute function');
-    }
+	if (deployment === "local") {
+		// Local MCP server with execute function
+		if (!config.execute) {
+			throw new Error("Local MCP server requires an execute function");
+		}
 
-    throw new Error(
-      'Local MCP servers are no longer supported. Please use remote MCP servers instead.'
-    );
-  } else {
-    // Remote MCP server
-    if (!config.serverUrl) {
-      throw new Error('Remote MCP server requires a serverUrl');
-    }
+		throw new Error(
+			"Local MCP servers are no longer supported. Please use remote MCP servers instead.",
+		);
+	} else {
+		// Remote MCP server
+		if (!config.serverUrl) {
+			throw new Error("Remote MCP server requires a serverUrl");
+		}
 
-    // Use Tool class for remote MCP servers
-    return new Tool({
-      id,
-      name: config.name,
-      description: config.description,
-      serverUrl: config.serverUrl,
-      tenantId: config.tenantId,
-      credential: config.credential as any,
-      activeTools: config.activeTools,
-      headers: config.headers,
-    });
-  }
+		// Use Tool class for remote MCP servers
+		return new Tool({
+			id,
+			name: config.name,
+			description: config.description,
+			serverUrl: config.serverUrl,
+			tenantId: config.tenantId,
+			credential: config.credential as any,
+			activeTools: config.activeTools,
+			headers: config.headers,
+		});
+	}
 }
 
 export function mcpTool(config: MCPToolConfig): Tool {
-  const validatedConfig = MCPToolConfigSchema.parse(config);
-  return new Tool(validatedConfig as any);
+	const validatedConfig = MCPToolConfigSchema.parse(config);
+	return new Tool(validatedConfig as any);
 }
 
 // Separate schema for non-function transfer properties
 export const TransferConfigSchema = z.object({
-  agent: z.instanceof(Agent),
-  description: z.string().optional(),
+	agent: z.instanceof(Agent),
+	description: z.string().optional(),
 });
 
 // Full schema for backward compatibility (but functions validated separately)
 export const TransferSchema = TransferConfigSchema.extend({
-  condition: z.any().optional(), // Function - validated separately at runtime when present
+	condition: z.any().optional(), // Function - validated separately at runtime when present
 });
 
 export function transfer(
-  targetAgent: Agent,
-  description?: string,
-  condition?: (context: unknown) => boolean
+	targetAgent: Agent,
+	description?: string,
+	condition?: (context: unknown) => boolean,
 ): TransferConfig {
-  // Validate function if provided
-  if (condition !== undefined && typeof condition !== 'function') {
-    throw new Error('condition must be a function when provided');
-  }
+	// Validate function if provided
+	if (condition !== undefined && typeof condition !== "function") {
+		throw new Error("condition must be a function when provided");
+	}
 
-  const config = {
-    agent: targetAgent,
-    description: description || `Hand off to ${targetAgent.getName()}`,
-    condition,
-  };
+	const config = {
+		agent: targetAgent,
+		description: description || `Hand off to ${targetAgent.getName()}`,
+		condition,
+	};
 
-  // Validate the configuration (functions are validated separately above)
-  return TransferSchema.parse(config);
+	// Validate the configuration (functions are validated separately above)
+	return TransferSchema.parse(config);
 }
 
 export function agentRelation(
-  targetAgent: string,
-  relationType: 'transfer' | 'delegate' = 'transfer'
+	targetAgent: string,
+	relationType: "transfer" | "delegate" = "transfer",
 ) {
-  return {
-    targetAgent,
-    relationType,
-  };
+	return {
+		targetAgent,
+		relationType,
+	};
 }
 
 /**
@@ -261,18 +261,18 @@ export function agentRelation(
  * ```
  */
 export function artifactComponent(config: {
-  name: string;
-  description: string;
-  summaryProps: Record<string, any>;
-  fullProps: Record<string, any>;
-  tenantId?: string;
-  projectId?: string;
+	name: string;
+	description: string;
+	summaryProps: Record<string, any>;
+	fullProps: Record<string, any>;
+	tenantId?: string;
+	projectId?: string;
 }): ArtifactComponent {
-  return new ArtifactComponent({
-    ...config,
-    tenantId: config.tenantId || 'default',
-    projectId: config.projectId || 'default',
-  });
+	return new ArtifactComponent({
+		...config,
+		tenantId: config.tenantId || "default",
+		projectId: config.projectId || "default",
+	});
 }
 
 /**
@@ -291,15 +291,15 @@ export function artifactComponent(config: {
  * ```
  */
 export function dataComponent(config: {
-  name: string;
-  description: string;
-  props: Record<string, any>;
-  tenantId?: string;
-  projectId?: string;
+	name: string;
+	description: string;
+	props: Record<string, any>;
+	tenantId?: string;
+	projectId?: string;
 }): DataComponent {
-  return new DataComponent({
-    ...config,
-    tenantId: config.tenantId || 'default',
-    projectId: config.projectId || 'default',
-  });
+	return new DataComponent({
+		...config,
+		tenantId: config.tenantId || "default",
+		projectId: config.projectId || "default",
+	});
 }

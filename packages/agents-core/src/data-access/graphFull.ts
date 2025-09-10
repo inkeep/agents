@@ -869,7 +869,7 @@ export const updateFullGraphServerSide =
                 models: true,
               },
             });
-          } catch (error) {
+          } catch (_error) {
             // Agent might not exist yet, that's ok
           }
 
@@ -877,7 +877,7 @@ export const updateFullGraphServerSide =
           let finalModelSettings = internalAgent.models === undefined ? {} : internalAgent.models;
 
           // If graph models changed, cascade to agents that were inheriting
-          if (existingAgent && existingAgent.models && typedGraphDefinition.models) {
+          if (existingAgent?.models && typedGraphDefinition.models) {
             const agentModels = existingAgent.models as any;
             const graphModels = typedGraphDefinition.models;
 

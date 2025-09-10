@@ -18,7 +18,7 @@ vi.mock('@inkeep/agents-core', () => ({
   }),
 }));
 
-import { type ApiKeySelect, updateApiKeyLastUsed, validateAndGetApiKey } from '@inkeep/agents-core';
+import { type ApiKeySelect, validateAndGetApiKey } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { env } from '../../env';
 import { apiKeyAuth, optionalAuth } from '../../middleware/api-key-auth';

@@ -11,7 +11,7 @@ vi.mock('../logger.js', () => {
   };
   return {
     getLogger: vi.fn(() => mockLogger),
-    withRequestContext: vi.fn(async (id, fn) => await fn()),
+    withRequestContext: vi.fn(async (_id, fn) => await fn()),
   };
 });
 

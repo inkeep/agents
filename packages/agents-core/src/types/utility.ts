@@ -16,7 +16,7 @@ export type MessageMode = 'full' | 'scoped' | 'none';
 export type Models = z.infer<typeof ModelSchema>;
 export type ModelSettings = {
   model?: string;
-  providerOptions?: Record<string, Record<string, unknown>>;
+  providerOptions?: Record<string, unknown>;
 };
 
 export type StatusUpdateSettings = z.infer<typeof StatusUpdateSchema>;

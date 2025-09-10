@@ -1,11 +1,10 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent } from '../../../data-access/agents';
 import {
   createConversation,
   getConversation,
   updateConversationActiveAgent,
 } from '../../../data-access/conversations';
-import { createMessage } from '../../../data-access/messages';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
 import {
@@ -13,7 +12,7 @@ import {
   closeTestDatabase,
   createTestDatabaseClient,
 } from '../../../db/test-client';
-import type { ConversationInsert, MessageSelect } from '../../../types/index';
+import type { ConversationInsert } from '../../../types/index';
 import { createTestAgentData } from '../helpers';
 
 const createTestConversationData = (
@@ -92,7 +91,7 @@ describe('Conversations Data Access - Integration Tests', () => {
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
       // Create an agent first
-      const agent = await createAgent(db)(createTestAgentData(testTenantId, testProjectId, '1'));
+      const _agent = await createAgent(db)(createTestAgentData(testTenantId, testProjectId, '1'));
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
 

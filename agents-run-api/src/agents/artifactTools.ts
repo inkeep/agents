@@ -114,7 +114,7 @@ function analyzeSelectorFailure(data: any, selector: string) {
     if (analysis.length === 0) {
       analysis.push('UNKNOWN SELECTOR ISSUE');
     }
-  } catch (debugError) {
+  } catch (_debugError) {
     analysis.push('SYNTAX ERROR');
     suggestions.push('Check JMESPath syntax');
   }
@@ -133,7 +133,7 @@ function createPropSelectorsSchema(artifactComponents?: ArtifactComponentApiInse
 
   // Create a union of all possible prop selector schemas based on artifact components
   const propSelectorSchemas = artifactComponents.map((ac) => {
-    const props =
+    const _props =
       ac.summaryProps ||
       ac.fullProps ||
       ({} as {
@@ -304,7 +304,7 @@ USAGE PATTERN:
 🔄 MULTIPLE ARTIFACTS = MULTIPLE DATA COMPONENTS:
 Remember: Each time you call this tool, you create a separate data component. Call it multiple times for multiple items to create a rich, structured response with individual data components for each important piece of information.`,
     inputSchema,
-    execute: async ({ toolCallId, baseSelector, propSelectors, ...rest }, context?: any) => {
+    execute: async ({ toolCallId, baseSelector, propSelectors, ...rest }, _context?: any) => {
       const artifactType = 'artifactType' in rest ? (rest.artifactType as string) : undefined;
 
       if (!sessionId) {
@@ -352,12 +352,12 @@ Remember: Each time you call this tool, you create a separate data component. Ca
           const errorMessage = [
             `[toolCallId: ${toolCallId}] Base selector "${baseSelector}" returned no results.`,
             '',
-            '🔍 DETECTED ISSUES: ' + debugInfo.analysis.join(' | '),
+            `🔍 DETECTED ISSUES: ${debugInfo.analysis.join(' | ')}`,
             '',
             '💡 SUGGESTIONS:',
             ...debugInfo.suggestions.map((s) => `  • ${s}`),
             '',
-            '📊 AVAILABLE TOP-LEVEL KEYS: ' + debugInfo.availableKeys.join(', '),
+            `📊 AVAILABLE TOP-LEVEL KEYS: ${debugInfo.availableKeys.join(', ')}`,
           ].join('\n');
 
           return {
@@ -372,11 +372,11 @@ Remember: Each time you call this tool, you create a separate data component. Ca
         const extractProps = (items: any[], schema: any, context: string = 'default') => {
           const failedSelectors: string[] = [];
 
-          const extractedItems = items.map((item, index) => {
+          const extractedItems = items.map((item, _index) => {
             const extractedItem: Record<string, any> = {};
             const schemaProperties = schema?.properties || {};
 
-            for (const [propName, propSchema] of Object.entries(schemaProperties)) {
+            for (const [propName, _propSchema] of Object.entries(schemaProperties)) {
               const propSelector = propSelectors[propName];
               if (propSelector) {
                 try {
@@ -477,7 +477,7 @@ Remember: Each time you call this tool, you create a separate data component. Ca
             : [];
 
         // Prepare artifact data for later processing (not saving immediately)
-        const artifactDataItems = dataItems.map((item, index) => ({
+        const artifactDataItems = dataItems.map((_item, index) => ({
           artifactId: nanoid(),
           summaryData: summaryData[index] || {},
           fullData: fullData[index] || {},
@@ -499,7 +499,7 @@ Remember: Each time you call this tool, you create a separate data component. Ca
         // Record artifact preparation events in GraphSession for out-of-band processing
         // The actual saving will happen after name/description generation
         if (streamRequestId && agentId && session) {
-          artifactDataItems.forEach((artifactData, index) => {
+          artifactDataItems.forEach((artifactData, _index) => {
             // Record event that will trigger name/description generation
             graphSessionManager.recordEvent(streamRequestId, 'artifact_saved', agentId, {
               artifactId: artifactData.artifactId,
@@ -520,7 +520,7 @@ Remember: Each time you call this tool, you create a separate data component. Ca
 
         // Build artifacts object with only the essential data
         const artifacts = artifactDataItems.reduce(
-          (acc, artifactData, index) => {
+          (acc, artifactData, _index) => {
             acc[`${artifactData.artifactId}:${taskId}`] = {
               artifactId: artifactData.artifactId,
               artifactType,

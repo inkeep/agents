@@ -111,8 +111,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
 
       // Create multiple API keys
-      const apiKey1 = await createTestApiKey({ tenantId, projectId, graphId });
-      const apiKey2 = await createTestApiKey({ tenantId, projectId, graphId });
+      const _apiKey1 = await createTestApiKey({ tenantId, projectId, graphId });
+      const _apiKey2 = await createTestApiKey({ tenantId, projectId, graphId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/crud/projects/${projectId}/api-keys?page=1&limit=10`

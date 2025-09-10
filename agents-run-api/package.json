@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Execution API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -38,6 +38,7 @@
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/sdk-metrics": "^2.0.1",
     "@opentelemetry/sdk-node": "^0.203.0",
+    "@opentelemetry/sdk-trace-base": "^1.29.2",
     "@opentelemetry/sdk-trace-node": "^2.0.1",
     "@opentelemetry/semantic-conventions": "^1.34.0",
     "ai": "5.0.11",
@@ -83,6 +84,7 @@
   },
   "files": [
     "dist",
+    "templates",
     "README.md",
     "LICENSE"
   ],

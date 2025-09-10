@@ -23,7 +23,7 @@ describe('Context Validation with Zod to JSON Schema conversion and AJV', () => 
       expect(validate(123)).toBe(false);
       expect(validate.errors).toBeDefined();
       expect(validate.errors).toHaveLength(1);
-      expect(validate.errors![0].message).toContain('string');
+      expect(validate.errors?.[0].message).toContain('string');
     });
 
     it('should convert simple string schema and validate successfully', () => {
@@ -67,7 +67,7 @@ describe('Context Validation with Zod to JSON Schema conversion and AJV', () => 
       expect(validate(invalidData)).toBe(false);
       expect(validate.errors).toBeDefined();
       expect(
-        validate.errors!.some(
+        validate.errors?.some(
           (error) =>
             error.message?.includes('auth_token') ||
             error.instancePath?.includes('auth_token') ||

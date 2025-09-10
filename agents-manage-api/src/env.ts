@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 dotenv.config({ quiet: true });
 
-const nodeEnvSchema = z.enum(['development', 'production']).default('development');
+const _nodeEnvSchema = z.enum(['development', 'production']).default('development');
 const environmentSchema = z.enum(['development', 'pentest', 'production', 'test']);
 
 const criticalEnv = z

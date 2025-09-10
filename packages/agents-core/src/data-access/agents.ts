@@ -1,5 +1,4 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { agentRelations, agents } from '../db/schema';
 import type { AgentInsert, AgentSelect, AgentUpdate } from '../types/entities';

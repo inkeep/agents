@@ -495,7 +495,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
             relationType: 'transfer',
           }),
         });
-      } catch (error) {
+      } catch (_error) {
         // If agent relations endpoints don't exist or fail, we'll skip this part
         // and just test with the default agent
         console.warn('Agent relations creation failed, testing with default agent only');

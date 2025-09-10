@@ -201,7 +201,7 @@ vi.mock('@opentelemetry/api', () => ({
   trace: {
     getTracerProvider: vi.fn().mockReturnValue({
       getTracer: vi.fn().mockReturnValue({
-        startActiveSpan: vi.fn().mockImplementation((name, fn) => {
+        startActiveSpan: vi.fn().mockImplementation((_name, fn) => {
           const mockSpan = {
             setAttributes: vi.fn(),
             addEvent: vi.fn(),
@@ -221,7 +221,7 @@ vi.mock('@opentelemetry/api', () => ({
   },
   context: {
     active: vi.fn().mockReturnValue({}),
-    with: vi.fn((ctx, fn) => fn()),
+    with: vi.fn((_ctx, fn) => fn()),
   },
   propagation: {
     getBaggage: vi.fn().mockReturnValue(null),

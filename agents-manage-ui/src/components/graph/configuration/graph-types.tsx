@@ -1,6 +1,6 @@
 export type ModelSettings = {
   model: string;
-  providerOptions?: Record<string, any>;
+  providerOptions?: string; // JSON string representation for form compatibility
 };
 
 export type GraphModels = {
@@ -19,16 +19,7 @@ export type StatusUpdateSettings = {
   prompt?: string;
   numEvents?: number; // Trigger after N events (default: 10)
   timeInSeconds?: number; // Trigger after N seconds (default: 30)
-  statusComponents?: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    schema: {
-      type: 'object';
-      properties: Record<string, any>;
-      required?: string[];
-    };
-  }>;
+  statusComponents?: string; // JSON string representation of status components array
 };
 
 export type GraphMetadata = {

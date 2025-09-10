@@ -7,10 +7,10 @@
  * This helps ensure that new/modified code is properly tested.
  */
 
-import { execSync } from 'child_process';
-import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { execSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
@@ -25,7 +25,7 @@ function exec(command, options = {}) {
       stdio: options.stdio || ['ignore', 'pipe', 'pipe'],
       ...options,
     }).trim();
-  } catch (error) {
+  } catch (_error) {
     if (!options.ignoreError) {
       console.error(`Command failed: ${command}`);
     }
@@ -242,7 +242,7 @@ async function main() {
     'packages/core',
   ];
 
-  let allCoverage = {};
+  const allCoverage = {};
 
   packages.forEach((pkg) => {
     const lcovPath = join(rootDir, pkg, 'coverage', 'lcov.info');
@@ -273,9 +273,9 @@ async function main() {
   writeFileSync(reportPath, report);
 
   // Display summary
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('📈 DIFFERENTIAL COVERAGE RESULTS');
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 
   const { summary } = diffCoverage;
   const percentageFormatted = summary.percentage.toFixed(1);

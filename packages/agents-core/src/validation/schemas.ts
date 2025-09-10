@@ -49,7 +49,7 @@ export const resourceIdSchema = z
 
 export const ModelSettingsSchema = z.object({
   model: z.string().optional(),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+  providerOptions: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const ModelSchema = z.object({

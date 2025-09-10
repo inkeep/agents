@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
+import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listGraphsCommand } from './commands/list-graphs';
 import { pullCommand } from './commands/pull';
@@ -119,6 +120,19 @@ program
   )
   .action(async (options) => {
     await listGraphsCommand(options);
+  });
+
+// Dev command
+program
+  .command('dev')
+  .description('Start the Inkeep dashboard server')
+  .option('--port <port>', 'Port to run the server on', '3000')
+  .option('--host <host>', 'Host to bind the server to', 'localhost')
+  .action(async (options) => {
+    await devCommand({
+      port: parseInt(options.port, 10),
+      host: options.host,
+    });
   });
 
 // Parse command line arguments
