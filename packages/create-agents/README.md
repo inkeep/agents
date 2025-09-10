@@ -1,163 +1,158 @@
 # create-agents
 
-Create an Inkeep Agent Framework project with no build configuration.
+Create an Inkeep Agent Framework directory with multi-service architecture.
 
 ## Quick Start
 
 ```bash
 # Interactive mode
-npm init agents
-# or
-npx create-agents
+npx @inkeep/create-agents
 
-# With project name
-npm init agents my-agent-project
-# or
-npx create-agents my-agent-project
+# With directory name
+npx @inkeep/create-agents my-agent-directory
 
 # With options
-npx create-agents my-project --template minimal --use-npm
+npx @inkeep/create-agents my-agent-directory --tenant-id default --project-id my-project --openai-key sk-... --anthropic-key sk-ant-...
 ```
 
 ## Usage
 
-`create-agents` provides several ways to get started:
+`@inkeep/create-agents` is a wrapper around the Inkeep CLI's `create` command that sets up a complete Agent Framework directory with:
 
 ### Interactive Mode
 Run without arguments for an interactive setup experience:
 ```bash
-npx create-agents
+npx @inkeep/create-agents
 ```
 
-You'll be prompted to choose:
-- Project name
-- Template type
-- Package manager (pnpm, npm, yarn)
-- Whether to install dependencies
-- Whether to initialize git
+You'll be prompted for:
+- Directory name
+- Tenant ID
+- Project ID  
+- Anthropic API key (recommended)
+- OpenAI API key (optional)
 
 ### Direct Mode
 Specify options directly:
 ```bash
-npx create-agents my-project --template default --use-pnpm
+npx @inkeep/create-agents my-agent-directory --tenant-id my-tenant --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
 ```
-
-## Templates
-
-### `default` (recommended)
-A complete setup with router and specialist agents:
-- Router agent for handling user requests
-- QA agent with search tools
-- Task agent for action-oriented requests
-- Full project structure with TypeScript, testing, and linting
-
-### `minimal`
-Bare minimum setup for quick prototyping:
-- Single agent configuration
-- Minimal dependencies
-- Perfect for learning or simple use cases
-
-### `hub-spoke` (coming soon)
-Hub and spoke pattern with multiple specialist agents:
-- Central router agent
-- Multiple domain-specific agents
-- Inter-agent communication examples
-
-### `graph` (coming soon)
-Complex agent network with delegation capabilities:
-- Multi-agent workflows
-- Task delegation patterns
-- Advanced agent relationships
 
 ## Options
 
-- `--template <template>` - Choose template: default, minimal, hub-spoke, graph
-- `--use-npm` - Use npm instead of pnpm
-- `--use-yarn` - Use yarn instead of pnpm
-- `--skip-install` - Skip installing dependencies
-- `--skip-git` - Skip git initialization
+- `--tenant-id <tenant-id>` - Your Inkeep tenant ID
+- `--project-id <project-id>` - Project identifier for your agents
+- `--openai-key <openai-key>` - OpenAI API key (optional)
+- `--anthropic-key <anthropic-key>` - Anthropic API key (recommended)
+- `--manage-api-port <port>` - Management API port (default: 3002)
+- `--run-api-port <port>` - Run API port (default: 3003)
 
 ## What's Created
 
-After running `create-agents`, you'll have:
+After running `@inkeep/create-agents`, you'll have a complete Agent Framework Directory:
 
 ```
-my-project/
+my-agent-directory/
 ├── src/
-│   ├── agents/          # Agent definitions
-│   ├── tools/           # Tool implementations
-│   └── server.ts        # Main server file
-├── package.json
-├── tsconfig.json
-├── biome.json          # Linting and formatting
-├── .env.example        # Environment variables
-├── inkeep.config.ts    # Inkeep configuration
-└── .gitignore
+│   └── <project-id>/           # Agent configurations
+│       ├── hello.graph.ts      # Example agent graph
+│       ├── inkeep.config.ts    # Inkeep CLI configuration
+│       └── .env                # CLI environment variables
+├── apps/
+│   ├── manage-api/             # Management API service
+│   │   ├── src/index.ts        # API server entry point
+│   │   ├── package.json        # Service dependencies
+│   │   ├── tsconfig.json       # TypeScript config
+│   │   └── .env                # Service environment
+│   ├── run-api/                # Execution API service  
+│   │   ├── src/index.ts        # API server entry point
+│   │   ├── package.json        # Service dependencies
+│   │   ├── tsconfig.json       # TypeScript config
+│   │   └── .env                # Service environment
+│   └── shared/                 # Shared code
+│       └── credential-stores.ts # Credential store config
+├── package.json                # Root package with workspaces
+├── turbo.json                  # Turbo build configuration
+├── drizzle.config.ts           # Database configuration
+├── biome.json                  # Linting and formatting
+├── .env                        # Root environment variables
+├── .env.example                # Environment template
+├── .gitignore                  # Git ignore rules
+└── README.md                   # Project documentation
 ```
 
 ## Next Steps
 
-1. **Navigate to your project:**
+1. **Navigate to your directory:**
    ```bash
-   cd my-project
+   cd my-agent-directory
    ```
 
-2. **Set up environment variables:**
+2. **Start the services:**
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
+   # Start both Management and Run APIs
+   npm run dev
    ```
 
-3. **Start development:**
+3. **In a new terminal, start the Management Dashboard:**
    ```bash
-   pnpm dev
+   npx inkeep dev
    ```
 
-4. **Push your agent configuration:**
+4. **Deploy your first agent graph:**
    ```bash
-   inkeep push src/agents/index.ts
+   cd src/<project-id>/
+   npx inkeep push hello.graph.ts
    ```
 
-5. **Start chatting:**
+5. **Test your agents:**
    ```bash
-   inkeep chat
+   npx inkeep chat
    ```
 
-## Commands Available in Your Project
+## Available Services
 
-- `pnpm dev` - Start development server with hot reload
-- `pnpm build` - Build for production
-- `pnpm test` - Run test suite
-- `pnpm lint` - Run linter
-- `pnpm format` - Format code
-- `pnpm typecheck` - Type checking
+After setup, you'll have access to:
+
+- **Management API** (Port 3002): Agent configuration and management
+- **Run API** (Port 3003): Agent execution and chat processing  
+- **Management Dashboard** (Port 3000): Visual agent builder (via `npx inkeep dev`)
+
+## Commands Available in Your Directory
+
+- `npm run dev` - Start both API services with hot reload
+- `npm run db:push` - Apply database schema changes
+- `npx inkeep dev` - Start the Management Dashboard
+- `npx inkeep push <graph-file>` - Deploy agent configurations
+- `npx inkeep chat` - Interactive chat with your agents
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+The directory includes multiple environment files:
 
+### Root `.env` (shared configuration)
 ```bash
-# Required
-ANTHROPIC_API_KEY=your_key_here
-INKEEP_TENANT_ID=your_tenant_id
+# AI Provider Keys
+ANTHROPIC_API_KEY=your-anthropic-key-here
+OPENAI_API_KEY=your-openai-key-here
 
-# Optional
-OPENAI_API_KEY=your_openai_key
-PORT=3002
+# Service Ports
+MANAGE_API_PORT=3002
+RUN_API_PORT=3003
+
+# Database
+DB_FILE_NAME=file:./local.db
+
+# Environment
+ENVIRONMENT=development
 LOG_LEVEL=debug
 ```
 
+### Service-specific `.env` files
+- `apps/manage-api/.env` - Management API configuration
+- `apps/run-api/.env` - Run API configuration  
+- `src/<project-id>/.env` - CLI configuration
+
 ## Learn More
 
-- 📚 [Documentation](https://docs.inkeep.com/agents)
-- 💬 [Discord Community](https://discord.gg/inkeep)
-- 🐛 [Report Issues](https://github.com/inkeep/agents/issues)
-- 📖 [Examples](https://github.com/inkeep/agents/tree/main/examples)
-
-## Contributing
-
-See the main [Inkeep Agents repository](https://github.com/inkeep/agents) for contribution guidelines.
-
-## License
-
-MIT
+- 📚 [Documentation](https://docs.inkeep.com)

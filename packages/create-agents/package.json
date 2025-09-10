@@ -1,5 +1,5 @@
 {
-  "name": "create-agents",
+  "name": "@inkeep/create-agents",
   "version": "0.1.0",
   "description": "Create an Inkeep Agent Framework project",
   "type": "module",
@@ -8,14 +8,17 @@
   },
   "files": [
     "dist",
-    "templates"
+    "README.md",
+    "LICENSE.md"
   ],
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "test": "vitest",
     "lint": "biome check .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "inkeep",
@@ -30,24 +33,21 @@
     "create",
     "init"
   ],
-  "author": "Inkeep",
-  "license": "MIT",
+  "author": "Inkeep <support@inkeep.com>",
+  "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
     "@inkeep/agents-cli": "workspace:^",
-    "commander": "^12.0.0",
-    "create-agents": "link:"
+    "commander": "^12.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.0",
-    "@inkeep/agents-cli": "workspace:^",
-    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.12.0",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "repository": {
     "type": "git",
@@ -55,6 +55,7 @@
     "directory": "packages/create-agents"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

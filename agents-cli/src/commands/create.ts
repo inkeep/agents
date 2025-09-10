@@ -41,9 +41,9 @@ export const createAgents = async (
     runApiPort,
   } = args;
 
-  p.intro(color.inverse(' Create Agents Project '));
+  p.intro(color.inverse(' Create Agents Directory '));
 
-  // Prompt for project name if not provided
+  // Prompt for directory name if not provided
   if (!dirName) {
     const dirResponse = await p.text({
       message: 'What do you want to name your agents directory?',
@@ -140,13 +140,13 @@ export const createAgents = async (
   // }
 
   const s = p.spinner();
-  s.start('Creating project structure...');
+  s.start('Creating directory structure...');
 
   try {
-    const projectPath = path.resolve(process.cwd(), dirName);
+    const directoryPath = path.resolve(process.cwd(), dirName);
 
     // Check if directory already exists
-    if (await fs.pathExists(projectPath)) {
+    if (await fs.pathExists(directoryPath)) {
       s.stop();
       const overwrite = await p.confirm({
         message: `Directory ${dirName} already exists. Do you want to overwrite it?`,
@@ -157,12 +157,12 @@ export const createAgents = async (
         process.exit(0);
       }
       s.start('Cleaning existing directory...');
-      await fs.emptyDir(projectPath);
+      await fs.emptyDir(directoryPath);
     }
 
     // Create the project directory
-    await fs.ensureDir(projectPath);
-    process.chdir(projectPath);
+    await fs.ensureDir(directoryPath);
+    process.chdir(directoryPath);
 
     const config = {
       dirName,
@@ -211,7 +211,7 @@ export const createAgents = async (
 
     // Success message with next steps
     p.note(
-      `${color.green('✓')} Project created at: ${color.cyan(projectPath)}\n\n` +
+      `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
         `  npm run dev (for APIs only)\n` +
@@ -229,7 +229,9 @@ export const createAgents = async (
     );
   } catch (error) {
     s.stop();
-    p.cancel(`Error creating project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    p.cancel(
+      `Error creating directory: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     process.exit(1);
   }
 };
@@ -247,7 +249,7 @@ async function setupPackageConfigurations(dirName: string) {
   const rootPackageJson = {
     name: dirName,
     version: '0.1.0',
-    description: 'An Inkeep Agent Framework project',
+    description: 'An Inkeep Agent Framework directory',
     private: true,
     type: 'module',
     scripts: {
@@ -312,7 +314,7 @@ async function setupPackageConfigurations(dirName: string) {
   const runApiPackageJson = {
     name: `@${dirName}/run-api`,
     version: '0.1.0',
-    description: 'Execution API for agents',
+    description: 'Run API for agents',
     type: 'module',
     scripts: {
       dev: 'tsx watch src/index.ts',
@@ -648,13 +650,6 @@ serve(
 
   await fs.writeFile('apps/run-api/src/index.ts', runApiIndex);
 
-  //   // Create instrumentation stub files
-  //   const instrumentation = `// OpenTelemetry instrumentation placeholder
-  // // Add your tracing/monitoring setup here`;
-
-  //   await fs.writeFile('apps/manage-api/src/instrumentation.js', instrumentation);
-  //   await fs.writeFile('apps/run-api/src/instrumentation.js', instrumentation);
-
   // Database configuration
   const drizzleConfig = `import { defineConfig } from 'drizzle-kit';
 
@@ -681,8 +676,8 @@ async function createTurboConfig() {
       'OPENAI_API_KEY',
       'ENVIRONMENT',
       'DB_FILE_NAME',
-      'MANAGEMENT_API_PORT',
-      'EXECUTION_API_PORT',
+      'MANAGE_API_PORT',
+      'RUN_API_PORT',
       'LOG_LEVEL',
       'NANGO_SECRET_KEY',
     ],

@@ -5,9 +5,9 @@ import { createAgents } from '@inkeep/agents-cli/commands/create';
 
 program
   .name('create-agents')
-  .description('Create an Inkeep Agent Framework project')
+  .description('Create an Inkeep Agent Framework directory')
   .version('0.1.0')
-  .argument('[project-name]', 'Name of the project')
+  .argument('[directory-name]', 'Name of the directory')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--project-id <project-id>', 'Project ID')
   .option('--openai-key <openai-key>', 'OpenAI API key')
@@ -18,11 +18,11 @@ program
 
 async function main() {
   const options = program.opts();
-  const projectName = program.args[0];
+  const directoryName = program.args[0];
 
   try {
     await createAgents({
-      dirName: projectName,
+      dirName: directoryName,
       openAiKey: options.openaiKey,
       anthropicKey: options.anthropicKey,
       nangoKey: options.nangoKey,
@@ -32,7 +32,7 @@ async function main() {
       runApiPort: options.runApiPort,
     });
   } catch (error) {
-    console.error('Failed to create project:', error);
+    console.error('Failed to create directory:', error);
     process.exit(1);
   }
 }
