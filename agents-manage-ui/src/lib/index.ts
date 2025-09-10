@@ -16,7 +16,7 @@ export {
 } from "./actions/graph-full";
 // API Configuration exports
 export {
-	EXECUTION_API_BASE_URL,
+	AGENTS_RUN_API_URL,
 	MANAGEMENT_API_BASE_URL,
 } from "./api/api-config";
 // API Client exports (for advanced use cases)

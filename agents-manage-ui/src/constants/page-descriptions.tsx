@@ -37,8 +37,8 @@ export const graphDescription = (
 
 export const apiKeyDescription = (
 	<>
-		API keys are use to authenticate against the Agent Framework Execution API.
-		They are associated with a graph and can be used to chat with the graph
+		API keys are use to authenticate against the Inkeep Agents Run API. They are
+		associated with a graph and can be used to chat with the graph
 		programmatically.
 		{"\n"}
 	</>
