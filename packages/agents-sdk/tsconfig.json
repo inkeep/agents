@@ -13,7 +13,6 @@
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
-		"resolveJsonModule": true,
 		"allowSyntheticDefaultImports": true,
 		"isolatedModules": true,
 		"noUnusedLocals": false,

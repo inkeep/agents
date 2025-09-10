@@ -13,7 +13,6 @@
     "esModuleInterop": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
@@ -26,7 +25,8 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "resolveJsonModule": true
   },
   "include": [
     "**/*.ts",

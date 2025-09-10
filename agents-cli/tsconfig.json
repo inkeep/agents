@@ -10,7 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
-    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
       "@inkeep/agents-core": ["../packages/agents-core/src/index.ts"],
