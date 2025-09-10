@@ -44,6 +44,7 @@ export class ContextFetcher {
   private tenantId: string;
   private projectId: string;
   private defaultTimeout: number;
+  private credentialStoreRegistry?: CredentialStoreRegistry;
   private credentialStuffer?: CredentialStuffer;
   private dbClient: DatabaseClient;
 

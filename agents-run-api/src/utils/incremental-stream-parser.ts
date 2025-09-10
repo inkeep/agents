@@ -20,6 +20,7 @@ export class IncrementalStreamParser {
   private artifactParser: ArtifactParser;
   private hasStartedRole = false;
   private collectedParts: StreamPart[] = [];
+  private contextId: string;
 
   constructor(streamHelper: StreamHelper, tenantId: string, contextId: string) {
     this.streamHelper = streamHelper;
