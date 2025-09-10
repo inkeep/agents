@@ -6,29 +6,29 @@
 
 import { ApiError } from "../types/errors";
 
-const DEFAULT_MANAGEMENT_API_BASE_URL = "http://localhost:3002";
-const DEFAULT_EXECUTION_API_BASE_URL = "http://localhost:3003";
+const DEFAULT_INKEEP_AGENTS_MANAGE_API_URL = "http://localhost:3002";
+const DEFAULT_INKEEP_AGENTS_RUN_API_URL = "http://localhost:3003";
 
 // Management API (CRUD operations, configuration)
 if (!process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL) {
 	console.warn(
-		`NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_MANAGEMENT_API_BASE_URL}`,
+		`NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_MANAGE_API_URL}`,
 	);
 }
 
-// Execution API (chat completions, agent execution)
+// Inkeep Agents Run API (chat completions, agents run)
 if (!process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL) {
 	console.warn(
-		`NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL is not set, falling back to: ${DEFAULT_EXECUTION_API_BASE_URL}`,
+		`NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_RUN_API_URL}`,
 	);
 }
 
-export const MANAGEMENT_API_BASE_URL =
+export const INKEEP_AGENTS_MANAGE_API_URL =
 	process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL ||
-	DEFAULT_MANAGEMENT_API_BASE_URL;
-export const EXECUTION_API_BASE_URL =
+	DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
+export const INKEEP_AGENTS_RUN_API_URL =
 	process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
-	DEFAULT_EXECUTION_API_BASE_URL;
+	DEFAULT_INKEEP_AGENTS_RUN_API_URL;
 
 async function makeApiRequestInternal<T>(
 	baseUrl: string,
@@ -98,13 +98,21 @@ export async function makeManagementApiRequest<T>(
 	endpoint: string,
 	options: RequestInit = {},
 ): Promise<T> {
-	return makeApiRequestInternal<T>(MANAGEMENT_API_BASE_URL, endpoint, options);
+	return makeApiRequestInternal<T>(
+		INKEEP_AGENTS_MANAGE_API_URL,
+		endpoint,
+		options,
+	);
 }
 
-// Execution API requests (chat completions, agent execution)
-export async function makeExecutionApiRequest<T>(
+// Inkeep Agents Run API requests (chat completions, agents run)
+export async function makeAgentsRunApiRequest<T>(
 	endpoint: string,
 	options: RequestInit = {},
 ): Promise<T> {
-	return makeApiRequestInternal<T>(EXECUTION_API_BASE_URL, endpoint, options);
+	return makeApiRequestInternal<T>(
+		INKEEP_AGENTS_RUN_API_URL,
+		endpoint,
+		options,
+	);
 }

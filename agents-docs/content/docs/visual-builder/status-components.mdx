@@ -33,10 +33,9 @@ Here's an example of a custom status component that provides structured informat
 ```typescript
 // Tool Call Summary Component
 {
-  id: 'tool_call_summary',
-  name: 'Tool Call',
+  type: 'tool_call_summary',
   description: 'Summary of a tool execution and its results',
-  schema: {
+  detailsSchema: {
     type: 'object',
     properties: {
       tool_name: {

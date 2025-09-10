@@ -8,7 +8,7 @@ import {
 	LoaderCircle,
 	Sparkles,
 } from "lucide-react";
-import { type FC, useEffect, useMemo, useRef, useState } from "react";
+import { type FC, useEffect, useState, useRef } from "react";
 import supersub from "remark-supersub";
 import { Streamdown } from "streamdown";
 import {
@@ -78,68 +78,188 @@ const CitationBadge: FC<{
 	);
 };
 
-// StreamMarkdown component that renders with inline citations
+// Inline Data Operation Component
+const InlineDataOperation: FC<{ operation: any; isLast: boolean }> = ({
+	operation,
+	isLast,
+}) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+	const { type, ctx } = operation;
+
+	const getOperationLabel = () => {
+    // Use LLM-generated label if available (for status updates and other operations)
+    if (operation.label) {
+      return operation.label;
+    }
+    
+		switch (type) {
+      case 'agent_initializing':
+        return 'Agent initializing';
+      case 'agent_ready':
+        return 'Agent ready';
+      case 'completion':
+        return 'Completion';
+      case 'status_update':
+        return 'Status update';
+			default:
+				return type
+					.replace(/_/g, " ")
+					.replace(/\b\w/g, (l: string) => l.toUpperCase());
+		}
+	};
+
+	return (
+		<div className="flex flex-col items-start my-2 relative">
+			{/* Connection line */}
+			{!isLast && (
+				<div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
+			)}
+			<button
+				type="button"
+				onClick={() => setIsExpanded(!isExpanded)}
+				className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px]"
+			>
+				<span className="w-1 h-1 bg-gray-400 rounded-full" />
+				<span className="font-medium ml-3">{getOperationLabel()}</span>
+				<ChevronRight
+					className={cn(
+						"w-3 h-3 transition-transform duration-200",
+						isExpanded ? "rotate-90" : "rotate-0",
+					)}
+				/>
+			</button>
+
+			{isExpanded && (
+				<div className=" ml-6 pb-2 mt-2 rounded text-xs">
+					<pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
+						{JSON.stringify(ctx, null, 2)}
+					</pre>
+				</div>
+			)}
+		</div>
+	);
+};
+
+// StreamMarkdown component that renders with inline citations and data operations
 function StreamMarkdown({ parts }: { parts: any[] }) {
-	const markdown = useMemo(() => {
-		let md = "";
-		parts.forEach((part) => {
+	const [processedParts, setProcessedParts] = useState<any[]>([]);
+
+	// Process parts to create a mixed array of text and inline operations
+	useEffect(() => {
+		const processed: any[] = [];
+		let currentTextChunk = "";
+
+		for (const part of parts) {
 			if (part.type === "text") {
-				md += part.text || "";
-			} else if (part.type === "data-artifact") {
+				currentTextChunk += part.text || "";
+			} else if (part.type === "data-operation") {
+				const { type } = part.data as any;
+
+				// Only add inline operations for non-top-level operations
+				const isTopLevelOperation = [
+          'agent_initializing',
+          'agent_ready',
+          'completion',
+          'error',
+				].includes(type);
+
+				if (!isTopLevelOperation) {
+					// If we have accumulated text, add it first
+					if (currentTextChunk.trim()) {
+						processed.push({ type: "text", content: currentTextChunk });
+						currentTextChunk = "";
+					}
+					// Add the inline operation
+					processed.push({ type: "inline-operation", operation: part.data });
+				}
+      } else if (part.type === 'data-artifact') {
+        // Add artifact as citation marker inline with current text (don't flush)
 				const artifactData = part.data as any;
 				const artifactSummary = artifactData.artifactSummary || {
 					record_type: "site",
 					title: artifactData.name,
 					url: undefined,
 				};
-				// Use superscript format: ^artifact identifier^
-				md += ` ^${artifactSummary?.title || artifactData.name}^`;
+				currentTextChunk += ` ^${artifactSummary?.title || artifactData.name}^`;
 			}
-		});
-		return md;
+		}
+
+		// Add any remaining text
+		if (currentTextChunk.trim()) {
+			processed.push({ type: "text", content: currentTextChunk });
+		}
+
+		setProcessedParts(processed);
 	}, [parts]);
 
+	// Calculate inline operations for isLast prop
+	const inlineOperations = processedParts.filter(
+		(part) => part.type === "inline-operation",
+	);
+	let inlineOpIndex = 0;
+
 	return (
-		<Streamdown
-			remarkPlugins={[supersub]}
-			components={{
-				// Intercept superscript elements to render citations
-				sup: ({ children, ...props }) => {
-					// Check if this is a citation (format: ^artifact identifier^)
-					if (children && typeof children === "string") {
-						// Find the citation part
-						const citation = parts.find(
-							(p) =>
-								p.type === "data-artifact" &&
-								(p.data.artifactSummary?.title || p.data.name) === children,
-						);
+		<div className="inline">
+			{processedParts.map((part, index) => {
+				if (part.type === "text") {
+					return (
+						<Streamdown
+							key={index}
+							remarkPlugins={[supersub]}
+							components={{
+								// Intercept superscript elements to render citations
+								sup: ({ children, ...props }) => {
+									// Check if this is a citation (format: ^artifact identifier^)
+									if (children && typeof children === "string") {
+										// Find the citation part
+										const citation = parts.find(
+											(p) =>
+												p.type === "data-artifact" &&
+												(p.data.artifactSummary?.title || p.data.name) ===
+													children,
+										);
 
-						if (citation) {
-							const artifactData = citation.data as any;
-							const artifactSummary = artifactData.artifactSummary || {
-								record_type: "site",
-								title: artifactData.name,
-								url: undefined,
-							};
+										if (citation) {
+											const artifactData = citation.data as any;
+											const artifactSummary = artifactData.artifactSummary || {
+												record_type: "site",
+												title: artifactData.name,
+												url: undefined,
+											};
 
-							return (
-								<CitationBadge
-									citation={{
-										key: artifactSummary?.title || artifactData.name,
-										href: artifactSummary?.url,
-										artifact: { ...artifactData, artifactSummary },
-									}}
-								/>
-							);
-						}
-					}
-					// Default superscript rendering
-					return <sup {...props}>{children}</sup>;
-				},
-			}}
-		>
-			{markdown}
-		</Streamdown>
+											return (
+												<CitationBadge
+													citation={{
+														key: artifactSummary?.title || artifactData.name,
+														href: artifactSummary?.url,
+														artifact: { ...artifactData, artifactSummary },
+													}}
+												/>
+											);
+										}
+									}
+									// Default superscript rendering
+									return <sup {...props}>{children}</sup>;
+								},
+							}}
+						>
+							{part.content}
+						</Streamdown>
+					);
+				} else if (part.type === "inline-operation") {
+					const isLast = inlineOpIndex === inlineOperations.length - 1;
+					inlineOpIndex++;
+					return (
+						<InlineDataOperation
+							key={index}
+							operation={part.operation}
+							isLast={isLast}
+						/>
+					);
+				}
+				return null;
+			})}
+		</div>
 	);
 }
 
@@ -153,67 +273,78 @@ function useProcessedOperations(parts: Message["parts"]) {
 	const seenOperationKeys = useRef(new Set<string>());
 	const seenArtifactKeys = useRef(new Set<string>());
 
+  // Reset tracking on initial mount to avoid stale data
+  useEffect(() => {
+    seenOperationKeys.current.clear();
+    seenArtifactKeys.current.clear();
+    setOperations([]);
+    setArtifacts([]);
+  }, []); // Only run once on mount
+
 	useEffect(() => {
-		console.log("useEffect running, parts count:", parts.length);
 		// Process only NEW operations and artifacts
 		const newOps: any[] = [];
 		const newArts: any[] = [];
 		let textBuilder = "";
 
 		for (const part of parts) {
-			console.log("Processing part:", part.type, part);
-			if (part.type === "data-operation") {
-				// Create semantic key for this operation
-				const { type, ctx } = part.data as any; // Cast to any to handle new operation types
-				let key: string = type;
-				console.log("Found data-operation, type:", type);
+      if (part.type === 'data-operation') {
+        // Create semantic key for this operation
+        const { type, ctx } = part.data as any; // Cast to any to handle new operation types
+        let key: string = type;
 
-				switch (type) {
-					case "agent_initializing":
-					case "agent_ready":
-						// Use same key so agent_ready replaces agent_initializing
-						key = `agent_lifecycle-${ctx.sessionId}`;
-						break;
-					case "completion":
-						key = `${type}-${ctx.agent}-${ctx.iteration}`;
-						break;
-					case "status_update":
-						key = `${type}-${JSON.stringify(ctx)}`;
-						break;
-					default:
-						key = `${type}-${ctx.agent || ""}`;
-				}
+        // Skip ALL non-top-level operations (they'll be handled as inline by StreamMarkdown)
+				const isTopLevelOperation = [
+          'agent_initializing',
+          'agent_ready',
+          'completion',
+          'error',
+				].includes(type);
 
-				if (
-					(type === "agent_ready" || type === "agent_initializing") &&
-					seenOperationKeys.current.has(key)
-				) {
-					// Replace agent_initializing with agent_ready
-					setOperations((prev) =>
-						prev.map((op) =>
-							op.uniqueKey === key
-								? {
-										...part.data,
-										id: part.id,
-										uniqueKey: key,
-										timestamp: op.timestamp,
-									} // Keep original timestamp for order
-								: op,
-						),
-					);
-				} else if (!seenOperationKeys.current.has(key)) {
-					// Only add if we haven't seen this operation before
-					console.log("Adding new operation:", { type, key, ctx });
-					seenOperationKeys.current.add(key);
-					newOps.push({
-						...part.data,
-						id: part.id,
-						uniqueKey: key, // Add the key for debugging
-						timestamp: Date.now(),
-					});
-				} else {
-					console.log("Operation already seen:", { type, key });
+				// Only process top-level operations for the timeline
+				if (isTopLevelOperation) {
+					switch (type) {
+						case "agent_initializing":
+						case "agent_ready":
+							// Use same key so agent_ready replaces agent_initializing
+							key = `agent_lifecycle-${ctx.sessionId}`;
+							break;
+						case "completion":
+							key = `${type}-${ctx.agent}-${ctx.iteration}`;
+							break;
+						default:
+							key = `${type}-${ctx.agent || ""}`;
+					}
+
+					if (
+						(type === "agent_ready" || type === "agent_initializing") &&
+						seenOperationKeys.current.has(key)
+					) {
+						// Replace agent_initializing with agent_ready
+						setOperations((prev) =>
+							prev.map((op) =>
+								op.uniqueKey === key
+									? {
+											...part.data,
+											id: part.id,
+											uniqueKey: key,
+											timestamp: op.timestamp,
+										} // Keep original timestamp for order
+									: op,
+							),
+						);
+					} else if (!seenOperationKeys.current.has(key)) {
+						// Only add if we haven't seen this operation before
+						seenOperationKeys.current.add(key);
+						newOps.push({
+							...part.data,
+							id: part.id,
+							uniqueKey: key, // Add the key for debugging
+							timestamp: Date.now(),
+						});
+					}
 				}
+				// Inline operations (like tool_call_summary, information_retrieved) are handled by StreamMarkdown
 			} else if (part.type === "data-artifact") {
 				const key = part.data.artifactId || part.data.name;
 				if (!seenArtifactKeys.current.has(key)) {
@@ -227,16 +358,7 @@ function useProcessedOperations(parts: Message["parts"]) {
 
 		// Only update if we have new operations
 		if (newOps.length > 0) {
-			console.log("Setting operations, new count:", newOps.length);
-			setOperations((prev) => {
-				console.log(
-					"Previous operations:",
-					prev.length,
-					"Adding:",
-					newOps.length,
-				);
-				return [...prev, ...newOps];
-			});
+      setOperations((prev) => [...prev, ...newOps]);
 		}
 
 		// Only update if we have new artifacts
@@ -268,8 +390,6 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
 				return <CheckCircle className="w-3 h-3" />;
 			case "error":
 				return <AlertCircle className="w-3 h-3 text-red-500" />;
-			case "status_update":
-				return <Sparkles className="w-3 h-3" />;
 			default:
 				return <Sparkles className="w-3 h-3" />;
 		}
@@ -285,9 +405,6 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
 				return `Completed by ${ctx.agent} agent`;
 			case "error":
 				return `Error: ${ctx.error}`;
-			case "status_update":
-				// For status updates, show summary if available, otherwise dynamic label
-				return ctx.summary || renderStructuredLabel(type, ctx);
 			default:
 				// For any other structured data operations, render the context dynamically
 				return renderStructuredLabel(type, ctx);
@@ -298,16 +415,16 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
 		// Convert snake_case to readable format
 		const readableType = operationType
 			.replace(/_/g, " ")
-			.replace(/\b\w/g, (l) => l.toUpperCase());
+			.replace(/\b\w/g, (l: string) => l.toUpperCase());
 
 		// Try to find the most meaningful fields to display
 		const meaningfulFields = Object.entries(context).filter(
-			([_key, value]) =>
+			([, value]) =>
 				typeof value === "string" && value.length > 0 && value.length < 100,
 		);
 
 		if (meaningfulFields.length > 0) {
-			const [_firstKey, firstValue] = meaningfulFields[0];
+			const [, firstValue] = meaningfulFields[0];
 			return `${readableType}: ${firstValue}`;
 		}
 
@@ -326,11 +443,10 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
 
 	// Check if this is a structured data operation (not one of our core operations)
 	const isStructuredOperation = ![
-		"agent_initializing",
-		"agent_ready",
-		"completion",
-		"error",
-		"status_update",
+    'agent_initializing',
+    'agent_ready',
+    'completion',
+    'error',
 	].includes(type);
 
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -404,13 +520,6 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 	// Just use operations in chronological order
 	const displayOperations = operations;
 
-	console.log(
-		"IkpMessage render, operations count:",
-		operations.length,
-		"display:",
-		displayOperations.length,
-	);
-
 	// Auto-collapse operations after completion unless there were errors
 	useEffect(() => {
 		const hasCompletion = operations.some((op) => op.type === "completion");
@@ -444,81 +553,32 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 	return (
 		<div className="flex justify-start">
 			<div className="max-w-4xl w-full">
-				{/* Operations Timeline */}
-				{displayOperations.length > 0 && (
-					<div
-						className={cn(
-							"mb-3 transition-all duration-300 overflow-hidden",
-							showOperations
-								? "max-h-96 opacity-100"
-								: "max-h-8 opacity-60 hover:opacity-100",
-						)}
-					>
-						<button
-							type="button"
-							className="flex items-center gap-2 cursor-pointer mb-2 bg-transparent group border-none p-0 w-full"
-							onClick={() => setShowOperations(!showOperations)}
-						>
+        {/* Simple Status Indicator */}
+        {(displayOperations.length > 0 || isLoading) && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
 							{isLoading ? (
+                <>
 								<LoaderCircle className="w-4 h-4 text-gray-400 dark:text-muted-foreground animate-spin" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
+                    Processing...
+                  </span>
+                </>
 							) : (
 								<>
-									<Check
-										className={cn(
-											"w-4 h-4 text-gray-500 dark:text-muted-foreground transition-all duration-200 absolute",
-											showOperations
-												? "opacity-0"
-												: "opacity-100 group-hover:opacity-0",
-										)}
-									/>
-									<ChevronRight
-										className={cn(
-											"w-4 h-4 text-gray-500 dark:text-muted-foreground transition-all duration-200 transform",
-											showOperations
-												? "rotate-90 opacity-100"
-												: "rotate-0 opacity-0 group-hover:opacity-100",
-										)}
-									/>
-								</>
-							)}
-
-							<div className="relative inline-block">
-								<span
-									className={cn(
-										"text-xs font-medium text-gray-600 dark:text-muted-foreground",
-										isLoading
-											? "bg-gradient-to-r from-transparent via-gray-600 dark:via-muted-foreground to-transparent bg-[length:200%_100%] bg-clip-text text-transparent animate-shine"
-											: "",
-									)}
-								>
-									{isLoading ? "Processing..." : "Completed"}
-								</span>
-								<span className="text-xs text-gray-400 dark:text-muted-foreground ml-2">
-									({displayOperations.length} steps{isStreaming ? " shown" : ""}
-									)
-								</span>
+                  <Check className="w-4 h-4 text-gray-500 dark:text-muted-foreground" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
+                    Completed
+                  </span>
+                </>
+              )}
 							</div>
-						</button>
-
-						{showOperations && (
-							<div className="space-y-1.5 ml-[7px] pl-4 border-l-2 border-gray-100 dark:border-border">
-								{displayOperations.map((op, index) => (
-									<OperationStep
-										key={op.uniqueKey || op.id || `${op.type}-${index}`}
-										operation={op}
-										isLast={index === displayOperations.length - 1}
-									/>
-								))}
-							</div>
-						)}
 					</div>
 				)}
 
 				{/* Main Response */}
 				{(textContent ||
-					message.parts.some(
-						(p) => p.type === "text" || p.type === "data-component",
-					)) && (
+          message.parts.some((p) => p.type === 'text' || p.type === 'data-component' || p.type === 'data-operation')) && (
 					<div>
 						<div className="prose prose-sm max-w-none">
 							{/* Render the combined markdown with inline citations using StreamMarkdown */}

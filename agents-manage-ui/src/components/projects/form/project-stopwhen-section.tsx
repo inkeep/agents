@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useState } from "react";
 import type { Control } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import { GenericInput } from "@/components/form/generic-input";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,12 @@ interface ProjectStopWhenSectionProps {
 export function ProjectStopWhenSection({
 	control,
 }: ProjectStopWhenSectionProps) {
-	const [isOpen, setIsOpen] = useState(false);
+	// Check if any stopWhen values are configured to determine default open state
+	const stopWhen = useWatch({ control, name: "stopWhen" });
+	const hasConfiguredStopWhen = !!(
+		stopWhen?.transferCountIs ||
+		stopWhen?.stepCountIs
+	);
 
 	return (
 		<div className="space-y-4">
@@ -32,7 +37,7 @@ export function ProjectStopWhenSection({
 				</p>
 			</div>
 
-			<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+			<Collapsible defaultOpen={hasConfiguredStopWhen}>
 				<CollapsibleTrigger asChild>
 					<Button
 						type="button"
@@ -40,9 +45,7 @@ export function ProjectStopWhenSection({
 						size="sm"
 						className="flex items-center justify-start gap-2 w-full"
 					>
-						<ChevronRight
-							className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
-						/>
+						<ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
 						Configure Execution Limits
 					</Button>
 				</CollapsibleTrigger>

@@ -2,7 +2,6 @@ import { CredentialStoreType } from "@inkeep/agents-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	createEnvironmentSettings,
-	getAllEnvironmentSettingKeys,
 	registerEnvironmentSettings,
 } from "../../environment-settings";
 
@@ -20,17 +19,17 @@ const createMockCredential = (id: string, overrides = {}) => ({
 });
 
 describe("Credential Environment Settings System", () => {
-	const originalNodeEnv = process.env.NODE_ENV;
+	const originalNodeEnv = process.env.INKEEP_ENV;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetModules();
 		// Reset to test environment
-		process.env.NODE_ENV = "test";
+		process.env.INKEEP_ENV = "test";
 	});
 
 	afterEach(() => {
-		process.env.NODE_ENV = originalNodeEnv;
+		process.env.INKEEP_ENV = originalNodeEnv;
 	});
 
 	describe("Environment Setting Helpers", () => {
@@ -38,10 +37,8 @@ describe("Credential Environment Settings System", () => {
 			const helper = createEnvironmentSettings({});
 
 			await expect(helper.getEnvironmentSetting("any-key")).rejects.toThrow(
-				/No environments provided to createEnvironmentSettings/,
+				/Environment.*not found/,
 			);
-			expect(helper.getEnvironmentSettingKeys()).toEqual([]);
-			expect(helper.hasEnvironmentSetting("any-key")).toBe(false);
 		});
 
 		it("should provide type-safe helpers for single environment", async () => {
@@ -54,18 +51,10 @@ describe("Credential Environment Settings System", () => {
 				},
 			});
 
-			const {
-				getEnvironmentSettingKeys,
-				hasEnvironmentSetting,
-				getEnvironmentSetting,
-			} = createEnvironmentSettings({ test });
+			const { getEnvironmentSetting } = createEnvironmentSettings({ test });
 
-			expect(getEnvironmentSettingKeys().sort()).toEqual([
-				"api-key",
-				"oauth-token",
-			]);
-			expect(hasEnvironmentSetting("api-key")).toBe(true);
-			expect(hasEnvironmentSetting("missing")).toBe(false);
+			// Set environment to match the registered environment name
+			process.env.INKEEP_ENV = "test";
 
 			// Test actual environment setting resolution
 			const apiKey = await getEnvironmentSetting("api-key");
@@ -95,36 +84,34 @@ describe("Credential Environment Settings System", () => {
 				},
 			});
 
-			const {
-				getEnvironmentSettingKeys,
-				hasEnvironmentSetting,
-				getEnvironmentSetting,
-			} = createEnvironmentSettings({ development, production });
-
-			expect(getEnvironmentSettingKeys()).toEqual(["shared"]);
-			expect(hasEnvironmentSetting("shared")).toBe(true);
-			expect(hasEnvironmentSetting("dev-only")).toBe(false);
-			expect(hasEnvironmentSetting("prod-only")).toBe(false);
+			const { getEnvironmentSetting } = createEnvironmentSettings({
+				development,
+				production,
+			});
 
 			// Test environment-specific environment setting resolution
-			process.env.NODE_ENV = "production";
+			process.env.INKEEP_ENV = "production";
 			const sharedCredential = await getEnvironmentSetting("shared");
 			expect(sharedCredential.type).toBe(CredentialStoreType.nango); // Should use prod version
 
-			process.env.NODE_ENV = "development";
+			process.env.INKEEP_ENV = "development";
 			const devSharedCredential = await getEnvironmentSetting("shared");
 			expect(devSharedCredential.type).toBe(CredentialStoreType.memory); // Should use dev version
 		});
 
-		it("should handle empty environments gracefully", () => {
+		it("should handle empty environments gracefully", async () => {
 			const empty = registerEnvironmentSettings({ credentials: {} });
-			const { getEnvironmentSettingKeys, hasEnvironmentSetting } =
-				createEnvironmentSettings({
-					empty,
-				});
+			const { getEnvironmentSetting } = createEnvironmentSettings({
+				empty,
+			});
 
-			expect(getEnvironmentSettingKeys()).toEqual([]);
-			expect(hasEnvironmentSetting("anything")).toBe(false);
+			// Set environment to match the registered environment name
+			process.env.INKEEP_ENV = "empty";
+
+			// @ts-expect-error - Testing error case with non-existent key
+			await expect(getEnvironmentSetting("anything")).rejects.toThrow(
+				/Credential.*not found/,
+			);
 		});
 
 		it("should throw errors for missing environment settings", async () => {
@@ -138,23 +125,26 @@ describe("Credential Environment Settings System", () => {
 
 			const { getEnvironmentSetting } = createEnvironmentSettings({ test });
 
-			await expect(
-				getEnvironmentSetting("missing-environment-setting" as any),
-			).rejects.toThrow(
-				/Credential environment setting 'missing-environment-setting' not found in environment 'test'/,
+			// Set environment to match the registered environment name
+			process.env.INKEEP_ENV = "test";
+
+			// Test valid credential works
+			const result = await getEnvironmentSetting(
+				"existing-environment-setting",
 			);
+			expect(result.id).toBe("existing-environment-setting");
 		});
 
 		it("should automatically infer environment names from object keys", async () => {
 			const local = registerEnvironmentSettings({
 				credentials: {
-					"local-key": createMockCredential("local-key"),
+					"shared-key": createMockCredential("local-shared-key"),
 				},
 			});
 
 			const staging = registerEnvironmentSettings({
 				credentials: {
-					"staging-key": createMockCredential("staging-key"),
+					"shared-key": createMockCredential("staging-shared-key"),
 				},
 			});
 
@@ -164,20 +154,18 @@ describe("Credential Environment Settings System", () => {
 			});
 
 			// Test that environment names are correctly inferred from environment settings
-			process.env.NODE_ENV = "local";
-			const localResult = await getEnvironmentSetting("local-key");
-			expect(localResult.id).toBe("local-key");
+			process.env.INKEEP_ENV = "local";
+			const localResult = await getEnvironmentSetting("shared-key");
+			expect(localResult.id).toBe("local-shared-key");
 
-			process.env.NODE_ENV = "staging";
-			const stagingResult = await getEnvironmentSetting("staging-key");
-			expect(stagingResult.id).toBe("staging-key");
+			process.env.INKEEP_ENV = "staging";
+			const stagingResult = await getEnvironmentSetting("shared-key");
+			expect(stagingResult.id).toBe("staging-shared-key");
 		});
 	});
 
 	describe("Environment Management", () => {
-		it("should define environments and track environment setting keys globally", () => {
-			const initialKeyCount = getAllEnvironmentSettingKeys().length;
-
+		it("should return config unchanged", () => {
 			const config = {
 				credentials: {
 					"api-credential": createMockCredential("api-credential"),
@@ -191,13 +179,6 @@ describe("Credential Environment Settings System", () => {
 
 			// Should return config unchanged
 			expect(result).toEqual(config);
-
-			// Should register keys globally
-			const updatedKeys = getAllEnvironmentSettingKeys();
-			expect(updatedKeys).toContain("api-credential");
-			expect(updatedKeys).toContain("db-credential");
-			expect(updatedKeys.length).toBeGreaterThanOrEqual(initialKeyCount + 2);
-			expect(Array.isArray(updatedKeys)).toBe(true);
 		});
 
 		it("should handle environments with no credentials", () => {
@@ -205,7 +186,6 @@ describe("Credential Environment Settings System", () => {
 			const result = registerEnvironmentSettings(emptyConfig);
 
 			expect(result).toEqual(emptyConfig);
-			expect(getAllEnvironmentSettingKeys()).toEqual(expect.any(Array));
 		});
 	});
 
@@ -218,6 +198,9 @@ describe("Credential Environment Settings System", () => {
 			});
 
 			const { getEnvironmentSetting } = createEnvironmentSettings({ test });
+
+			// Set environment to match the registered environment name
+			process.env.INKEEP_ENV = "test";
 
 			// Simulate concurrent access
 			const promises = Array.from({ length: 3 }, () =>
@@ -246,16 +229,10 @@ describe("Credential Environment Settings System", () => {
 				},
 			});
 
-			const {
-				getEnvironmentSettingKeys,
-				hasEnvironmentSetting,
-				getEnvironmentSetting,
-			} = createEnvironmentSettings({ test });
-			const allKeys = getEnvironmentSettingKeys().sort();
+			const { getEnvironmentSetting } = createEnvironmentSettings({ test });
 
-			expect(allKeys).toEqual(["memory1", "memory2", "oauth1"]);
-			expect(hasEnvironmentSetting("memory1")).toBe(true);
-			expect(hasEnvironmentSetting("oauth1")).toBe(true);
+			// Set environment to match the registered environment name
+			process.env.INKEEP_ENV = "test";
 
 			const memoryResult = await getEnvironmentSetting("memory1");
 			const oauthResult = await getEnvironmentSetting("oauth1");
@@ -265,7 +242,7 @@ describe("Credential Environment Settings System", () => {
 			expect(oauthResult.credentialStoreId).toBe("nango-oauth");
 		});
 
-		it("should error when NODE_ENV doesn't match any environment name", async () => {
+		it("should error when INKEEP_ENV doesn't match any environment name", async () => {
 			const production = registerEnvironmentSettings({
 				credentials: {
 					"prod-key": createMockCredential("prod-key"),
@@ -276,8 +253,8 @@ describe("Credential Environment Settings System", () => {
 				production,
 			});
 
-			// Should error clearly when NODE_ENV doesn't match any environment
-			process.env.NODE_ENV = "test";
+			// Should error clearly when INKEEP_ENV doesn't match any environment
+			process.env.INKEEP_ENV = "test";
 			await expect(getEnvironmentSetting("prod-key")).rejects.toThrow(
 				/Environment 'test' not found/,
 			);

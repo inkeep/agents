@@ -11,8 +11,8 @@ vi.mock('../utils/tsx-loader.js', () => ({
       default: {
         tenantId: 'config-tenant',
         projectId: 'config-project',
-        managementApiUrl: 'http://config-management',
-        executionApiUrl: 'http://config-execution',
+        agentsManageApiUrl: 'http://config-management',
+        agentsRunApiUrl: 'http://config-execution',
       },
     })
   ),
@@ -39,7 +39,7 @@ describe('Configuration Validation', () => {
 
   describe('validateConfiguration', () => {
     describe('Valid Configurations', () => {
-      it('should accept --tenant-id with --management-api-url and --execution-api-url flags', async () => {
+      it('should accept --tenant-id with --agents-manage-api-url and --agents-run-api-url flags', async () => {
         const config = await validateConfiguration(
           'test-tenant',
           'http://localhost:3002',
@@ -48,11 +48,13 @@ describe('Configuration Validation', () => {
         );
 
         expect(config.tenantId).toBe('test-tenant');
-        expect(config.managementApiUrl).toBe('http://localhost:3002');
-        expect(config.executionApiUrl).toBe('http://localhost:3003');
+        expect(config.agentsManageApiUrl).toBe('http://localhost:3002');
+        expect(config.agentsRunApiUrl).toBe('http://localhost:3003');
         expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
-        expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
-        expect(config.sources.executionApiUrl).toBe('command-line flag (--execution-api-url)');
+        expect(config.sources.agentsManageApiUrl).toBe(
+          'command-line flag (--agents-manage-api-url)'
+        );
+        expect(config.sources.agentsRunApiUrl).toBe('command-line flag (--agents-run-api-url)');
       });
 
       it('should use environment variables when no flags provided', async () => {
@@ -67,8 +69,8 @@ describe('Configuration Validation', () => {
         (importWithTypeScriptSupport as any).mockResolvedValue({
           default: {
             tenantId: 'env-tenant',
-            managementApiUrl: 'http://localhost:9090',
-            executionApiUrl: 'http://localhost:9091',
+            agentsManageApiUrl: 'http://localhost:9090',
+            agentsRunApiUrl: 'http://localhost:9091',
           },
         });
 
@@ -78,12 +80,12 @@ describe('Configuration Validation', () => {
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
         expect(config.tenantId).toBe('env-tenant');
-        expect(config.managementApiUrl).toBe('http://localhost:9090');
-        expect(config.executionApiUrl).toBe('http://localhost:9091');
-        expect(config.sources.managementApiUrl).toBe(
+        expect(config.agentsManageApiUrl).toBe('http://localhost:9090');
+        expect(config.agentsRunApiUrl).toBe('http://localhost:9091');
+        expect(config.sources.agentsManageApiUrl).toBe(
           'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
         );
-        expect(config.sources.executionApiUrl).toBe(
+        expect(config.sources.agentsRunApiUrl).toBe(
           'environment variable (INKEEP_AGENTS_RUN_API_URL)'
         );
       });
@@ -100,11 +102,13 @@ describe('Configuration Validation', () => {
         );
 
         expect(config.tenantId).toBe('cli-tenant');
-        expect(config.managementApiUrl).toBe('http://cli-management');
-        expect(config.executionApiUrl).toBe('http://cli-execution');
+        expect(config.agentsManageApiUrl).toBe('http://cli-management');
+        expect(config.agentsRunApiUrl).toBe('http://cli-execution');
         expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
-        expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
-        expect(config.sources.executionApiUrl).toBe('command-line flag (--execution-api-url)');
+        expect(config.sources.agentsManageApiUrl).toBe(
+          'command-line flag (--agents-manage-api-url)'
+        );
+        expect(config.sources.agentsRunApiUrl).toBe('command-line flag (--agents-run-api-url)');
       });
     });
 
@@ -118,7 +122,7 @@ describe('Configuration Validation', () => {
       it('should reject --tenant-id without both API URLs', async () => {
         await expect(
           validateConfiguration('test-tenant', undefined, undefined, undefined)
-        ).rejects.toThrow('--tenant-id requires --management-api-url and --execution-api-url');
+        ).rejects.toThrow('--tenant-id requires --agents-manage-api-url and --agents-run-api-url');
       });
 
       it('should reject when no configuration is provided', async () => {
@@ -138,8 +142,10 @@ describe('Configuration Validation', () => {
         );
 
         expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
-        expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
-        expect(config.sources.executionApiUrl).toBe('command-line flag (--execution-api-url)');
+        expect(config.sources.agentsManageApiUrl).toBe(
+          'command-line flag (--agents-manage-api-url)'
+        );
+        expect(config.sources.agentsRunApiUrl).toBe('command-line flag (--agents-run-api-url)');
         expect(config.sources.configFile).toBeUndefined();
       });
 
@@ -155,8 +161,8 @@ describe('Configuration Validation', () => {
         (importWithTypeScriptSupport as any).mockResolvedValue({
           default: {
             tenantId: 'env-tenant',
-            managementApiUrl: 'http://env-management',
-            executionApiUrl: 'http://env-execution',
+            agentsManageApiUrl: 'http://env-management',
+            agentsRunApiUrl: 'http://env-execution',
           },
         });
 
@@ -165,10 +171,10 @@ describe('Configuration Validation', () => {
 
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
-        expect(config.sources.managementApiUrl).toBe(
+        expect(config.sources.agentsManageApiUrl).toBe(
           'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
         );
-        expect(config.sources.executionApiUrl).toBe(
+        expect(config.sources.agentsRunApiUrl).toBe(
           'environment variable (INKEEP_AGENTS_RUN_API_URL)'
         );
       });
@@ -185,8 +191,8 @@ describe('Configuration Validation', () => {
         (importWithTypeScriptSupport as any).mockResolvedValue({
           default: {
             tenantId: 'env-tenant',
-            managementApiUrl: 'http://env-management',
-            executionApiUrl: 'http://env-execution',
+            agentsManageApiUrl: 'http://env-management',
+            agentsRunApiUrl: 'http://env-execution',
           },
         });
 
@@ -202,10 +208,12 @@ describe('Configuration Validation', () => {
         );
 
         expect(config.tenantId).toBe('env-tenant');
-        expect(config.managementApiUrl).toBe('http://override-management');
-        expect(config.executionApiUrl).toBe('http://env-execution');
-        expect(config.sources.managementApiUrl).toBe('command-line flag (--management-api-url)');
-        expect(config.sources.executionApiUrl).toBe(
+        expect(config.agentsManageApiUrl).toBe('http://override-management');
+        expect(config.agentsRunApiUrl).toBe('http://env-execution');
+        expect(config.sources.agentsManageApiUrl).toBe(
+          'command-line flag (--agents-manage-api-url)'
+        );
+        expect(config.sources.agentsRunApiUrl).toBe(
           'environment variable (INKEEP_AGENTS_RUN_API_URL)'
         );
       });

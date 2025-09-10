@@ -53,7 +53,19 @@ export const useChatActivitiesPolling = ({
 					if (response.status === 404) {
 						return null;
 					}
-					throw new Error("Failed to fetch chat activities");
+
+					// Try to get the actual error message from the response
+					let errorMessage = "Failed to fetch chat activities";
+					try {
+						const errorData = await response.json();
+						if (errorData.error) {
+							errorMessage = errorData.error;
+						}
+					} catch {
+						// If we can't parse the error response, use the default message
+					}
+
+					throw new Error(errorMessage);
 				}
 
 				const data: ConversationDetail = await response.json();

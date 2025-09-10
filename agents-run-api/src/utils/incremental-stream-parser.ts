@@ -21,6 +21,7 @@ export class IncrementalStreamParser {
   private hasStartedRole = false;
   private collectedParts: StreamPart[] = [];
   private contextId: string;
+  private lastChunkWasToolResult = false;
 
   constructor(streamHelper: StreamHelper, tenantId: string, contextId: string) {
     this.streamHelper = streamHelper;
@@ -29,9 +30,22 @@ export class IncrementalStreamParser {
   }
 
   /**
+   * Mark that a tool result just completed, so next text should have spacing
+   */
+  markToolResult(): void {
+    this.lastChunkWasToolResult = true;
+  }
+
+  /**
    * Process a new text chunk for text streaming (handles artifact markers)
    */
   async processTextChunk(chunk: string): Promise<void> {
+    // If this text follows a tool result and we haven't added any text yet, add spacing
+    if (this.lastChunkWasToolResult && this.buffer === '' && chunk.trim()) {
+      chunk = '\n\n' + chunk;
+      this.lastChunkWasToolResult = false;
+    }
+
     this.buffer += chunk;
 
     const parseResult = await this.parseTextBuffer();
@@ -66,20 +80,37 @@ export class IncrementalStreamParser {
    * Process tool call stream for structured output, streaming components as they complete
    */
   async processToolCallStream(stream: AsyncIterable<any>, targetToolName: string): Promise<void> {
-    let _jsonBuffer = '';
+    let jsonBuffer = '';
     let componentBuffer = '';
     let depth = 0;
     let _inDataComponents = false;
     let componentsStreamed = 0;
 
+    const MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB max buffer size
+
     for await (const part of stream) {
       // Look for tool call deltas with incremental JSON
       if (part.type === 'tool-call-delta' && part.toolName === targetToolName) {
         const delta = part.argsTextDelta || '';
-        _jsonBuffer += delta;
+
+        // Prevent JSON buffer from growing too large
+        if (jsonBuffer.length + delta.length > MAX_BUFFER_SIZE) {
+          logger.warn('JSON buffer exceeded maximum size, truncating');
+          jsonBuffer = jsonBuffer.slice(-MAX_BUFFER_SIZE / 2); // Keep last half
+        }
+
+        jsonBuffer += delta;
 
         // Parse character by character to detect complete components
         for (const char of delta) {
+          // Prevent component buffer from growing too large
+          if (componentBuffer.length > MAX_BUFFER_SIZE) {
+            logger.warn('Component buffer exceeded maximum size, resetting');
+            componentBuffer = '';
+            depth = 0; // Reset depth tracking
+            continue;
+          }
+
           componentBuffer += char;
 
           // Track JSON depth
@@ -91,11 +122,32 @@ export class IncrementalStreamParser {
             // At depth 2, we're inside the dataComponents array
             // When we return to depth 2, we have a complete component
             if (depth === 2 && componentBuffer.includes('"id"')) {
-              // Extract just the component object
+              // Extract just the component object with size limit
               const componentMatch = componentBuffer.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
               if (componentMatch) {
+                // Size limit check - prevent parsing extremely large JSON objects
+                const MAX_COMPONENT_SIZE = 1024 * 1024; // 1MB limit per component
+                if (componentMatch[0].length > MAX_COMPONENT_SIZE) {
+                  logger.warn(
+                    {
+                      size: componentMatch[0].length,
+                      maxSize: MAX_COMPONENT_SIZE,
+                    },
+                    'Component exceeds size limit, skipping'
+                  );
+                  componentBuffer = ''; // Reset and skip this component
+                  continue;
+                }
+
                 try {
                   const component = JSON.parse(componentMatch[0]);
+
+                  // Validate component structure before processing
+                  if (typeof component !== 'object' || !component.id) {
+                    logger.warn('Invalid component structure, skipping');
+                    componentBuffer = '';
+                    continue;
+                  }
 
                   // Stream this individual component
                   const parts = await this.artifactParser.parseObject({
@@ -160,11 +212,11 @@ export class IncrementalStreamParser {
     // Flush any remaining buffered text
     if (this.pendingTextBuffer.trim()) {
       // Clean up any artifact-related tags or remnants before final flush
+      // Use safe, non-backtracking regex patterns to prevent ReDoS attacks
       const cleanedText = this.pendingTextBuffer
-        .replace(/<\/?artifact:ref[^>]*>/g, '') // Remove all artifact:ref tags (opening and closing)
-        .replace(/<\/?artifact[^>]*>/g, '') // Remove all artifact tags
-        .replace(/<\/[^>]*artifact[^>]*>/g, '') // Remove closing tags with artifact in the name
-        .replace(/<[^>]*artifact[^>]*\/?>/g, '') // Remove any remaining artifact-related tags
+        .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
+        .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
+        .replace(/<\/(?:\w+:)?artifact>/g, '') // Remove closing artifact tags safely
         .trim();
 
       if (cleanedText) {
@@ -299,11 +351,11 @@ export class IncrementalStreamParser {
       // Flush if safe to do so
       if (!this.artifactParser.hasIncompleteArtifact(this.pendingTextBuffer)) {
         // Clean up any artifact-related tags or remnants before flushing
+        // Use safe, non-backtracking regex patterns to prevent ReDoS attacks
         const cleanedText = this.pendingTextBuffer
-          .replace(/<\/?artifact:ref[^>]*>/g, '') // Remove all artifact:ref tags (opening and closing)
-          .replace(/<\/?artifact[^>]*>/g, '') // Remove all artifact tags
-          .replace(/<\/[^>]*artifact[^>]*>/g, '') // Remove closing tags with artifact in the name
-          .replace(/<[^>]*artifact[^>]*\/?>/g, ''); // Remove any remaining artifact-related tags
+          .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
+          .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
+          .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
         if (cleanedText.trim()) {
           await this.streamHelper.streamText(cleanedText, 50);
@@ -314,11 +366,11 @@ export class IncrementalStreamParser {
       // Flush any pending text before streaming data
       if (this.pendingTextBuffer) {
         // Clean up any artifact-related tags or remnants before flushing
+        // Use safe, non-backtracking regex patterns to prevent ReDoS attacks
         const cleanedText = this.pendingTextBuffer
-          .replace(/<\/?artifact:ref[^>]*>/g, '') // Remove all artifact:ref tags (opening and closing)
-          .replace(/<\/?artifact[^>]*>/g, '') // Remove all artifact tags
-          .replace(/<\/[^>]*artifact[^>]*>/g, '') // Remove closing tags with artifact in the name
-          .replace(/<[^>]*artifact[^>]*\/?>/g, ''); // Remove any remaining artifact-related tags
+          .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
+          .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
+          .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
         if (cleanedText.trim()) {
           await this.streamHelper.streamText(cleanedText, 50);

@@ -153,6 +153,7 @@ describe('Integration Tests', () => {
         writeData: vi.fn().mockResolvedValue(undefined),
         streamText: vi.fn().mockResolvedValue(undefined),
         writeError: vi.fn().mockResolvedValue(undefined),
+        complete: vi.fn().mockResolvedValue(undefined), // Add missing complete method
       };
     });
 

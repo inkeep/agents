@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@inkeep/agents-core": "workspace:*",
-    "@inkeep/agents-run-api": "workspace:*",
     "@inkeep/agents-manage-api": "workspace:*",
+    "@inkeep/agents-run-api": "workspace:*",
     "@inkeep/agents-sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.8",
     "zod": "^4.1.5"

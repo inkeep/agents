@@ -13,7 +13,6 @@ export {
 export { DataComponent } from "./data-component";
 export {
 	createEnvironmentSettings,
-	getAllEnvironmentSettingKeys,
 	registerEnvironmentSettings,
 } from "./environment-settings";
 export {

@@ -565,14 +565,15 @@ export const LedgerArtifactApiUpdateSchema = createApiUpdateSchema(LedgerArtifac
 
 // === Full Graph Definition Schemas ===
 export const StatusComponentSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  type: z.string(),
   description: z.string().optional(),
-  schema: z.object({
+  detailsSchema: z
+    .object({
     type: z.literal('object'),
     properties: z.record(z.string(), z.any()),
     required: z.array(z.string()).optional(),
-  }),
+    })
+    .optional(),
 });
 
 export const StatusUpdateSchema = z.object({

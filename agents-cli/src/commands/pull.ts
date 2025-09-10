@@ -158,7 +158,7 @@ export async function pullCommand(graphId: string, options: PullOptions) {
 
     // Fetch graph from API
     const response = await fetch(
-      `${config.managementApiUrl}/tenants/${config.tenantId}/crud/projects/${config.projectId}/graph/${graphId}`,
+      `${config.agentsManageApiUrl}/tenants/${config.tenantId}/crud/projects/${config.projectId}/graph/${graphId}`,
       {
         method: 'GET',
         headers: {

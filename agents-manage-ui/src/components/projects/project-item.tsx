@@ -23,6 +23,8 @@ export function ProjectItem({
 	projectId,
 	name,
 	description,
+	models,
+	stopWhen,
 	createdAt,
 	tenantId,
 }: ProjectItemProps) {
@@ -36,7 +38,7 @@ export function ProjectItem({
 				</ItemCardLink>
 				<ProjectItemMenu
 					projectName={name}
-					projectData={{ id: projectId, name, description }}
+					projectData={{ id: projectId, name, description, models, stopWhen }}
 					tenantId={tenantId}
 				/>
 			</ItemCardHeader>

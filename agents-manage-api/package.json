@@ -11,7 +11,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc",
+    "build": "tsup",
     "start": "node dist/server.js",
     "test": "vitest --run",
     "test:watch": "vitest",

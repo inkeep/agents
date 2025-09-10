@@ -5,7 +5,7 @@
 	"main": "src/index.ts",
 	"type": "module",
 	"scripts": {
-		"build": "tsc",
+		"build": "tsup",
 		"test": "ENVIRONMENT=test vitest --run",
 		"test:watch": "ENVIRONMENT=test vitest",
 		"test:coverage": "ENVIRONMENT=test vitest --run --coverage",

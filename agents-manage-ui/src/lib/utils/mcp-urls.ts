@@ -2,7 +2,7 @@
 // This file does NOT have 'use server' so functions can be synchronous
 
 // Default configuration (same as in api/tools.ts)
-import { MANAGEMENT_API_BASE_URL } from "../api/api-config";
+import { INKEEP_AGENTS_MANAGE_API_URL } from "../api/api-config";
 
 /**
  * Get OAuth login URL for an MCP tool that requires authentication
@@ -52,10 +52,10 @@ export function getOAuthLoginUrl({
 	}
 
 	// Build URL with proper encoding
-	const url = `${MANAGEMENT_API_BASE_URL}/tenants/${encodeURIComponent(tenantId)}/crud/projects/${encodeURIComponent(projectId)}/tools/${encodeURIComponent(id)}/oauth-login`;
+	const url = `${INKEEP_AGENTS_MANAGE_API_URL}/tenants/${encodeURIComponent(tenantId)}/crud/projects/${encodeURIComponent(projectId)}/tools/${encodeURIComponent(id)}/oauth-login`;
 
 	// Verify the final URL starts with our expected base
-	if (!url.startsWith(MANAGEMENT_API_BASE_URL)) {
+	if (!url.startsWith(INKEEP_AGENTS_MANAGE_API_URL)) {
 		throw new Error("Invalid OAuth URL generated");
 	}
 

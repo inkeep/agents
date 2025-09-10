@@ -1,12 +1,15 @@
 "use client";
-import { InkeepEmbeddedChat } from "@inkeep/cxkit-react-oss";
+import {
+	InkeepEmbeddedChat,
+	type InkeepEmbeddedChatProps,
+} from "@inkeep/cxkit-react-oss";
 import type {
 	ComponentsConfig,
 	InkeepCallbackEvent,
 } from "@inkeep/cxkit-react-oss/types";
 import { nanoid } from "nanoid";
 import { useEffect, useRef } from "react";
-import { EXECUTION_API_BASE_URL } from "@/lib/api/api-config";
+import { INKEEP_AGENTS_RUN_API_URL } from "@/lib/api/api-config";
 import { IkpMessage as IkpMessageComponent } from "./ikp-message";
 
 interface ChatWidgetProps {
@@ -196,7 +199,7 @@ export function ChatWidget({
 					aiChatSettings={{
 						conversationId,
 						graphUrl: graphId
-							? `${EXECUTION_API_BASE_URL}/api/chat`
+							? `${INKEEP_AGENTS_RUN_API_URL}/api/chat`
 							: undefined,
 						headers: {
 							"x-inkeep-tenant-id": tenantId,

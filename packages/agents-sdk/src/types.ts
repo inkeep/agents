@@ -216,6 +216,7 @@ export interface RunResult {
 export interface StatusComponent {
 	id: string;
 	name: string;
+	type: string;
 	description?: string;
 	schema: {
 		type: "object";

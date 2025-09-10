@@ -8,8 +8,8 @@ import { validateConfiguration } from '../utils/config';
 
 export interface ChatOptions {
   tenantId?: string;
-  managementApiUrl?: string;
-  executionApiUrl?: string;
+  agentsManageApiUrl?: string;
+  agentsRunApiUrl?: string;
   configFilePath?: string;
 }
 
@@ -19,8 +19,8 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   try {
     config = await validateConfiguration(
       options?.tenantId,
-      options?.managementApiUrl,
-      options?.executionApiUrl,
+      options?.agentsManageApiUrl,
+      options?.agentsRunApiUrl,
       options?.configFilePath
     );
   } catch (error: any) {
@@ -31,17 +31,17 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   // Log configuration sources for debugging
   console.log(chalk.gray('Using configuration:'));
   console.log(chalk.gray(`  • Tenant ID: ${config.sources.tenantId}`));
-  console.log(chalk.gray(`  • Management API: ${config.sources.managementApiUrl}`));
-  console.log(chalk.gray(`  • Execution API: ${config.sources.executionApiUrl}`));
+  console.log(chalk.gray(`  • Management API: ${config.sources.agentsManageApiUrl}`));
+  console.log(chalk.gray(`  • Execution API: ${config.sources.agentsRunApiUrl}`));
   console.log();
 
   const managementApi = await ManagementApiClient.create(
-    config.managementApiUrl,
+    config.agentsManageApiUrl,
     options?.configFilePath,
     config.tenantId
   );
   const executionApi = await ExecutionApiClient.create(
-    config.executionApiUrl,
+    config.agentsRunApiUrl,
     options?.configFilePath,
     config.tenantId
   );

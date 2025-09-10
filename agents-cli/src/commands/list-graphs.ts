@@ -7,7 +7,7 @@ import { validateConfiguration } from '../utils/config';
 
 export interface ListGraphsOptions {
   tenantId?: string;
-  managementApiUrl?: string;
+  agentsManageApiUrl?: string;
   configFilePath?: string;
 }
 
@@ -18,8 +18,8 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
   try {
     config = await validateConfiguration(
       options.tenantId,
-      options.managementApiUrl,
-      undefined, // executionApiUrl not needed for list-graphs
+      options.agentsManageApiUrl,
+      undefined, // agentsRunApiUrl not needed for list-graphs
       options.configFilePath
     );
   } catch (error: any) {
@@ -30,11 +30,11 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
   // Log configuration sources for debugging
   console.log(chalk.gray('Using configuration:'));
   console.log(chalk.gray(`  • Tenant ID: ${config.sources.tenantId}`));
-  console.log(chalk.gray(`  • API URL: ${config.sources.managementApiUrl}`));
+  console.log(chalk.gray(`  • API URL: ${config.sources.agentsManageApiUrl}`));
   console.log();
 
   const api = await ManagementApiClient.create(
-    config.managementApiUrl,
+    config.agentsManageApiUrl,
     options.configFilePath,
     config.tenantId
   );

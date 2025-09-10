@@ -26,18 +26,46 @@ export const apiKeyAuth = () =>
 
     // Bypass authentication only for integration tests with specific header
     if (process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test') {
-      const executionContext = createExecutionContext({
-        apiKey: 'development',
-        tenantId: tenantId || 'test-tenant',
-        projectId: projectId || 'test-project',
-        graphId: graphId || 'test-graph',
-        apiKeyId: 'test-key',
-        baseUrl: baseUrl,
-        agentId: agentId,
-      });
+      let executionContext: ExecutionContext;
+
+      if (authHeader?.startsWith('Bearer ')) {
+        try {
+          executionContext = await extractContextFromApiKey(authHeader.substring(7));
+          logger.info({}, 'Development/test environment - API key authenticated successfully');
+        } catch {
+          // If API key extraction fails, fallback to default context
+          executionContext = createExecutionContext({
+            apiKey: 'development',
+            tenantId: tenantId || 'test-tenant',
+            projectId: projectId || 'test-project',
+            graphId: graphId || 'test-graph',
+            apiKeyId: 'test-key',
+            baseUrl: baseUrl,
+            agentId: agentId,
+          });
+          logger.info(
+            {},
+            'Development/test environment - fallback to default context due to invalid API key'
+          );
+        }
+      } else {
+        // No API key provided, use default context
+        executionContext = createExecutionContext({
+          apiKey: 'development',
+          tenantId: tenantId || 'test-tenant',
+          projectId: projectId || 'test-project',
+          graphId: graphId || 'test-graph',
+          apiKeyId: 'test-key',
+          baseUrl: baseUrl,
+          agentId: agentId,
+        });
+        logger.info(
+          {},
+          'Development/test environment - no API key provided, using default context'
+        );
+      }
 
       c.set('executionContext', executionContext);
-      logger.info({}, 'Test environment bypass authenticated successfully');
       await next();
       return;
     }

@@ -8,5 +8,6 @@ packages:
   - agents-docs
   - packages/agents-core
   - packages/agents-sdk
+  - packages/create-agents
 onlyBuiltDependencies:
   - keytar

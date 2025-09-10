@@ -24,7 +24,7 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import { generateObject, generateText, streamText, type ToolSet, tool } from 'ai';
+import { generateObject, generateText, streamText, type ToolSet, tool, type StreamTextResult, type Tool } from 'ai';
 import { z } from 'zod';
 import {
   createDefaultConversationHistoryConfig,
@@ -132,6 +132,17 @@ export type DelegateRelation =
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
+// Type guard to validate MCP tools have the expected AI SDK structure
+function isValidTool(tool: any): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
+  return (
+    tool &&
+    typeof tool === 'object' &&
+    typeof tool.description === 'string' &&
+    tool.inputSchema &&
+    typeof tool.execute === 'function'
+  );
+}
+
 // LLM Generated Information as a config LLM? Separate Step?
 
 export class Agent {
@@ -140,6 +151,7 @@ export class Agent {
   private responseFormatter: ResponseFormatter;
   private credentialStuffer?: CredentialStuffer;
   private streamHelper?: StreamHelper;
+  private streamRequestId?: string;
   private conversationId?: string;
   private artifactComponents: ArtifactComponentApiInsert[] = [];
   private isDelegatedAgent: boolean = false;
@@ -427,15 +439,22 @@ export class Agent {
     const wrappedTools: ToolSet = {};
     for (const toolSet of tools) {
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
+        // Type guard to ensure we have a valid AI SDK tool
+        if (!isValidTool(originalTool)) {
+          logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
+          continue;
+        }
+
         // First wrap with session management
         const sessionWrappedTool = tool({
-          description: (originalTool as any).description,
-          inputSchema: (originalTool as any).inputSchema,
+          description: originalTool.description,
+          inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
-            // Call the original MCP tool
-            const result = await (originalTool as any).execute(args);
+            try {
+              // Call the original MCP tool with proper error handling
+              const result = await originalTool.execute(args, { toolCallId });
 
             // Record the result immediately in the session manager
             toolSessionManager.recordToolResult(sessionId, {
@@ -447,6 +466,10 @@ export class Agent {
             });
 
             return { result, toolCallId };
+            } catch (error) {
+              logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
+              throw error;
+            }
           },
         });
 
@@ -943,6 +966,10 @@ Key requirements:
     return defaultTools;
   }
 
+  private getStreamRequestId(): string {
+    return this.streamRequestId || '';
+  }
+
   // Check if any agents in the graph have artifact components
   private async graphHasArtifactComponents(): Promise<boolean> {
     try {
@@ -988,6 +1015,7 @@ Key requirements:
       try {
         // Set streaming helper from registry if available
         const streamRequestId = runtimeContext?.metadata?.streamRequestId;
+        this.streamRequestId = streamRequestId;
         this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
         const conversationId = runtimeContext?.metadata?.conversationId;
 
@@ -1090,11 +1118,24 @@ Key requirements:
         const shouldStreamPhase1 = this.getStreamingHelper() && !hasStructuredOutput;
 
         // Extract maxDuration from config and convert to milliseconds, or use defaults
-        const timeoutMs = modelSettings.maxDuration
-          ? modelSettings.maxDuration * 1000
+        // Add upper bound validation to prevent extremely long timeouts
+        const MAX_ALLOWED_TIMEOUT_MS = 600_000; // 10 minutes maximum
+        const configuredTimeout = modelSettings.maxDuration
+          ? Math.min(modelSettings.maxDuration * 1000, MAX_ALLOWED_TIMEOUT_MS)
           : shouldStreamPhase1
             ? CONSTANTS.PHASE_1_TIMEOUT_MS
             : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
+
+        // Ensure timeout doesn't exceed maximum
+        const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
+        
+        if (modelSettings.maxDuration && modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS) {
+          logger.warn({
+            requestedTimeout: modelSettings.maxDuration * 1000,
+            appliedTimeout: timeoutMs,
+            maxAllowed: MAX_ALLOWED_TIMEOUT_MS
+          }, 'Requested timeout exceeded maximum allowed, capping to 10 minutes');
+        }
 
         // Build messages for Phase 1 - use thinking prompt if structured output needed
         const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
@@ -1123,8 +1164,25 @@ Key requirements:
             ...streamConfig,
             messages,
             tools: allTools,
-            stopWhen: ({ steps }) => {
+            stopWhen: async ({ steps }) => {
+              // Track the last step's text reasoning
               const last = steps.at(-1);
+              if (last && 'text' in last && last.text) {
+                try {
+                  await graphSessionManager.recordEvent(
+                    this.getStreamRequestId(),
+                    'agent_reasoning',
+                    this.config.id,
+                    {
+                      parts: [{ type: 'text', content: last.text }],
+                    }
+                  );
+                } catch (error) {
+                  logger.debug('Failed to track agent reasoning');
+                }
+              }
+
+              // Return the actual stop condition
               if (last && 'toolCalls' in last && last.toolCalls) {
                 return last.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
               }
@@ -1147,10 +1205,29 @@ Key requirements:
           }
           const parser = new IncrementalStreamParser(streamHelper, this.config.tenantId, contextId);
 
-          // Process the stream - text only (no structured output in Phase 1)
+          // Process the full stream - track all events including tool calls
           // Note: stopWhen will automatically stop on transfer_to_
-          for await (const textChunk of streamResult.textStream) {
-            await parser.processTextChunk(textChunk);
+          for await (const event of streamResult.fullStream) {
+            switch (event.type) {
+              case 'text-delta':
+                await parser.processTextChunk(event.text);
+                break;
+              case 'tool-call':
+                // Mark that a tool call happened
+                parser.markToolResult();
+                break;
+              case 'tool-result':
+                // Tool result finished, next text should have spacing
+                parser.markToolResult();
+                break;
+              case 'finish':
+                // Stream finished, check if it was due to tool calls
+                if (event.finishReason === 'tool-calls') {
+                  parser.markToolResult();
+                }
+                break;
+              // Handle other event types if needed
+            }
           }
 
           // Finalize the stream
@@ -1190,8 +1267,25 @@ Key requirements:
             ...genConfig,
             messages,
             tools: allTools,
-            stopWhen: ({ steps }) => {
+            stopWhen: async ({ steps }) => {
+              // Track the last step's text reasoning
               const last = steps.at(-1);
+              if (last && 'text' in last && last.text) {
+                try {
+                  await graphSessionManager.recordEvent(
+                    this.getStreamRequestId(),
+                    'agent_reasoning',
+                    this.config.id,
+                    {
+                      parts: [{ type: 'text', content: last.text }],
+                    }
+                  );
+                } catch (error) {
+                  logger.debug('Failed to track agent reasoning');
+                }
+              }
+
+              // Return the actual stop condition
               if (last && 'toolCalls' in last && last.toolCalls) {
                 return last.toolCalls.some(
                   (tc: any) =>

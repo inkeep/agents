@@ -185,6 +185,10 @@ statusUpdates: {
 
 For more control over status format, use structured status components:
 
+<Callout type="info">
+**Schema Update**: The status components schema has been simplified. Use `type` instead of `id` and `name`, and `detailsSchema` instead of `schema`. The `detailsSchema` is now optional.
+</Callout>
+
 ```typescript
 statusUpdates: {
   numEvents: 3,
@@ -193,10 +197,9 @@ statusUpdates: {
   prompt: 'Focus on actionable insights. Be specific about what was found.',
   statusComponents: [
     {
-      id: 'tool_summary',
-      name: 'Tool Usage',
+      type: 'tool_summary',
       description: 'Summary of tool calls and their purpose',
-      schema: {
+      detailsSchema: {
         type: 'object',
         properties: {
           tool_name: { 
@@ -216,10 +219,9 @@ statusUpdates: {
       },
     },
     {
-      id: 'progress_update',
-      name: 'Progress Status',
+      type: 'progress_update',
       description: 'Current progress and next steps',
-      schema: {
+      detailsSchema: {
         type: 'object',
         properties: {
           current_task: { 

@@ -1,4 +1,9 @@
-import { getExecutionApiUrl, getManagementApiUrl, getProjectId, getTenantId } from './utils/config';
+import {
+  getAgentsRunApiUrl,
+  getAgentsManageApiUrl,
+  getProjectId,
+  getTenantId,
+} from './utils/config';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -42,7 +47,7 @@ export class ManagementApiClient extends BaseApiClient {
     tenantIdOverride?: string,
     projectIdOverride?: string
   ): Promise<ManagementApiClient> {
-    const resolvedApiUrl = await getManagementApiUrl(apiUrl, configPath);
+    const resolvedApiUrl = await getAgentsManageApiUrl(apiUrl, configPath);
     const tenantId = tenantIdOverride || (await getTenantId(configPath));
     const projectId = projectIdOverride || (await getProjectId(configPath));
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId);
@@ -131,7 +136,7 @@ export class ExecutionApiClient extends BaseApiClient {
     tenantIdOverride?: string,
     projectIdOverride?: string
   ): Promise<ExecutionApiClient> {
-    const resolvedApiUrl = await getExecutionApiUrl(apiUrl, configPath);
+    const resolvedApiUrl = await getAgentsRunApiUrl(apiUrl, configPath);
     const tenantId = tenantIdOverride || (await getTenantId(configPath));
     const projectId = projectIdOverride || (await getProjectId(configPath));
     return new ExecutionApiClient(resolvedApiUrl, tenantId, projectId);

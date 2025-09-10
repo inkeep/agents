@@ -1,5 +1,5 @@
-import type { ExecutionContext } from '@inkeep/agents-core';
 import {
+  type ExecutionContext,
   createMessage,
   createTask,
   getActiveAgentForConversation,
@@ -9,22 +9,16 @@ import {
   updateTask,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
+import { A2AClient } from '../a2a/client.js';
+import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import { getLogger } from '../logger.js';
+import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { graphSessionManager } from '../utils/graph-session.js';
+import type { StreamHelper } from '../utils/stream-helpers.js';
+import { MCPStreamHelper } from '../utils/stream-helpers.js';
+import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
+import dbClient from '../data/db/dbClient.js';
 import { nanoid } from 'nanoid';
-import { A2AClient } from '../a2a/client';
-import { executeTransfer, isTransferResponse } from '../a2a/transfer';
-import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
-import {
-  agentInitializingOp,
-  agentReadyOp,
-  agentThinkingOp,
-  completionOp,
-  errorOp,
-} from '../utils/agent-operations';
-import { graphSessionManager } from '../utils/graph-session';
-import type { StreamHelper } from '../utils/stream-helpers';
-import { MCPStreamHelper } from '../utils/stream-helpers';
-import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -106,27 +100,17 @@ export class ExecutionHandler {
     try {
       // Send agent initializing and ready operations immediately to ensure UI rendering
       await sseHelper.writeOperation(agentInitializingOp(requestId, graphId));
-      await sseHelper.writeOperation(agentReadyOp(requestId, graphId));
 
-      // Send agent thinking operation after ready
-      await sseHelper.writeOperation(agentThinkingOp('system'));
-
-      // Check for existing task first to prevent race conditions
+      // Use atomic upsert pattern to handle race conditions properly
       const taskId = `task_${conversationId}-${requestId}`;
-      const existingTask = await getTask(dbClient)({ id: taskId });
 
-      if (existingTask) {
-        // Task already exists, use it instead of creating a new one
-        task = existingTask;
-        logger.info({ taskId, existingTask }, 'Reusing existing task to prevent race condition');
-      } else {
-        // Task creation (data operations removed)
-
-        // Create initial task
         logger.info(
           { taskId, currentAgentId, conversationId, requestId },
-          'About to create task with streamRequestId'
+        'Attempting to create or reuse existing task'
         );
+
+      try {
+        // Try to create the task atomically
         task = await createTask(dbClient)({
           id: taskId,
           tenantId,
@@ -152,6 +136,28 @@ export class ExecutionHandler {
           },
           'Task created with metadata'
         );
+      } catch (error: any) {
+        // Handle race condition: if task already exists due to concurrent request,
+        // fetch and reuse the existing task instead of failing
+        if (error?.message?.includes('UNIQUE constraint failed') || 
+            error?.message?.includes('PRIMARY KEY constraint failed') ||
+            error?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
+          logger.info({ taskId, error: error.message }, 'Task already exists, fetching existing task');
+          
+          const existingTask = await getTask(dbClient)({ id: taskId });
+          if (existingTask) {
+            task = existingTask;
+            logger.info({ taskId, existingTask }, 'Successfully reused existing task from race condition');
+          } else {
+            // This should not happen, but handle gracefully
+            logger.error({ taskId, error }, 'Task constraint failed but task not found');
+            throw error;
+          }
+        } else {
+          // Re-throw non-constraint errors
+          logger.error({ taskId, error }, 'Failed to create task due to non-constraint error');
+          throw error;
+        }
       }
 
       // Debug logging for execution handler (structured logging only)
@@ -409,6 +415,9 @@ export class ExecutionHandler {
 
           // Send completion data operation before ending session
           await sseHelper.writeOperation(completionOp(currentAgentId, iterations));
+
+          // Complete the stream to flush any queued operations
+          await sseHelper.complete();
 
           // End the GraphSession and clean up resources
           logger.info('Ending GraphSession and cleaning up');

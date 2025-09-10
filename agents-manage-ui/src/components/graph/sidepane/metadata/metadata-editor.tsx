@@ -28,11 +28,12 @@ import {
 import { useGraphStore } from "@/features/graph/state/use-graph-store";
 import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import { useProjectData } from "@/hooks/use-project-data";
-import { EXECUTION_API_BASE_URL } from "@/lib/api/api-config";
+import { INKEEP_AGENTS_RUN_API_URL } from "@/lib/api/api-config";
 import { ExpandableTextArea } from "../nodes/expandable-text-area";
 import { InputField, TextareaField } from "../nodes/form-fields";
 import { ModelSelector } from "../nodes/model-selector";
 import { ContextConfigForm } from "./context-config";
+import { ExternalLink } from "@/components/ui/external-link";
 
 function MetadataEditor() {
 	const params = useParams();
@@ -48,7 +49,7 @@ function MetadataEditor() {
 		graphPrompt,
 		statusUpdates,
 	} = metadata;
-	const graphUrl = `${EXECUTION_API_BASE_URL}/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/api/chat`;
+	const graphUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
 
 	// Fetch project data for inheritance indicators
 	const { project } = useProjectData();
@@ -81,6 +82,9 @@ function MetadataEditor() {
 						</Tooltip>
 					</div>
 					<CopyableSingleLineCode code={graphUrl} />
+					<ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
+						Create API key
+					</ExternalLink>
 				</div>
 			)}
 			<InputField

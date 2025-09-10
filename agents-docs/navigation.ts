@@ -42,7 +42,6 @@ export default {
 			group: "Talk to your agents",
 			pages: [
 				"talk-to-your-agents/overview",
-				"talk-to-your-agents/authentication",
 				"talk-to-your-agents/mcp-server",
 				{
 					group: "React UI Components",
@@ -57,7 +56,14 @@ export default {
 		},
 		{
 			group: "API Reference",
-			pages: ["api-reference/authentication", "api-reference"],
+			pages: [{
+				group: "Authentication",
+				icon: "LuLock",
+				pages: [
+					"api-reference/authentication/run-api",
+					"api-reference/authentication/manage-api",
+				],
+			}, "api-reference"],
 		},
 		/**
 		 * TODO: Add back schema validation back in some way

@@ -243,14 +243,15 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
       statusComponents: z
         .array(
           z.object({
-            id: z.string(),
-            name: z.string(),
+            type: z.string(),
             description: z.string().optional(),
-            schema: z.object({
-              type: z.literal('object'),
-              properties: z.record(z.string(), z.any()),
-              required: z.array(z.string()).optional(),
-            }),
+            detailsSchema: z
+              .object({
+                type: z.literal('object'),
+                properties: z.record(z.string(), z.any()),
+                required: z.array(z.string()).optional(),
+              })
+              .optional(),
           })
         )
         .optional(),
