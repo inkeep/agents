@@ -4,18 +4,18 @@
   "description": "Langfuse dataset evaluation script for Inkeep agents",
   "type": "module",
   "scripts": {
-    "start": "tsx langfuse-run.ts",
-    "dev": "tsx --watch langfuse-run.ts"
+    "start": "tsx langfuse-run.ts"
   },
   "dependencies": {
+    "@langfuse/tracing": "^4.0.0",
     "dotenv": "^16.4.5",
     "langfuse": "^3.28.0",
     "pino": "^9.5.0",
     "pino-pretty": "^11.2.2"
   },
   "devDependencies": {
-    "tsx": "^4.19.2",
     "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

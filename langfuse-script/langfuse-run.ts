@@ -2,7 +2,6 @@
 
 import 'dotenv/config';
 import { Langfuse } from 'langfuse';
-import { nanoid } from 'nanoid';
 import { getLogger } from './logger.js';
 
 const logger = getLogger('langfuse-dataset-runner');
@@ -24,7 +23,7 @@ async function main() {
 
   if (args.length === 0) {
     console.error('Missing required parameter: --dataset-id');
-    console.error('Usage: pnpm tsx langfuse-run.ts --dataset-id <id>');
+    console.error('Usage: pnpm langfuse --dataset-id <id>');
     process.exit(1);
   }
 
@@ -51,7 +50,7 @@ async function main() {
         break;
       default:
         console.error(`Unknown flag: ${flag}. Only --dataset-id is supported.`);
-        console.error('Usage: pnpm tsx langfuse-run.ts --dataset-id <id>');
+        console.error('Usage: pnpm langfuse --dataset-id <id>');
         process.exit(1);
     }
   }
@@ -62,7 +61,6 @@ async function main() {
 
   if (missing.length > 0) {
     console.error(`Missing required parameters: ${missing.join(', ')}`);
-    console.error('Use --help for usage information');
     process.exit(1);
   }
 
@@ -142,32 +140,21 @@ async function runDatasetEvaluation(config: RunConfig): Promise<void> {
     throw new Error('Dataset has no items; cannot link runs. Verify SDK call returns items.');
   }
 
-  // Create descriptive run label with timestamp
-  const runLabel = `dataset-run:${datasetId}:${new Date().toISOString()}`;
-
-  // Process each dataset item using the correct SDK approach
+  const runLabel = `dataset-run:${new Date().toISOString()}`;
   for (const item of dataset.items) {
     const itemLogger = logger.child({ datasetItemId: item.id });
 
     try {
       itemLogger.info('Processing dataset item through agent graph');
 
-      // Extract the input text from the dataset item
       const userMessage = extractInputFromDatasetItem(item);
       if (!userMessage) {
         itemLogger.warn('No input text found in dataset item, skipping');
         continue;
       }
 
-      // Create a deterministic trace ID based on dataset item
-      const traceId = `dataset_${datasetId}_item_${item.id}_${Date.now()}`;
-
-      // Create a unique conversation ID for this dataset item
-      const conversationId = `dataset_run_${nanoid()}`;
-
-      // Run the dataset item through the chat API with explicit trace creation
+      // Run the dataset item through the chat API
       const result = await runDatasetItemThroughChatAPI({
-        conversationId,
         userMessage,
         agentId,
         datasetItem: item,
@@ -178,51 +165,28 @@ async function runDatasetEvaluation(config: RunConfig): Promise<void> {
           projectId,
           graphId,
         },
-        traceId,
         langfuse,
         datasetId,
       });
 
       // Link the execution trace to the dataset item using item.link()
       if (result.traceId && result.trace) {
-        // Ensure trace is persisted before linking
         await langfuse.flushAsync();
-
-        // ✅ IMPORTANT: pass the trace object so the SDK can link properly
         await item.link(result.trace, runLabel, {
-          description: 'Agent evaluation run via Inkeep Agent Framework',
+          description: 'Dataset run via Inkeep Agent Framework',
           metadata: {
-            agentFramework: 'inkeep-agents',
             tenantId,
             projectId,
             graphId,
             agentId,
-            success: result.success,
-            iterations: result.iterations,
-            conversationId,
-            ...(result.error && { error: result.error }),
             ...metadata,
           },
         });
-
-        // Ensure the link is persisted
         await langfuse.flushAsync();
-
-        // Add a link log to prove it executed
-        itemLogger.info(
-          {
-            datasetItemId: item.id,
-            traceId: result.traceId,
-            runLabel,
-          },
-          'Linked dataset item to run'
-        );
       }
 
       itemLogger.info(
         {
-          success: result.success,
-          iterations: result.iterations,
           traceId: result.traceId,
         },
         'Completed processing dataset item and linked trace'
@@ -251,18 +215,15 @@ function extractInputFromDatasetItem(item: any): string | null {
 
 // Helper function to run a dataset item through the chat API
 async function runDatasetItemThroughChatAPI({
-  conversationId,
   userMessage,
   agentId,
   datasetItem,
   chatBaseUrl,
   authKey,
   executionContext,
-  traceId,
   langfuse,
   datasetId,
 }: {
-  conversationId: string;
   userMessage: string;
   agentId?: string;
   datasetItem: any;
@@ -273,19 +234,16 @@ async function runDatasetItemThroughChatAPI({
     projectId: string;
     graphId: string;
   };
-  traceId: string;
   langfuse: any;
   datasetId: string;
 }): Promise<{
-  success: boolean;
   response?: string;
   error?: string;
-  iterations?: number;
   traceId?: string;
   trace?: any;
 }> {
   try {
-    // Prepare the chat request payload
+    // Prepare the chat request payload (let API generate conversationId)
     const chatPayload = {
       messages: [
         {
@@ -293,7 +251,6 @@ async function runDatasetItemThroughChatAPI({
           content: userMessage,
         },
       ],
-      conversationId,
       ...(agentId && { agentId }),
     };
 
@@ -306,7 +263,7 @@ async function runDatasetItemThroughChatAPI({
         'x-inkeep-tenant-id': executionContext.tenantId,
         'x-inkeep-project-id': executionContext.projectId,
         'x-inkeep-graph-id': executionContext.graphId,
-        'x-langfuse-tags': `run.type=langfuse-dataset-run,dataset.id=${datasetId}`,
+        'x-langfuse-tags': `baggage.run.type=langfuse-dataset-run,baggage.dataset.id=${datasetId}`,
       },
       body: JSON.stringify(chatPayload),
     });
@@ -318,55 +275,26 @@ async function runDatasetItemThroughChatAPI({
           status: response.status,
           statusText: response.statusText,
           errorText,
-          conversationId,
           datasetItemId: datasetItem.id,
         },
         'Chat API request failed'
       );
 
       return {
-        success: false,
         error: `Chat API error: ${response.status} ${response.statusText}`,
-        traceId: null,
-        trace: null,
       };
     }
 
     // Extract the trace ID from the response header
-    const actualTraceId = response.headers.get('x-trace-id');
-    logger.info({ actualTraceId, expectedTraceId: traceId }, 'Received trace ID from chat API');
+    const traceId = response.headers.get('x-trace-id');
+    logger.info({ traceId }, 'Received trace ID from chat API');
 
     const responseText = await response.text();
     const assistantResponse = parseSSEResponse(responseText);
 
-    // Use the actual trace ID from the chat API response
-    const finalTraceId = actualTraceId || traceId;
-
-    // Create a reference to the existing trace using the OpenTelemetry trace ID
+    // Create a trace reference if we have a trace ID
     let trace = null;
-    if (actualTraceId) {
-      // Create a trace reference using the OpenTelemetry trace ID
-      // This should link to the existing trace created by the chat API
-      trace = langfuse.trace({
-        id: actualTraceId,
-        name: `Dataset Item Execution: ${datasetItem.id}`,
-        input: userMessage,
-        output: assistantResponse || 'No response generated',
-        metadata: {
-          datasetItemId: datasetItem.id,
-          conversationId,
-          agentId,
-          tenantId: executionContext.tenantId,
-          projectId: executionContext.projectId,
-          graphId: executionContext.graphId,
-          linkedFromOpenTelemetry: true,
-        },
-        tags: ['dataset-evaluation', 'agent-execution', 'otel-linked'],
-      });
-      logger.info({ traceId: actualTraceId }, 'Created trace reference using OpenTelemetry trace ID');
-    } else {
-      logger.warn('No trace ID received from chat API, falling back to manual trace creation');
-      // Fallback: create a new trace if no trace ID was provided
+    if (traceId) {
       trace = langfuse.trace({
         id: traceId,
         name: `Dataset Item Execution: ${datasetItem.id}`,
@@ -374,41 +302,35 @@ async function runDatasetItemThroughChatAPI({
         output: assistantResponse || 'No response generated',
         metadata: {
           datasetItemId: datasetItem.id,
-          conversationId,
           agentId,
           tenantId: executionContext.tenantId,
           projectId: executionContext.projectId,
           graphId: executionContext.graphId,
         },
-        tags: ['dataset-evaluation', 'agent-execution'],
+        tags: ['dataset-evaluation'],
       });
+      logger.info({ traceId }, 'Created trace reference');
+    } else {
+      logger.warn('No trace ID received from chat API');
     }
-    
-    // Flush to ensure the trace is created/updated
     await langfuse.flushAsync();
 
     return {
-      success: true,
       response: assistantResponse || 'No response generated',
-      iterations: 1, // Simple chat API call
-      traceId: finalTraceId,
+      traceId: traceId || undefined,
       trace,
     };
   } catch (error) {
     logger.error(
       {
         error: error instanceof Error ? error.message : String(error),
-        conversationId,
         datasetItemId: datasetItem.id,
       },
       'Error running dataset item through chat API'
     );
 
     return {
-      success: false,
       error: error instanceof Error ? error.message : String(error),
-      traceId,
-      trace: null,
     };
   }
 }
@@ -434,10 +356,8 @@ function parseSSEResponse(sseText: string): string {
   return assistantResponse.trim();
 }
 
-// Run the main function if this script is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error('Script failed:', error);
-    process.exit(1);
-  });
-}
+// Run the main function
+main().catch((error) => {
+  console.error('Script failed:', error);
+  process.exit(1);
+});
