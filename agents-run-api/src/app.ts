@@ -212,12 +212,17 @@ function createExecutionHono(
       }
     }
 
+    // Detect run type - check if this is from a dataset evaluation run
+    const isDatasetRun = c.req.header('x-langfuse-dataset-run') === 'true';
+    const runType = isDatasetRun ? 'langfuse-dataset-run' : 'chat-widget';
+
     const entries = Object.fromEntries(
       Object.entries({
         'graph.id': graphId,
         'tenant.id': tenantId,
         'project.id': projectId,
         'conversation.id': conversationId,
+        'run.type': runType,
       }).filter((entry): entry is [string, string] => {
         const [, v] = entry;
         return typeof v === 'string' && v.length > 0;

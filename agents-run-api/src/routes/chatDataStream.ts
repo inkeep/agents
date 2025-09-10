@@ -93,11 +93,16 @@ app.openapi(chatDataStreamRoute, async (c) => {
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
+      // Detect run type - check if this is from a dataset evaluation run
+      const isDatasetRun = c.req.header('x-langfuse-dataset-run') === 'true';
+      const runType = isDatasetRun ? 'langfuse-dataset-run' : 'chat-widget';
+      
       activeSpan.setAttributes({
         'conversation.id': conversationId,
         'tenant.id': tenantId,
         'graph.id': graphId,
         'project.id': projectId,
+        'run.type': runType,
       });
     }
 
