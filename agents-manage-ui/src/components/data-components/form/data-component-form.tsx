@@ -102,7 +102,10 @@ export function DataComponentForm({
 					control={form.control}
 					name="name"
 					label="Name"
-					placeholder="List orders"
+					placeholder="ListOrders"
+					description={
+						"This name is used to identify the component in chat widget integration. Example: components: { ListOrders: MyListOrdersComponent }"
+					}
 					isRequired
 				/>
 				<GenericInput
