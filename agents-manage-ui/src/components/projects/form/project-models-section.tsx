@@ -1,17 +1,17 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { type Control, useController, useWatch } from "react-hook-form";
-import { ExpandableJsonEditor } from "@/components/form/expandable-json-editor";
-import { ModelSelector } from "@/components/graph/sidepane/nodes/model-selector";
+import { ChevronRight } from "lucide-react";
+import { Control, useController, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { ObjectJsonEditor } from "@/components/form/object-json-editor";
 import { Label } from "@/components/ui/label";
+import { ModelSelector } from "@/components/graph/sidepane/nodes/model-selector";
 import type { ProjectFormData } from "./validation";
 
 interface ProjectModelsSectionProps {
@@ -39,23 +39,11 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
 			<p className="text-xs text-muted-foreground">
 				Primary model for general agent responses
 			</p>
-			<ExpandableJsonEditor
+			<ObjectJsonEditor
 				name="models.base.providerOptions"
 				label="Provider Options"
-				value={
-					providerOptionsField.value
-						? JSON.stringify(providerOptionsField.value, null, 2)
-						: ""
-				}
-				onChange={(value) => {
-					let parsedOptions;
-					try {
-						parsedOptions = value ? JSON.parse(value) : undefined;
-					} catch (e) {
-						parsedOptions = undefined;
-					}
-					providerOptionsField.onChange(parsedOptions);
-				}}
+				value={providerOptionsField.value}
+				onChange={providerOptionsField.onChange}
 				placeholder={`{
   "temperature": 0.7,
   "maxTokens": 2048
@@ -91,23 +79,11 @@ function StructuredOutputModelSection({
 				Model for structured outputs and data components (defaults to base
 				model)
 			</p>
-			<ExpandableJsonEditor
+			<ObjectJsonEditor
 				name="models.structuredOutput.providerOptions"
 				label="Provider Options"
-				value={
-					providerOptionsField.value
-						? JSON.stringify(providerOptionsField.value, null, 2)
-						: ""
-				}
-				onChange={(value) => {
-					let parsedOptions;
-					try {
-						parsedOptions = value ? JSON.parse(value) : undefined;
-					} catch (e) {
-						parsedOptions = undefined;
-					}
-					providerOptionsField.onChange(parsedOptions);
-				}}
+				value={providerOptionsField.value}
+				onChange={providerOptionsField.onChange}
 				placeholder={`{
   "temperature": 0.1,
   "maxTokens": 1024
@@ -142,23 +118,11 @@ function SummarizerModelSection({
 			<p className="text-xs text-muted-foreground">
 				Model for summarization tasks (defaults to base model)
 			</p>
-			<ExpandableJsonEditor
+			<ObjectJsonEditor
 				name="models.summarizer.providerOptions"
 				label="Provider Options"
-				value={
-					providerOptionsField.value
-						? JSON.stringify(providerOptionsField.value, null, 2)
-						: ""
-				}
-				onChange={(value) => {
-					let parsedOptions;
-					try {
-						parsedOptions = value ? JSON.parse(value) : undefined;
-					} catch (e) {
-						parsedOptions = undefined;
-					}
-					providerOptionsField.onChange(parsedOptions);
-				}}
+				value={providerOptionsField.value}
+				onChange={providerOptionsField.onChange}
 				placeholder={`{
   "temperature": 0.3,
   "maxTokens": 1024

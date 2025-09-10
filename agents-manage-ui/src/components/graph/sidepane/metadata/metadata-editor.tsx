@@ -11,6 +11,10 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyableSingleLineCode } from "@/components/ui/copyable-single-line-code";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	getExecutionLimitInheritanceStatus,
 	getModelInheritanceStatus,
@@ -27,7 +31,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useGraphStore } from "@/features/graph/state/use-graph-store";
 import { useProjectData } from "@/hooks/use-project-data";
-import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import { EXECUTION_API_BASE_URL } from "@/lib/api/api-config";
 import { ExpandableTextArea } from "../nodes/expandable-text-area";
 import { InputField, TextareaField } from "../nodes/form-fields";
@@ -62,21 +65,6 @@ function MetadataEditor() {
 		},
 		[setMetadata, markUnsaved],
 	);
-
-	const handleIdChange = useCallback(
-		(generatedId: string) => {
-			updateMetadata("id", generatedId);
-		},
-		[updateMetadata],
-	);
-
-	// Auto-prefill ID based on name field (only for new graphs)
-	useAutoPrefillIdZustand({
-		nameValue: name,
-		idValue: id,
-		onIdChange: handleIdChange,
-		isEditing: !!graphId,
-	});
 
 	return (
 		<div className="space-y-8">
@@ -303,25 +291,15 @@ function MetadataEditor() {
 						name="base-provider-options"
 						label="Base Model Provider Options"
 						onChange={(value) => {
-							let parsedOptions;
-							try {
-								parsedOptions = value ? JSON.parse(value) : undefined;
-							} catch (e) {
-								parsedOptions = undefined;
-							}
 							updateMetadata("models", {
 								...(models || {}),
 								base: {
 									model: models.base!.model,
-									providerOptions: parsedOptions,
+									providerOptions: value,
 								},
 							});
 						}}
-						value={
-							models.base.providerOptions
-								? JSON.stringify(models.base.providerOptions, null, 2)
-								: ""
-						}
+						value={models.base.providerOptions || ""}
 						placeholder={`{
     "temperature": 0.7,
     "maxTokens": 2048
@@ -335,29 +313,15 @@ function MetadataEditor() {
 						name="structured-provider-options"
 						label="Structured Output Model Provider Options"
 						onChange={(value) => {
-							let parsedOptions;
-							try {
-								parsedOptions = value ? JSON.parse(value) : undefined;
-							} catch (e) {
-								parsedOptions = undefined;
-							}
 							updateMetadata("models", {
 								...(models || {}),
 								structuredOutput: {
 									model: models.structuredOutput!.model,
-									providerOptions: parsedOptions,
+									providerOptions: value,
 								},
 							});
 						}}
-						value={
-							models.structuredOutput.providerOptions
-								? JSON.stringify(
-										models.structuredOutput.providerOptions,
-										null,
-										2,
-									)
-								: ""
-						}
+						value={models.structuredOutput.providerOptions || ""}
 						placeholder={`{
   "temperature": 0.1,
   "maxTokens": 1024
@@ -371,25 +335,15 @@ function MetadataEditor() {
 						name="summarizer-provider-options"
 						label="Summarizer Model Provider Options"
 						onChange={(value) => {
-							let parsedOptions;
-							try {
-								parsedOptions = value ? JSON.parse(value) : undefined;
-							} catch (e) {
-								parsedOptions = undefined;
-							}
 							updateMetadata("models", {
 								...(models || {}),
 								summarizer: {
 									model: models.summarizer!.model,
-									providerOptions: parsedOptions,
+									providerOptions: value,
 								},
 							});
 						}}
-						value={
-							models.summarizer.providerOptions
-								? JSON.stringify(models.summarizer.providerOptions, null, 2)
-								: ""
-						}
+						value={models.summarizer.providerOptions || ""}
 						placeholder={`{
   "temperature": 0.3,
   "maxTokens": 1024
@@ -639,22 +593,12 @@ function MetadataEditor() {
 									name="status-components"
 									label="Status Components Configuration"
 									onChange={(value) => {
-										let parsedComponents;
-										try {
-											parsedComponents = value ? JSON.parse(value) : undefined;
-										} catch (e) {
-											parsedComponents = undefined;
-										}
 										updateMetadata("statusUpdates", {
 											...(statusUpdates || {}),
-											statusComponents: parsedComponents,
+											statusComponents: value,
 										});
 									}}
-									value={
-										statusUpdates?.statusComponents
-											? JSON.stringify(statusUpdates.statusComponents, null, 2)
-											: ""
-									}
+									value={statusUpdates?.statusComponents || ""}
 									placeholder={`[
   {
     "id": "tool_call_summary",
