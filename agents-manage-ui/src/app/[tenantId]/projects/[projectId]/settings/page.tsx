@@ -21,16 +21,15 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 				{
 					label: "Project Settings",
 				},
-				{ label: projectData.data.name },
 			]}
 		>
 			<MainContent>
 				<div className="max-w-2xl mx-auto py-4">
 					<ProjectForm
-						projectId={projectData.data.id || projectData.data.projectId}
+						projectId={projectData.data.id}
 						initialData={{
 							...projectData.data,
-							id: projectData.data.id || projectData.data.projectId,
+							id: projectData.data.id as string,
 						}}
 						tenantId={tenantId}
 					/>
