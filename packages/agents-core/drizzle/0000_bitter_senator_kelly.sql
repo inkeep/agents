@@ -299,5 +299,6 @@ CREATE TABLE `tools` (
 	`last_tools_sync` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`,`credential_reference_id`) REFERENCES `credential_references`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE set null
 );
