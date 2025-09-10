@@ -211,6 +211,13 @@ app.openapi(chatDataStreamRoute, async (c) => {
     c.header('connection', 'keep-alive');
     c.header('x-vercel-ai-data-stream', 'v2');
     c.header('x-accel-buffering', 'no'); // disable nginx buffering
+    
+    // Add trace ID header for Langfuse linking
+    const activeSpanForHeader = trace.getActiveSpan();
+    if (activeSpanForHeader) {
+      const traceId = activeSpanForHeader.spanContext().traceId;
+      c.header('x-trace-id', traceId);
+    }
 
     return stream(c, (stream) =>
       stream.pipe(

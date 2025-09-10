@@ -282,24 +282,6 @@ async function runDatasetItemThroughChatAPI({
   trace?: any;
 }> {
   try {
-    // Create a trace for this dataset item execution
-    logger.info({ traceId }, 'Creating trace with ID');
-    const trace = langfuse.trace({
-      id: traceId,
-      name: `Dataset Item Execution: ${datasetItem.id}`,
-      input: userMessage,
-      metadata: {
-        datasetItemId: datasetItem.id,
-        conversationId,
-        agentId,
-        tenantId: executionContext.tenantId,
-        projectId: executionContext.projectId,
-        graphId: executionContext.graphId,
-      },
-      tags: ['dataset-evaluation', 'agent-execution'],
-    });
-    logger.info({ traceId, traceCreated: true }, 'Trace created successfully');
-
     // Prepare the chat request payload
     const chatPayload = {
       messages: [
@@ -338,46 +320,74 @@ async function runDatasetItemThroughChatAPI({
         'Chat API request failed'
       );
 
-      // Update trace with error
-      trace.update({
-        output: null,
-        level: 'ERROR',
-        statusMessage: `Chat API error: ${response.status} ${response.statusText}`,
-      });
-
-      // Flush the client so the error trace is ingested
-      await langfuse.flushAsync();
-
       return {
         success: false,
         error: `Chat API error: ${response.status} ${response.statusText}`,
-        traceId,
-        trace,
+        traceId: null,
+        trace: null,
       };
     }
 
+    // Extract the trace ID from the response header
+    const actualTraceId = response.headers.get('x-trace-id');
+    logger.info({ actualTraceId, expectedTraceId: traceId }, 'Received trace ID from chat API');
+
     const responseText = await response.text();
-    //logger.info({ responseText }, 'Response text');
     const assistantResponse = parseSSEResponse(responseText);
 
-    // 1) Update the trace with the final output
-    logger.info({ traceId }, 'Updating trace with final output');
-    trace.update({
-      output: assistantResponse || 'No response generated',
-      level: 'DEFAULT',
-    });
-    logger.info({ traceId }, 'Trace updated successfully');
+    // Use the actual trace ID from the chat API response
+    const finalTraceId = actualTraceId || traceId;
 
-    // 2) Flush the client so the trace is ingested
-    logger.info('Flushing langfuse client');
+    // Create a reference to the existing trace using the OpenTelemetry trace ID
+    let trace = null;
+    if (actualTraceId) {
+      // Create a trace reference using the OpenTelemetry trace ID
+      // This should link to the existing trace created by the chat API
+      trace = langfuse.trace({
+        id: actualTraceId,
+        name: `Dataset Item Execution: ${datasetItem.id}`,
+        input: userMessage,
+        output: assistantResponse || 'No response generated',
+        metadata: {
+          datasetItemId: datasetItem.id,
+          conversationId,
+          agentId,
+          tenantId: executionContext.tenantId,
+          projectId: executionContext.projectId,
+          graphId: executionContext.graphId,
+          linkedFromOpenTelemetry: true,
+        },
+        tags: ['dataset-evaluation', 'agent-execution', 'otel-linked'],
+      });
+      logger.info({ traceId: actualTraceId }, 'Created trace reference using OpenTelemetry trace ID');
+    } else {
+      logger.warn('No trace ID received from chat API, falling back to manual trace creation');
+      // Fallback: create a new trace if no trace ID was provided
+      trace = langfuse.trace({
+        id: traceId,
+        name: `Dataset Item Execution: ${datasetItem.id}`,
+        input: userMessage,
+        output: assistantResponse || 'No response generated',
+        metadata: {
+          datasetItemId: datasetItem.id,
+          conversationId,
+          agentId,
+          tenantId: executionContext.tenantId,
+          projectId: executionContext.projectId,
+          graphId: executionContext.graphId,
+        },
+        tags: ['dataset-evaluation', 'agent-execution'],
+      });
+    }
+    
+    // Flush to ensure the trace is created/updated
     await langfuse.flushAsync();
-    logger.info('Langfuse client flushed');
 
     return {
       success: true,
       response: assistantResponse || 'No response generated',
       iterations: 1, // Simple chat API call
-      traceId,
+      traceId: finalTraceId,
       trace,
     };
   } catch (error) {
