@@ -28,7 +28,7 @@ import {
 import { useGraphStore } from "@/features/graph/state/use-graph-store";
 import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import { useProjectData } from "@/hooks/use-project-data";
-import { AGENTS_RUN_API_URL } from "@/lib/api/api-config";
+import { INKEEP_AGENTS_RUN_API_URL } from "@/lib/api/api-config";
 import { ExpandableTextArea } from "../nodes/expandable-text-area";
 import { InputField, TextareaField } from "../nodes/form-fields";
 import { ModelSelector } from "../nodes/model-selector";
@@ -49,7 +49,7 @@ function MetadataEditor() {
 		graphPrompt,
 		statusUpdates,
 	} = metadata;
-	const graphUrl = `${AGENTS_RUN_API_URL}/api/chat`;
+	const graphUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
 
 	// Fetch project data for inheritance indicators
 	const { project } = useProjectData();

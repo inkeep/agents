@@ -9,7 +9,7 @@ import type {
 } from "@inkeep/cxkit-react-oss/types";
 import { nanoid } from "nanoid";
 import { useEffect, useRef } from "react";
-import { AGENTS_RUN_API_URL } from "@/lib/api/api-config";
+import { INKEEP_AGENTS_RUN_API_URL } from "@/lib/api/api-config";
 import { IkpMessage as IkpMessageComponent } from "./ikp-message";
 
 interface ChatWidgetProps {
@@ -198,7 +198,9 @@ export function ChatWidget({
 					}}
 					aiChatSettings={{
 						conversationId,
-						graphUrl: graphId ? `${AGENTS_RUN_API_URL}/api/chat` : undefined,
+						graphUrl: graphId
+							? `${INKEEP_AGENTS_RUN_API_URL}/api/chat`
+							: undefined,
 						headers: {
 							"x-inkeep-tenant-id": tenantId,
 							"x-inkeep-project-id": projectId,
