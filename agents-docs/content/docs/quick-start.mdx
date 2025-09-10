@@ -43,6 +43,10 @@ Open `http://localhost:3000` in the browser and start building agents.
 
 # Push your first graph
 
+One of the benefits of the Inkeep agent framework is that you can define your agents in code and then push them to the visual builder and pick back up where you left off to buid your agents visually.
+
+Follow the steps below to push your first graph using the [Inkeep CLI](/typescript-sdk/cli-reference).
+
 ### Step 1: Download the Inkeep CLI
 
 ```bash
@@ -56,7 +60,9 @@ cd examples
 inkeep push ./basic.graph.ts
 ```
 
-### Step 3: Observe the graph pushed to the visual builder
+<Note>The graph will be pushed to whichever project is specified in the `/examples/inkeep.config.ts` file, which is set to the `default` project by default. Feel free to change it to your own project.</Note>
+
+### Step 3: Observe the graph in the visual builder
 <img 
   src="/gifs/basic-graph.gif"
   alt="Basic graph"
