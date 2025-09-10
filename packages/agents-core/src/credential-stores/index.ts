@@ -1,5 +1,5 @@
-export { CredentialStoreRegistry } from './CredentialStoreRegistry';
-export { createDefaultCredentialStores } from './defaults';
-export { createKeyChainStore, KeyChainStore } from './keychain-store';
-export { InMemoryCredentialStore } from './memory-store';
-export { createNangoCredentialStore, NangoCredentialStore } from './nango-store';
+export { CredentialStoreRegistry } from './CredentialStoreRegistry.js';
+export { createDefaultCredentialStores } from './defaults.js';
+export { createKeyChainStore, KeyChainStore } from './keychain-store.js';
+export { InMemoryCredentialStore } from './memory-store.js';
+export { createNangoCredentialStore, NangoCredentialStore } from './nango-store.js';

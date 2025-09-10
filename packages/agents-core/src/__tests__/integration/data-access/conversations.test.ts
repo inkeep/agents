@@ -1,19 +1,19 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createAgent } from '../../../data-access/agents';
+import { createAgent } from '../../../data-access/agents.js';
 import {
   createConversation,
   getConversation,
   updateConversationActiveAgent,
-} from '../../../data-access/conversations';
-import type { DatabaseClient } from '../../../db/client';
-import * as schema from '../../../db/schema';
+} from '../../../data-access/conversations.js';
+import type { DatabaseClient } from '../../../db/client.js';
+import * as schema from '../../../db/schema.js';
 import {
   cleanupTestDatabase,
   closeTestDatabase,
   createTestDatabaseClient,
-} from '../../../db/test-client';
-import type { ConversationInsert } from '../../../types/index';
-import { createTestAgentData } from '../helpers';
+} from '../../../db/test-client.js';
+import type { ConversationInsert } from '../../../types/index.js';
+import { createTestAgentData } from '../helpers.js';
 
 const createTestConversationData = (
   tenantId: string,

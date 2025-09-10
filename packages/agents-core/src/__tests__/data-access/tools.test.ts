@@ -9,10 +9,10 @@ import {
   removeToolFromAgent,
   updateTool,
   updateToolStatus,
-} from '../../data-access/tools';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
-import type { ToolInsert } from '../../types/index';
+} from '../../data-access/tools.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
+import type { ToolInsert } from '../../types/index.js';
 
 describe('Tools Data Access', () => {
   let db: DatabaseClient;

@@ -10,9 +10,9 @@ import {
   listApiKeysPaginated,
   updateApiKey,
   updateApiKeyLastUsed,
-} from '../../data-access/apiKeys';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/apiKeys.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 import {
   extractPublicId,
   generateApiKey,
@@ -20,7 +20,7 @@ import {
   isApiKeyExpired,
   maskApiKey,
   validateApiKey,
-} from '../../utils/apiKeys';
+} from '../../utils/apiKeys.js';
 
 describe('API Keys Data Access', () => {
   let db: DatabaseClient;

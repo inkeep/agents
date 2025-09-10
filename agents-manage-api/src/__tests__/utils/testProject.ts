@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import dbClient from '../../data/db/dbClient';
+import dbClient from '../../data/db/dbClient.js';
 
 /**
  * Ensures a project exists for a given tenant ID.

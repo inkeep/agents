@@ -10,10 +10,10 @@ import {
   listCredentialReferences,
   listCredentialReferencesPaginated,
   updateCredentialReference,
-} from '../../data-access/credentialReferences';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
-import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
+} from '../../data-access/credentialReferences.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
+import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities.js';
 
 describe('Credential References Data Access', () => {
   let db: DatabaseClient;

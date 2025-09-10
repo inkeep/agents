@@ -1,12 +1,12 @@
 import jmespath from 'jmespath';
-import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer';
-import { getCredentialReference } from '../data-access/index';
-import type { DatabaseClient } from '../db/client';
-import { validateAgainstJsonSchema } from '../middleware/index';
-import type { ContextFetchDefinition } from '../types/utility';
-import { getLogger } from '../utils/logger';
-import { type TemplateContext, TemplateEngine } from './TemplateEngine';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
+import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer.js';
+import { getCredentialReference } from '../data-access/index.js';
+import type { DatabaseClient } from '../db/client.js';
+import { validateAgainstJsonSchema } from '../middleware/index.js';
+import type { ContextFetchDefinition } from '../types/utility.js';
+import { getLogger } from '../utils/logger.js';
+import { type TemplateContext, TemplateEngine } from './TemplateEngine.js';
 
 const logger = getLogger('context-fetcher');
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { createRequestSchema } from '../../context/ContextConfig';
+import { createRequestSchema } from '../../context/ContextConfig.js';
 import {
   getCachedValidator,
   HTTP_REQUEST_PARTS,
@@ -10,8 +10,8 @@ import {
   type ParsedHttpRequest,
   validateHttpRequestParts,
   validateRequestContext,
-} from '../../middleware/contextValidation';
-import { dbClient } from '../setup';
+} from '../../middleware/contextValidation.js';
+import { dbClient } from '../setup.js';
 
 // Mock @inkeep/agents-core functions
 vi.mock('@inkeep/agents-core', async (importOriginal) => {

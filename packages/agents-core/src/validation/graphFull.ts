@@ -4,8 +4,8 @@ import type {
   ExternalAgentApiInsert,
   FullGraphDefinition,
   InternalAgentDefinition,
-} from '../types/entities';
-import { FullGraphDefinitionSchema } from '../validation/schemas';
+} from '../types/entities.js';
+import { FullGraphDefinitionSchema } from '../validation/schemas.js';
 
 // Type guard functions
 export function isInternalAgent(agent: AgentDefinition): agent is InternalAgentDefinition {

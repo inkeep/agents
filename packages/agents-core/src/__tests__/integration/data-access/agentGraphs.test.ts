@@ -7,17 +7,17 @@ import {
   listAgentGraphs,
   listAgentGraphsPaginated,
   updateAgentGraph,
-} from '../../../data-access/agentGraphs';
-import { createAgentRelation, deleteAgentRelation } from '../../../data-access/agentRelations';
-import { createAgent, deleteAgent } from '../../../data-access/agents';
-import type { DatabaseClient } from '../../../db/client';
-import * as schema from '../../../db/schema';
+} from '../../../data-access/agentGraphs.js';
+import { createAgentRelation, deleteAgentRelation } from '../../../data-access/agentRelations.js';
+import { createAgent, deleteAgent } from '../../../data-access/agents.js';
+import type { DatabaseClient } from '../../../db/client.js';
+import * as schema from '../../../db/schema.js';
 import {
   cleanupTestDatabase,
   closeTestDatabase,
   createTestDatabaseClient,
-} from '../../../db/test-client';
-import { createTestAgentData, createTestGraphData, createTestRelationData } from '../helpers';
+} from '../../../db/test-client.js';
+import { createTestAgentData, createTestGraphData, createTestRelationData } from '../helpers.js';
 
 describe('Agent Graphs Data Access - Integration Tests', () => {
   let db: DatabaseClient;

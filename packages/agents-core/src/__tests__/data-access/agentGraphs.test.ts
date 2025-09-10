@@ -8,9 +8,9 @@ import {
   listAgentGraphs,
   listAgentGraphsPaginated,
   updateAgentGraph,
-} from '../../data-access/agentGraphs';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/agentGraphs.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Agent Graph Data Access', () => {
   let db: DatabaseClient;

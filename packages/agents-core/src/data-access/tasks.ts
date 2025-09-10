@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { tasks } from '../db/schema';
-import type { TaskInsert, TaskSelect } from '../types/index';
+import type { DatabaseClient } from '../db/client.js';
+import { tasks } from '../db/schema.js';
+import type { TaskInsert, TaskSelect } from '../types/index.js';
 
 export const createTask = (db: DatabaseClient) => async (params: TaskInsert) => {
   const now = new Date().toISOString();

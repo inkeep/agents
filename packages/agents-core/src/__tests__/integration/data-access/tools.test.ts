@@ -5,15 +5,15 @@ import {
   getToolById,
   listTools,
   updateTool,
-} from '../../../data-access/tools';
-import type { DatabaseClient } from '../../../db/client';
+} from '../../../data-access/tools.js';
+import type { DatabaseClient } from '../../../db/client.js';
 import {
   cleanupTestDatabase,
   closeTestDatabase,
   createTestDatabaseClient,
-} from '../../../db/test-client';
-import type { ToolInsert } from '../../../types/index';
-import { ToolInsertSchema } from '../../../validation/schemas';
+} from '../../../db/test-client.js';
+import type { ToolInsert } from '../../../types/index.js';
+import { ToolInsertSchema } from '../../../validation/schemas.js';
 
 // Helper function to create test tool data
 const createToolData = ({ suffix = '' }: { suffix?: string } = {}): ToolInsert => ({

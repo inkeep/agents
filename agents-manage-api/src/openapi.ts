@@ -1,6 +1,6 @@
 import { swaggerUI } from '@hono/swagger-ui';
 import type { Context } from 'hono';
-import { env } from './env';
+import { env } from './env.js';
 
 export function setupOpenAPIRoutes(app: any) {
   // OpenAPI specification endpoint - serves the complete API spec

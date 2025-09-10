@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestTenantId, createTestTenantIds, isTestTenant } from './testTenant';
+import { createTestTenantId, createTestTenantIds, isTestTenant } from './testTenant.js';
 
 describe('Test Tenant Utilities', () => {
   describe('createTestTenantId', () => {

@@ -23,7 +23,7 @@ import {
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
+import dbClient from '../data/db/dbClient.js';
 
 const app = new OpenAPIHono();
 

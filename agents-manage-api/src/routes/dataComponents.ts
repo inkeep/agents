@@ -17,7 +17,7 @@ import {
   TenantProjectParamsSchema,
   updateDataComponent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import dbClient from '../data/db/dbClient.js';
 
 const app = new OpenAPIHono();
 

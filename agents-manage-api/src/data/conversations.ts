@@ -6,7 +6,7 @@ import {
   getConversationHistory,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
-import dbClient from './db/dbClient';
+import dbClient from './db/dbClient.js';
 
 /**
  * Creates default conversation history configuration

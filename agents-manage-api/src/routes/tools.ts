@@ -25,15 +25,15 @@ import {
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
+import dbClient from '../data/db/dbClient.js';
 import {
   checkAllToolsHealth,
   checkToolHealth,
   syncToolDefinitions,
   updateToolHealth,
-} from '../data/tools';
-import { getLogger } from '../logger';
-import { oauthService } from '../utils/oauth-service';
+} from '../data/tools.js';
+import { getLogger } from '../logger.js';
+import { oauthService } from '../utils/oauth-service.js';
 
 type AppVariables = {
   serverConfig: ServerConfig;

@@ -20,9 +20,9 @@ import {
   updateCredentialReference,
   updateTool,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
-import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
+import dbClient from '../data/db/dbClient.js';
+import { getLogger } from '../logger.js';
+import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service.js';
 
 type AppVariables = {
   serverConfig: ServerConfig;

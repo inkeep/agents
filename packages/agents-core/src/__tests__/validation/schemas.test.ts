@@ -9,7 +9,7 @@ import {
   PaginationSchema,
   resourceIdSchema,
   TaskInsertSchema,
-} from '../../validation/schemas';
+} from '../../validation/schemas.js';
 
 describe('Validation Schemas', () => {
   describe('resourceIdSchema', () => {

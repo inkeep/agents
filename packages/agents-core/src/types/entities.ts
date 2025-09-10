@@ -133,7 +133,7 @@ import type {
   ToolInsertSchema,
   ToolSelectSchema,
   ToolUpdateSchema,
-} from '../validation/schemas';
+} from '../validation/schemas.js';
 
 // === Agent Types ===
 export type AgentSelect = z.infer<typeof AgentSelectSchema>;

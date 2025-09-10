@@ -7,9 +7,9 @@ import {
   invalidateInvocationDefinitionsCache,
   invalidateRequestContextCache,
   setCacheEntry,
-} from '../data-access/index';
-import type { DatabaseClient } from '../db/client';
-import { getLogger } from '../utils/logger';
+} from '../data-access/index.js';
+import type { DatabaseClient } from '../db/client.js';
+import { getLogger } from '../utils/logger.js';
 
 const logger = getLogger('context-cache');
 

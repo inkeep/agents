@@ -9,7 +9,7 @@ import {
   text,
   unique,
 } from 'drizzle-orm/sqlite-core';
-import type { Part } from '../types/a2a';
+import type { Part } from '../types/a2a.js';
 import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
@@ -22,7 +22,7 @@ import type {
   TaskMetadataConfig,
   ToolMcpConfig,
   ToolServerCapabilities,
-} from '../types/utility';
+} from '../types/utility.js';
 
 // Projects table: Stores project metadata
 export const projects = sqliteTable(

@@ -12,10 +12,10 @@ import {
   listDataComponentsPaginated,
   removeDataComponentFromAgent,
   updateDataComponent,
-} from '../../data-access/dataComponents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
-import type { DataComponentInsert } from '../../types/index';
+} from '../../data-access/dataComponents.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
+import type { DataComponentInsert } from '../../types/index.js';
 
 describe('Data Components Data Access', () => {
   let db: DatabaseClient;

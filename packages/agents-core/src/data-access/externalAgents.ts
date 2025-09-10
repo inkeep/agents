@@ -1,13 +1,13 @@
 import { and, asc, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { externalAgents } from '../db/schema';
+import type { DatabaseClient } from '../db/client.js';
+import { externalAgents } from '../db/schema.js';
 import type {
   ExternalAgentInsert,
   ExternalAgentSelect,
   ExternalAgentUpdate,
   PaginationConfig,
   ScopeConfig,
-} from '../types/index';
+} from '../types/index.js';
 
 /**
  * Create a new external agent

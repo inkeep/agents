@@ -1,6 +1,6 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { credentialReferences, tools } from '../db/schema';
+import type { DatabaseClient } from '../db/client.js';
+import { credentialReferences, tools } from '../db/schema.js';
 import type {
   CredentialReferenceInsert,
   CredentialReferenceSelect,
@@ -8,7 +8,7 @@ import type {
   PaginationConfig,
   ScopeConfig,
   ToolSelect,
-} from '../types/index';
+} from '../types/index.js';
 
 export type CredentialReferenceWithTools = CredentialReferenceSelect & { tools: ToolSelect[] };
 

@@ -10,10 +10,10 @@ import {
   setActiveAgentForConversation,
   updateConversation,
   updateConversationActiveAgent,
-} from '../../data-access/conversations';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
-import type { ConversationUpdate } from '../../types/index';
+} from '../../data-access/conversations.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
+import type { ConversationUpdate } from '../../types/index.js';
 
 describe('Conversations Data Access', () => {
   let db: DatabaseClient;

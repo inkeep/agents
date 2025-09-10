@@ -1,10 +1,10 @@
-import { TemplateEngine } from '../context/TemplateEngine';
-import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import type { NangoCredentialData } from '../credential-stores/nango-store';
-import type { MCPToolConfig } from '../types/index';
-import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils';
-import { getLogger, type Logger } from '../utils/logger';
-import type { McpServerConfig } from '../utils/mcp-client';
+import { TemplateEngine } from '../context/TemplateEngine.js';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
+import type { NangoCredentialData } from '../credential-stores/nango-store.js';
+import type { MCPToolConfig } from '../types/index.js';
+import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils.js';
+import { getLogger, type Logger } from '../utils/logger.js';
+import type { McpServerConfig } from '../utils/mcp-client.js';
 
 /**
  * Context object for credential operations

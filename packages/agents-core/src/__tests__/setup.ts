@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
-import { createDatabaseClient } from '../db/client';
-import { getLogger } from '../utils/logger';
+import { createDatabaseClient } from '../db/client.js';
+import { getLogger } from '../utils/logger.js';
 
 // Create test database client using in-memory database
 const dbClient = createDatabaseClient({ url: ':memory:' });

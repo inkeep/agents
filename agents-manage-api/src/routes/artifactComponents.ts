@@ -18,7 +18,7 @@ import {
   updateArtifactComponent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
+import dbClient from '../data/db/dbClient.js';
 
 const app = new OpenAPIHono();
 

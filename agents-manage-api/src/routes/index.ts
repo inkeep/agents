@@ -1,21 +1,21 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 
-import agentArtifactComponentsRoutes from './agentArtifactComponents';
-import agentDataComponentsRoutes from './agentDataComponents';
-import agentGraphRoutes from './agentGraph';
-import agentRelationsRoutes from './agentRelations';
+import agentArtifactComponentsRoutes from './agentArtifactComponents.js';
+import agentDataComponentsRoutes from './agentDataComponents.js';
+import agentGraphRoutes from './agentGraph.js';
+import agentRelationsRoutes from './agentRelations.js';
 // Import existing CRUD route modules (others can be added as they're created)
-import agentsRoutes from './agents';
-import agentToolRelationsRoutes from './agentToolRelations';
-import apiKeysRoutes from './apiKeys';
-import artifactComponentsRoutes from './artifactComponents';
-import contextConfigsRoutes from './contextConfigs';
-import credentialsRoutes from './credentials';
-import dataComponentsRoutes from './dataComponents';
-import externalAgentsRoutes from './externalAgents';
-import graphFullRoutes from './graphFull';
-import projectsRoutes from './projects';
-import toolsRoutes from './tools';
+import agentsRoutes from './agents.js';
+import agentToolRelationsRoutes from './agentToolRelations.js';
+import apiKeysRoutes from './apiKeys.js';
+import artifactComponentsRoutes from './artifactComponents.js';
+import contextConfigsRoutes from './contextConfigs.js';
+import credentialsRoutes from './credentials.js';
+import dataComponentsRoutes from './dataComponents.js';
+import externalAgentsRoutes from './externalAgents.js';
+import graphFullRoutes from './graphFull.js';
+import projectsRoutes from './projects.js';
+import toolsRoutes from './tools.js';
 
 const app = new OpenAPIHono();
 

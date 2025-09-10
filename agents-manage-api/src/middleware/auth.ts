@@ -1,7 +1,7 @@
 import { type ExecutionContext, getLogger } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { env } from '../env';
+import { env } from '../env.js';
 
 const logger = getLogger('env-key-auth');
 /**

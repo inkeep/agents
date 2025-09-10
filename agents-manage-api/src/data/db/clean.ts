@@ -19,8 +19,8 @@ import {
   tools,
 } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
-import { env } from '../../env';
-import dbClient from './dbClient';
+import { env } from '../../env.js';
+import dbClient from './dbClient.js';
 
 /**
  * Truncates all tables in the database, respecting foreign key constraints

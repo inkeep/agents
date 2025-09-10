@@ -1,5 +1,5 @@
 import jmespath from 'jmespath';
-import { getLogger } from '../utils/logger';
+import { getLogger } from '../utils/logger.js';
 
 const logger = getLogger('template-engine');
 

@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Next } from 'hono';
 import { pino } from 'pino';
 // import { createGcpLoggingPinoConfig } from '@google-cloud/pino-logging-gcp-config';
-import { env } from './env';
+import { env } from './env.js';
 
 const logger = pino({
   level: env.LOG_LEVEL,

@@ -9,9 +9,9 @@ import {
   listContextConfigs,
   listContextConfigsPaginated,
   updateContextConfig,
-} from '../../data-access/contextConfigs';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/contextConfigs.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Context Configs Data Access', () => {
   let db: DatabaseClient;

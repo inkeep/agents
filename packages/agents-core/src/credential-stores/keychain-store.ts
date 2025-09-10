@@ -1,5 +1,5 @@
-import type { CredentialStore } from '../types/server';
-import { getLogger } from '../utils/logger';
+import type { CredentialStore } from '../types/server.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * KeyChainStore - Cross-platform system keychain credential storage

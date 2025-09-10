@@ -1,8 +1,8 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { agentRelations, agents } from '../db/schema';
-import type { AgentInsert, AgentSelect, AgentUpdate } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { DatabaseClient } from '../db/client.js';
+import { agentRelations, agents } from '../db/schema.js';
+import type { AgentInsert, AgentSelect, AgentUpdate } from '../types/entities.js';
+import type { PaginationConfig, ScopeConfig } from '../types/utility.js';
 
 export const getAgentById =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {

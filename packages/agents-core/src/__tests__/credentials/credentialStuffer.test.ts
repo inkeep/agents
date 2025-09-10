@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { TemplateEngine } from '../../context/TemplateEngine';
-import { CredentialStoreRegistry } from '../../credential-stores/CredentialStoreRegistry';
+import { TemplateEngine } from '../../context/TemplateEngine.js';
+import { CredentialStoreRegistry } from '../../credential-stores/CredentialStoreRegistry.js';
 import {
   type CredentialContext,
   type CredentialStoreReference,
   CredentialStuffer,
-} from '../../credential-stuffer/CredentialStuffer';
-import type { CredentialStore, MCPToolConfig } from '../../types/index';
+} from '../../credential-stuffer/CredentialStuffer.js';
+import type { CredentialStore, MCPToolConfig } from '../../types/index.js';
 
 // Mock logger from utils
 vi.mock('../../utils/logger.js', () => ({

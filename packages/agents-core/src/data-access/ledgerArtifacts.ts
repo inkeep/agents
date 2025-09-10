@@ -1,8 +1,8 @@
 import { and, count, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client';
-import { ledgerArtifacts } from '../db/schema';
-import type { Artifact, LedgerArtifactSelect, Part, ScopeConfig } from '../types/index';
+import type { DatabaseClient } from '../db/client.js';
+import { ledgerArtifacts } from '../db/schema.js';
+import type { Artifact, LedgerArtifactSelect, Part, ScopeConfig } from '../types/index.js';
 
 /**
  * Save one or more artifacts to the ledger

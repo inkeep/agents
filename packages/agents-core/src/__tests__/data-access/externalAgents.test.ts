@@ -10,9 +10,9 @@ import {
   listExternalAgents,
   listExternalAgentsPaginated,
   updateExternalAgent,
-} from '../../data-access/externalAgents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/externalAgents.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('External Agents Data Access', () => {
   let db: DatabaseClient;

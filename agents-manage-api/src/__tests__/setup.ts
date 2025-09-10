@@ -2,7 +2,7 @@ import { getLogger } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
-import dbClient from '../data/db/dbClient';
+import dbClient from '../data/db/dbClient.js';
 
 // Initialize database schema for in-memory test databases using Drizzle migrations
 beforeAll(async () => {

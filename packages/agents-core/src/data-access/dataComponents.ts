@@ -1,14 +1,14 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client';
-import { agentDataComponents, dataComponents } from '../db/schema';
+import type { DatabaseClient } from '../db/client.js';
+import { agentDataComponents, dataComponents } from '../db/schema.js';
 import type {
   DataComponentInsert,
   DataComponentSelect,
   DataComponentUpdate,
   PaginationConfig,
   ScopeConfig,
-} from '../types/index';
+} from '../types/index.js';
 
 /**
  * Get a data component by ID

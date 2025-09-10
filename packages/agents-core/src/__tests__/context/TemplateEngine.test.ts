@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { type TemplateContext, TemplateEngine } from '../../context/TemplateEngine';
+import { type TemplateContext, TemplateEngine } from '../../context/TemplateEngine.js';
 
 describe('TemplateEngine', () => {
   const sampleContext: TemplateContext = {

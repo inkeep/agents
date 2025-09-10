@@ -1,9 +1,9 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client';
-import { contextConfigs } from '../db/schema';
-import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { DatabaseClient } from '../db/client.js';
+import { contextConfigs } from '../db/schema.js';
+import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities.js';
+import type { PaginationConfig, ScopeConfig } from '../types/utility.js';
 
 export const getContextConfigById =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; id: string }) => {

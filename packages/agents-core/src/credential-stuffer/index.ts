@@ -1,1 +1,1 @@
-export * from './CredentialStuffer';
+export * from './CredentialStuffer.js';

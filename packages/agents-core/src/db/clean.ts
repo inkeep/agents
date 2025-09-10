@@ -19,8 +19,8 @@ import {
   tools,
 } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
-import { env } from '../env';
-import { createDatabaseClient } from './client';
+import { env } from '../env.js';
+import { createDatabaseClient } from './client.js';
 
 const dbClient = createDatabaseClient({
   url: env.DB_FILE_NAME,

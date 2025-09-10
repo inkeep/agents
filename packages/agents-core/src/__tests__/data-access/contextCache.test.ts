@@ -9,10 +9,10 @@ import {
   invalidateInvocationDefinitionsCache,
   invalidateRequestContextCache,
   setCacheEntry,
-} from '../../data-access/contextCache';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
-import type { ContextCacheInsert } from '../../types/entities';
+} from '../../data-access/contextCache.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
+import type { ContextCacheInsert } from '../../types/entities.js';
 
 describe('Context Cache Data Access', () => {
   let db: DatabaseClient;

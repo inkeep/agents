@@ -9,9 +9,9 @@ import {
   getVisibleMessages,
   listMessages,
   updateMessage,
-} from '../../data-access/messages';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/messages.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Messages Data Access', () => {
   let db: DatabaseClient;

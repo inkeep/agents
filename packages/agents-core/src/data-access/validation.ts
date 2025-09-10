@@ -1,5 +1,5 @@
-import type { DatabaseClient } from '../db/client';
-import { projectExistsInTable } from './projects';
+import type { DatabaseClient } from '../db/client.js';
+import { projectExistsInTable } from './projects.js';
 
 /**
  * Validates that a project exists before performing database operations

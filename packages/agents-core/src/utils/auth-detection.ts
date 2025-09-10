@@ -2,8 +2,8 @@
  * Centralized authentication detection utilities for MCP tools
  */
 
-import type { McpTool } from '../types/entities';
-import type { Logger } from './logging';
+import type { McpTool } from '../types/entities.js';
+import type { Logger } from './logging.js';
 
 /**
  * OAuth configuration interface

@@ -1,4 +1,4 @@
-import type { AgentGraphInsert, AgentInsert, AgentRelationInsert } from '../../types/index';
+import type { AgentGraphInsert, AgentInsert, AgentRelationInsert } from '../../types/index.js';
 
 export const createTestAgentData = (
   tenantId: string,

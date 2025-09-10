@@ -117,7 +117,7 @@ export function getLogger(name: string): Logger {
  * ```typescript
  * // In your service initialization
  * import { configureLogging } from '@inkeep/agents-core';
- * import { getLogger as getPinoLogger } from './logger.j';
+ * import { getLogger as getPinoLogger } from './logger.j.js';
  *
  * configureLogging({
  *   loggerFactory: (name) => getPinoLogger(name)

@@ -4,7 +4,7 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
-import { createManagementHono } from './app';
+import { createManagementHono } from './app.js';
 
 // Create default configuration
 const defaultConfig: ServerConfig = {

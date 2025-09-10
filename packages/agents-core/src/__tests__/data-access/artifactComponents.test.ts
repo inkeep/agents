@@ -14,9 +14,9 @@ import {
   listArtifactComponentsPaginated,
   removeArtifactComponentFromAgent,
   updateArtifactComponent,
-} from '../../data-access/artifactComponents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/artifactComponents.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Artifact Components Data Access', () => {
   let db: DatabaseClient;

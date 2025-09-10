@@ -5,15 +5,15 @@ import {
   getAgentById,
   listAgents,
   updateAgent,
-} from '../../../data-access/agents';
-import type { DatabaseClient } from '../../../db/client';
-import * as schema from '../../../db/schema';
+} from '../../../data-access/agents.js';
+import type { DatabaseClient } from '../../../db/client.js';
+import * as schema from '../../../db/schema.js';
 import {
   cleanupTestDatabase,
   closeTestDatabase,
   createTestDatabaseClient,
-} from '../../../db/test-client';
-import { AgentInsertSchema } from '../../../validation/schemas';
+} from '../../../db/test-client.js';
+import { AgentInsertSchema } from '../../../validation/schemas.js';
 
 describe('Agents Data Access - Integration Tests', () => {
   let db: DatabaseClient;

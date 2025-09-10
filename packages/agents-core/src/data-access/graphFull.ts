@@ -1,51 +1,51 @@
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client';
-import { agents, projects } from '../db/schema';
+import type { DatabaseClient } from '../db/client.js';
+import { agents, projects } from '../db/schema.js';
 import type {
   AgentDefinition,
   ExternalAgentApiInsert,
   FullGraphDefinition,
   InternalAgentDefinition,
-} from '../types/entities';
-import type { ScopeConfig } from '../types/utility';
+} from '../types/entities.js';
+import type { ScopeConfig } from '../types/utility.js';
 import {
   isExternalAgent,
   isInternalAgent,
   validateAndTypeGraphData,
   validateGraphStructure,
-} from '../validation/graphFull';
+} from '../validation/graphFull.js';
 import {
   deleteAgentGraph,
   getAgentGraphById,
   getFullGraphDefinition,
   updateAgentGraph,
   upsertAgentGraph,
-} from './agentGraphs';
+} from './agentGraphs.js';
 import {
   createAgentRelation,
   createAgentToolRelation,
   deleteAgentRelationsByGraph,
   deleteAgentToolRelationByAgent,
   upsertAgentRelation,
-} from './agentRelations';
-import { upsertAgent } from './agents';
+} from './agentRelations.js';
+import { upsertAgent } from './agents.js';
 import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
   upsertAgentArtifactComponentRelation,
   upsertArtifactComponent,
-} from './artifactComponents';
-import { upsertContextConfig } from './contextConfigs';
-import { upsertCredentialReference } from './credentialReferences';
+} from './artifactComponents.js';
+import { upsertContextConfig } from './contextConfigs.js';
+import { upsertCredentialReference } from './credentialReferences.js';
 import {
   associateDataComponentWithAgent,
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
   upsertDataComponent,
-} from './dataComponents';
-import { upsertExternalAgent } from './externalAgents';
-import { upsertAgentToolRelation, upsertTool } from './tools';
+} from './dataComponents.js';
+import { upsertExternalAgent } from './externalAgents.js';
+import { upsertAgentToolRelation, upsertTool } from './tools.js';
 
 // Logger interface for dependency injection
 export interface GraphLogger {

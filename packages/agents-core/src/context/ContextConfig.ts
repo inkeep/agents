@@ -1,12 +1,12 @@
 import { z } from 'zod/v4';
-import type { ContextConfigSelect, FetchDefinition } from '../types/index';
+import type { ContextConfigSelect, FetchDefinition } from '../types/index.js';
 import type {
   ContextFetchDefinition,
   RequestSchemaConfig,
   RequestSchemaDefinition,
-} from '../types/utility';
-import { getLogger } from '../utils/logger';
-import { ContextConfigApiUpdateSchema } from '../validation/schemas';
+} from '../types/utility.js';
+import { getLogger } from '../utils/logger.js';
+import { ContextConfigApiUpdateSchema } from '../validation/schemas.js';
 
 const logger = getLogger('context-config');
 

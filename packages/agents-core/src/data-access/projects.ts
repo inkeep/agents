@@ -1,5 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { DatabaseClient } from '../db/client.js';
 import {
   agentArtifactComponents,
   agentDataComponents,
@@ -20,15 +20,15 @@ import {
   taskRelations,
   tasks,
   tools,
-} from '../db/schema';
-import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities';
+} from '../db/schema.js';
+import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities.js';
 import type {
   PaginationConfig,
   PaginationResult,
   ProjectInfo,
   ProjectResourceCounts,
   ScopeConfig,
-} from '../types/utility';
+} from '../types/utility.js';
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables

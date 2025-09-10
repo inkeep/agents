@@ -9,7 +9,7 @@ import {
 } from '@inkeep/agents-core';
 import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import dbClient from '../../data/db/dbClient';
+import dbClient from '../../data/db/dbClient.js';
 
 // Mock nanoid to return predictable IDs
 vi.mock('nanoid', async () => {

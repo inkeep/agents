@@ -11,8 +11,8 @@ import {
   projectExistsInTable,
   projectHasResources,
   updateProject,
-} from '../../data-access/projects';
-import type { DatabaseClient } from '../../db/client';
+} from '../../data-access/projects.js';
+import type { DatabaseClient } from '../../db/client.js';
 
 describe('Projects Data Access', () => {
   let db: DatabaseClient;

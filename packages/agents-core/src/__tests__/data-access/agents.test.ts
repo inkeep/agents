@@ -8,9 +8,9 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../data-access/agents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/agents.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Agent Data Access', () => {
   let db: DatabaseClient;

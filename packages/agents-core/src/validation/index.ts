@@ -1,5 +1,5 @@
 // Re-export all validation schemas for convenience
 
-export * from './graphFull';
-export * from './id-validation';
-export * from './schemas';
+export * from './graphFull.js';
+export * from './id-validation.js';
+export * from './schemas.js';

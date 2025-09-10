@@ -6,10 +6,10 @@ import {
   updateConversation,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getLogger } from '../utils/logger';
-import { createSpanName, forceFlushTracer, getGlobalTracer } from '../utils/tracer';
-import { ContextResolver, type ResolvedContext } from './ContextResolver';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
+import { getLogger } from '../utils/logger.js';
+import { createSpanName, forceFlushTracer, getGlobalTracer } from '../utils/tracer.js';
+import { ContextResolver, type ResolvedContext } from './ContextResolver.js';
 
 const logger = getLogger('context');
 

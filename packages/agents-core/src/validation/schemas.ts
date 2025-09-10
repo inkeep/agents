@@ -20,8 +20,8 @@ import {
   taskRelations,
   tasks,
   tools,
-} from '../db/schema';
-import { TOOL_STATUS_VALUES, VALID_RELATION_TYPES } from '../types/utility';
+} from '../db/schema.js';
+import { TOOL_STATUS_VALUES, VALID_RELATION_TYPES } from '../types/utility.js';
 
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;

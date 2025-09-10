@@ -13,8 +13,8 @@ import {
   updateFullGraphServerSide,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import dbClient from '../data/db/dbClient.js';
+import { getLogger } from '../logger.js';
 
 const logger = getLogger('graphFull');
 

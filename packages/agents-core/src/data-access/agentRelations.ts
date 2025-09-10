@@ -1,14 +1,14 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client';
-import { agentRelations, agents, agentToolRelations, externalAgents, tools } from '../db/schema';
+import type { DatabaseClient } from '../db/client.js';
+import { agentRelations, agents, agentToolRelations, externalAgents, tools } from '../db/schema.js';
 import type {
   AgentRelationInsert,
   AgentRelationUpdate,
   AgentToolRelationUpdate,
   ExternalAgentRelationInsert,
-} from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+} from '../types/entities.js';
+import type { PaginationConfig, ScopeConfig } from '../types/utility.js';
 
 export const getAgentRelationById =
   (db: DatabaseClient) => async (params: { scopes: ScopeConfig; relationId: string }) => {

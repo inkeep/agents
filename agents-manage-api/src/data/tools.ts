@@ -19,8 +19,8 @@ import {
   type ToolUpdate,
   updateTool,
 } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
-import dbClient from './db/dbClient';
+import { getLogger } from '../logger.js';
+import dbClient from './db/dbClient.js';
 
 /**
  * Extract input schema from MCP tool definition, handling multiple formats

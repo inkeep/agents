@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCredentialStoreLookupKeyFromRetrievalParams } from '../../utils/credential-store-utils';
+import { getCredentialStoreLookupKeyFromRetrievalParams } from '../../utils/credential-store-utils.js';
 
 describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
   describe('key-based lookup', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDatabaseClient, createInMemoryDatabaseClient } from '../../db/client';
+import { createDatabaseClient, createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Database Client', () => {
   describe('createDatabaseClient', () => {

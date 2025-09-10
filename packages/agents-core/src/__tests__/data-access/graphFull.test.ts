@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getFullGraphDefinition } from '../../data-access/agentGraphs';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { getFullGraphDefinition } from '../../data-access/agentGraphs.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('GraphFull Data Access - getFullGraphDefinition', () => {
   let db: DatabaseClient;

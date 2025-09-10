@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import type { DatabaseClient } from '../db/client';
-import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
-import { createSpanName, getGlobalTracer, getLogger, handleSpanError } from '../utils/index';
-import { ContextFetcher } from './ContextFetcher';
-import { ContextCache } from './contextCache';
+import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry.js';
+import type { DatabaseClient } from '../db/client.js';
+import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index.js';
+import { createSpanName, getGlobalTracer, getLogger, handleSpanError } from '../utils/index.js';
+import { ContextFetcher } from './ContextFetcher.js';
+import { ContextCache } from './contextCache.js';
 
 const logger = getLogger('context-resolver');
 

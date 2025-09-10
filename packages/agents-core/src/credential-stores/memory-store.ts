@@ -1,4 +1,4 @@
-import type { CredentialStore } from '../types/server';
+import type { CredentialStore } from '../types/server.js';
 
 /**
  * In-memory credential store implementation

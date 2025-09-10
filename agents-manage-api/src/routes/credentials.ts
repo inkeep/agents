@@ -19,7 +19,7 @@ import {
   TenantProjectParamsSchema,
   updateCredentialReference,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import dbClient from '../data/db/dbClient.js';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;

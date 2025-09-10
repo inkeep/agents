@@ -6,9 +6,9 @@ import {
   deleteLedgerArtifactsByTask,
   getLedgerArtifacts,
   getLedgerArtifactsByContext,
-} from '../../data-access/ledgerArtifacts';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/ledgerArtifacts.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Ledger Artifacts Data Access', () => {
   let db: DatabaseClient;

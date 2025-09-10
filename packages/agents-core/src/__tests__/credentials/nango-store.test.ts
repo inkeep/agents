@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NangoCredentialStore } from '../../credential-stores/nango-store';
+import { NangoCredentialStore } from '../../credential-stores/nango-store.js';
 
 // Mock the logger
 vi.mock('../../logger.js', () => ({

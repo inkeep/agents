@@ -17,9 +17,9 @@ import {
   updateAgentToolRelation,
   validateExternalAgent,
   validateInternalAgent,
-} from '../../data-access/agentRelations';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/agentRelations.js';
+import type { DatabaseClient } from '../../db/client.js';
+import { createInMemoryDatabaseClient } from '../../db/client.js';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
