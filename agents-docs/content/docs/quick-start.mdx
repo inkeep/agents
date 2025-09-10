@@ -15,7 +15,7 @@ cd agents
 ### Step 2: Configure environment variables
 
 ```bash
-cp agents-manage-api/.env.example agents-manage-api/.env && cp agents-run-api/.env.example agents-run-api/.env && cp agents-manage-ui/.env.example agents-manage-ui/.env
+cp agents-manage-api/.env.example agents-manage-api/.env && cp agents-run-api/.env.example agents-run-api/.env && cp agents-manage-ui/.env.example agents-manage-ui/.env && cp examples/.env.example examples/.env
 ```
 
 Add your `ANTHROPIC_API_KEY` to an `.env` file at `/agents-run-api/`
@@ -24,27 +24,50 @@ ANTHROPIC_API_KEY=sk-ant-xyz789
 ```
 
 ### Step 3: Setup and install
-```
+```bash
 pnpm install
 ```
 
 ### Step 4: Initialize database
-```
+```bash
 pnpm --dir ./packages/agents-core db:push
 ```
 
 ### Step 5: Run the agent framework
-```
+```bash
 pnpm dev
 ```
 
 ### Step 6: Start building!
 Open `http://localhost:3000` in the browser and start building agents.
 
+# Push your first graph
+
+### Step 1: Download the Inkeep CLI
+
+```bash
+npm install -g @inkeep/agents-cli
+```
+
+### Step 2: Push a graph
+
+```bash
+cd examples
+inkeep push ./basic.graph.ts
+```
+
+### Step 3: Observe the graph pushed to the visual builder
+<img 
+  src="/gifs/basic-graph.gif"
+  alt="Basic graph"
+  width="100%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+/>
+
 # Set up live traces
 
 ### Step 1: Launch docker containers
-```
+```bash
 cd deploy/docker
 docker compose up -d
 ```
