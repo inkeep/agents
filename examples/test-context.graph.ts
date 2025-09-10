@@ -1,5 +1,5 @@
+import { CredentialStoreType, contextConfig, fetchDefinition } from '@inkeep/agents-core';
 import { agent, agentGraph, credential } from '@inkeep/agents-sdk';
-import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
 import { z } from 'zod';
 
 // // Check for required INKEEP_API_KEY environment variable
@@ -12,7 +12,7 @@ import { z } from 'zod';
 // Define credential reference inline (will be created when graph is pushed)
 const inkeepApiKeyCredential = credential({
   id: 'inkeep-api-key',
-  type: 'memory',
+  type: CredentialStoreType.memory,
   credentialStoreId: 'memory-default',
   retrievalParams: {
     key: 'INKEEP_API_KEY',

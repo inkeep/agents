@@ -11,6 +11,7 @@ import { tool } from 'ai';
 import { asyncExitHook, gracefulExit } from 'exit-hook';
 import { match } from 'ts-pattern';
 import { z } from 'zod';
+import { MCPTransportType } from '../types/utility';
 
 interface SharedServerConfig {
   timeout?: number;
@@ -18,7 +19,7 @@ interface SharedServerConfig {
 }
 
 export interface McpStreamableHttpConfig extends SharedServerConfig {
-  type: 'streamable_http';
+  type: typeof MCPTransportType.streamableHttp;
   url: string | URL;
   headers?: Record<string, string>;
   requestInit?: StreamableHTTPClientTransportOptions['requestInit'];
@@ -28,7 +29,7 @@ export interface McpStreamableHttpConfig extends SharedServerConfig {
 }
 
 export interface McpSSEConfig extends SharedServerConfig {
-  type: 'sse';
+  type: typeof MCPTransportType.sse;
   url: string | URL;
   headers?: Record<string, string>;
   eventSourceInit?: SSEClientTransportOptions['eventSourceInit'];
@@ -69,8 +70,8 @@ export class McpClient {
     if (this.connected) return;
 
     await match(this.serverConfig)
-      .with({ type: 'streamable_http' }, (config) => this.connectHttp(config))
-      .with({ type: 'sse' }, (config) => this.connectSSE(config))
+      .with({ type: MCPTransportType.streamableHttp }, (config) => this.connectHttp(config))
+      .with({ type: MCPTransportType.sse }, (config) => this.connectSSE(config))
       .exhaustive();
 
     this.connected = true;

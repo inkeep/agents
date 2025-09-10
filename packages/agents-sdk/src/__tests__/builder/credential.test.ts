@@ -1,3 +1,4 @@
+import { CredentialStoreType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { credential } from '../../builders';
 
@@ -5,7 +6,7 @@ describe('credential builder function', () => {
   it('should create a credential with required fields', () => {
     const testCredential = credential({
       id: 'test-api-key',
-      type: 'memory',
+      type: CredentialStoreType.memory,
       credentialStoreId: 'memory-default',
       retrievalParams: {
         key: 'TEST_API_KEY',
@@ -14,7 +15,7 @@ describe('credential builder function', () => {
 
     expect(testCredential).toEqual({
       id: 'test-api-key',
-      type: 'memory',
+      type: CredentialStoreType.memory,
       credentialStoreId: 'memory-default',
       retrievalParams: {
         key: 'TEST_API_KEY',
@@ -25,7 +26,7 @@ describe('credential builder function', () => {
   it('should handle different credential types', () => {
     const oauthCredential = credential({
       id: 'oauth-token',
-      type: 'oauth',
+      type: CredentialStoreType.nango,
       credentialStoreId: 'oauth-store',
       retrievalParams: {
         clientId: 'client123',
@@ -33,7 +34,7 @@ describe('credential builder function', () => {
       },
     });
 
-    expect(oauthCredential.type).toBe('oauth');
+    expect(oauthCredential.type).toBe(CredentialStoreType.nango);
     expect(oauthCredential.retrievalParams).toEqual({
       clientId: 'client123',
       scope: 'read:all',
@@ -43,7 +44,7 @@ describe('credential builder function', () => {
   it('should handle vault credentials', () => {
     const vaultCredential = credential({
       id: 'vault-secret',
-      type: 'vault',
+      type: CredentialStoreType.keychain,
       credentialStoreId: 'hashicorp-vault',
       retrievalParams: {
         path: '/secret/data/api-keys',
@@ -51,14 +52,14 @@ describe('credential builder function', () => {
       },
     });
 
-    expect(vaultCredential.type).toBe('vault');
+    expect(vaultCredential.type).toBe(CredentialStoreType.keychain);
     expect(vaultCredential.credentialStoreId).toBe('hashicorp-vault');
   });
 
   it('should handle nango credentials', () => {
     const nangoCredential = credential({
       id: 'nango-integration',
-      type: 'nango',
+      type: CredentialStoreType.nango,
       credentialStoreId: 'nango-default',
       retrievalParams: {
         connectionId: 'conn123',
@@ -66,14 +67,14 @@ describe('credential builder function', () => {
       },
     });
 
-    expect(nangoCredential.type).toBe('nango');
-    expect(nangoCredential.retrievalParams.connectionId).toBe('conn123');
+    expect(nangoCredential.type).toBe(CredentialStoreType.nango);
+    expect(nangoCredential.retrievalParams?.connectionId).toBe('conn123');
   });
 
   it('should handle empty retrieval params', () => {
     const simpleCredential = credential({
       id: 'simple',
-      type: 'memory',
+      type: CredentialStoreType.memory,
       credentialStoreId: 'memory-default',
       retrievalParams: {},
     });
@@ -92,7 +93,7 @@ describe('credential builder function', () => {
     expect(() => {
       credential({
         // @ts-expect-error - missing id
-        type: 'memory',
+        type: CredentialStoreType.memory,
         credentialStoreId: 'memory-default',
         retrievalParams: {},
       });

@@ -1,3 +1,4 @@
+import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 
 /**
@@ -7,7 +8,7 @@ import type { CredentialStore } from '../types/server';
  */
 export class InMemoryCredentialStore implements CredentialStore {
   public readonly id: string;
-  public readonly type = 'memory';
+  public readonly type = CredentialStoreType.memory;
   private credentials = new Map<string, string>();
 
   constructor(id = 'memory-default') {

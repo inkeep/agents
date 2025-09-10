@@ -1,4 +1,4 @@
-import type { MCPToolConfig } from '@inkeep/agents-core';
+import type { MCPToolConfig, ToolApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('tool');
@@ -19,15 +19,17 @@ export class Tool implements ToolInterface {
   private baseURL: string;
   private tenantId: string;
   private initialized = false;
+  private projectId: string;
 
   constructor(config: MCPToolConfig) {
     this.config = config;
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.tenantId = config.tenantId || 'default';
+    this.projectId = config.projectId || 'default';
     logger.info(
       {
-        toolId: this.getId(),
-        toolName: config.name,
+        Id: this.getId(),
+        Name: config.name,
       },
       'Tool constructor initialized'
     );
@@ -90,21 +92,19 @@ export class Tool implements ToolInterface {
 
   // Private method to upsert tool (create or update)
   private async upsertTool(): Promise<void> {
-    const toolDataForUpdate = {
+    const toolDataForUpdate: Omit<ToolApiInsert, 'id'> & { id?: string } = {
       id: this.getId(),
       name: this.config.name,
-      // Don't send description as it's not in the database schema
-      // Explicitly set to null when undefined to ensure removal
       credentialReferenceId: this.config.credential?.id ?? null,
-      // Explicitly set headers to null when undefined to ensure removal
       headers: this.config.headers ?? null,
-      imageUrl: this.config.imageUrl, // Include image URL
+      imageUrl: this.config.imageUrl,
       config: {
         type: 'mcp' as const,
         mcp: {
           server: {
             url: this.config.serverUrl,
           },
+          transport: this.config.transport,
           activeTools: this.config.activeTools,
         },
       },
@@ -118,7 +118,7 @@ export class Tool implements ToolInterface {
 
     // First try to update (in case tool exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/crud/tools/${this.getId()}`,
+      `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -149,13 +149,16 @@ export class Tool implements ToolInterface {
         'Tool not found, creating new tool'
       );
 
-      const createResponse = await fetch(`${this.baseURL}/tenants/${this.tenantId}/crud/tools`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(toolDataForCreate),
-      });
+      const createResponse = await fetch(
+        `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(toolDataForCreate),
+        }
+      );
 
       if (!createResponse.ok) {
         throw new Error(`Failed to create tool: ${createResponse.status}`);

@@ -1,4 +1,10 @@
-import type { DataComponentSelect, McpTool, MessageType } from '@inkeep/agents-core';
+import {
+  type DataComponentSelect,
+  MCPServerType,
+  MCPTransportType,
+  type McpTool,
+  type MessageType,
+} from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../agents/Agent';
 import { V1Config } from '../../agents/versions/V1Config';
@@ -751,7 +757,7 @@ describe('Agent Credential Integration', () => {
     // Mock credential stuffer
     mockCredentialStuffer = {
       buildMcpServerConfig: vi.fn().mockResolvedValue({
-        type: 'sse',
+        type: MCPTransportType.sse,
         url: 'https://api.nango.dev/mcp',
         headers: {
           Authorization: 'Bearer secret-key',
@@ -824,7 +830,7 @@ describe('Agent Credential Integration', () => {
         type: 'mcp',
         mcp: {
           server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: 'sse' },
+          transport: { type: MCPTransportType.sse },
         },
       },
       capabilities: {
@@ -846,8 +852,8 @@ describe('Agent Credential Integration', () => {
       name: 'Test MCP Tool',
       description: 'Test MCP Tool',
       serverUrl: 'https://api.nango.dev/mcp',
-      mcpType: 'nango', // Should detect Nango from URL
-      transport: { type: 'sse' },
+      mcpType: MCPServerType.nango,
+      transport: { type: MCPTransportType.sse },
     });
   });
 
@@ -862,7 +868,7 @@ describe('Agent Credential Integration', () => {
         type: 'mcp',
         mcp: {
           server: { url: 'https://mcp.example.com' },
-          transport: { type: 'streamable_http' },
+          transport: { type: MCPTransportType.streamableHttp },
         },
       },
       capabilities: {
@@ -879,7 +885,7 @@ describe('Agent Credential Integration', () => {
     const agent = new Agent(mockAgentConfig, mockAgentFramework);
     const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
 
-    expect(converted.mcpType).toBe('generic');
+    expect(converted.mcpType).toBe(MCPServerType.generic);
     expect(converted.serverUrl).toBe('https://mcp.example.com');
   });
 
@@ -894,7 +900,7 @@ describe('Agent Credential Integration', () => {
         type: 'mcp',
         mcp: {
           server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: 'sse' },
+          transport: { type: MCPTransportType.sse },
         },
       },
       credentialReferenceId: 'test-credential-id',
@@ -928,7 +934,7 @@ describe('Agent Credential Integration', () => {
       expect.objectContaining({
         name: 'Nango Tool',
         serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: 'nango',
+        mcpType: MCPServerType.nango,
       }),
       {
         credentialStoreId: 'nango-default',
@@ -953,7 +959,7 @@ describe('Agent Credential Integration', () => {
         type: 'mcp',
         mcp: {
           server: { url: 'https://mcp.example.com' },
-          transport: { type: 'streamable_http' },
+          transport: { type: MCPTransportType.streamableHttp },
         },
       },
       capabilities: {
@@ -979,7 +985,7 @@ describe('Agent Credential Integration', () => {
       buildMcpServerConfig: vi.fn().mockResolvedValue({
         url: 'https://mcp.example.com',
         headers: {},
-        transport: { type: 'streamable_http' },
+        transport: { type: MCPTransportType.streamableHttp },
       }),
     };
 
@@ -1011,7 +1017,7 @@ describe('Agent Credential Integration', () => {
         type: 'mcp',
         mcp: {
           server: { url: 'https://api.nango.dev/mcp' },
-          transport: { type: 'sse' },
+          transport: { type: MCPTransportType.sse },
         },
       },
       credentialReferenceId: 'context-credential',
@@ -1048,7 +1054,7 @@ describe('Agent Credential Integration', () => {
       expect.objectContaining({
         name: 'Context Test Tool',
         serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: 'nango',
+        mcpType: MCPServerType.nango,
       }),
       {
         credentialStoreId: 'nango-default',

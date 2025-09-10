@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CredentialStoreType } from '@inkeep/agents-core';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -133,7 +134,7 @@ export function EditCredentialForm({
           </div>
 
           {/* Metadata Section */}
-          {credential.type === 'nango' && (
+          {credential.type === CredentialStoreType.nango && (
             <div className="space-y-3">
               <GenericKeyValueInput
                 control={form.control}
@@ -165,7 +166,7 @@ export function EditCredentialForm({
         </div>
 
         <div className="flex gap-3 pt-4">
-          {credential.type === 'nango' && (
+          {credential.type === CredentialStoreType.nango && (
             <Button type="submit" disabled={isSubmitting}>
               Save
             </Button>

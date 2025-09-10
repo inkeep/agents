@@ -7,12 +7,12 @@ import {
   getCredentialReference,
   getToolById,
   listTools,
+  MCPServerType,
   type MCPToolConfig,
+  MCPTransportType,
   McpClient,
   type McpServerCapabilities,
   type McpServerConfig,
-  type McpSSEConfig,
-  type McpStreamableHttpConfig,
   type McpTool,
   type McpToolDefinition,
   type McpToolStatus,
@@ -61,7 +61,9 @@ const convertToMCPToolConfig = (tool: McpTool): MCPToolConfig => {
     name: tool.name,
     description: tool.name, // Use name as description fallback
     serverUrl: tool.config.mcp.server.url,
-    mcpType: tool.config.mcp.server.url.includes('api.nango.dev') ? 'nango' : 'generic',
+    mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
+      ? MCPServerType.nango
+      : MCPServerType.generic,
     transport: tool.config.mcp.transport,
     headers: tool.headers,
   };
@@ -110,7 +112,7 @@ export const checkToolHealth = async (
   capabilities?: McpServerCapabilities;
 }> => {
   try {
-    const transportType = tool.config.mcp.transport?.type || 'streamable_http';
+    const transportType = tool.config.mcp.transport?.type || MCPTransportType.streamableHttp;
     const baseConfig = {
       url: tool.config.mcp.server.url,
     };
@@ -152,23 +154,23 @@ export const checkToolHealth = async (
         storeReference
       );
     } else {
-      if (transportType === 'sse') {
+      if (transportType === MCPTransportType.sse) {
         serverConfig = {
-          type: 'sse',
+          type: MCPTransportType.sse,
           url: baseConfig.url,
           activeTools: tool.config.mcp.activeTools,
           eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
-        } as McpSSEConfig;
+        };
       } else {
         serverConfig = {
-          type: 'streamable_http',
+          type: MCPTransportType.streamableHttp,
           url: baseConfig.url,
           activeTools: tool.config.mcp.activeTools,
           requestInit: tool.config.mcp.transport?.requestInit,
           eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
           reconnectionOptions: tool.config.mcp.transport?.reconnectionOptions,
           sessionId: tool.config.mcp.transport?.sessionId,
-        } as McpStreamableHttpConfig;
+        };
       }
     }
 
@@ -248,31 +250,31 @@ export const discoverToolsFromServer = async (
         credentialStoreRegistry
       );
       const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
-      serverConfig = (await credentialStuffer.buildMcpServerConfig(
+      serverConfig = await credentialStuffer.buildMcpServerConfig(
         { tenantId: tool.tenantId, projectId: tool.projectId },
         convertToMCPToolConfig(tool),
         storeReference
-      )) as McpServerConfig;
+      );
     } else {
       // No credentials - build basic config
-      const transportType = tool.config.mcp.transport?.type || 'streamable_http';
-      if (transportType === 'sse') {
+      const transportType = tool.config.mcp.transport?.type || MCPTransportType.streamableHttp;
+      if (transportType === MCPTransportType.sse) {
         serverConfig = {
-          type: 'sse',
+          type: MCPTransportType.sse,
           url: tool.config.mcp.server.url,
           activeTools: tool.config.mcp.activeTools,
           eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
-        } as McpSSEConfig;
+        };
       } else {
         serverConfig = {
-          type: 'streamable_http',
+          type: MCPTransportType.streamableHttp,
           url: tool.config.mcp.server.url,
           activeTools: tool.config.mcp.activeTools,
           requestInit: tool.config.mcp.transport?.requestInit,
           eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
           reconnectionOptions: tool.config.mcp.transport?.reconnectionOptions,
           sessionId: tool.config.mcp.transport?.sessionId,
-        } as McpStreamableHttpConfig;
+        };
       }
     }
 

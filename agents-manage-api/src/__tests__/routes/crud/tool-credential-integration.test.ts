@@ -1,3 +1,4 @@
+import { CredentialStoreType, MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
@@ -12,7 +13,7 @@ describe('Tool-Credential Integration Tests', () => {
   const createTestCredential = async (tenantId: string) => {
     const credentialData = {
       id: nanoid(),
-      type: 'nango',
+      type: CredentialStoreType.nango,
       credentialStoreId: 'slack-oauth',
       retrievalParams: {
         providerConfigKey: 'slack',
@@ -42,7 +43,7 @@ describe('Tool-Credential Integration Tests', () => {
             url: 'https://api.example.com/mcp',
           },
           transport: {
-            type: 'streamable_http' as const,
+            type: MCPTransportType.streamableHttp,
           },
           activeTools: ['test-function'],
         },
@@ -272,7 +273,7 @@ describe('Tool-Credential Integration Tests', () => {
           type: 'mcp',
           mcp: {
             server: { url: 'https://api.example.com/mcp' },
-            transport: { type: 'streamable_http' },
+            transport: { type: MCPTransportType.streamableHttp },
           },
         },
         credentialReferenceId: '', // Empty string
@@ -299,7 +300,7 @@ describe('Tool-Credential Integration Tests', () => {
           type: 'mcp',
           mcp: {
             server: { url: 'https://api.example.com/mcp' },
-            transport: { type: 'streamable_http' },
+            transport: { type: MCPTransportType.streamableHttp },
           },
         },
       };

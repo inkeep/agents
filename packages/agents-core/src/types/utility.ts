@@ -132,7 +132,6 @@ export type ContextCacheEntry = {
   updatedAt: Date;
 };
 
-export type McpTranportType = 'streamable_http' | 'sse';
 export type McpAuthType = 'bearer' | 'basic' | 'api_key' | 'none';
 
 // Enhanced MCP Tool type definitions
@@ -228,6 +227,22 @@ export const TOOL_STATUS_VALUES = [
 ] as const;
 
 export const VALID_RELATION_TYPES = ['transfer', 'delegate'] as const;
+
+export const MCPTransportType = {
+  streamableHttp: 'streamable_http',
+  sse: 'sse',
+} as const;
+
+export const MCPServerType = {
+  nango: 'nango',
+  generic: 'generic',
+} as const;
+
+export const CredentialStoreType = {
+  memory: 'memory',
+  keychain: 'keychain',
+  nango: 'nango',
+} as const;
 
 export type McpToolStatus = (typeof TOOL_STATUS_VALUES)[number];
 

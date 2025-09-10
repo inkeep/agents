@@ -1,3 +1,5 @@
+import { CredentialStoreType } from '../types';
+
 /**
  * Get a lookup key for a credential store from retrieval params
  * @param retrievalParams - The retrieval params for the credential store
@@ -9,13 +11,13 @@ export function getCredentialStoreLookupKeyFromRetrievalParams({
   credentialStoreType,
 }: {
   retrievalParams: Record<string, unknown>;
-  credentialStoreType: string;
+  credentialStoreType: keyof typeof CredentialStoreType;
 }): string | null {
   if (retrievalParams.key) {
     return retrievalParams.key as string;
   }
 
-  if (credentialStoreType === 'nango') {
+  if (credentialStoreType === CredentialStoreType.nango) {
     return JSON.stringify({
       connectionId: retrievalParams.connectionId,
       providerConfigKey: retrievalParams.providerConfigKey,

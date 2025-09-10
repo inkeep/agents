@@ -1,7 +1,12 @@
 import { TemplateEngine } from '../context/TemplateEngine';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import type { NangoCredentialData } from '../credential-stores/nango-store';
-import type { MCPToolConfig } from '../types/index';
+import {
+  CredentialStoreType,
+  MCPServerType,
+  type MCPToolConfig,
+  MCPTransportType,
+} from '../types/index';
 import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils';
 import { getLogger, type Logger } from '../utils/logger';
 import type { McpServerConfig } from '../utils/mcp-client';
@@ -116,11 +121,11 @@ export class CredentialStuffer {
       return null;
     }
 
-    if (credentialStore.type === 'nango') {
+    if (credentialStore.type === CredentialStoreType.nango) {
       try {
         const nangoCredentialData = JSON.parse(credentialDataString) as NangoCredentialData;
 
-        if (mcpType === 'nango') {
+        if (mcpType === MCPServerType.nango) {
           return {
             headers: {
               // For Nango MCP, authenticate with the Nango secret key
@@ -153,7 +158,7 @@ export class CredentialStuffer {
       }
     }
 
-    if (credentialStore.type === 'keychain') {
+    if (credentialStore.type === CredentialStoreType.keychain) {
       try {
         const oauthTokens = JSON.parse(credentialDataString);
         if (oauthTokens.access_token) {
@@ -182,7 +187,7 @@ export class CredentialStuffer {
   private generateCredentialKey(
     context: CredentialContext,
     storeReference: CredentialStoreReference,
-    credentialStoreType: string
+    credentialStoreType: keyof typeof CredentialStoreType
   ): string {
     return (
       getCredentialStoreLookupKeyFromRetrievalParams({
@@ -285,13 +290,16 @@ export class CredentialStuffer {
 
     // Build base configuration
     const baseConfig = {
-      type: tool.transport?.type || 'streamable_http',
+      type: tool.transport?.type || MCPTransportType.streamableHttp,
       url: tool.serverUrl,
       activeTools: tool.activeTools,
     };
 
     // Add configuration based on transport type
-    if (baseConfig.type === 'streamable_http' || baseConfig.type === 'sse') {
+    if (
+      baseConfig.type === MCPTransportType.streamableHttp ||
+      baseConfig.type === MCPTransportType.sse
+    ) {
       const httpConfig = {
         ...baseConfig,
         url: tool.serverUrl,

@@ -1,3 +1,4 @@
+import { MCPTransportType } from '@inkeep/agents-core';
 import { z } from 'zod/v4';
 
 // Discriminated union for tool selection
@@ -20,7 +21,7 @@ export const mcpToolSchema = z.object({
         url: z.url('Must be a valid URL.'),
       }),
       transport: z.object({
-        type: z.enum(['streamable_http', 'sse']),
+        type: z.enum(MCPTransportType),
       }),
       toolsConfig: toolsConfigSchema.default({ type: 'all' }),
     }),

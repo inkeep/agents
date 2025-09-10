@@ -1,4 +1,5 @@
-import type { Context, ExecutionContext } from 'hono';
+import type { Context } from 'hono';
+import type { CredentialStoreType } from './utility';
 
 /**
  * Credential store interface for managing different types of credentials
@@ -12,7 +13,7 @@ export interface CredentialStore {
   /**
    * Type of credential store
    */
-  type: string;
+  type: keyof typeof CredentialStoreType;
 
   /**
    * Get a credential by key

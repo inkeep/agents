@@ -3,6 +3,7 @@ import {
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
+  type MCPTransportType,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { Agent } from './agent';
@@ -104,30 +105,6 @@ export function tool(config: {
   };
 }
 
-// MCP Server Configuration Schema
-export const McpServerConfigSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  description: z.string(),
-  tenantId: z.string().optional(),
-
-  // Deployment configuration
-  deployment: z.enum(['local', 'remote']).optional(),
-
-  // For local MCP servers
-  port: z.number().optional(),
-
-  // For remote MCP servers
-  serverUrl: z.string().optional(),
-  credential: CredentialReferenceApiInsertSchema.optional(),
-
-  // Additional configuration
-  parameters: z.record(z.string(), z.any()).optional(),
-  transport: z.enum(['ipc', 'http', 'sse']).optional(),
-  activeTools: z.array(z.string()).optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-});
-
 /**
  * Creates an MCP (Model Context Protocol) server for tool functionality.
  *
@@ -177,7 +154,7 @@ export function mcpServer(config: {
   parameters?: Record<string, z.ZodJSONSchema>;
   credential?: CredentialReferenceApiInsert;
   tenantId?: string;
-  transport?: 'ipc' | 'http' | 'sse';
+  transport?: keyof typeof MCPTransportType;
   activeTools?: string[];
   headers?: Record<string, string>;
 }): Tool {

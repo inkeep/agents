@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import type { StreamableHTTPReconnectionOptions } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import {
   agentArtifactComponents,
@@ -21,7 +22,13 @@ import {
   tasks,
   tools,
 } from '../db/schema';
-import { TOOL_STATUS_VALUES, VALID_RELATION_TYPES } from '../types/utility';
+import {
+  CredentialStoreType,
+  MCPServerType,
+  MCPTransportType,
+  TOOL_STATUS_VALUES,
+  VALID_RELATION_TYPES,
+} from '../types/utility';
 
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
@@ -216,10 +223,10 @@ const imageUrlSchema = z
 
 // Enhanced validation schemas for MCP tools
 export const McpTransportConfigSchema = z.object({
-  type: z.enum(['streamable_http', 'sse']),
+  type: z.enum(MCPTransportType),
   requestInit: z.record(z.string(), z.unknown()).optional(),
   eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-  reconnectionOptions: z.record(z.string(), z.unknown()).optional(),
+  reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
   sessionId: z.string().optional(),
 });
 
@@ -434,13 +441,21 @@ export const CredentialReferenceInsertSchema = z.object({
 
 export const CredentialReferenceUpdateSchema = CredentialReferenceInsertSchema.partial();
 
-export const CredentialReferenceApiSelectSchema = createApiSchema(CredentialReferenceSelectSchema);
+export const CredentialReferenceApiSelectSchema = createApiSchema(
+  CredentialReferenceSelectSchema
+).extend({
+  type: z.enum(CredentialStoreType),
+});
 export const CredentialReferenceApiInsertSchema = createApiInsertSchema(
   CredentialReferenceInsertSchema
-);
+).extend({
+  type: z.enum(CredentialStoreType),
+});
 export const CredentialReferenceApiUpdateSchema = createApiUpdateSchema(
   CredentialReferenceUpdateSchema
-);
+).extend({
+  type: z.enum(CredentialStoreType).optional(),
+});
 
 // === MCP  Tool Schemas ===
 export const McpToolSchema = ToolInsertSchema.extend({
@@ -451,12 +466,6 @@ export const McpToolSchema = ToolInsertSchema.extend({
   version: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
-});
-
-// Registry-based server configuration schema
-export const McpToolServerConfigSchema = z.object({
-  type: z.string(),
-  version: z.string().optional(),
 });
 
 // MCP Tool Config Schema with mcp specific fields flattened out into the tool definition
@@ -475,11 +484,9 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   tenantId: z.string().optional(),
   projectId: z.string().optional(),
   description: z.string().optional(),
-  server: McpToolServerConfigSchema.optional(),
   serverUrl: z.url(),
-  toolName: z.string().optional(),
   activeTools: z.array(z.string()).optional(),
-  mcpType: z.enum(['nango', 'generic']).optional(),
+  mcpType: z.enum(MCPServerType).optional(),
   transport: McpTransportConfigSchema.optional(),
   credential: CredentialReferenceApiInsertSchema.optional(),
 });

@@ -12,7 +12,7 @@ import {
   closeTestDatabase,
   createTestDatabaseClient,
 } from '../../../db/test-client';
-import type { ToolInsert } from '../../../types/index';
+import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
 
 // Helper function to create test tool data
@@ -28,7 +28,7 @@ const createToolData = ({ suffix = '' }: { suffix?: string } = {}): ToolInsert =
         url: 'https://api.example.com/mcp',
       },
       transport: {
-        type: 'streamable_http',
+        type: MCPTransportType.streamableHttp,
       },
     },
   },
@@ -162,19 +162,16 @@ describe('Tools Data Access - Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 1));
 
       // Update tool
-      const updateData = {
+      const updateData: ToolUpdate = {
         name: 'Updated Tool',
         config: {
           type: 'mcp' as const,
           mcp: {
-            serverType: 'sse',
-            url: 'https://updated-server.com',
             server: {
               url: 'https://updated-server.com',
             },
-            healthCheck: {
-              enabled: true,
-              timeout: 5000,
+            transport: {
+              type: MCPTransportType.sse,
             },
           },
         },

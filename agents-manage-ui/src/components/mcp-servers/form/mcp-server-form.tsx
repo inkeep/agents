@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -32,7 +33,7 @@ const defaultValues: MCPToolFormData = {
         url: '',
       },
       transport: {
-        type: 'streamable_http',
+        type: MCPTransportType.streamableHttp,
       },
       toolsConfig: { type: 'all' },
     },
@@ -125,8 +126,8 @@ export function MCPServerForm({
           label="Transport Type"
           placeholder="Select transport type"
           options={[
-            { value: 'streamable_http', label: 'Streamable HTTP' },
-            { value: 'sse', label: 'Server-Sent Events (SSE)' },
+            { value: MCPTransportType.streamableHttp, label: 'Streamable HTTP' },
+            { value: MCPTransportType.sse, label: 'Server-Sent Events (SSE)' },
           ]}
         />
         <GenericInput

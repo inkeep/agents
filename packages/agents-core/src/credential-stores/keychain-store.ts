@@ -1,3 +1,4 @@
+import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
 
@@ -29,7 +30,7 @@ import { getLogger } from '../utils/logger';
  */
 export class KeyChainStore implements CredentialStore {
   public readonly id: string;
-  public readonly type = 'keychain';
+  public readonly type = CredentialStoreType.keychain;
   private readonly service: string;
   private readonly logger = getLogger('KeyChainStore');
   private keytarAvailable = false;

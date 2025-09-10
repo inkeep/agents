@@ -1,6 +1,7 @@
 'use client';
 
 import { generateIdFromName } from '@inkeep/agents-core/client-exports';
+import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
@@ -25,7 +26,7 @@ export function NewCredentialForm() {
 
       const newCredential = await findOrCreateCredential(tenantId, projectId, {
         id: idFromName,
-        type: 'nango',
+        type: CredentialStoreType.nango,
         credentialStoreId: 'nango-default',
         retrievalParams: {
           connectionId: idFromName,

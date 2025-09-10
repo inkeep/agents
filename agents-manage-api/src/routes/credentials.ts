@@ -59,7 +59,9 @@ app.openapi(
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
-    return c.json(result);
+
+    const validatedResult = ListResponseSchema(CredentialReferenceApiSelectSchema).parse(result);
+    return c.json(validatedResult);
   }
 );
 
@@ -99,7 +101,8 @@ app.openapi(
       });
     }
 
-    return c.json({ data: credential });
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    return c.json({ data: validatedCredential });
   }
 );
 
@@ -143,8 +146,8 @@ app.openapi(
     };
 
     const credential = await createCredentialReference(dbClient)(credentialData);
-
-    return c.json({ data: credential }, 201);
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    return c.json({ data: validatedCredential }, 201);
   }
 );
 
@@ -194,7 +197,8 @@ app.openapi(
       });
     }
 
-    return c.json({ data: updatedCredential });
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
+    return c.json({ data: validatedCredential });
   }
 );
 

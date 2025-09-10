@@ -12,6 +12,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
+  CredentialStoreType,
   createCredentialReference,
   dbResultToMcpTool,
   getCredentialReference,
@@ -142,7 +143,7 @@ app.openapi(
       });
 
       const credentialData = {
-        type: 'keychain' as const,
+        type: CredentialStoreType.keychain,
         credentialStoreId: 'keychain-default',
         retrievalParams: {
           key: keychainKey,

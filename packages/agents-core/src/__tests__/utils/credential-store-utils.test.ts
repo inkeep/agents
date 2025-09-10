@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CredentialStoreType } from '../../types';
 import { getCredentialStoreLookupKeyFromRetrievalParams } from '../../utils/credential-store-utils';
 
 describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
@@ -11,7 +12,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'memory',
+        credentialStoreType: CredentialStoreType.memory,
       });
 
       expect(result).toBe('MEMORY_API_KEY');
@@ -26,7 +27,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       // Should use explicit key, not nango JSON format
@@ -40,7 +41,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'vault',
+        credentialStoreType: CredentialStoreType.keychain,
       });
 
       expect(result).toBe('complex:key/with-special_characters.123');
@@ -58,7 +59,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       const expectedLookupKey = JSON.stringify({
@@ -81,7 +82,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       const expectedLookupKey = JSON.stringify({
@@ -100,7 +101,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result1 = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams: retrievalParamsNoConnection,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       const retrievalParamsNoProvider = {
@@ -110,7 +111,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result2 = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams: retrievalParamsNoProvider,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       // Should still generate JSON, but with undefined values
@@ -131,20 +132,6 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
   });
 
   describe('unknown store types', () => {
-    it('should return null for unknown store types without key', () => {
-      const retrievalParams = {
-        someField: 'someValue',
-        anotherField: 123,
-      };
-
-      const result = getCredentialStoreLookupKeyFromRetrievalParams({
-        retrievalParams,
-        credentialStoreType: 'unknown-store',
-      });
-
-      expect(result).toBeNull();
-    });
-
     it('should return null for memory store type without key', () => {
       const retrievalParams = {
         source: 'environment',
@@ -153,7 +140,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'memory',
+        credentialStoreType: CredentialStoreType.memory,
       });
 
       expect(result).toBeNull();
@@ -167,7 +154,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'vault',
+        credentialStoreType: CredentialStoreType.keychain,
       });
 
       expect(result).toBeNull();
@@ -178,7 +165,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
     it('should handle empty retrievalParams', () => {
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams: {},
-        credentialStoreType: 'memory',
+        credentialStoreType: CredentialStoreType.memory,
       });
 
       expect(result).toBeNull();
@@ -193,7 +180,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       // key is falsy, so should use nango logic
@@ -212,7 +199,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'memory',
+        credentialStoreType: CredentialStoreType.memory,
       });
 
       expect(result).toBe(123); // Type cast, not conversion
@@ -225,7 +212,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'vault',
+        credentialStoreType: CredentialStoreType.keychain,
       });
 
       expect(result).toBe(true); // Type cast, not conversion
@@ -240,7 +227,7 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       // Empty string is falsy, should use nango logic
@@ -263,13 +250,13 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
       // Test exact match (should work)
       const result1 = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       // Test case mismatch (should not match)
       const result2 = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'NANGO',
+        credentialStoreType: 'NANGO' as keyof typeof CredentialStoreType,
       });
 
       expect(result1).toBe(
@@ -290,12 +277,12 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
 
       const result1 = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       const result2 = getCredentialStoreLookupKeyFromRetrievalParams({
         retrievalParams,
-        credentialStoreType: 'nango',
+        credentialStoreType: CredentialStoreType.nango,
       });
 
       // Should produce identical strings

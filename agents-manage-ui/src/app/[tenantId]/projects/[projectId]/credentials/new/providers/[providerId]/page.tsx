@@ -1,5 +1,6 @@
 'use client';
 
+import { CredentialStoreType } from '@inkeep/agents-core';
 import { generateIdFromName } from '@inkeep/agents-core/client-exports';
 import type { ApiProvider } from '@nangohq/types';
 import { useRouter } from 'next/navigation';
@@ -51,7 +52,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
       try {
         await findOrCreateCredential(tenantId, projectId, {
           id: credentialId,
-          type: 'nango',
+          type: CredentialStoreType.nango,
           credentialStoreId: 'nango-default',
           retrievalParams: {
             connectionId: event.payload.connectionId,

@@ -1,3 +1,4 @@
+import { CredentialStoreType } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createEnvironmentSettings,
@@ -10,7 +11,7 @@ const createMockCredential = (id: string, overrides = {}) => ({
   id,
   tenantId: 'test-tenant',
   projectId: 'test-project',
-  type: 'memory' as const,
+  type: CredentialStoreType.memory,
   credentialStoreId: 'memory-default',
   retrievalParams: { key: `${id.toUpperCase()}_KEY` },
   createdAt: new Date().toISOString(),
@@ -47,7 +48,7 @@ describe('Credential Environment Settings System', () => {
       const test = registerEnvironmentSettings({
         credentials: {
           'api-key': createMockCredential('api-key'),
-          'oauth-token': createMockCredential('oauth-token', { type: 'oauth' }),
+          'oauth-token': createMockCredential('oauth-token', { type: CredentialStoreType.nango }),
         },
       });
 
@@ -62,7 +63,7 @@ describe('Credential Environment Settings System', () => {
       const apiKey = await getEnvironmentSetting('api-key');
       expect(apiKey).toMatchObject({
         id: 'api-key',
-        type: 'memory',
+        type: CredentialStoreType.memory,
         credentialStoreId: 'memory-default',
       });
     });
@@ -77,8 +78,8 @@ describe('Credential Environment Settings System', () => {
 
       const production = registerEnvironmentSettings({
         credentials: {
-          'prod-only': createMockCredential('prod-only', { type: 'oauth' }),
-          shared: createMockCredential('shared', { type: 'oauth' }),
+          'prod-only': createMockCredential('prod-only', { type: CredentialStoreType.nango }),
+          shared: createMockCredential('shared', { type: CredentialStoreType.nango }),
         },
       });
 
@@ -93,11 +94,11 @@ describe('Credential Environment Settings System', () => {
       // Test environment-specific environment setting resolution
       process.env.NODE_ENV = 'production';
       const sharedCredential = await getEnvironmentSetting('shared');
-      expect(sharedCredential.type).toBe('oauth'); // Should use prod version
+      expect(sharedCredential.type).toBe(CredentialStoreType.nango); // Should use prod version
 
       process.env.NODE_ENV = 'development';
       const devSharedCredential = await getEnvironmentSetting('shared');
-      expect(devSharedCredential.type).toBe('memory'); // Should use dev version
+      expect(devSharedCredential.type).toBe(CredentialStoreType.memory); // Should use dev version
     });
 
     it('should handle empty environments gracefully', () => {
@@ -157,7 +158,9 @@ describe('Credential Environment Settings System', () => {
       const config = {
         credentials: {
           'api-credential': createMockCredential('api-credential'),
-          'db-credential': createMockCredential('db-credential', { type: 'oauth' }),
+          'db-credential': createMockCredential('db-credential', {
+            type: CredentialStoreType.nango,
+          }),
         },
       };
 
@@ -205,12 +208,12 @@ describe('Credential Environment Settings System', () => {
     it('should work with different credential store types', async () => {
       const test = registerEnvironmentSettings({
         credentials: {
-          memory1: createMockCredential('memory1', { type: 'memory' }),
+          memory1: createMockCredential('memory1', { type: CredentialStoreType.memory }),
           oauth1: createMockCredential('oauth1', {
-            type: 'oauth',
+            type: CredentialStoreType.nango,
             credentialStoreId: 'nango-oauth',
           }),
-          memory2: createMockCredential('memory2', { type: 'memory' }),
+          memory2: createMockCredential('memory2', { type: CredentialStoreType.memory }),
         },
       });
 
@@ -225,8 +228,8 @@ describe('Credential Environment Settings System', () => {
       const memoryResult = await getEnvironmentSetting('memory1');
       const oauthResult = await getEnvironmentSetting('oauth1');
 
-      expect(memoryResult.type).toBe('memory');
-      expect(oauthResult.type).toBe('oauth');
+      expect(memoryResult.type).toBe(CredentialStoreType.memory);
+      expect(oauthResult.type).toBe(CredentialStoreType.nango);
       expect(oauthResult.credentialStoreId).toBe('nango-oauth');
     });
 

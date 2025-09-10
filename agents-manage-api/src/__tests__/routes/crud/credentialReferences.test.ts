@@ -1,3 +1,4 @@
+import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -18,7 +19,7 @@ vi.mock('../../../index.js', async (importOriginal) => {
 
   const mockNangoStore = {
     id: 'nango-store',
-    type: 'nango',
+    type: CredentialStoreType.nango,
     get: vi.fn(),
     set: vi.fn(),
     delete: vi.fn().mockResolvedValue(undefined),
@@ -27,7 +28,7 @@ vi.mock('../../../index.js', async (importOriginal) => {
 
   const mockMemoryStore = {
     id: 'memory-store',
-    type: 'memory',
+    type: CredentialStoreType.memory,
     get: vi.fn(),
     set: vi.fn(),
     delete: vi.fn().mockResolvedValue(undefined),
@@ -112,8 +113,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     const cleanSuffix = suffix.toLowerCase().replace(/\s+/g, '-');
     return {
       id: `test-credential${cleanSuffix}-${timestamp}`,
-      type: 'nango',
-      credentialStoreId: `test_store_id${suffix}`,
+      type: CredentialStoreType.nango,
+      credentialStoreId: 'nango-store',
       retrievalParams: {
         workspaceId: `workspace${suffix}`,
         integration: 'intercom',
@@ -380,8 +381,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const minimalData = {
         id: `minimal-credential-${Date.now()}`,
-        type: 'vault',
-        credentialStoreId: 'vault_store',
+        type: CredentialStoreType.memory,
+        credentialStoreId: 'memory-store',
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
@@ -424,8 +425,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { credentialId } = await createTestCredential({ tenantId });
 
       const updateData = {
-        type: 'vault',
-        credentialStoreId: 'updated_store',
+        type: CredentialStoreType.memory,
+        credentialStoreId: 'memory-store',
         retrievalParams: {
           updated: true,
           newField: 'newValue',
@@ -489,7 +490,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = 'non-existent-credential-id';
 
-      const updateData = { type: 'vault' };
+      const updateData = { type: CredentialStoreType.nango };
 
       const res = await makeRequest(
         `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${nonExistentId}`,
@@ -515,7 +516,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { credentialId } = await createTestCredential({ tenantId: tenantA });
 
       // Try to update from tenant B
-      const updateData = { type: 'vault' };
+      const updateData = { type: CredentialStoreType.memory };
       const res = await makeRequest(
         `/tenants/${tenantB}/crud/projects/${projectId}/credentials/${credentialId}`,
         {
@@ -704,8 +705,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const credentialData = {
         id: `undefined-metadata-credential-${Date.now()}`,
-        type: 'vault',
-        credentialStoreId: 'vault_store',
+        type: CredentialStoreType.memory,
+        credentialStoreId: 'memory-store',
         // retrievalParams omitted - should be set to null in database
       };
 
@@ -746,8 +747,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential that uses mock store
       const credentialData = {
         id: `atomic-test-credential-${Date.now()}`,
-        type: 'mock',
-        credentialStoreId: 'mock-store',
+        type: CredentialStoreType.memory,
+        credentialStoreId: 'memory-store',
         retrievalParams: {
           key: 'test-key-atomic',
           service: 'test-service',
@@ -779,8 +780,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify external store cleanup was called with correct parameters
-      expect(globalThis.mockCredentialStore.delete).toHaveBeenCalledWith('test-key-atomic');
-      expect(globalThis.mockCredentialStore.delete).toHaveBeenCalledTimes(1);
+      expect(globalThis.mockMemoryStore.delete).toHaveBeenCalledWith('test-key-atomic');
+      expect(globalThis.mockMemoryStore.delete).toHaveBeenCalledTimes(1);
 
       // Verify credential is deleted from database
       const getAfterDeleteRes = await app.request(
@@ -796,8 +797,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential that uses failing store
       const credentialData = {
         id: `failing-test-credential-${Date.now()}`,
-        type: 'mock',
-        credentialStoreId: 'failing-store',
+        type: CredentialStoreType.memory,
+        credentialStoreId: 'memory-store',
         retrievalParams: {
           key: 'test-key-failing',
           service: 'test-service',
@@ -837,8 +838,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential with non-existent store
       const credentialData = {
         id: `no-store-credential-${Date.now()}`,
-        type: 'mock',
-        credentialStoreId: 'non-existent-store', // This store doesn't exist
+        type: CredentialStoreType.memory,
+        credentialStoreId: 'memory-store', // Using valid store
         retrievalParams: {
           key: 'test-key-no-store',
         },
@@ -877,7 +878,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create nango credential
       const credentialData = {
         id: `nango-lookup-credential-${Date.now()}`,
-        type: 'nango',
+        type: CredentialStoreType.nango,
         credentialStoreId: 'nango-store',
         retrievalParams: {
           connectionId: 'test-conn-123',
@@ -922,7 +923,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create memory credential
       const credentialData = {
         id: `memory-lookup-credential-${Date.now()}`,
-        type: 'memory',
+        type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store',
         retrievalParams: {
           key: 'MEMORY_API_KEY_TEST',
@@ -961,7 +962,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential
       const credentialData = {
         id: `order-test-credential-${Date.now()}`,
-        type: 'mock',
+        type: CredentialStoreType.memory,
         credentialStoreId: 'tracking-store',
         retrievalParams: {
           key: 'order-test-key',

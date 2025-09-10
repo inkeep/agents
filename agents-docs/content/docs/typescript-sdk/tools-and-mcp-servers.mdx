@@ -8,7 +8,7 @@ MCP tools connect to external servers that implement the MCP standard. This allo
 ### Basic MCP Server
 
 ```typescript
-import { mcpTool } from "@inkeep/agents-manage-api/builders";
+import {agent, mcpTool } from "@inkeep/agents-sdk";
 
 const knowledgeBaseTool = mcpTool({
   id: "knowledge-base-tool",
@@ -46,6 +46,9 @@ See [Credentials](/typescript-sdk/credentials) for detailed examples and impleme
 ### Example with Authentication
 
 ```typescript
+import { mcpTool, credential } from "@inkeep/agents-sdk";
+import { CredentialStoreType } from "@inkeep/agents-core";
+
 const apiKeyTool = mcpTool({
   id: "weather-api",
   name: "weather",
@@ -53,7 +56,7 @@ const apiKeyTool = mcpTool({
   serverUrl: "https://api.weather.com/mcp",
   credential: credential({
     id: 'weather-api-credential',
-    type: 'memory',
+    type: CredentialStoreType.memory,
     credentialStoreId: 'memory-default',
     retrievalParams: {
       key: 'WEATHER_API_KEY',
@@ -67,6 +70,8 @@ const apiKeyTool = mcpTool({
 You can configure custom headers for your MCP server requests. Use credentials for sensitive information (API keys, tokens) and headers for non-sensitive metadata (user agent, version info, etc.).
 
 ```typescript
+import { mcpTool } from "@inkeep/agents-sdk";
+
 const customHeadersTool = mcpTool({
   id: "enterprise-api",
   name: "enterprise_data",
@@ -86,6 +91,8 @@ const customHeadersTool = mcpTool({
 Enable only specific tools from a server using MCP Server tool names in the `activeTools` field.
 
 ```typescript
+import { mcpTool } from "@inkeep/agents-sdk";
+
 const selectiveTool = mcpTool({
   id: "limited-server",
   name: "analytics_readonly",
@@ -108,6 +115,8 @@ To ensure agents properly utilize their tools, follow these best practices:
 Example with best practices applied:
 
 ```typescript
+import { mcpTool, agent } from "@inkeep/agents-sdk";
+
 const productTool = mcpTool({
   id: 'product-tool',
   name: 'product',

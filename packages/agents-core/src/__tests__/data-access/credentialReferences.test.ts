@@ -13,6 +13,7 @@ import {
 } from '../../data-access/credentialReferences';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
+import { CredentialStoreType } from '../../types';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
 
 describe('Credential References Data Access', () => {
@@ -240,7 +241,7 @@ describe('Credential References Data Access', () => {
           id: 'cred-2',
           tenantId: testTenantId,
           projectId: testProjectId,
-          type: 'nango',
+          type: CredentialStoreType.nango,
           credentialStoreId: 'store-2',
           retrievalParams: { key: 'value2' },
           createdAt: '2024-01-02T00:00:00Z',
@@ -297,7 +298,7 @@ describe('Credential References Data Access', () => {
         },
         {
           id: 'cred-2',
-          type: 'nango',
+          type: CredentialStoreType.nango,
           createdAt: '2024-01-02T00:00:00Z',
         },
       ];

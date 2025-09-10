@@ -1,3 +1,4 @@
+import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../externalAgent';
@@ -1322,12 +1323,13 @@ describe('AgentGraph', () => {
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'Test instructions',
+        description: 'Test description',
         tenantId: 'test-tenant',
       });
 
       const credentialRef = {
         id: 'test-cred',
-        type: 'memory' as const,
+        type: CredentialStoreType.memory,
         credentialStoreId: 'memory-default',
         retrievalParams: {
           key: 'TEST_KEY',

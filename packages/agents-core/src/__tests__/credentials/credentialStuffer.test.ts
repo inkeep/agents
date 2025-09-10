@@ -6,8 +6,13 @@ import {
   type CredentialStoreReference,
   CredentialStuffer,
 } from '../../credential-stuffer/CredentialStuffer';
-import type { CredentialStore, MCPToolConfig } from '../../types/index';
-import { dbClient } from '../setup';
+import {
+  type CredentialStore,
+  CredentialStoreType,
+  MCPServerType,
+  type MCPToolConfig,
+  MCPTransportType,
+} from '../../types/index';
 
 // Mock logger from utils
 vi.mock('../../utils/logger.js', () => ({
@@ -36,7 +41,7 @@ describe('CredentialStuffer', () => {
   let credentialStuffer: CredentialStuffer;
   let mockRegistry: CredentialStoreRegistry;
   let mockNangoStore: CredentialStore;
-  let mockGenericStore: CredentialStore;
+  let mockMemoryStore: CredentialStore;
   let mockTemplateRender: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -48,20 +53,26 @@ describe('CredentialStuffer', () => {
     // Mock credential stores with proper method implementations
     mockNangoStore = {
       id: 'nango-default',
-      type: 'nango',
+      type: CredentialStoreType.nango,
       get: vi.fn().mockResolvedValue(null), // Default to null, override in tests
-    } as any;
+      set: vi.fn().mockResolvedValue(null),
+      has: vi.fn().mockResolvedValue(false),
+      delete: vi.fn().mockResolvedValue(false),
+    };
 
-    mockGenericStore = {
+    mockMemoryStore = {
       id: 'generic-store',
-      type: 'generic',
+      type: CredentialStoreType.memory,
       get: vi.fn().mockResolvedValue(null), // Default to null, override in tests
-    } as any;
+      set: vi.fn().mockResolvedValue(null),
+      has: vi.fn().mockResolvedValue(false),
+      delete: vi.fn().mockResolvedValue(false),
+    };
 
     // Create registry and add stores
     mockRegistry = new CredentialStoreRegistry();
     mockRegistry.add(mockNangoStore);
-    mockRegistry.add(mockGenericStore);
+    mockRegistry.add(mockMemoryStore);
 
     credentialStuffer = new CredentialStuffer(mockRegistry, mockContextResolver);
   });
@@ -91,7 +102,11 @@ describe('CredentialStuffer', () => {
 
       vi.mocked(mockNangoStore.get).mockResolvedValue(JSON.stringify(nangoStorePayload));
 
-      const result = await credentialStuffer.getCredentials(mockContext, storeReference, 'nango');
+      const result = await credentialStuffer.getCredentials(
+        mockContext,
+        storeReference,
+        MCPServerType.nango
+      );
 
       expect(result).toEqual({
         headers: {
@@ -120,16 +135,20 @@ describe('CredentialStuffer', () => {
         endpoint: 'https://api.example.com',
       };
 
-      vi.mocked(mockGenericStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
+      vi.mocked(mockMemoryStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
 
-      const result = await credentialStuffer.getCredentials(mockContext, storeReference, 'generic');
+      const result = await credentialStuffer.getCredentials(
+        mockContext,
+        storeReference,
+        MCPServerType.generic
+      );
 
       expect(result).toEqual({
         headers: {
           Authorization: `Bearer ${JSON.stringify(mockCredentials)}`,
         },
       });
-      expect(mockGenericStore.get).toHaveBeenCalledWith('test-tenant');
+      expect(mockMemoryStore.get).toHaveBeenCalledWith('test-tenant');
     });
 
     test('should return null when store not found', async () => {
@@ -138,7 +157,11 @@ describe('CredentialStuffer', () => {
         retrievalParams: {},
       };
 
-      const result = await credentialStuffer.getCredentials(mockContext, storeReference, 'generic');
+      const result = await credentialStuffer.getCredentials(
+        mockContext,
+        storeReference,
+        MCPServerType.generic
+      );
 
       expect(result).toBeNull();
     });
@@ -149,9 +172,13 @@ describe('CredentialStuffer', () => {
         retrievalParams: {},
       };
 
-      vi.mocked(mockGenericStore.get).mockResolvedValue(null);
+      vi.mocked(mockMemoryStore.get).mockResolvedValue(null);
 
-      const result = await credentialStuffer.getCredentials(mockContext, storeReference, 'generic');
+      const result = await credentialStuffer.getCredentials(
+        mockContext,
+        storeReference,
+        MCPServerType.generic
+      );
 
       expect(result).toBeNull();
     });
@@ -165,11 +192,11 @@ describe('CredentialStuffer', () => {
       };
 
       const mockCredentials = { token: 'custom-token' };
-      vi.mocked(mockGenericStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
+      vi.mocked(mockMemoryStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
 
-      await credentialStuffer.getCredentials(mockContext, storeReference, 'generic');
+      await credentialStuffer.getCredentials(mockContext, storeReference, MCPServerType.generic);
 
-      expect(mockGenericStore.get).toHaveBeenCalledWith('custom-key-123');
+      expect(mockMemoryStore.get).toHaveBeenCalledWith('custom-key-123');
     });
   });
 
@@ -200,7 +227,7 @@ describe('CredentialStuffer', () => {
 
       const result = await credentialStuffer.getCredentialHeaders({
         context: mockContext,
-        mcpType: 'nango',
+        mcpType: MCPServerType.nango,
         storeReference: storeReference,
       });
 
@@ -222,11 +249,11 @@ describe('CredentialStuffer', () => {
         // No headers property
       };
 
-      vi.mocked(mockGenericStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
+      vi.mocked(mockMemoryStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
 
       const result = await credentialStuffer.getCredentialHeaders({
         context: mockContext,
-        mcpType: 'generic',
+        mcpType: MCPServerType.generic,
         storeReference: storeReference,
       });
 
@@ -243,7 +270,7 @@ describe('CredentialStuffer', () => {
 
       const result = await credentialStuffer.getCredentialHeaders({
         context: mockContext,
-        mcpType: 'generic',
+        mcpType: MCPServerType.generic,
         storeReference: storeReference,
       });
 
@@ -263,8 +290,8 @@ describe('CredentialStuffer', () => {
         name: 'test-tool',
         description: 'Test tool',
         serverUrl: 'https://api.nango.dev/mcp',
-        mcpType: 'nango',
-        transport: { type: 'sse' },
+        mcpType: MCPServerType.nango,
+        transport: { type: MCPTransportType.sse },
         headers: {},
       };
 
@@ -292,7 +319,7 @@ describe('CredentialStuffer', () => {
       );
 
       expect(result).toEqual({
-        type: 'sse',
+        type: MCPTransportType.sse,
         url: 'https://api.nango.dev/mcp',
         headers: {
           Authorization: 'Bearer secret-key',
@@ -308,8 +335,8 @@ describe('CredentialStuffer', () => {
         name: 'test-tool',
         description: 'Test tool',
         serverUrl: 'https://api.example.com/mcp',
-        mcpType: 'generic',
-        transport: { type: 'streamable_http' },
+        mcpType: MCPServerType.generic,
+        transport: { type: MCPTransportType.streamableHttp },
         headers: { 'Custom-Header': 'custom-value' },
       };
 
@@ -320,7 +347,7 @@ describe('CredentialStuffer', () => {
       );
 
       expect(result).toEqual({
-        type: 'streamable_http',
+        type: MCPTransportType.streamableHttp,
         url: 'https://api.example.com/mcp',
         headers: { 'Custom-Header': 'custom-value' },
       });
@@ -332,8 +359,8 @@ describe('CredentialStuffer', () => {
         name: 'test-tool',
         description: 'Test tool',
         serverUrl: 'https://api.example.com/mcp',
-        mcpType: 'generic',
-        transport: { type: 'streamable_http' },
+        mcpType: MCPServerType.generic,
+        transport: { type: MCPTransportType.streamableHttp },
         headers: { 'Tool-Header': 'tool-value' },
       };
 
@@ -348,7 +375,7 @@ describe('CredentialStuffer', () => {
         },
       };
 
-      vi.mocked(mockGenericStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
+      vi.mocked(mockMemoryStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
 
       const result = await credentialStuffer.buildMcpServerConfig(
         mockContext,
@@ -357,7 +384,7 @@ describe('CredentialStuffer', () => {
       );
 
       expect(result).toEqual({
-        type: 'streamable_http',
+        type: MCPTransportType.streamableHttp,
         url: 'https://api.example.com/mcp',
         headers: {
           'Tool-Header': 'tool-value',
@@ -398,7 +425,7 @@ describe('CredentialStuffer', () => {
       const result = (credentialStuffer as any).generateCredentialKey(
         mockContext,
         storeReference,
-        'nango'
+        CredentialStoreType.nango
       );
 
       expect(result).toBe(

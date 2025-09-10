@@ -1,3 +1,4 @@
+import { MCPTransportType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Tool } from '../../tool';
 import type { ToolConfig, ToolType } from '../../types';
@@ -184,15 +185,17 @@ describe.skip('Tool Manager', () => {
 
     it('should handle MCP SSE transport', () => {
       const tool = new Tool({
+        id: 'test-tool',
         name: 'SSE Tool',
-        type: 'mcp',
-        url: 'https://mcp.example.com/sse',
-        transport: 'sse',
         tenantId: 'test-tenant',
+        serverUrl: 'https://mcp.example.com/sse',
+        transport: {
+          type: MCPTransportType.sse,
+        },
       });
 
       expect(tool.config.transport).toBe('sse');
-      expect(tool.config.url).toBe('https://mcp.example.com/sse');
+      expect(tool.config.serverUrl).toBe('https://mcp.example.com/sse');
     });
 
     it('should handle hosted tool with authentication', () => {
@@ -417,22 +420,6 @@ describe.skip('Tool Manager', () => {
             tenantId: 'test-tenant',
           } as any)
       ).toThrow();
-    });
-
-    it('should validate transport types', () => {
-      const validTransports: Array<'stdio' | 'sse' | 'http'> = ['stdio', 'sse', 'http'];
-
-      validTransports.forEach((transport) => {
-        const tool = new Tool({
-          name: `${transport} Tool`,
-          type: 'mcp',
-          command: ['node', 'tool.js'],
-          transport,
-          tenantId: 'test-tenant',
-        });
-
-        expect(tool.config.transport).toBe(transport);
-      });
     });
   });
 

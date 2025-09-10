@@ -7,6 +7,7 @@
  */
 
 import { z } from 'zod';
+import { CredentialStoreType } from './types';
 
 // Common parameter schemas
 export const TenantParamsSchema = z.object({
@@ -111,7 +112,7 @@ export const CredentialReferenceApiInsertSchema = z.object({
   id: z.string(),
   tenantId: z.string().optional(),
   projectId: z.string().optional(),
-  type: z.string(), // 'memory', 'vault', 'nango', etc.
+  type: z.enum(CredentialStoreType),
   credentialStoreId: z.string(),
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
 });

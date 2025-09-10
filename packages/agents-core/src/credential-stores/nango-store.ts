@@ -1,5 +1,6 @@
 import { type AllAuthCredentials, type AuthModeType, Nango } from '@nangohq/node';
 import { z } from 'zod';
+import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
 
@@ -53,7 +54,7 @@ function isSupportedAuthMode(mode: unknown): mode is SupportedAuthMode {
  */
 export class NangoCredentialStore implements CredentialStore {
   public readonly id: string;
-  public readonly type = 'nango';
+  public readonly type = CredentialStoreType.nango;
   private nangoConfig: NangoConfig;
   private nangoClient: Nango;
 

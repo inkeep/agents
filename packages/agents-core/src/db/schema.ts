@@ -567,7 +567,7 @@ export const credentialReferences = sqliteTable(
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
     id: text('id').notNull(),
-    type: text('type').notNull(), // Implementation type: 'vault', 'nango', 'inmemory', etc.
+    type: text('type').notNull(), // Implementation type: 'keychain', 'nango', 'memory', etc.
     credentialStoreId: text('credential_store_id').notNull(), // Maps to framework.getCredentialStore(id)
     retrievalParams: blob('retrieval_params', { mode: 'json' }).$type<Record<string, unknown>>(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

@@ -2,10 +2,9 @@ import type {
   AgentApiInsert,
   AgentConversationHistoryConfig,
   ArtifactComponentApiInsert,
-  ArtifactComponentApiSelect,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
-  DataComponentApiSelect,
+  MCPServerType,
   McpTransportConfig,
   ToolInsert,
 } from '@inkeep/agents-core';
@@ -115,7 +114,7 @@ export interface MCPToolConfig {
   toolName?: string;
   activeTools?: string[];
   headers?: Record<string, string>;
-  mcpType?: 'nango' | 'generic';
+  mcpType?: keyof typeof MCPServerType;
   transport?: McpTransportConfig;
   imageUrl?: string; // Optional image URL for custom tool icon
 }

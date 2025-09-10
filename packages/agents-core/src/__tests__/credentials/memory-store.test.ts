@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { InMemoryCredentialStore } from '../../credential-stores/memory-store';
+import { CredentialStoreType } from '../../types';
 
 describe('InMemoryCredentialStore', () => {
   let store: InMemoryCredentialStore;
@@ -24,7 +25,7 @@ describe('InMemoryCredentialStore', () => {
   describe('Basic Functionality', () => {
     it('should have correct id and type', () => {
       expect(store.id).toBe('test-store');
-      expect(store.type).toBe('memory');
+      expect(store.type).toBe(CredentialStoreType.memory);
     });
 
     it('should store and retrieve credentials', async () => {

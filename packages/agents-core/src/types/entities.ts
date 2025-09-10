@@ -101,7 +101,6 @@ import type {
   LedgerArtifactUpdateSchema,
   MCPToolConfigSchema,
   McpToolSchema,
-  McpToolServerConfigSchema,
   MessageApiInsertSchema,
   MessageApiSelectSchema,
   MessageApiUpdateSchema,
@@ -189,7 +188,6 @@ export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type ToolApiUpdate = z.infer<typeof ToolApiUpdateSchema>;
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
-export type McpToolServerConfig = z.infer<typeof McpToolServerConfigSchema>;
 
 // === Conversation Types ===
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;

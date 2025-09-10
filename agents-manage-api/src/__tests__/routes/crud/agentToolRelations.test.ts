@@ -1,3 +1,4 @@
+import { MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import app from '../../../index';
@@ -51,7 +52,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
           },
         },
         transport: {
-          type: 'streamable_http' as const,
+          type: MCPTransportType.streamableHttp,
           requestInit: {},
         },
         auth: {

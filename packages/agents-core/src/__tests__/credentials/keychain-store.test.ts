@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CredentialStoreType } from '../../index.js';
 
 // Mock the keytar module
 const mockKeytar = {
@@ -37,7 +38,7 @@ describe('KeyChainStore', () => {
   describe('Basic Functionality', () => {
     it('should have correct id and type', () => {
       expect(store.id).toBe('test-store');
-      expect(store.type).toBe('keychain');
+      expect(store.type).toBe(CredentialStoreType.keychain);
     });
 
     it('should store and retrieve credentials', async () => {
