@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
+import { createCommand } from './commands/create';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listGraphsCommand } from './commands/list-graphs';
@@ -23,6 +24,17 @@ program
   .name('inkeep')
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
+
+// Create command
+program
+  .command('create [directory]')
+  .description('Create a new Inkeep Agent Framework project')
+  .option('--openai-key <openai-key>', 'OpenAI API key')
+  .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
+  .option('--nango-key <nango-key>', 'Nango API key')
+  .action(async (directory, options) => {
+    await createCommand(directory, options);
+  });
 
 // Init command
 program

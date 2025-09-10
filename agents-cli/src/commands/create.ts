@@ -50,10 +50,14 @@ export const createAgents = async (
       defaultValue: 'default',
     });
 
+    if (p.isCancel(tenantIdResponse)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
     tenantId = tenantIdResponse as string;
   }
-  // Prompt for project id
 
+  // Prompt for project ID
   if (!projectId) {
     const projectIdResponse = await p.text({
       message: 'Enter your project ID:',
@@ -61,124 +65,140 @@ export const createAgents = async (
       defaultValue: 'default',
     });
 
+    if (p.isCancel(projectIdResponse)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
     projectId = projectIdResponse as string;
   }
 
-  // Prompt for Anthropic API key if not provided
+  // Prompt for Anthropic API key
   if (!anthropicKey) {
-    const anthropicResponse = await p.text({
-      message: 'Enter your Anthropic API key (required):',
-      placeholder: '...',
-      validate: (value) => {
-        if (!value || value.trim() === '') {
-          return 'Anthropic API key is required';
-        }
-
-        return undefined;
-      },
+    const anthropicKeyResponse = await p.text({
+      message: 'Enter your Anthropic API key (recommended):',
+      placeholder: 'sk-ant-...',
+      defaultValue: '',
     });
 
-    if (p.isCancel(anthropicResponse)) {
+    if (p.isCancel(anthropicKeyResponse)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    anthropicKey = anthropicResponse as string;
+    anthropicKey = (anthropicKeyResponse as string) || undefined;
   }
 
-  // Prompt for OpenAI API key if not provided
+  // Prompt for OpenAI API key
   if (!openAiKey) {
-    const openAiResponse = await p.text({
-      message: 'Enter your OpenAI API key (optional, press Enter to skip):',
-      placeholder: '...',
+    const openAiKeyResponse = await p.text({
+      message: 'Enter your OpenAI API key (optional):',
+      placeholder: 'sk-...',
+      defaultValue: '',
     });
 
-    if (p.isCancel(openAiResponse)) {
+    if (p.isCancel(openAiKeyResponse)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    openAiKey = (openAiResponse as string) || '';
+    openAiKey = (openAiKeyResponse as string) || undefined;
   }
 
-  // Prompt for Nango API key if not provided
+  // Prompt for Nango API key (optional)
   if (!nangoKey) {
-    const nangoResponse = await p.text({
-      message: 'Enter your Nango API key (optional, press Enter to skip):',
-      placeholder: '...',
+    const nangoKeyResponse = await p.text({
+      message: 'Enter your Nango Secret key (optional):',
+      placeholder: 'nango-secret-key',
+      defaultValue: '',
     });
 
-    if (p.isCancel(nangoResponse)) {
+    if (p.isCancel(nangoKeyResponse)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    nangoKey = (nangoResponse as string) || '';
+    nangoKey = (nangoKeyResponse as string) || undefined;
   }
 
   const s = p.spinner();
-  const projectPath = path.resolve(dirName as string);
+  s.start('Creating project structure...');
 
   try {
-    s.start('Creating project directory');
+    const projectPath = path.resolve(process.cwd(), dirName);
 
-    // Create project directory
-    try {
-      await fs.mkdir(projectPath);
-    } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === 'EEXIST') {
-        s.stop(`A directory named "${dirName}" already exists. Please choose a different name.`);
-        process.exit(1);
+    // Check if directory already exists
+    if (await fs.pathExists(projectPath)) {
+      s.stop();
+      const overwrite = await p.confirm({
+        message: `Directory ${dirName} already exists. Do you want to overwrite it?`,
+      });
+
+      if (p.isCancel(overwrite) || !overwrite) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
       }
-      throw new Error(
-        `Failed to create project directory: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      s.start('Cleaning existing directory...');
+      await fs.emptyDir(projectPath);
     }
 
+    // Create the project directory
+    await fs.ensureDir(projectPath);
     process.chdir(projectPath);
 
-    s.message('Creating workspace structure');
-    await createWorkspaceStructure(projectId as string);
+    // Create workspace structure
+    s.message('Setting up workspace structure...');
+    await createWorkspaceStructure(projectId);
 
-    s.message('Setting up package configurations');
-    await setupPackageConfigurations(dirName as string);
+    // Setup package configurations
+    s.message('Creating package configurations...');
+    await setupPackageConfigurations(dirName);
 
-    s.message('Creating environment configuration');
+    // Create environment files
+    s.message('Setting up environment files...');
     await createEnvironmentFiles({
+      tenantId,
+      projectId,
       openAiKey,
       anthropicKey,
       nangoKey,
     });
 
-    s.message('Setting up services');
+    // Create service files
+    s.message('Creating service files...');
     await createServiceFiles({
-      projectId: projectId as string,
-      tenantId: tenantId as string,
+      projectId,
+      tenantId,
       anthropicKey,
       openAiKey,
       nangoKey,
     });
 
-    s.message('Creating turbo configuration');
+    // Create documentation
+    s.message('Creating documentation...');
+    await createDocumentation(dirName);
+
+    // Create turbo config
+    s.message('Setting up Turbo...');
     await createTurboConfig();
 
-    s.message('Creating README and documentation');
-    await createDocumentation(dirName as string);
-
-    s.message('Installing dependencies');
+    // Install dependencies
+    s.message('Installing dependencies (this may take a while)...');
     await installDependencies();
-    s.message('Setting up database');
+
+    // Setup database
+    s.message('Setting up database...');
     await setupDatabase();
 
-    s.stop('Project created successfully!');
+    s.stop();
 
     // Success message with next steps
     p.note(
       `${color.green('✓')} Project created at: ${color.cyan(projectPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
-        `  npm run dev\n\n` +
+        `  npm run dev:apis (for APIs only)\n` +
+        `  npx inkeep dev (for APIs + Management Dashboard)\n\n` +
         `${color.yellow('Available services:')}\n` +
         `  • Management API: http://localhost:3002\n` +
         `  • Execution API: http://localhost:3003\n` +
-        `  • Management UI: http://localhost:3000\n` +
+        `  • Management Dashboard: Available with 'npx inkeep dev'\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
         `  • Edit src/${projectId}/hello.graph.ts for agent definitions\n` +
@@ -198,7 +218,6 @@ async function createWorkspaceStructure(projectId: string) {
   await fs.ensureDir(`src/${projectId}`);
   await fs.ensureDir('apps/manage-api/src');
   await fs.ensureDir('apps/run-api/src');
-  await fs.ensureDir('apps/manage-ui');
   await fs.ensureDir('apps/shared');
 }
 
@@ -315,39 +334,6 @@ async function setupPackageConfigurations(dirName: string) {
 
   await fs.writeJson('apps/run-api/package.json', runApiPackageJson, { spaces: 2 });
 
-  // Management UI package (Next.js app)
-  const manageUiPackageJson = {
-    name: `@${dirName}/manage-ui`,
-    version: '0.1.0',
-    description: 'Management UI for agents',
-    scripts: {
-      build: 'next build',
-      dev: 'next dev -p 3000',
-      start: 'next start',
-      lint: 'next lint',
-      typecheck: 'tsc --noEmit',
-      test: 'vitest --run',
-    },
-    dependencies: {
-      '@inkeep/agents-manage-ui': '^0.1.1',
-      next: '15.4.7',
-      react: '19.1.1',
-      'react-dom': '19.1.1',
-    },
-    devDependencies: {
-      '@types/node': '^20',
-      '@types/react': '^19',
-      '@types/react-dom': '^19',
-      typescript: '^5',
-      vitest: '^3.2.4',
-    },
-    engines: {
-      node: '>=20.x',
-    },
-  };
-
-  await fs.writeJson('apps/manage-ui/package.json', manageUiPackageJson, { spaces: 2 });
-
   // TypeScript configs for API services
   const apiTsConfig = {
     compilerOptions: {
@@ -373,31 +359,7 @@ async function setupPackageConfigurations(dirName: string) {
   await fs.writeJson('apps/manage-api/tsconfig.json', apiTsConfig, { spaces: 2 });
   await fs.writeJson('apps/run-api/tsconfig.json', apiTsConfig, { spaces: 2 });
 
-  // Next.js tsconfig for UI
-  const nextTsConfig = {
-    compilerOptions: {
-      lib: ['dom', 'dom.iterable', 'es6'],
-      allowJs: true,
-      skipLibCheck: true,
-      strict: true,
-      noEmit: true,
-      esModuleInterop: true,
-      module: 'esnext',
-      moduleResolution: 'bundler',
-      resolveJsonModule: true,
-      isolatedModules: true,
-      jsx: 'preserve',
-      incremental: true,
-      plugins: [{ name: 'next' }],
-      paths: {
-        '@/*': ['./src/*'],
-      },
-    },
-    include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
-    exclude: ['node_modules'],
-  };
-
-  await fs.writeJson('apps/manage-ui/tsconfig.json', nextTsConfig, { spaces: 2 });
+  // No tsconfig needed for UI since we're using the packaged version
 }
 
 async function createEnvironmentFiles(config: {
@@ -427,7 +389,6 @@ LOG_LEVEL=debug
 # Service Ports
 MANAGEMENT_API_PORT=3002
 EXECUTION_API_PORT=3003
-UI_PORT=3000
 `;
 
   await fs.writeFile('.env', envContent);
@@ -587,7 +548,7 @@ export const graph = agentGraph({
 ENVIRONMENT=development
 
 # Database (relative path from project directory)
-DB_FILE_NAME=../../local.db
+DB_FILE_NAME=file:../../local.db
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
@@ -708,127 +669,6 @@ serve(
   //   await fs.writeFile('apps/manage-api/src/instrumentation.js', instrumentation);
   //   await fs.writeFile('apps/run-api/src/instrumentation.js', instrumentation);
 
-  // Management UI setup
-  const nextConfig = `/** @type {import('next').NextConfig} */
-const nextConfig = {
-  env: {
-    MANAGEMENT_API_URL: process.env.MANAGEMENT_API_URL || 'http://localhost:3002',
-    EXECUTION_API_URL: process.env.EXECUTION_API_URL || 'http://localhost:3003',
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['@inkeep/agents-core'],
-  },
-};
-
-module.exports = nextConfig;`;
-
-  await fs.writeFile('apps/manage-ui/next.config.js', nextConfig);
-
-  // Basic Next.js app structure
-  await fs.ensureDir('apps/manage-ui/src/app');
-
-  const appLayout = `import './globals.css'
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  )
-}`;
-
-  await fs.writeFile('apps/manage-ui/src/app/layout.tsx', appLayout);
-
-  const appPage = `export default function Home() {
-  return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-4">Agent Management UI</h1>
-      <p className="text-lg mb-4">
-        Welcome to your Inkeep Agent Framework project!
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-2">Management API</h2>
-          <p className="text-gray-600 mb-2">Agent configuration and management</p>
-          <a 
-            href="http://localhost:3002/openapi.json" 
-            target="_blank"
-            className="text-blue-500 hover:underline"
-          >
-            View API Documentation →
-          </a>
-        </div>
-        <div className="border rounded-lg p-4">
-          <h2 className="text-xl font-semibold mb-2">Execution API</h2>
-          <p className="text-gray-600 mb-2">Agent execution and chat</p>
-          <a 
-            href="http://localhost:3003/openapi.json" 
-            target="_blank"
-            className="text-blue-500 hover:underline"
-          >
-            View API Documentation →
-          </a>
-        </div>
-      </div>
-    </div>
-  )
-}`;
-
-  await fs.writeFile('apps/manage-ui/src/app/page.tsx', appPage);
-
-  const globalsCss = `@tailwind base;
-@tailwind components;
-@tailwind utilities;`;
-
-  await fs.writeFile('apps/manage-ui/src/app/globals.css', globalsCss);
-
-  // Tailwind config
-  const tailwindConfig = `/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}`;
-
-  await fs.writeFile('apps/manage-ui/tailwind.config.js', tailwindConfig);
-
-  // Add Tailwind to UI dependencies
-  const uiPackageJson = await fs.readJson('apps/manage-ui/package.json');
-  uiPackageJson.devDependencies = {
-    ...uiPackageJson.devDependencies,
-    autoprefixer: '^10',
-    postcss: '^8',
-    tailwindcss: '^3',
-  };
-  await fs.writeJson('apps/manage-ui/package.json', uiPackageJson, { spaces: 2 });
-
-  // PostCSS config
-  const postcssConfig = `module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}`;
-  await fs.writeFile('apps/manage-ui/postcss.config.js', postcssConfig);
-
-  // Add next-env.d.ts
-  const nextEnvDts = `/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/basic-features/typescript for more information.`;
-  await fs.writeFile('apps/manage-ui/next-env.d.ts', nextEnvDts);
-
   // Database configuration
   const drizzleConfig = `import { defineConfig } from 'drizzle-kit';
 
@@ -857,7 +697,6 @@ async function createTurboConfig() {
       'DB_FILE_NAME',
       'MANAGEMENT_API_PORT',
       'EXECUTION_API_PORT',
-      'UI_PORT',
       'LOG_LEVEL',
       'NANGO_SECRET_KEY',
     ],
@@ -923,7 +762,7 @@ This project follows a workspace structure with the following services:
 
 - **Management API** (Port 3002): Agent configuration and management
 - **Execution API** (Port 3003): Agent execution and chat processing  
-- **Management UI** (Port 3000): Web interface for agent management
+- **Management Dashboard**: Web interface available via \`npx inkeep dev\`
 - **Shared Source**: Agent definitions and tools in \`src/\`
 
 ## Quick Start
@@ -939,20 +778,25 @@ This project follows a workspace structure with the following services:
    # Edit .env with your API keys
    \`\`\`
 
-3. **Start all services:**
+3. **Start services:**
    \`\`\`bash
-   npm run dev
+   # Start APIs only
+   npm run dev:apis
+   
+   # Start APIs + Management Dashboard
+   npx inkeep dev
    \`\`\`
 
 4. **Access your services:**
-   - Management UI: http://localhost:3000
    - Management API: http://localhost:3002  
    - Execution API: http://localhost:3003
+   - Management Dashboard: Available when using \`npx inkeep dev\`
 
 ## Available Scripts
 
-- \`npm run dev\` - Start all services in development mode
-- \`npm run dev:apis\` - Start only the API services
+- \`npm run dev\` - Start API services in development mode
+- \`npm run dev:apis\` - Start API services (same as npm run dev)
+- \`npx inkeep dev\` - Start APIs + Management Dashboard
 - \`npm run build\` - Build all packages
 - \`npm run test\` - Run tests across all packages
 - \`npm run lint\` - Run linting across all packages
@@ -967,8 +811,7 @@ ${projectName}/
 │   └── tools/               # Tool implementations
 ├── apps/
 │   ├── manage-api/          # Management API service
-│   ├── run-api/             # Execution API service  
-│   └── manage-ui/           # Management UI (Next.js)
+│   └── run-api/             # Execution API service
 ├── turbo.json               # Turbo configuration
 └── package.json             # Root package configuration with npm workspaces
 \`\`\`
@@ -993,7 +836,6 @@ DB_FILE_NAME=file:./local.db
 # Service Ports (default values)
 MANAGEMENT_API_PORT=3002
 EXECUTION_API_PORT=3003
-UI_PORT=3000
 \`\`\`
 
 ### Agent Configuration
@@ -1067,4 +909,12 @@ async function setupDatabase() {
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+// Export the command function for the CLI
+export async function createCommand(dirName?: string, options?: any) {
+  await createAgents({
+    dirName,
+    ...options,
+  });
 }

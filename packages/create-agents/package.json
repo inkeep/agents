@@ -22,23 +22,24 @@
     "agents",
     "ai",
     "framework",
-    "scaffold",
+    "boilerplate",
+    "typescript",
+    "project",
+    "starter",
+    "cli",
     "create",
     "init"
   ],
   "author": "Inkeep",
   "license": "MIT",
   "dependencies": {
-    "@clack/prompts": "^0.11.0",
+    "@inkeep/agents-cli": "workspace:^",
     "commander": "^12.0.0",
-    "fs-extra": "^11.2.0",
-    "inquirer": "^9.2.0",
-    "ora": "^8.0.1",
-    "picocolors": "^1.1.1",
-    "validate-npm-package-name": "^5.0.0"
+    "create-agents": "link:"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.0",
+    "@inkeep/agents-cli": "workspace:^",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.12.0",
     "tsx": "^4.7.0",
