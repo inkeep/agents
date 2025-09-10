@@ -68,7 +68,14 @@ export const contextConfigs = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'context_configs_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // Context cache: Stores actual fetched context data (conversation-scoped only)
@@ -102,6 +109,11 @@ export const contextCache = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'context_cache_project_fk',
+    }).onDelete('cascade'),
     index('context_cache_lookup_idx').on(
       table.conversationId,
       table.contextConfigId,
@@ -139,7 +151,7 @@ export const agents = sqliteTable(
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
       name: 'agents_project_fk',
-    }),
+    }).onDelete('cascade'),
   ]
 );
 
@@ -167,7 +179,7 @@ export const agentRelations = sqliteTable(
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
       name: 'agent_relations_project_fk',
-    }),
+    }).onDelete('cascade'),
   ]
 );
 
@@ -188,6 +200,11 @@ export const externalAgents = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'external_agents_project_fk',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.credentialReferenceId],
       foreignColumns: [
@@ -237,7 +254,7 @@ export const agentGraph = sqliteTable(
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
       name: 'agent_graph_project_fk',
-    }),
+    }).onDelete('cascade'),
   ]
 );
 
@@ -254,7 +271,14 @@ export const tasks = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'tasks_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // Define the task relations table for parent-child relationships
@@ -270,7 +294,14 @@ export const taskRelations = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'task_relations_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const dataComponents = sqliteTable(
@@ -285,7 +316,14 @@ export const dataComponents = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'data_components_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // Junction table for agent-specific data component associations
@@ -329,7 +367,14 @@ export const artifactComponents = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'artifact_components_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // Junction table for agent-specific artifact component associations
@@ -402,7 +447,14 @@ export const tools = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'tools_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const agentToolRelations = sqliteTable(
@@ -448,7 +500,14 @@ export const conversations = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'conversations_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // Define the unified message model supporting both A2A and OpenAI Chat Completions
@@ -495,7 +554,14 @@ export const messages = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'messages_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // === Ledger tables (artifacts only) ===
@@ -529,7 +595,14 @@ export const ledgerArtifacts = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'ledger_artifacts_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // API Keys table for secure API authentication
@@ -573,7 +646,14 @@ export const credentialReferences = sqliteTable(
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
-  (t) => [primaryKey({ columns: [t.tenantId, t.projectId, t.id] })]
+  (t) => [
+    primaryKey({ columns: [t.tenantId, t.projectId, t.id] }),
+    foreignKey({
+      columns: [t.tenantId, t.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'credential_references_project_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 // Indexes & Constraints for ledger artifacts

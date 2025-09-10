@@ -9,7 +9,6 @@ import {
   listProjectsPaginated,
   projectExists,
   projectExistsInTable,
-  projectHasResources,
   updateProject,
 } from '../../data-access/projects';
 import type { DatabaseClient } from '../../db/client';
@@ -699,25 +698,14 @@ describe('Projects Data Access', () => {
   });
 
   describe('deleteProject', () => {
-    it('should delete a project when it has no resources', async () => {
-      const mockSelect = vi
-        .fn()
-        .mockReturnValueOnce({
-          // First call - projectExistsInTable (should return true)
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
-            }),
+    it('should delete a project successfully (cascade will handle resources)', async () => {
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
           }),
-        })
-        .mockReturnValue({
-          // Subsequent calls - projectExists checks (should return false/empty)
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([]), // No resources
-            }),
-          }),
-        });
+        }),
+      });
 
       const mockDelete = vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
@@ -729,17 +717,12 @@ describe('Projects Data Access', () => {
         delete: mockDelete,
       } as any;
 
-      // Mock Promise.all to return empty arrays (no resources)
-      vi.spyOn(Promise, 'all').mockResolvedValue(Array(7).fill([]));
-
       const result = await deleteProject(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId1 },
       });
 
       expect(result).toBe(true);
       expect(mockDelete).toHaveBeenCalled();
-
-      vi.restoreAllMocks();
     });
 
     it('should return false when project does not exist in table', async () => {
@@ -763,49 +746,31 @@ describe('Projects Data Access', () => {
       expect(result).toBe(false);
     });
 
-    it('should throw error when project has resources', async () => {
-      const mockSelect = vi
-        .fn()
-        .mockReturnValueOnce({
-          // First call - projectExistsInTable (should return true)
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
-            }),
+    it('should delete project even when it has resources (cascade deletion)', async () => {
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
           }),
-        })
-        .mockReturnValue({
-          // Subsequent calls - projectExists checks (should return true/has resources)
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ id: 'agent-1' }]), // Has resources
-            }),
-          }),
-        });
+        }),
+      });
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      });
 
       const mockDb = {
         ...db,
         select: mockSelect,
+        delete: mockDelete,
       } as any;
 
-      // Mock Promise.all to return some resources
-      vi.spyOn(Promise, 'all').mockResolvedValue([
-        [{ id: 'agent-1' }], // Has agents
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-      ]);
+      const result = await deleteProject(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId1 },
+      });
 
-      await expect(
-        deleteProject(mockDb)({
-          scopes: { tenantId: testTenantId, projectId: testProjectId1 },
-        })
-      ).rejects.toThrow('Cannot delete project with existing resources');
-
-      vi.restoreAllMocks();
+      expect(result).toBe(true);
+      expect(mockDelete).toHaveBeenCalled();
     });
   });
 
@@ -854,63 +819,4 @@ describe('Projects Data Access', () => {
     });
   });
 
-  describe('projectHasResources', () => {
-    it('should return true when project has resources', async () => {
-      // Mock Promise.all to return some resources
-      vi.spyOn(Promise, 'all').mockResolvedValue([
-        [{ id: 'agent-1' }], // Has agents
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-      ]);
-
-      const mockDb = {
-        ...db,
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ id: 'agent-1' }]),
-            }),
-          }),
-        }),
-      } as any;
-
-      const result = await projectHasResources(mockDb)({
-        tenantId: testTenantId,
-        projectId: testProjectId1,
-      });
-
-      expect(result).toBe(true);
-
-      vi.restoreAllMocks();
-    });
-
-    it('should return false when project has no resources', async () => {
-      // Mock Promise.all to return empty arrays
-      vi.spyOn(Promise, 'all').mockResolvedValue(Array(7).fill([]));
-
-      const mockDb = {
-        ...db,
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        }),
-      } as any;
-
-      const result = await projectHasResources(mockDb)({
-        tenantId: testTenantId,
-        projectId: testProjectId1,
-      });
-
-      expect(result).toBe(false);
-
-      vi.restoreAllMocks();
-    });
-  });
 });

@@ -453,17 +453,18 @@ describe('Project CRUD Routes - Integration Tests', () => {
       expect(body.error.message).toBe('Project not found');
     });
 
-    it('should return 409 when deleting project with existing resources', async () => {
+    it('should cascade delete project with existing resources', async () => {
       const tenantId = createTestTenantId('projects-delete-with-resources');
       const { projectId } = await createTestProject({ tenantId });
 
       // Create an agent in this project
+      const agentId = `test-agent-${nanoid(6)}`;
       await createAgent(dbClient)({
-        id: `test-agent-${nanoid(6)}`,
+        id: agentId,
         tenantId,
         projectId,
         name: 'Test Agent',
-        description: 'Test agent to prevent project deletion',
+        description: 'Test agent to test cascade deletion',
         prompt: 'Test instructions',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -473,15 +474,15 @@ describe('Project CRUD Routes - Integration Tests', () => {
         method: 'DELETE',
       });
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(204);
 
-      const body = await res.json();
-      expect(body.error.code).toBe('conflict');
-      expect(body.error.message).toBe('Cannot delete project with existing resources');
-
-      // Verify project still exists
+      // Verify project is deleted
       const getRes = await app.request(`/tenants/${tenantId}/crud/projects/${projectId}`);
-      expect(getRes.status).toBe(200);
+      expect(getRes.status).toBe(404);
+
+      // Verify agent is also deleted (cascade)
+      const agentRes = await app.request(`/tenants/${tenantId}/crud/agents/${agentId}`);
+      expect(agentRes.status).toBe(404);
     });
 
     it('should not delete projects from other tenants', async () => {

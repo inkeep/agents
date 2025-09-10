@@ -352,34 +352,20 @@ export const projectExistsInTable =
     return result.length > 0;
   };
 
-/**
- * Check if a project has any resources (used before deletion)
- */
-export const projectHasResources =
-  (db: DatabaseClient) =>
-  async (params: ScopeConfig): Promise<boolean> => {
-    return await projectExists(db)(params);
-  };
 
 /**
- * Delete a project (with validation for existing resources)
+ * Delete a project and all related resources (cascade deletion)
  */
 export const deleteProject =
   (db: DatabaseClient) =>
   async (params: { scopes: ScopeConfig }): Promise<boolean> => {
-    // First check if the project exists in the projects table
+    // Check if the project exists in the projects table
     const projectExistsInTableResult = await projectExistsInTable(db)({ scopes: params.scopes });
     if (!projectExistsInTableResult) {
       return false; // Project not found
     }
 
-    // Check if project has any resources
-    const hasResources = await projectExists(db)(params.scopes);
-    if (hasResources) {
-      throw new Error('Cannot delete project with existing resources');
-    }
-
-    // Project exists and has no resources, safe to delete
+    // Delete the project - cascade constraints will handle cleanup of related resources
     await db
       .delete(projects)
       .where(

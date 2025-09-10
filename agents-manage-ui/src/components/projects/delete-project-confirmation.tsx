@@ -45,6 +45,7 @@ export function DeleteProjectConfirmation({
 				itemName={projectName || "this project"}
 				isSubmitting={isSubmitting}
 				onDelete={handleDelete}
+				customDescription={`Are you sure you want to delete ${projectName || "this project"}? This will permanently delete the project and all associated resources including agents, graphs, tools, conversations, and data. This action cannot be undone.`}
 			/>
 		</Dialog>
 	);

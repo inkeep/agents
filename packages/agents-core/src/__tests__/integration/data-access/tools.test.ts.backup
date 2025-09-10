@@ -48,27 +48,7 @@ const createProjectAndTool = async (db: DatabaseClient, { suffix = '' }: { suffi
   const projectData = createProjectData({ suffix });
   const toolData = createToolData({ suffix });
   
-  // Try to create project, ignore if it already exists
-  try {
-    await createProject(db)(projectData);
-  } catch (error: any) {
-    // Ignore if project already exists (UNIQUE constraint violation)
-    const isUniqueConstraintError = 
-      error.message?.includes('UNIQUE constraint') ||
-      error.message?.includes('SQLITE_CONSTRAINT_PRIMARYKEY') ||
-      error.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' ||
-      error.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-      (error.rawCode && (error.rawCode === 1555 || error.rawCode === 1)) ||
-      error.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' ||
-      error.cause?.message?.includes('UNIQUE constraint');
-    
-    if (!isUniqueConstraintError) {
-      console.error('Unexpected project creation error:', error);
-      throw error;
-    }
-    // Project already exists, continue
-  }
-  
+  await createProject(db)(projectData);
   const tool = await createTool(db)(toolData);
   
   return { project: projectData, tool };
@@ -88,22 +68,26 @@ describe('Tools Data Access - Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Clean up data between tests
+    // Clean up data between tests but keep the database file
     await cleanupTestDatabase(db);
   });
 
   afterAll(async () => {
+    // Close database and delete the file after all tests
     await closeTestDatabase(db, dbPath);
   });
 
   describe('createTool & getToolById', () => {
     it('should create and retrieve a tool with full configuration', async () => {
-      const { tool: createdTool } = await createProjectAndTool(db, { suffix: '1' });
       const toolData = createToolData({ suffix: '1' });
 
       // Validate with schema
       const validatedData = ToolInsertSchema.parse(toolData);
       expect(validatedData).toMatchObject(toolData);
+
+      // Create project first, then tool
+      await createProject(db)(createProjectData({ suffix: '1' }));
+      const createdTool = await createTool(db)(toolData);
 
       expect(createdTool).toMatchObject(toolData);
       expect(createdTool.config).toEqual(toolData.config);
@@ -112,21 +96,23 @@ describe('Tools Data Access - Integration Tests', () => {
       expect(typeof createdTool.createdAt).toBe('string');
       expect(typeof createdTool.updatedAt).toBe('string');
 
-      // Test retrieval
-      const retrievedTool = await getToolById(db)({
+      // Retrieve tool
+      const fetchedTool = await getToolById(db)({
         scopes: { tenantId: toolData.tenantId, projectId: toolData.projectId },
         toolId: toolData.id,
       });
 
-      expect(retrievedTool).not.toBeNull();
-      expect(retrievedTool).toMatchObject(createdTool);
+      expect(fetchedTool).not.toBeNull();
+      expect(fetchedTool).toMatchObject({
+        id: toolData.id,
+        name: toolData.name,
+        config: toolData.config,
+      });
     });
 
-    it('should return null for non-existent tool', async () => {
-      await createProjectAndTool(db, { suffix: '1' });
-      
+    it('should return null when tool not found', async () => {
       const result = await getToolById(db)({
-        scopes: { tenantId: 'test-tenant-1', projectId: 'test-project-1' },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         toolId: 'non-existent-tool',
       });
 
@@ -137,167 +123,221 @@ describe('Tools Data Access - Integration Tests', () => {
   describe('listTools', () => {
     it('should list tools with proper tenant isolation', async () => {
       // Create tools for different tenants
-      const { tool: tool1 } = await createProjectAndTool(db, { suffix: '1' });
-      const { tool: tool2 } = await createProjectAndTool(db, { suffix: '2' });
-      const { tool: tool3 } = await createProjectAndTool(db, { suffix: '3' });
+      const tool1Data = createToolData({ suffix: '1' });
+      const tool2Data = createToolData({ suffix: '2' });
+      const tool3Data = createToolData({ suffix: '3' });
 
-      // List tools for tenant 1
+      await createTool(db)({
+        ...tool1Data,
+      });
+
+      await createTool(db)({
+        ...tool2Data,
+      });
+
+      await createTool(db)({
+        ...tool3Data,
+      });
+
+      // List tools for tenant 1 - should see 1 tool
       const tenant1ToolsResult = await listTools(db)({
-        scopes: { tenantId: 'test-tenant-1', projectId: 'test-project-1' },
+        scopes: { tenantId: tool1Data.tenantId, projectId: tool1Data.projectId },
       });
 
       expect(tenant1ToolsResult.data).toHaveLength(1);
-      expect(tenant1ToolsResult.data[0]).toMatchObject(tool1);
+      expect(tenant1ToolsResult.data.every((tool) => tool.tenantId === tool1Data.tenantId)).toBe(
+        true
+      );
+      expect(tenant1ToolsResult.data[0].name).toBe(tool1Data.name);
 
-      // List tools for tenant 2
+      // List tools for tenant 2 - should see 1 tool
       const tenant2ToolsResult = await listTools(db)({
-        scopes: { tenantId: 'test-tenant-2', projectId: 'test-project-2' },
+        scopes: { tenantId: tool2Data.tenantId, projectId: tool2Data.projectId },
       });
 
       expect(tenant2ToolsResult.data).toHaveLength(1);
-      expect(tenant2ToolsResult.data[0]).toMatchObject(tool2);
+      expect(tenant2ToolsResult.data[0].name).toBe(tool2Data.name);
+      expect(tenant2ToolsResult.data[0].tenantId).toBe(tool2Data.tenantId);
     });
 
-    it('should return empty array for tenant with no tools', async () => {
-      await createProjectAndTool(db, { suffix: '1' });
-      
+    it('should return empty array when no tools exist', async () => {
       const result = await listTools(db)({
-        scopes: { tenantId: 'different-tenant', projectId: 'different-project' },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result.data).toHaveLength(0);
+      expect(result.pagination.total).toBe(0);
     });
   });
 
   describe('updateTool', () => {
     it('should update tool properties and timestamps', async () => {
       // Create initial tool
-      const { tool: createdTool } = await createProjectAndTool(db, { suffix: '1' });
+      const initialData = createToolData({ suffix: '1' });
 
-      // Wait a moment to ensure timestamp difference
-      await new Promise(resolve => setTimeout(resolve, 10));
+      const createdTool = await createTool(db)({
+        ...initialData,
+      });
 
+      // Wait a tiny bit to ensure timestamp difference
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
+      // Update tool
       const updateData = {
-        name: 'Updated Tool Name',
+        name: 'Updated Tool',
         config: {
           type: 'mcp' as const,
           mcp: {
+            serverType: 'sse',
+            url: 'https://updated-server.com',
             server: {
-              url: 'https://updated.example.com/mcp',
+              url: 'https://updated-server.com',
             },
-            transport: {
-              type: 'streamable_http' as const,
+            healthCheck: {
+              enabled: true,
+              timeout: 5000,
             },
           },
         },
       };
 
       const updatedTool = await updateTool(db)({
-        scopes: { tenantId: createdTool.tenantId, projectId: createdTool.projectId },
-        toolId: createdTool.id,
+        scopes: { tenantId: initialData.tenantId, projectId: initialData.projectId },
+        toolId: initialData.id,
         data: updateData,
       });
 
-      expect(updatedTool).not.toBeNull();
-      expect(updatedTool!.name).toBe(updateData.name);
-      expect(updatedTool!.config).toEqual(updateData.config);
-      expect(updatedTool!.updatedAt).not.toBe(createdTool.updatedAt);
-      expect(updatedTool!.createdAt).toBe(createdTool.createdAt);
+      expect(updatedTool).toMatchObject({
+        id: initialData.id,
+        name: updateData.name,
+        // description field removed - not in database schema // updateData.description,
+        config: updateData.config,
+      });
+      expect(updatedTool.updatedAt).not.toBe(createdTool.updatedAt);
+      expect(updatedTool.createdAt).toBe(createdTool.createdAt);
     });
 
     it('should handle partial updates', async () => {
-      const { tool: createdTool } = await createProjectAndTool(db, { suffix: '1' });
       const toolData = createToolData({ suffix: '1' });
 
-      const updatedTool = await updateTool(db)({
-        scopes: { tenantId: createdTool.tenantId, projectId: createdTool.projectId },
-        toolId: createdTool.id,
-        data: { name: 'New Name Only' },
+      await createTool(db)({
+        ...toolData,
       });
 
-      expect(updatedTool).not.toBeNull();
-      expect(updatedTool!.name).toBe('New Name Only');
-      expect(updatedTool!.config).toEqual(toolData.config); // Unchanged
+      // Update only the name
+      const updatedTool = await updateTool(db)({
+        scopes: { tenantId: toolData.tenantId, projectId: toolData.projectId },
+        toolId: toolData.id,
+        data: {
+          name: 'New Name Only',
+        },
+      });
+
+      expect(updatedTool.name).toBe('New Name Only');
+      expect(updatedTool.config).toEqual(toolData.config); // Unchanged
     });
 
     it('should handle configuration updates', async () => {
-      const { tool: createdTool } = await createProjectAndTool(db, { suffix: '1' });
       const toolData = createToolData({ suffix: '1' });
 
+      await createTool(db)({
+        ...toolData,
+      });
+
+      // Update config
       const newConfig = {
         type: 'mcp' as const,
         mcp: {
-          server: {
-            url: 'https://newconfig.example.com/mcp',
+          serverType: 'http',
+          url: 'https://mcp-server.com',
+          headers: {
+            Authorization: 'Bearer token',
           },
-          transport: {
-            type: 'streamable_http' as const,
+          server: {
+            url: 'https://mcp-server.com',
           },
         },
       };
 
       const updatedTool = await updateTool(db)({
-        scopes: { tenantId: createdTool.tenantId, projectId: createdTool.projectId },
-        toolId: createdTool.id,
-        data: { config: newConfig },
+        scopes: { tenantId: toolData.tenantId, projectId: toolData.projectId },
+        toolId: toolData.id,
+        data: {
+          config: newConfig,
+        },
       });
 
-      expect(updatedTool).not.toBeNull();
-      expect(updatedTool!.config).toEqual(newConfig);
-      expect(updatedTool!.name).toBe(toolData.name); // Unchanged
+      expect(updatedTool.config).toEqual(newConfig);
+      expect(updatedTool.name).toBe(toolData.name); // Unchanged
     });
 
     it('should maintain tenant isolation during updates', async () => {
-      const { tool: tenant1Tool } = await createProjectAndTool(db, { suffix: '1' });
+      const tenant1Tool = createToolData({ suffix: '1' });
 
-      // Try to update from different tenant
-      const updateResult = await updateTool(db)({
-        scopes: { tenantId: 'different-tenant', projectId: 'different-project' }, // Different tenant
-        toolId: tenant1Tool.id,
-        data: { name: 'Should Not Update' },
+      await createTool(db)({
+        ...tenant1Tool,
       });
 
-      expect(updateResult).toBeNull();
+      // Try to update from different tenant - should fail
+      const result = await updateTool(db)({
+        scopes: { tenantId: 'different-tenant', projectId: 'different-project' }, // Different tenant
+        toolId: tenant1Tool.id,
+        data: {
+          name: 'Hacked Name',
+        },
+      });
 
-      // Verify original tool unchanged
+      // Should return null (no tool found for this tenant)
+      expect(result).toBeNull();
+
+      // Verify original tool is unchanged
       const originalTool = await getToolById(db)({
         scopes: { tenantId: tenant1Tool.tenantId, projectId: tenant1Tool.projectId },
         toolId: tenant1Tool.id,
       });
 
-      expect(originalTool!.name).toBe(tenant1Tool.name);
+      expect(originalTool?.name).toBe(tenant1Tool.name);
     });
   });
 
   describe('deleteTool', () => {
     it('should delete tool and verify removal', async () => {
-      const { tool: createdTool } = await createProjectAndTool(db, { suffix: '1' });
+      const toolData = createToolData({ suffix: '1' });
 
-      // Verify tool exists
+      // Create tool
+      await createTool(db)({
+        ...toolData,
+      });
+
+      // Verify it exists
       const beforeDelete = await getToolById(db)({
-        scopes: { tenantId: createdTool.tenantId, projectId: createdTool.projectId },
-        toolId: createdTool.id,
+        scopes: { tenantId: toolData.tenantId, projectId: toolData.projectId },
+        toolId: toolData.id,
       });
       expect(beforeDelete).not.toBeNull();
 
       // Delete tool
       const deleteResult = await deleteTool(db)({
-        scopes: { tenantId: createdTool.tenantId, projectId: createdTool.projectId },
-        toolId: createdTool.id,
+        scopes: { tenantId: toolData.tenantId, projectId: toolData.projectId },
+        toolId: toolData.id,
       });
 
       expect(deleteResult).toBe(true);
 
-      // Verify tool no longer exists
+      // Verify deletion
       const afterDelete = await getToolById(db)({
-        scopes: { tenantId: createdTool.tenantId, projectId: createdTool.projectId },
-        toolId: createdTool.id,
+        scopes: { tenantId: toolData.tenantId, projectId: toolData.projectId },
+        toolId: toolData.id,
       });
       expect(afterDelete).toBeNull();
     });
 
     it('should maintain tenant isolation during deletion', async () => {
-      const { tool: tenant1Tool } = await createProjectAndTool(db, { suffix: '1' });
+      const tenant1Tool = createToolData({ suffix: '1' });
+
+      await createTool(db)({
+        ...tenant1Tool,
+      });
 
       // Try to delete from different tenant
       const deleteResult = await deleteTool(db)({
@@ -308,24 +348,23 @@ describe('Tools Data Access - Integration Tests', () => {
       // Should return false (no tool found/deleted)
       expect(deleteResult).toBe(false);
 
-      // Verify original tool still exists
-      const originalTool = await getToolById(db)({
+      // Verify tool still exists for correct tenant
+      const stillExists = await getToolById(db)({
         scopes: { tenantId: tenant1Tool.tenantId, projectId: tenant1Tool.projectId },
         toolId: tenant1Tool.id,
       });
 
-      expect(originalTool).not.toBeNull();
+      expect(stillExists).not.toBeNull();
+      expect(stillExists?.name).toBe(tenant1Tool.name);
     });
 
     it('should return false when trying to delete non-existent tool', async () => {
-      await createProjectAndTool(db, { suffix: '1' });
-      
-      const deleteResult = await deleteTool(db)({
-        scopes: { tenantId: 'test-tenant-1', projectId: 'test-project-1' },
+      const result = await deleteTool(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         toolId: 'non-existent-tool',
       });
 
-      expect(deleteResult).toBe(false);
+      expect(result).toBe(false);
     });
   });
 });

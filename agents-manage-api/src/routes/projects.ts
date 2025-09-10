@@ -219,7 +219,7 @@ app.openapi(
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Project',
-    description: 'Delete a project. Will fail if the project has existing resources.',
+    description: 'Delete a project and all its associated resources (agents, graphs, tools, etc.).',
     operationId: 'delete-project',
     tags: ['Projects'],
     request: {
@@ -229,42 +229,24 @@ app.openapi(
       204: {
         description: 'Project deleted successfully',
       },
-      409: {
-        description: 'Cannot delete project with existing resources',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
       ...commonGetErrorResponses,
     },
   }),
   async (c) => {
     const { tenantId, id } = c.req.valid('param');
 
-    try {
-      const deleted = await deleteProject(dbClient)({
-        scopes: { tenantId, projectId: id },
+    const deleted = await deleteProject(dbClient)({
+      scopes: { tenantId, projectId: id },
+    });
+
+    if (!deleted) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
       });
-
-      if (!deleted) {
-        throw createApiError({
-          code: 'not_found',
-          message: 'Project not found',
-        });
-      }
-
-      return c.body(null, 204);
-    } catch (error: any) {
-      if (error.message?.includes('Cannot delete project with existing resources')) {
-        throw createApiError({
-          code: 'conflict',
-          message: 'Cannot delete project with existing resources',
-        });
-      }
-      throw error;
     }
+
+    return c.body(null, 204);
   }
 );
 

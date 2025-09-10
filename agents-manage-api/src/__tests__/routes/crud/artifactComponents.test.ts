@@ -225,6 +225,10 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId1 = createTestTenantId('artifact-components-get-tenant1');
       const tenantId2 = createTestTenantId('artifact-components-get-tenant2');
 
+      // Ensure projects exist for both tenants
+      await ensureTestProject(tenantId1, projectId);
+      await ensureTestProject(tenantId2, projectId);
+
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId: tenantId1 });
 
       // Try to access from different tenant
@@ -469,6 +473,10 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId1 = createTestTenantId('artifact-components-update-tenant1');
       const tenantId2 = createTestTenantId('artifact-components-update-tenant2');
 
+      // Ensure projects exist for both tenants
+      await ensureTestProject(tenantId1, projectId);
+      await ensureTestProject(tenantId2, projectId);
+
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId: tenantId1 });
 
       // Try to update from different tenant
@@ -550,6 +558,10 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should return 404 for artifact component in different tenant', async () => {
       const tenantId1 = createTestTenantId('artifact-components-delete-tenant1');
       const tenantId2 = createTestTenantId('artifact-components-delete-tenant2');
+
+      // Ensure projects exist for both tenants
+      await ensureTestProject(tenantId1, projectId);
+      await ensureTestProject(tenantId2, projectId);
 
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId: tenantId1 });
 
