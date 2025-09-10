@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Control, useController, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ObjectJsonEditor } from "@/components/form/object-json-editor";
+import { ExpandableJsonEditor } from "@/components/form/expandable-json-editor";
 import { Label } from "@/components/ui/label";
 import { ModelSelector } from "@/components/graph/sidepane/nodes/model-selector";
 import type { ProjectFormData } from "./validation";
@@ -39,11 +38,26 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
 			<p className="text-xs text-muted-foreground">
 				Primary model for general agent responses
 			</p>
-			<ObjectJsonEditor
+			<ExpandableJsonEditor
 				name="models.base.providerOptions"
 				label="Provider Options"
-				value={providerOptionsField.value}
-				onChange={providerOptionsField.onChange}
+				value={
+					providerOptionsField.value
+						? JSON.stringify(providerOptionsField.value, null, 2)
+						: ""
+				}
+				onChange={(value) => {
+					if (!value?.trim()) {
+						providerOptionsField.onChange(undefined);
+						return;
+					}
+					try {
+						const parsed = JSON.parse(value);
+						providerOptionsField.onChange(parsed);
+					} catch (error) {
+						// Invalid JSON - don't update the field value
+					}
+				}}
 				placeholder={`{
   "temperature": 0.7,
   "maxTokens": 2048
@@ -79,11 +93,26 @@ function StructuredOutputModelSection({
 				Model for structured outputs and data components (defaults to base
 				model)
 			</p>
-			<ObjectJsonEditor
+			<ExpandableJsonEditor
 				name="models.structuredOutput.providerOptions"
 				label="Provider Options"
-				value={providerOptionsField.value}
-				onChange={providerOptionsField.onChange}
+				value={
+					providerOptionsField.value
+						? JSON.stringify(providerOptionsField.value, null, 2)
+						: ""
+				}
+				onChange={(value) => {
+					if (!value?.trim()) {
+						providerOptionsField.onChange(undefined);
+						return;
+					}
+					try {
+						const parsed = JSON.parse(value);
+						providerOptionsField.onChange(parsed);
+					} catch (error) {
+						// Invalid JSON - don't update the field value
+					}
+				}}
 				placeholder={`{
   "temperature": 0.1,
   "maxTokens": 1024
@@ -118,11 +147,26 @@ function SummarizerModelSection({
 			<p className="text-xs text-muted-foreground">
 				Model for summarization tasks (defaults to base model)
 			</p>
-			<ObjectJsonEditor
+			<ExpandableJsonEditor
 				name="models.summarizer.providerOptions"
 				label="Provider Options"
-				value={providerOptionsField.value}
-				onChange={providerOptionsField.onChange}
+				value={
+					providerOptionsField.value
+						? JSON.stringify(providerOptionsField.value, null, 2)
+						: ""
+				}
+				onChange={(value) => {
+					if (!value?.trim()) {
+						providerOptionsField.onChange(undefined);
+						return;
+					}
+					try {
+						const parsed = JSON.parse(value);
+						providerOptionsField.onChange(parsed);
+					} catch (error) {
+						// Invalid JSON - don't update the field value
+					}
+				}}
 				placeholder={`{
   "temperature": 0.3,
   "maxTokens": 1024
@@ -133,7 +177,19 @@ function SummarizerModelSection({
 }
 
 export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
-	const [isOpen, setIsOpen] = useState(false);
+	// Check if any model is configured to determine default open state
+	const modelsBase = useWatch({ control, name: "models.base" });
+	const modelsStructuredOutput = useWatch({ control, name: "models.structuredOutput" });
+	const modelsSummarizer = useWatch({ control, name: "models.summarizer" });
+	
+	const hasConfiguredModels = !!(
+		modelsBase?.model ||
+		modelsStructuredOutput?.model ||
+		modelsSummarizer?.model ||
+		modelsBase?.providerOptions ||
+		modelsStructuredOutput?.providerOptions ||
+		modelsSummarizer?.providerOptions
+	);
 
 	return (
 		<div className="space-y-4">
@@ -145,7 +201,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
 				</p>
 			</div>
 
-			<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+			<Collapsible defaultOpen={hasConfiguredModels}>
 				<CollapsibleTrigger asChild>
 					<Button
 						type="button"
@@ -153,9 +209,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
 						size="sm"
 						className="flex items-center justify-start gap-2 w-full"
 					>
-						<ChevronRight
-							className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
-						/>
+						<ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
 						Configure Default Models
 					</Button>
 				</CollapsibleTrigger>
