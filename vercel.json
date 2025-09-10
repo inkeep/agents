@@ -1,0 +1,15 @@
+{
+  "buildCommand": "turbo build --filter=@inkeep/agents-manage-api",
+  "installCommand": "pnpm install",
+  "outputDirectory": "agents-manage-api/dist",
+  "framework": null,
+  "functions": {
+    "agents-manage-api/dist/server.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "github": {
+    "silent": false
+  }
+}

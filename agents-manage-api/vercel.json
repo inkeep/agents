@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "builds": [
+    {
+      "src": "dist/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/server.js"
+    }
+  ],
+  "functions": {
+    "dist/server.js": {
+      "maxDuration": 60
+    }
+  },
+  "github": {
+    "silent": false
+  }
+}
