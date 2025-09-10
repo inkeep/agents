@@ -1,5 +1,5 @@
 // Functions now imported from @inkeep/agents-core and mocked above
-import { CredentialStoreRegistry, CredentialStuffer } from '@inkeep/agents-core';
+import { CredentialStuffer } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the ai package's tool function - must be before imports
@@ -13,7 +13,6 @@ vi.mock('ai', () => ({
 import { A2AClient } from '../../a2a/client';
 import { createDelegateToAgentTool } from '../../agents/relationTools';
 import { saveA2AMessageResponse } from '../../data/conversations';
-import dbClient from '../../data/db/dbClient';
 
 const {
   createMessageMock,
@@ -153,7 +152,7 @@ describe('External Agent Credential Handling', () => {
 
       // Mock A2AClient constructor to capture headers
       let capturedHeaders: Record<string, string> = {};
-      vi.mocked(A2AClient).mockImplementation((url: string, options?: any) => {
+      vi.mocked(A2AClient).mockImplementation((_url: string, options?: any) => {
         capturedHeaders = options?.headers || {};
         return {
           sendMessage: vi.fn().mockResolvedValue({
@@ -241,7 +240,7 @@ describe('External Agent Credential Handling', () => {
 
       // Mock A2AClient constructor to capture headers
       let capturedHeaders: Record<string, string> = {};
-      vi.mocked(A2AClient).mockImplementation((url: string, options?: any) => {
+      vi.mocked(A2AClient).mockImplementation((_url: string, options?: any) => {
         capturedHeaders = options?.headers || {};
         return {
           sendMessage: vi.fn().mockResolvedValue({
@@ -313,7 +312,7 @@ describe('External Agent Credential Handling', () => {
 
       // Mock A2AClient constructor to capture headers
       let capturedHeaders: Record<string, string> = {};
-      vi.mocked(A2AClient).mockImplementation((url: string, options?: any) => {
+      vi.mocked(A2AClient).mockImplementation((_url: string, options?: any) => {
         capturedHeaders = options?.headers || {};
         return {
           sendMessage: vi.fn().mockResolvedValue({
@@ -372,7 +371,7 @@ describe('External Agent Credential Handling', () => {
 
       // Mock A2AClient constructor to capture headers
       let capturedHeaders: Record<string, string> = {};
-      vi.mocked(A2AClient).mockImplementation((url: string, options?: any) => {
+      vi.mocked(A2AClient).mockImplementation((_url: string, options?: any) => {
         capturedHeaders = options?.headers || {};
         return {
           sendMessage: vi.fn().mockResolvedValue({
@@ -398,7 +397,7 @@ describe('External Agent Credential Handling', () => {
       };
 
       // Since A2AClient is mocked, we just verify it's called with correct options
-      const client = new A2AClient('https://external-agent.example.com', {
+      const _client = new A2AClient('https://external-agent.example.com', {
         headers: mockHeaders,
       });
 

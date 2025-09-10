@@ -5,13 +5,13 @@ import Link from "next/link";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Badge } from "@/components/ui/badge";
 import type { MCPTool } from "@/lib/api/tools";
+import { cn } from "@/lib/utils";
 import { getOAuthLoginUrl } from "@/lib/utils/mcp-urls";
 import { getToolTypeAndName } from "@/lib/utils/mcp-utils";
 import { Button } from "../ui/button";
+import { CopyableSingleLineCode } from "../ui/copyable-single-line-code";
 import { AvailableToolsCard } from "./available-tools-card";
 import { MCPToolImage } from "./mcp-tool-image";
-import { CopyableSingleLineCode } from "../ui/copyable-single-line-code";
-import { cn } from "@/lib/utils";
 
 export function ViewMCPServerDetails({
 	tool,

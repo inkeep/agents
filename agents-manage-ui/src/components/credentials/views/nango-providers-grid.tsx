@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ProviderIcon } from "@/components/icons/provider-icon";
+import EmptyState from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
@@ -16,7 +17,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import EmptyState from "@/components/layout/empty-state";
 
 interface NangoProvidersGridProps {
 	providers: ApiProvider[];

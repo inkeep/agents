@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
@@ -46,7 +46,7 @@ function syncLicenses() {
   // Copy to each target package
   targetPackages.forEach((packagePath) => {
     const targetPath = join(rootDir, packagePath, 'LICENSE.md');
-    const packageName = packagePath.split('/').pop();
+    const _packageName = packagePath.split('/').pop();
 
     try {
       // Write LICENSE with header indicating it's auto-generated

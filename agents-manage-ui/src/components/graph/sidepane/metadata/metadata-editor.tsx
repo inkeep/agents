@@ -26,6 +26,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useGraphStore } from "@/features/graph/state/use-graph-store";
+import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import { useProjectData } from "@/hooks/use-project-data";
 import { EXECUTION_API_BASE_URL } from "@/lib/api/api-config";
 import { ExpandableTextArea } from "../nodes/expandable-text-area";

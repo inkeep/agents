@@ -894,7 +894,7 @@ export async function GET(
 				let parsedArgs: any = {};
 				try {
 					parsedArgs = JSON.parse(toolArgs);
-				} catch (e) {
+				} catch (_e) {
 					// Keep empty if parsing fails
 				}
 
@@ -922,7 +922,7 @@ export async function GET(
 						saveToolArgs: parsedArgs,
 						saveFullResult: parsed,
 					};
-				} catch (e) {
+				} catch (_e) {
 					// If parsing fails, assume not saved
 					saveFields = {
 						saveResultSaved: false,

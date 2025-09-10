@@ -255,7 +255,7 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
     if (hasStartedResponse) {
       console.log('\n');
     } else {
-      console.log(chalk.green('Assistant> ') + chalk.gray('(no response)') + '\n');
+      console.log(`${chalk.green('Assistant> ') + chalk.gray('(no response)')}\n`);
     }
 
     return responseContent;

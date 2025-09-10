@@ -56,7 +56,7 @@ export const Folder = ({
 	useEffect(() => {
 		if (active && !open) setOpen(active);
 		// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	}, [active]);
+	}, [active, open]);
 
 	return (
 		<Collapsible

@@ -93,7 +93,7 @@ export function createApiError({
 }): HTTPException {
   const status = errorCodeToHttpStatus[code];
   const title = getTitleFromCode(code);
-  const type = `${ERROR_DOCS_BASE_URL}#${code}`;
+  const _type = `${ERROR_DOCS_BASE_URL}#${code}`;
 
   // Create Problem Details object
   const problemDetails: ProblemDetails = {
@@ -145,7 +145,7 @@ export async function handleApiError(
       if (requestId && !responseJson.requestId) {
         responseJson.requestId = requestId;
       }
-    } catch (e) {
+    } catch (_e) {
       // If not JSON, create a default problem details
       responseJson = {
         // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,

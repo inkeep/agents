@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { Control, useController, useWatch } from "react-hook-form";
+import { type Control, useController } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
 	Collapsible,

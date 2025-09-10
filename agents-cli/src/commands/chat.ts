@@ -1,7 +1,7 @@
 import * as readline from 'node:readline';
 import chalk from 'chalk';
 import ora from 'ora';
-import { ManagementApiClient, ExecutionApiClient } from '../api';
+import { ExecutionApiClient, ManagementApiClient } from '../api';
 
 export interface ChatOptions {
   url?: string;

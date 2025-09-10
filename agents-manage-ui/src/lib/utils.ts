@@ -9,7 +9,7 @@ export function formatJson(jsonString: string) {
 	try {
 		const parsed = JSON.parse(jsonString);
 		return JSON.stringify(parsed, null, 2);
-	} catch (error) {
+	} catch (_error) {
 		return jsonString;
 	}
 }

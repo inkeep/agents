@@ -2,10 +2,7 @@ import type { Edge, Node } from "@xyflow/react";
 import { nanoid } from "nanoid";
 import type { A2AEdgeData } from "@/components/graph/configuration/edge-types";
 import { EdgeType } from "@/components/graph/configuration/edge-types";
-import type {
-	ContextConfig,
-	GraphMetadata,
-} from "@/components/graph/configuration/graph-types";
+import type { GraphMetadata } from "@/components/graph/configuration/graph-types";
 import { NodeType } from "@/components/graph/configuration/node-types";
 import type { ArtifactComponent } from "@/lib/api/artifact-components";
 import type { DataComponent } from "@/lib/api/data-components";
@@ -151,7 +148,11 @@ export function serializeGraphData(
 	}
 
 	for (const edge of edges) {
-		if (edge.type === EdgeType.A2A || edge.type === EdgeType.A2AExternal || edge.type === EdgeType.SelfLoop) {
+		if (
+			edge.type === EdgeType.A2A ||
+			edge.type === EdgeType.A2AExternal ||
+			edge.type === EdgeType.SelfLoop
+		) {
 			// edge.source and edge.target are the ids of the nodes (since we allow editing the agent ids we need to use node ids since those are stable)
 			// we need to find the agents based on the node ids and then update the agents canTransferTo and canDelegateTo with the agent ids not the node ids
 

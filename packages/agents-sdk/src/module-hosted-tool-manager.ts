@@ -102,7 +102,7 @@ export class ModuleHostedToolManager {
 		}
 
 		return new Promise((resolve) => {
-			server.process!.on("exit", () => {
+			server.process?.on("exit", () => {
 				server.status = "stopped";
 				server.process = undefined;
 				server.pid = undefined;
@@ -112,7 +112,7 @@ export class ModuleHostedToolManager {
 				resolve();
 			});
 
-			server.process!.kill("SIGTERM");
+			server.process?.kill("SIGTERM");
 
 			// Force kill after 5 seconds
 			setTimeout(() => {
@@ -227,9 +227,9 @@ const server = new McpServer({
 // Parameter schema
 const parameterSchema = z.object({${
 			server.toolFunction.parameters
-				? Object.keys(server.toolFunction.parameters)
+				? `${Object.keys(server.toolFunction.parameters)
 						.map((key) => `\n    ${key}: z.any()`)
-						.join(",") + "\n"
+						.join(",")}\n`
 				: ""
 		}});
 
@@ -462,7 +462,7 @@ process.on('SIGTERM', () => {
 					);
 					return;
 				}
-			} catch (error) {
+			} catch (_error) {
 				// Server not ready yet
 			}
 

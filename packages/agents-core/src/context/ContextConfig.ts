@@ -345,7 +345,7 @@ export class ContextConfigBuilder {
       }
       const text = await response.text();
       return { error: text || `HTTP ${response.status} ${response.statusText}` } as ErrorResponse;
-    } catch (error) {
+    } catch (_error) {
       return { error: `HTTP ${response.status} ${response.statusText}` } as ErrorResponse;
     }
   }

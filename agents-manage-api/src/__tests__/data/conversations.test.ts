@@ -7,7 +7,7 @@ import {
   messages,
   updateConversation,
 } from '@inkeep/agents-core';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 
@@ -463,7 +463,7 @@ describe('getConversationHistory', () => {
     });
 
     // Verify limit was applied
-    const mockDb = vi.mocked(
+    const _mockDb = vi.mocked(
       dbClient
         .select()
         .from(messages)

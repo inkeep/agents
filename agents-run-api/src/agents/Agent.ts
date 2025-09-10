@@ -237,34 +237,6 @@ export class Agent {
     };
   }
 
-  /**
-   * Get the model settings for summarization tasks
-   * Defaults to gpt-4.1-nano if not specified
-   */
-  private getSummarizerModel(): ModelSettings {
-    if (!this.config.models) {
-      return { model: CONSTANTS.DEFAULT_SUMMARIZER_MODEL };
-    }
-
-    // Use summarizer config if available, otherwise fall back to base
-    const summarizerConfig = this.config.models.summarizer;
-    const baseConfig = this.config.models.base;
-
-    // If summarizer is explicitly configured, use only its config
-    if (summarizerConfig) {
-      return {
-        model: getModelOrDefault(summarizerConfig.model, CONSTANTS.DEFAULT_SUMMARIZER_MODEL),
-        providerOptions: summarizerConfig.providerOptions,
-      };
-    }
-
-    // Fall back to base model settings if summarizer not configured
-    return {
-      model: getModelOrDefault(baseConfig?.model, CONSTANTS.DEFAULT_SUMMARIZER_MODEL),
-      providerOptions: baseConfig?.providerOptions,
-    };
-  }
-
   setConversationId(conversationId: string) {
     this.conversationId = conversationId;
   }

@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentApiSelectSchema,
   AgentGraphApiInsertSchema,
   AgentGraphApiSelectSchema,
   AgentGraphApiUpdateSchema,
@@ -12,8 +11,6 @@ import {
   ErrorResponseSchema,
   FullGraphDefinitionSchema,
   getAgentGraph,
-  getAgentGraphByGraphId,
-  getAgentGraphWithDefaultAgent,
   getFullGraphDefinition,
   getGraphAgentInfos,
   IdParamsSchema,
@@ -21,13 +18,11 @@ import {
   listAgentGraphs,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgentGraph,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import { env } from '../../env';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();

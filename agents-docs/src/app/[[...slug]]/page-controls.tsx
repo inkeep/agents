@@ -36,7 +36,7 @@ export function PageControls({
 				return (
 					acc +
 					(heading
-						? "## " + headings.find((h) => h.id === heading)?.content + "\n"
+						? `## ${headings.find((h) => h.id === heading)?.content}\n`
 						: "") +
 					content +
 					"\n"
@@ -47,8 +47,8 @@ export function PageControls({
 	});
 
 	const pathname = usePathname();
-	const currentPage = "https://docs.inkeep.com" + pathname + ".md";
-	const askPrompt = "I'd like to discuss the content from " + currentPage;
+	const currentPage = `https://docs.inkeep.com${pathname}.md`;
+	const askPrompt = `I'd like to discuss the content from ${currentPage}`;
 
 	const openInChatGPT = () => {
 		const uri = `https://chat.openai.com/?model=gpt-4&q=${encodeURIComponent(askPrompt)}`;

@@ -46,10 +46,6 @@ export class SSEStreamHelper implements StreamHelper {
     private timestamp: number
   ) {}
 
-  private get sessionId(): string {
-    return this.requestId;
-  }
-
   /**
    * Write the initial role message
    */
@@ -249,7 +245,7 @@ export class VercelDataStreamHelper implements StreamHelper {
   private jsonBuffer = '';
   private sentItems = new Map<number, string>(); // Track what we've sent for each index
   private completedItems = new Set<number>(); // Track completed items
-  private sessionId: string | null = null;
+  private sessionId?: string;
 
   // Memory management - focused on connection completion cleanup
   private static readonly MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB limit (more generous during request)
@@ -529,7 +525,7 @@ export class MCPStreamHelper implements StreamHelper {
   private capturedOperations: OperationEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-  private sessionId: string | null = null;
+  private sessionId?: string;
 
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;

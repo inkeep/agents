@@ -29,7 +29,7 @@ const useJsonValidation = (value: string) => {
 		try {
 			JSON.parse(value);
 			setError(null);
-		} catch (error) {
+		} catch (_error) {
 			setError("Invalid JSON syntax");
 		}
 	}, [value]);

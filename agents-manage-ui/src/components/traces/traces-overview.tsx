@@ -11,7 +11,7 @@ import {
 	X,
 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,7 +82,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 	const [aiCallsByGraph, setAiCallsByGraph] = useState<
 		Array<{ graphId: string; totalCalls: number }>
 	>([]);
-	const [aiCallsLoading, setAiCallsLoading] = useState(true);
+	const [_aiCallsLoading, setAiCallsLoading] = useState(true);
 	const [activityData, setActivityData] = useState<
 		Array<{ date: string; count: number }>
 	>([]);
@@ -340,7 +340,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
 	// Helper function to detect if a value is numeric
 	const isNumeric = (value: string): boolean => {
-		return !isNaN(Number(value)) && value.trim() !== "";
+		return !Number.isNaN(Number(value)) && value.trim() !== "";
 	};
 
 	const clearSpanFilters = () => {

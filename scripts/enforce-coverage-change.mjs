@@ -8,10 +8,10 @@
  * Used in CI/CD and as a pre-commit hook.
  */
 
-import { execSync } from 'child_process';
-import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { execSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
@@ -113,7 +113,7 @@ function runCoverageForPackages(packages) {
       try {
         const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
         results[pkg] = summary.total;
-      } catch (error) {
+      } catch (_error) {
         console.error(`❌ Could not read coverage for ${pkg}`);
         results[pkg] = { error: true };
       }
@@ -197,9 +197,9 @@ function compareCoverage(baseCoverage, currentCoverage) {
  * Generate coverage report
  */
 function generateReport(comparison, changedFiles) {
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('📈 COVERAGE ENFORCEMENT REPORT');
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 
   console.log(`Changed files: ${changedFiles.length}`);
   console.log(
@@ -263,7 +263,7 @@ function generateReport(comparison, changedFiles) {
   } else {
     console.log('❌ Coverage has degraded. Please add tests for your changes.');
   }
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 
   return success;
 }
@@ -303,7 +303,7 @@ async function main() {
   if (existsSync(baseCoveragePath)) {
     try {
       baseCoverage = JSON.parse(readFileSync(baseCoveragePath, 'utf8'));
-    } catch (error) {
+    } catch (_error) {
       console.warn('⚠️  Could not read base coverage, will treat as new coverage');
     }
   } else {

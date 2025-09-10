@@ -15,7 +15,7 @@ import {
 } from '../../data-access/dataComponents';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
-import type { DataComponentInsert, ScopeConfig } from '../../types/index';
+import type { DataComponentInsert } from '../../types/index';
 
 describe('Data Components Data Access', () => {
   let db: DatabaseClient;

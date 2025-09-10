@@ -21,7 +21,7 @@ function getResponseFormatterTracer() {
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
 
-  constructor(private tenantId: string) {
+  constructor(tenantId: string) {
     this.artifactParser = new ArtifactParser(tenantId);
   }
 

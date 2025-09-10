@@ -114,7 +114,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should handle pagination with multiple pages (small page size)', async () => {
       const tenantId = createTestTenantId('data-components-list-multipages');
       await ensureTestProject(tenantId, projectId);
-      const dataComponents = await createMultipleDataComponents({ tenantId, count: 5 });
+      const _dataComponents = await createMultipleDataComponents({ tenantId, count: 5 });
 
       // Test first page with limit 2
       const page1Res = await app.request(
@@ -194,7 +194,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should handle edge case with limit 1', async () => {
       const tenantId = createTestTenantId('data-components-list-limit1');
       await ensureTestProject(tenantId, projectId);
-      const dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
+      const _dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Test with limit 1 (each page should have exactly 1 item)
       const page1Res = await app.request(
@@ -245,7 +245,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should handle large page size (larger than total items)', async () => {
       const tenantId = createTestTenantId('data-components-list-large-limit');
       await ensureTestProject(tenantId, projectId);
-      const dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
+      const _dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
       const res = await app.request(

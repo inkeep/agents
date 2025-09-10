@@ -7,7 +7,6 @@ import {
   CredentialStuffer,
 } from '../../credential-stuffer/CredentialStuffer';
 import type { CredentialStore, MCPToolConfig } from '../../types/index';
-import { dbClient } from '../setup';
 
 // Mock logger from utils
 vi.mock('../../utils/logger.js', () => ({

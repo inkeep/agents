@@ -175,10 +175,10 @@ export function deserializeGraphData(
 				if (data.agents[targetAgentId]) {
 					// Special handling for self-referencing edges
 					const isSelfReference = sourceAgentId === targetAgentId;
-					const pairKey = isSelfReference 
-						? `self-${sourceAgentId}` 
+					const pairKey = isSelfReference
+						? `self-${sourceAgentId}`
 						: [sourceAgentId, targetAgentId].sort().join("-");
-					
+
 					if (!processedPairs.has(pairKey)) {
 						processedPairs.add(pairKey);
 						const targetAgent = data.agents[targetAgentId];
@@ -203,13 +203,13 @@ export function deserializeGraphData(
 						const isTargetExternal = targetAgent.type === "external";
 
 						const edge = {
-							id: isSelfReference 
-								? `edge-self-${sourceAgentId}` 
+							id: isSelfReference
+								? `edge-self-${sourceAgentId}`
 								: `edge-${targetAgentId}-${sourceAgentId}`,
-							type: isSelfReference 
-								? EdgeType.SelfLoop 
-								: isTargetExternal 
-									? EdgeType.A2AExternal 
+							type: isSelfReference
+								? EdgeType.SelfLoop
+								: isTargetExternal
+									? EdgeType.A2AExternal
 									: EdgeType.A2A,
 							source: sourceAgentId,
 							sourceHandle: agentNodeSourceHandleId,
@@ -238,10 +238,10 @@ export function deserializeGraphData(
 				if (data.agents[targetAgentId]) {
 					// Special handling for self-referencing edges
 					const isSelfReference = sourceAgentId === targetAgentId;
-					const pairKey = isSelfReference 
-						? `self-${sourceAgentId}` 
+					const pairKey = isSelfReference
+						? `self-${sourceAgentId}`
 						: [sourceAgentId, targetAgentId].sort().join("-");
-					
+
 					if (!processedPairs.has(pairKey)) {
 						processedPairs.add(pairKey);
 						const targetAgent = data.agents[targetAgentId];
@@ -266,13 +266,13 @@ export function deserializeGraphData(
 						const isTargetExternal = targetAgent.type === "external";
 
 						const edge = {
-							id: isSelfReference 
-								? `edge-self-${sourceAgentId}` 
+							id: isSelfReference
+								? `edge-self-${sourceAgentId}`
 								: `edge-${targetAgentId}-${sourceAgentId}`,
-							type: isSelfReference 
-								? EdgeType.SelfLoop 
-								: isTargetExternal 
-									? EdgeType.A2AExternal 
+							type: isSelfReference
+								? EdgeType.SelfLoop
+								: isTargetExternal
+									? EdgeType.A2AExternal
 									: EdgeType.A2A,
 							source: sourceAgentId,
 							sourceHandle: agentNodeSourceHandleId,

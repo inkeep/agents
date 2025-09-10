@@ -30,7 +30,7 @@ function truncateChars(s: string, n: number) {
 	return s.length > n ? `${s.slice(0, n)}...` : s;
 }
 
-function isAiMessage(activity: ActivityItem): boolean {
+function _isAiMessage(activity: ActivityItem): boolean {
 	return (
 		activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
 		activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
@@ -60,7 +60,7 @@ function statusIcon(
 		tool_purpose: { Icon: Hammer, cls: "text-muted-foreground" },
 	};
 
-	const map = base[type] || base["tool_call"];
+	const map = base[type] || base.tool_call;
 	const cls =
 		status === "success"
 			? map.cls

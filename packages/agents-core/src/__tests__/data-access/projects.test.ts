@@ -13,7 +13,6 @@ import {
   updateProject,
 } from '../../data-access/projects';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
 
 describe('Projects Data Access', () => {
   let db: DatabaseClient;

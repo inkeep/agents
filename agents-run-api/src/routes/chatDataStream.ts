@@ -1,9 +1,9 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  type CredentialStoreRegistry,
   commonGetErrorResponses,
   contextValidationMiddleware,
   createMessage,
-  CredentialStoreRegistry,
   getActiveAgentForConversation,
   getAgentById,
   getAgentGraphWithDefaultAgent,

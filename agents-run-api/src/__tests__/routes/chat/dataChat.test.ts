@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Logger mock is now in setup.ts globally
 

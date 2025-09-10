@@ -150,7 +150,7 @@ vi.mock('../../agents/ToolSessionManager.js', () => ({
 describe('Relationship Tools', () => {
   let mockAgentConfig: AgentConfig;
   let mockExternalAgentConfig: ExternalAgentConfig;
-  let mockSendMessageInstance: any;
+  let _mockSendMessageInstance: any;
   let mockCredentialStoreRegistry: any;
 
   const mockToolCallOptions = {

@@ -246,7 +246,7 @@ describe("Graph Builder Refactor - Integration Tests", () => {
 
 		// The Agent.getId() method now returns the config.id directly
 		// Agent was created with id: 'standalone'
-		expect(calledGraphData.agents["standalone"]).toMatchObject({
+		expect(calledGraphData.agents.standalone).toMatchObject({
 			id: "standalone",
 			canTransferTo: [],
 			canDelegateTo: [],

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 
-const logger = getLogger('ArtifactComponentSchema');
+const _logger = getLogger('ArtifactComponentSchema');
 
 /**
  * Converts artifact component configurations to Zod schema for structured generation

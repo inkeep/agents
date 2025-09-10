@@ -1,10 +1,10 @@
 import type { Node } from "@xyflow/react";
+import { useCallback } from "react";
+import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import type { ErrorHelpers } from "@/hooks/use-graph-errors";
 import { useNodeEditor } from "@/hooks/use-node-editor";
 import type { ExternalAgentNodeData } from "../../configuration/node-types";
 import { InputField, TextareaField } from "./form-fields";
-import { useCallback } from "react";
-import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 
 interface ExternalAgentNodeEditorProps {
 	selectedNode: Node<ExternalAgentNodeData>;

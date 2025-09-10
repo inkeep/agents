@@ -8,10 +8,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGraphStore } from "@/features/graph/state/use-graph-store";
+import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import type { ErrorHelpers } from "@/hooks/use-graph-errors";
 import { useNodeEditor } from "@/hooks/use-node-editor";
 import { useProjectData } from "@/hooks/use-project-data";
-import { useAutoPrefillIdZustand } from "@/hooks/use-auto-prefill-id-zustand";
 import type { ArtifactComponent } from "@/lib/api/artifact-components";
 import type { DataComponent } from "@/lib/api/data-components";
 import type { AgentNodeData } from "../../configuration/node-types";

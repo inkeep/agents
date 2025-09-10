@@ -649,7 +649,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const prompt = basePrompt;
 
           const model = ModelFactory.createModel(
-            summarizerModel && summarizerModel.model?.trim()
+            summarizerModel?.model?.trim()
               ? summarizerModel
               : { model: 'openai/gpt-4.1-nano-2025-04-14' }
           );
@@ -787,7 +787,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const prompt = basePrompt;
 
           const model = ModelFactory.createModel(
-            summarizerModel && summarizerModel.model?.trim()
+            summarizerModel?.model?.trim()
               ? summarizerModel
               : { model: 'openai/gpt-4.1-nano-2025-04-14' }
           );
@@ -1057,14 +1057,14 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           ) as GraphSessionEvent | undefined;
 
           // Prepare context for name/description generation
-          const toolContext = toolCallEvent
+          const _toolContext = toolCallEvent
             ? {
                 toolName: (toolCallEvent.data as any).toolName,
                 args: (toolCallEvent.data as any).args,
               }
             : null;
 
-          const toolResult = toolResultEvent
+          const _toolResult = toolResultEvent
             ? {
                 result: (toolResultEvent.data as any).result,
               }
