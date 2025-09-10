@@ -115,230 +115,113 @@ async function runDatasetEvaluation(config: RunConfig): Promise<void> {
 
   logger.info({ chatBaseUrl }, 'Starting dataset evaluation run');
 
-  // Process the dataset
-  await processDatasetRun({
-    datasetId,
-    runName,
-    metadata,
-    chatBaseUrl,
-    authKey,
-    agentId,
-    tenantId,
-    projectId,
-    graphId,
+  // Initialize Langfuse client
+  const langfuse = new Langfuse({
+    publicKey: process.env.LANGFUSE_PUBLIC_KEY || '',
+    secretKey: process.env.LANGFUSE_SECRET_KEY || '',
+    baseUrl: process.env.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com',
   });
+
+  // Get the dataset
+  const dataset = await langfuse.getDataset(datasetId);
+  if (!dataset) {
+    throw new Error(`Dataset ${datasetId} not found in Langfuse`);
+  }
+
+  logger.info(
+    {
+      datasetId,
+      datasetName: dataset.name,
+      itemCount: dataset.items?.length || 0,
+    },
+    'Successfully fetched dataset from Langfuse'
+  );
+
+  // Process each dataset item using the correct SDK approach
+  for (const item of dataset.items) {
+    const itemLogger = logger.child({ datasetItemId: item.id });
+
+    try {
+      itemLogger.info('Processing dataset item through agent graph');
+
+      // Extract the input text from the dataset item
+      const userMessage = extractInputFromDatasetItem(item);
+      if (!userMessage) {
+        itemLogger.warn('No input text found in dataset item, skipping');
+        continue;
+      }
+
+      // Create a deterministic trace ID based on dataset item
+      const traceId = `dataset_${datasetId}_item_${item.id}_${Date.now()}`;
+
+      // Create a unique conversation ID for this dataset item
+      const conversationId = `dataset_run_${nanoid()}`;
+
+      // Run the dataset item through the chat API with explicit trace creation
+      const result = await runDatasetItemThroughChatAPI({
+        conversationId,
+        userMessage,
+        agentId,
+        datasetItem: item,
+        chatBaseUrl,
+        authKey,
+        executionContext: {
+          tenantId,
+          projectId,
+          graphId,
+        },
+        traceId,
+        langfuse,
+      });
+
+      // Link the execution trace to the dataset item using item.link()
+      if (result.traceId && result.trace) {
+        await item.link(result.trace, runName || 'dataset-evaluation', {
+          description: 'Agent evaluation run via Inkeep Agent Framework',
+          metadata: {
+            agentFramework: 'inkeep-agents',
+            tenantId,
+            projectId,
+            graphId,
+            agentId,
+            success: result.success,
+            iterations: result.iterations,
+            conversationId,
+            ...(result.error && { error: result.error }),
+            ...metadata,
+          },
+        });
+      }
+
+      itemLogger.info(
+        {
+          success: result.success,
+          iterations: result.iterations,
+          traceId: result.traceId,
+        },
+        'Completed processing dataset item and linked trace'
+      );
+    } catch (error) {
+      itemLogger.error(
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Error processing dataset item'
+      );
+    }
+  }
+
+  // Flush to ensure all data is sent to Langfuse
+  await langfuse.flushAsync();
 
   logger.info('Dataset evaluation completed');
 }
 
-// Helper function to process the dataset run using chat API
-async function processDatasetRun({
-  datasetId,
-  runName,
-  metadata,
-  chatBaseUrl,
-  authKey,
-  agentId,
-  tenantId,
-  projectId,
-  graphId,
-}: {
-  datasetId: string;
-  runName?: string;
-  metadata?: Record<string, any>;
-  chatBaseUrl: string;
-  authKey: string;
-  agentId?: string;
-  tenantId: string;
-  projectId: string;
-  graphId: string;
-}): Promise<void> {
-  logger.info(
-    {
-      datasetId,
-      agentId,
-      chatBaseUrl,
-    },
-    'Starting dataset processing'
-  );
-
-  try {
-    // Step 1: Fetch dataset from Langfuse
-    const dataset = await fetchDatasetFromLangfuse(datasetId);
-
-    if (!dataset || !dataset.items || dataset.items.length === 0) {
-      throw new Error(`No dataset items found for dataset ${datasetId}`);
-    }
-
-    logger.info(
-      {
-        datasetId,
-        itemCount: dataset.items.length,
-      },
-      'Fetched dataset from Langfuse'
-    );
-
-    // Step 2: Process each dataset item through the agent graph
-    const results: Array<{
-      datasetItemId: string;
-      input: string;
-      output: string | null;
-      success: boolean;
-      metadata?: {
-        iterations?: number;
-        conversationId: string;
-      };
-      error?: string;
-    }> = [];
-    for (let i = 0; i < dataset.items.length; i++) {
-      const item = dataset.items[i];
-      const itemLogger = logger.child({ datasetItemId: item.id, itemIndex: i });
-
-      try {
-        itemLogger.info('Processing dataset item through agent graph');
-
-        // Extract the input text from the dataset item
-        const userMessage = extractInputFromDatasetItem(item);
-
-        if (!userMessage) {
-          itemLogger.warn('No input text found in dataset item, skipping');
-          continue;
-        }
-
-        // Create a unique conversation ID for this dataset item
-        const conversationId = `dataset_run_${nanoid()}`;
-
-        // Run the dataset item through the chat API
-        const result = await runDatasetItemThroughChatAPI({
-          conversationId,
-          userMessage,
-          agentId,
-          datasetItem: item,
-          chatBaseUrl,
-          authKey,
-          executionContext: {
-            tenantId,
-            projectId,
-            graphId,
-          },
-          _datasetId: datasetId,
-        });
-
-        results.push({
-          datasetItemId: item.id,
-          input: userMessage,
-          output: result.response || null,
-          success: result.success,
-          metadata: {
-            iterations: result.iterations,
-            conversationId,
-          },
-        });
-
-        itemLogger.info(
-          {
-            success: result.success,
-            iterations: result.iterations,
-          },
-          'Completed processing dataset item'
-        );
-      } catch (error) {
-        itemLogger.error(
-          {
-            error: error instanceof Error ? error.message : String(error),
-          },
-          'Error processing dataset item'
-        );
-
-        results.push({
-          datasetItemId: item.id,
-          input: extractInputFromDatasetItem(item) || 'unknown',
-          output: null,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-
-    // Step 3: Send results back to Langfuse
-    await sendResultsToLangfuse({
-      datasetId,
-      runName,
-      results,
-      metadata,
-    });
-
-    logger.info(
-      {
-        datasetId,
-        totalItems: dataset.items.length,
-        successfulItems: results.filter((r) => r.success).length,
-        failedItems: results.filter((r) => !r.success).length,
-      },
-      'Dataset run processing completed'
-    );
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        datasetId,
-      },
-      'Error in dataset run processing'
-    );
-    throw error;
-  }
-}
-
-// Helper function to fetch dataset items from Langfuse
-async function fetchDatasetFromLangfuse(datasetId: string): Promise<any> {
-  try {
-    // Initialize Langfuse client
-    const langfuse = new Langfuse({
-      publicKey: process.env.LANGFUSE_PUBLIC_KEY || '',
-      secretKey: process.env.LANGFUSE_SECRET_KEY || '',
-      baseUrl: process.env.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com',
-    });
-
-    logger.info({ datasetId }, 'Fetching dataset from Langfuse via API');
-
-    // Fetch the dataset using the Langfuse SDK
-    const dataset = await langfuse.getDataset(datasetId);
-
-    if (!dataset) {
-      throw new Error(`Dataset ${datasetId} not found in Langfuse`);
-    }
-    const items = dataset.items;
-
-    logger.info(
-      {
-        datasetId,
-        datasetName: dataset.name,
-        itemCount: items?.length || 0,
-      },
-      'Successfully fetched dataset from Langfuse'
-    );
-
-    return { ...dataset, items };
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : String(error),
-        datasetId,
-      },
-      'Failed to fetch dataset from Langfuse'
-    );
-    throw error;
-  }
-}
-
 // Helper function to extract input text from a dataset item
 function extractInputFromDatasetItem(item: any): string | null {
-
   if (item.input && typeof item.input.message === 'string') {
     return item.input.message;
   }
-
   logger.warn({ item }, 'Could not extract input text from dataset item');
   return null;
 }
@@ -352,7 +235,8 @@ async function runDatasetItemThroughChatAPI({
   chatBaseUrl,
   authKey,
   executionContext,
-  _datasetId,
+  traceId,
+  langfuse,
 }: {
   conversationId: string;
   userMessage: string;
@@ -365,16 +249,34 @@ async function runDatasetItemThroughChatAPI({
     projectId: string;
     graphId: string;
   };
-  _datasetId: string;
+  traceId: string;
+  langfuse: any;
 }): Promise<{
   success: boolean;
   response?: string;
   error?: string;
   iterations?: number;
   traceId?: string;
+  trace?: any;
 }> {
   try {
-    // Prepare the chat request payload for chatDataStream endpoint
+    // Create a trace for this dataset item execution
+    const trace = langfuse.trace({
+      id: traceId,
+      name: `Dataset Item Execution: ${datasetItem.id}`,
+      input: userMessage,
+      metadata: {
+        datasetItemId: datasetItem.id,
+        conversationId,
+        agentId,
+        tenantId: executionContext.tenantId,
+        projectId: executionContext.projectId,
+        graphId: executionContext.graphId,
+      },
+      tags: ['dataset-evaluation', 'agent-execution'],
+    });
+
+    // Prepare the chat request payload
     const chatPayload = {
       messages: [
         {
@@ -386,7 +288,7 @@ async function runDatasetItemThroughChatAPI({
       ...(agentId && { agentId }),
     };
 
-    // Make request to chat endpoint (using chatDataStream route for proper span attributes)
+    // Make request to chat endpoint
     const response = await fetch(`${chatBaseUrl}/api/chat`, {
       method: 'POST',
       headers: {
@@ -412,9 +314,18 @@ async function runDatasetItemThroughChatAPI({
         'Chat API request failed'
       );
 
+      // Update trace with error
+      trace.update({
+        output: null,
+        level: 'ERROR',
+        statusMessage: `Chat API error: ${response.status} ${response.statusText}`,
+      });
+
       return {
         success: false,
         error: `Chat API error: ${response.status} ${response.statusText}`,
+        traceId,
+        trace,
       };
     }
 
@@ -422,10 +333,18 @@ async function runDatasetItemThroughChatAPI({
     logger.info({ responseText }, 'Response text');
     const assistantResponse = parseSSEResponse(responseText);
 
+    // Update trace with successful output
+    trace.update({
+      output: assistantResponse || 'No response generated',
+      level: 'DEFAULT',
+    });
+
     return {
       success: true,
       response: assistantResponse || 'No response generated',
       iterations: 1, // Simple chat API call
+      traceId,
+      trace,
     };
   } catch (error) {
     logger.error(
@@ -440,6 +359,8 @@ async function runDatasetItemThroughChatAPI({
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
+      traceId,
+      trace: null,
     };
   }
 }
@@ -463,126 +384,6 @@ function parseSSEResponse(sseText: string): string {
   }
 
   return assistantResponse.trim();
-}
-
-// Helper function to send results back to Langfuse
-async function sendResultsToLangfuse({
-  datasetId,
-  runName,
-  results,
-  metadata,
-}: {
-  datasetId: string;
-  runName?: string;
-  results: any[];
-  metadata?: Record<string, any>;
-}): Promise<void> {
-  try {
-    // Initialize Langfuse client
-    const langfuse = new Langfuse({
-      publicKey: process.env.LANGFUSE_PUBLIC_KEY || '',
-      secretKey: process.env.LANGFUSE_SECRET_KEY || '',
-      baseUrl: process.env.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com',
-    });
-
-    logger.info(
-      {
-        datasetId,
-        runName,
-        resultCount: results.length,
-        successCount: results.filter((r) => r.success).length,
-      },
-      'Sending results to Langfuse via API'
-    );
-
-    // Fetch the dataset again to get the items with their run methods
-    const dataset = await langfuse.getDataset(datasetId);
-    if (!dataset || !dataset.items) {
-      throw new Error(`Could not fetch dataset ${datasetId} for linking traces`);
-    }
-
-    // Create traces using the proper dataset run linking
-    for (const result of results) {
-      try {
-        // Find the corresponding dataset item
-        const datasetItem = dataset.items.find((item) => item.id === result.datasetItemId);
-        if (!datasetItem) {
-          logger.warn(
-            {
-              datasetItemId: result.datasetItemId,
-            },
-            'Dataset item not found for linking'
-          );
-          continue;
-        }
-
-        // Create trace and link it to the dataset run
-        const trace = langfuse.trace({
-          name: `Dataset Item: ${result.datasetItemId}`,
-          input: result.input,
-          output: result.output,
-          metadata: {
-            datasetItemId: result.datasetItemId,
-            success: result.success,
-            conversationId: result.metadata?.conversationId,
-            iterations: result.metadata?.iterations,
-            agentFramework: 'inkeep-agents',
-            ...(result.error && { error: result.error }),
-            ...metadata,
-          },
-          tags: ['dataset-run', 'agent-evaluation'].filter(Boolean),
-        });
-
-        // Link the trace to the dataset item and run
-        if (datasetItem.link) {
-          await datasetItem.link(trace, runName || 'dataset-evaluation', {
-            description: `Agent evaluation run`,
-            metadata: {
-              agentFramework: 'inkeep-agents',
-              ...metadata,
-            },
-          });
-        }
-
-        logger.debug(
-          {
-            datasetItemId: result.datasetItemId,
-            traceId: trace.id,
-          },
-          'Created trace and linked to dataset run'
-        );
-      } catch (error) {
-        logger.error(
-          {
-            error: error instanceof Error ? error.message : String(error),
-            datasetItemId: result.datasetItemId,
-          },
-          'Failed to create and link trace for dataset item'
-        );
-      }
-    }
-
-    // Flush to ensure all data is sent to Langfuse
-    await langfuse.flushAsync();
-
-    logger.info(
-      {
-        datasetId,
-        tracesCreated: results.length,
-      },
-      'Successfully sent results to Langfuse'
-    );
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        datasetId,
-      },
-      'Failed to send results to Langfuse'
-    );
-    throw error;
-  }
 }
 
 // Run the main function if this script is executed directly
