@@ -13,6 +13,7 @@ export interface PushOptions {
   tenantId?: string;
   managementApiUrl?: string;
   configFilePath?: string;
+  env?: string;
 }
 
 export async function pushCommand(graphPath: string, options: PushOptions) {
@@ -27,6 +28,12 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
       spinner.fail('Graph file not found');
       console.error(chalk.red(`File not found: ${absolutePath}`));
       process.exit(1);
+    }
+
+    // Set environment for graph loading if --env flag is provided
+    if (options.env) {
+      process.env.INKEEP_ENV = options.env;
+      spinner.text = `Setting environment to '${options.env}'...`;
     }
 
     // Import the module with TypeScript support

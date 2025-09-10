@@ -70,6 +70,10 @@ program
     '--config-file-path <path>',
     'Path to configuration file (alternative to --tenant-id/--api-url)'
   )
+  .option(
+    '--env <environment>',
+    'Environment to use for credential resolution (e.g., development, production)'
+  )
   .action(async (graphPath, options) => {
     await pushCommand(graphPath, options);
   });
