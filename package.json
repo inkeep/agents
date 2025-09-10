@@ -30,6 +30,7 @@
     "typecheck": "turbo typecheck",
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
+    "langfuse": "cd langfuse-script && pnpm tsx langfuse-run.ts",
     "prepare": "husky",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev"

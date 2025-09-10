@@ -6,6 +6,7 @@ packages:
   - agents-ui
   - examples
   - agents-docs
+  - langfuse-script
   - packages/agents-core
   - packages/agents-sdk
 onlyBuiltDependencies:
