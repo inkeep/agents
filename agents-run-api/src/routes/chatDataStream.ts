@@ -93,17 +93,33 @@ app.openapi(chatDataStreamRoute, async (c) => {
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
-      // Detect run type - check if this is from a dataset evaluation run
-      const isDatasetRun = c.req.header('x-langfuse-dataset-run') === 'true';
-      const runType = isDatasetRun ? 'langfuse-dataset-run' : 'chat-widget';
+      // Parse Langfuse tags header for run type and dataset info
+      const langfuseTags = c.req.header('x-langfuse-tags');
+      const parsedTags = langfuseTags ? 
+        Object.fromEntries(
+          langfuseTags.split(',').map(tag => {
+            const [key, value] = tag.split('=');
+            return [key, value];
+          })
+        ) : {};
       
-      activeSpan.setAttributes({
+      const runType = parsedTags['run.type'] || 'chat-widget';
+      const datasetId = parsedTags['dataset.id'];
+      
+      const spanAttributes: Record<string, string> = {
         'conversation.id': conversationId,
         'tenant.id': tenantId,
         'graph.id': graphId,
         'project.id': projectId,
         'run.type': runType,
-      });
+      };
+      
+      // Only add dataset.id if it exists
+      if (datasetId) {
+        spanAttributes['dataset.id'] = datasetId;
+      }
+      
+      activeSpan.setAttributes(spanAttributes);
     }
 
     const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({

@@ -212,9 +212,18 @@ function createExecutionHono(
       }
     }
 
-    // Detect run type - check if this is from a dataset evaluation run
-    const isDatasetRun = c.req.header('x-langfuse-dataset-run') === 'true';
-    const runType = isDatasetRun ? 'langfuse-dataset-run' : 'chat-widget';
+    // Parse Langfuse tags header for run type and dataset info
+    const langfuseTags = c.req.header('x-langfuse-tags');
+    const parsedTags = langfuseTags ? 
+      Object.fromEntries(
+        langfuseTags.split(',').map(tag => {
+          const [key, value] = tag.split('=');
+          return [key, value];
+        })
+      ) : {};
+    
+    const runType = parsedTags['run.type'] || 'chat-widget';
+    const datasetId = parsedTags['dataset.id'];
 
     const entries = Object.fromEntries(
       Object.entries({
@@ -223,6 +232,7 @@ function createExecutionHono(
         'project.id': projectId,
         'conversation.id': conversationId,
         'run.type': runType,
+        'dataset.id': datasetId,
       }).filter((entry): entry is [string, string] => {
         const [, v] = entry;
         return typeof v === 'string' && v.length > 0;

@@ -180,6 +180,7 @@ async function runDatasetEvaluation(config: RunConfig): Promise<void> {
         },
         traceId,
         langfuse,
+        datasetId,
       });
 
       // Link the execution trace to the dataset item using item.link()
@@ -259,6 +260,7 @@ async function runDatasetItemThroughChatAPI({
   executionContext,
   traceId,
   langfuse,
+  datasetId,
 }: {
   conversationId: string;
   userMessage: string;
@@ -273,6 +275,7 @@ async function runDatasetItemThroughChatAPI({
   };
   traceId: string;
   langfuse: any;
+  datasetId: string;
 }): Promise<{
   success: boolean;
   response?: string;
@@ -303,7 +306,7 @@ async function runDatasetItemThroughChatAPI({
         'x-inkeep-tenant-id': executionContext.tenantId,
         'x-inkeep-project-id': executionContext.projectId,
         'x-inkeep-graph-id': executionContext.graphId,
-        'x-langfuse-dataset-run': 'true',
+        'x-langfuse-tags': `run.type=langfuse-dataset-run,dataset.id=${datasetId}`,
       },
       body: JSON.stringify(chatPayload),
     });
