@@ -308,26 +308,7 @@ async function fetchDatasetFromLangfuse(datasetId: string): Promise<any> {
     if (!dataset) {
       throw new Error(`Dataset ${datasetId} not found in Langfuse`);
     }
-
-    // Handle the case where dataset.items might not be directly available
     const items = dataset.items;
-    // if (!items) {
-    //   // Try to fetch items separately if not included in the dataset response
-    //   logger.info({ datasetId }, 'Dataset items not included, fetching separately...');
-    //   try {
-    //     // Note: This might require a different API call depending on Langfuse SDK version
-    //     // items = await langfuse.getDatasetItems(datasetId);
-    //     items = [];
-    //   } catch (error) {
-    //     logger.error(
-    //       {
-    //         error: error instanceof Error ? error.message : String(error),
-    //       },
-    //       'Failed to fetch dataset items separately'
-    //     );
-    //     items = [];
-    //   }
-    // }
 
     logger.info(
       {
@@ -353,33 +334,9 @@ async function fetchDatasetFromLangfuse(datasetId: string): Promise<any> {
 
 // Helper function to extract input text from a dataset item
 function extractInputFromDatasetItem(item: any): string | null {
-  // Handle different possible formats of dataset items
-  if (typeof item.input === 'string') {
-    return item.input;
-  }
-
-  if (item.input && typeof item.input.text === 'string') {
-    return item.input.text;
-  }
-
-  if (item.input && typeof item.input.content === 'string') {
-    return item.input.content;
-  }
 
   if (item.input && typeof item.input.message === 'string') {
     return item.input.message;
-  }
-
-  if (item.input && typeof item.input.question === 'string') {
-    return item.input.question;
-  }
-
-  if (typeof item.question === 'string') {
-    return item.question;
-  }
-
-  if (typeof item.prompt === 'string') {
-    return item.prompt;
   }
 
   logger.warn({ item }, 'Could not extract input text from dataset item');
@@ -500,15 +457,6 @@ function parseSSEResponse(sseText: string): string {
         // Handle Vercel AI data stream format (from /api/chat endpoint)
         if (data.type === 'text-delta' && data.delta) {
           assistantResponse += data.delta;
-        }
-        // Handle OpenAI chat completions format (legacy support)
-        else if (data.choices?.[0]?.delta?.content) {
-          const content = data.choices[0].delta.content;
-          // Filter out system metadata messages (data-operation type messages)
-          if (content.includes('"type":"data-operation"')) {
-            continue;
-          }
-          assistantResponse += content;
         }
       } catch {}
     }
