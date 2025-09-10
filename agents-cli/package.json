@@ -8,8 +8,7 @@
     "inkeep": "./dist/index.js"
   },
   "exports": {
-    ".": "./dist/exports.js",
-    "./cli": "./dist/index.js",
+    ".": "./dist/index.js",
     "./config": "./dist/config.js",
     "./package.json": "./package.json"
   },
