@@ -6,15 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Setup and installation
-cd agents-manage-api
-pnpm install
-
-cd agents-run-api
-pnpm install
-
-cd packages/agents-core
-pnpm install
-pnpm db:push
+pnpm install         # Install all dependencies for monorepo
 
 # Development workflow
 pnpm dev              # Start development server (port 3002)
@@ -24,14 +16,19 @@ pnpm build           # Build for production
 pnpm lint            # Run Biome linter
 pnpm format          # Format code with Biome
 
+# Database operations (run from monorepo root)
+pnpm db:generate     # Generate Drizzle migrations
+pnpm db:push         # Push schema changes to SQLite (shared database at ./local.db)
+pnpm db:migrate      # Run database migrations
+pnpm db:studio       # Open Drizzle Studio for database inspection
+pnpm db:clean        # Clean database
+pnpm db:check        # Check database schema
+pnpm db:reset-schema # Reset database schema
+
 # Running examples (from the examples directory)
 # Note: Use the globally installed inkeep CLI, not npx
 inkeep push agent-configurations/graph.graph.ts
 inkeep chat
-
-# Database operations ( run from packages/agents-core )
-pnpm db:push         # Push schema changes to SQLite
-pnpm db:studio       # Open Drizzle Studio for database inspection
 
 # Documentation development (from agents-docs directory)
 pnpm dev              # Start documentation site (port 3000)
@@ -52,6 +49,7 @@ This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent
 - **Context Preservation**: Conversation state maintained across agent transitions
 
 #### Database Schema (SQLite + Drizzle ORM)
+- **Shared Database**: Single SQLite database (`./local.db`) at monorepo root shared by both APIs
 - **agents**: Individual AI agents with instructions and capabilities
 - **agent_graphs**: Collections of agents with default entry points  
 - **agent_relations**: Transfer (`complete control transfer`) and delegation (`task assignment with return`) relationships

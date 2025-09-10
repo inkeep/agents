@@ -72,12 +72,29 @@
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
     },
+    "db:generate": {
+      "cache": false,
+      "inputs": ["drizzle.config.ts", "src/db/schema.ts"],
+      "outputs": ["drizzle/**"]
+    },
     "db:push": {
       "cache": false,
-      "inputs": ["drizzle.config.ts", "src/data/db/schema.ts"]
+      "inputs": ["drizzle.config.ts", "src/db/schema.ts"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "inputs": ["drizzle/**", "src/db/schema.ts"]
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
     },
     "db:clean": {
       "cache": false
+    },
+    "db:check": {
+      "cache": false,
+      "inputs": ["drizzle.config.ts", "src/db/schema.ts"]
     },
     "db:reset-schema": {
       "cache": false,
