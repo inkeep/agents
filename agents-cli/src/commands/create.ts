@@ -214,7 +214,7 @@ export const createAgents = async (
       `${color.green('✓')} Project created at: ${color.cyan(projectPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
-        `  npm run dev:apis (for APIs only)\n` +
+        `  npm run dev (for APIs only)\n` +
         `  npx inkeep dev (for APIs + Management Dashboard)\n\n` +
         `${color.yellow('Available services:')}\n` +
         `  • Management API: http://localhost:${manageApiPort || '3002'}\n` +
@@ -263,15 +263,13 @@ async function setupPackageConfigurations(dirName: string) {
       turbo: '^2.5.5',
     },
     engines: {
-      node: '>=20.x',
+      node: '>=22.x',
     },
     packageManager: 'npm@10.0.0',
     workspaces: ['apps/*'],
   };
 
   await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
-
-  // No need for pnpm-workspace.yaml since we're using npm workspaces
 
   // Add shared dependencies to root package.json
   rootPackageJson.dependencies = {
@@ -304,7 +302,7 @@ async function setupPackageConfigurations(dirName: string) {
       typescript: '^5.4.0',
     },
     engines: {
-      node: '>=20.x',
+      node: '>=22.x',
     },
   };
 
@@ -331,7 +329,7 @@ async function setupPackageConfigurations(dirName: string) {
       typescript: '^5.4.0',
     },
     engines: {
-      node: '>=20.x',
+      node: '>=22.x',
     },
   };
 
@@ -721,9 +719,12 @@ An Inkeep Agent Framework project with multi-service architecture.
 
 This project follows a workspace structure with the following services:
 
-- **Agents Management API** (Port ${config.manageApiPort}): Agent configuration and management
-- **Agents Run API** (Port ${config.runApiPort}): Agent execution and chat processing  
+- **Agents Management API** (Port 3002): Agent configuration and managemen
+  - Handles entity management and configuration endpoints.
+- **Agents Run API** (Port 3003): Agent execution and chat processing  
+  - Handles agent communication. You can interact with your agents either over MCP from an MCP client or through our React UI components library
 - **Management Dashboard** (Port 3000): Web interface available via \`npx inkeep dev\`
+  - The agent framework visual builder. From the builder you can create, manage and visualize all your graphs.
 
 ## Quick Start
 
@@ -755,7 +756,9 @@ ${config.dirName}/
 │   ├── /${config.projectId}              # Agent configurations
 ├── apps/
 │   ├── manage-api/          # Agents Management API service
-│   └── run-api/             # Agents Run API service
+│   ├── run-api/             # Agents Run API service
+│   └── shared/              # Shared code between API services
+│       └── credential-stores.ts  # Shared credential store configuration
 ├── turbo.json               # Turbo configuration
 └── package.json             # Root package configuration with npm workspaces
 \`\`\`
@@ -769,6 +772,7 @@ Environment variables are defined in the following places:
 - \`apps/manage-api/.env\`: Agents Management API environment variables
 - \`apps/run-api/.env\`: Agents Run API environment variables
 - \`src/${config.projectId}/.env\`: Inkeep CLI environment variables
+- \`.env\`: Root environment variables 
 
 To change the API keys used by your agents modify \`apps/run-api/.env\`. You are required to define at least one LLM provider key.
 
