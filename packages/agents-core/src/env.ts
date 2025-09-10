@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as dotenv from 'dotenv';
+import { expand } from 'dotenv-expand';
 import { z } from 'zod';
 
 dotenv.config({ quiet: true });
@@ -28,11 +29,11 @@ const criticalEnv = (() => {
     if (!process.env.ENVIRONMENT) {
       // Check if we're running from a globally installed package (production)
       // or from a local development environment
-      const isGlobalInstall = 
+      const isGlobalInstall =
         __dirname.includes('node_modules/@inkeep/agents-cli') ||
         __dirname.includes('.nvm') ||
         __dirname.includes('.npm');
-      
+
       const defaultEnv = isGlobalInstall ? 'production' : 'development';
       process.env.ENVIRONMENT = defaultEnv;
       return { ENVIRONMENT: defaultEnv as 'production' | 'development' };
@@ -58,10 +59,48 @@ const loadEnvFile = () => {
         process.env[k] = envConfig[k];
       }
     }
+    dir = path.dirname(dir);
   }
+  // Fallback to current working directory if not in a monorepo
+  return process.cwd();
 };
 
-loadEnvFile();
+// Load environment configuration following Cal.com pattern
+// Single root .env file for entire monorepo
+export const loadEnv = () => {
+  const root = findMonorepoRoot();
+
+  // 1. Load .env.example as base (defaults)
+  const examplePath = path.join(root, '.env.example');
+  if (fs.existsSync(examplePath)) {
+    dotenv.config({ path: examplePath });
+  }
+
+  // 2. Load root .env (main configuration)
+  const envPath = path.join(root, '.env');
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: true });
+  }
+
+  // 3. Load user global config if exists (~/.inkeep/config)
+  // This allows sharing API keys across multiple local repo copies
+  const userConfigPath = path.join(os.homedir(), '.inkeep', 'config');
+  if (fs.existsSync(userConfigPath)) {
+    dotenv.config({ path: userConfigPath, override: true });
+  }
+
+  // 4. Load repo-specific .env.local (for multiple local copies)
+  const localEnvPath = path.join(root, '.env.local');
+  if (fs.existsSync(localEnvPath)) {
+    dotenv.config({ path: localEnvPath, override: true });
+  }
+
+  // Expand variables that reference other variables
+  expand({ processEnv: process.env });
+};
+
+// Load environment variables
+loadEnv();
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
   DB_FILE_NAME: z.string().default(defaultDbPath),

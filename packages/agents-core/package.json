@@ -58,6 +58,7 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "dotenv": "^17.2.1",
+    "dotenv-expand": "^12.0.3",
     "drizzle-orm": "^0.44.4",
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",

@@ -63,33 +63,55 @@ Thank you for your interest in contributing to the Agent Framework! Here are gui
 
 ### Getting Started with Local Dev
 
-First, add your `ANTHROPIC_API_KEY` to an `.env` file at `/agents-run-api`:
+#### Quick Setup
+
+Run the automated setup script:
+```bash
+./scripts/setup.sh
 ```
+
+This will create your environment configuration files and set up the database.
+
+#### Manual Setup
+
+1. Create your environment configuration:
+```bash
+cp .env.example .env
+```
+
+2. Add your API keys to `.env`:
+```bash
 ANTHROPIC_API_KEY=sk-ant-xyz789
+OPENAI_API_KEY=sk-xxx  # Optional
 ```
 
-### Installation
-
-Install the dependencies:
+3. Install dependencies:
 ```bash 
 pnpm install
 ```
 
-### Database Setup
-
-Set the DB schema:
-
+4. Initialize the database:
 ```bash
 pnpm --dir ./packages/agents-core db:push
 ```
 
 ### Running the Development Server
 
-At the root directory:
-
 ```bash
 pnpm dev
 ```
+
+### Environment Configuration
+
+We use a **centralized environment configuration** pattern inspired by Cal.com. All packages reference a single `.env` file at the repository root. This eliminates duplication and simplifies configuration management.
+
+**Configuration Priority** (highest to lowest):
+1. `.env.local` - Repository-specific overrides
+2. `~/.inkeep/config` - User-global settings (shared across multiple repo copies)
+3. `.env` - Main configuration
+4. `.env.example` - Default values
+
+See the [Environment Configuration Guide](docs/ENVIRONMENT_CONFIGURATION.md) for detailed information.
 
 ### Running the test suite
 
