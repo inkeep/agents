@@ -25,6 +25,10 @@
       "cache": false,
       "persistent": true
     },
+    "prepack": {
+      "cache": false,
+      "persistent": true
+    },
     "start": {
       "dependsOn": ["build"],
       "cache": false
