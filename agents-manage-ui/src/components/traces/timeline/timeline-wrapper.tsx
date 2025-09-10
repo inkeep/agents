@@ -19,7 +19,7 @@ import type {
 	SelectedPanel,
 } from "@/components/traces/timeline/types";
 import { ACTIVITY_TYPES, TOOL_TYPES } from "@/components/traces/timeline/types";
-import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
 
@@ -72,13 +72,32 @@ function EmptyTimeline({
 	retryConnection?: () => void;
 }) {
 	if (error) {
+		const isMissingApiKey = error.includes("SIGNOZ_API_KEY is not configured");
+
 		return (
 			<div className="flex flex-col gap-4 h-full justify-center items-center px-6">
-				<Alert variant="destructive" className="max-w-md">
+				<Alert variant="warning" className="max-w-md">
 					<AlertTriangle className="h-4 w-4" />
-					<AlertTitle>{error}</AlertTitle>
+					<AlertTitle>
+						{isMissingApiKey
+							? "SigNoz Configuration Required"
+							: "Connection Error"}
+					</AlertTitle>
+					<AlertDescription>
+						{isMissingApiKey ? (
+							<div>
+								<p>
+									The SIGNOZ_API_KEY environment variable is not configured.
+									Please set this environment variable to the enable activity
+									timeline.
+								</p>
+							</div>
+						) : (
+							error
+						)}
+					</AlertDescription>
 				</Alert>
-				{retryConnection && (
+				{retryConnection && !isMissingApiKey && (
 					<Button
 						variant="outline"
 						size="sm"

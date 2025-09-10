@@ -1,5 +1,8 @@
 "use client";
-import { InkeepEmbeddedChat } from "@inkeep/cxkit-react-oss";
+import {
+	InkeepEmbeddedChat,
+	type InkeepEmbeddedChatProps,
+} from "@inkeep/cxkit-react-oss";
 import type {
 	ComponentsConfig,
 	InkeepCallbackEvent,

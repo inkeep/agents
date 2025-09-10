@@ -62,6 +62,14 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
 
 async function signozQuery(payload: any): Promise<SigNozResp> {
 	const logger = getLogger("signoz-query");
+
+	// Check if API key is configured
+	if (!SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === "") {
+		throw new Error(
+			"SIGNOZ_API_KEY is not configured. Please set the SIGNOZ_API_KEY environment variable.",
+		);
+	}
+
 	try {
 		logger.info({ payload }, "SigNoz payload");
 		const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
@@ -1297,6 +1305,9 @@ export async function GET(
 				? error.message
 				: "Failed to fetch conversation details";
 
+		if (errorMessage.includes("SIGNOZ_API_KEY is not configured")) {
+			return NextResponse.json({ error: errorMessage }, { status: 501 });
+		}
 		if (errorMessage.includes("SigNoz service unavailable")) {
 			return NextResponse.json({ error: errorMessage }, { status: 503 });
 		}
