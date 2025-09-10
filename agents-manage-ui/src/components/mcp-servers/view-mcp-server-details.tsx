@@ -2,6 +2,7 @@
 
 import { Lock, LockOpen, Pencil } from "lucide-react";
 import Link from "next/link";
+import { ExternalLink } from "@/components/ui/external-link";
 import { Badge } from "@/components/ui/badge";
 import type { MCPTool } from "@/lib/api/tools";
 import { getOAuthLoginUrl } from "@/lib/utils/mcp-urls";
@@ -223,7 +224,9 @@ export function ViewMCPServerDetails({
 					{tool.config.mcp.transport && (
 						<div className="space-y-2">
 							<ItemLabel>Transport Type</ItemLabel>
-							<ItemValue>{tool.config.mcp.transport.type}</ItemValue>
+							<ItemValue>
+								{<Badge variant="code">{tool.config.mcp.transport.type}</Badge>}
+							</ItemValue>
 						</div>
 					)}
 					<div className="space-y-2">
@@ -231,13 +234,16 @@ export function ViewMCPServerDetails({
 						<ItemValue className="items-center">
 							{tool.credentialReferenceId ? (
 								<div className="flex items-center gap-2">
-									<Lock className="w-4 h-4" />
-									<Link
+									<Badge variant="code" className="flex items-center gap-2">
+										<Lock className="w-4 h-4" />
+										{tool.credentialReferenceId}
+									</Badge>
+									<ExternalLink
 										href={`/${tenantId}/projects/${projectId}/credentials/${tool.credentialReferenceId}`}
-										className="text-blue-600 hover:text-blue-800 hover:underline"
+										className="text-xs"
 									>
-										Click to view credential
-									</Link>
+										view credential
+									</ExternalLink>
 								</div>
 							) : (
 								<Badge variant="warning" className="flex items-center gap-2">

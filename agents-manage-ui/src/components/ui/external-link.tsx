@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export function ExternalLink({
 	href,
 	children,
+	className,
 	...props
 }: ComponentProps<typeof Link>) {
 	return (
@@ -15,7 +16,7 @@ export function ExternalLink({
 			rel="noreferrer noopener"
 			className={cn(
 				"text-sm text-muted-foreground underline underline-offset-2 inline-flex items-center gap-1 hover:text-primary ml-1 group/link font-mono uppercase transition-colors",
-				props.className,
+				className,
 			)}
 			{...props}
 		>
