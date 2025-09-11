@@ -85,10 +85,15 @@ describe('create command', () => {
         expect.objectContaining({
           name: 'test-project',
           version: '0.1.0',
-          packageManager: 'npm@10.0.0',
-          workspaces: ['apps/*'],
+          packageManager: 'pnpm@10.10.0',
         }),
         { spaces: 2 }
+      );
+
+      // Verify pnpm-workspace.yaml is created
+      expect(mockFs.writeFile).toHaveBeenCalledWith(
+        'pnpm-workspace.yaml',
+        expect.stringContaining('packages:\n  - "apps/*"')
       );
 
       // Verify environment files are created with correct ports
@@ -380,8 +385,8 @@ describe('create command', () => {
         projectId: 'test-project',
       });
 
-      expect(mockExecAsync).toHaveBeenCalledWith('npm install');
-      expect(mockExecAsync).toHaveBeenCalledWith('npx drizzle-kit push');
+      expect(mockExecAsync).toHaveBeenCalledWith('pnpm install');
+      expect(mockExecAsync).toHaveBeenCalledWith('pnpm exec drizzle-kit push');
     });
 
     it('should handle installation errors gracefully', async () => {
@@ -390,8 +395,8 @@ describe('create command', () => {
         .mockResolvedValueOnce('sk-ant-test')
         .mockResolvedValueOnce('sk-test');
       
-      // Mock exec to fail on the 'npm install' call
-      mockExecAsync.mockRejectedValueOnce(new Error('npm install failed'));
+      // Mock exec to fail on the 'pnpm install' call
+      mockExecAsync.mockRejectedValueOnce(new Error('pnpm install failed'));
       
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
@@ -406,7 +411,7 @@ describe('create command', () => {
       ).rejects.toThrow('Process exit');
 
       expect(mockPrompts.cancel).toHaveBeenCalledWith(
-        expect.stringContaining('npm install failed')
+        expect.stringContaining('pnpm install failed')
       );
       expect(exitSpy).toHaveBeenCalledWith(1);
     });

@@ -254,17 +254,17 @@ export const createAgents = async (
       `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
-        `  npm run dev (for APIs only)\n` +
-        `  npx inkeep dev (for APIs + Management Dashboard)\n\n` +
+        `  pnpm run dev (for APIs only)\n` +
+        `  inkeep dev (for APIs + Management Dashboard)\n\n` +
         `${color.yellow('Available services:')}\n` +
         `  • Management API: http://localhost:${manageApiPort || '3002'}\n` +
         `  • Execution API: http://localhost:${runApiPort || '3003'}\n` +
-        `  • Management Dashboard: Available with 'npx inkeep dev'\n` +
+        `  • Management Dashboard: Available with 'inkeep dev'\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
         `  • Edit src/${projectId}/hello.graph.ts for agent definitions\n` +
-        `  • Use 'npx inkeep push' to deploy agents to the platform\n` +
-        `  • Use 'npx inkeep chat' to test your agents locally\n`,
+        `  • Use 'inkeep push' to deploy agents to the platform\n` +
+        `  • Use 'inkeep chat' to test your agents locally\n`,
       'Ready to go!'
     );
   } catch (error) {
@@ -307,11 +307,16 @@ async function setupPackageConfigurations(dirName: string) {
     engines: {
       node: '>=22.x',
     },
-    packageManager: 'npm@10.0.0',
-    workspaces: ['apps/*'],
+    packageManager: 'pnpm@10.10.0',
   };
 
   await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
+
+  // Create pnpm-workspace.yaml for pnpm workspaces
+  const pnpmWorkspace = `packages:
+  - "apps/*"
+`;
+  await fs.writeFile('pnpm-workspace.yaml', pnpmWorkspace);
 
   // Add shared dependencies to root package.json
   rootPackageJson.dependencies = {
@@ -759,18 +764,22 @@ This project follows a workspace structure with the following services:
   - Handles entity management and configuration endpoints.
 - **Agents Run API** (Port 3003): Agent execution and chat processing  
   - Handles agent communication. You can interact with your agents either over MCP from an MCP client or through our React UI components library
-- **Management Dashboard** (Port 3000): Web interface available via \`npx inkeep dev\`
+- **Management Dashboard** (Port 3000): Web interface available via \`inkeep dev\`
   - The agent framework visual builder. From the builder you can create, manage and visualize all your graphs.
 
 ## Quick Start
+1. **Install the Inkeep CLI:**
+   \`\`\`bash
+   pnpm install -g @inkeep/agents-cli
+   \`\`\`
 
 1. **Start services:**
    \`\`\`bash
    # Start Agents Management API and Agents Run API
-   npm run dev
+   pnpm run dev
    
    # Start Dashboard
-   npx inkeep dev
+   inkeep dev
    \`\`\`
 
 3. **Deploy your first agent graph:**
@@ -779,7 +788,7 @@ This project follows a workspace structure with the following services:
    cd src/${config.projectId}/
    
    # Push the hello graph to create it
-   npx inkeep push hello.graph.ts
+   inkeep push hello.graph.ts
    \`\`\`
   - Follow the prompts to create the project and graph
   - Click on the \"View graph in UI:\" link to see the graph in the management dashboard
@@ -796,7 +805,8 @@ ${config.dirName}/
 │   └── shared/              # Shared code between API services
 │       └── credential-stores.ts  # Shared credential store configuration
 ├── turbo.json               # Turbo configuration
-└── package.json             # Root package configuration with npm workspaces
+├── pnpm-workspace.yaml      # pnpm workspace configuration
+└── package.json             # Root package configuration
 \`\`\`
 
 ## Configuration
@@ -828,7 +838,7 @@ RUN_API_PORT=3003
 MANAGE_API_PORT
 \`\`\`
 
-After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`npx inkeep dev\`:
+After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`inkeep dev\`:
 
 \`\`\`bash
 # UI Configuration (for dashboard)
@@ -855,7 +865,7 @@ Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.
 ### Updating Your Agents
 
 1. Edit \`src/${config.projectId}/index.ts\`
-2. Push the graph to the platform to update: \`npx inkeep push hello.graph.ts\` 
+2. Push the graph to the platform to update: \`inkeep push hello.graph.ts\` 
 
 ### API Documentation
 
@@ -878,7 +888,7 @@ Once services are running, view the OpenAPI documentation:
 
 ### Services won't start
 
-1. Ensure all dependencies are installed: \`npm install\`
+1. Ensure all dependencies are installed: \`pnpm install\`
 2. Check that ports 3000-3003 are available
 
 ### Agents won't respond
@@ -890,13 +900,13 @@ Once services are running, view the OpenAPI documentation:
 }
 
 async function installDependencies() {
-  await execAsync('npm install');
+  await execAsync('pnpm install');
 }
 
 async function setupDatabase() {
   try {
     // Run drizzle-kit push to create database file and apply schema
-    await execAsync('npx drizzle-kit push');
+    await execAsync('pnpm db:push');
   } catch (error) {
     throw new Error(
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
