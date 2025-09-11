@@ -13,7 +13,7 @@ The Inkeep Agent Framework uses OpenTelemetry for distributed tracing and observ
 
 ```typescript
 import { SpanStatusCode, type Span } from '@opentelemetry/api';
-import { getTracer } from '../tracer';
+import { getTracer, setSpanWithError } from '../tracer';
 ```
 
 ### 2. Get the Tracer
@@ -36,12 +36,8 @@ return tracer.startActiveSpan('context.resolve', {
     // Your operation logic here
     return result;
   } catch (error) {
-    // Error handling
-    span.recordException(error as Error);
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: error.message,
-    });
+    // Use setSpanWithError for consistent error handling
+    setSpanWithError(span, error);
     throw error;
   } 
 });
@@ -82,23 +78,16 @@ span.addEvent('error.validation_failed', {
 
 ## Error Handling and Status
 
-### Setting Error Status
+### Using setSpanWithError Utility
+
+The framework provides a convenient `setSpanWithError` utility function that handles error recording and status setting:
 
 ```typescript
 try {
   // Your operation
 } catch (error) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  
-  // Record the exception
-  span.recordException(error as Error);
-  
-  // Set error status
-  span.setStatus({
-    code: SpanStatusCode.ERROR,
-    message: errorMessage,
-  });
-  
+  // Use the setSpanWithError utility for consistent error handling
+  setSpanWithError(span, error);
   throw error;
 }
 ```
@@ -172,7 +161,7 @@ Spans provide powerful observability into your Inkeep Agent Framework operations
 1. **Use `getTracer()`** for consistent tracing
 2. **Use consistent naming**
 3. **Set meaningful attributes** for searchability
-4. **Handle errors properly** with status and exceptions
+4. **Handle errors properly** using `setSpanWithError` for consistent error handling
 5. **Use `startActiveSpan`** for automatic lifecycle management
 
 This will give you comprehensive visibility into your agent operations, making debugging and performance optimization much easier.
