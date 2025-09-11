@@ -11,7 +11,7 @@ import {
   handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { context, propagation, trace, ROOT_CONTEXT } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
 import { nanoid } from 'nanoid';
@@ -93,31 +93,66 @@ app.openapi(chatDataStreamRoute, async (c) => {
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
-      // Parse Langfuse tags header for run type and dataset info
-      const langfuseTags = c.req.header('x-langfuse-tags');
-      const parsedTags = langfuseTags
-        ? Object.fromEntries(
-            langfuseTags.split(',').map((tag) => {
-              const [key, value] = tag.split('=');
-              return [key, value];
-            })
-          )
-        : {};
+      // Extract baggage from HTTP headers using OpenTelemetry propagation
+      const requestHeaders: Record<string, string | string[]> = {};
+      const baggageHeader = c.req.header('baggage');
+      if (baggageHeader) {
+        requestHeaders.baggage = baggageHeader;
+      }
 
-      const runType = parsedTags['baggage.run.type'] || 'chat-widget';
-      const datasetId = parsedTags['baggage.dataset.id'];
+      // Use OpenTelemetry propagation to extract baggage from headers
+      // const extractedContext = propagation.extract(ROOT_CONTEXT, requestHeaders);
+      // const extractedBaggage = propagation.getBaggage(extractedContext);
+
+      // // Also get any existing baggage from current context
+      // const currentBaggage = propagation.getBaggage(context.active());
+
+      // // Merge both baggage sources (current context takes precedence)
+      // let finalBaggage = extractedBaggage;
+      // if (currentBaggage && extractedBaggage) {
+      //   // Merge baggages - current context values override extracted ones
+      //   currentBaggage.getAllEntries().forEach(([key, entry]) => {
+      //     finalBaggage =
+      //       finalBaggage?.setEntry(key, entry) || propagation.createBaggage().setEntry(key, entry);
+      //   });
+      // } else if (currentBaggage) {
+      //   finalBaggage = currentBaggage;
+      // }
+      const extractedContext = propagation.extract(ROOT_CONTEXT, requestHeaders);
+      const extractedBaggage = propagation.getBaggage(extractedContext);
+      const finalBaggage = extractedBaggage;
 
       const spanAttributes: Record<string, string> = {
         'conversation.id': conversationId,
         'tenant.id': tenantId,
         'graph.id': graphId,
         'project.id': projectId,
-        'baggage.run.type': runType,
       };
 
-      // Only add dataset.id if it exists
-      if (datasetId) {
-        spanAttributes['baggage.dataset.id'] = datasetId;
+      // Add baggage entries as span attributes based on configured keys
+      const baggageTagKeysConfig = process.env.INKEEP_TRACE_BAGGAGE_TAG_KEYS?.trim();
+
+      if (finalBaggage && baggageTagKeysConfig) {
+        if (baggageTagKeysConfig === '*') {
+          // Wildcard: tag all baggage items
+          finalBaggage.getAllEntries().forEach(([key, baggageEntry]) => {
+            if (baggageEntry.value) {
+              spanAttributes[`baggage.${key}`] = baggageEntry.value;
+            }
+          });
+        } else {
+          // Specific keys: only tag configured baggage keys
+          const baggageTagKeys = baggageTagKeysConfig
+            .split(',')
+            .map((key) => key.trim())
+            .filter((key) => key.length > 0);
+          baggageTagKeys.forEach((key) => {
+            const baggageEntry = finalBaggage?.getEntry(key);
+            if (baggageEntry?.value) {
+              spanAttributes[`baggage.${key}`] = baggageEntry.value;
+            }
+          });
+        }
       }
 
       activeSpan.setAttributes(spanAttributes);
@@ -234,7 +269,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     c.header('x-vercel-ai-data-stream', 'v2');
     c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
-    // Add trace ID header for Langfuse linking
+    // Add trace ID header for distributed tracing
     const activeSpanForHeader = trace.getActiveSpan();
     if (activeSpanForHeader) {
       const traceId = activeSpanForHeader.spanContext().traceId;

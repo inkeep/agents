@@ -212,28 +212,13 @@ function createExecutionHono(
       }
     }
 
-    // Parse Langfuse tags header for run type and dataset info
-    const langfuseTags = c.req.header('x-langfuse-tags');
-    const parsedTags = langfuseTags
-      ? Object.fromEntries(
-          langfuseTags.split(',').map((tag) => {
-            const [key, value] = tag.split('=');
-            return [key, value];
-          })
-        )
-      : {};
-
-    const runType = parsedTags['baggage.run.type'] || 'chat-widget';
-    const datasetId = parsedTags['baggage.dataset.id'];
-
+    // Build baggage entries based on available context
     const entries = Object.fromEntries(
       Object.entries({
         'graph.id': graphId,
         'tenant.id': tenantId,
         'project.id': projectId,
         'conversation.id': conversationId,
-        'baggage.run.type': runType,
-        'baggage.dataset.id': datasetId,
       }).filter((entry): entry is [string, string] => {
         const [, v] = entry;
         return typeof v === 'string' && v.length > 0;

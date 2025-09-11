@@ -263,7 +263,7 @@ async function runDatasetItemThroughChatAPI({
         'x-inkeep-tenant-id': executionContext.tenantId,
         'x-inkeep-project-id': executionContext.projectId,
         'x-inkeep-graph-id': executionContext.graphId,
-        'x-langfuse-tags': `baggage.run.type=langfuse-dataset-run,baggage.dataset.id=${datasetId}`,
+        'baggage': `run.type=langfuse-dataset-run,dataset.id=${datasetId}`,
       },
       body: JSON.stringify(chatPayload),
     });
