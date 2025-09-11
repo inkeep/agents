@@ -212,7 +212,6 @@ function createExecutionHono(
       }
     }
 
-    // Build baggage entries based on available context
     const entries = Object.fromEntries(
       Object.entries({
         'graph.id': graphId,
