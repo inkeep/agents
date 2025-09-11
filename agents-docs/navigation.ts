@@ -56,14 +56,18 @@ export default {
 		},
 		{
 			group: "API Reference",
-			pages: [{
-				group: "Authentication",
-				icon: "LuLock",
-				pages: [
-					"api-reference/authentication/run-api",
-					"api-reference/authentication/manage-api",
-				],
-			}, "api-reference"],
+			pages: [
+				{
+					group: "Authentication",
+					icon: "LuLock",
+					pages: [
+						"api-reference/authentication/run-api",
+						"api-reference/authentication/manage-api",
+					],
+				},
+				"api-reference/run-api/run-api",
+				"api-reference/manage-api/manage-api",
+			],
 		},
 		/**
 		 * TODO: Add back schema validation back in some way
