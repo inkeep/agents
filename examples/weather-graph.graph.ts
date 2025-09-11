@@ -24,7 +24,6 @@ import {
     description: "Responsible for routing between the geocoder agent and weather forecast agent",
     prompt: "You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast",
     canDelegateTo: () => [weatherForecaster, geocoderAgent],
-    tools: () => [],
   });
 
   const weatherForecaster = agent({
@@ -32,7 +31,7 @@ import {
     name: "Weather forecaster",
     description: "This agent is responsible for taking in coordinates and returning the forecast for the weather at that location",
     prompt: "You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool",
-    tools: () => [forecastWeatherTool],
+    canUse: () => [forecastWeatherTool],
   });
   
   const geocoderAgent = agent({
@@ -40,7 +39,7 @@ import {
     name: "Geocoder agent",
     description: "Responsible for converting location or address into coordinates",
     prompt: "You are a helpful assistant responsible for converting location or address into coordinates using your geocode tool",
-    tools: () => [geocodeAddressTool],
+    canUse: () => [geocodeAddressTool],
   });
   
   // Agent Graph
