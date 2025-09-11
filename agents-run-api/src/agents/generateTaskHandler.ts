@@ -112,7 +112,7 @@ export const createTaskHandler = (
       ]);
 
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
-      
+
       // Enhance internal relation descriptions with their transfer/delegation info
       // This allows agents to see the full capability graph for routing decisions
       // We batch the operations to be more efficient than the original N+1 approach
@@ -130,13 +130,12 @@ export const createTaskHandler = (
                 graphId: config.graphId,
                 agentId: relation.id,
               });
-              
+
               // Use the optimized version that accepts pre-computed relations
-              const enhancedDescription = await generateDescriptionWithTransfers(
+              const enhancedDescription = generateDescriptionWithTransfers(
                 relation.description || '',
-                relatedAgent,
-                config.graphId,
-                relatedAgentRelations // Pass pre-computed relations to avoid redundant DB call
+                relatedAgentRelations.internalRelations,
+                relatedAgentRelations.externalRelations
               );
               return { ...relation, description: enhancedDescription };
             }
