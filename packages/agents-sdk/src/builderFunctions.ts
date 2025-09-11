@@ -159,7 +159,12 @@ export function mcpServer(config: MCPServerConfig): Tool {
  */
 
 export function mcpTool(config: MCPToolConfig): Tool {
-  const validatedConfig = MCPToolConfigSchema.parse(config);
+  // Generate ID if not provided
+  const configWithId = {
+    ...config,
+    id: config.id || generateIdFromName(config.name),
+  };
+  const validatedConfig = MCPToolConfigSchema.parse(configWithId);
   return new Tool(validatedConfig);
 }
 

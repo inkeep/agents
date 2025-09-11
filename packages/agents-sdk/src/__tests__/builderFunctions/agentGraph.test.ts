@@ -19,8 +19,8 @@ describe('agentGraph builder function', () => {
 
     const graph = agentGraph(config);
 
-    expect(graph.name).toBe('Test Graph');
-    expect(graph.agents).toContain(agent);
+    expect(graph.getName()).toBe('Test Graph');
+    expect(graph.getAgents()).toContain(agent);
   });
 
   it('should create an AgentGraph with multiple agents', () => {
@@ -45,10 +45,10 @@ describe('agentGraph builder function', () => {
 
     const graph = agentGraph(config);
 
-    expect(graph.name).toBe('Multi Agent Graph');
-    expect(graph.agents).toContain(agent1);
-    expect(graph.agents).toContain(agent2);
-    expect(graph.agents).toHaveLength(2);
+    expect(graph.getName()).toBe('Multi Agent Graph');
+    expect(graph.getAgents()).toContain(agent1);
+    expect(graph.getAgents()).toContain(agent2);
+    expect(graph.getAgents()).toHaveLength(2);
   });
 
   it('should create an AgentGraph with additional config options', () => {
@@ -68,8 +68,8 @@ describe('agentGraph builder function', () => {
 
     const graph = agentGraph(config);
 
-    expect(graph.name).toBe('Configured Graph');
-    expect(graph.description).toBe('A graph with description');
-    expect(graph.tenantId).toBe('test-tenant');
+    expect(graph.getName()).toBe('Configured Graph');
+    expect(graph.getDescription()).toBe('A graph with description');
+    expect(graph.getTenantId()).toBe('test-tenant');
   });
 });

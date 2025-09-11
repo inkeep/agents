@@ -12,9 +12,9 @@ describe('mcpTool builder function', () => {
 
     const tool = mcpTool(config);
 
-    expect(tool.name).toBe('Test MCP Tool');
-    expect(tool.serverUrl).toBe('http://localhost:3000/mcp');
-    expect(tool.id).toBe('test-mcp-tool');
+    expect(tool.getName()).toBe('Test MCP Tool');
+    expect(tool.getServerUrl()).toBe('http://localhost:3000/mcp');
+    expect(tool.getId()).toBe('test-mcp-tool');
   });
 
   it('should create an MCP tool with full config', () => {
@@ -24,35 +24,21 @@ describe('mcpTool builder function', () => {
       description: 'MCP tool with all options',
       serverUrl: 'https://api.example.com/tools',
       tenantId: 'test-tenant',
-      parameters: {
-        query: {
-          type: 'string',
-          description: 'Search query',
-        },
-        limit: {
-          type: 'number',
-          description: 'Result limit',
-          default: 10,
-        },
+      activeTools: ['search', 'fetch'],
+      transport: {
+        type: 'streamable_http',
       },
     };
 
     const tool = mcpTool(config);
 
-    expect(tool.name).toBe('Full Config MCP Tool');
-    expect(tool.id).toBe('custom-tool-id');
-    expect(tool.serverUrl).toBe('https://api.example.com/tools');
+    expect(tool.getName()).toBe('Full Config MCP Tool');
+    expect(tool.getId()).toBe('custom-tool-id');
+    expect(tool.getServerUrl()).toBe('https://api.example.com/tools');
     expect(tool.config.tenantId).toBe('test-tenant');
-    expect(tool.config.parameters).toEqual({
-      query: {
-        type: 'string',
-        description: 'Search query',
-      },
-      limit: {
-        type: 'number',
-        description: 'Result limit',
-        default: 10,
-      },
+    expect(tool.config.activeTools).toEqual(['search', 'fetch']);
+    expect(tool.config.transport).toEqual({
+      type: 'streamable_http',
     });
   });
 
@@ -64,54 +50,34 @@ describe('mcpTool builder function', () => {
     };
 
     const tool = mcpTool(config);
-    expect(tool.id).toBe('auto-generated-id-tool');
+    expect(tool.getId()).toBe('auto-generated-id-tool');
   });
 
-  it('should handle complex parameter schemas', () => {
+  it('should handle complex transport configurations', () => {
     const config: MCPToolConfig = {
-      name: 'Complex Schema Tool',
-      description: 'Tool with complex parameters',
+      name: 'Complex Transport Tool',
+      description: 'Tool with complex transport config',
       serverUrl: 'http://localhost:3000/complex-tool',
-      parameters: {
-        filters: {
-          type: 'object',
-          properties: {
-            category: {
-              type: 'string',
-              enum: ['docs', 'code', 'api'],
-            },
-            dateRange: {
-              type: 'object',
-              properties: {
-                start: { type: 'string', format: 'date' },
-                end: { type: 'string', format: 'date' },
-              },
-              required: ['start', 'end'],
-            },
-          },
-        },
-        options: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          description: 'Additional options',
-        },
+      transport: {
+        type: 'sse',
       },
+      activeTools: ['tool1', 'tool2', 'tool3'],
     };
 
     const tool = mcpTool(config);
-    expect(tool.config.parameters).toEqual(config.parameters);
+    expect(tool.config.transport).toEqual(config.transport);
+    expect(tool.config.activeTools).toEqual(config.activeTools);
   });
 
-  it('should handle tools without parameters', () => {
+  it('should handle tools without optional fields', () => {
     const config: MCPToolConfig = {
       name: 'Simple Tool',
-      description: 'Tool without parameters',
+      description: 'Tool without optional fields',
       serverUrl: 'http://localhost:3000/simple',
     };
 
     const tool = mcpTool(config);
-    expect(tool.config.parameters).toBeUndefined();
+    expect(tool.config.activeTools).toBeUndefined();
+    expect(tool.config.transport).toBeUndefined();
   });
 });

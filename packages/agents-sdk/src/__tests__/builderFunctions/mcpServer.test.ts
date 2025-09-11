@@ -12,9 +12,9 @@ describe('mcpServer builder function', () => {
 
     const server = mcpServer(config);
 
-    expect(server.name).toBe('Test MCP Server');
-    expect(server.serverUrl).toBe('http://localhost:3000/mcp');
-    expect(server.id).toBe('test-mcp-server');
+    expect(server.getName()).toBe('Test MCP Server');
+    expect(server.getServerUrl()).toBe('http://localhost:3000/mcp');
+    expect(server.getId()).toBe('test-mcp-server');
   });
 
   it('should throw error when serverUrl is missing', () => {
@@ -45,11 +45,11 @@ describe('mcpServer builder function', () => {
 
     const server = mcpServer(config);
 
-    expect(server.name).toBe('Full Config MCP Server');
-    expect(server.id).toBe('custom-mcp-server-id');
-    expect(server.serverUrl).toBe('https://api.example.com/mcp');
+    expect(server.getName()).toBe('Full Config MCP Server');
+    expect(server.getId()).toBe('custom-mcp-server-id');
+    expect(server.getServerUrl()).toBe('https://api.example.com/mcp');
     expect(server.config.tenantId).toBe('test-tenant');
-    expect(server.config.transport).toBe('websocket');
+    expect(server.config.transport).toEqual({ type: 'websocket' });
     expect(server.config.activeTools).toEqual(['tool1', 'tool2', 'tool3']);
     expect(server.config.headers).toEqual({
       Authorization: 'Bearer token123',
@@ -66,7 +66,7 @@ describe('mcpServer builder function', () => {
     };
 
     const server = mcpServer(config);
-    expect(server.id).toBe('auto-generated-id-server');
+    expect(server.getId()).toBe('auto-generated-id-server');
   });
 
   it('should handle credentials in config', () => {
@@ -105,7 +105,7 @@ describe('mcpServer builder function', () => {
     const httpServer = mcpServer(httpConfig);
     const wsServer = mcpServer(wsConfig);
 
-    expect(httpServer.config.transport).toBe('http');
-    expect(wsServer.config.transport).toBe('websocket');
+    expect(httpServer.config.transport).toEqual({ type: 'http' });
+    expect(wsServer.config.transport).toEqual({ type: 'websocket' });
   });
 });
