@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      # Create necessary directories for postinstall scripts
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Setup Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          # Ensure agents-manage-ui dependencies are properly installed
+          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+      
+      # Clean database files before running tests
+      - name: Clean database files
+        run: |
+          echo "Cleaning up any existing database files..."
+          find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
+      
+      # Run the unified CI command with enhanced error reporting
+      - name: Run CI checks
+        id: ci-check
+        run: |
+          set -o pipefail
+          pnpm turbo ci --output-logs=errors-only 2>&1 | tee ci-output.log
+          CI_EXIT_CODE=${PIPESTATUS[0]}
+          
+          # Parse the output to create GitHub annotations for failures
+          if [ $CI_EXIT_CODE -ne 0 ]; then
+            echo "::error::CI checks failed. See details below."
+            
+            # Extract and report specific failures
+            if grep -q "build.*Failed" ci-output.log; then
+              echo "::error title=Build Failed::The build task failed. Check the logs for compilation errors."
+            fi
+            
+            if grep -q "lint.*Failed" ci-output.log; then
+              echo "::error title=Lint Failed::Linting errors detected. Run 'pnpm lint' locally to see details."
+            fi
+            
+            if grep -q "typecheck.*Failed" ci-output.log; then
+              echo "::error title=Typecheck Failed::TypeScript type checking failed. Run 'pnpm typecheck' locally to see details."
+            fi
+            
+            if grep -q "test.*Failed" ci-output.log; then
+              echo "::error title=Test Failed::Tests failed. Run 'pnpm test' locally to see details."
+            fi
+            
+            exit $CI_EXIT_CODE
+          fi
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          ENVIRONMENT: test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
+          DB_FILE_NAME: test.db
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI: true
+      
+      # Create summary report
+      - name: Create CI Summary
+        if: always()
+        run: |
+          echo "## CI Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.ci-check.outcome }}" == "success" ]; then
+            echo "✅ **All CI checks passed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **CI checks failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Failed Tasks:" >> $GITHUB_STEP_SUMMARY
+            
+            # Parse turbo output for specific failures
+            if [ -f ci-output.log ]; then
+              grep -E "(build|lint|typecheck|test).*Failed" ci-output.log | while read -r line; do
+                TASK=$(echo "$line" | grep -oE "(build|lint|typecheck|test)" | head -1)
+                echo "- ❌ **$TASK**" >> $GITHUB_STEP_SUMMARY
+              done
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Turbo Cache Statistics:" >> $GITHUB_STEP_SUMMARY
+          if [ -f ci-output.log ]; then
+            grep -E "Remote cache|Local cache|Cache hit|Cache miss" ci-output.log >> $GITHUB_STEP_SUMMARY || echo "No cache statistics available" >> $GITHUB_STEP_SUMMARY
+          fi

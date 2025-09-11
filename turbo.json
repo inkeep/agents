@@ -146,6 +146,12 @@
     "check": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
       "cache": false
+    },
+    "ci": {
+      "dependsOn": ["build", "lint", "typecheck", "test"],
+      "cache": false,
+      "env": ["CI", "GITHUB_ACTIONS"],
+      "outputs": ["coverage/**", ".turbo/**"]
     }
   }
 }
