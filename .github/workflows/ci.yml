@@ -79,9 +79,8 @@ jobs:
           
           echo "::group::Build"
           if ! pnpm turbo build --output-logs=errors-only; then
-            echo "::warning title=Build Issues::The build task has issues. Check the logs for details."
-            # Don't fail for now as these are pre-existing issues
-            # EXIT_CODE=1
+            echo "::error title=Build Failed::The build task failed. Check the logs for compilation errors."
+            EXIT_CODE=1
           else
             echo "✅ Build passed"
           fi
@@ -90,7 +89,7 @@ jobs:
           echo "::group::Lint"
           if ! pnpm turbo lint --output-logs=errors-only --continue; then
             echo "::warning title=Lint Failed::Linting errors detected. Run 'pnpm lint' locally to see details."
-            # Don't fail CI for lint errors since they exist on main
+            # Don't fail CI for lint errors for now - can be made strict later
             # EXIT_CODE=1
           else
             echo "✅ Lint passed"
@@ -100,7 +99,7 @@ jobs:
           echo "::group::Typecheck"
           if ! pnpm turbo typecheck --output-logs=errors-only --continue; then
             echo "::warning title=Typecheck Issues::TypeScript type checking has issues. Run 'pnpm typecheck' locally to see details."
-            # Don't fail for now as these are pre-existing issues
+            # Don't fail CI for typecheck errors for now - can be made strict later
             # EXIT_CODE=1
           else
             echo "✅ Typecheck passed"
@@ -109,18 +108,18 @@ jobs:
           
           echo "::group::Test"
           if ! pnpm turbo test --output-logs=errors-only; then
-            echo "::warning title=Test Issues::Some tests have issues. Run 'pnpm test' locally to see details."
-            # Don't fail for now if tests have pre-existing issues
-            # EXIT_CODE=1
+            echo "::error title=Test Failed::Tests failed. Run 'pnpm test' locally to see details."
+            EXIT_CODE=1
           else
             echo "✅ Tests passed"
           fi
           echo "::endgroup::"
           
-          # For now, we'll pass the CI to demonstrate the simplified workflow
-          # Once pre-existing issues are fixed on main, we can make this strict again
-          echo "::notice::CI completed. Pre-existing issues from main are shown as warnings above."
-          exit 0
+          # Fail the CI if any critical checks failed (build or test)
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::CI failed due to build or test failures. See details above."
+          fi
+          exit $EXIT_CODE
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
@@ -143,16 +142,18 @@ jobs:
           if [ "${{ steps.ci-check.outcome }}" == "success" ]; then
             echo "✅ **All CI checks passed successfully!**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ **CI checks completed with issues**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **CI checks failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Critical failures will block merging. Fix build and test failures before proceeding.**" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Task Results:" >> $GITHUB_STEP_SUMMARY
-          echo "- Build: ${{ steps.ci-check.outcome == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Lint: ⚠️ Has warnings (pre-existing on main)" >> $GITHUB_STEP_SUMMARY
-          echo "- Typecheck: ${{ steps.ci-check.outcome == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Test: ${{ steps.ci-check.outcome == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: Check logs for status" >> $GITHUB_STEP_SUMMARY
+          echo "- Lint: ⚠️ Has warnings (non-blocking)" >> $GITHUB_STEP_SUMMARY
+          echo "- Typecheck: ⚠️ Has warnings (non-blocking)" >> $GITHUB_STEP_SUMMARY
+          echo "- Test: Check logs for status" >> $GITHUB_STEP_SUMMARY
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Performance:" >> $GITHUB_STEP_SUMMARY
-          echo "This workflow consolidates all checks into a single job, leveraging Turbo's caching for optimal performance." >> $GITHUB_STEP_SUMMARY
+          echo "### Note:" >> $GITHUB_STEP_SUMMARY
+          echo "Build and Test failures will fail the CI. Lint and Typecheck issues are shown as warnings." >> $GITHUB_STEP_SUMMARY
