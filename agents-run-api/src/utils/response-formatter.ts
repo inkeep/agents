@@ -51,6 +51,7 @@ export class ResponseFormatter {
         return { parts };
       } catch (error) {
         setSpanWithError(span, error);
+        logger.error({ error, responseObject }, 'Error formatting object response');
         return {
           parts: [{ kind: 'data' as const, data: responseObject }],
         };
@@ -117,6 +118,7 @@ export class ResponseFormatter {
         return { parts };
       } catch (error) {
         setSpanWithError(span, error);
+        logger.error({ error, responseText }, 'Error formatting response');
         return { text: responseText };
       } finally {
         span.end();
