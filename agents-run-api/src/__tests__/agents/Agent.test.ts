@@ -353,6 +353,17 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       delegateRelations: [],
       tools: [mockTool],
       dataComponents: [],
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+        structuredOutput: {
+          model: 'openai/gpt-4.1-mini-2025-04-14',
+        },
+        summarizer: {
+          model: 'openai/gpt-4.1-nano-2025-04-14',
+        },
+      },
     };
   });
 
@@ -617,6 +628,11 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       delegateRelations: [],
       tools: [],
       dataComponents: [],
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+      },
     };
 
     mockRuntimeContext = {
@@ -1098,6 +1114,11 @@ describe('Two-Pass Generation System', () => {
       delegateRelations: [],
       tools: [],
       dataComponents: [mockDataComponent],
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+      },
     };
   });
 
@@ -1175,17 +1196,22 @@ describe('Agent Model Settings', () => {
       agentRelations: [],
       transferRelations: [],
       delegateRelations: [],
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+      },
     };
   });
 
-  test('should use ModelFactory.prepareGenerationConfig with default configuration when no model specified', async () => {
+  test('should use ModelFactory.prepareGenerationConfig with base model configuration', async () => {
     const agent = new Agent(mockAgentConfig);
     await agent.generate('Test prompt');
 
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-4-sonnet-20250514',
+      model: 'anthropic/claude-sonnet-4-20250514',
       providerOptions: undefined,
     });
   });
@@ -1226,7 +1252,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -1243,7 +1269,7 @@ describe('Agent Model Settings', () => {
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             temperature: 0.8,
@@ -1316,7 +1342,7 @@ describe('Agent Model Settings', () => {
     });
   });
 
-  test('should fall back to 4.1-mini for structured output when no custom model settingsured', async () => {
+  test('should fall back to base model for structured output when no custom model configured', async () => {
     const configWithDataComponents: AgentConfig = {
       ...mockAgentConfig,
       dataComponents: [
@@ -1335,14 +1361,14 @@ describe('Agent Model Settings', () => {
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
-    // Called twice: once for text generation with default model, once for structured output with OpenAI model
+    // Called twice: once for text generation, once for structured output (both use base model)
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-4-sonnet-20250514',
+      model: 'anthropic/claude-sonnet-4-20250514',
       providerOptions: undefined,
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
+      model: 'anthropic/claude-sonnet-4-20250514',
       providerOptions: undefined,
     });
   });

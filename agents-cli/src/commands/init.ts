@@ -2,6 +2,7 @@ import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import { promptForModelConfiguration } from '../utils/model-config';
 
 export interface InitOptions {
   path?: string;
@@ -158,13 +159,18 @@ export async function initCommand(options?: InitOptions) {
     },
   ]);
 
+  // Model configuration prompts
+  const { modelSettings } = await promptForModelConfiguration();
+
   // Generate the config file content
   const configContent = `import { defineConfig } from '@inkeep/agents-cli';
 
 export default defineConfig({
   tenantId: '${answers.tenantId}',
   projectId: '${answers.projectId}',
-  apiUrl: '${answers.apiUrl}',
+  managementApiUrl: '${answers.apiUrl}',
+  executionApiUrl: '${answers.apiUrl}',
+  modelSettings: ${JSON.stringify(modelSettings, null, 2)},
 });
 `;
 

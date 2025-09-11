@@ -16,24 +16,16 @@ export interface ModelSettings {
  */
 export class ModelFactory {
   /**
-   * Default model settingsuration to use when no model settings is provided
-   * Uses provider defaults for all parameters
-   */
-  private static readonly DEFAULT_MODEL_CONFIG: ModelSettings = {
-    model: 'anthropic/claude-4-sonnet-20250514',
-  };
-
-  /**
    * Create a language model instance from configuration
-   * Falls back to default Anthropic model if no config provided
+   * Throws error if no config provided - models must be configured at project level
    */
-  static createModel(config?: ModelSettings | null): LanguageModel {
-    // Use default config if none provided
-    const modelSettings = config || ModelFactory.DEFAULT_MODEL_CONFIG;
+  static createModel(config: ModelSettings): LanguageModel {
+    if (!config?.model?.trim()) {
+      throw new Error('Model configuration is required. Please configure models at the project level.');
+    }
 
-    // Extract provider from model string (e.g., "anthropic/claude-4-sonnet" -> "anthropic")
-    // Handle empty strings by falling back to default
-    const modelString = modelSettings.model?.trim() || ModelFactory.DEFAULT_MODEL_CONFIG.model!;
+    const modelSettings = config;
+    const modelString = modelSettings.model!.trim();
     const { provider, modelName } = ModelFactory.parseModelString(modelString);
 
     logger.debug(
@@ -55,11 +47,7 @@ export class ModelFactory {
           return ModelFactory.createOpenAIModel(modelName, modelSettings.providerOptions);
 
         default:
-          logger.warn(
-            { provider, modelName },
-            'Unknown or unsupported provider, falling back to default Anthropic model'
-          );
-          return ModelFactory.createAnthropicModel('claude-4-sonnet-20250514');
+          throw new Error(`Unsupported provider: ${provider}. Supported providers are: ${ModelFactory.SUPPORTED_PROVIDERS.join(', ')}`);
       }
     } catch (error) {
       logger.error(
@@ -68,11 +56,11 @@ export class ModelFactory {
           model: modelName,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to create model, falling back to default'
+        'Failed to create model'
       );
 
-      // Fall back to default model if creation fails
-      return ModelFactory.createAnthropicModel('claude-4-sonnet-20250514');
+      // Re-throw the error instead of falling back to a default
+      throw new Error(`Failed to create model ${modelString}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

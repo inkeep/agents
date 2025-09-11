@@ -80,6 +80,9 @@ function StructuredOutputModelSection({
 		control,
 		name: "models.structuredOutput.providerOptions",
 	});
+	
+	// Get the base model to show as inherited value
+	const baseModel = useWatch({ control, name: "models.base.model" });
 
 	return (
 		<div className="space-y-2">
@@ -88,6 +91,7 @@ function StructuredOutputModelSection({
 				placeholder="Select structured output model (optional)"
 				value={modelField.value || ""}
 				onValueChange={modelField.onChange}
+				inheritedValue={baseModel}
 			/>
 			<p className="text-xs text-muted-foreground">
 				Model for structured outputs and data components (defaults to base
@@ -135,6 +139,9 @@ function SummarizerModelSection({
 		control,
 		name: "models.summarizer.providerOptions",
 	});
+	
+	// Get the base model to show as inherited value
+	const baseModel = useWatch({ control, name: "models.base.model" });
 
 	return (
 		<div className="space-y-2">
@@ -143,6 +150,7 @@ function SummarizerModelSection({
 				placeholder="Select summarizer model (optional)"
 				value={modelField.value || ""}
 				onValueChange={modelField.onChange}
+				inheritedValue={baseModel}
 			/>
 			<p className="text-xs text-muted-foreground">
 				Model for summarization tasks (defaults to base model)

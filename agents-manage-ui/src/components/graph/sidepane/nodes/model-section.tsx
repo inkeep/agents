@@ -38,6 +38,7 @@ export function ModelSection({
 					onValueChange={(modelValue) => {
 						updatePath("models.base.model", modelValue || undefined);
 					}}
+					inheritedValue={graphModels?.base?.model || projectModels?.base?.model}
 					label={
 						<div className="flex items-center gap-2">
 							Base Model
@@ -80,6 +81,13 @@ export function ModelSection({
 									modelValue || undefined,
 								);
 							}}
+							inheritedValue={
+								graphModels?.structuredOutput?.model || 
+								projectModels?.structuredOutput?.model ||
+								models?.base?.model ||
+								graphModels?.base?.model || 
+								projectModels?.base?.model
+							}
 							label={
 								<div className="flex items-center gap-2">
 									Structured output model
@@ -103,6 +111,13 @@ export function ModelSection({
 							onValueChange={(modelValue) => {
 								updatePath("models.summarizer.model", modelValue || undefined);
 							}}
+							inheritedValue={
+								graphModels?.summarizer?.model || 
+								projectModels?.summarizer?.model ||
+								models?.base?.model ||
+								graphModels?.base?.model || 
+								projectModels?.base?.model
+							}
 							label={
 								<div className="flex items-center gap-2">
 									Summarizer model

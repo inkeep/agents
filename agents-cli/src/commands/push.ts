@@ -6,6 +6,7 @@ import inquirer from 'inquirer';
 import ora from 'ora';
 import { ManagementApiClient } from '../api';
 import { validateConfiguration } from '../utils/config';
+import { promptForModelConfiguration } from '../utils/model-config';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 import { buildGraphViewUrl } from '../utils/url';
 
@@ -177,16 +178,32 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
         },
       ]);
 
-      // Create the project
-      spinner.start('Creating project...');
+      // Check if we have model settings in the config file
+      let models = config.modelSettings;
+      
+      if (!models || !models.base) {
+        // No models configured in config file, prompt for them
+        spinner.stop(); // Stop spinner before prompting
+        console.log(chalk.cyan('\nNow let\'s configure the AI models for this project.'));
+        console.log(chalk.gray('Models are required for agents to function properly.\n'));
+
+        const { modelSettings } = await promptForModelConfiguration();
+        models = modelSettings;
+      } else {
+        console.log(chalk.gray('\nUsing model settings from config file.'));
+      }
+
+      // Create the project with model settings
+      spinner.start('Creating project with configured models...');
       try {
         await createProject(dbClient)({
           id: projectId,
           tenantId: tenantId,
           name: projectName,
           description: projectDescription || 'No description provided',
+          models: models,  // Pass models directly when creating the project
         });
-        spinner.succeed(`Project "${projectName}" created successfully`);
+        spinner.succeed(`Project "${projectName}" created successfully with model configuration`);
       } catch (error: any) {
         spinner.fail('Failed to create project');
         console.error(chalk.red('Error:'), error.message);

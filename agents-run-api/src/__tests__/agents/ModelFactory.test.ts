@@ -39,18 +39,28 @@ describe('ModelFactory', () => {
   });
 
   describe('createModel', () => {
-    test('should create default Anthropic model when no config provided', () => {
-      const model = ModelFactory.createModel();
-
-      expect(model).toBeDefined();
-      expect(model).toHaveProperty('type', 'anthropic');
+    test('should throw error when no config provided', () => {
+      expect(() => {
+        ModelFactory.createModel();
+      }).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 
-    test('should create default Anthropic model when null config provided', () => {
-      const model = ModelFactory.createModel(null);
+    test('should throw error when null config provided', () => {
+      expect(() => {
+        ModelFactory.createModel(null);
+      }).toThrow('Model configuration is required. Please configure models at the project level.');
+    });
 
-      expect(model).toBeDefined();
-      expect(model).toHaveProperty('type', 'anthropic');
+    test('should throw error when empty model string provided', () => {
+      expect(() => {
+        ModelFactory.createModel({ model: '' });
+      }).toThrow('Model configuration is required. Please configure models at the project level.');
+    });
+
+    test('should throw error when undefined model provided', () => {
+      expect(() => {
+        ModelFactory.createModel({ model: undefined });
+      }).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 
     test('should create Anthropic model with explicit config', () => {

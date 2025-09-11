@@ -115,6 +115,7 @@ interface StatusUpdateState {
   startTime: number;
   config: StatusUpdateSettings;
   summarizerModel?: ModelSettings;
+  baseModel?: ModelSettings;
   updateLock?: boolean;  // Atomic lock for status updates
 }
 
@@ -149,13 +150,14 @@ export class GraphSession {
   /**
    * Initialize status updates for this session
    */
-  initializeStatusUpdates(config: StatusUpdateSettings, summarizerModel?: ModelSettings): void {
+  initializeStatusUpdates(config: StatusUpdateSettings, summarizerModel?: ModelSettings, baseModel?: ModelSettings): void {
     const now = Date.now();
     this.statusUpdateState = {
       lastUpdateTime: now,
       lastEventCount: 0,
       startTime: now,
       summarizerModel,
+      baseModel,
       config: {
         numEvents: config.numEvents || 10,
         timeInSeconds: config.timeInSeconds || 30,
@@ -728,7 +730,7 @@ export class GraphSession {
           'graph_session.id': this.sessionId,
           'events.count': newEvents.length,
           'elapsed_time.seconds': Math.round(elapsedTime / 1000),
-          'llm.model': summarizerModel?.model || 'openai/gpt-4.1-nano-2025-04-14',
+          'llm.model': summarizerModel?.model,
           'previous_summaries.count': previousSummaries.length,
         },
       },
@@ -778,11 +780,15 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           const prompt = basePrompt;
 
-          const model = ModelFactory.createModel(
-            summarizerModel?.model?.trim()
-              ? summarizerModel
-              : { model: 'openai/gpt-4.1-nano-2025-04-14' }
-          );
+          // Use summarizer model if available, otherwise fall back to base model
+          let modelToUse = summarizerModel;
+          if (!summarizerModel?.model?.trim()) {
+            if (!this.statusUpdateState?.baseModel?.model?.trim()) {
+              throw new Error('Either summarizer or base model is required for progress summary generation. Please configure models at the project level.');
+            }
+            modelToUse = this.statusUpdateState.baseModel;
+          }
+          const model = ModelFactory.createModel(modelToUse!);
 
           const { text } = await generateText({
             model,
@@ -834,7 +840,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'graph_session.id': this.sessionId,
           'events.count': newEvents.length,
           'elapsed_time.seconds': Math.round(elapsedTime / 1000),
-          'llm.model': summarizerModel?.model || 'openai/gpt-4.1-nano-2025-04-14',
+          'llm.model': summarizerModel?.model,
           'status_components.count': statusComponents.length,
           'previous_summaries.count': previousSummaries.length,
         },
@@ -924,11 +930,15 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           const prompt = basePrompt;
 
-          const model = ModelFactory.createModel(
-            summarizerModel?.model?.trim()
-              ? summarizerModel
-              : { model: 'openai/gpt-4.1-nano-2025-04-14' }
-          );
+          // Use summarizer model if available, otherwise fall back to base model
+          let modelToUse = summarizerModel;
+          if (!summarizerModel?.model?.trim()) {
+            if (!this.statusUpdateState?.baseModel?.model?.trim()) {
+              throw new Error('Either summarizer or base model is required for status update generation. Please configure models at the project level.');
+            }
+            modelToUse = this.statusUpdateState.baseModel;
+          }
+          const model = ModelFactory.createModel(modelToUse!);
 
           const { object } = await generateObject({
             model,
@@ -1278,9 +1288,15 @@ Full: ${JSON.stringify(artifactData.fullProps, null, 2)}
 
 Make it specific and relevant.`;
 
-          const model = ModelFactory.createModel(
-            this.statusUpdateState?.summarizerModel || { model: 'openai/gpt-4.1-nano-2025-04-14' }
-          );
+          // Use summarizer model if available, otherwise fall back to base model
+          let modelToUse = this.statusUpdateState?.summarizerModel;
+          if (!modelToUse?.model?.trim()) {
+            if (!this.statusUpdateState?.baseModel?.model?.trim()) {
+              throw new Error('Either summarizer or base model is required for artifact name generation. Please configure models at the project level.');
+            }
+            modelToUse = this.statusUpdateState.baseModel;
+          }
+          const model = ModelFactory.createModel(modelToUse!);
 
           const schema = z.object({
             name: z.string().max(50).describe('Concise, descriptive name for the artifact'),
@@ -1295,9 +1311,7 @@ Make it specific and relevant.`;
             createSpanName('graph_session.generate_artifact_metadata'),
             {
               attributes: {
-                'llm.model':
-                  this.statusUpdateState?.summarizerModel?.model ||
-                  'openai/gpt-4.1-nano-2025-04-14',
+                'llm.model': this.statusUpdateState?.summarizerModel?.model,
                 'llm.operation': 'generate_object',
                 'artifact.id': artifactData.artifactId,
                 'prompt.length': prompt.length,
