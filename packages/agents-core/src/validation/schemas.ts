@@ -668,6 +668,20 @@ export const ProjectApiSelectSchema = ProjectSelectSchema.omit({ tenantId: true 
 export const ProjectApiInsertSchema = ProjectInsertSchema.omit({ tenantId: true });
 export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true });
 
+// Full Project Definition Schema - extends Project with graphs and other nested resources
+export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
+  graphs: z.record(z.string(), FullGraphDefinitionSchema),
+  credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
+  stopWhen: z
+    .object({
+      transferCountIs: z.number().min(1).max(100).optional(),
+      stepCountIs: z.number().min(1).max(1000).optional(),
+    })
+    .optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
 // === Common parameter schemas ===
 export const HeadersScopeSchema = z.object({
   'x-inkeep-tenant-id': z.string().optional().openapi({

@@ -22,6 +22,13 @@ export {
   externalAgent,
   externalAgents,
 } from './externalAgent';
+export { Project } from './project';
+export {
+  createFullProjectViaAPI,
+  deleteFullProjectViaAPI,
+  getFullProjectViaAPI,
+  updateFullProjectViaAPI,
+} from './projectFullClient';
 export { Runner, raceGraphs, run, stream } from './runner';
 export { Tool } from './tool';
 export type * from './types';

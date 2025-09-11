@@ -1,9 +1,10 @@
-import type { ProjectApiInsert, ProjectModels } from '@inkeep/agents-core';
+import type { FullProjectDefinition, ProjectApiInsert, ProjectModels } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
 
 import type { AgentGraph } from './graph';
+import { updateFullProjectViaAPI } from './projectFullClient';
 import type { ModelSettings } from './types';
 
 /**
@@ -152,7 +153,7 @@ export class Project implements ProjectInterface {
   }
 
   /**
-   * Initialize the project and create/update it in the backend
+   * Initialize the project and create/update it in the backend using full project approach
    */
   async init(): Promise<void> {
     if (this.initialized) {
@@ -166,14 +167,11 @@ export class Project implements ProjectInterface {
         tenantId: this.tenantId,
         graphCount: this.graphs.length,
       },
-      'Initializing project'
+      'Initializing project using full project endpoint'
     );
 
     try {
-      // Create or update project in backend
-      await this.saveToDatabase();
-
-      // Initialize all graphs
+      // Initialize all graphs first (they need to be initialized to generate their full definitions)
       const initPromises = this.graphs.map(async (graph) => {
         try {
           await graph.init();
@@ -199,15 +197,36 @@ export class Project implements ProjectInterface {
 
       await Promise.all(initPromises);
 
+      // Convert to FullProjectDefinition format
+      const projectDefinition = await this.toFullProjectDefinition();
+
+      // Use the full project API endpoint
+      logger.info(
+        {
+          projectId: this.projectId,
+          mode: 'api-client',
+          apiUrl: this.baseURL,
+        },
+        'Using API client to create/update full project'
+      );
+
+      // Try update first (upsert behavior)
+      const createdProject = await updateFullProjectViaAPI(
+        this.tenantId,
+        this.baseURL,
+        this.projectId,
+        projectDefinition
+      );
+
       this.initialized = true;
 
       logger.info(
         {
           projectId: this.projectId,
           tenantId: this.tenantId,
-          graphCount: this.graphs.length,
+          graphCount: Object.keys((createdProject as any).graphs || {}).length,
         },
-        'Project initialized successfully'
+        'Project initialized successfully using full project endpoint'
       );
     } catch (error) {
       logger.error(
@@ -215,7 +234,7 @@ export class Project implements ProjectInterface {
           projectId: this.projectId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to initialize project'
+        'Failed to initialize project using full project endpoint'
       );
       throw error;
     }
@@ -389,6 +408,32 @@ export class Project implements ProjectInterface {
   }
 
   /**
+   * Convert the Project to FullProjectDefinition format
+   */
+  private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
+    const graphsObject: Record<string, any> = {};
+
+    // Convert all graphs to FullGraphDefinition format
+    for (const graph of this.graphs) {
+      // Get the graph's full definition
+      const graphDefinition = await (graph as any).toFullGraphDefinition();
+      graphsObject[graph.getId()] = graphDefinition;
+    }
+
+    return {
+      id: this.projectId,
+      name: this.projectName,
+      description: this.projectDescription || '',
+      models: this.models as ProjectModels,
+      stopWhen: this.stopWhen,
+      graphs: graphsObject,
+      credentialReferences: undefined, // Projects don't directly hold credentials yet
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Convert project configuration to API format
    */
   private toApiFormat(): ProjectApiInsert {
@@ -399,78 +444,5 @@ export class Project implements ProjectInterface {
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
     };
-  }
-
-  /**
-   * Save project to database via API
-   */
-  private async saveToDatabase(): Promise<void> {
-    try {
-      // Check if project already exists
-      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}`;
-
-      try {
-        const getResponse = await fetch(getUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (getResponse.ok) {
-          logger.info({ projectId: this.projectId }, 'Project already exists in backend, updating');
-
-          // Update existing project
-          const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}`;
-          const updateResponse = await fetch(updateUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(this.toApiFormat()),
-          });
-
-          if (!updateResponse.ok) {
-            throw new Error(`HTTP ${updateResponse.status}: ${updateResponse.statusText}`);
-          }
-
-          logger.info({ projectId: this.projectId }, 'Project updated in backend');
-          return;
-        }
-
-        if (getResponse.status !== 404) {
-          throw new Error(`HTTP ${getResponse.status}: ${getResponse.statusText}`);
-        }
-      } catch (error: any) {
-        if (!error.message.includes('404')) {
-          throw error;
-        }
-      }
-
-      // Project doesn't exist, create it
-      logger.info({ projectId: this.projectId }, 'Creating project in backend');
-
-      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects`;
-      const createResponse = await fetch(createUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(this.toApiFormat()),
-      });
-
-      if (!createResponse.ok) {
-        throw new Error(`HTTP ${createResponse.status}: ${createResponse.statusText}`);
-      }
-
-      const createData = (await createResponse.json()) as { data: { id: string } };
-      logger.info({ project: createData.data }, 'Project created in backend');
-    } catch (error) {
-      throw new Error(
-        `Failed to save project to database: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
-      );
-    }
   }
 }

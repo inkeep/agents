@@ -22,6 +22,14 @@ describe('Project', () => {
   let projectConfig: ProjectConfig;
   let graphConfig: GraphConfig;
 
+  // Mock project data for API responses
+  const mockProjectData = {
+    id: 'test-project',
+    name: 'Test Project',
+    description: 'A test project',
+    graphs: {},
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -144,16 +152,11 @@ describe('Project', () => {
     it('should throw error if called after initialization', async () => {
       const project = new Project(projectConfig);
 
-      // Mock successful API calls for initialization
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 404,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { id: 'test-project' } }),
-        });
+      // Mock successful API call for initialization
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockProjectData }),
+      });
 
       await project.init();
 
@@ -167,52 +170,45 @@ describe('Project', () => {
     it('should initialize project and create it in backend', async () => {
       const project = new Project(projectConfig);
 
-      // Mock API calls
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 404,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { id: 'test-project' } }),
-        });
+      // Mock successful full project API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockProjectData }),
+      });
 
       await project.init();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/crud/projects/test-project',
-        expect.objectContaining({ method: 'GET' })
-      );
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/crud/projects',
+        'http://localhost:3002/tenants/test-tenant/projects/test-project',
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('test-project'),
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
         })
       );
+
+      expect((project as any).initialized).toBe(true);
     });
 
     it('should update existing project in backend', async () => {
       const project = new Project(projectConfig);
 
-      // Mock API calls - first call returns existing project
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { id: 'test-project' } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { id: 'test-project' } }),
-        });
+      // Mock successful full project API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockProjectData }),
+      });
 
       await project.init();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/crud/projects/test-project',
-        expect.objectContaining({ method: 'PUT' })
+        'http://localhost:3002/tenants/test-tenant/projects/test-project',
+        expect.objectContaining({
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+        })
       );
+
+      expect((project as any).initialized).toBe(true);
     });
 
     it('should initialize all graphs', async () => {
@@ -224,6 +220,20 @@ describe('Project', () => {
       vi.spyOn(mockGraph1, 'init').mockResolvedValue();
       vi.spyOn(mockGraph2, 'init').mockResolvedValue();
 
+      // Mock toFullGraphDefinition for both graphs
+      vi.spyOn(mockGraph1 as any, 'toFullGraphDefinition').mockResolvedValue({
+        id: 'test-graph',
+        name: 'Test Graph',
+        agents: {},
+        tools: {},
+      });
+      vi.spyOn(mockGraph2 as any, 'toFullGraphDefinition').mockResolvedValue({
+        id: 'test-graph-2',
+        name: 'Test Graph 2',
+        agents: {},
+        tools: {},
+      });
+
       const configWithGraphs: ProjectConfig = {
         ...projectConfig,
         graphs: () => [mockGraph1, mockGraph2],
@@ -231,16 +241,11 @@ describe('Project', () => {
 
       const project = new Project(configWithGraphs);
 
-      // Mock project creation
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 404,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { id: 'test-project' } }),
-        });
+      // Mock successful full project API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockProjectData }),
+      });
 
       await project.init();
 
@@ -251,16 +256,11 @@ describe('Project', () => {
     it('should not reinitialize if already initialized', async () => {
       const project = new Project(projectConfig);
 
-      // Mock initial API calls
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 404,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { id: 'test-project' } }),
-        });
+      // Mock successful full project API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockProjectData }),
+      });
 
       await project.init();
 
@@ -280,9 +280,10 @@ describe('Project', () => {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
+        text: async () => 'Server error',
       });
 
-      await expect(project.init()).rejects.toThrow('Failed to save project to database');
+      await expect(project.init()).rejects.toThrow('Server error');
     });
   });
 
@@ -481,6 +482,84 @@ describe('Project', () => {
       const apiFormat = (project as any).toApiFormat();
 
       expect(apiFormat.description).toBe('');
+    });
+  });
+
+  describe('toFullProjectDefinition', () => {
+    it('should convert project to full project definition format', async () => {
+      const mockGraph1 = new AgentGraph(graphConfig);
+      const mockGraph2 = new AgentGraph({ ...graphConfig, id: 'test-graph-2' });
+
+      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+
+      // Mock the toFullGraphDefinition method
+      const mockGraphDef1 = {
+        id: 'test-graph',
+        name: 'Test Graph',
+        description: 'A test graph',
+        agents: {},
+        tools: {},
+      };
+      const mockGraphDef2 = {
+        id: 'test-graph-2',
+        name: 'Test Graph 2',
+        description: 'Another test graph',
+        agents: {},
+        tools: {},
+      };
+
+      vi.spyOn(mockGraph1 as any, 'toFullGraphDefinition').mockResolvedValue(mockGraphDef1);
+      vi.spyOn(mockGraph2 as any, 'toFullGraphDefinition').mockResolvedValue(mockGraphDef2);
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph1, mockGraph2],
+      };
+
+      const project = new Project(configWithGraphs);
+      const fullProjectDef = await (project as any).toFullProjectDefinition();
+
+      expect(fullProjectDef).toMatchObject({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'A test project',
+        models: projectConfig.models,
+        stopWhen: projectConfig.stopWhen,
+        graphs: {
+          'test-graph': mockGraphDef1,
+          'test-graph-2': mockGraphDef2,
+        },
+        credentialReferences: undefined,
+      });
+
+      expect(fullProjectDef.createdAt).toBeDefined();
+      expect(fullProjectDef.updatedAt).toBeDefined();
+    });
+
+    it('should handle projects with no graphs', async () => {
+      const project = new Project(projectConfig);
+      const fullProjectDef = await (project as any).toFullProjectDefinition();
+
+      expect(fullProjectDef).toMatchObject({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'A test project',
+        models: projectConfig.models,
+        stopWhen: projectConfig.stopWhen,
+        graphs: {},
+        credentialReferences: undefined,
+      });
+    });
+
+    it('should handle projects with missing description', async () => {
+      const configWithoutDescription = { ...projectConfig };
+      delete configWithoutDescription.description;
+
+      const project = new Project(configWithoutDescription);
+      const fullProjectDef = await (project as any).toFullProjectDefinition();
+
+      expect(fullProjectDef.description).toBe('');
     });
   });
 });
