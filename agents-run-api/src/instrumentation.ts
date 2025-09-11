@@ -8,7 +8,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { env } from './env';
 
-const otlpUrl = env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:14318/v1/traces';
+const otlpUrl = env.OTEL_EXPORTER_OTLP_ENDPOINT;
 const otlpExporter = new OTLPTraceExporter({ url: otlpUrl });
 
 // Minimal fan-out so NodeSDK can accept ONE spanProcessor
