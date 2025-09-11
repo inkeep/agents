@@ -3,14 +3,14 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
-import { createSpanName, getGlobalTracer, getLogger, handleSpanError } from '../utils/index';
+import { getTracer, getLogger, handleSpanError } from '../utils/index';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';
 
 const logger = getLogger('context-resolver');
 
 // Get tracer using centralized utility
-const tracer = getGlobalTracer();
+const tracer = getTracer("agents-core");
 
 // Fetched data in context resolution
 export interface ResolvedContext {
@@ -83,7 +83,7 @@ export class ContextResolver {
 
     // Create parent span for the entire context resolution process
     return tracer.startActiveSpan(
-      createSpanName('context.resolve'),
+      'context.resolve',
       {
         attributes: {
           'context.config_id': contextConfig.id,
@@ -301,7 +301,7 @@ export class ContextResolver {
   ): Promise<void> {
     // Create parent span for individual context variable resolution
     return tracer.startActiveSpan(
-      createSpanName('context-resolver.resolve_single_fetch_definition'),
+      'context-resolver.resolve_single_fetch_definition',
       {
         attributes: {
           'context.definition_id': definition.id,

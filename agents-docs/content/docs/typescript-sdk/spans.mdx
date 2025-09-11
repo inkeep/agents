@@ -13,28 +13,20 @@ The Inkeep Agent Framework uses OpenTelemetry for distributed tracing and observ
 
 ```typescript
 import { SpanStatusCode, type Span } from '@opentelemetry/api';
-import { getGlobalTracer, createSpanName } from '../tracer';
+import { getTracer } from '../tracer';
 ```
 
-### 2. Get the Global Tracer
+### 2. Get the Tracer
 
 ```typescript
 // Use the centralized tracer utility
-const tracer = getGlobalTracer();
-```
-
-### 3. Create Span Names
-
-```typescript
-// Use the createSpanName utility for consistent naming to prefix all spans with service name
-const spanName = createSpanName('context.resolve');
-// Results in: "inkeep-chat.context.resolve"
+const tracer = getTracer('your-service-name');
 ```
 
 ## Creating and Using Spans
 
 ```typescript
-return tracer.startActiveSpan(createSpanName('context.resolve'), {
+return tracer.startActiveSpan('context.resolve', {
   attributes: {
     'context.config_id': contextConfig.id,
     'context.trigger_event': options.triggerEvent,
@@ -118,21 +110,20 @@ try {
 The span naming convention follows a hierarchical structure that mirrors your code organization. 
 
 ```typescript
-// Format: createSpanName('class.function')
-// Results in: "inkeep-chat.class.function"
+// Format: 'class.function'
+// Use descriptive span names that follow a hierarchical structure
 
 // Agent operations
-createSpanName('agent.generate')           // inkeep-chat.agent.generate
-createSpanName('agent.tool_execute')       // inkeep-chat.agent.tool_execute
-createSpanName('agent.transfer')            // inkeep-chat.agent.transfer
+'agent.generate'
+'agent.tool_execute'
+'agent.transfer'
 
 // Context operations
-createSpanName('context.resolve')          // inkeep-chat.context.resolve
-createSpanName('context.fetch')            // inkeep-chat.context.fetch
-
+'context.resolve'
+'context.fetch'
 
 // Tool operations
-
+// Add your tool operation spans here
 ```
 
 #### Naming Rules
@@ -150,7 +141,7 @@ createSpanName('context.fetch')            // inkeep-chat.context.fetch
 ```bash
 # OpenTelemetry configuration
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_SERVICE_NAME=inkeep-chat
+OTEL_SERVICE_NAME=inkeep-agents-run-api
 OTEL_SERVICE_VERSION=1.0.0
 ```
 
@@ -168,7 +159,7 @@ See `src/agents/Agent.ts` for span usage in agent generation and tool execution.
 ```typescript
 // Class: Agent
 // Function: generate
-return tracer.startActiveSpan(createSpanName('agent.generate'), {
+return tracer.startActiveSpan('agent.generate', {
   attributes: {
     'agent.id': this.id,
     'agent.name': this.name,
@@ -182,8 +173,8 @@ return tracer.startActiveSpan(createSpanName('agent.generate'), {
 
 Spans provide powerful observability into your Inkeep Agent Framework operations. By following these patterns:
 
-1. **Use `getGlobalTracer()`** for consistent tracing
-2. **Use `createSpanName()`** for consistent naming
+1. **Use `getTracer()`** for consistent tracing
+2. **Use consistent naming** with hierarchical structure
 3. **Set meaningful attributes** for searchability
 4. **Handle errors properly** with status and exceptions
 5. **Use `startActiveSpan`** for automatic lifecycle management

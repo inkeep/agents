@@ -5,16 +5,14 @@ import {
   getConversation,
   updateConversation,
 } from '@inkeep/agents-core';
-import { type Span, SpanStatusCode } from '@opentelemetry/api';
+import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getLogger } from '../utils/logger';
-import { createSpanName, forceFlushTracer, getGlobalTracer } from '../utils/tracer';
+import { getTracer } from '../utils/tracer';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
-
-// Get tracer using centralized utility
-const tracer = getGlobalTracer();
+const tracer = getTracer("agents-core");
 
 // Helper function to determine context resolution trigger
 async function determineContextTrigger(
@@ -83,7 +81,7 @@ async function handleContextResolution(
 ): Promise<ResolvedContext | null> {
   // Create parent span for the entire context resolution process
   return tracer.startActiveSpan(
-    createSpanName('context.handle_context_resolution'),
+    'context.handle_context_resolution',
     {
       attributes: {
         'context.request_context_keys': Object.keys(requestContext),
@@ -180,9 +178,6 @@ async function handleContextResolution(
           parentSpan.setStatus({ code: SpanStatusCode.OK });
         }
 
-        // Force flush after critical context resolution span
-        await forceFlushTracer();
-
         logger.info(
           {
             conversationId,
@@ -226,9 +221,6 @@ async function handleContextResolution(
           },
           'Failed to resolve context, proceeding without context resolution'
         );
-
-        // Force flush after error to ensure error telemetry is sent
-        await forceFlushTracer();
 
         return null;
       } finally {

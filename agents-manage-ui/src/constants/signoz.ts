@@ -1,9 +1,9 @@
 export const SPAN_NAMES = {
 	AI_TOOL_CALL: "ai.toolCall",
 	CONTEXT_RESOLUTION:
-		"inkeep-chat.context-resolver.resolve_single_fetch_definition",
-	CONTEXT_HANDLE: "inkeep-chat.context.handle_context_resolution",
-	AGENT_GENERATION: "inkeep-chat.agent.generate",
+		"context-resolver.resolve_single_fetch_definition",
+	CONTEXT_HANDLE: "context.handle_context_resolution",
+	AGENT_GENERATION: "agent.generate",
 	CONTEXT_FETCHER: "context-fetcher.http-request",
 } as const;
 

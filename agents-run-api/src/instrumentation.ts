@@ -30,15 +30,14 @@ class FanOutSpanProcessor {
 const spanProcessor = new FanOutSpanProcessor([
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
   new BatchSpanProcessor(otlpExporter, {
-    maxExportBatchSize: 1, // Send immediately (vs 512)
-    scheduledDelayMillis: 100, // 100ms delay (vs 5000ms)
-    exportTimeoutMillis: 5000, // 5s timeout (vs 30s)
-    maxQueueSize: 512, // Smaller queue
+    maxExportBatchSize: 1,
   }),
+
 ]);
 
+
 export const sdk = new NodeSDK({
-  serviceName: 'inkeep-chat',
+  serviceName: 'inkeep-agents-run-api',
   spanProcessor,
   instrumentations: [
     getNodeAutoInstrumentations({

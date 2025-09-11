@@ -11,12 +11,12 @@ import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { createSpanName, getGlobalTracer, handleSpanError } from '../tracer';
+import { getTracer, handleSpanError } from '@inkeep/agents-core';
 import { statusUpdateOp } from './agent-operations';
 import { getStreamHelper } from './stream-registry';
 
 const logger = getLogger('GraphSession');
-const tracer = getGlobalTracer();
+const tracer = getTracer("inkeep-agents-run-api");
 
 export type GraphSessionEventType =
   | 'agent_generate'
@@ -724,7 +724,7 @@ export class GraphSession {
     previousSummaries: string[] = []
   ): Promise<string> {
     return tracer.startActiveSpan(
-      createSpanName('graph_session.generate_progress_summary'),
+      'graph_session.generate_progress_summary',
       {
         attributes: {
           'graph_session.id': this.sessionId,
@@ -834,7 +834,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     previousSummaries: string[] = []
   ): Promise<{ operations: Array<{ type: string; data: Record<string, any> }> }> {
     return tracer.startActiveSpan(
-      createSpanName('graph_session.generate_structured_update'),
+      'graph_session.generate_structured_update',
       {
         attributes: {
           'graph_session.id': this.sessionId,
@@ -1214,7 +1214,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
    */
   private async processArtifact(artifactData: ArtifactSavedData): Promise<void> {
     return tracer.startActiveSpan(
-      createSpanName('graph_session.process_artifact'),
+      'graph_session.process_artifact',
       {
         attributes: {
           'graph_session.id': this.sessionId,
@@ -1308,7 +1308,7 @@ Make it specific and relevant.`;
 
           // Add nested span for LLM generation
           const { object: result } = await tracer.startActiveSpan(
-            createSpanName('graph_session.generate_artifact_metadata'),
+            'graph_session.generate_artifact_metadata',
             {
               attributes: {
                 'llm.model': this.statusUpdateState?.summarizerModel?.model,
