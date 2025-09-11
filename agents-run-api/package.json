@@ -60,7 +60,6 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.4",
     "@hono/vite-dev-server": "^0.20.1",
     "@types/ajv": "^1.0.4",
     "@types/jmespath": "^0.15.2",
