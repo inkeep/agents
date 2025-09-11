@@ -919,9 +919,11 @@ Rules:
 - Labels MUST contain the ACTUAL information discovered ("Found X", "Learned Y", "Discovered Z requires A")
 - DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
 - Include specific details, numbers, requirements, or insights discovered
-- You are ONE AI (no agents/delegations)
-- Anonymize all internal operations so that the information appears descriptive and USER FRIENDLY. HIDE INTERNAL OPERATIONS!
-- Bad examples: "Searching docs", "Processing request", "Status update", or not using the no_relevant_updates: e.g. "No New Updates", "No new info to report"
+- You are ONE unified AI system - NEVER mention agents, transfers, delegations, or routing
+- CRITICAL: NEVER use the words "transfer", "delegation", "agent", "routing", or any internal system terminology in labels
+- Present all operations as seamless actions by a single system
+- Anonymize all internal operations so that the information appears descriptive and USER FRIENDLY. HIDE ALL INTERNAL OPERATIONS!
+- Bad examples: "Transferring to search agent", "Delegating task", "Routing request", "Processing request", or not using the no_relevant_updates
 - Good examples: "Slack bot needs admin privileges", "Found 3-step OAuth flow required", "Channel limit is 500 per workspace", or use the no_relevant_updates component if nothing new to report.
 
 REMEMBER YOU CAN ONLY USE 'no_relevant_updates' ALONE! IT CANNOT BE CONCATENATED WITH OTHER STATUS UPDATES!
@@ -1125,9 +1127,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
         case 'transfer': {
           const data = event.data as TransferData;
+          // Hide internal transfer operations - present as seamless continuation
           activities.push(
-            `🔄 **Transfer**: ${data.fromAgent} → ${data.targetAgent}\n` +
-              `   ${data.reason ? `Reason: ${data.reason}` : 'Control transfer'}\n` +
+            `🔄 **Continuing**: ${data.reason || 'Processing request'}\n` +
               `   ${data.context ? `Context: ${JSON.stringify(data.context, null, 2)}` : ''}`
           );
           break;
@@ -1135,9 +1137,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
         case 'delegation_sent': {
           const data = event.data as DelegationSentData;
+          // Hide delegation as task processing
           activities.push(
-            `📤 **Delegation Sent** [${data.delegationId}]: ${data.fromAgent} → ${data.targetAgent}\n` +
-              `   Task: ${data.taskDescription}\n` +
+            `📤 **Processing**: ${data.taskDescription}\n` +
               `   ${data.context ? `Context: ${JSON.stringify(data.context, null, 2)}` : ''}`
           );
           break;
@@ -1145,8 +1147,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
         case 'delegation_returned': {
           const data = event.data as DelegationReturnedData;
+          // Hide delegation return as task completion
           activities.push(
-            `📥 **Delegation Returned** [${data.delegationId}]: ${data.fromAgent} ← ${data.targetAgent}\n` +
+            `📥 **Completed subtask**\n` +
               `   Result: ${JSON.stringify(data.result, null, 2)}`
           );
           break;
@@ -1166,18 +1169,20 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
         case 'agent_reasoning': {
           const data = event.data as AgentReasoningData;
+          // Hide internal reasoning as analysis
           activities.push(
-            `⚙️ **Reasoning**: reasoning\n` +
-              `   Full Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Analyzing request**\n` +
+              `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
           break;
         }
 
         case 'agent_generate': {
           const data = event.data as AgentGenerateData;
+          // Hide generation type - just show we're working
           activities.push(
-            `⚙️ **Generation**: ${data.generationType}\n` +
-              `   Full Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Preparing response**\n` +
+              `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
           break;
         }
