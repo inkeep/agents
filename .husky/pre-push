@@ -2,16 +2,18 @@
 # Pre-push hook for Agent Framework
 # 
 # This hook runs before each push to ensure code quality.
-# It performs the following checks:
-#   1. Linting (can be skipped with SKIP_LINT=1)
-#   2. Type checking (can be skipped with SKIP_TYPECHECK=1)
-#   3. Test suite (always runs)
+# It performs the following checks in a single optimized turbo run:
+#   - Build (once, shared by all tasks)
+#   - Linting (can be skipped with SKIP_LINT=1)
+#   - Type checking (can be skipped with SKIP_TYPECHECK=1)
+#   - Test suite (can be skipped with SKIP_TEST=1)
 #
 # Usage:
 #   Normal push:                      git push
 #   Skip lint only:                   SKIP_LINT=1 git push
-#   Skip typecheck only:              SKIP_TYPECHECK=1 git push  
-#   Skip both:                        SKIP_LINT=1 SKIP_TYPECHECK=1 git push
+#   Skip typecheck only:              SKIP_TYPECHECK=1 git push
+#   Skip tests only:                  SKIP_TEST=1 git push
+#   Skip multiple:                    SKIP_LINT=1 SKIP_TEST=1 git push
 #   Skip all hooks (use sparingly):   git push --no-verify
 #
 # For more information, see CONTRIBUTING.md
@@ -25,38 +27,47 @@ if [ "$BRANCH_NAME" != "main" ]; then
   exit 0
 fi
 
-# Linting - ensures code quality and consistent formatting
-# Can be skipped for emergency fixes or when only touching non-code files
+# Run tasks in dependency order to maximize turbo cache benefits
+# Order: typecheck (builds everything) -> test (reuses build) -> lint (no deps, fast)
+
+echo "🚀 Running pre-push checks in optimal order for caching..."
+
+# Typecheck first - this will trigger and cache the build
+if [ "$SKIP_TYPECHECK" = "1" ]; then
+  echo "⚡ Skipping typecheck (SKIP_TYPECHECK=1)"
+else
+  echo "🔍 Running typecheck (will build and cache if needed)..."
+  if ! pnpm turbo run typecheck; then
+    echo "❌ Type errors found. Fix them or use SKIP_TYPECHECK=1 git push to bypass."
+    exit 1
+  fi
+fi
+
+# Test suite second - reuses the cached build from typecheck
+if [ "$SKIP_TEST" = "1" ]; then
+  echo "⚡ Skipping tests (SKIP_TEST=1)"
+else
+  echo "🧪 Running tests (using cached build)..."
+  if ! pnpm turbo run test; then
+    echo "❌ Tests failed. Fix them or use SKIP_TEST=1 git push to bypass."
+    exit 1
+  fi
+fi
+
+# Lint last - doesn't depend on build, runs independently
 if [ "$SKIP_LINT" = "1" ]; then
   echo "⚡ Skipping lint check (SKIP_LINT=1)"
 else
   echo "🎨 Running lint check..."
-  # Run lint check using turbo
-  if ! pnpm lint; then
-    echo "❌ Lint issues found. Fix them or use SKIP_LINT=1 git push to bypass (use sparingly!)"
+  if ! pnpm turbo run lint; then
+    echo "❌ Lint issues found. Fix them or use SKIP_LINT=1 git push to bypass."
     exit 1
   fi
-  echo "✅ Lint check passed"
 fi
 
-# Type checking - ensures type safety across all packages
-# Can be skipped for WIP pushes or when only touching non-TS files
-if [ "$SKIP_TYPECHECK" = "1" ]; then
-  echo "⚡ Skipping typecheck (SKIP_TYPECHECK=1)"
-else
-  echo "🔍 Running typecheck..."
-  # Run typecheck
-  if ! pnpm typecheck; then
-    echo "❌ Type errors found. Fix them or use SKIP_TYPECHECK=1 git push to bypass (use sparingly!)"
-    exit 1
-  fi
-  echo "✅ Typecheck passed"
+# Check if all were skipped
+if [ "$SKIP_LINT" = "1" ] && [ "$SKIP_TYPECHECK" = "1" ] && [ "$SKIP_TEST" = "1" ]; then
+  echo "⚠️  All checks skipped. Consider running at least one check before pushing."
 fi
 
-# Test suite - always runs to prevent broken code from being pushed
-echo "🧪 Running tests..."
-if ! pnpm test; then
-  echo "❌ Tests failed. Fix them before pushing."
-  exit 1
-fi
-echo "✅ Tests passed"
+echo "✅ All pre-push checks passed!"
