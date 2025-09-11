@@ -4,22 +4,32 @@ import { pino } from 'pino';
 // import { createGcpLoggingPinoConfig } from '@google-cloud/pino-logging-gcp-config';
 import { env } from './env';
 
-const logger = pino({
+
+
+// Create logger configuration based on environment
+const isDevelopment = env.ENVIRONMENT === 'development';
+
+const loggerConfig = {
   level: env.LOG_LEVEL,
   serializers: {
-    obj: (value) => ({ ...value }),
+    obj: (value: any) => ({ ...value }),
   },
   redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      sync: true,
-      destination: 1, // stdout
-      colorize: true,
-      translateTime: 'SYS:standard',
+  // Only use pino-pretty in development
+  ...(isDevelopment && {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        sync: true,
+        destination: 1, // stdout
+        colorize: true,
+        translateTime: 'SYS:standard',
+      },
     },
-  },
-});
+  }),
+};
+
+const logger = pino(loggerConfig);
 
 const asyncLocalStorage = new AsyncLocalStorage<Map<string, string>>();
 

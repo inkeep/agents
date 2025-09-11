@@ -293,9 +293,6 @@ importers:
       pino:
         specifier: ^9.7.0
         version: 9.9.4
-      pino-pretty:
-        specifier: ^13.0.0
-        version: 13.1.1
       zod:
         specifier: ^4.1.5
         version: 4.1.5
@@ -315,6 +312,9 @@ importers:
       nodemon:
         specifier: ^3.1.0
         version: 3.1.10
+      pino-pretty:
+        specifier: ^13.0.0
+        version: 13.1.1
       tsx:
         specifier: ^4.7.1
         version: 4.20.5
@@ -649,9 +649,6 @@ importers:
       pino:
         specifier: ^9.7.0
         version: 9.9.4
-      pino-pretty:
-        specifier: ^13.0.0
-        version: 13.1.1
       traverse:
         specifier: ^0.6.11
         version: 0.6.11
@@ -683,6 +680,9 @@ importers:
       nodemon:
         specifier: ^3.1.0
         version: 3.1.10
+      pino-pretty:
+        specifier: ^13.1.1
+        version: 13.1.1
       tsx:
         specifier: ^4.7.1
         version: 4.20.5
