@@ -300,7 +300,6 @@ export interface AgentInterface {
 	getId(): string;
 	getName(): string;
 	getDescription(): string;
-	getDescriptionWithTransfers(): string;
 	getInstructions(): string;
 	getTools(): Record<string, any>;
 	getTransfers(): AgentInterface[];
