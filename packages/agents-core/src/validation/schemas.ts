@@ -569,9 +569,9 @@ export const StatusComponentSchema = z.object({
   description: z.string().optional(),
   detailsSchema: z
     .object({
-    type: z.literal('object'),
-    properties: z.record(z.string(), z.any()),
-    required: z.array(z.string()).optional(),
+      type: z.literal('object'),
+      properties: z.record(z.string(), z.any()),
+      required: z.array(z.string()).optional(),
     })
     .optional(),
 });

@@ -24,7 +24,15 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import { generateObject, generateText, streamText, type ToolSet, tool, type StreamTextResult, type Tool } from 'ai';
+import {
+  generateObject,
+  generateText,
+  streamText,
+  type ToolSet,
+  tool,
+  type StreamTextResult,
+  type Tool,
+} from 'ai';
 import { z } from 'zod';
 import {
   createDefaultConversationHistoryConfig,
@@ -133,7 +141,9 @@ export type DelegateRelation =
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 // Type guard to validate MCP tools have the expected AI SDK structure
-function isValidTool(tool: any): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
+function isValidTool(
+  tool: any
+): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
   return (
     tool &&
     typeof tool === 'object' &&
@@ -456,16 +466,16 @@ export class Agent {
               // Call the original MCP tool with proper error handling
               const result = await originalTool.execute(args, { toolCallId });
 
-            // Record the result immediately in the session manager
-            toolSessionManager.recordToolResult(sessionId, {
-              toolCallId,
-              toolName,
-              args,
-              result,
-              timestamp: Date.now(),
-            });
+              // Record the result immediately in the session manager
+              toolSessionManager.recordToolResult(sessionId, {
+                toolCallId,
+                toolName,
+                args,
+                result,
+                timestamp: Date.now(),
+              });
 
-            return { result, toolCallId };
+              return { result, toolCallId };
             } catch (error) {
               logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
               throw error;
@@ -1128,13 +1138,19 @@ Key requirements:
 
         // Ensure timeout doesn't exceed maximum
         const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
-        
-        if (modelSettings.maxDuration && modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS) {
-          logger.warn({
-            requestedTimeout: modelSettings.maxDuration * 1000,
-            appliedTimeout: timeoutMs,
-            maxAllowed: MAX_ALLOWED_TIMEOUT_MS
-          }, 'Requested timeout exceeded maximum allowed, capping to 10 minutes');
+
+        if (
+          modelSettings.maxDuration &&
+          modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS
+        ) {
+          logger.warn(
+            {
+              requestedTimeout: modelSettings.maxDuration * 1000,
+              appliedTimeout: timeoutMs,
+              maxAllowed: MAX_ALLOWED_TIMEOUT_MS,
+            },
+            'Requested timeout exceeded maximum allowed, capping to 10 minutes'
+          );
         }
 
         // Build messages for Phase 1 - use thinking prompt if structured output needed

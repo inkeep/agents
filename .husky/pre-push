@@ -3,12 +3,15 @@
 # 
 # This hook runs before each push to ensure code quality.
 # It performs the following checks:
-#   1. Type checking (can be skipped with SKIP_TYPECHECK=1)
-#   2. Test suite (always runs)
+#   1. Linting (can be skipped with SKIP_LINT=1)
+#   2. Type checking (can be skipped with SKIP_TYPECHECK=1)
+#   3. Test suite (always runs)
 #
 # Usage:
 #   Normal push:                      git push
+#   Skip lint only:                   SKIP_LINT=1 git push
 #   Skip typecheck only:              SKIP_TYPECHECK=1 git push  
+#   Skip both:                        SKIP_LINT=1 SKIP_TYPECHECK=1 git push
 #   Skip all hooks (use sparingly):   git push --no-verify
 #
 # For more information, see CONTRIBUTING.md
@@ -20,6 +23,20 @@ BRANCH_NAME=$(git symbolic-ref --short HEAD)
 if [ "$BRANCH_NAME" != "main" ]; then
   echo "⚡ Skipping pre-push hooks (not on main branch)"
   exit 0
+fi
+
+# Linting - ensures code quality and consistent formatting
+# Can be skipped for emergency fixes or when only touching non-code files
+if [ "$SKIP_LINT" = "1" ]; then
+  echo "⚡ Skipping lint check (SKIP_LINT=1)"
+else
+  echo "🎨 Running lint check..."
+  # Run lint check using turbo
+  if ! pnpm lint; then
+    echo "❌ Lint issues found. Fix them or use SKIP_LINT=1 git push to bypass (use sparingly!)"
+    exit 1
+  fi
+  echo "✅ Lint check passed"
 fi
 
 # Type checking - ensures type safety across all packages

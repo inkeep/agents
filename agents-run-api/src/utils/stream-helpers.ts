@@ -292,11 +292,13 @@ export class VercelDataStreamHelper implements StreamHelper {
     if (this.jsonBuffer.length + content.length > VercelDataStreamHelper.MAX_BUFFER_SIZE) {
       // JSON-aware truncation to prevent corruption
       const newBuffer = this.truncateJsonBufferSafely(this.jsonBuffer);
-      
+
       // If we couldn't find a safe truncation point, clear the buffer entirely
       // This is safer than keeping potentially corrupted JSON
       if (newBuffer.length === this.jsonBuffer.length) {
-        console.warn('VercelDataStreamHelper: Could not find safe JSON truncation point, clearing buffer');
+        console.warn(
+          'VercelDataStreamHelper: Could not find safe JSON truncation point, clearing buffer'
+        );
         this.jsonBuffer = '';
         // Clear tracking as we're starting fresh
         this.sentItems.clear();
@@ -375,16 +377,16 @@ export class VercelDataStreamHelper implements StreamHelper {
       });
 
       // Optional delay before sending the text chunk
-        if (delayMs > 0) {
-          await new Promise((r) => setTimeout(r, delayMs));
-        }
+      if (delayMs > 0) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
 
       // Send the entire text as a single delta
-        this.writer.write({
-          type: 'text-delta',
-          id,
+      this.writer.write({
+        type: 'text-delta',
+        id,
         delta: text,
-        });
+      });
 
       // End
       this.writer.write({
@@ -492,7 +494,7 @@ export class VercelDataStreamHelper implements StreamHelper {
       clearTimeout(this.connectionDropTimer);
       this.connectionDropTimer = undefined;
     }
-    
+
     this.jsonBuffer = '';
     this.sentItems.clear();
     this.completedItems.clear();
@@ -507,34 +509,34 @@ export class VercelDataStreamHelper implements StreamHelper {
   private truncateJsonBufferSafely(buffer: string): string {
     const keepSize = Math.floor(VercelDataStreamHelper.MAX_BUFFER_SIZE * 0.6); // Be more conservative
     if (buffer.length <= keepSize) return buffer;
-    
+
     // Start from the end and work backwards to find complete JSON structures
     let depth = 0;
     let inString = false;
     let escaping = false;
     let lastCompleteStructureEnd = -1;
-    
+
     // Scan backwards from the target keep size
     for (let i = Math.min(keepSize + 1000, buffer.length - 1); i >= keepSize; i--) {
       const char = buffer[i];
-      
+
       if (escaping) {
         escaping = false;
         continue;
       }
-      
+
       if (char === '\\') {
         escaping = true;
         continue;
       }
-      
+
       if (char === '"') {
         inString = !inString;
         continue;
       }
-      
+
       if (inString) continue;
-      
+
       if (char === '}' || char === ']') {
         depth++;
       } else if (char === '{' || char === '[') {
@@ -546,23 +548,23 @@ export class VercelDataStreamHelper implements StreamHelper {
         }
       }
     }
-    
+
     // If we found a safe truncation point, use it
     if (lastCompleteStructureEnd > 0) {
       return buffer.slice(lastCompleteStructureEnd + 1);
     }
-    
+
     // Fallback: look for newlines between structures
     for (let i = keepSize; i < Math.min(keepSize + 500, buffer.length); i++) {
       if (buffer[i] === '\n' && buffer[i + 1] && buffer[i + 1].match(/[{[]]/)) {
         return buffer.slice(i + 1);
       }
     }
-    
+
     // Return original buffer if no safe point found (caller will handle clearing)
     return buffer;
   }
-  
+
   /**
    * Reindex sent items after buffer truncation
    */
@@ -577,13 +579,13 @@ export class VercelDataStreamHelper implements StreamHelper {
    */
   private forceCleanup(reason: string): void {
     console.warn(`VercelDataStreamHelper: Forcing cleanup - ${reason}`);
-    
+
     // Mark as completed to prevent further writes
     this.isCompleted = true;
-    
+
     // Clean up all resources
     this.cleanup();
-    
+
     // Try to write an error if the writer is still available
     try {
       if (this.writer && !this.isCompleted) {

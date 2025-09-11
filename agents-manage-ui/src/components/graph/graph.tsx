@@ -135,25 +135,42 @@ function Flow({
 				name: graph?.name ?? "",
 				description: graph?.description ?? "",
 				graphPrompt: graph?.graphPrompt,
-        models: graph?.models ? {
-          base: graph.models.base ? {
-            model: graph.models.base.model,
-            providerOptions: formatJsonField(graph.models.base.providerOptions),
-          } : undefined,
-          structuredOutput: graph.models.structuredOutput ? {
-            model: graph.models.structuredOutput.model,
-            providerOptions: formatJsonField(graph.models.structuredOutput.providerOptions),
-          } : undefined,
-          summarizer: graph.models.summarizer ? {
-            model: graph.models.summarizer.model,
-            providerOptions: formatJsonField(graph.models.summarizer.providerOptions),
-          } : undefined,
-        } : undefined,
+				models: graph?.models
+					? {
+							base: graph.models.base
+								? {
+										model: graph.models.base.model,
+										providerOptions: formatJsonField(
+											graph.models.base.providerOptions,
+										),
+									}
+								: undefined,
+							structuredOutput: graph.models.structuredOutput
+								? {
+										model: graph.models.structuredOutput.model,
+										providerOptions: formatJsonField(
+											graph.models.structuredOutput.providerOptions,
+										),
+									}
+								: undefined,
+							summarizer: graph.models.summarizer
+								? {
+										model: graph.models.summarizer.model,
+										providerOptions: formatJsonField(
+											graph.models.summarizer.providerOptions,
+										),
+									}
+								: undefined,
+						}
+					: undefined,
 				stopWhen: graph?.stopWhen,
-        statusUpdates: graph?.statusUpdates ? {
-          ...graph.statusUpdates,
-          statusComponents: formatJsonField(graph.statusUpdates.statusComponents) || '',
-        } : undefined,
+				statusUpdates: graph?.statusUpdates
+					? {
+							...graph.statusUpdates,
+							statusComponents:
+								formatJsonField(graph.statusUpdates.statusComponents) || "",
+						}
+					: undefined,
 				contextConfig: {
 					id: graph?.contextConfig?.id ?? "",
 					name: graph?.contextConfig?.name ?? "",

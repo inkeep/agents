@@ -23,8 +23,7 @@ export function ProjectStopWhenSection({
 	// Check if any stopWhen values are configured to determine default open state
 	const stopWhen = useWatch({ control, name: "stopWhen" });
 	const hasConfiguredStopWhen = !!(
-		stopWhen?.transferCountIs ||
-		stopWhen?.stepCountIs
+		stopWhen?.transferCountIs || stopWhen?.stepCountIs
 	);
 
 	return (

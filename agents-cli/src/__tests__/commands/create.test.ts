@@ -25,20 +25,20 @@ const mockPrompts = p as any;
 describe('create command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset the shared mock function
     mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
-    
+
     // Mock fs operations
     mockFs.pathExists = vi.fn().mockResolvedValue(false);
     mockFs.ensureDir = vi.fn().mockResolvedValue(undefined);
     mockFs.emptyDir = vi.fn().mockResolvedValue(undefined);
     mockFs.writeJson = vi.fn().mockResolvedValue(undefined);
     mockFs.writeFile = vi.fn().mockResolvedValue(undefined);
-    
+
     // Mock process.chdir (avoid the unsupported workers issue)
     vi.spyOn(process, 'chdir').mockImplementation(() => {});
-    
+
     // Mock prompt functions
     mockPrompts.intro = vi.fn();
     mockPrompts.spinner = vi.fn().mockReturnValue({
@@ -157,9 +157,7 @@ describe('create command', () => {
           message: expect.stringContaining('Directory existing-project already exists'),
         })
       );
-      expect(mockFs.emptyDir).toHaveBeenCalledWith(
-        path.resolve(process.cwd(), 'existing-project')
-      );
+      expect(mockFs.emptyDir).toHaveBeenCalledWith(path.resolve(process.cwd(), 'existing-project'));
     });
 
     it('should cancel if user declines to overwrite existing directory', async () => {
@@ -348,7 +346,7 @@ describe('create command', () => {
     it('should handle installation errors gracefully', async () => {
       // Mock exec to fail on the 'npm install' call
       mockExecAsync.mockRejectedValueOnce(new Error('npm install failed'));
-      
+
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
@@ -370,7 +368,7 @@ describe('create command', () => {
     it('should cancel on user prompt cancellation', async () => {
       mockPrompts.text.mockResolvedValueOnce('test-project');
       mockPrompts.isCancel.mockReturnValueOnce(true);
-      
+
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });

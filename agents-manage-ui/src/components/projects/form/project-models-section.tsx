@@ -179,9 +179,12 @@ function SummarizerModelSection({
 export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
 	// Check if any model is configured to determine default open state
 	const modelsBase = useWatch({ control, name: "models.base" });
-	const modelsStructuredOutput = useWatch({ control, name: "models.structuredOutput" });
+	const modelsStructuredOutput = useWatch({
+		control,
+		name: "models.structuredOutput",
+	});
 	const modelsSummarizer = useWatch({ control, name: "models.summarizer" });
-	
+
 	const hasConfiguredModels = !!(
 		modelsBase?.model ||
 		modelsStructuredOutput?.model ||

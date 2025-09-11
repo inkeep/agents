@@ -1,7 +1,7 @@
-import { defineConfig } from 'tsup';
-import rootConfig from '../../tsup.config';
+import { defineConfig } from "tsup";
+import rootConfig from "../../tsup.config";
 
 export default defineConfig({
-  ...rootConfig,
-  async onSuccess() {},
+	...rootConfig,
+	async onSuccess() {},
 });

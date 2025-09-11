@@ -26,7 +26,9 @@
       "!**/drizzle.config.*",
       "!**/.next/**",
       "!**/build/**",
-      "!**/out/**"
+      "!**/out/**",
+      "!**/.turbo/**",
+      "!**/.claude/**"
     ],
     "rules": {
       "recommended": true,
@@ -67,7 +69,9 @@
       "!**/drizzle.config.*",
       "!**/.next/**",
       "!**/build/**",
-      "!**/out/**"
+      "!**/out/**",
+      "!**/.turbo/**",
+      "!**/.claude/**"
     ],
     "lineWidth": 100,
     "indentStyle": "space",

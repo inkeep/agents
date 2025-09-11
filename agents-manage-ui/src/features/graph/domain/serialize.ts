@@ -273,20 +273,32 @@ export function serializeGraphData(
 
 	// Add new graph-level fields
 	if (metadata?.models) {
-    (result as any).models = {
-      base: metadata.models.base ? {
-        model: metadata.models.base.model,
-        providerOptions: safeJsonParse(metadata.models.base.providerOptions),
-      } : undefined,
-      structuredOutput: metadata.models.structuredOutput ? {
-        model: metadata.models.structuredOutput.model,
-        providerOptions: safeJsonParse(metadata.models.structuredOutput.providerOptions),
-      } : undefined,
-      summarizer: metadata.models.summarizer ? {
-        model: metadata.models.summarizer.model,
-        providerOptions: safeJsonParse(metadata.models.summarizer.providerOptions),
-      } : undefined,
-    };
+		(result as any).models = {
+			base: metadata.models.base
+				? {
+						model: metadata.models.base.model,
+						providerOptions: safeJsonParse(
+							metadata.models.base.providerOptions,
+						),
+					}
+				: undefined,
+			structuredOutput: metadata.models.structuredOutput
+				? {
+						model: metadata.models.structuredOutput.model,
+						providerOptions: safeJsonParse(
+							metadata.models.structuredOutput.providerOptions,
+						),
+					}
+				: undefined,
+			summarizer: metadata.models.summarizer
+				? {
+						model: metadata.models.summarizer.model,
+						providerOptions: safeJsonParse(
+							metadata.models.summarizer.providerOptions,
+						),
+					}
+				: undefined,
+		};
 	}
 
 	if (metadata?.stopWhen) {
@@ -298,11 +310,13 @@ export function serializeGraphData(
 	}
 
 	if (metadata?.statusUpdates) {
-    const parsedStatusComponents = safeJsonParse(metadata.statusUpdates.statusComponents);
-    (result as any).statusUpdates = {
-      ...metadata.statusUpdates,
-      statusComponents: parsedStatusComponents,
-    };
+		const parsedStatusComponents = safeJsonParse(
+			metadata.statusUpdates.statusComponents,
+		);
+		(result as any).statusUpdates = {
+			...metadata.statusUpdates,
+			statusComponents: parsedStatusComponents,
+		};
 	}
 
 	// Add contextConfig if there's meaningful data

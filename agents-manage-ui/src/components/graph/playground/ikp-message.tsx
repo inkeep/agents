@@ -87,20 +87,20 @@ const InlineDataOperation: FC<{ operation: any; isLast: boolean }> = ({
 	const { type, ctx } = operation;
 
 	const getOperationLabel = () => {
-    // Use LLM-generated label if available (for status updates and other operations)
-    if (operation.label) {
-      return operation.label;
-    }
-    
+		// Use LLM-generated label if available (for status updates and other operations)
+		if (operation.label) {
+			return operation.label;
+		}
+
 		switch (type) {
-      case 'agent_initializing':
-        return 'Agent initializing';
-      case 'agent_ready':
-        return 'Agent ready';
-      case 'completion':
-        return 'Completion';
-      case 'status_update':
-        return 'Status update';
+			case "agent_initializing":
+				return "Agent initializing";
+			case "agent_ready":
+				return "Agent ready";
+			case "completion":
+				return "Completion";
+			case "status_update":
+				return "Status update";
 			default:
 				return type
 					.replace(/_/g, " ")
@@ -157,10 +157,10 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
 
 				// Only add inline operations for non-top-level operations
 				const isTopLevelOperation = [
-          'agent_initializing',
-          'agent_ready',
-          'completion',
-          'error',
+					"agent_initializing",
+					"agent_ready",
+					"completion",
+					"error",
 				].includes(type);
 
 				if (!isTopLevelOperation) {
@@ -172,8 +172,8 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
 					// Add the inline operation
 					processed.push({ type: "inline-operation", operation: part.data });
 				}
-      } else if (part.type === 'data-artifact') {
-        // Add artifact as citation marker inline with current text (don't flush)
+			} else if (part.type === "data-artifact") {
+				// Add artifact as citation marker inline with current text (don't flush)
 				const artifactData = part.data as any;
 				const artifactSummary = artifactData.artifactSummary || {
 					record_type: "site",
@@ -273,13 +273,13 @@ function useProcessedOperations(parts: Message["parts"]) {
 	const seenOperationKeys = useRef(new Set<string>());
 	const seenArtifactKeys = useRef(new Set<string>());
 
-  // Reset tracking on initial mount to avoid stale data
-  useEffect(() => {
-    seenOperationKeys.current.clear();
-    seenArtifactKeys.current.clear();
-    setOperations([]);
-    setArtifacts([]);
-  }, []); // Only run once on mount
+	// Reset tracking on initial mount to avoid stale data
+	useEffect(() => {
+		seenOperationKeys.current.clear();
+		seenArtifactKeys.current.clear();
+		setOperations([]);
+		setArtifacts([]);
+	}, []); // Only run once on mount
 
 	useEffect(() => {
 		// Process only NEW operations and artifacts
@@ -288,17 +288,17 @@ function useProcessedOperations(parts: Message["parts"]) {
 		let textBuilder = "";
 
 		for (const part of parts) {
-      if (part.type === 'data-operation') {
-        // Create semantic key for this operation
-        const { type, ctx } = part.data as any; // Cast to any to handle new operation types
-        let key: string = type;
+			if (part.type === "data-operation") {
+				// Create semantic key for this operation
+				const { type, ctx } = part.data as any; // Cast to any to handle new operation types
+				let key: string = type;
 
-        // Skip ALL non-top-level operations (they'll be handled as inline by StreamMarkdown)
+				// Skip ALL non-top-level operations (they'll be handled as inline by StreamMarkdown)
 				const isTopLevelOperation = [
-          'agent_initializing',
-          'agent_ready',
-          'completion',
-          'error',
+					"agent_initializing",
+					"agent_ready",
+					"completion",
+					"error",
 				].includes(type);
 
 				// Only process top-level operations for the timeline
@@ -358,7 +358,7 @@ function useProcessedOperations(parts: Message["parts"]) {
 
 		// Only update if we have new operations
 		if (newOps.length > 0) {
-      setOperations((prev) => [...prev, ...newOps]);
+			setOperations((prev) => [...prev, ...newOps]);
 		}
 
 		// Only update if we have new artifacts
@@ -443,10 +443,10 @@ const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
 
 	// Check if this is a structured data operation (not one of our core operations)
 	const isStructuredOperation = ![
-    'agent_initializing',
-    'agent_ready',
-    'completion',
-    'error',
+		"agent_initializing",
+		"agent_ready",
+		"completion",
+		"error",
 	].includes(type);
 
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -553,32 +553,37 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 	return (
 		<div className="flex justify-start">
 			<div className="max-w-4xl w-full">
-        {/* Simple Status Indicator */}
-        {(displayOperations.length > 0 || isLoading) && (
-          <div className="mb-3">
-            <div className="flex items-center gap-2">
+				{/* Simple Status Indicator */}
+				{(displayOperations.length > 0 || isLoading) && (
+					<div className="mb-3">
+						<div className="flex items-center gap-2">
 							{isLoading ? (
-                <>
-								<LoaderCircle className="w-4 h-4 text-gray-400 dark:text-muted-foreground animate-spin" />
-                  <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
-                    Processing...
-                  </span>
-                </>
+								<>
+									<LoaderCircle className="w-4 h-4 text-gray-400 dark:text-muted-foreground animate-spin" />
+									<span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
+										Processing...
+									</span>
+								</>
 							) : (
 								<>
-                  <Check className="w-4 h-4 text-gray-500 dark:text-muted-foreground" />
-                  <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
-                    Completed
-                  </span>
-                </>
-              )}
-							</div>
+									<Check className="w-4 h-4 text-gray-500 dark:text-muted-foreground" />
+									<span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
+										Completed
+									</span>
+								</>
+							)}
+						</div>
 					</div>
 				)}
 
 				{/* Main Response */}
 				{(textContent ||
-          message.parts.some((p) => p.type === 'text' || p.type === 'data-component' || p.type === 'data-operation')) && (
+					message.parts.some(
+						(p) =>
+							p.type === "text" ||
+							p.type === "data-component" ||
+							p.type === "data-operation",
+					)) && (
 					<div>
 						<div className="prose prose-sm max-w-none">
 							{/* Render the combined markdown with inline citations using StreamMarkdown */}
