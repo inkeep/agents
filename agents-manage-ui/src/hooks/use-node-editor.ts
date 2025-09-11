@@ -29,18 +29,18 @@ export function useNodeEditor({
 		[],
 	);
 
-	// Focus on first error field when component mounts or errors change
-	useEffect(() => {
-		if (errorHelpers) {
-			const firstErrorField = errorHelpers.getFirstErrorField();
-			if (firstErrorField && fieldRefs.current[firstErrorField]) {
-				// Small delay to ensure the element is rendered
-				setTimeout(() => {
-					fieldRefs.current[firstErrorField].focus();
-				}, 100);
-			}
-		}
-	}, [errorHelpers]);
+	// Focus on first error field when component mounts or errors change -- this was causing issues if another input was already focused
+	// useEffect(() => {
+	// 	if (errorHelpers) {
+	// 		const firstErrorField = errorHelpers.getFirstErrorField();
+	// 		if (firstErrorField && fieldRefs.current[firstErrorField]) {
+	// 			// Small delay to ensure the element is rendered
+	// 			setTimeout(() => {
+	// 				fieldRefs.current[firstErrorField].focus();
+	// 			}, 100);
+	// 		}
+	// 	}
+	// }, [errorHelpers]);
 
 	// Helper function to get field error message
 	const getFieldError = useCallback(

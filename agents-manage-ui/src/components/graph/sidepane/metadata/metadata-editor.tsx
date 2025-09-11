@@ -64,6 +64,21 @@ function MetadataEditor() {
 		[setMetadata, markUnsaved],
 	);
 
+	const handleIdChange = useCallback(
+		(generatedId: string) => {
+			updateMetadata("id", generatedId);
+		},
+		[updateMetadata],
+	);
+
+	// Auto-prefill ID based on name field (only for new graphs)
+	useAutoPrefillIdZustand({
+		nameValue: name,
+		idValue: id,
+		onIdChange: handleIdChange,
+		isEditing: !!graphId,
+	});
+
 	return (
 		<div className="space-y-8">
 			{graphId && (
