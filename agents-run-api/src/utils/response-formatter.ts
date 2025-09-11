@@ -23,7 +23,7 @@ export class ResponseFormatter {
    * Process structured object response and replace artifact markers with actual artifacts
    */
   async formatObjectResponse(responseObject: any, contextId: string): Promise<MessageContent> {
-    return tracer.startActiveSpan('response.formatObjectResponse', async (span) => {
+    return tracer.startActiveSpan('response.format_object_response', async (span) => {
       try {
         // Get all artifacts available in this context
         const artifactMap = await this.artifactParser.getContextArtifacts(contextId);
@@ -67,7 +67,7 @@ export class ResponseFormatter {
    * Process agent response and convert artifact markers to data parts
    */
   async formatResponse(responseText: string, contextId: string): Promise<MessageContent> {
-    return tracer.startActiveSpan('response.formatResponse', async (span) => {
+    return tracer.startActiveSpan('response.format_response', async (span) => {
       try {
         span.setAttributes({
           'response.hasArtifactMarkers': this.artifactParser.hasArtifactMarkers(responseText),
