@@ -14,29 +14,21 @@ The Inkeep Agent Framework uses OpenTelemetry for distributed tracing and observ
 
 ```typescript
 import { SpanStatusCode, type Span } from "@opentelemetry/api";
-import { getGlobalTracer, createSpanName } from "../tracer";
+import { getTracer, setSpanWithError } from "../tracer";
 ```
 
-### 2. Get the Global Tracer
+### 2. Get the Tracer
 
 ```typescript
 // Use the centralized tracer utility
-const tracer = getGlobalTracer();
-```
-
-### 3. Create Span Names
-
-```typescript
-// Use the createSpanName utility for consistent naming to prefix all spans with service name
-const spanName = createSpanName("context.resolve");
-// Results in: "inkeep-chat.context.resolve"
+const tracer = getTracer("your-service-name");
 ```
 
 ## Creating and Using Spans
 
 ```typescript
 return tracer.startActiveSpan(
-  createSpanName("context.resolve"),
+  "context.resolve",
   {
     attributes: {
       "context.config_id": contextConfig.id,
@@ -48,12 +40,8 @@ return tracer.startActiveSpan(
       // Your operation logic here
       return result;
     } catch (error) {
-      // Error handling
-      span.recordException(error as Error);
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error.message,
-      });
+      // Use setSpanWithError for consistent error handling
+      setSpanWithError(span, error);
       throw error;
     }
   }
@@ -95,23 +83,16 @@ span.addEvent("error.validation_failed", {
 
 ## Error Handling and Status
 
-### Setting Error Status
+### Using setSpanWithError Utility
+
+The framework provides a convenient `setSpanWithError` utility function that handles error recording and status setting:
 
 ```typescript
 try {
   // Your operation
 } catch (error) {
-  const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-  // Record the exception
-  span.recordException(error as Error);
-
-  // Set error status
-  span.setStatus({
-    code: SpanStatusCode.ERROR,
-    message: errorMessage,
-  });
-
+  // Use the setSpanWithError utility for consistent error handling
+  setSpanWithError(span, error);
   throw error;
 }
 ```
@@ -123,19 +104,17 @@ try {
 The span naming convention follows a hierarchical structure that mirrors your code organization.
 
 ```typescript
-// Format: createSpanName('class.function')
-// Results in: "inkeep-chat.class.function"
+// Format: 'class.function'
+// Use descriptive span names that follow a hierarchical structure
 
 // Agent operations
-createSpanName("agent.generate"); // inkeep-chat.agent.generate
-createSpanName("agent.tool_execute"); // inkeep-chat.agent.tool_execute
-createSpanName("agent.transfer"); // inkeep-chat.agent.transfer
+"agent.generate";
+"agent.tool_execute";
+"agent.transfer";
 
 // Context operations
-createSpanName("context.resolve"); // inkeep-chat.context.resolve
-createSpanName("context.fetch"); // inkeep-chat.context.fetch
-
-// Tool operations
+"context.resolve";
+"context.fetch";
 ```
 
 #### Naming Rules
@@ -152,8 +131,6 @@ createSpanName("context.fetch"); // inkeep-chat.context.fetch
 ```bash
 # OpenTelemetry configuration
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_SERVICE_NAME=inkeep-chat
-OTEL_SERVICE_VERSION=1.0.0
 ```
 
 ### Instrumentation Setup
@@ -172,7 +149,7 @@ See `src/agents/Agent.ts` for span usage in agent generation and tool execution.
 // Class: Agent
 // Function: generate
 return tracer.startActiveSpan(
-  createSpanName("agent.generate"),
+  "agent.generate",
   {
     attributes: {
       "agent.id": this.id,
@@ -189,10 +166,10 @@ return tracer.startActiveSpan(
 
 Spans provide powerful observability into your Inkeep Agent Framework operations. By following these patterns:
 
-1. **Use `getGlobalTracer()`** for consistent tracing
-2. **Use `createSpanName()`** for consistent naming
+1. **Use `getTracer()`** for consistent tracing
+2. **Use consistent naming**
 3. **Set meaningful attributes** for searchability
-4. **Handle errors properly** with status and exceptions
+4. **Handle errors properly** using `setSpanWithError` for consistent error handling
 5. **Use `startActiveSpan`** for automatic lifecycle management
 
 This will give you comprehensive visibility into your agent operations, making debugging and performance optimization much easier.

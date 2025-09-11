@@ -5,4 +5,4 @@ export * from './error';
 export * from './execution';
 export * from './logger';
 export * from './mcp-client';
-export * from './tracer';
+export * from './tracer-factory';

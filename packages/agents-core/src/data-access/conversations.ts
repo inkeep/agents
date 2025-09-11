@@ -272,7 +272,6 @@ export const getConversationHistory =
     const {
       limit = options.limit ?? 50,
       includeInternal = options.includeInternal ?? false,
-      messageTypes = options.messageTypes ?? ['chat'],
       maxOutputTokens,
     } = options;
 

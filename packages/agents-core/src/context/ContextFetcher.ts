@@ -44,7 +44,6 @@ export class ContextFetcher {
   private tenantId: string;
   private projectId: string;
   private defaultTimeout: number;
-  private credentialStoreRegistry?: CredentialStoreRegistry;
   private credentialStuffer?: CredentialStuffer;
   private dbClient: DatabaseClient;
 
@@ -58,7 +57,6 @@ export class ContextFetcher {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.defaultTimeout = defaultTimeout;
-    this.credentialStoreRegistry = credentialStoreRegistry;
     if (credentialStoreRegistry) {
       this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry);
     }

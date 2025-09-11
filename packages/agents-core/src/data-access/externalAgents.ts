@@ -177,7 +177,10 @@ export const upsertExternalAgent =
           headers: params.data.headers,
         },
       });
-      return updated!; // We know it exists since we just updated it
+      if (!updated) {
+        throw new Error('Failed to update external agent - no rows affected');
+      }
+      return updated;
     } else {
       // Create new external agent
       return await createExternalAgent(db)(params.data);

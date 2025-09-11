@@ -1,18 +1,10 @@
 import type { MessageContent } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
 import { getLogger } from '../logger';
-import { SERVICE_VERSION } from '../tracer';
 import { ArtifactParser, type StreamPart } from './artifact-parser';
+import { tracer, setSpanWithError } from './tracer';
 
 const logger = getLogger('ResponseFormatter');
 
-// Service name for response formatter tracer
-const RESPONSE_FORMATTER_SERVICE = 'responseFormatter';
-
-function getResponseFormatterTracer() {
-  const tracerProvider = trace.getTracerProvider();
-  return tracerProvider.getTracer(RESPONSE_FORMATTER_SERVICE, SERVICE_VERSION);
-}
 
 /**
  * Response formatter that uses the unified ArtifactParser to convert artifact markers
@@ -29,8 +21,7 @@ export class ResponseFormatter {
    * Process structured object response and replace artifact markers with actual artifacts
    */
   async formatObjectResponse(responseObject: any, contextId: string): Promise<MessageContent> {
-    const tracer = getResponseFormatterTracer();
-    return tracer.startActiveSpan('response.formatObject', async (span) => {
+    return tracer.startActiveSpan('response.format_object_response', async (span) => {
       try {
         // Get all artifacts available in this context
         const artifactMap = await this.artifactParser.getContextArtifacts(contextId);
@@ -59,7 +50,7 @@ export class ResponseFormatter {
 
         return { parts };
       } catch (error) {
-        span.recordException(error as Error);
+        setSpanWithError(span, error);
         logger.error({ error, responseObject }, 'Error formatting object response');
         return {
           parts: [{ kind: 'data' as const, data: responseObject }],
@@ -74,8 +65,7 @@ export class ResponseFormatter {
    * Process agent response and convert artifact markers to data parts
    */
   async formatResponse(responseText: string, contextId: string): Promise<MessageContent> {
-    const tracer = getResponseFormatterTracer();
-    return tracer.startActiveSpan('response.format', async (span) => {
+    return tracer.startActiveSpan('response.format_response', async (span) => {
       try {
         span.setAttributes({
           'response.hasArtifactMarkers': this.artifactParser.hasArtifactMarkers(responseText),
@@ -127,8 +117,7 @@ export class ResponseFormatter {
 
         return { parts };
       } catch (error) {
-        span.recordException(error as Error);
-        span.setStatus({ code: 2, message: (error as Error).message });
+        setSpanWithError(span, error);
         logger.error({ error, responseText }, 'Error formatting response');
         return { text: responseText };
       } finally {

@@ -11,7 +11,6 @@ import { getLogger } from '../utils/logger';
 
 const logger = getLogger('context-validation');
 
-// @ts-ignore
 const ajv = new Ajv({ allErrors: true, strict: false });
 
 // Constants for HTTP request parts (simplified to headers only)
@@ -39,12 +38,7 @@ export interface ParsedHttpRequest {
 
 // Type guard for validating HTTP request objects
 export function isValidHttpRequest(obj: any): obj is ParsedHttpRequest {
-  return (
-    obj != null &&
-    typeof obj === 'object' &&
-    !Array.isArray(obj) &&
-    'headers' in obj
-  );
+  return obj != null && typeof obj === 'object' && !Array.isArray(obj) && 'headers' in obj;
 }
 
 // Cached schema compilation for performance
@@ -146,7 +140,6 @@ function filterContextToSchemaKeys(
   return {};
 }
 
-
 /**
  * Validates HTTP request headers against schema
  */
@@ -175,7 +168,7 @@ export async function validateHttpRequestHeaders(
       try {
         const validate = validationHelper(headersSchema);
         const isValid = validate(httpRequest.headers);
-        
+
         if (isValid) {
           validatedContext = httpRequest.headers;
         } else {
@@ -264,16 +257,23 @@ async function fetchExistingRequestContext({
  * Validates request context against the JSON Schema stored in context configuration
  * Supports both legacy simple schemas and new comprehensive HTTP request schemas
  */
-export async function validateRequestContext(
-  tenantId: string,
-  projectId: string,
-  graphId: string,
-  conversationId: string,
-  parsedRequest: ParsedHttpRequest,
-  dbClient: DatabaseClient,
-  credentialStores?: CredentialStoreRegistry,
-  legacyRequestContext?: Record<string, unknown> // legacy request context if it was included in the request body
-): Promise<ContextValidationResult> {
+export async function validateRequestContext({
+  tenantId,
+  projectId,
+  graphId,
+  conversationId,
+  parsedRequest,
+  dbClient,
+  credentialStores,
+}: {
+  tenantId: string;
+  projectId: string;
+  graphId: string;
+  conversationId: string;
+  parsedRequest: ParsedHttpRequest;
+  dbClient: DatabaseClient;
+  credentialStores?: CredentialStoreRegistry;
+}): Promise<ContextValidationResult> {
   try {
     // Get the graph's context config
     const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
@@ -326,10 +326,7 @@ export async function validateRequestContext(
     // Validate headers against the schema
     try {
       const schema = contextConfig.requestContextSchema;
-      logger.debug(
-        { contextConfigId: contextConfig.id },
-        'Using headers schema validation'
-      );
+      logger.debug({ contextConfigId: contextConfig.id }, 'Using headers schema validation');
 
       // For headers schema, expect the requestContext to have headers
       const httpRequest = parsedRequest;
@@ -429,7 +426,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
       } as ParsedHttpRequest;
 
       // Validate the context
-      const validationResult = await validateRequestContext(
+      const validationResult = await validateRequestContext({
         tenantId,
         projectId,
         graphId,
@@ -437,8 +434,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
         parsedRequest,
         dbClient,
         credentialStores,
-        body.requestContext
-      );
+      });
 
       if (!validationResult.valid) {
         logger.warn(

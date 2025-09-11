@@ -41,7 +41,7 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { createSpanName, forceFlushTracer, getGlobalTracer, handleSpanError } from '../tracer';
+import { tracer, setSpanWithError } from '../utils/tracer';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
@@ -74,9 +74,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 }
 
 const logger = getLogger('Agent');
-
-// Get tracer using centralized utility
-const tracer = getGlobalTracer();
 
 // Constants for agent configuration
 const CONSTANTS = {
@@ -1034,7 +1031,7 @@ Key requirements:
       };
     }
   ) {
-    return tracer.startActiveSpan(createSpanName('agent.generate'), async (span) => {
+    return tracer.startActiveSpan('agent.generate', async (span) => {
       // Create tool session for this execution outside try blocks
       const contextId = runtimeContext?.contextId || 'default';
       const taskId = runtimeContext?.metadata?.taskId || 'unknown';
@@ -1067,7 +1064,7 @@ Key requirements:
           relationTools,
           defaultTools,
         ] = await tracer.startActiveSpan(
-          createSpanName('agent.load_tools'),
+          'agent.load_tools',
           {
             attributes: {
               'agent.name': this.config.name,
@@ -1089,12 +1086,10 @@ Key requirements:
               return result;
             } catch (err) {
               // Use helper function for consistent error handling
-              handleSpanError(childSpan, err);
+              setSpanWithError(childSpan, err);
               throw err;
             } finally {
               childSpan.end();
-              // Force flush after critical tool loading span
-              await forceFlushTracer();
             }
           }
         );
@@ -1516,9 +1511,6 @@ ${output}`;
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
 
-        // Force flush after critical agent generation span
-        await forceFlushTracer();
-
         // Format response - handle object vs text responses differently
         // Only format if we don't already have formattedContent from streaming
         let formattedContent: MessageContent | null = response.formattedContent || null;
@@ -1568,17 +1560,8 @@ ${output}`;
         toolSessionManager.endSession(sessionId);
 
         // Record exception and mark span as error
-        span.recordException(error as Error);
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: (error as Error).message,
-        });
+        setSpanWithError(span, error);
         span.end();
-
-        // Force flush after error to ensure error telemetry is sent
-        await forceFlushTracer();
-
-        getLogger('Agent').error(error as Error, 'Agent generate error');
         throw error;
       }
     });

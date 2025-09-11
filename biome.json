@@ -46,7 +46,8 @@
       },
       "style": {
         "noUnusedTemplateLiteral": "off",
-        "noNonNullAssertion": "warn"
+        "noNonNullAssertion": "warn",
+        "useImportType": "error"
       },
       "performance": {
         "noImgElement": "warn",

@@ -3,14 +3,12 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
-import { createSpanName, getGlobalTracer, getLogger, handleSpanError } from '../utils/index';
+import { getLogger } from '../utils';
+import { tracer, setSpanWithError } from '../utils/tracer';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';
 
 const logger = getLogger('context-resolver');
-
-// Get tracer using centralized utility
-const tracer = getGlobalTracer();
 
 // Fetched data in context resolution
 export interface ResolvedContext {
@@ -83,7 +81,7 @@ export class ContextResolver {
 
     // Create parent span for the entire context resolution process
     return tracer.startActiveSpan(
-      createSpanName('context.resolve'),
+      'context.resolve',
       {
         attributes: {
           'context.config_id': contextConfig.id,
@@ -269,7 +267,7 @@ export class ContextResolver {
           const durationMs = Date.now() - startTime;
 
           // Use helper function for consistent error handling
-          handleSpanError(parentSpan, error);
+          setSpanWithError(parentSpan, error);
 
           logger.error(
             {
@@ -301,7 +299,7 @@ export class ContextResolver {
   ): Promise<void> {
     // Create parent span for individual context variable resolution
     return tracer.startActiveSpan(
-      createSpanName('context-resolver.resolve_single_fetch_definition'),
+      'context-resolver.resolve_single_fetch_definition',
       {
         attributes: {
           'context.definition_id': definition.id,
@@ -404,7 +402,7 @@ export class ContextResolver {
           );
         } catch (error) {
           // Use helper function for consistent error handling
-          handleSpanError(parentSpan, error);
+          setSpanWithError(parentSpan, error);
           throw error;
         } finally {
           parentSpan.end();

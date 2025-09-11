@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
 import {
   getCachedValidator,
   HTTP_REQUEST_PARTS,
@@ -9,7 +8,7 @@ import {
   validateHttpRequestHeaders,
 } from '../../middleware/contextValidation';
 
-// Mock the data access functions directly  
+// Mock the data access functions directly
 vi.mock('../../data-access/agentGraphs', () => ({
   getAgentGraphWithDefaultAgent: vi.fn(),
 }));
@@ -19,15 +18,15 @@ vi.mock('../../data-access/contextConfigs', () => ({
 }));
 
 describe('ContextValidation - Headers Only Implementation', () => {
-  let getAgentGraphWithDefaultAgent: any;
-  let getContextConfigById: any;
+  let _getAgentGraphWithDefaultAgent: any;
+  let _getContextConfigById: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     const agentGraphModule = await import('../../data-access/agentGraphs');
     const contextConfigModule = await import('../../data-access/contextConfigs');
-    getAgentGraphWithDefaultAgent = agentGraphModule.getAgentGraphWithDefaultAgent;
-    getContextConfigById = contextConfigModule.getContextConfigById;
+    _getAgentGraphWithDefaultAgent = agentGraphModule.getAgentGraphWithDefaultAgent;
+    _getContextConfigById = contextConfigModule.getContextConfigById;
   });
 
   describe('validateHttpRequestHeaders', () => {
@@ -152,7 +151,7 @@ describe('ContextValidation - Headers Only Implementation', () => {
     describe('Schema Caching', () => {
       it('should cache compiled validators', () => {
         const schema = { type: 'object', properties: { name: { type: 'string' } } };
-        
+
         const validator1 = getCachedValidator(schema);
         const validator2 = getCachedValidator(schema);
 
@@ -193,7 +192,7 @@ describe('ContextValidation - Headers Only Implementation', () => {
     describe('Performance Improvements', () => {
       it('should use the same validator instance for identical schemas', () => {
         const schema = { type: 'string', minLength: 3 };
-        
+
         // Call multiple times with same schema
         const validator1 = getCachedValidator(schema);
         const validator2 = getCachedValidator(schema);
@@ -201,7 +200,7 @@ describe('ContextValidation - Headers Only Implementation', () => {
 
         expect(validator1).toBe(validator2);
         expect(validator2).toBe(validator3);
-        
+
         // All should work correctly
         expect(validator1('test')).toBe(true);
         expect(validator2('ab')).toBe(false);
@@ -220,10 +219,7 @@ describe('ContextValidation - Headers Only Implementation', () => {
 
         const invalidRequest = { invalid: true };
 
-        const result = await validateHttpRequestHeaders(
-          headersSchema,
-          invalidRequest as any
-        );
+        const result = await validateHttpRequestHeaders(headersSchema, invalidRequest as any);
 
         expect(result.valid).toBe(false);
         expect(result.errors[0].field).toBe('httpRequest');
@@ -262,12 +258,12 @@ describe('ContextValidation - Headers Only Implementation', () => {
         const malformedSchema = {
           type: 'invalid_type',
           properties: {
-            'test': { type: 'unknown_type' },
+            test: { type: 'unknown_type' },
           },
         };
 
         const httpRequest: ParsedHttpRequest = {
-          headers: { 'test': 'value' },
+          headers: { test: 'value' },
         };
 
         const result = await validateHttpRequestHeaders(malformedSchema, httpRequest);

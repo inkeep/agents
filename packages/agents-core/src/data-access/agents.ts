@@ -130,7 +130,10 @@ export const upsertAgent =
           stopWhen: params.data.stopWhen,
         },
       });
-      return updated!; // We know it exists since we just updated it
+      if (!updated) {
+        throw new Error('Failed to update agent - no rows affected');
+      }
+      return updated;
     } else {
       // Create new agent
       return await createAgent(db)(params.data);

@@ -287,7 +287,10 @@ export const upsertCredentialReference =
           retrievalParams: params.data.retrievalParams,
         },
       });
-      return updated!; // We know it exists since we just updated it
+      if (!updated) {
+        throw new Error('Failed to update credential reference - no rows affected');
+      }
+      return updated;
     } else {
       // Create new credential reference
       return await createCredentialReference(db)(params.data);

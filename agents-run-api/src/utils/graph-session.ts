@@ -11,12 +11,11 @@ import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { createSpanName, getGlobalTracer, handleSpanError } from '../tracer';
+import { tracer, setSpanWithError } from './tracer';
 import { statusUpdateOp } from './agent-operations';
 import { getStreamHelper } from './stream-registry';
 
 const logger = getLogger('GraphSession');
-const tracer = getGlobalTracer();
 
 export type GraphSessionEventType =
   | 'agent_generate'
@@ -724,7 +723,7 @@ export class GraphSession {
     previousSummaries: string[] = []
   ): Promise<string> {
     return tracer.startActiveSpan(
-      createSpanName('graph_session.generate_progress_summary'),
+      'graph_session.generate_progress_summary',
       {
         attributes: {
           'graph_session.id': this.sessionId,
@@ -813,7 +812,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           return text.trim();
         } catch (error) {
-          handleSpanError(span, error);
+          setSpanWithError(span, error);
           logger.error({ error }, 'Failed to generate summary, using fallback');
           return this.generateFallbackSummary(newEvents, elapsedTime);
         } finally {
@@ -834,7 +833,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     previousSummaries: string[] = []
   ): Promise<{ operations: Array<{ type: string; data: Record<string, any> }> }> {
     return tracer.startActiveSpan(
-      createSpanName('graph_session.generate_structured_update'),
+      'graph_session.generate_structured_update',
       {
         attributes: {
           'graph_session.id': this.sessionId,
@@ -984,7 +983,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           return { operations };
         } catch (error) {
-          handleSpanError(span, error);
+          setSpanWithError(span, error);
           logger.error({ error }, 'Failed to generate structured update, using fallback');
           return { operations: [] };
         } finally {
@@ -1214,7 +1213,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
    */
   private async processArtifact(artifactData: ArtifactSavedData): Promise<void> {
     return tracer.startActiveSpan(
-      createSpanName('graph_session.process_artifact'),
+      'graph_session.process_artifact',
       {
         attributes: {
           'graph_session.id': this.sessionId,
@@ -1308,7 +1307,7 @@ Make it specific and relevant.`;
 
           // Add nested span for LLM generation
           const { object: result } = await tracer.startActiveSpan(
-            createSpanName('graph_session.generate_artifact_metadata'),
+            'graph_session.generate_artifact_metadata',
             {
               attributes: {
                 'llm.model': this.statusUpdateState?.summarizerModel?.model,
@@ -1343,7 +1342,7 @@ Make it specific and relevant.`;
                 generationSpan.setStatus({ code: SpanStatusCode.OK });
                 return result;
               } catch (error) {
-                handleSpanError(generationSpan, error);
+                setSpanWithError(generationSpan, error);
                 throw error;
               } finally {
                 generationSpan.end();
@@ -1401,7 +1400,7 @@ Make it specific and relevant.`;
           span.setStatus({ code: SpanStatusCode.OK });
         } catch (error) {
           // Handle span error
-          handleSpanError(span, error);
+          setSpanWithError(span, error);
           logger.error(
             {
               sessionId: this.sessionId,
