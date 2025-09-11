@@ -194,36 +194,25 @@ export const deleteCredentialReference =
     }
 
     // Manually update all tools that reference this credential to set credentialReferenceId to null
-    // This is needed for test environments where foreign key constraints may not be enabled
-    // In production, the foreign key constraint with onDelete('set null') will handle this automatically
-    await db
-      .update(tools)
-      .set({
-        credentialReferenceId: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.credentialReferenceId, params.id)
-        )
-      );
+    // This is needed because composite foreign keys with ON DELETE SET NULL don't work as expected
+    await db.run(
+      sql`UPDATE tools 
+          SET credential_reference_id = NULL, 
+              updated_at = ${new Date().toISOString()}
+          WHERE tenant_id = ${params.scopes.tenantId} 
+            AND project_id = ${params.scopes.projectId}
+            AND credential_reference_id = ${params.id}`
+    );
 
     // Manually update all external agents that reference this credential to set credentialReferenceId to null
-    await db
-      .update(externalAgents)
-      .set({
-        credentialReferenceId: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.credentialReferenceId, params.id)
-        )
-      );
+    await db.run(
+      sql`UPDATE external_agents 
+          SET credential_reference_id = NULL, 
+              updated_at = ${new Date().toISOString()}
+          WHERE tenant_id = ${params.scopes.tenantId} 
+            AND project_id = ${params.scopes.projectId}
+            AND credential_reference_id = ${params.id}`
+    );
 
     // Delete the credential reference
     await db

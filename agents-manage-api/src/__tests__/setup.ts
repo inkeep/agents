@@ -10,10 +10,14 @@ beforeAll(async () => {
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
 
-    // Temporarily disable foreign key constraints for tests due to composite key issues
+    // Temporarily disable foreign key constraints during migration due to composite key issues
     await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
 
     await migrate(dbClient, { migrationsFolder: '../packages/agents-core/drizzle' });
+    
+    // Re-enable foreign key constraints after migration for proper cascade behavior
+    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
+    
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');
