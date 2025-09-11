@@ -93,31 +93,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
-      // Extract baggage from HTTP headers using OpenTelemetry propagation
       const requestHeaders: Record<string, string | string[]> = {};
       const baggageHeader = c.req.header('baggage');
       if (baggageHeader) {
         requestHeaders.baggage = baggageHeader;
       }
-
-      // Use OpenTelemetry propagation to extract baggage from headers
-      // const extractedContext = propagation.extract(ROOT_CONTEXT, requestHeaders);
-      // const extractedBaggage = propagation.getBaggage(extractedContext);
-
-      // // Also get any existing baggage from current context
-      // const currentBaggage = propagation.getBaggage(context.active());
-
-      // // Merge both baggage sources (current context takes precedence)
-      // let finalBaggage = extractedBaggage;
-      // if (currentBaggage && extractedBaggage) {
-      //   // Merge baggages - current context values override extracted ones
-      //   currentBaggage.getAllEntries().forEach(([key, entry]) => {
-      //     finalBaggage =
-      //       finalBaggage?.setEntry(key, entry) || propagation.createBaggage().setEntry(key, entry);
-      //   });
-      // } else if (currentBaggage) {
-      //   finalBaggage = currentBaggage;
-      // }
       const extractedContext = propagation.extract(ROOT_CONTEXT, requestHeaders);
       const extractedBaggage = propagation.getBaggage(extractedContext);
       const finalBaggage = extractedBaggage;
