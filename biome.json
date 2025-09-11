@@ -1,12 +1,5 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  },
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -17,17 +10,6 @@
   },
   "linter": {
     "enabled": true,
-    "includes": [
-      "**",
-      "!**/node_modules/**",
-      "!**/coverage/**",
-      "!**/dist/**",
-      "!**/drizzle/**",
-      "!**/drizzle.config.*",
-      "!**/.next/**",
-      "!**/build/**",
-      "!**/out/**"
-    ],
     "rules": {
       "recommended": true,
       "suspicious": {
@@ -57,17 +39,6 @@
   },
   "formatter": {
     "enabled": true,
-    "includes": [
-      "**",
-      "!**/node_modules/**",
-      "!**/coverage/**",
-      "!**/dist/**",
-      "!**/drizzle/**",
-      "!**/drizzle.config.*",
-      "!**/.next/**",
-      "!**/build/**",
-      "!**/out/**"
-    ],
     "lineWidth": 100,
     "indentStyle": "space",
     "indentWidth": 2

@@ -7,8 +7,10 @@
 		"build": "next build",
 		"dev": "next dev -p 3010",
 		"start": "next start",
-		"lint": "biome check",
-		"format": "biome check --write",
+		"lint": "biome lint",
+		"lint:fix": "biome check --write",
+		"format": "biome format --write",
+		"format:check": "biome format",
 		"postinstall": "fumadocs-mdx",
 		"generate-openapi": "node scripts/generate-openapi-docs.mjs",
 		"validate-link": "node scripts/validate-link.mjs"

@@ -6,8 +6,10 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc -b && vite build",
-		"lint": "biome check",
-		"format": "biome check --write",
+		"lint": "biome lint",
+		"lint:fix": "biome check --write",
+		"format": "biome format --write",
+		"format:check": "biome format",
 		"preview": "vite preview",
 		"test": "echo 'No tests configured for chat-widget'"
 	},
