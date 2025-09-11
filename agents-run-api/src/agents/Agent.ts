@@ -1551,17 +1551,8 @@ ${output}`;
         toolSessionManager.endSession(sessionId);
 
         // Record exception and mark span as error
-        span.recordException(error as Error);
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: (error as Error).message,
-        });
+        handleSpanError(span, error);
         span.end();
-
-
-
-
-        getLogger('Agent').error(error as Error, 'Agent generate error');
         throw error;
       }
     });

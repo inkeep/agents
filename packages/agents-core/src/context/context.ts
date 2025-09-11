@@ -8,7 +8,7 @@ import {
 import { type Span, SpanStatusCode} from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getLogger } from '../utils/logger';
-import { getTracer } from '../utils/tracer';
+import { getTracer, handleSpanError } from '../utils/tracer';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
@@ -198,29 +198,11 @@ async function handleContextResolution(
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
         // Record error in parent span
-        parentSpan.recordException(error as Error);
         parentSpan.setAttributes({
           'context.final_status': 'failed',
           'context.error_message': errorMessage,
         });
-        parentSpan.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: errorMessage,
-        });
-
-        logger.error(
-          {
-            error: errorMessage,
-            contextConfigId: agentGraph?.contextConfigId,
-            trigger: await determineContextTrigger(
-              tenantId,
-              projectId,
-              conversationId,
-              dbClient
-            ).catch(() => 'unknown'),
-          },
-          'Failed to resolve context, proceeding without context resolution'
-        );
+        handleSpanError(parentSpan, error);
 
         return null;
       } finally {
