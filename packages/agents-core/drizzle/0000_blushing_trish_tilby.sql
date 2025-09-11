@@ -61,6 +61,7 @@ CREATE TABLE `agent_tool_relations` (
 	`id` text NOT NULL,
 	`agent_id` text NOT NULL,
 	`tool_id` text NOT NULL,
+	`selected_tools` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),

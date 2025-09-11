@@ -226,6 +226,18 @@ export function mcpTool(config: MCPToolConfig): Tool {
 	return new Tool(validatedConfig);
 }
 
+export type AgentMcpConfig = {
+	server: Tool;
+	selectedTools: string[];
+};
+
+export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
+	return {
+		server: config.server,
+		selectedTools: config.selectedTools,
+	};
+}
+
 // ============================================================================
 // Credential Builders
 // ============================================================================

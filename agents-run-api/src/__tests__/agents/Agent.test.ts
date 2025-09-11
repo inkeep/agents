@@ -65,6 +65,7 @@ const {
   listTaskIdsByContextIdMock,
   getFullGraphDefinitionMock,
   graphHasArtifactComponentsMock,
+  getToolsForAgentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -79,6 +80,10 @@ const {
     })
   );
   const graphHasArtifactComponentsMock = vi.fn(() => vi.fn().mockResolvedValue(false));
+  const getToolsForAgentMock = vi.fn(() => vi.fn().mockResolvedValue({
+    data: [],
+    pagination: { page: 1, limit: 10, total: 0, pages: 0 }
+  }));
 
   return {
     getCredentialReferenceMock,
@@ -87,6 +92,7 @@ const {
     listTaskIdsByContextIdMock,
     getFullGraphDefinitionMock,
     graphHasArtifactComponentsMock,
+    getToolsForAgentMock,
   };
 });
 
@@ -100,6 +106,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     listTaskIdsByContextId: listTaskIdsByContextIdMock,
     getFullGraphDefinition: getFullGraphDefinitionMock,
     graphHasArtifactComponents: graphHasArtifactComponentsMock,
+    getToolsForAgent: getToolsForAgentMock,
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
@@ -123,10 +130,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-// Mock database client
-vi.mock('../../data/db/dbClient.js', () => ({
-  default: {},
-}));
 
 // Mock anthropic
 vi.mock('@ai-sdk/anthropic', () => ({
@@ -946,11 +949,14 @@ describe('Agent Credential Integration', () => {
     expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       }),
       expect.objectContaining({
         name: 'Nango Tool',
         serverUrl: 'https://api.nango.dev/mcp',
         mcpType: MCPServerType.nango,
+        id: 'test-tool',
+        description: 'Nango Tool',
       }),
       {
         credentialStoreId: 'nango-default',
@@ -958,7 +964,8 @@ describe('Agent Credential Integration', () => {
           connectionId: 'test-connection',
           providerConfigKey: 'test-provider',
         },
-      }
+      },
+      undefined
     );
 
     expect(mcpTool).toEqual(mockMcpTools);
@@ -1066,11 +1073,14 @@ describe('Agent Credential Integration', () => {
     expect(mockCredentialStuffer.buildMcpServerConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'context-tenant',
+        projectId: 'test-project',
       }),
       expect.objectContaining({
         name: 'Context Test Tool',
         serverUrl: 'https://api.nango.dev/mcp',
         mcpType: MCPServerType.nango,
+        id: 'context-tool',
+        description: 'Context Test Tool',
       }),
       {
         credentialStoreId: 'nango-default',
@@ -1078,7 +1088,8 @@ describe('Agent Credential Integration', () => {
           connectionId: 'context-connection',
           providerConfigKey: 'context-provider',
         },
-      }
+      },
+      undefined
     );
   });
 });

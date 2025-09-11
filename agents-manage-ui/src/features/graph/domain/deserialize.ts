@@ -120,6 +120,7 @@ export function deserializeGraphData(
 						? { stepCountIs: (agent as any).stopWhen.stepCountIs }
 						: undefined,
 					type: agent.type,
+					...(agent.selectedTools && { selectedTools: agent.selectedTools }),
 				};
 
 		const agentNode: Node = {

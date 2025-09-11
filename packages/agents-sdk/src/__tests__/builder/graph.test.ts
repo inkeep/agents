@@ -1372,14 +1372,15 @@ describe("AgentGraph", () => {
 		});
 
 		it("should support getter functions for agent tools", () => {
-			const tool1 = { id: "tool1", name: "Tool 1" };
-			const tool2 = { id: "tool2", name: "Tool 2" };
+			const tool1 = new Tool({ id: "tool1", name: "Tool 1", serverUrl: "https://example.com" });
+			const tool2 = new Tool({ id: "tool2", name: "Tool 2", serverUrl: "https://example.com" });
 
 			const agent = new Agent({
 				id: "test-agent",
 				name: "Test Agent",
+				description: "Test agent",
 				prompt: "Test instructions",
-				tools: () => [tool1, tool2],
+				canUse: () => [tool1, tool2],
 				tenantId: "test-tenant",
 			});
 

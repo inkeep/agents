@@ -105,6 +105,22 @@ function Flow({
 		? deserializeGraphData(graph)
 		: { nodes: initialNodes, edges: initialEdges };
 
+	// Create selectedTools lookup from graph data
+	const selectedToolsLookup = useMemo((): Record<
+		string,
+		Record<string, string[]>
+	> => {
+		if (!graph?.agents) return {} as Record<string, Record<string, string[]>>;
+
+		const lookup: Record<string, Record<string, string[]>> = {};
+		Object.entries(graph.agents).forEach(([agentId, agent]) => {
+			if ("selectedTools" in agent && agent.selectedTools) {
+				lookup[agentId] = agent.selectedTools as Record<string, string[]>;
+			}
+		});
+		return lookup;
+	}, [graph?.agents]);
+
 	const { screenToFlowPosition } = useReactFlow();
 	const {
 		nodes,
@@ -135,25 +151,42 @@ function Flow({
 				name: graph?.name ?? "",
 				description: graph?.description ?? "",
 				graphPrompt: graph?.graphPrompt,
-        models: graph?.models ? {
-          base: graph.models.base ? {
-            model: graph.models.base.model,
-            providerOptions: formatJsonField(graph.models.base.providerOptions),
-          } : undefined,
-          structuredOutput: graph.models.structuredOutput ? {
-            model: graph.models.structuredOutput.model,
-            providerOptions: formatJsonField(graph.models.structuredOutput.providerOptions),
-          } : undefined,
-          summarizer: graph.models.summarizer ? {
-            model: graph.models.summarizer.model,
-            providerOptions: formatJsonField(graph.models.summarizer.providerOptions),
-          } : undefined,
-        } : undefined,
+				models: graph?.models
+					? {
+							base: graph.models.base
+								? {
+										model: graph.models.base.model,
+										providerOptions: formatJsonField(
+											graph.models.base.providerOptions,
+										),
+									}
+								: undefined,
+							structuredOutput: graph.models.structuredOutput
+								? {
+										model: graph.models.structuredOutput.model,
+										providerOptions: formatJsonField(
+											graph.models.structuredOutput.providerOptions,
+										),
+									}
+								: undefined,
+							summarizer: graph.models.summarizer
+								? {
+										model: graph.models.summarizer.model,
+										providerOptions: formatJsonField(
+											graph.models.summarizer.providerOptions,
+										),
+									}
+								: undefined,
+						}
+					: undefined,
 				stopWhen: graph?.stopWhen,
-        statusUpdates: graph?.statusUpdates ? {
-          ...graph.statusUpdates,
-          statusComponents: formatJsonField(graph.statusUpdates.statusComponents) || '',
-        } : undefined,
+				statusUpdates: graph?.statusUpdates
+					? {
+							...graph.statusUpdates,
+							statusComponents:
+								formatJsonField(graph.statusUpdates.statusComponents) || "",
+						}
+					: undefined,
 				contextConfig: {
 					id: graph?.contextConfig?.id ?? "",
 					name: graph?.contextConfig?.name ?? "",
@@ -167,7 +200,6 @@ function Flow({
 			dataComponentLookup,
 			artifactComponentLookup,
 		);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
@@ -454,12 +486,16 @@ function Flow({
 			artifactComponentLookup,
 		);
 
+		console.log("serializedData", serializedData);
+
 		const res = await saveGraph(
 			tenantId,
 			projectId,
 			serializedData,
 			graph?.id, // graphid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
 		);
+
+		console.log("res", res);
 
 		if (res.success) {
 			// Clear any existing errors on successful save
@@ -570,6 +606,7 @@ function Flow({
 				backToGraph={backToGraph}
 				dataComponentLookup={dataComponentLookup}
 				artifactComponentLookup={artifactComponentLookup}
+				selectedToolsLookup={selectedToolsLookup}
 			/>
 			{showPlayground && graph?.id && (
 				<Playground

@@ -434,11 +434,13 @@ export const createFullGraphServerSide =
             agentToolPromises.push(
               (async () => {
                 try {
+                  const selectedTools = agentData.selectedTools?.[toolId];
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId },
                     agentId,
                     toolId,
+                    selectedTools,
                   });
                   logger.info({ agentId, toolId }, 'Agent-tool relation processed successfully');
                 } catch (error) {
@@ -1012,11 +1014,13 @@ export const updateFullGraphServerSide =
             agentToolPromises.push(
               (async () => {
                 try {
+                  const selectedTools = agentData.selectedTools?.[toolId];
                   await createAgentToolRelation(db)({
                     scopes: { tenantId, projectId },
                     data: {
                       agentId,
                       toolId,
+                      selectedTools,
                     },
                   });
 

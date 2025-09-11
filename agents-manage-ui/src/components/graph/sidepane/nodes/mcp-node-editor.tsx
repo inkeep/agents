@@ -17,10 +17,12 @@ import type { MCPNodeData } from "../../configuration/node-types";
 
 interface MCPServerNodeEditorProps {
 	selectedNode: Node<MCPNodeData>;
+	selectedToolsLookup: Record<string, Record<string, string[]>>;
 }
 
 export function MCPServerNodeEditor({
 	selectedNode,
+	selectedToolsLookup,
 }: MCPServerNodeEditorProps) {
 	const { updateNodeData } = useReactFlow();
 	const { tenantId, projectId } = useParams<{
@@ -34,6 +36,90 @@ export function MCPServerNodeEditor({
 	});
 
 	const markUnsaved = useGraphStore((state) => state.markUnsaved);
+
+	const getCurrentSelectedTools = (): string[] | null => {
+		// First check if we have temporary selections stored on the node (from recent clicks)
+		if ((selectedNode.data as any).tempSelectedTools !== undefined) {
+			return (selectedNode.data as any).tempSelectedTools;
+		}
+
+		// Otherwise, get from the database/initial state
+		const allSelectedTools = new Set<string>();
+		let hasAnyData = false;
+		let hasEmptyArray = false;
+		let hasNullValue = false;
+
+		Object.values(selectedToolsLookup).forEach((agentTools) => {
+			const toolsForThisMCP = agentTools[selectedNode.data.id];
+			if (toolsForThisMCP !== undefined) {
+				hasAnyData = true;
+				if (Array.isArray(toolsForThisMCP) && toolsForThisMCP.length === 0) {
+					// Empty array = NONE selected
+					hasEmptyArray = true;
+				} else if (toolsForThisMCP === null) {
+					// null = ALL selected
+					hasNullValue = true;
+				} else if (Array.isArray(toolsForThisMCP)) {
+					// Specific tools selected
+					toolsForThisMCP.forEach((tool) => allSelectedTools.add(tool));
+				}
+			}
+		});
+
+		// If we found a null value, return null (all selected)
+		if (hasNullValue) {
+			return null;
+		}
+
+		// If we found an empty array, return empty array
+		if (hasEmptyArray) {
+			return [];
+		}
+
+		// If no data exists (undefined), default to ALL selected (null)
+		if (!hasAnyData) {
+			return null;
+		}
+
+		return Array.from(allSelectedTools);
+	};
+
+	const selectedTools = getCurrentSelectedTools();
+
+	const toggleToolSelection = (toolName: string) => {
+		// Handle null case (all tools selected) - convert to array of all tool names
+		const currentSelections =
+			selectedTools === null
+				? activeTools?.map((tool) => tool.name) || []
+				: [...selectedTools];
+		const isSelected = currentSelections.includes(toolName);
+
+		let newSelections: string[];
+		if (isSelected) {
+			newSelections = currentSelections.filter((t) => t !== toolName);
+		} else {
+			newSelections = [...currentSelections, toolName];
+		}
+
+		// Check if all tools are now selected - if so, use null to represent "all selected"
+		const allToolNames = activeTools?.map((tool) => tool.name) || [];
+		let finalSelection: string[] | null = newSelections;
+
+		if (
+			newSelections.length === allToolNames.length &&
+			allToolNames.every((toolName) => newSelections.includes(toolName))
+		) {
+			// All tools are selected, use null to represent this
+			finalSelection = null;
+		}
+
+		// For now, store in node data - we'll need to properly save to agent relations later
+		updateNodeData(selectedNode.id, {
+			...selectedNode.data,
+			tempSelectedTools: finalSelection,
+		});
+		markUnsaved();
+	};
 
 	const handleInputChange = (
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -112,28 +198,49 @@ export function MCPServerNodeEditor({
 			)}
 			<div className="flex flex-col gap-2">
 				<div className="flex gap-2">
-					<Label>Active tools</Label>
+					<Label>Selected tools (click to select/deselect)</Label>
 					<Badge
 						variant="code"
 						className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
 					>
-						{activeTools?.length ?? 0}
+						{
+							selectedTools === null
+								? (activeTools?.length ?? 0) // All tools selected
+								: selectedTools.filter((toolName) =>
+										activeTools?.some((tool) => tool.name === toolName),
+									).length // Only count selected tools that are currently active
+						}
 					</Badge>
 				</div>
 				{activeTools && activeTools.length > 0 && (
 					<div className="flex flex-wrap gap-2">
-						{activeTools.map((tool) => (
-							<Tooltip key={tool.name}>
-								<TooltipTrigger asChild>
-									<Badge variant="code" className="flex items-center gap-2">
-										{tool.name}
-									</Badge>
-								</TooltipTrigger>
-								<TooltipContent className="max-w-xs text-sm">
-									<div className="line-clamp-4">{tool.description}</div>
-								</TooltipContent>
-							</Tooltip>
-						))}
+						{activeTools.map((tool) => {
+							const isSelected =
+								selectedTools === null
+									? true // If null, all tools are selected
+									: selectedTools.includes(tool.name);
+							return (
+								<Tooltip key={tool.name}>
+									<TooltipTrigger asChild>
+										<Badge
+											variant={isSelected ? "default" : "code"}
+											className={`flex items-center gap-2 cursor-pointer transition-colors ${
+												isSelected
+													? "bg-blue-600 hover:bg-blue-700 text-white"
+													: "hover:bg-gray-200 dark:hover:bg-gray-700"
+											}`}
+											onClick={() => toggleToolSelection(tool.name)}
+										>
+											{tool.name}
+											{isSelected && <span className="text-xs">✓</span>}
+										</Badge>
+									</TooltipTrigger>
+									<TooltipContent className="max-w-xs text-sm">
+										<div className="line-clamp-4">{tool.description}</div>
+									</TooltipContent>
+								</Tooltip>
+							);
+						})}
 					</div>
 				)}
 			</div>

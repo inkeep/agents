@@ -5,7 +5,6 @@ export {
 	artifactComponent,
 	credential,
 	dataComponent,
-	mcpServer,
 	mcpTool,
 	transfer,
 } from "./builders";

@@ -10,6 +10,7 @@ import {
   getCredentialReference,
   getFullGraphDefinition,
   getLedgerArtifacts,
+  getToolsForAgent,
   graphHasArtifactComponents,
   listTaskIdsByContextId,
   MCPServerType,
@@ -30,7 +31,6 @@ import {
   streamText,
   type ToolSet,
   tool,
-  type StreamTextResult,
   type Tool,
 } from 'ai';
 import { z } from 'zod';
@@ -528,6 +528,14 @@ export class Agent {
   async getMcpTool(tool: McpTool) {
     const credentialReferenceId = tool.credentialReferenceId;
 
+    const toolsForAgent = await getToolsForAgent(dbClient)({
+      scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
+      agentId: this.config.id,
+    });
+
+    const selectedTools =
+      toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
+
     // Build server config with credentials using new architecture
     let serverConfig: McpServerConfig;
 
@@ -558,7 +566,8 @@ export class Agent {
           conversationId: this.conversationId || undefined,
         },
         this.convertToMCPToolConfig(tool),
-        storeReference
+        storeReference,
+        selectedTools
       );
     } else if (tool.headers && this.credentialStuffer) {
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
@@ -568,7 +577,9 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool)
+        this.convertToMCPToolConfig(tool),
+        undefined,
+        selectedTools
       );
     } else {
       // No credentials - build basic config
@@ -576,6 +587,7 @@ export class Agent {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
         url: tool.config.mcp.server.url,
         activeTools: tool.config.mcp.activeTools,
+        selectedTools,
       };
     }
 

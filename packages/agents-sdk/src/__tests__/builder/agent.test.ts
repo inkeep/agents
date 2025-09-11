@@ -74,7 +74,7 @@ describe("Agent Builder", () => {
 				name: "Tool Agent",
 				description: "Tool agent description",
 				prompt: "Agent with tools",
-				tools: () => [mockTool],
+				canUse: () => [mockTool],
 			};
 
 			const agent = new Agent(config);

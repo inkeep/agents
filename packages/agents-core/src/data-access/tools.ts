@@ -11,6 +11,7 @@ import type {
   ToolSelect,
   ToolUpdate,
 } from '../types/index';
+import { updateAgentToolRelation } from './agentRelations';
 
 // Helper function to convert database result to McpTool
 export const dbResultToMcpTool = (dbResult: ToolSelect): McpTool => {
@@ -170,7 +171,12 @@ export const deleteTool =
 
 export const addToolToAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; toolId: string }) => {
+  async (params: {
+    scopes: ScopeConfig;
+    agentId: string;
+    toolId: string;
+    selectedTools?: string[] | null;
+  }) => {
     const id = nanoid();
     const now = new Date().toISOString();
 
@@ -182,6 +188,7 @@ export const addToolToAgent =
         projectId: params.scopes.projectId,
         agentId: params.agentId,
         toolId: params.toolId,
+        selectedTools: params.selectedTools,
         createdAt: now,
         updatedAt: now,
       })
@@ -209,11 +216,16 @@ export const removeToolFromAgent =
   };
 
 /**
- * Upsert agent-tool relation (create if it doesn't exist, no-op if it does)
+ * Upsert agent-tool relation (create if it doesn't exist, update if it does)
  */
 export const upsertAgentToolRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; toolId: string }) => {
+  async (params: {
+    scopes: ScopeConfig;
+    agentId: string;
+    toolId: string;
+    selectedTools?: string[] | null;
+  }) => {
     // Check if relation already exists
     const existing = await db.query.agentToolRelations.findFirst({
       where: and(
@@ -229,8 +241,15 @@ export const upsertAgentToolRelation =
       return await addToolToAgent(db)(params);
     }
 
-    // Return existing relation if it already exists
-    return existing;
+    return await updateAgentToolRelation(db)({
+      scopes: params.scopes,
+      relationId: existing.id,
+      data: {
+        agentId: params.agentId,
+        toolId: params.toolId,
+        selectedTools: params.selectedTools,
+      },
+    });
   };
 
 export const updateToolStatus =

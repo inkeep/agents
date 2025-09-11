@@ -185,14 +185,29 @@ export class AgentGraph implements GraphInterface {
 
 				// Convert tools to the expected format (agent.tools should be an array of tool IDs)
 				const tools: string[] = [];
+				const selectedToolsMapping: Record<string, string[]> = {};
 				const agentTools = internalAgent.getTools();
 
 				for (const [toolName, toolInstance] of Object.entries(agentTools)) {
 					if (toolInstance && typeof toolInstance === "object") {
-						const toolId =
-							(toolInstance as any).getId?.() ||
-							(toolInstance as any).id ||
-							toolName;
+						let toolId: string;
+
+						// Check if this is an AgentMcpConfig
+						if ("server" in toolInstance && "selectedTools" in toolInstance) {
+							const mcpConfig = toolInstance as any; // AgentMcpConfig
+							toolId = mcpConfig.server.getId();
+							// Store the selectedTools mapping (including empty arrays)
+							if (mcpConfig.selectedTools !== undefined) {
+								selectedToolsMapping[toolId] = mcpConfig.selectedTools;
+							}
+						} else {
+							// Regular tool instance
+							toolId =
+								(toolInstance as any).getId?.() ||
+								(toolInstance as any).id ||
+								toolName;
+						}
+
 						tools.push(toolId);
 					}
 				}
@@ -232,6 +247,10 @@ export class AgentGraph implements GraphInterface {
 					canTransferTo: transfers.map((h) => h.getId()),
 					canDelegateTo: delegates.map((d) => d.getId()),
 					tools,
+					selectedTools:
+						Object.keys(selectedToolsMapping).length > 0
+							? selectedToolsMapping
+							: undefined,
 					dataComponents:
 						dataComponents.length > 0 ? dataComponents : undefined,
 					artifactComponents:
@@ -268,76 +287,79 @@ export class AgentGraph implements GraphInterface {
 
 			for (const [toolName, toolInstance] of Object.entries(agentTools)) {
 				if (toolInstance && typeof toolInstance === "object") {
-					const toolId =
-						(toolInstance as any).getId?.() ||
-						(toolInstance as any).id ||
-						toolName;
+					let actualTool: any;
+					let toolId: string;
+
+					// Check if this is an AgentMcpConfig
+					if ("server" in toolInstance && "selectedTools" in toolInstance) {
+						const mcpConfig = toolInstance as any; // AgentMcpConfig
+						actualTool = mcpConfig.server;
+						toolId = actualTool.getId();
+					} else {
+						// Regular tool instance
+						actualTool = toolInstance;
+						toolId = actualTool.getId?.() || actualTool.id || toolName;
+					}
 
 					// Only add if not already added (avoid duplicates across agents)
 					if (!toolsObject[toolId]) {
 						let toolConfig: any;
 
 						// Check if it's an IPCTool with MCP server configuration
-						if ((toolInstance as any).config?.serverUrl) {
+						if (actualTool.config?.serverUrl) {
 							toolConfig = {
 								type: "mcp",
 								mcp: {
 									server: {
-										url: (toolInstance as any).config.serverUrl,
+										url: actualTool.config.serverUrl,
 									},
 								},
 							};
-						} else if ((toolInstance as any).config?.type === "mcp") {
+						} else if (actualTool.config?.type === "mcp") {
 							// Already has proper MCP config
-							toolConfig = (toolInstance as any).config;
+							toolConfig = actualTool.config;
 						} else {
 							// Fallback for function tools or uninitialized tools
 							toolConfig = {
 								type: "function",
-								parameters: (toolInstance as any).parameters || {},
+								parameters: actualTool.parameters || {},
 							};
 						}
 
 						const toolData: any = {
 							id: toolId,
-							name:
-								(toolInstance as any).config?.name ||
-								(toolInstance as any).name ||
-								toolName,
+							name: actualTool.config?.name || actualTool.name || toolName,
 							config: toolConfig,
 							status:
-								(toolInstance as any).getStatus?.() ||
-								(toolInstance as any).status ||
-								"unknown",
+								actualTool.getStatus?.() || actualTool.status || "unknown",
 						};
 
 						// Add additional fields if available
-						if ((toolInstance as any).config?.imageUrl) {
-							toolData.imageUrl = (toolInstance as any).config.imageUrl;
+						if (actualTool.config?.imageUrl) {
+							toolData.imageUrl = actualTool.config.imageUrl;
 						}
-						if ((toolInstance as any).config?.headers) {
-							toolData.headers = (toolInstance as any).config.headers;
+						if (actualTool.config?.headers) {
+							toolData.headers = actualTool.config.headers;
 						}
-						if ((toolInstance as any).capabilities) {
-							toolData.capabilities = (toolInstance as any).capabilities;
+						if (actualTool.capabilities) {
+							toolData.capabilities = actualTool.capabilities;
 						}
-						if ((toolInstance as any).lastHealthCheck) {
-							toolData.lastHealthCheck = (toolInstance as any).lastHealthCheck;
+						if (actualTool.lastHealthCheck) {
+							toolData.lastHealthCheck = actualTool.lastHealthCheck;
 						}
-						if ((toolInstance as any).availableTools) {
-							toolData.availableTools = (toolInstance as any).availableTools;
+						if (actualTool.availableTools) {
+							toolData.availableTools = actualTool.availableTools;
 						}
-						if ((toolInstance as any).lastError) {
-							toolData.lastError = (toolInstance as any).lastError;
+						if (actualTool.lastError) {
+							toolData.lastError = actualTool.lastError;
 						}
-						if ((toolInstance as any).lastToolsSync) {
-							toolData.lastToolsSync = (toolInstance as any).lastToolsSync;
+						if (actualTool.lastToolsSync) {
+							toolData.lastToolsSync = actualTool.lastToolsSync;
 						}
 						// Add credential reference ID if available
-						if ((toolInstance as any).getCredentialReferenceId?.()) {
-							toolData.credentialReferenceId = (
-								toolInstance as any
-							).getCredentialReferenceId();
+						if (actualTool.getCredentialReferenceId?.()) {
+							toolData.credentialReferenceId =
+								actualTool.getCredentialReferenceId();
 						}
 
 						toolsObject[toolId] = toolData;

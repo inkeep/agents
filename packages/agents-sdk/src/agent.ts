@@ -6,8 +6,15 @@ import {
 	getLogger,
 } from "@inkeep/agents-core";
 import { ArtifactComponent } from "./artifact-component";
+import type { AgentMcpConfig } from "./builders";
 import { DataComponent } from "./data-component";
-import type { AgentConfig, AgentInterface, AllAgentInterface } from "./types";
+import { Tool } from "./tool";
+import type {
+	AgentCanUseType,
+	AgentConfig,
+	AgentInterface,
+	AllAgentInterface,
+} from "./types";
 
 const logger = getLogger("agent");
 
@@ -56,8 +63,9 @@ export class Agent implements AgentInterface {
 		return this.config.prompt;
 	}
 
+	// adjust
 	getTools(): Record<string, unknown> {
-		const tools = resolveGetter(this.config.tools);
+		const tools = resolveGetter(this.config.canUse);
 		if (!tools) {
 			return {};
 		}
@@ -69,10 +77,24 @@ export class Agent implements AgentInterface {
 		const toolRecord: Record<string, unknown> = {};
 		for (const tool of tools) {
 			if (tool && typeof tool === "object") {
-				const id =
-					(tool as any).id || (tool as any).getId?.() || (tool as any).name;
+				let id: string;
+				let toolInstance: unknown;
+
+				// Check if this is an AgentMcpConfig
+				if ("server" in tool && "selectedTools" in tool) {
+					const agentMcpConfig = tool as AgentMcpConfig;
+					id = agentMcpConfig.server.getId();
+					toolInstance = agentMcpConfig.server;
+					(toolInstance as any).selectedTools = agentMcpConfig.selectedTools;
+				} else {
+					// Regular tool instance
+					id =
+						(tool as any).id || (tool as any).getId?.() || (tool as any).name;
+					toolInstance = tool;
+				}
+
 				if (id) {
-					toolRecord[id] = tool;
+					toolRecord[id] = toolInstance;
 				}
 			}
 		}
@@ -107,10 +129,11 @@ export class Agent implements AgentInterface {
 		return resolveGetter(this.config.artifactComponents) || [];
 	}
 
-	addTool(_name: string, tool: unknown): void {
+	// adjust
+	addTool(_name: string, tool: Tool): void {
 		// Tools must now be a getter function returning an array
-		const existingTools = this.config.tools ? this.config.tools() : [];
-		this.config.tools = () => [...existingTools, tool];
+		const existingTools = this.config.canUse ? this.config.canUse() : [];
+		this.config.canUse = () => [...existingTools, tool];
 	}
 
 	addTransfer(...agents: AgentInterface[]): void {
@@ -254,20 +277,43 @@ export class Agent implements AgentInterface {
 	}
 
 	private async saveToolsAndRelations(): Promise<void> {
-		logger.info(
-			{
-				transfers: this.getTransfers(),
-				delegates: this.getDelegates(),
-				tools: this.config.tools,
-			},
-			"transfers, delegates, and tools",
-		);
-
 		// Setup tools using your existing SDK
-		if (this.config.tools) {
-			logger.info({ tools: this.config.tools }, "tools and config");
-			for (const [toolId, toolConfig] of Object.entries(this.config.tools)) {
-				await this.createTool(toolId, toolConfig);
+		if (this.config.canUse) {
+			const tools = resolveGetter(this.config.canUse);
+
+			if (tools && Array.isArray(tools)) {
+				for (let i = 0; i < tools.length; i++) {
+					const toolConfig = tools[i];
+
+					// Determine the tool ID based on the tool config type
+					let toolId: string;
+					if (toolConfig instanceof Tool) {
+						toolId = toolConfig.getId();
+					} else if (
+						toolConfig &&
+						typeof toolConfig === "object" &&
+						"server" in toolConfig
+					) {
+						// AgentMcpConfig - use the server's ID
+						toolId = (toolConfig as AgentMcpConfig).server.getId();
+					} else {
+						// Legacy config or other - use index-based ID
+						toolId = `tool-${i}`;
+					}
+
+					try {
+						await this.createTool(toolId, toolConfig);
+					} catch (error) {
+						logger.error(
+							{
+								toolId,
+								error: error instanceof Error ? error.message : "Unknown error",
+							},
+							"Tool creation failed",
+						);
+						throw error;
+					}
+				}
 			}
 		}
 
@@ -428,65 +474,61 @@ export class Agent implements AgentInterface {
 		}
 	}
 
-	private async createTool(toolId: string, toolConfig: any): Promise<void> {
+	private async createTool(
+		toolId: string,
+		toolConfig: AgentCanUseType,
+	): Promise<void> {
 		try {
 			// Check if this is a function tool (has type: 'function')
-			if (toolConfig.type === "function") {
+			if ((toolConfig as any).type === "function") {
 				logger.info(
 					{
 						agentId: this.getId(),
 						toolId,
-						toolType: "function",
 					},
 					"Skipping function tool creation - will be handled at runtime",
 				);
 				return;
 			}
 
-			// Import tool classes to check instances
-			const { Tool } = await import("./tool.js");
+			let tool: Tool;
+			let selectedTools: string[] | undefined;
 
-			let tool: any;
-
+			// Check if this is an AgentMcpConfig
+			if (
+				toolConfig &&
+				typeof toolConfig === "object" &&
+				"server" in toolConfig &&
+				"selectedTools" in toolConfig
+			) {
+				const mcpConfig = toolConfig as AgentMcpConfig;
+				tool = mcpConfig.server;
+				selectedTools = mcpConfig.selectedTools;
+				await tool.init();
+			}
 			// Check if this is already a tool instance
-			if (toolConfig instanceof Tool) {
-				logger.info(
-					{
-						agentId: this.getId(),
-						toolId,
-						toolType: "Tool",
-					},
-					"Initializing Tool instance",
-				);
+			else if (toolConfig instanceof Tool) {
 				tool = toolConfig;
 				await tool.init();
 			} else {
 				// Legacy: create MCP tool from config
-				logger.info(
-					{
-						agentId: this.getId(),
-						toolId,
-						toolType: "legacy-config",
-					},
-					"Creating Tool from config",
-				);
 				tool = new Tool({
 					id: toolId,
 					tenantId: this.tenantId,
-					name: toolConfig.name || toolId,
-					description: toolConfig.description || `MCP tool: ${toolId}`,
+					name: (toolConfig as any).name || toolId,
+					description: (toolConfig as any).description || `MCP tool: ${toolId}`,
 					serverUrl:
-						toolConfig.config?.serverUrl ||
-						toolConfig.serverUrl ||
+						(toolConfig as any).config?.serverUrl ||
+						(toolConfig as any).serverUrl ||
 						"http://localhost:3000",
-					activeTools: toolConfig.config?.mcp?.activeTools,
-					credential: toolConfig.credential,
+					activeTools: (toolConfig as any).config?.mcp?.activeTools,
+					credential: (toolConfig as any).credential,
 				});
 				await tool.init();
 			}
 
-			// Create the agent-tool relation with credential reference
-			await this.createAgentToolRelation(tool.getId());
+			// Create the agent-tool relation with credential reference and selected tools
+			await this.createAgentToolRelation(tool.getId(), selectedTools);
 
 			logger.info(
 				{
@@ -504,6 +546,7 @@ export class Agent implements AgentInterface {
 				},
 				"Failed to create tool",
 			);
+			throw error;
 		}
 	}
 
@@ -656,20 +699,38 @@ export class Agent implements AgentInterface {
 		);
 	}
 
-	private async createAgentToolRelation(toolId: string): Promise<void> {
+	private async createAgentToolRelation(
+		toolId: string,
+		selectedTools?: string[],
+	): Promise<void> {
+		const relationData: {
+			id: string;
+			tenantId: string;
+			projectId: string;
+			agentId: string;
+			toolId: string;
+			selectedTools?: string[];
+		} = {
+			id: `${this.getId()}-tool-${toolId}`,
+			tenantId: this.tenantId,
+			projectId: this.projectId,
+			agentId: this.getId(),
+			toolId: toolId,
+		};
+
+		// Add selectedTools if provided (including empty arrays)
+		if (selectedTools !== undefined) {
+			relationData.selectedTools = selectedTools;
+		}
+
 		const relationResponse = await fetch(
-			`${this.baseURL}/tenants/${this.tenantId}/crud/agent-tool-relations`,
+			`${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/agent-tool-relations`,
 			{
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({
-					id: `${this.getId()}-tool-${toolId}`,
-					tenantId: this.tenantId,
-					agentId: this.getId(),
-					toolId: toolId,
-				}),
+				body: JSON.stringify(relationData),
 			},
 		);
 

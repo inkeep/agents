@@ -359,7 +359,6 @@ app.openapi(
       });
     }
 
-    console.log('body', body);
     const updatedAgentToolRelation = await updateAgentToolRelation(dbClient)({
       scopes: { tenantId, projectId },
       relationId: id,

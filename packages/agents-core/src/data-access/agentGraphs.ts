@@ -411,6 +411,7 @@ export const getFullGraphDefinition =
             lastError: tools.lastError,
             availableTools: tools.availableTools,
             lastToolsSync: tools.lastToolsSync,
+            selectedTools: agentToolRelations.selectedTools,
           })
           .from(agentToolRelations)
           .innerJoin(tools, eq(agentToolRelations.toolId, tools.id))
@@ -438,6 +439,14 @@ export const getFullGraphDefinition =
           (rel) => rel.artifactComponentId
         );
 
+        // Construct selectedTools Record from agentTools
+        const selectedTools: Record<string, string[]> = {};
+        agentTools.forEach((tool) => {
+          if (tool.selectedTools && Array.isArray(tool.selectedTools)) {
+            selectedTools[tool.id] = tool.selectedTools;
+          }
+        });
+
         return {
           id: agent.id,
           name: agent.name,
@@ -449,6 +458,7 @@ export const getFullGraphDefinition =
           canDelegateTo,
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
+          ...(Object.keys(selectedTools).length > 0 && { selectedTools }),
           tools: agentTools.map((tool) => ({
             id: tool.id,
             name: tool.name,
@@ -514,16 +524,21 @@ export const getFullGraphDefinition =
         // Internal agent - extract tools and include all fields
         const toolsData = (agent as any).tools || [];
         const toolIds: string[] = [];
+        const agentSelectedTools: Record<string, string[]> = {};
 
         // Build tools object and collect tool IDs for the agent
         for (const tool of toolsData) {
           toolsObject[tool.id] = tool;
           toolIds.push(tool.id);
+          if (tool.selectedTools !== null && tool.selectedTools !== undefined) {
+            agentSelectedTools[tool.id] = tool.selectedTools;
+          }
         }
 
         agentsObject[agent.id] = {
           ...agent,
           tools: toolIds, // Replace tool objects with tool IDs
+          ...(Object.keys(agentSelectedTools).length > 0 && { selectedTools: agentSelectedTools }),
         };
       }
     }

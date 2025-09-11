@@ -343,6 +343,75 @@ describe('Tools Data Access', () => {
       expect(mockInsert).toHaveBeenCalled();
       expect(result).toEqual(expectedRelation);
     });
+    it('should add a tool to an agent with selectedTools specified', async () => {
+      const selectedTools = ['tool_capability_1', 'tool_capability_2'];
+      const expectedRelation = {
+        id: expect.any(String),
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        toolId: testToolId,
+        selectedTools,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedRelation]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
+      const result = await addToolToAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        agentId: testAgentId,
+        toolId: testToolId,
+        selectedTools,
+      });
+
+      expect(mockInsert).toHaveBeenCalled();
+      expect(result).toEqual(expectedRelation);
+    });
+
+    it('should add a tool to an agent with empty selectedTools array', async () => {
+      const selectedTools: string[] = [];
+      const expectedRelation = {
+        id: expect.any(String),
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        toolId: testToolId,
+        selectedTools,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedRelation]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
+      const result = await addToolToAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        agentId: testAgentId,
+        toolId: testToolId,
+        selectedTools,
+      });
+
+      expect(mockInsert).toHaveBeenCalled();
+      expect(result).toEqual(expectedRelation);
+    });
   });
 
   describe('removeToolFromAgent', () => {

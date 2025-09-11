@@ -8,7 +8,9 @@ import type {
 	ToolInsert,
 } from "@inkeep/agents-core";
 import { z } from "zod";
+import type { AgentMcpConfig } from "./builders";
 import type { ExternalAgentConfig } from "./externalAgent";
+import type { Tool } from "./tool";
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -58,10 +60,12 @@ export interface ToolResult {
 }
 export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
 
+export type AgentCanUseType = Tool | AgentMcpConfig;
+
 // Agent configuration types
 export interface AgentConfig extends Omit<AgentApiInsert, "projectId"> {
 	type?: "internal"; // Discriminator for internal agents
-	tools?: () => any[];
+	canUse?: () => AgentCanUseType[];
 	canTransferTo?: () => AgentInterface[];
 	canDelegateTo?: () => AllAgentInterface[];
 	tenantId?: string;

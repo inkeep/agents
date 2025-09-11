@@ -304,6 +304,7 @@ export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
 // Type helpers for better TypeScript support
 export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
   tools: string[];
+  selectedTools?: Record<string, string[]>;
   dataComponents?: string[];
   artifactComponents?: string[];
   canTransferTo?: string[];

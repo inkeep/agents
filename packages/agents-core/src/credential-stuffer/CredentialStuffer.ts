@@ -275,7 +275,8 @@ export class CredentialStuffer {
   async buildMcpServerConfig(
     context: CredentialContext,
     tool: MCPToolConfig,
-    storeReference?: CredentialStoreReference
+    storeReference?: CredentialStoreReference,
+    selectedTools?: string[]
   ): Promise<McpServerConfig> {
     // Get credential headers if available
     let credentialHeaders: Record<string, string> = {};
@@ -293,6 +294,7 @@ export class CredentialStuffer {
       type: tool.transport?.type || MCPTransportType.streamableHttp,
       url: tool.serverUrl,
       activeTools: tool.activeTools,
+      selectedTools,
     };
 
     // Add configuration based on transport type

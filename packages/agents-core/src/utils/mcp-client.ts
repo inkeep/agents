@@ -16,6 +16,7 @@ import { MCPTransportType } from '../types/utility';
 interface SharedServerConfig {
   timeout?: number;
   activeTools?: string[];
+  selectedTools?: string[];
 }
 
 export interface McpStreamableHttpConfig extends SharedServerConfig {
@@ -155,13 +156,26 @@ export class McpClient {
   private async selectTools() {
     const { tools } = await this.client.listTools({ timeout: this.timeout });
 
-    const { activeTools } = this.serverConfig;
-    if (!activeTools) return tools;
+    const { selectedTools, activeTools } = this.serverConfig;
+
+    // Priority: selectedTools > activeTools > all tools
+    let toolsToFilter: string[] | undefined;
+
+    if (selectedTools && selectedTools.length > 0) {
+      // Use selectedTools (user's specific selection from UI)
+      toolsToFilter = selectedTools;
+    } else if (activeTools && activeTools.length > 0) {
+      // Fall back to activeTools (available tools)
+      toolsToFilter = activeTools;
+    } else {
+      // No filtering - return all tools
+      return tools;
+    }
 
     const toolNames = tools.map((tool) => tool.name);
-    this.validateSelectedTools(toolNames, activeTools);
+    this.validateSelectedTools(toolNames, toolsToFilter);
 
-    return tools.filter((tool) => activeTools.includes(tool.name));
+    return tools.filter((tool) => toolsToFilter.includes(tool.name));
   }
 
   async tools() {

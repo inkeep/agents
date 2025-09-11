@@ -382,7 +382,7 @@ export const createAgentToolRelation =
   async (params: {
     scopes: ScopeConfig;
     relationId?: string;
-    data: { agentId: string; toolId: string };
+    data: { agentId: string; toolId: string; selectedTools?: string[] | null };
   }) => {
     const finalRelationId = params.relationId ?? nanoid();
 
@@ -394,6 +394,7 @@ export const createAgentToolRelation =
         projectId: params.scopes.projectId,
         agentId: params.data.agentId,
         toolId: params.data.toolId,
+        selectedTools: params.data.selectedTools,
       })
       .returning();
 
@@ -636,6 +637,7 @@ export const getToolsForAgent =
           tenantId: agentToolRelations.tenantId,
           agentId: agentToolRelations.agentId,
           toolId: agentToolRelations.toolId,
+          selectedTools: agentToolRelations.selectedTools,
           createdAt: agentToolRelations.createdAt,
           updatedAt: agentToolRelations.updatedAt,
           tool: {
@@ -699,6 +701,7 @@ export const getAgentsForTool =
           tenantId: agentToolRelations.tenantId,
           agentId: agentToolRelations.agentId,
           toolId: agentToolRelations.toolId,
+          selectedTools: agentToolRelations.selectedTools,
           createdAt: agentToolRelations.createdAt,
           updatedAt: agentToolRelations.updatedAt,
           agent: {

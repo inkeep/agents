@@ -30,6 +30,7 @@ interface SidePaneProps {
 	isOpen: boolean;
 	dataComponentLookup: Record<string, DataComponent>;
 	artifactComponentLookup: Record<string, ArtifactComponent>;
+	selectedToolsLookup: Record<string, Record<string, string[]>>;
 }
 
 export function SidePane({
@@ -40,6 +41,7 @@ export function SidePane({
 	isOpen,
 	dataComponentLookup,
 	artifactComponentLookup,
+	selectedToolsLookup,
 }: SidePaneProps) {
 	const selectedNode = useNodesData(selectedNodeId || "");
 	const edges = useEdges();
@@ -112,6 +114,7 @@ export function SidePane({
 					return (
 						<MCPServerNodeEditor
 							selectedNode={selectedNode as Node<MCPNodeData>}
+							selectedToolsLookup={selectedToolsLookup}
 						/>
 					);
 				}
@@ -131,6 +134,7 @@ export function SidePane({
 		hasFieldError,
 		getFieldErrorMessage,
 		getFirstErrorField,
+		selectedToolsLookup,
 	]);
 
 	const showBackButton = useMemo(() => {
