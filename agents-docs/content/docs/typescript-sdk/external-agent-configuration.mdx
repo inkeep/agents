@@ -1,6 +1,7 @@
 ---
 title: Remote Agent Configuration
 description: Learn how to configure and use external agents for A2A communication
+icon: "LuGlobe"
 ---
 
 External agents are agents external to a graph that can communicate using the A2A (Agent-to-Agent) protocol. External agents enable you to delegate tasks between graphs within the agent framework or to third-party services.
@@ -29,18 +30,19 @@ import { agent } from "@inkeep/agents-manage-api/builders";
 
 // Define the customer support agent with delegation capabilities
 const supportAgent = agent({
-  id: 'support-agent',
-  name: 'Customer Support Agent',
-  description: 'Handles customer inquiries and escalates technical issues',
+  id: "support-agent",
+  name: "Customer Support Agent",
+  description: "Handles customer inquiries and escalates technical issues",
   prompt: `You are a customer support agent that handles general customer inquiries.`,
   canDelegateTo: () => [technicalSupportAgent],
 });
 
 // Create the customer support graph with external agent capabilities
 export const supportGraph = agentGraph({
-  id: 'customer-support-graph',
-  name: 'Customer Support System',
-  description: 'Handles customer inquiries and escalates to technical teams when needed',
+  id: "customer-support-graph",
+  name: "Customer Support System",
+  description:
+    "Handles customer inquiries and escalates to technical teams when needed",
   defaultAgent: supportAgent,
   agents: () => [supportAgent, technicalExternalAgent],
 });
@@ -59,7 +61,7 @@ const externalAgent = externalAgent({
 
   // Optional - Static or dynamic headers
   headers: {
-    "Authorization": "{{requestContext.Authorization}}",
+    Authorization: "{{requestContext.Authorization}}",
   },
 
   // Optional - Credential Reference
@@ -67,11 +69,11 @@ const externalAgent = externalAgent({
 });
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | string | Yes | Stable agent identifier used for consistency and persistence |
-| `name` | string | Yes | Human-readable name for the external agent |
-| `description` | string | Yes | Brief description of the agent's purpose and capabilities |
-| `baseUrl` | string | Yes | The A2A endpoint URL where the external agent can be reached |
-| `headers` | object | No | HTTP headers to include with every request to the external agent. See [Context Fetchers](/typescript-sdk/context-fetchers) for details about dynamic variables. |
-| `credentialReference` | CredentialReference | No | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/credentials) for details |
+| Parameter             | Type                | Required | Description                                                                                                                                                     |
+| --------------------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                  | string              | Yes      | Stable agent identifier used for consistency and persistence                                                                                                    |
+| `name`                | string              | Yes      | Human-readable name for the external agent                                                                                                                      |
+| `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                       |
+| `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                    |
+| `headers`             | object              | No       | HTTP headers to include with every request to the external agent. See [Context Fetchers](/typescript-sdk/context-fetchers) for details about dynamic variables. |
+| `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/credentials) for details                                                 |

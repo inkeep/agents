@@ -1,6 +1,7 @@
 ---
 title: Custom Trigger
 description: Create custom UI elements to trigger Inkeep modals with complete control over appearance and behavior.
+icon: "LuMousePointerClick"
 ---
 
 ## Overview
@@ -10,21 +11,9 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 ## Installation
 
 <Tabs>
-  <Tab title="npm">
-    ```bash
-    npm install @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="yarn">
-    ```bash
-    yarn add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
+  <Tab title="npm">```bash npm install @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="yarn">```bash yarn add @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="pnpm">```bash pnpm add @inkeep/cxkit-react-oss ```</Tab>
 </Tabs>
 
 ## Quick Start
@@ -34,38 +23,38 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 Here's a simple example of creating a custom button to open an Inkeep chat modal:
 
 ```tsx
-import { useState } from 'react'
+import { useState } from "react";
 import {
   InkeepModalChat,
   type InkeepModalChatProps,
-} from '@inkeep/cxkit-react'
+} from "@inkeep/cxkit-react";
 
 function App() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const modalProps: InkeepModalChatProps = {
+  const modalProps: InkeepModalChatProps = {
     aiChatSettings: {
       graphUrl: "http://localhost:3003/api/chat",
       headers: {
-        'x-inkeep-tenant-id': 'your-tenant-id',
-        'x-inkeep-project-id': 'your-project-id',
-        'x-inkeep-graph-id': 'your-graph-id',
+        "x-inkeep-tenant-id": "your-tenant-id",
+        "x-inkeep-project-id": "your-project-id",
+        "x-inkeep-graph-id": "your-graph-id",
       },
     },
     modalSettings: {
       isOpen: isModalOpen,
       onOpenChange: setIsModalOpen,
     },
-  }
+  };
 
   return (
     <>
       <button onClick={() => setIsModalOpen(true)}>
         Open Inkeep Assistant
       </button>
-      
+
       <InkeepModalChat {...modalProps} />
     </>
-  )
+  );
 }
 ```

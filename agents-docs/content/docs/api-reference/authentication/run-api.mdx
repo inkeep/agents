@@ -1,12 +1,15 @@
 ---
 title: Run API Authentication
 description: Authentication modes for Run API
+icon: "LuShield"
 ---
 
 The Run API (`agents-run-api`) has three authentication modes depending on your environment configuration:
 
 ### Development Mode
+
 When `ENVIRONMENT=development`:
+
 - No API key required
 - Must include scope headers:
   - `x-inkeep-tenant-id`
@@ -21,7 +24,9 @@ curl -H "x-inkeep-tenant-id: tenant-123" \
 ```
 
 ### Standard Mode
+
 When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_BYPASS_SECRET` is not set:
+
 - Use API keys created from the Management UI
 - No additional headers required (scope encoded in key)
 
@@ -31,9 +36,11 @@ curl -H "Authorization: Bearer sk_live_abc123..." \
 ```
 
 ### Bypass Mode
+
 When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_BYPASS_SECRET` is set:
 
 **Option 1: Bypass Secret**
+
 - Use the bypass secret as token
 - Must include scope headers
 
@@ -46,6 +53,7 @@ curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
 ```
 
 **Option 2: Standard API Key**
+
 - Use API keys from Management UI
 - Falls back to database validation
 
@@ -62,10 +70,9 @@ To run multiple Run API instances with different auth configurations:
 # Instance 1: Port 3003 with bypass secret
 PORT=3003 INKEEP_AGENTS_RUN_BYPASS_SECRET=secret123 pnpm dev
 
-# Instance 2: Port 3004 without bypass secret  
+# Instance 2: Port 3004 without bypass secret
 PORT=3004 pnpm dev
 ```
-
 
 ## Security Best Practices
 
@@ -73,4 +80,3 @@ PORT=3004 pnpm dev
 2. **Bypass Secret**: Use for internal services only
 3. **API Keys**: Rotate regularly and set expiration dates
 4. **Headers**: Use HTTPS to protect header values in transit
-

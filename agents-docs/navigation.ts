@@ -3,6 +3,7 @@ export default {
 		{ pages: ["overview", "quick-start", "oss-enterprise-comparison"] },
 		{
 			group: "Typescript SDK",
+			icon: "LuCode",
 			pages: [
 				"typescript-sdk/agent-configuration",
 				"typescript-sdk/agent-relationships",
@@ -17,6 +18,7 @@ export default {
 				"authentication",
 				{
 					group: "Observability",
+					icon: "LuChartColumn",
 					pages: [
 						"typescript-sdk/spans",
 						"typescript-sdk/signoz-usage",
@@ -27,6 +29,7 @@ export default {
 		},
 		{
 			group: "Visual Builder",
+			icon: "LuPalette",
 			pages: [
 				"visual-builder/graphs",
 				"visual-builder/mcp-servers",
@@ -40,11 +43,13 @@ export default {
 		},
 		{
 			group: "Talk to your agents",
+			icon: "LuMessageSquare",
 			pages: [
 				"talk-to-your-agents/overview",
 				"talk-to-your-agents/mcp-server",
 				{
 					group: "React UI Components",
+					icon: "LuLayers",
 					pages: [
 						"talk-to-your-agents/react/chat-button",
 						"talk-to-your-agents/react/custom-trigger",
@@ -56,6 +61,7 @@ export default {
 		},
 		{
 			group: "API Reference",
+			icon: "LuBookOpen",
 			pages: [{
 				group: "Authentication",
 				icon: "LuLock",
@@ -101,11 +107,13 @@ export default {
 		// },
 		{
 			group: "Community",
+			icon: "LuUsers",
 			pages: [
 				"community/inkeep-community",
 				"community/license",
 				{
 					group: "Contributing",
+					icon: "LuGitPullRequest",
 					pages: [
 						"community/contributing/overview",
 						"community/contributing/project-constraints",

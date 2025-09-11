@@ -1,6 +1,7 @@
 ---
 title: Data Components
 description: Learn how to create and use data components for rich agent responses
+icon: "LuLayoutTemplate"
 ---
 
 <Snippet file="multi-agent-framework/what-are-data-components.mdx" />
@@ -11,35 +12,35 @@ You can create data components by adding them to your agent configuration.
 
 ```typescript
 const taskAgent = agent({
-    id: 'task-agent',
-    tenantId: 'your-tenant',
-    name: 'Task Agent',
-    description: 'Manages user tasks',
-    prompt: 'Provide helpful answers and use data components when appropriate.',
-    dataComponents: [
-        {
-            id: 'task-list',
-            name: 'TaskList',
-            description: 'Display user tasks with status',
-            props: {
-                type: 'object',
-                properties: {
-                    tasks: {
-                        type: 'array',
-                        items: {
-                            type: 'object',
-                            properties: {
-                                id: { type: 'string' },
-                                title: { type: 'string' },
-                                completed: { type: 'boolean' }
-                            }
-                        }
-                    }
-                },
-                required: ['tasks'] // This tells the agent to include the tasks array in the response
-            }
-        }
-    ]
+  id: "task-agent",
+  tenantId: "your-tenant",
+  name: "Task Agent",
+  description: "Manages user tasks",
+  prompt: "Provide helpful answers and use data components when appropriate.",
+  dataComponents: [
+    {
+      id: "task-list",
+      name: "TaskList",
+      description: "Display user tasks with status",
+      props: {
+        type: "object",
+        properties: {
+          tasks: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                title: { type: "string" },
+                completed: { type: "boolean" },
+              },
+            },
+          },
+        },
+        required: ["tasks"], // This tells the agent to include the tasks array in the response
+      },
+    },
+  ],
 });
 ```
 
@@ -72,8 +73,8 @@ First, create your React component:
 const TaskList = ({ tasks }) => (
   <div className="task-list">
     <h3>Your Tasks</h3>
-    {tasks.map(task => (
-      <div key={task.id} className={task.completed ? 'completed' : ''}>
+    {tasks.map((task) => (
+      <div key={task.id} className={task.completed ? "completed" : ""}>
         {task.title}
       </div>
     ))}

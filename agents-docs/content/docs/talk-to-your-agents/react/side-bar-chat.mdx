@@ -2,6 +2,7 @@
 title: Add Sidebar Chat to React
 sidebarTitle: Sidebar Chat
 description: Integrate Inkeep's sidebar chat component into your React application for seamless agent conversations.
+icon: "LuPanelLeft"
 ---
 
 The InkeepSidebarChat component provides a slide-out panel interface for conversing with your agents. It can be positioned on either side of your application and supports both manual triggering and automatic element triggers.
@@ -9,21 +10,9 @@ The InkeepSidebarChat component provides a slide-out panel interface for convers
 ## Installation
 
 <Tabs>
-  <Tab title="npm">
-    ```bash
-    npm install @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="yarn">
-    ```bash
-    yarn add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
+  <Tab title="npm">```bash npm install @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="yarn">```bash yarn add @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="pnpm">```bash pnpm add @inkeep/cxkit-react-oss ```</Tab>
 </Tabs>
 
 ## Trigger through react state
@@ -31,72 +20,72 @@ The InkeepSidebarChat component provides a slide-out panel interface for convers
 Here's a simple implementation of the InkeepSidebarChat component:
 
 ```tsx
-import { useState } from 'react'
+import { useState } from "react";
 import {
   InkeepSidebarChat,
   type InkeepSidebarChatProps,
-} from '@inkeep/cxkit-react-oss'
+} from "@inkeep/cxkit-react-oss";
 
 export default function App() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const sidebarChatProps: InkeepSidebarChatProps = {
     aiChatSettings: {
       graphUrl: "http://localhost:3003/api/chat",
       headers: {
-        'x-inkeep-tenant-id': 'your-tenant-id',
-        'x-inkeep-project-id': 'your-project-id',
-        'x-inkeep-graph-id': 'your-graph-id',
+        "x-inkeep-tenant-id": "your-tenant-id",
+        "x-inkeep-project-id": "your-project-id",
+        "x-inkeep-graph-id": "your-graph-id",
       },
     },
-    position: 'right',
+    position: "right",
     isOpen: isOpen,
     onOpenChange: setIsOpen,
-  }
+  };
 
   return (
     <div>
       <button onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? 'Close' : 'Open'} Sidebar Chat
+        {isOpen ? "Close" : "Open"} Sidebar Chat
       </button>
-      
+
       <InkeepSidebarChat {...sidebarChatProps} />
     </div>
-  )
+  );
 }
 ```
 
 ## Trigger through data attributes
 
 ```tsx
-import { useState } from 'react'
+import { useState } from "react";
 import {
   InkeepSidebarChat,
   type InkeepSidebarChatProps,
-} from '@inkeep/cxkit-react-oss'
+} from "@inkeep/cxkit-react-oss";
 
 export default function App() {
   const sidebarChatProps: InkeepSidebarChatProps = {
     aiChatSettings: {
       graphUrl: "http://localhost:3003/api/chat",
       headers: {
-        'x-inkeep-tenant-id': 'inkeep',
-        'x-inkeep-project-id': 'default',
-        'x-inkeep-graph-id': '5dNDlFGC8tweVvtkaAFBz',
+        "x-inkeep-tenant-id": "inkeep",
+        "x-inkeep-project-id": "default",
+        "x-inkeep-graph-id": "5dNDlFGC8tweVvtkaAFBz",
       },
     },
-    position: 'right',
-  }
+    position: "right",
+  };
 
   return (
     <div>
       <button data-inkeep-sidebar-chat-trigger>
-          Click here to open sidebar chat
+        Click here to open sidebar chat
       </button>
 
       <InkeepSidebarChat {...sidebarChatProps} />
     </div>
-  )
+  );
 }
 ```
 
@@ -104,8 +93,8 @@ export default function App() {
 
 ### Required Props
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `aiChatSettings` | object | Configuration for the AI chat connection |
-| `aiChatSettings.graphUrl` | string | The URL of your agent graph endpoint |
-| `aiChatSettings.headers` | object | Headers for authentication and graph identification |
+| Property                  | Type   | Description                                         |
+| ------------------------- | ------ | --------------------------------------------------- |
+| `aiChatSettings`          | object | Configuration for the AI chat connection            |
+| `aiChatSettings.graphUrl` | string | The URL of your agent graph endpoint                |
+| `aiChatSettings.headers`  | object | Headers for authentication and graph identification |

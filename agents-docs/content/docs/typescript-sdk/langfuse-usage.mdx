@@ -3,6 +3,7 @@ title: Using Langfuse for LLM Observability
 sidebarTitle: Langfuse Usage
 description: Complete guide to using Langfuse for LLM observability, tracing, and analytics in the Inkeep Agent Framework
 keywords: Langfuse, LLM observability, tracing, OpenTelemetry, AI monitoring, token usage, model analytics
+icon: "LuActivity"
 ---
 
 Langfuse is an open-source LLM engineering platform that provides specialized observability for AI applications, including token usage tracking, model performance analytics, and detailed LLM interaction tracing.
@@ -13,7 +14,7 @@ Langfuse is an open-source LLM engineering platform that provides specialized ob
 
 First, create a Langfuse account and get your API keys:
 
-1. **Sign up** at [Langfuse Cloud](https://cloud.langfuse.com) 
+1. **Sign up** at [Langfuse Cloud](https://cloud.langfuse.com)
 2. **Create a new project** in your Langfuse dashboard
 3. **Get your API keys** from the project settings:
    - Public Key: `pk-lf-xxxxxxxxxx`
@@ -28,7 +29,7 @@ Add Langfuse as an exporter to your OTEL collector configuration:
 exporters:
   # Export to Langfuse
   otlphttp/langfuse:
-    endpoint: "https://us.cloud.langfuse.com/api/public/otel"  # US region
+    endpoint: "https://us.cloud.langfuse.com/api/public/otel" # US region
     headers:
       Authorization: "Basic <BASE64_ENCODED_CREDENTIALS>"
 
@@ -67,7 +68,7 @@ processors:
     timeout: 100ms
     send_batch_size: 1
     send_batch_max_size: 10
-  
+
   attributes:
     actions:
       - key: http.request.header.authorization
@@ -80,7 +81,7 @@ exporters:
     endpoint: jaeger:4317
     tls:
       insecure: true
-  
+
   # Export to SigNoz OTEL collector
   otlp/signoz:
     endpoint: signoz-otel-collector:4317
@@ -145,6 +146,7 @@ Before creating evaluators, you need to configure a default LLM connection for e
 />
 
 **Setting up the LLM Connection:**
+
 1. **Navigate to "Evaluator Library"** in your Langfuse dashboard
 2. **Click "Set up"** next to "Default Evaluation Model"
 3. **Configure the LLM connection**:
@@ -155,6 +157,7 @@ Before creating evaluators, you need to configure a default LLM connection for e
 4. **Click "Create connection"** to save
 
 **Important Notes:**
+
 - The default model is used by all managed evaluators
 - You can change it anytime - existing evaluators will use the new model
 - The model must support structured output
@@ -174,6 +177,7 @@ You have two main options:
 Langfuse provides a comprehensive catalog of pre-built evaluators including **Quality & Accuracy Evaluators**, **RAG-Specific Evaluators**, and **Advanced Evaluators**
 
 **To use a managed evaluator:**
+
 1. **Browse the evaluator list** and find one that matches your needs
 2. **Click on the evaluator** to see its description and criteria
 3. **Click "Use Selected Evaluator"** button
@@ -184,6 +188,7 @@ Langfuse provides a comprehensive catalog of pre-built evaluators including **Qu
 
 1. **Click "+ Create Custom Evaluator"** button
 2. **Fill in evaluator details**:
+
    - **Name**: Choose a descriptive name (e.g., "agent-accuracy")
    - **Description**: Explain what this evaluator measures
    - **Model**: Select evaluation model (GPT-4 recommended)
@@ -196,8 +201,9 @@ Langfuse provides a comprehensive catalog of pre-built evaluators including **Qu
    - `{{context}}` - Additional context provided to the agent
 
 **Example Custom Evaluator Prompt:**
+
 ```
-You are an expert evaluator for an AI customer support agent. 
+You are an expert evaluator for an AI customer support agent.
 
 Evaluate the helpfulness of this response on a scale of 0-1:
 
@@ -226,14 +232,17 @@ Provide only a numeric score between 0.0 and 1.0.
 This screen shows the evaluation configuration interface where you can:
 
 **Generated Score Name:**
+
 - **Score Name**: `Conciseness` (automatically filled based on selected evaluator)
 - This will be the name of the score that appears in your traces
 
 **Evaluator Runs On:**
--  **New traces**: Automatically evaluate incoming traces
--  **Existing traces**: Backfill evaluation for historical data
+
+- **New traces**: Automatically evaluate incoming traces
+- **Existing traces**: Backfill evaluation for historical data
 
 **Target Filter:**
+
 - **Add filter**: Create rules to target specific traces (by name, tags, user ID, etc.)
 - **Preview**: Shows sample traces that match your filters from the last 24 hours
 

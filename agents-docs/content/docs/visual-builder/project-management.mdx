@@ -1,6 +1,7 @@
 ---
 title: Project Management
 description: Learn how to create and manage projects in the Inkeep Agent Framework
+icon: "LuFolder"
 ---
 
 ## Overview
@@ -24,6 +25,7 @@ If you don't have any projects yet, you'll be automatically redirected to the pr
 When creating a project, you'll need to provide:
 
 - **Project ID**: A unique identifier for your project. This must:
+
   - Start and end with lowercase alphanumeric characters
   - May contain hyphens in the middle
   - Cannot be changed after creation
@@ -102,6 +104,7 @@ Configure default stopping conditions that apply across your project:
 The framework uses a cascading inheritance system with specific rules for different configuration types:
 
 ### Model Inheritance - Partial Cascading
+
 **Project** → **Graph** → **Agent**
 
 The framework supports **partial cascading**, meaning each level can override specific model types while inheriting others. This provides maximum flexibility while maintaining sensible defaults.
@@ -133,7 +136,7 @@ Graph: {
 Agent: {
   models: {
     summarizer: { model: "claude-3-haiku" }  // Override: use faster summarizer
-    // base: INHERITED from graph (gpt-4o) 
+    // base: INHERITED from graph (gpt-4o)
     // structuredOutput: INHERITED from project (gpt-4o-mini)
   }
 }
@@ -142,6 +145,7 @@ Agent: {
 #### Final Resolution Example
 
 In the above example, the agent ends up with:
+
 - **base**: `gpt-4o` (from graph)
 - **structuredOutput**: `gpt-4o-mini` (from project)
 - **summarizer**: `claude-3-haiku` (from agent)
@@ -187,10 +191,11 @@ Agent: {
 When no model settings are configured at any level (project, graph, or agent), the system uses these defaults:
 
 - **Default base model**: `anthropic/claude-4-sonnet-20250514`
-- **Default structured output model**: `openai/gpt-4.1-mini-2025-04-14`  
+- **Default structured output model**: `openai/gpt-4.1-mini-2025-04-14`
 - **Default summarizer model**: `openai/gpt-4.1-nano-2025-04-14`
 
 **Required API Keys**: For the system defaults to work properly, you need both:
+
 - `ANTHROPIC_API_KEY` (for the base model)
 - `OPENAI_API_KEY` (for structured output and summarizer models)
 
@@ -201,7 +206,7 @@ Project: {
 }
 
 Graph: {
-  // No models configured  
+  // No models configured
 }
 
 Agent: {
@@ -219,32 +224,40 @@ Agent: {
 ```
 
 **Final Resolution with Fallback:**
+
 - **base**: `gpt-4o` with specified provider options (from agent)
 - **structuredOutput**: `gpt-4o` with same provider options (falls back to agent's base)
 - **summarizer**: `gpt-4o` with same provider options (falls back to agent's base)
 
 **Contrast with Inheritance:**
+
 ```typescript
 // Project has summarizer configured - inheritance takes priority
 Project: {
   models: {
-    summarizer: { model: "gpt-4o-mini" }
+    summarizer: {
+      model: "gpt-4o-mini";
+    }
   }
 }
 
 Agent: {
   models: {
-    base: { model: "gpt-4o" }
+    base: {
+      model: "gpt-4o";
+    }
   }
 }
 ```
 
 **Final Resolution with Inheritance:**
+
 - **base**: `gpt-4o` (from agent)
 - **summarizer**: `gpt-4o-mini` (inherited from project - NO fallback to agent's base)
 - **structuredOutput**: Falls back to agent's base `gpt-4o` (no inheritance available, so fallback occurs)
 
 ### StopWhen Inheritance
+
 Different cascade rules apply based on the control scope:
 
 - **`transferCountIs`**: Controls graph-level behavior → **Project** → **Graph** only
@@ -279,6 +292,7 @@ Agent: {
 ## Switching Between Projects
 
 Use the project switcher in the bottom left of the sidebar to quickly switch between projects. The switcher shows:
+
 - The project name (or ID if no name is set)
 - The project ID
 - A brief description (if provided)
@@ -326,6 +340,7 @@ DELETE /tenants/{tenantId}/crud/projects/{projectId}
 ## Next Steps
 
 After creating a project, you can:
+
 - [Create your first agent graph](/visual-builder/graphs)
 - [Configure MCP servers for tools](/visual-builder/mcp-servers)
 - [Set up API keys for external access](/api-keys)

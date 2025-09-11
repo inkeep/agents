@@ -1,17 +1,21 @@
 ---
 title: Manage API Authentication
 description: Authentication modes for Manage API
+icon: "LuShield"
 ---
 
 The Manage API (`agents-manage-api`) has two authentication modes:
 
 ### Secured Mode
+
 When `INKEEP_AGENTS_MANAGE_API_SECRET` is set:
+
 - Include the secret as a Bearer token in requests
 - Reccomended for production environments
 
-
 ### Open Mode
+
 When `INKEEP_AGENTS_MANAGE_API_SECRET` is not set:
+
 - No authentication required
 - Useful for local development

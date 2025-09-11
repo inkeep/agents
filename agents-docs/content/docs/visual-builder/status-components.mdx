@@ -1,6 +1,7 @@
 ---
 title: Status Components
 description: Configure intelligent status updates using structured components in the Visual Builder
+icon: "LuClock"
 ---
 
 The Visual Builder provides powerful tools for configuring status updates across your agent graphs. These features keep users informed during long-running operations with either generic text summaries or structured component data.
@@ -43,7 +44,7 @@ Here's an example of a custom status component that provides structured informat
         description: 'Name of the tool that was executed'
       },
       summary: {
-        type: 'string', 
+        type: 'string',
         description: 'Brief description of what was accomplished'
       },
       duration: {
@@ -84,10 +85,10 @@ The summarizer model is configured in your graph's model settings:
 ```typescript
 // Graph-level model settings
 models: {
-  base: { 
+  base: {
     model: 'anthropic/claude-4-sonnet-20250514' // Primary model
   },
-  summarizer: { 
+  summarizer: {
     model: 'openai/gpt-4o-mini-2024-07-18', // Dedicated summarizer
     providerOptions: {
       temperature: 0.3, // Lower temperature for consistent summaries
@@ -103,6 +104,7 @@ models: {
 
 1. **Select your Graph** in the Visual Builder
 2. **Open Model Settings**:
+
    - Set base model for agent conversations
    - Configure summarizer model for status updates
    - Adjust provider options (temperature, tokens)
@@ -124,8 +126,8 @@ You can provide a custom prompt that gets appended to the base system prompt for
 statusUpdates: {
   numEvents: 3,
   timeInSeconds: 15,
-  prompt: `Focus on user-visible progress and avoid technical details. 
-Keep messages encouraging and professional. 
+  prompt: `Focus on user-visible progress and avoid technical details.
+Keep messages encouraging and professional.
 Always mention what information is being found or processed.`
 }
 ```
@@ -135,7 +137,7 @@ Always mention what information is being found or processed.`
 Use the visual component designer to create structured status updates:
 
 1. **Component Properties**: Define the data structure
-2. **Schema Validation**: Ensure consistent output format  
+2. **Schema Validation**: Ensure consistent output format
 3. **Preview Mode**: Test how components will appear
 4. **Template Customization**: Style the component display
 
@@ -144,7 +146,6 @@ Use the visual component designer to create structured status updates:
 ### Graph-Level Defaults
 
 Status components, summarizer models, and status update prompts are configured at the graph level and apply to all agents in that graph.
-
 
 ## Best Practices
 

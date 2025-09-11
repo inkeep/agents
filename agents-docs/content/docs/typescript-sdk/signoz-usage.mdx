@@ -3,6 +3,7 @@ title: Using SigNoz for Observability
 sidebarTitle: SigNoz Usage
 description: Complete guide to using SigNoz for observability, monitoring, and tracing in the Inkeep Agent Framework
 keywords: SigNoz, observability, monitoring, tracing, OpenTelemetry, APM, metrics
+icon: "brand/Signoz"
 ---
 
 SigNoz is a full-stack observability platform that provides distributed tracing so that you can track requests across multiple agents and services.
@@ -10,6 +11,7 @@ SigNoz is a full-stack observability platform that provides distributed tracing 
 ### Quick Start
 
 1. **Start the Complete Stack**:
+
 ```bash
 # From the root directory of the agent framework
 docker compose up -d
@@ -18,10 +20,12 @@ docker compose up -d
 This single command starts the entire observability and integration stack:
 
 **Agent Framework Components:**
+
 - OTEL Collector (ports 14317-14318)
 - Jaeger UI (port 16686)
 
 **SigNoz Components:**
+
 - SigNoz UI (port 3080)
 - SigNoz OTEL Collector (ports 4317-4318)
 - ClickHouse Database
@@ -42,8 +46,8 @@ Configure your agent framework to send traces to the OTEL Collector:
 
 ```typescript
 // Recommended: Use OTEL Collector for dual routing to Jaeger + SigNoz
-process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:14318/v1/traces';
-process.env.OTEL_SERVICE_NAME = 'inkeep-agents';
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:14318/v1/traces";
+process.env.OTEL_SERVICE_NAME = "inkeep-agents";
 
 // Alternative endpoints:
 // OTLP HTTP: http://localhost:14318/v1/traces (default)
@@ -56,6 +60,7 @@ process.env.OTEL_SERVICE_NAME = 'inkeep-agents';
 Once the stack is running, access SigNoz at: **http://localhost:3080**
 
 You can also access:
+
 - **Jaeger UI**: http://localhost:16686
 
 ### Stopping Services
@@ -81,6 +86,7 @@ The SigNoz traces interface provides comprehensive visibility into your agent op
 />
 
 The traces explorer shows:
+
 - **Timestamp**: When each span occurred
 - **Service Name**: The service that generated the span (e.g., `inkeep-chat`)
 - **Operation Name**: Specific operations like `ai.generateObject`, `tls.connect`, `ai.toolCall`
@@ -89,6 +95,7 @@ The traces explorer shows:
 - **Response Status Code**: HTTP status codes (200, 404, etc.)
 
 Key features of the traces view:
+
 - **Filtering Options**: Use the left sidebar to filter by duration, deployment environment, service name, and more
 - **Time Range Selection**: Choose from preset ranges or custom time periods
 - **Multiple Views**: Switch between List View, Traces, Time Series, and Table View
@@ -99,6 +106,7 @@ Key features of the traces view:
 - **Span Timeline**: See the execution flow across agents
 
 #### Filtering Traces
+
 ```
 # Filter by service
 service_name = "inkeep-chat"
@@ -116,7 +124,6 @@ duration > 1000ms
 agent.id = "customer-support-agent"
 ```
 
-
 #### Analyzing Individual Traces
 
 When you click on a specific trace from the list, you'll see the detailed trace view with a flamegraph visualization:
@@ -129,13 +136,15 @@ When you click on a specific trace from the list, you'll see the detailed trace 
 />
 
 **Flamegraph Visualization:**
+
 - **Horizontal Bars**: Each bar represents a span (operation) in your trace
 - **Bar Width**: Proportional to the duration of the operation
-- **Color Coding**: 
+- **Color Coding**:
   - Blue bars: Successful operations
   - Red bars: Operations with errors
 
 **Key Information Displayed:**
+
 - **Total Spans**: Total number of operations in this trace (e.g., 122)
 - **Error Spans**: Number of spans that encountered errors (e.g., 19)
 - **Trace Duration**: Total time for the entire trace (e.g., 5.2 mins)
@@ -143,6 +152,7 @@ When you click on a specific trace from the list, you'll see the detailed trace 
 - **Service**: The primary service (e.g., `inkeep-chat`)
 
 **Span Details Panel (Right Side):**
+
 - **Span Name & ID**: Operation name and unique identifier
 - **Timing**: Start time and duration
 - **Service & Kind**: Which service and span type (Server, Client, etc.)

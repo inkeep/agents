@@ -1,9 +1,10 @@
 ---
 title: Status Updates
 description: Real-time progress updates powered by AI that keep users informed during long-running agent operations
+icon: "LuClock"
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 # Status Updates
 
@@ -19,7 +20,8 @@ Status updates are automatically generated summaries that:
 - **Stream Real-time**: Send updates via the same streaming interface as responses
 
 <Callout type="info">
-Status updates use your graph's summarizer model to generate contextual, intelligent progress messages that feel natural to users.
+  Status updates use your graph's summarizer model to generate contextual,
+  intelligent progress messages that feel natural to users.
 </Callout>
 
 ## How It Works
@@ -29,6 +31,7 @@ The status updater operates through three main components:
 ### 1. GraphSession Event Tracking
 
 Every agent operation is tracked as events:
+
 - **agent_generate**: Text generation or structured output
 - **transfer**: Agent-to-agent transfers
 - **delegation_sent/returned**: Task delegation between agents
@@ -38,6 +41,7 @@ Every agent operation is tracked as events:
 ### 2. Intelligent Triggering
 
 Status updates are triggered by:
+
 - **Event Count**: After N events (tool calls, generations, etc.)
 - **Time Intervals**: Every N seconds of processing
 - **Smart Detection**: Avoids updates during text streaming
@@ -45,6 +49,7 @@ Status updates are triggered by:
 ### 3. AI-Powered Summarization
 
 The summarizer model:
+
 - Analyzes recent events and progress
 - Generates user-friendly status messages
 - Maintains context across multiple updates
@@ -56,50 +61,50 @@ Configure status updates in your agent graph:
 
 ```typescript
 export const graph = agentGraph({
-  id: 'my-graph',
+  id: "my-graph",
   defaultAgent: myAgent,
   agents: () => [myAgent],
-  
+
   // Model Settings with summarizer
   models: {
-    base: { model: 'claude-3-5-sonnet-20241022' },
-    summarizer: { model: 'claude-3-5-sonnet-20241022' } // Model for status updates
+    base: { model: "claude-3-5-sonnet-20241022" },
+    summarizer: { model: "claude-3-5-sonnet-20241022" }, // Model for status updates
   },
 
   // Status updates configuration
   statusUpdates: {
-    numEvents: 3,        // Trigger after 3 events
-    timeInSeconds: 15,   // Trigger every 15 seconds
-    prompt: 'Custom prompt for status updates', // Optional
+    numEvents: 3, // Trigger after 3 events
+    timeInSeconds: 15, // Trigger every 15 seconds
+    prompt: "Custom prompt for status updates", // Optional
   },
 });
 ```
 
 ### Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `numEvents` | number | 10 | Trigger update after N events |
-| `timeInSeconds` | number | 30 | Trigger update every N seconds |
-| `model` | string | graph default | Override model for summaries |
-| `prompt` | string | undefined | Custom prompt appended to base system prompt (max 2000 chars) |
-| `statusComponents` | array | undefined | Structured status components (advanced) |
+| Option             | Type   | Default       | Description                                                   |
+| ------------------ | ------ | ------------- | ------------------------------------------------------------- |
+| `numEvents`        | number | 10            | Trigger update after N events                                 |
+| `timeInSeconds`    | number | 30            | Trigger update every N seconds                                |
+| `model`            | string | graph default | Override model for summaries                                  |
+| `prompt`           | string | undefined     | Custom prompt appended to base system prompt (max 2000 chars) |
+| `statusComponents` | array  | undefined     | Structured status components (advanced)                       |
 
 ## Basic Example
 
 ```typescript
-import { agent, agentGraph, tool } from '@inkeep/agents-manage-api/builders';
+import { agent, agentGraph, tool } from "@inkeep/agents-manage-api/builders";
 
 const searchAgent = agent({
-  id: 'search-agent',
-  name: 'Search Agent',
-  prompt: 'Help users search and analyze information.',
+  id: "search-agent",
+  name: "Search Agent",
+  prompt: "Help users search and analyze information.",
   tools: {
     search: tool({
-      id: 'search',
-      name: 'Web Search',
-      description: 'Search for information',
-      parameters: { query: 'string' },
+      id: "search",
+      name: "Web Search",
+      description: "Search for information",
+      parameters: { query: "string" },
       execute: async ({ query }) => {
         // Search implementation
         return `Results for: ${query}`;
@@ -109,18 +114,18 @@ const searchAgent = agent({
 });
 
 export const graph = agentGraph({
-  id: 'search-demo',
+  id: "search-demo",
   defaultAgent: searchAgent,
   agents: () => [searchAgent],
-  
+
   models: {
-    base: { model: 'claude-3-5-sonnet-20241022' },
-    summarizer: { model: 'claude-3-5-sonnet-20241022' }
+    base: { model: "claude-3-5-sonnet-20241022" },
+    summarizer: { model: "claude-3-5-sonnet-20241022" },
   },
-  
+
   // Enable status updates
   statusUpdates: {
-    numEvents: 2,      // Update every 2 operations
+    numEvents: 2, // Update every 2 operations
     timeInSeconds: 10, // Or every 10 seconds
   },
 });
@@ -128,6 +133,7 @@ export const graph = agentGraph({
 
 **User Experience:**
 When a user asks "What's the weather in Paris?", they might see:
+
 1. "Searching for current weather information..."
 2. "Found weather data, analyzing conditions..."
 3. "Preparing detailed weather report..."
@@ -138,19 +144,20 @@ You can customize how status updates are generated by providing a custom prompt 
 
 ```typescript
 export const graph = agentGraph({
-  id: 'my-graph',
+  id: "my-graph",
   defaultAgent: myAgent,
   agents: () => [myAgent],
-  
+
   models: {
-    summarizer: { model: 'claude-3-5-sonnet-20241022' }
+    summarizer: { model: "claude-3-5-sonnet-20241022" },
   },
-  
+
   statusUpdates: {
     numEvents: 3,
     timeInSeconds: 15,
     // Custom prompt is appended to the base system prompt
-    prompt: 'KEEP ALL STATUS UPDATES SHORT AND CONCISE. Use bullet points and focus only on user-visible progress.',
+    prompt:
+      "KEEP ALL STATUS UPDATES SHORT AND CONCISE. Use bullet points and focus only on user-visible progress.",
   },
 });
 ```
@@ -158,6 +165,7 @@ export const graph = agentGraph({
 ### Custom Prompt Examples
 
 **Concise Updates:**
+
 ```typescript
 statusUpdates: {
   prompt: 'Keep responses to 5 words maximum. Use present tense verbs.',
@@ -166,6 +174,7 @@ statusUpdates: {
 ```
 
 **Detailed Progress:**
+
 ```typescript
 statusUpdates: {
   prompt: 'Provide specific details about what was found or accomplished. Include relevant numbers or names when available.',
@@ -174,6 +183,7 @@ statusUpdates: {
 ```
 
 **Branded Tone:**
+
 ```typescript
 statusUpdates: {
   prompt: 'Use a friendly, helpful tone. Start updates with action words like "Discovering", "Exploring", "Analyzing".',
@@ -186,7 +196,9 @@ statusUpdates: {
 For more control over status format, use structured status components:
 
 <Callout type="info">
-**Schema Update**: The status components schema has been simplified. Use `type` instead of `id` and `name`, and `detailsSchema` instead of `schema`. The `detailsSchema` is now optional.
+  **Schema Update**: The status components schema has been simplified. Use
+  `type` instead of `id` and `name`, and `detailsSchema` instead of `schema`.
+  The `detailsSchema` is now optional.
 </Callout>
 
 ```typescript
@@ -202,15 +214,15 @@ statusUpdates: {
       detailsSchema: {
         type: 'object',
         properties: {
-          tool_name: { 
+          tool_name: {
             type: 'string',
             description: 'Name of tool used'
           },
-          purpose: { 
+          purpose: {
             type: 'string',
             description: 'Why this tool was called'
           },
-          outcome: { 
+          outcome: {
             type: 'string',
             description: 'What was discovered or accomplished'
           },
@@ -224,15 +236,15 @@ statusUpdates: {
       detailsSchema: {
         type: 'object',
         properties: {
-          current_task: { 
+          current_task: {
             type: 'string',
             description: 'What is currently being worked on'
           },
-          completion_percentage: { 
+          completion_percentage: {
             type: 'number',
             description: 'Estimated completion percentage (0-100)'
           },
-          next_steps: { 
+          next_steps: {
             type: 'string',
             description: 'What will happen next'
           },
@@ -250,16 +262,16 @@ Status updates arrive as `data-operation` parts with `type: 'status_update'`:
 
 ```typescript
 // In your message processing
-message.parts.forEach(part => {
-  if (part.type === 'data-operation' && part.data.type === 'status_update') {
+message.parts.forEach((part) => {
+  if (part.type === "data-operation" && part.data.type === "status_update") {
     const { summary, components } = part.data.ctx;
-    
+
     // Display the status update
     displayStatusUpdate(summary);
-    
+
     // Handle structured components if present
     if (components) {
-      components.forEach(component => {
+      components.forEach((component) => {
         displayStructuredStatus(component);
       });
     }
@@ -285,12 +297,12 @@ message.parts.forEach(part => {
 
 ```typescript
 // Good: Descriptive and actionable
-"Searching through documentation to find API authentication methods..."
-"Found OAuth2 setup prompt, now checking for code examples..."
+"Searching through documentation to find API authentication methods...";
+"Found OAuth2 setup prompt, now checking for code examples...";
 
-// Avoid: Too technical or vague  
-"Agent thinking..."
-"Processing data-operation with tool_invocation type..."
+// Avoid: Too technical or vague
+"Agent thinking...";
+"Processing data-operation with tool_invocation type...";
 ```
 
 ## Troubleshooting
@@ -298,6 +310,7 @@ message.parts.forEach(part => {
 ### Updates Not Appearing
 
 Check that:
+
 1. Status updates are configured in your graph
 2. The summarizer model is specified
 3. Events are being triggered (tool calls, generations)
@@ -306,6 +319,7 @@ Check that:
 ### Too Many/Few Updates
 
 Adjust thresholds:
+
 ```typescript
 statusUpdates: {
   numEvents: 5,        // Increase for fewer updates
@@ -316,6 +330,7 @@ statusUpdates: {
 ### Poor Update Quality
 
 Improve with custom prompts:
+
 ```typescript
 statusUpdates: {
   numEvents: 3,
@@ -325,7 +340,8 @@ statusUpdates: {
 ```
 
 <Callout type="warning">
-Status updates are automatically paused during text streaming to avoid interrupting the response flow.
+  Status updates are automatically paused during text streaming to avoid
+  interrupting the response flow.
 </Callout>
 
 ## Performance Considerations
@@ -337,5 +353,6 @@ Status updates are automatically paused during text streaming to avoid interrupt
 ## Examples
 
 See working examples in the repository:
+
 - [`examples/status-updates-example.graph.ts`](https://github.com/inkeep/agents/tree/main/examples) - Basic configuration
 - [`examples/agent-configurations/basic_fact_agent/`](https://github.com/inkeep/agents/tree/main/examples/agent-configurations) - Structured status updates

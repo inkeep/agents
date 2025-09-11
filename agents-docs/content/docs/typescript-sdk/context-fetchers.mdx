@@ -1,6 +1,7 @@
 ---
 title: Context Fetchers
 description: Learn how to use context fetchers to fetch data from external sources and make it available to your agents
+icon: "LuCirclePlus"
 ---
 
 ## Overview
@@ -80,7 +81,6 @@ const personalAgent = agent({
   prompt: `Hello {{userName}}! I'm your personal assistant.`,
 });
 ```
-
 
 ### Using the Context Fetcher
 
@@ -180,14 +180,17 @@ const userFetcher = fetchDefinition({
 ## Best Practices
 
 1. **Use Appropriate Triggers**
+
    - `initialization`: Use when data rarely changes
    - `invocation`: Use for frequently changing data
 
 2. **Handle Errors Gracefully**
+
    - Always provide a `defaultValue`
    - Use appropriate response schemas
 
 3. **Optimize Performance**
+
    - Keep transforms simple and specific
    - Use GraphQL to minimize data transfer
    - Leverage caching when possible

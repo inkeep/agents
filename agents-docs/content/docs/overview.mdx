@@ -1,11 +1,13 @@
 ---
 title: Overview of the Inkeep Agent Platform
 sidebarTitle: Overview
+icon: "LuBookOpen"
 ---
 
-With Inkeep, you can create and manage Agents with the **No-Code Visual Builder** or **TypeScript Agents SDK**. 
+With Inkeep, you can create and manage Agents with the **No-Code Visual Builder** or **TypeScript Agents SDK**.
 
 Inkeep Agents are often used as:
+
 - A **Customer-facing Agent** that you embed as a support assistant in your help center, copilot in your app, or sales chatbot on your marketing site.
 - An **Internal Agent** accessible from Claude, ChatGPT, Slack, Zendesk, Cursor, and other apps your team uses
 - A **Workflow Agent** used to automate repetitive tasks at scale, like updating docs, creating blog posts, summarizing sales calls, and more.
@@ -28,28 +30,29 @@ To get started, you can try the **open-source** edition (this docs site) or to l
 2. **TypeScript Agents SDK**: A code-first approach for building and managing agents and multi-agent systems, allowing you to build complex agent systems with the tools your engineering team expects.
 
    ```typescript
-    import { agent, agentGraph } from '@inkeep/agents-sdk';
+   import { agent, agentGraph } from "@inkeep/agents-sdk";
 
-    const helloAgent = agent({
-      id: 'hello-agent',
-      name: 'Hello Agent',
-      description: 'A basic agent',
-      prompt:
-        'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
-    });
+   const helloAgent = agent({
+     id: "hello-agent",
+     name: "Hello Agent",
+     description: "A basic agent",
+     prompt:
+       'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+   });
 
-    export const graph = agentGraph({
-      id: 'basic-graph',
-      name: 'Basic Graph Example',
-      description: 'A basic graph',
-      defaultAgent: helloAgent,
-      agents: () => [helloAgent],
-    });
+   export const graph = agentGraph({
+     id: "basic-graph",
+     name: "Basic Graph Example",
+     description: "A basic graph",
+     defaultAgent: helloAgent,
+     agents: () => [helloAgent],
+   });
    ```
 
 The **Visual Builder and Agents SDK are fully interoperable**: your technical and non-technical teams can edit and manage agents in either format and switch or collaborate with others at any time.
 
 ## Key Concepts
+
 - **Agents**: LLM and AI driven decision-making units defined by instructions ('prompts') that can take actions, answer questions, and coordinate with other agents as needed.
 - **Graphs**: A team of agents that work together to perform complex tasks across your apps and APIs.
 - **Tools**: The capabilities that agents can invoke. Tools can be your own custom functions or you can leverage our pre-built MCP tools for common integrations.

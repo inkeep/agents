@@ -1,6 +1,7 @@
 ---
 title: Project Constraints and Validation
 description: How the Inkeep Agent Framework ensures data integrity with project constraints
+icon: "LuTriangleAlert"
 ---
 
 # Project Constraints and Validation
@@ -14,12 +15,13 @@ The Inkeep Agent Framework implements multiple layers of validation to ensure th
 All tables that reference projects include foreign key constraints to ensure referential integrity:
 
 ```sql
-FOREIGN KEY (tenant_id, project_id) 
-REFERENCES projects(tenant_id, id) 
+FOREIGN KEY (tenant_id, project_id)
+REFERENCES projects(tenant_id, id)
 ON DELETE CASCADE
 ```
 
 This ensures that:
+
 - No data can be inserted for non-existent projects
 - Deleting a project cascades to remove all associated resources
 - Data integrity is maintained at the database level
@@ -48,7 +50,7 @@ The Inkeep CLI validates project existence before pushing graphs:
 ```typescript
 // CLI checks if project exists
 const existingProject = await getProject(dbClient)({
-  scopes: { tenantId, projectId }
+  scopes: { tenantId, projectId },
 });
 
 if (!existingProject) {
@@ -62,7 +64,7 @@ if (!existingProject) {
 The core package provides validation utilities for runtime checks:
 
 ```typescript
-import { validateProjectExists } from '@inkeep/agents-core';
+import { validateProjectExists } from "@inkeep/agents-core";
 
 // Validate before any operation
 await validateProjectExists(db, tenantId, projectId);
@@ -73,7 +75,7 @@ await validateProjectExists(db, tenantId, projectId);
 Data access functions can be wrapped with automatic validation:
 
 ```typescript
-import { withProjectValidation } from '@inkeep/agents-core';
+import { withProjectValidation } from "@inkeep/agents-core";
 
 const validatedCreateAgent = withProjectValidation(db, createAgent);
 // Now automatically validates project before creating agent
@@ -85,10 +87,10 @@ const validatedCreateAgent = withProjectValidation(db, createAgent);
 
 ```typescript
 export const agents = sqliteTable(
-  'agents',
+  "agents",
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
+    tenantId: text("tenant_id").notNull(),
+    projectId: text("project_id").notNull(),
     // ... other columns
   },
   (table) => [
@@ -96,8 +98,8 @@ export const agents = sqliteTable(
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
-      name: 'agents_project_fk'
-    })
+      name: "agents_project_fk",
+    }),
   ]
 );
 ```
@@ -119,7 +121,7 @@ const client = createClient({
 });
 
 // Enable foreign keys
-await client.execute('PRAGMA foreign_keys = ON');
+await client.execute("PRAGMA foreign_keys = ON");
 ```
 
 ## Error Handling
@@ -127,14 +129,16 @@ await client.execute('PRAGMA foreign_keys = ON');
 When a constraint violation occurs, appropriate error messages guide users:
 
 ### CLI Error
+
 ```
 ⚠ Project "my-project" does not exist
 ? Would you like to create it? (Y/n)
 ```
 
 ### Database Error
+
 ```
-Error: Project with ID "my-project" does not exist for tenant "my-tenant". 
+Error: Project with ID "my-project" does not exist for tenant "my-tenant".
 Please create the project first before adding resources to it.
 ```
 
@@ -159,8 +163,8 @@ For existing databases without constraints:
 ```sql
 -- Find orphaned agents
 SELECT a.* FROM agents a
-LEFT JOIN projects p 
-  ON a.tenant_id = p.tenant_id 
+LEFT JOIN projects p
+  ON a.tenant_id = p.tenant_id
   AND a.project_id = p.id
 WHERE p.id IS NULL;
 ```

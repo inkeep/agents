@@ -1,6 +1,7 @@
 ---
 title: Artifact Components
 description: Artifact components are used to add artifacts to the graph.
+icon: "TbInputSpark"
 ---
 
 <Snippet file="multi-agent-framework/artifacts.mdx" />
@@ -36,17 +37,17 @@ Each agent uses its configured summarizer model for artifact generation:
 ```typescript
 // Agent with custom summarizer for artifact generation
 const researchAgent = agent({
-  id: 'research-agent',
+  id: "research-agent",
   models: {
-    base: { model: 'claude-4-sonnet' },
-    summarizer: { 
-      model: 'gpt-4o-mini', // This model generates artifact names/descriptions
+    base: { model: "claude-4-sonnet" },
+    summarizer: {
+      model: "gpt-4o-mini", // This model generates artifact names/descriptions
       providerOptions: {
         temperature: 0.2, // Lower temperature for consistent naming
-        maxTokens: 512
-      }
-    }
-  }
+        maxTokens: 512,
+      },
+    },
+  },
 });
 ```
 
@@ -62,4 +63,4 @@ Artifact generation follows the same model inheritance rules:
 
 - **Consistent Models**: Use the same summarizer model across related agents for consistent artifact naming
 - **Appropriate Models**: Choose models good at summarization (GPT-4o-mini, Claude-3-Haiku work well)
-- **Temperature Settings**: Lower temperatures (0.1-0.3) provide more consistent naming patterns 
+- **Temperature Settings**: Lower temperatures (0.1-0.3) provide more consistent naming patterns

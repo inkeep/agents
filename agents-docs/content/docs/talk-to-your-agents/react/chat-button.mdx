@@ -1,43 +1,35 @@
 ---
 title: Chat Button
 description: Learn how to use the chat button component
+icon: "LuMessageCircle"
 ---
 
 The chat button component is a simple way to trigger the Inkeep modal.
 
 <Tabs>
-  <Tab title="npm">
-    ```bash
-    npm install @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="yarn">
-    ```bash
-    yarn add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
+  <Tab title="npm">```bash npm install @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="yarn">```bash yarn add @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="pnpm">```bash pnpm add @inkeep/cxkit-react-oss ```</Tab>
 </Tabs>
 
 ```tsx
-import { InkeepChatButton, type InkeepChatButtonProps } from '@inkeep/cxkit-react-oss'
+import {
+  InkeepChatButton,
+  type InkeepChatButtonProps,
+} from "@inkeep/cxkit-react-oss";
 
 const buttonProps: InkeepChatButtonProps = {
   aiChatSettings: {
     graphUrl: "http://localhost:3003/api/chat",
     headers: {
-      'x-inkeep-tenant-id': 'inkeep',
-      'x-inkeep-project-id': 'default',
-      'x-inkeep-graph-id': '5dNDlFGC8tweVvtkaAFBz',
+      "x-inkeep-tenant-id": "inkeep",
+      "x-inkeep-project-id": "default",
+      "x-inkeep-graph-id": "5dNDlFGC8tweVvtkaAFBz",
     },
   },
-}
+};
 
 const ChatButton = () => {
-  return <InkeepChatButton {...buttonProps} />
-}
+  return <InkeepChatButton {...buttonProps} />;
+};
 ```

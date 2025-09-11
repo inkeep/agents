@@ -49,7 +49,8 @@
         "noNonNullAssertion": "warn"
       },
       "performance": {
-        "noImgElement": "warn"
+        "noImgElement": "warn",
+        "noDynamicNamespaceImportAccess": "off"
       },
       "a11y": {
         "useSemanticElements": "error",

@@ -1,6 +1,7 @@
 ---
 title: Embedded Chat
 description: Integrate Inkeep's embedded chat component directly into your React application for inline agent conversations.
+icon: "LuMonitor"
 ---
 
 The InkeepEmbeddedChat component provides a fully embedded chat interface that you can integrate directly into your React application's layout. Unlike modal or sidebar implementations, the embedded chat becomes part of your page structure, perfect for dedicated support pages, dashboards, or help centers.
@@ -8,21 +9,9 @@ The InkeepEmbeddedChat component provides a fully embedded chat interface that y
 ## Installation
 
 <Tabs>
-  <Tab title="npm">
-    ```bash
-    npm install @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="yarn">
-    ```bash
-    yarn add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add @inkeep/cxkit-react-oss
-    ```
-  </Tab>
+  <Tab title="npm">```bash npm install @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="yarn">```bash yarn add @inkeep/cxkit-react-oss ```</Tab>
+  <Tab title="pnpm">```bash pnpm add @inkeep/cxkit-react-oss ```</Tab>
 </Tabs>
 
 ## Basic Implementation
@@ -33,20 +22,20 @@ Here's a simple implementation of the InkeepEmbeddedChat component:
 import {
   InkeepEmbeddedChat,
   type InkeepEmbeddedChatProps,
-} from '@inkeep/cxkit-react-oss'
+} from "@inkeep/cxkit-react-oss";
 
 export default function App() {
   const embeddedChatProps: InkeepEmbeddedChatProps = {
     aiChatSettings: {
       graphUrl: "http://localhost:3003/api/chat",
       headers: {
-        'x-inkeep-tenant-id': 'your-tenant-id',
-        'x-inkeep-project-id': 'your-project-id',
-        'x-inkeep-graph-id': 'your-graph-id',
+        "x-inkeep-tenant-id": "your-tenant-id",
+        "x-inkeep-project-id": "your-project-id",
+        "x-inkeep-graph-id": "your-graph-id",
       },
     },
-  }
+  };
 
-  return <InkeepEmbeddedChat {...embeddedChatProps} />
+  return <InkeepEmbeddedChat {...embeddedChatProps} />;
 }
 ```

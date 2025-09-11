@@ -1,6 +1,7 @@
 ---
 title: Artifact Components
 description: Learn how to use artifact components to store and retrieve data from the agent
+icon: "TbInputSpark"
 ---
 
 <Snippet file="multi-agent-framework/artifacts.mdx" />
@@ -69,6 +70,7 @@ The `summaryProps` is used in the agent's context. The `fullProps` is used to st
 ## Automatic Artifact Creation
 
 When an agent uses a tool or delegates to another agent:
+
 1. The tool/agent processes the request and returns a response
 2. The response is automatically parsed according to the artifact component schema
 3. An artifact is created containing the parsed information
@@ -90,27 +92,29 @@ This creates a clear chain of evidence showing where each piece of information o
 ```typescript
 // Example of how artifacts are created and used
 const factsAgent = agent({
-  id: 'facts',
+  id: "facts",
   tools: {
     facts_tool: inkeepFactsTool, // When this tool is used...
   },
-  prompt: 'Use the facts_tool to fetch information and create a fact component followed by an artifact component.',
+  prompt:
+    "Use the facts_tool to fetch information and create a fact component followed by an artifact component.",
   artifactComponents: [
     {
-      id: 'document-artifact',
+      id: "document-artifact",
       // ... artifact schema definition
-    }
+    },
   ],
   dataComponents: [
     {
-      id: 'fact',
+      id: "fact",
       // ... fact component definition that will be linked to artifacts
-    }
+    },
   ],
 });
 ```
 
 In this example, when the `facts_tool` is used:
+
 1. The tool returns information
 2. An artifact is automatically created with the response
 3. The agent can create fact components using this information

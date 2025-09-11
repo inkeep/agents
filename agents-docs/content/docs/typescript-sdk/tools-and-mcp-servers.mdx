@@ -1,6 +1,7 @@
 ---
 title: MCP Servers
 description: Learn how to add and configure MCP servers for your agents
+icon: "LuHammer"
 ---
 
 MCP tools connect to external servers that implement the MCP standard. This allows you to integrate with a wide ecosystem of existing tools and services.
@@ -8,7 +9,7 @@ MCP tools connect to external servers that implement the MCP standard. This allo
 ### Basic MCP Server
 
 ```typescript
-import {agent, mcpTool } from "@inkeep/agents-sdk";
+import { agent, mcpTool } from "@inkeep/agents-sdk";
 
 const knowledgeBaseTool = mcpTool({
   id: "knowledge-base-tool",
@@ -34,7 +35,7 @@ MCP servers support various authentication methods (via credentials):
 
 - **No Authentication** - For public APIs or internal services
 - **API Key** - For services requiring API keys
-- **Bearer Token** - For JWT or similar token-based authentication  
+- **Bearer Token** - For JWT or similar token-based authentication
 - **Token Authentication** - For custom token schemes
 - **OAuth Flows** - For standard OAuth 2.0 authentication
 - **OAuth 2.1 Flows** - For modern OAuth 2.1 authentication
@@ -55,11 +56,11 @@ const apiKeyTool = mcpTool({
   description: "Get weather information",
   serverUrl: "https://api.weather.com/mcp",
   credential: credential({
-    id: 'weather-api-credential',
+    id: "weather-api-credential",
     type: CredentialStoreType.memory,
-    credentialStoreId: 'memory-default',
+    credentialStoreId: "memory-default",
     retrievalParams: {
-      key: 'WEATHER_API_KEY',
+      key: "WEATHER_API_KEY",
     },
   }),
 });
@@ -102,7 +103,6 @@ const selectiveTool = mcpTool({
 });
 ```
 
-
 ## Best Practices
 
 To ensure agents properly utilize their tools, follow these best practices:
@@ -118,17 +118,17 @@ Example with best practices applied:
 import { mcpTool, agent } from "@inkeep/agents-sdk";
 
 const productTool = mcpTool({
-  id: 'product-tool',
-  name: 'product',
-  description: 'Search product information, pricing, and specifications',
-  serverUrl: 'https://mcp.inkeep.com/inkeep/mcp',
-  activeTools: ['search_products', 'get_pricing', 'get_specifications'], // Only enable needed tools
+  id: "product-tool",
+  name: "product",
+  description: "Search product information, pricing, and specifications",
+  serverUrl: "https://mcp.inkeep.com/inkeep/mcp",
+  activeTools: ["search_products", "get_pricing", "get_specifications"], // Only enable needed tools
 });
 
 const productAgent = agent({
-  id: 'product-agent',
-  name: 'Product Agent',
-  description: 'Answers questions about the Inkeep product',
+  id: "product-agent",
+  name: "Product Agent",
+  description: "Answers questions about the Inkeep product",
   prompt: `You are a product specialist for Inkeep. You have access to the product tool to search for:
   - Product features and specifications
   - Pricing information
