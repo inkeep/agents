@@ -3,10 +3,8 @@ import {
   type SpanOptions,
   SpanStatusCode,
   type Tracer,
-  type TracerProvider,
   trace,
 } from '@opentelemetry/api';
-import { env } from '../env';
 import { getLogger } from './logger';
 import pkg from "../../package.json" assert { type: "json" };
 

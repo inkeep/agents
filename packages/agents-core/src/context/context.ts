@@ -5,7 +5,7 @@ import {
   getConversation,
   updateConversation,
 } from '@inkeep/agents-core';
-import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
+import { type Span, SpanStatusCode} from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getLogger } from '../utils/logger';
 import { getTracer } from '../utils/tracer';
