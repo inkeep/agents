@@ -85,14 +85,7 @@ const personalAgent = agent({
 
 When you define a `requestContextSchema` using Zod object schemas, the framework automatically applies `.loose()` to make validation more permissive:
 
-```typescript
-const requestSchema = z.object({
-  user_id: z.string(),
-  api_key: z.string(),
-});
-```
-
-This means your request context can include additional properties beyond what's defined in your schema without causing validation errors.
+This means your request headers can include additional properties beyond what's defined in your schema without causing validation errors.
 
 **Note:** Only `ZodObject` schemas get automatic `.loose()` application. Other schema types (strings, arrays, unions, etc.) remain unchanged.
 
