@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { ProjectModels } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
 import { importWithTypeScriptSupport } from './tsx-loader';
 
@@ -14,7 +14,7 @@ export interface InkeepConfig {
   agentsRunApiUrl?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: ModelSettings;
+  modelSettings?: ProjectModels;
 }
 
 export interface ValidatedConfiguration {
@@ -24,7 +24,7 @@ export interface ValidatedConfiguration {
   agentsRunApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: ModelSettings;
+  modelSettings?: ProjectModels;
   sources: {
     tenantId: string;
     projectId: string;

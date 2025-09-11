@@ -1,4 +1,4 @@
-import type { Models } from '@inkeep/agents-core';
+import type { ProjectModels } from '@inkeep/agents-core';
 
 export interface InkeepConfig {
   tenantId: string;
@@ -7,7 +7,7 @@ export interface InkeepConfig {
   agentsRunApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: Models;
+  modelSettings?: ProjectModels;
 }
 
 export function defineConfig(config: InkeepConfig): InkeepConfig {
