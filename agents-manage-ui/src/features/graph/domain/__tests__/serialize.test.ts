@@ -218,8 +218,13 @@ describe("serializeGraphData", () => {
 					data: {
 						id: "mcp1",
 						name: "Test MCP Server",
-						config: { mcp: { server: { url: "test://server" } } },
+						config: { type: "mcp", mcp: { server: { url: "test://server" } } },
 						tempSelectedTools: ["tool1", "tool2"],
+						tenantId: "test-tenant",
+						projectId: "test-project",
+						status: "unknown",
+						createdAt: new Date(),
+						updatedAt: new Date(),
 					} as MCPNodeData,
 				},
 			];
@@ -262,8 +267,13 @@ describe("serializeGraphData", () => {
 					data: {
 						id: "mcp1",
 						name: "Test MCP Server",
-						config: { mcp: { server: { url: "test://server" } } },
+						config: { type: "mcp", mcp: { server: { url: "test://server" } } },
 						tempSelectedTools: null, // null means all tools selected
+						tenantId: "test-tenant",
+						projectId: "test-project",
+						status: "unknown",
+						createdAt: new Date(),
+						updatedAt: new Date(),
 					} as MCPNodeData,
 				},
 			];
@@ -303,8 +313,13 @@ describe("serializeGraphData", () => {
 					data: {
 						id: "mcp1",
 						name: "Test MCP Server",
-						config: { mcp: { server: { url: "test://server" } } },
+						config: { type: "mcp", mcp: { server: { url: "test://server" } } },
 						tempSelectedTools: [], // empty array means no tools selected
+						tenantId: "test-tenant",
+						projectId: "test-project",
+						status: "unknown",
+						createdAt: new Date(),
+						updatedAt: new Date(),
 					} as MCPNodeData,
 				},
 			];
@@ -343,8 +358,13 @@ describe("serializeGraphData", () => {
 					data: {
 						id: "mcp1",
 						name: "Test MCP Server",
-						config: { mcp: { server: { url: "test://server" } } },
+						config: { type: "mcp", mcp: { server: { url: "test://server" } } },
 						// no tempSelectedTools property
+						tenantId: "test-tenant",
+						projectId: "test-project",
+						status: "unknown",
+						createdAt: new Date(),
+						updatedAt: new Date(),
 					} as MCPNodeData,
 				},
 			];
@@ -385,8 +405,13 @@ describe("serializeGraphData", () => {
 					data: {
 						id: "mcp1",
 						name: "Test MCP Server",
-						config: { mcp: { server: { url: "test://server" } } },
+						config: { type: "mcp", mcp: { server: { url: "test://server" } } },
 						// tempSelectedTools is undefined (user didn't interact with UI)
+						tenantId: "test-tenant",
+						projectId: "test-project",
+						status: "unknown",
+						createdAt: new Date(),
+						updatedAt: new Date(),
 					} as MCPNodeData,
 				},
 			];
