@@ -8,11 +8,10 @@ import {
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getLogger } from '../utils/logger';
-import { getTracer, handleSpanError } from '../utils/tracer';
+import { tracer, setSpanWithError } from '../utils/tracer';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
-const tracer = getTracer("agents-core");
 
 // Helper function to determine context resolution trigger
 async function determineContextTrigger(
@@ -202,7 +201,7 @@ async function handleContextResolution(
           'context.final_status': 'failed',
           'context.error_message': errorMessage,
         });
-        handleSpanError(parentSpan, error);
+        setSpanWithError(parentSpan, error);
         logger.error(
           {
             error: errorMessage,

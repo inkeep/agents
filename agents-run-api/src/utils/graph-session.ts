@@ -11,12 +11,11 @@ import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { getTracer, handleSpanError } from '@inkeep/agents-core';
+import { tracer, setSpanWithError } from './tracer';
 import { statusUpdateOp } from './agent-operations';
 import { getStreamHelper } from './stream-registry';
 
 const logger = getLogger('GraphSession');
-const tracer = getTracer("inkeep-agents-run-api");
 
 export type GraphSessionEventType =
   | 'agent_generate'
@@ -813,7 +812,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           return text.trim();
         } catch (error) {
-          handleSpanError(span, error);
+          setSpanWithError(span, error);
           logger.error({ error }, 'Failed to generate summary, using fallback');
           return this.generateFallbackSummary(newEvents, elapsedTime);
         } finally {
@@ -984,7 +983,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           return { operations };
         } catch (error) {
-          handleSpanError(span, error);
+          setSpanWithError(span, error);
           logger.error({ error }, 'Failed to generate structured update, using fallback');
           return { operations: [] };
         } finally {
@@ -1343,7 +1342,7 @@ Make it specific and relevant.`;
                 generationSpan.setStatus({ code: SpanStatusCode.OK });
                 return result;
               } catch (error) {
-                handleSpanError(generationSpan, error);
+                setSpanWithError(generationSpan, error);
                 throw error;
               } finally {
                 generationSpan.end();
@@ -1401,7 +1400,7 @@ Make it specific and relevant.`;
           span.setStatus({ code: SpanStatusCode.OK });
         } catch (error) {
           // Handle span error
-          handleSpanError(span, error);
+          setSpanWithError(span, error);
           logger.error(
             {
               sessionId: this.sessionId,

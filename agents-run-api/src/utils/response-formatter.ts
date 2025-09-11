@@ -1,11 +1,9 @@
 import type { MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { getTracer, handleSpanError } from '@inkeep/agents-core';
 import { ArtifactParser, type StreamPart } from './artifact-parser';
+import { tracer, setSpanWithError } from './tracer';
 
 const logger = getLogger('ResponseFormatter');
-
-const tracer = getTracer('agents-run-api');
 
 
 /**
@@ -52,7 +50,7 @@ export class ResponseFormatter {
 
         return { parts };
       } catch (error) {
-        handleSpanError(span, error);
+        setSpanWithError(span, error);
         return {
           parts: [{ kind: 'data' as const, data: responseObject }],
         };
@@ -118,7 +116,7 @@ export class ResponseFormatter {
 
         return { parts };
       } catch (error) {
-        handleSpanError(span, error);
+        setSpanWithError(span, error);
         return { text: responseText };
       } finally {
         span.end();

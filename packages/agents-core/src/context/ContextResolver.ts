@@ -3,14 +3,12 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
-import { getTracer, getLogger, handleSpanError } from '../utils/index';
+import { getLogger } from '../utils/index';
+import { tracer, setSpanWithError } from '../utils/tracer';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';
 
 const logger = getLogger('context-resolver');
-
-// Get tracer using centralized utility
-const tracer = getTracer("agents-core");
 
 // Fetched data in context resolution
 export interface ResolvedContext {
@@ -269,7 +267,7 @@ export class ContextResolver {
           const durationMs = Date.now() - startTime;
 
           // Use helper function for consistent error handling
-          handleSpanError(parentSpan, error);
+          setSpanWithError(parentSpan, error);
 
           logger.error(
             {
@@ -404,7 +402,7 @@ export class ContextResolver {
           );
         } catch (error) {
           // Use helper function for consistent error handling
-          handleSpanError(parentSpan, error);
+          setSpanWithError(parentSpan, error);
           throw error;
         } finally {
           parentSpan.end();

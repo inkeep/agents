@@ -41,7 +41,7 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { getTracer, handleSpanError } from '@inkeep/agents-core';
+import { tracer, setSpanWithError } from '../utils/tracer';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
@@ -74,9 +74,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 }
 
 const logger = getLogger('Agent');
-
-// Get tracer using centralized utility
-const tracer = getTracer("agents-run-api");
 
 // Constants for agent configuration
 const CONSTANTS = {
@@ -1077,7 +1074,7 @@ Key requirements:
               return result;
             } catch (err) {
               // Use helper function for consistent error handling
-              handleSpanError(childSpan, err);
+              setSpanWithError(childSpan, err);
               throw err;
             } finally {
               childSpan.end();
@@ -1551,7 +1548,7 @@ ${output}`;
         toolSessionManager.endSession(sessionId);
 
         // Record exception and mark span as error
-        handleSpanError(span, error);
+        setSpanWithError(span, error);
         span.end();
         throw error;
       }
