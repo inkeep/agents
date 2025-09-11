@@ -43,7 +43,6 @@
         "noNonNullAssertion": "warn"
       },
       "performance": {
-        "noImgElement": "warn"
       },
       "a11y": {
         "useSemanticElements": "warn"
