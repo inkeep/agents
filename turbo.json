@@ -107,6 +107,10 @@
     "docs#dev": {
       "cache": false,
       "persistent": true
+    },
+    "check": {
+      "dependsOn": ["build", "lint", "typecheck", "test"],
+      "cache": false
     }
   }
 }

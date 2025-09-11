@@ -2,18 +2,12 @@
 # Pre-push hook for Agent Framework
 # 
 # This hook runs before each push to ensure code quality.
-# It performs the following checks in a single optimized turbo run:
-#   - Build (once, shared by all tasks)
-#   - Linting (can be skipped with SKIP_LINT=1)
-#   - Type checking (can be skipped with SKIP_TYPECHECK=1)
-#   - Test suite (can be skipped with SKIP_TEST=1)
+# It runs a single optimized turbo command that:
+#   - Builds once (cached and reused by all tasks)
+#   - Runs lint, typecheck, and test in optimal order
 #
 # Usage:
 #   Normal push:                      git push
-#   Skip lint only:                   SKIP_LINT=1 git push
-#   Skip typecheck only:              SKIP_TYPECHECK=1 git push
-#   Skip tests only:                  SKIP_TEST=1 git push
-#   Skip multiple:                    SKIP_LINT=1 SKIP_TEST=1 git push
 #   Skip all hooks (use sparingly):   git push --no-verify
 #
 # For more information, see CONTRIBUTING.md
@@ -27,47 +21,13 @@ if [ "$BRANCH_NAME" != "main" ]; then
   exit 0
 fi
 
-# Run tasks in dependency order to maximize turbo cache benefits
-# Order: typecheck (builds everything) -> test (reuses build) -> lint (no deps, fast)
+echo "🚀 Running pre-push checks with optimized caching..."
+echo "   This runs build once and shares it across lint, typecheck, and test"
 
-echo "🚀 Running pre-push checks in optimal order for caching..."
-
-# Typecheck first - this will trigger and cache the build
-if [ "$SKIP_TYPECHECK" = "1" ]; then
-  echo "⚡ Skipping typecheck (SKIP_TYPECHECK=1)"
-else
-  echo "🔍 Running typecheck (will build and cache if needed)..."
-  if ! pnpm turbo run typecheck; then
-    echo "❌ Type errors found. Fix them or use SKIP_TYPECHECK=1 git push to bypass."
-    exit 1
-  fi
-fi
-
-# Test suite second - reuses the cached build from typecheck
-if [ "$SKIP_TEST" = "1" ]; then
-  echo "⚡ Skipping tests (SKIP_TEST=1)"
-else
-  echo "🧪 Running tests (using cached build)..."
-  if ! pnpm turbo run test; then
-    echo "❌ Tests failed. Fix them or use SKIP_TEST=1 git push to bypass."
-    exit 1
-  fi
-fi
-
-# Lint last - doesn't depend on build, runs independently
-if [ "$SKIP_LINT" = "1" ]; then
-  echo "⚡ Skipping lint check (SKIP_LINT=1)"
-else
-  echo "🎨 Running lint check..."
-  if ! pnpm turbo run lint; then
-    echo "❌ Lint issues found. Fix them or use SKIP_LINT=1 git push to bypass."
-    exit 1
-  fi
-fi
-
-# Check if all were skipped
-if [ "$SKIP_LINT" = "1" ] && [ "$SKIP_TYPECHECK" = "1" ] && [ "$SKIP_TEST" = "1" ]; then
-  echo "⚠️  All checks skipped. Consider running at least one check before pushing."
+# Run the unified check command that handles all validations efficiently
+if ! pnpm check; then
+  echo "❌ Pre-push checks failed. Fix the issues above before pushing."
+  exit 1
 fi
 
 echo "✅ All pre-push checks passed!"
