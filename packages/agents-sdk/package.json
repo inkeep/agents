@@ -10,7 +10,7 @@
 		"test:watch": "ENVIRONMENT=test vitest",
 		"test:coverage": "ENVIRONMENT=test vitest --run --coverage",
 		"typecheck": "tsc --noEmit",
-		"lint": "biome check --apply .",
+		"lint": "biome check .",
 		"format": "biome format --write .",
 		"prepack": "clean-package",
 		"postpack": "clean-package restore"
