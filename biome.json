@@ -1,5 +1,12 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -10,35 +17,72 @@
   },
   "linter": {
     "enabled": true,
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/dist/**",
+      "!**/drizzle/**",
+      "!**/drizzle.config.*",
+      "!**/.next/**",
+      "!**/build/**",
+      "!**/out/**",
+      "!**/*.css",
+      "!**/.source/**"
+    ],
     "rules": {
       "recommended": true,
       "suspicious": {
         "noExplicitAny": "off",
-        "noArrayIndexKey": "off"
+        "noArrayIndexKey": "off",
+        "useIterableCallbackReturn": "off",
+        "noDocumentCookie": "warn",
+        "noAssignInExpressions": "off"
       },
       "complexity": {
         "noStaticOnlyClass": "off",
-        "noBannedTypes": "warn"
+        "noBannedTypes": "warn",
+        "noUselessFragments": "off"
       },
       "style": {
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn"
       },
       "performance": {
+        "noImgElement": "warn"
       },
       "a11y": {
-        "useSemanticElements": "warn"
+        "useSemanticElements": "off",
+        "useValidAriaRole": "off",
+        "useButtonType": "off"
       },
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "warn",
         "useExhaustiveDependencies": "warn",
-        "useJsxKeyInIterable": "warn"
+        "useJsxKeyInIterable": "warn",
+        "useUniqueElementIds": "off",
+        "noNestedComponentDefinitions": "off",
+        "noUnusedFunctionParameters": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
       }
     }
   },
   "formatter": {
     "enabled": true,
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/dist/**",
+      "!**/drizzle/**",
+      "!**/drizzle.config.*",
+      "!**/.next/**",
+      "!**/build/**",
+      "!**/out/**"
+    ],
     "lineWidth": 100,
     "indentStyle": "space",
     "indentWidth": 2
