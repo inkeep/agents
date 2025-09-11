@@ -163,13 +163,13 @@ export async function initCommand(options?: InitOptions) {
   const { modelSettings } = await promptForModelConfiguration();
 
   // Generate the config file content
-  const configContent = `import { defineConfig } from '@inkeep/agents-cli';
+  const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: '${answers.tenantId}',
   projectId: '${answers.projectId}',
-  managementApiUrl: '${answers.apiUrl}',
-  executionApiUrl: '${answers.apiUrl}',
+  agentsManageApiUrl: '${answers.apiUrl}',
+  agentsRunApiUrl: '${answers.apiUrl}',
   modelSettings: ${JSON.stringify(modelSettings, null, 2)},
 });
 `;

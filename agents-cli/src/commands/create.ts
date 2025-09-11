@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { defaultOpenaiModelConfigurations, defaultAnthropicModelConfigurations, defaultDualModelConfigurations, ModelConfigurationResult } from '../utils/model-config';
 
 const execAsync = promisify(exec);
 
@@ -15,6 +16,7 @@ type FileConfig = {
   anthropicKey?: string;
   manageApiPort: string;
   runApiPort: string;
+  modelSettings: Record<string, any>;
 };
 
 export const createAgents = async (
@@ -83,34 +85,98 @@ export const createAgents = async (
     projectId = projectIdResponse as string;
   }
 
-  // Prompt for Anthropic API key
-  if (!anthropicKey) {
-    const anthropicKeyResponse = await p.text({
-      message: 'Enter your Anthropic API key (recommended):',
-      placeholder: 'sk-ant-...',
-      defaultValue: '',
+  // If keys aren't provided via CLI args, prompt for provider selection and keys
+  if (!anthropicKey && !openAiKey) {
+    const providerChoice = await p.select({
+      message: 'Which AI provider(s) would you like to use?',
+      options: [
+        { value: 'both', label: 'Both Anthropic and OpenAI (recommended)' },
+        { value: 'anthropic', label: 'Anthropic only' },
+        { value: 'openai', label: 'OpenAI only' },
+      ],
     });
 
-    if (p.isCancel(anthropicKeyResponse)) {
+    if (p.isCancel(providerChoice)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    anthropicKey = (anthropicKeyResponse as string) || undefined;
+
+    // Prompt for keys based on selection
+    if (providerChoice === 'anthropic' || providerChoice === 'both') {
+      const anthropicKeyResponse = await p.text({
+        message: 'Enter your Anthropic API key:',
+        placeholder: 'sk-ant-...',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'Anthropic API key is required';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(anthropicKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      anthropicKey = anthropicKeyResponse as string;
+    }
+
+    if (providerChoice === 'openai' || providerChoice === 'both') {
+      const openAiKeyResponse = await p.text({
+        message: 'Enter your OpenAI API key:',
+        placeholder: 'sk-...',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'OpenAI API key is required';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(openAiKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      openAiKey = openAiKeyResponse as string;
+    }
+  } else {
+    // If some keys are provided via CLI args, prompt for missing ones
+    if (!anthropicKey) {
+      const anthropicKeyResponse = await p.text({
+        message: 'Enter your Anthropic API key (optional):',
+        placeholder: 'sk-ant-...',
+        defaultValue: '',
+      });
+
+      if (p.isCancel(anthropicKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      anthropicKey = (anthropicKeyResponse as string) || undefined;
+    }
+
+    if (!openAiKey) {
+      const openAiKeyResponse = await p.text({
+        message: 'Enter your OpenAI API key (optional):',
+        placeholder: 'sk-...',
+        defaultValue: '',
+      });
+
+      if (p.isCancel(openAiKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      openAiKey = (openAiKeyResponse as string) || undefined;
+    }
   }
 
-  // Prompt for OpenAI API key
-  if (!openAiKey) {
-    const openAiKeyResponse = await p.text({
-      message: 'Enter your OpenAI API key (optional):',
-      placeholder: 'sk-...',
-      defaultValue: '',
-    });
-
-    if (p.isCancel(openAiKeyResponse)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-    openAiKey = (openAiKeyResponse as string) || undefined;
+  let defaultModelSettings = {}
+  if (anthropicKey && openAiKey) {
+    defaultModelSettings = defaultDualModelConfigurations;
+  } else if (anthropicKey) {
+    defaultModelSettings = defaultAnthropicModelConfigurations;
+  } else if (openAiKey) {
+    defaultModelSettings = defaultOpenaiModelConfigurations;
   }
 
   const s = p.spinner();
@@ -146,6 +212,7 @@ export const createAgents = async (
       anthropicKey,
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
+      modelSettings: defaultModelSettings,
     };
 
     // Create workspace structure
@@ -498,14 +565,15 @@ export const graph = agentGraph({
   // Inkeep config (if using CLI)
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
 
-    const config = defineConfig({
-      tenantId: "${config.tenantId}",
-      projectId: "${config.projectId}",
-      agentsManageApiUrl: \`http://localhost:\${process.env.MANAGE_API_PORT || '3002'}\`,
-      agentsRunApiUrl: \`http://localhost:\${process.env.RUN_API_PORT || '3003'}\`,
-    });
+const config = defineConfig({
+  tenantId: "${config.tenantId}",
+  projectId: "${config.projectId}",
+  agentsManageApiUrl: \`http://localhost:\${process.env.MANAGE_API_PORT || '3002'}\`,
+  agentsRunApiUrl: \`http://localhost:\${process.env.RUN_API_PORT || '3003'}\`,
+  modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
+});
     
-    export default config;`;
+export default config;`;
 
   await fs.writeFile(`src/${config.projectId}/inkeep.config.ts`, inkeepConfig);
 
