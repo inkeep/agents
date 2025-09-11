@@ -5,7 +5,7 @@ import {
   getConversation,
   updateConversation,
 } from '@inkeep/agents-core';
-import { type Span, SpanStatusCode} from '@opentelemetry/api';
+import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getLogger } from '../utils/logger';
 import { getTracer, handleSpanError } from '../utils/tracer';
@@ -203,7 +203,19 @@ async function handleContextResolution(
           'context.error_message': errorMessage,
         });
         handleSpanError(parentSpan, error);
-
+        logger.error(
+          {
+            error: errorMessage,
+            contextConfigId: agentGraph?.contextConfigId,
+            trigger: await determineContextTrigger(
+              tenantId,
+              projectId,
+              conversationId,
+              dbClient
+            ).catch(() => 'unknown'),
+          },
+          'Failed to resolve context, proceeding without context resolution'
+        );
         return null;
       } finally {
         parentSpan.end();
