@@ -1,0 +1,486 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AgentGraph } from '../graph';
+import type { ProjectConfig } from '../project';
+import { Project } from '../project';
+import type { GraphConfig } from '../types';
+
+// Mock the logger
+vi.mock('../logger', () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+// Mock fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+describe('Project', () => {
+  let projectConfig: ProjectConfig;
+  let graphConfig: GraphConfig;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Set up environment variables for testing
+    process.env.ENVIRONMENT = 'test';
+    process.env.INKEEP_API_URL = 'http://localhost:3002';
+
+    graphConfig = {
+      id: 'test-graph',
+      name: 'Test Graph',
+      description: 'A test graph',
+    };
+
+    projectConfig = {
+      id: 'test-project',
+      name: 'Test Project',
+      description: 'A test project',
+      tenantId: 'test-tenant',
+      models: {
+        base: { model: 'gpt-4o-mini' },
+        structuredOutput: { model: 'gpt-4o' },
+        summarizer: { model: 'gpt-3.5-turbo' },
+      },
+      stopWhen: {
+        transferCountIs: 5,
+        stepCountIs: 25,
+      },
+    };
+  });
+
+  afterEach(() => {
+    delete process.env.ENVIRONMENT;
+    delete process.env.INKEEP_API_URL;
+  });
+
+  describe('constructor', () => {
+    it('should create a project with basic configuration', () => {
+      const project = new Project(projectConfig);
+
+      expect(project.getId()).toBe('test-project');
+      expect(project.getName()).toBe('Test Project');
+      expect(project.getDescription()).toBe('A test project');
+      expect(project.getTenantId()).toBe('test-tenant');
+      expect(project.getModels()).toEqual(projectConfig.models);
+      expect(project.getStopWhen()).toEqual(projectConfig.stopWhen);
+    });
+
+    it('should use default values when optional fields are not provided', () => {
+      const minimalConfig: ProjectConfig = {
+        id: 'minimal-project',
+        name: 'Minimal Project',
+      };
+
+      const project = new Project(minimalConfig);
+
+      expect(project.getId()).toBe('minimal-project');
+      expect(project.getName()).toBe('Minimal Project');
+      expect(project.getDescription()).toBeUndefined();
+      expect(project.getTenantId()).toBe('default');
+      expect(project.getModels()).toBeUndefined();
+      expect(project.getStopWhen()).toBeUndefined();
+    });
+
+    it('should initialize graphs if provided in config', () => {
+      const mockGraph = new AgentGraph(graphConfig);
+      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph],
+      };
+
+      const project = new Project(configWithGraphs);
+
+      expect(project.getGraphs()).toHaveLength(1);
+      expect(project.getGraph('test-graph')).toBe(mockGraph);
+      expect(mockGraph.setConfig).toHaveBeenCalledWith(
+        'test-tenant',
+        'test-project',
+        'http://localhost:3002'
+      );
+    });
+  });
+
+  describe('setConfig', () => {
+    it('should update tenant ID and API URL', () => {
+      const project = new Project(projectConfig);
+
+      project.setConfig('new-tenant', 'http://new-api.com');
+
+      expect(project.getTenantId()).toBe('new-tenant');
+    });
+
+    it('should propagate config changes to all graphs', () => {
+      const mockGraph1 = new AgentGraph(graphConfig);
+      const mockGraph2 = new AgentGraph({ ...graphConfig, id: 'test-graph-2' });
+      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph1, mockGraph2],
+      };
+
+      const project = new Project(configWithGraphs);
+      project.setConfig('new-tenant', 'http://new-api.com');
+
+      expect(mockGraph1.setConfig).toHaveBeenCalledWith(
+        'new-tenant',
+        'test-project',
+        'http://new-api.com'
+      );
+      expect(mockGraph2.setConfig).toHaveBeenCalledWith(
+        'new-tenant',
+        'test-project',
+        'http://new-api.com'
+      );
+    });
+
+    it('should throw error if called after initialization', async () => {
+      const project = new Project(projectConfig);
+
+      // Mock successful API calls for initialization
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: { id: 'test-project' } }),
+        });
+
+      await project.init();
+
+      expect(() => {
+        project.setConfig('new-tenant', 'http://new-api.com');
+      }).toThrow('Cannot set config after project has been initialized');
+    });
+  });
+
+  describe('init', () => {
+    it('should initialize project and create it in backend', async () => {
+      const project = new Project(projectConfig);
+
+      // Mock API calls
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: { id: 'test-project' } }),
+        });
+
+      await project.init();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/tenants/test-tenant/crud/projects/test-project',
+        expect.objectContaining({ method: 'GET' })
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/tenants/test-tenant/crud/projects',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('test-project'),
+        })
+      );
+    });
+
+    it('should update existing project in backend', async () => {
+      const project = new Project(projectConfig);
+
+      // Mock API calls - first call returns existing project
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: { id: 'test-project' } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: { id: 'test-project' } }),
+        });
+
+      await project.init();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3002/tenants/test-tenant/crud/projects/test-project',
+        expect.objectContaining({ method: 'PUT' })
+      );
+    });
+
+    it('should initialize all graphs', async () => {
+      const mockGraph1 = new AgentGraph(graphConfig);
+      const mockGraph2 = new AgentGraph({ ...graphConfig, id: 'test-graph-2' });
+
+      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph1, 'init').mockResolvedValue();
+      vi.spyOn(mockGraph2, 'init').mockResolvedValue();
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph1, mockGraph2],
+      };
+
+      const project = new Project(configWithGraphs);
+
+      // Mock project creation
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: { id: 'test-project' } }),
+        });
+
+      await project.init();
+
+      expect(mockGraph1.init).toHaveBeenCalled();
+      expect(mockGraph2.init).toHaveBeenCalled();
+    });
+
+    it('should not reinitialize if already initialized', async () => {
+      const project = new Project(projectConfig);
+
+      // Mock initial API calls
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: { id: 'test-project' } }),
+        });
+
+      await project.init();
+
+      // Clear mock calls
+      mockFetch.mockClear();
+
+      // Second init call should not make API calls
+      await project.init();
+
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should handle API errors gracefully', async () => {
+      const project = new Project(projectConfig);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      await expect(project.init()).rejects.toThrow('Failed to save project to database');
+    });
+  });
+
+  describe('graph management', () => {
+    let project: Project;
+
+    beforeEach(() => {
+      project = new Project(projectConfig);
+    });
+
+    it('should add a graph to the project', () => {
+      const mockGraph = new AgentGraph(graphConfig);
+      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+
+      project.addGraph(mockGraph);
+
+      expect(project.getGraphs()).toHaveLength(1);
+      expect(project.getGraph('test-graph')).toBe(mockGraph);
+      expect(mockGraph.setConfig).toHaveBeenCalledWith(
+        'test-tenant',
+        'test-project',
+        'http://localhost:3002'
+      );
+    });
+
+    it('should remove a graph from the project', () => {
+      const mockGraph = new AgentGraph(graphConfig);
+      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+
+      project.addGraph(mockGraph);
+      expect(project.getGraphs()).toHaveLength(1);
+
+      const removed = project.removeGraph('test-graph');
+      expect(removed).toBe(true);
+      expect(project.getGraphs()).toHaveLength(0);
+      expect(project.getGraph('test-graph')).toBeUndefined();
+    });
+
+    it('should return false when removing non-existent graph', () => {
+      const removed = project.removeGraph('non-existent-graph');
+      expect(removed).toBe(false);
+    });
+  });
+
+  describe('model and stopWhen management', () => {
+    let project: Project;
+
+    beforeEach(() => {
+      project = new Project(projectConfig);
+    });
+
+    it('should set and get models', () => {
+      const newModels = {
+        base: { model: 'gpt-4' },
+        structuredOutput: { model: 'gpt-4-turbo' },
+      };
+
+      project.setModels(newModels);
+      expect(project.getModels()).toEqual(newModels);
+    });
+
+    it('should set and get stopWhen configuration', () => {
+      const newStopWhen = {
+        transferCountIs: 15,
+        stepCountIs: 75,
+      };
+
+      project.setStopWhen(newStopWhen);
+      expect(project.getStopWhen()).toEqual(newStopWhen);
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return project statistics', () => {
+      const mockGraph = new AgentGraph(graphConfig);
+      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph],
+      };
+
+      const project = new Project(configWithGraphs);
+      const stats = project.getStats();
+
+      expect(stats).toEqual({
+        projectId: 'test-project',
+        tenantId: 'test-tenant',
+        graphCount: 1,
+        initialized: false,
+      });
+    });
+  });
+
+  describe('validate', () => {
+    it('should validate a valid project', () => {
+      const mockGraph = new AgentGraph(graphConfig);
+      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph, 'validate').mockReturnValue({ valid: true, errors: [] });
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph],
+      };
+
+      const project = new Project(configWithGraphs);
+      const validation = project.validate();
+
+      expect(validation.valid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
+    it('should detect missing project ID', () => {
+      const invalidConfig = { ...projectConfig };
+      delete (invalidConfig as any).id;
+
+      const project = new Project({ ...invalidConfig, id: '' });
+      const validation = project.validate();
+
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toContain('Project must have an ID');
+    });
+
+    it('should detect missing project name', () => {
+      const invalidConfig = { ...projectConfig };
+      delete (invalidConfig as any).name;
+
+      const project = new Project({ ...invalidConfig, name: '' });
+      const validation = project.validate();
+
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toContain('Project must have a name');
+    });
+
+    it('should detect duplicate graph IDs', () => {
+      const mockGraph1 = new AgentGraph(graphConfig);
+      const mockGraph2 = new AgentGraph(graphConfig); // Same ID
+      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+
+      const configWithDuplicateGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph1, mockGraph2],
+      };
+
+      const project = new Project(configWithDuplicateGraphs);
+      const validation = project.validate();
+
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toContain('Duplicate graph ID: test-graph');
+    });
+
+    it('should propagate graph validation errors', () => {
+      const mockGraph = new AgentGraph(graphConfig);
+      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockGraph, 'validate').mockReturnValue({
+        valid: false,
+        errors: ['Graph has no agents', 'No default agent configured'],
+      });
+
+      const configWithGraphs: ProjectConfig = {
+        ...projectConfig,
+        graphs: () => [mockGraph],
+      };
+
+      const project = new Project(configWithGraphs);
+      const validation = project.validate();
+
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toContain("Graph 'test-graph': Graph has no agents");
+      expect(validation.errors).toContain("Graph 'test-graph': No default agent configured");
+    });
+  });
+
+  describe('API format conversion', () => {
+    it('should convert project configuration to API format', () => {
+      const project = new Project(projectConfig);
+
+      // Access private method through type assertion for testing
+      const apiFormat = (project as any).toApiFormat();
+
+      expect(apiFormat).toEqual({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'A test project',
+        models: projectConfig.models,
+        stopWhen: projectConfig.stopWhen,
+      });
+    });
+
+    it('should handle missing description in API format', () => {
+      const configWithoutDescription = { ...projectConfig };
+      delete configWithoutDescription.description;
+
+      const project = new Project(configWithoutDescription);
+      const apiFormat = (project as any).toApiFormat();
+
+      expect(apiFormat.description).toBe('');
+    });
+  });
+});

@@ -9,6 +9,7 @@ export {
   dataComponent,
   mcpServer,
   mcpTool,
+  project,
 } from './builderFunctions';
 export { transfer } from './builders';
 export { DataComponent } from './data-component';
