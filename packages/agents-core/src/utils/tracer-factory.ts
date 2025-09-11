@@ -6,13 +6,9 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { getLogger } from './logger';
-import pkg from "../../package.json" assert { type: "json" };
 
 
 const logger = getLogger('tracer');
-
-// Service name and version constants for consistent tracer identification
-export const SERVICE_VERSION = pkg.version;
 
 
 // No-op span implementation for when OpenTelemetry is not available
