@@ -59,7 +59,7 @@ const externalAgent = externalAgent({
 
   // Optional - Static or dynamic headers
   headers: {
-    "Authorization": "Bearer {{requestContext.headers.authorization}}",
+    "Authorization": "{{requestContext.Authorization}}",
   },
 
   // Optional - Credential Reference

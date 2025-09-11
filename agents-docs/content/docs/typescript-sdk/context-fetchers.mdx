@@ -36,7 +36,7 @@ import {
   fetchDefinition,
 } from "@inkeep/agents-manage-api/builders";
 
-// 1. Define request schema for headers validation. 
+// 1. Define request schema for headers validation. All header keys are converted to lowercase.
 const requestSchema = z.object({
   user_id: z.string(),
   api_key: z.string(),
@@ -81,13 +81,6 @@ const personalAgent = agent({
 });
 ```
 
-## Request Schema Validation
-
-When you define a `requestContextSchema` using Zod object schemas, the framework automatically applies `.loose()` to make validation more permissive:
-
-This means your request headers can include additional properties beyond what's defined in your schema without causing validation errors.
-
-**Note:** Only `ZodObject` schemas get automatic `.loose()` application. Other schema types (strings, arrays, unions, etc.) remain unchanged.
 
 ### Using the Context Fetcher
 
