@@ -50,7 +50,7 @@ Follow the steps below to push your first graph using the [Inkeep CLI](/typescri
 ### Step 1: Download the Inkeep CLI
 
 ```bash
-npm install -g @inkeep/agents-cli
+pnpm install -g @inkeep/agents-cli
 ```
 
 ### Step 2: Push a graph
@@ -118,9 +118,10 @@ docker compose up -d
 Open the Nango Dashboard: `http://localhost:3050` and navigate to **Environment Settings** → **API Keys** and copy the API key.
 
 ### Step 4: Configure environment variables
-Paste the following command and enter your Nango API key when prompted:
+Navigate back to the root directory and paste the below command. Enter your Nango API key when prompted:
 
 ```bash
+cd ../../
 printf "Enter your Nango API key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-manage-api/.env agents-run-api/.env agents-manage-ui/.env && echo "Application files updated with Nango API key"
 ```
 
