@@ -41,14 +41,44 @@
     "@inkeep/agents-run-api#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
-      "outputs": ["coverage/**"],
+      "outputs": [],
       "env": ["CI"]
     },
     "@inkeep/agents-cli#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
-      "outputs": ["coverage/**"],
+      "outputs": [],
       "env": ["CI"]
+    },
+    "@inkeep/agents-core#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/agents-manage-api#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/agents-manage-ui#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/agents-sdk#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/agents-ui#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/create-agents#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
     },
     "chat-widget#test": {
       "dependsOn": ["build"],
