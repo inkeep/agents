@@ -56,6 +56,14 @@ export class Agent implements AgentInterface {
 		return this.config.prompt;
 	}
 
+	/**
+	 * Get the agent's description (the human-readable description field)
+	 */
+	getDescription(): string {
+		return this.config.description || "";
+	}
+
+
 	getTools(): Record<string, unknown> {
 		const tools = resolveGetter(this.config.tools);
 		if (!tools) {

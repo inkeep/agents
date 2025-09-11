@@ -121,6 +121,12 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentGraph: getAgentGraphMock,
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
   TaskState: {
     Completed: 'completed',
     Failed: 'failed',
