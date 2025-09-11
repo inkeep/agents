@@ -3,7 +3,7 @@ import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
-import { getLogger } from '../utils/index';
+import { getLogger } from '../utils';
 import { tracer, setSpanWithError } from '../utils/tracer';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';

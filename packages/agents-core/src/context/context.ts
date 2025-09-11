@@ -7,7 +7,7 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getLogger } from '../utils/logger';
+import { getLogger } from '../utils';
 import { tracer, setSpanWithError } from '../utils/tracer';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
