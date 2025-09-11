@@ -1,5 +1,8 @@
 import { getTracer } from './tracer-factory';
-import pkg from "../../package.json" assert { type: "json" };
+
+// Use require for package.json to avoid import assertion issues
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pkg = { version: '0.1.5' }; // Hard-coded version to avoid import assertion issues
 
 // Pre-configured tracer for agents-core
 export const tracer = getTracer('agents-core', pkg.version);

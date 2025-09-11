@@ -52,14 +52,14 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       },
     };
 
-    const result = await validateRequestContext(
-      'tenant1',
-      'project1', 
-      'graph1',
-      'conv1',
+    const result = await validateRequestContext({
+      tenantId: 'tenant1',
+      projectId: 'project1', 
+      graphId: 'graph1',
+      conversationId: 'conv1',
       parsedRequest,
       dbClient
-    );
+    });
 
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
@@ -98,14 +98,14 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       },
     };
 
-    const result = await validateRequestContext(
-      'tenant1',
-      'project1',
-      'graph1', 
-      'conv1',
+    const result = await validateRequestContext({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      graphId: 'graph1', 
+      conversationId: 'conv1',
       parsedRequest,
       dbClient
-    );
+    });
 
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -123,14 +123,14 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       headers: { 'any-header': 'any-value' },
     };
 
-    const result = await validateRequestContext(
-      'tenant1',
-      'project1',
-      'graph1',
-      'conv1', 
+    const result = await validateRequestContext({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      graphId: 'graph1',
+      conversationId: 'conv1', 
       parsedRequest,
       dbClient
-    );
+    });
 
     expect(result.valid).toBe(true);
     expect(result.validatedContext).toEqual(parsedRequest);
