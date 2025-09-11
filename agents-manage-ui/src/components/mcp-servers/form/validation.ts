@@ -18,10 +18,10 @@ export const mcpToolSchema = z.object({
     type: z.literal('mcp'),
     mcp: z.object({
       server: z.object({
-        url: z.url('Must be a valid URL.'),
+        url: z.string().url('Must be a valid URL.'),
       }),
       transport: z.object({
-        type: z.enum(MCPTransportType),
+        type: z.nativeEnum(MCPTransportType),
       }),
       toolsConfig: toolsConfigSchema.default({ type: 'all' }),
     }),
