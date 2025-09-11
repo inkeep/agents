@@ -1,9 +1,95 @@
 ---
 title: Quick Start
-description: Get started with Inkeep's multi-agent framework locally
+description: Get started with Inkeep's multi-agent framework
 ---
 
-# Launch the Visual Builder
+# Install the Inkeep CLI
+
+The Inkeep CLI is the primary tool for deploying and managing your agents. Install it globally to get started:
+
+### Step 1: Install the CLI
+
+```bash
+# Using npm
+npm install -g @inkeep/agents-cli
+
+# Using pnpm  
+pnpm add -g @inkeep/agents-cli
+
+# Using yarn
+yarn global add @inkeep/agents-cli
+```
+
+### Step 2: Verify installation
+
+```bash
+inkeep --version
+```
+
+### Step 3: Initialize your project
+
+Create a new directory for your agents and initialize the configuration:
+
+```bash
+mkdir my-agents
+cd my-agents
+inkeep init
+```
+
+This will create an `inkeep.config.ts` file with your project settings.
+
+# Create Your First Agent
+
+### Step 1: Create an agent configuration
+
+Create a new file `my-first-agent.ts`:
+
+```typescript
+import { agent, agentGraph } from '@inkeep/agents-sdk';
+
+const assistantAgent = agent({
+  id: 'assistant',
+  name: 'Assistant Agent',
+  description: 'A helpful assistant that can answer questions',
+  prompt: 'You are a helpful assistant. Answer questions clearly and concisely.',
+});
+
+export const graph = agentGraph({
+  id: 'my-first-graph',
+  name: 'My First Agent Graph',
+  description: 'A simple agent graph with one assistant',
+  defaultAgent: assistantAgent,
+  agents: () => [assistantAgent],
+});
+```
+
+### Step 2: Deploy your agent
+
+Push your agent configuration to the server:
+
+```bash
+inkeep push my-first-agent.ts
+```
+
+### Step 3: Chat with your agent
+
+Start an interactive chat session:
+
+```bash
+inkeep chat my-first-graph
+```
+
+### Step 4: List your agents
+
+View all deployed agent graphs:
+
+```bash
+inkeep list-graphs
+```
+
+# Launch the Visual Builder (Self-Hosted)
+
+If you want to run the Visual Builder locally for development or self-hosting:
 
 ### Step 1: Clone the repository
 
