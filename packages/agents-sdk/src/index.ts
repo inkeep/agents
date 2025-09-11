@@ -7,7 +7,6 @@ export {
 	dataComponent,
 	mcpServer,
 	mcpTool,
-	tool,
 	transfer,
 } from "./builders";
 export { DataComponent } from "./data-component";
