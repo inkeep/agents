@@ -874,7 +874,7 @@ export const updateFullGraphServerSide =
           }
 
           // Determine final model settings with cascade logic
-          let finalModelSettings = internalAgent.models === undefined ? {} : internalAgent.models;
+          let finalModelSettings = internalAgent.models === undefined ? undefined : internalAgent.models;
 
           // If graph models changed, cascade to agents that were inheriting
           if (existingAgent?.models && typedGraphDefinition.models) {

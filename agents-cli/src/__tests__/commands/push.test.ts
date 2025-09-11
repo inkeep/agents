@@ -161,12 +161,20 @@ describe('Push Command - Project Validation', () => {
     // Mock project doesn't exist
     mockGetProject.mockResolvedValue(null);
 
-    // Mock user confirms project creation
+    // Mock user confirms project creation and model configuration
     (inquirer.prompt as unknown as Mock)
       .mockResolvedValueOnce({ shouldCreate: true })
       .mockResolvedValueOnce({
         projectName: 'New Project',
         projectDescription: 'Test description',
+      })
+      .mockResolvedValueOnce({
+        providers: ['anthropic'],
+      })
+      .mockResolvedValueOnce({
+        baseModel: 'anthropic/claude-sonnet-4-20250514',
+        pullModel: 'anthropic/claude-sonnet-4-20250514',
+        configureOptionalModels: false,
       });
 
     // Mock project creation success
@@ -212,12 +220,20 @@ describe('Push Command - Project Validation', () => {
       ])
     );
 
-    // Verify project was created
+    // Verify project was created with models
     expect(mockCreateProject).toHaveBeenCalledWith({
       id: 'test-project',
       tenantId: 'test-tenant',
       name: 'New Project',
       description: 'Test description',
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+        pull: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+      },
     });
   });
 
@@ -264,12 +280,20 @@ describe('Push Command - Project Validation', () => {
     // Mock project doesn't exist
     mockGetProject.mockResolvedValue(null);
 
-    // Mock user confirms project creation
+    // Mock user confirms project creation and model configuration
     (inquirer.prompt as unknown as Mock)
       .mockResolvedValueOnce({ shouldCreate: true })
       .mockResolvedValueOnce({
         projectName: 'New Project',
         projectDescription: '',
+      })
+      .mockResolvedValueOnce({
+        providers: ['anthropic'],
+      })
+      .mockResolvedValueOnce({
+        baseModel: 'anthropic/claude-sonnet-4-20250514',
+        pullModel: 'anthropic/claude-sonnet-4-20250514',
+        configureOptionalModels: false,
       });
 
     // Mock project creation failure

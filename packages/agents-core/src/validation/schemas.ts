@@ -58,6 +58,13 @@ export const ModelSchema = z.object({
   summarizer: ModelSettingsSchema.optional(),
 });
 
+export const ProjectModelSchema = z.object({
+  base: ModelSettingsSchema,
+  structuredOutput: ModelSettingsSchema.optional(),
+  summarizer: ModelSettingsSchema.optional(),
+  pull: ModelSettingsSchema,
+});
+
 // Helper functions with better type preservation
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
@@ -645,7 +652,9 @@ export const RemovedResponseSchema = z.object({
 
 // === Project Schemas ===
 export const ProjectSelectSchema = createSelectSchema(projects);
-export const ProjectInsertSchema = createInsertSchema(projects).omit({
+export const ProjectInsertSchema = createInsertSchema(projects).extend({
+  models: ProjectModelSchema.optional(),
+}).omit({
   createdAt: true,
   updatedAt: true,
 });

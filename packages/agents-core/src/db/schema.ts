@@ -18,6 +18,7 @@ import type {
   MessageContent,
   MessageMetadata,
   Models,
+  ProjectModels,
   StatusUpdateSettings,
   TaskMetadataConfig,
   ToolMcpConfig,
@@ -34,7 +35,7 @@ export const projects = sqliteTable(
     description: text('description').notNull(),
 
     // Project-level default model settingsuration that can be inherited by graphs and agents
-    models: text('models', { mode: 'json' }).$type<Models>(),
+    models: text('models', { mode: 'json' }).$type<ProjectModels>(),
 
     // Project-level stopWhen configuration that can be inherited by graphs and agents
     stopWhen: text('stop_when', { mode: 'json' }).$type<{

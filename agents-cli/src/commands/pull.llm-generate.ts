@@ -9,8 +9,11 @@ import type { FullGraphDefinition } from '../types/graph';
  * Similar to ModelFactory but simplified for CLI use
  */
 function createModel(config: ModelSettings) {
-  // Extract from base model settings or use defaults
-  const modelString = config.model || 'anthropic/claude-4-sonnet-20250514';
+  // Extract from model settings - model is required
+  if (!config.model) {
+    throw new Error('Model configuration is required for pull command');
+  }
+  const modelString = config.model;
   const providerOptions = config.providerOptions;
 
   const { provider, modelName } = parseModelString(modelString);

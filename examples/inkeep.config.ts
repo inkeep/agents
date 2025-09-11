@@ -12,5 +12,11 @@ export default defineConfig({
         // API key should be set via ANTHROPIC_API_KEY environment variable
       },
     },
+    pull: {
+      model: 'anthropic/claude-sonnet-4-20250514',
+      providerOptions: {
+        // API key should be set via ANTHROPIC_API_KEY environment variable
+      },
+    },
   },
 });

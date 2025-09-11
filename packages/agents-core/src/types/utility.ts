@@ -3,6 +3,7 @@ import type { ApiKeySelect } from '../index';
 import type {
   McpTransportConfigSchema,
   ModelSchema,
+  ProjectModelSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
 } from '../validation/schemas';
@@ -14,6 +15,7 @@ export type MessageRole = 'user' | 'agent' | 'system';
 export type MessageMode = 'full' | 'scoped' | 'none';
 
 export type Models = z.infer<typeof ModelSchema>;
+export type ProjectModels = z.infer<typeof ProjectModelSchema>;
 export type ModelSettings = {
   model?: string;
   providerOptions?: Record<string, unknown>;
