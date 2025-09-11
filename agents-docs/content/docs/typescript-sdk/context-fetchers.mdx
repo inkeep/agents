@@ -17,8 +17,8 @@ Context fetchers allow your agents to access real-time data from external source
 
 ## How Context Fetchers Work
 
-- Request Arrives → HTTP request with body/headers/query/params
-- Validation → Validate against request context schema
+- Request Arrives → HTTP request
+- Validation → Validate headers against request context schema
 - Context Resolution → Resolve context variables using templates
 - Caching → Check cache, fetch if needed, store results
 - Agent Execution → Provide resolved context to agent prompt
@@ -36,7 +36,7 @@ import {
   fetchDefinition,
 } from "@inkeep/agents-manage-api/builders";
 
-// 1. Define request schema
+// 1. Define request schema for headers validation. 
 const requestSchema = z.object({
   user_id: z.string(),
   api_key: z.string(),
@@ -80,6 +80,21 @@ const personalAgent = agent({
   prompt: `Hello {{userName}}! I'm your personal assistant.`,
 });
 ```
+
+## Request Schema Validation
+
+When you define a `requestContextSchema` using Zod object schemas, the framework automatically applies `.loose()` to make validation more permissive:
+
+```typescript
+const requestSchema = z.object({
+  user_id: z.string(),
+  api_key: z.string(),
+});
+```
+
+This means your request context can include additional properties beyond what's defined in your schema without causing validation errors.
+
+**Note:** Only `ZodObject` schemas get automatic `.loose()` application. Other schema types (strings, arrays, unions, etc.) remain unchanged.
 
 ### Using the Context Fetcher
 

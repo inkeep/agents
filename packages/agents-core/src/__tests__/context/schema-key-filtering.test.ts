@@ -1,260 +1,259 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
-import { createRequestSchema } from '../../context/ContextConfig';
 import {
   type ParsedHttpRequest,
-  validateHttpRequestParts,
+  validateHttpRequestHeaders,
 } from '../../middleware/contextValidation';
 
-describe('Schema Key Filtering', () => {
-  it('should filter out extra keys from passthrough schemas when storing in cache', async () => {
-    const requestSchema = createRequestSchema({
-      body: z
-        .object({
-          name: z.string(),
-          age: z.number(),
-        })
-        .strict(), // strict schema
-      headers: z
-        .object({
-          authorization: z.string(),
-          'x-user-id': z.string().optional(),
-        })
-        .passthrough(), // passthrough allows extra keys
-      query: z
-        .object({
-          page: z.number(),
-        })
-        .strip(),
-    });
-
-    const httpRequest: ParsedHttpRequest = {
-      body: {
-        name: 'John',
-        age: 30,
-        // extra_field: 'should be rejected by strict'  // This would cause validation error
-      },
-      headers: {
-        authorization: 'Bearer token',
-        'x-user-id': '123',
-        'extra-header': 'should be filtered out', // Extra key from passthrough
-        'another-header': 'also filtered',
-      },
-      query: {
-        page: 1,
+describe('Schema Key Filtering - Headers Only', () => {
+  it('should filter out extra headers not defined in schema', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        authorization: { type: 'string' },
+        'x-user-id': { type: 'string' },
       },
     };
 
-    const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        authorization: 'Bearer token',
+        'x-user-id': '123',
+        'extra-header': 'should be filtered out', // Extra key not in schema
+        'another-header': 'also filtered',
+        'content-type': 'application/json', // Also not in schema
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
     expect(result.valid).toBe(true);
     expect(result.validatedContext).toBeDefined();
 
-    // Body should have all defined keys (strict)
-    expect(result.validatedContext?.body).toEqual({
-      name: 'John',
-      age: 30,
-    });
-
-    // Headers should only have schema-defined keys, not the extra ones
-    expect(result.validatedContext?.headers).toEqual({
+    // Should only have schema-defined keys, not the extra ones
+    expect(result.validatedContext).toEqual({
       authorization: 'Bearer token',
       'x-user-id': '123',
     });
-    expect(result.validatedContext?.headers['extra-header']).toBeUndefined();
-    expect(result.validatedContext?.headers['another-header']).toBeUndefined();
 
-    // Query should have defined keys
-    expect(result.validatedContext?.query).toEqual({
-      page: 1,
-    });
+    // Extra headers should be filtered out
+    expect(result.validatedContext?.['extra-header']).toBeUndefined();
+    expect(result.validatedContext?.['another-header']).toBeUndefined();
+    expect(result.validatedContext?.['content-type']).toBeUndefined();
   });
 
   it('should handle schemas with no defined properties', async () => {
-    const requestSchema = createRequestSchema({
-      body: z.any(), // No specific properties
-    });
+    const headersSchema = {
+      type: 'object',
+      // No properties defined - should allow anything
+    };
 
     const httpRequest: ParsedHttpRequest = {
-      body: {
-        anything: 'goes',
-        random: 42,
+      headers: {
+        'any-header': 'goes',
+        'random-header': '42',
+        'x-custom': 'value',
       },
     };
 
-    const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
     expect(result.valid).toBe(true);
-    expect(result.validatedContext?.body).toEqual({
-      anything: 'goes',
-      random: 42,
+    // When no properties are defined, return the headers as-is
+    expect(result.validatedContext).toEqual({
+      'any-header': 'goes',
+      'random-header': '42',
+      'x-custom': 'value',
     });
   });
 
-  it('should filter nested objects correctly', async () => {
-    const requestSchema = createRequestSchema({
-      body: z
-        .object({
-          user: z
-            .object({
-              id: z.string(),
-              name: z.string(),
-            })
-            .passthrough(), // Allows extra keys in nested object
-          metadata: z.object({
-            version: z.string(),
-          }),
-        })
-        .strip(), // Strip extra keys at top level
-    });
+  it('should filter headers with nested object values correctly', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        'x-user-info': {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+          },
+        },
+        'x-metadata': {
+          type: 'object',
+          properties: {
+            version: { type: 'string' },
+          },
+        },
+      },
+    };
 
     const httpRequest: ParsedHttpRequest = {
-      body: {
-        user: {
+      headers: {
+        'x-user-info': {
           id: '123',
           name: 'John',
-          email: 'john@example.com', // Extra key in nested object - allowed by passthrough
-        },
-        metadata: {
+          email: 'john@example.com', // Extra key in nested object
+        } as any, // Cast since headers are typically strings
+        'x-metadata': {
           version: '1.0',
-        },
-        // Don't include extra_top_level as it would be rejected by .strip()
+          extra: 'filtered', // Extra key
+        } as any,
+        'x-extra': 'should be filtered', // Extra header
       },
     };
 
-    const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
     expect(result.valid).toBe(true);
 
-    // Should only include schema-defined keys at ALL levels (recursive filtering)
-    expect(result.validatedContext?.body).toEqual({
-      user: {
+    // Should recursively filter nested objects
+    expect(result.validatedContext).toEqual({
+      'x-user-info': {
         id: '123',
         name: 'John',
-        // email should be filtered out even though passthrough allowed it during validation
+        // email should be filtered out
       },
-      metadata: {
+      'x-metadata': {
         version: '1.0',
+        // extra should be filtered out
       },
+      // 'x-extra' should be filtered out
     });
   });
 
-  it('should work with optional schema parts', async () => {
-    const requestSchema = createRequestSchema(
-      {
-        body: z.object({
-          required_field: z.string(),
-        }),
-        query: z
-          .object({
-            optional_field: z.string(),
-          })
-          .passthrough(),
+  it('should handle optional schema properties', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        authorization: { type: 'string' },
+        'x-user-id': { type: 'string' },
+        'x-optional': { type: 'string' },
       },
-      {
-        optional: ['query'], // query is optional
-      }
-    );
-
-    const httpRequest: ParsedHttpRequest = {
-      body: {
-        required_field: 'test',
-      },
-      // query is missing (but optional)
+      required: ['authorization'], // Only authorization is required
     };
 
-    const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        authorization: 'Bearer token',
+        'x-user-id': '123',
+        // 'x-optional' is missing but not required
+        'extra-header': 'filtered',
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
     expect(result.valid).toBe(true);
-    expect(result.validatedContext?.body).toEqual({
-      required_field: 'test',
+    expect(result.validatedContext).toEqual({
+      authorization: 'Bearer token',
+      'x-user-id': '123',
+      // 'x-optional' is undefined (not included)
+      // 'extra-header' is filtered out
     });
-    expect(result.validatedContext?.query).toBeUndefined();
   });
 
-  it('should handle deep nested filtering with arrays', async () => {
-    const requestSchema = createRequestSchema({
-      body: z
-        .object({
-          users: z.array(
-            z
-              .object({
-                id: z.string(),
-                profile: z
-                  .object({
-                    name: z.string(),
-                    email: z.string(),
-                  })
-                  .passthrough(), // Allows extra keys in nested profile
-              })
-              .passthrough()
-          ), // Allows extra keys in user objects
-          metadata: z.object({
-            count: z.number(),
-          }),
-        })
-        .strip(),
-    });
-
-    const httpRequest: ParsedHttpRequest = {
-      body: {
-        users: [
-          {
-            id: '1',
-            profile: {
-              name: 'John',
-              email: 'john@example.com',
-              avatar: 'avatar1.jpg', // Should be filtered
-              preferences: { theme: 'dark' }, // Should be filtered
+  it('should handle headers with array values', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        'x-tags': {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              value: { type: 'string' },
             },
-            role: 'admin', // Should be filtered
-            lastLogin: '2023-01-01', // Should be filtered
           },
-          {
-            id: '2',
-            profile: {
-              name: 'Jane',
-              email: 'jane@example.com',
-              bio: 'Software engineer', // Should be filtered
-            },
-            department: 'Engineering', // Should be filtered
-          },
-        ],
-        metadata: {
-          count: 2,
         },
       },
     };
 
-    const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        'x-tags': [
+          {
+            name: 'env',
+            value: 'prod',
+            extra: 'filtered', // Should be filtered
+          },
+          {
+            name: 'region',
+            value: 'us-east',
+            metadata: { created: '2023' }, // Should be filtered
+          },
+        ] as any,
+        'other-header': 'filtered',
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
     expect(result.valid).toBe(true);
 
-    // Should recursively filter ALL levels
-    expect(result.validatedContext?.body).toEqual({
-      users: [
+    // Should recursively filter array items
+    expect(result.validatedContext).toEqual({
+      'x-tags': [
         {
-          id: '1',
-          profile: {
-            name: 'John',
-            email: 'john@example.com',
-            // avatar and preferences filtered out
-          },
-          // role and lastLogin filtered out
+          name: 'env',
+          value: 'prod',
+          // extra filtered out
         },
         {
-          id: '2',
-          profile: {
-            name: 'Jane',
-            email: 'jane@example.com',
-            // bio filtered out
-          },
-          // department filtered out
+          name: 'region',
+          value: 'us-east',
+          // metadata filtered out
         },
       ],
-      metadata: {
-        count: 2,
+      // 'other-header' filtered out
+    });
+  });
+
+  it('should return empty object when no headers match schema', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        'x-required': { type: 'string' },
       },
+    };
+
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        'completely-different': 'value',
+        'nothing-matches': 'schema',
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
+
+    expect(result.valid).toBe(true);
+    // No headers match the schema properties, so return empty object
+    expect(result.validatedContext).toEqual({});
+  });
+
+  it('should handle null and undefined values gracefully', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        'x-nullable': { type: ['string', 'null'] },
+        'x-required': { type: 'string' },
+      },
+    };
+
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        'x-nullable': null as any,
+        'x-required': 'value',
+        'x-undefined': undefined as any,
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
+
+    expect(result.valid).toBe(true);
+    expect(result.validatedContext).toEqual({
+      'x-nullable': null,
+      'x-required': 'value',
+      // 'x-undefined' should be filtered out
     });
   });
 });

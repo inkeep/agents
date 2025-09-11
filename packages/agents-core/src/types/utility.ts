@@ -206,17 +206,6 @@ export interface ProjectResourceCounts {
   externalAgents: number;
 }
 
-export interface RequestSchemaDefinition {
-  body?: z.ZodSchema<any>;
-  headers?: z.ZodSchema<any>;
-  query?: z.ZodSchema<any>;
-  params?: z.ZodSchema<any>;
-}
-
-export interface RequestSchemaConfig {
-  schemas: RequestSchemaDefinition;
-  optional?: ('body' | 'headers' | 'query' | 'params')[];
-}
 
 export type toolStatus = 'healthy' | 'unhealthy' | 'unknown';
 

@@ -14,8 +14,8 @@ const logger = getLogger('context-validation');
 // @ts-ignore
 const ajv = new Ajv({ allErrors: true, strict: false });
 
-// Constants for HTTP request parts
-export const HTTP_REQUEST_PARTS = ['body', 'headers', 'query', 'params'] as const;
+// Constants for HTTP request parts (simplified to headers only)
+export const HTTP_REQUEST_PARTS = ['headers'] as const;
 export type HttpRequestPart = (typeof HTTP_REQUEST_PARTS)[number];
 
 // Schema compilation cache for performance
@@ -34,10 +34,7 @@ export interface ContextValidationResult {
 }
 
 export interface ParsedHttpRequest {
-  body?: any;
   headers?: Record<string, string>;
-  query?: Record<string, string>;
-  params?: Record<string, string>;
 }
 
 // Type guard for validating HTTP request objects
@@ -46,7 +43,7 @@ export function isValidHttpRequest(obj: any): obj is ParsedHttpRequest {
     obj != null &&
     typeof obj === 'object' &&
     !Array.isArray(obj) &&
-    HTTP_REQUEST_PARTS.some((key) => key in obj)
+    'headers' in obj
   );
 }
 
@@ -123,73 +120,42 @@ function filterByJsonSchema(data: any, schema: any): any {
 }
 
 /**
- * Filters validated context to only include keys defined in the schema
+ * Filters validated context to only include keys defined in the headers schema
  * This prevents storing extra keys from .passthrough() schemas in the cache
- * Now supports recursive filtering of nested objects
  */
 function filterContextToSchemaKeys(
   validatedContext: Record<string, any>,
-  schemas: Record<string, any>
+  headersSchema: any
 ): Record<string, any> {
-  const filteredContext: Record<string, any> = {};
+  if (!headersSchema || !validatedContext) {
+    return validatedContext;
+  }
 
-  for (const part of HTTP_REQUEST_PARTS) {
-    if (validatedContext[part] && schemas[part]) {
-      const schema = schemas[part];
-      const partData = validatedContext[part];
+  // Use recursive filtering directly on the headers data
+  const filteredHeaders = filterByJsonSchema(validatedContext, headersSchema);
 
-      // Use recursive filtering
-      const filteredPart = filterByJsonSchema(partData, schema);
-
-      if (filteredPart !== null && filteredPart !== undefined) {
-        // Only include if the filtered result has content
-        if (typeof filteredPart === 'object' && Object.keys(filteredPart).length > 0) {
-          filteredContext[part] = filteredPart;
-        } else if (typeof filteredPart !== 'object') {
-          filteredContext[part] = filteredPart;
-        }
-      }
-    } else if (validatedContext[part]) {
-      // Part exists but no schema - still include for compatibility
-      filteredContext[part] = validatedContext[part];
+  if (filteredHeaders !== null && filteredHeaders !== undefined) {
+    // Only include if the filtered result has content
+    if (typeof filteredHeaders === 'object' && Object.keys(filteredHeaders).length > 0) {
+      return filteredHeaders;
+    } else if (typeof filteredHeaders !== 'object') {
+      return filteredHeaders;
     }
   }
 
-  return filteredContext;
+  return {};
 }
 
-/**
- * Filters legacy context to only include keys defined in the JSON schema
- * Now supports recursive filtering of nested objects
- */
-function filterLegacyContextToSchemaKeys(
-  validatedContext: Record<string, any>,
-  jsonSchema: Record<string, any>
-): Record<string, any> {
-  return filterByJsonSchema(validatedContext, jsonSchema);
-}
 
 /**
- * Checks if the schema is in the new comprehensive request format
+ * Validates HTTP request headers against schema
  */
-export function isComprehensiveRequestSchema(schema: any): boolean {
-  return (
-    schema &&
-    typeof schema === 'object' &&
-    'schemas' in schema &&
-    typeof schema.schemas === 'object'
-  );
-}
-
-/**
- * Validates HTTP request parts against comprehensive schema
- */
-export async function validateHttpRequestParts(
-  comprehensiveSchema: any,
+export async function validateHttpRequestHeaders(
+  headersSchema: any,
   httpRequest: ParsedHttpRequest
 ): Promise<ContextValidationResult> {
   const errors: ContextValidationError[] = [];
-  const validatedParts: Record<string, any> = {};
+  let validatedContext: Record<string, any> = {};
 
   // Type guard validation
   if (!isValidHttpRequest(httpRequest)) {
@@ -198,61 +164,42 @@ export async function validateHttpRequestParts(
       errors: [
         {
           field: 'httpRequest',
-          message:
-            'Invalid HTTP request format - must contain at least one of: body, headers, query, params',
+          message: 'Invalid HTTP request format - must contain headers',
         },
       ],
     };
   }
 
   try {
-    const { schemas, optional = [] } = comprehensiveSchema;
-
-    // Validate each part if schema is defined
-    for (const part of HTTP_REQUEST_PARTS) {
-      if (schemas[part] && httpRequest[part] !== undefined) {
-        try {
-          const partSchema = schemas[part];
-          const validate = validationHelper(partSchema);
-          const isValid = validate(httpRequest[part]);
-
-          if (isValid) {
-            validatedParts[part] = httpRequest[part];
-          } else {
-            // Convert AJV errors for this part
-            if (validate.errors) {
-              for (const error of validate.errors) {
-                errors.push({
-                  field: `${part}.${error.instancePath || 'root'}`,
-                  message: `${part} ${error.message}`,
-                  value: error.data,
-                });
-              }
+    if (headersSchema && httpRequest.headers !== undefined) {
+      try {
+        const validate = validationHelper(headersSchema);
+        const isValid = validate(httpRequest.headers);
+        
+        if (isValid) {
+          validatedContext = httpRequest.headers;
+        } else {
+          // Convert AJV errors for headers
+          if (validate.errors) {
+            for (const error of validate.errors) {
+              errors.push({
+                field: `headers.${error.instancePath || 'root'}`,
+                message: `headers ${error.message}`,
+                value: error.data,
+              });
             }
           }
-        } catch (validationError) {
-          errors.push({
-            field: part,
-            message: `Failed to validate ${part}: ${validationError instanceof Error ? validationError.message : 'Unknown error'}`,
-          });
         }
-      } else if (schemas[part] && httpRequest[part] === undefined) {
-        // Check if this schema part is marked as optional
-        const isPartOptional = optional.includes(part);
-
-        if (!isPartOptional) {
-          // Part is required but missing
-          errors.push({
-            field: part,
-            message: `Required ${part} is missing`,
-          });
-        }
-        // If optional, we simply skip it (no error, no validation)
+      } catch (validationError) {
+        errors.push({
+          field: 'headers',
+          message: `Failed to validate headers: ${validationError instanceof Error ? validationError.message : 'Unknown error'}`,
+        });
       }
     }
 
     const filteredContext =
-      errors.length === 0 ? filterContextToSchemaKeys(validatedParts, schemas) : undefined;
+      errors.length === 0 ? filterContextToSchemaKeys(validatedContext, headersSchema) : undefined;
 
     return {
       valid: errors.length === 0,
@@ -262,7 +209,7 @@ export async function validateHttpRequestParts(
   } catch (error) {
     logger.error(
       { error: error instanceof Error ? error.message : 'Unknown error' },
-      'Failed to validate comprehensive request schema'
+      'Failed to validate headers schema'
     );
 
     return {
@@ -270,7 +217,7 @@ export async function validateHttpRequestParts(
       errors: [
         {
           field: 'schema',
-          message: 'Failed to validate comprehensive request schema',
+          message: 'Failed to validate headers schema',
         },
       ],
     };
@@ -376,114 +323,36 @@ export async function validateRequestContext(
       };
     }
 
-    // Validate against the schema - handle both legacy and new formats
+    // Validate headers against the schema
     try {
       const schema = contextConfig.requestContextSchema;
+      logger.debug(
+        { contextConfigId: contextConfig.id },
+        'Using headers schema validation'
+      );
 
-      // Check if it's the new comprehensive request schema format
-      if (isComprehensiveRequestSchema(schema)) {
-        logger.debug(
-          { contextConfigId: contextConfig.id },
-          'Using comprehensive HTTP request schema validation'
-        );
-
-        // For comprehensive schema, expect the requestContext to have HTTP parts
-        const httpRequest = parsedRequest;
-        const validationResult = await validateHttpRequestParts(schema, httpRequest);
-        if (validationResult.valid) {
-          return validationResult;
-        }
-        //If the request context is not valid, try to fetch it from the context cache
-        try {
-          return await fetchExistingRequestContext({
-            tenantId,
-            projectId,
-            contextConfig,
-            conversationId,
-            dbClient,
-            credentialStores,
-          });
-        } catch (_error) {
-          validationResult.errors.push({
-            field: 'requestContext',
-            message: 'Failed to fetch request context from cache',
-          });
-          return validationResult;
-        }
-      } else {
-        // Legacy validation - treat as simple JSON Schema
-        logger.debug({ contextConfigId: contextConfig.id }, 'Using legacy JSON schema validation');
-
-        const jsonSchema = schema as Record<string, unknown>;
-        const validate = validationHelper(jsonSchema);
-
-        // Validate the request context
-        const isValid = validate(legacyRequestContext);
-
-        if (isValid) {
-          logger.debug(
-            {
-              contextConfigId: contextConfig.id,
-              requestContextKeys: Object.keys(legacyRequestContext as Record<string, unknown>),
-            },
-            'Request context validation successful'
-          );
-
-          const filteredContext = filterLegacyContextToSchemaKeys(
-            legacyRequestContext as Record<string, unknown>,
-            jsonSchema
-          );
-
-          return {
-            valid: true,
-            errors: [],
-            validatedContext: filteredContext,
-          };
-        }
-        // Convert AJV errors to our format
-        const errors: ContextValidationError[] = [];
-
-        if (validate.errors) {
-          for (const error of validate.errors) {
-            errors.push({
-              field: error.instancePath || error.schemaPath || 'root',
-              message: `${error.instancePath || 'root'} ${error.message}`,
-              value: error.data,
-            });
-          }
-        }
-
-        logger.warn(
-          {
-            contextConfigId: contextConfig.id,
-            legacyRequestContext,
-            errors,
-          },
-          'Legacy request context validation failed, trying cache fallback'
-        );
-
-        // Try to fetch from cache as fallback, same as comprehensive schemas
-        try {
-          return await fetchExistingRequestContext({
-            tenantId,
-            projectId,
-            contextConfig,
-            conversationId,
-            dbClient,
-            credentialStores,
-          });
-        } catch (_error) {
-          // Cache fallback failed, return original validation errors
-          errors.push({
-            field: 'requestContext',
-            message: 'Failed to fetch request context from cache',
-          });
-
-          return {
-            valid: false,
-            errors,
-          };
-        }
+      // For headers schema, expect the requestContext to have headers
+      const httpRequest = parsedRequest;
+      const validationResult = await validateHttpRequestHeaders(schema, httpRequest);
+      if (validationResult.valid) {
+        return validationResult;
+      }
+      //If the request context is not valid, try to fetch it from the context cache
+      try {
+        return await fetchExistingRequestContext({
+          tenantId,
+          projectId,
+          contextConfig,
+          conversationId,
+          dbClient,
+          credentialStores,
+        });
+      } catch (_error) {
+        validationResult.errors.push({
+          field: 'requestContext',
+          message: 'Failed to fetch request context from cache',
+        });
+        return validationResult;
       }
     } catch (error) {
       logger.error(
@@ -548,24 +417,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
       const body = await c.req.json();
       const conversationId = body.conversationId || '';
 
-      // Extract HTTP parts from the request for comprehensive validation
-      let url: URL;
-      try {
-        url = new URL(c.req.url);
-      } catch (error) {
-        logger.warn(
-          { error: error instanceof Error ? error.message : 'Unknown error' },
-          `Invalid URL: ${c.req.url}`
-        );
-        return c.json({ error: 'Invalid request URL' }, 400);
-      }
-
-      const query: Record<string, string> = {};
-      for (const [key, value] of url.searchParams) {
-        query[key] = value;
-      }
-
-      // Get headers
+      // Extract headers from the request
       const headers: Record<string, string> = {};
       c.req.raw.headers.forEach((value, key) => {
         headers[key.toLowerCase()] = value;
@@ -573,10 +425,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
       const credentialStores = c.get('credentialStores') as CredentialStoreRegistry;
 
       const parsedRequest = {
-        body: body || {},
         headers,
-        query,
-        params: c.req.param() || {},
       } as ParsedHttpRequest;
 
       // Validate the context

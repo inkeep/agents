@@ -2,8 +2,6 @@ import { z } from 'zod/v4';
 import type { ContextConfigSelect, FetchDefinition } from '../types/index';
 import type {
   ContextFetchDefinition,
-  RequestSchemaConfig,
-  RequestSchemaDefinition,
 } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
@@ -11,48 +9,6 @@ import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 const logger = getLogger('context-config');
 
 type ErrorResponse = { error?: string; message?: string; details?: unknown };
-
-// Factory function to create a comprehensive request schema
-export function createRequestSchema(
-  schemas: RequestSchemaDefinition,
-  config?: { optional?: ('body' | 'headers' | 'query' | 'params')[] }
-) {
-  const schemaConfig: RequestSchemaConfig = {
-    schemas,
-    optional: config?.optional,
-  };
-
-  return {
-    schemas,
-    config: schemaConfig,
-    // Convert all schemas to JSON Schema for storage
-    toJsonSchema: () => {
-      const jsonSchemas: Record<string, any> = {};
-
-      if (schemas.body) {
-        jsonSchemas.body = convertZodToJsonSchema(schemas.body);
-      }
-      if (schemas.headers) {
-        jsonSchemas.headers = convertZodToJsonSchema(schemas.headers);
-      }
-      if (schemas.query) {
-        jsonSchemas.query = convertZodToJsonSchema(schemas.query);
-      }
-      if (schemas.params) {
-        jsonSchemas.params = convertZodToJsonSchema(schemas.params);
-      }
-
-      return {
-        schemas: jsonSchemas,
-        optional: schemaConfig.optional,
-      };
-    },
-    // Get the Zod schemas for runtime validation
-    getZodSchemas: () => schemas,
-    // Get the configuration including optional flags
-    getConfig: () => schemaConfig,
-  };
-}
 
 // Utility function for converting Zod schemas to JSON Schema
 export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
@@ -74,7 +30,7 @@ export interface ContextConfigBuilderOptions {
   id: string;
   name: string;
   description?: string;
-  requestContextSchema?: z.ZodSchema<any> | ReturnType<typeof createRequestSchema>; // Zod schema or comprehensive request schema
+  requestContextSchema?: z.ZodSchema<any>; // Zod schema for request headers validation
   contextVariables?: Record<string, ContextFetchDefinition>;
   tenantId?: string;
   projectId?: string;
@@ -90,27 +46,29 @@ export class ContextConfigBuilder {
     this.projectId = options.projectId || 'default';
     this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 
-    // Convert request schema to JSON schema if provided
+    // Convert request headers schema to JSON schema if provided
     let requestContextSchema: any;
     if (options.requestContextSchema) {
       logger.info(
         {
           requestContextSchema: options.requestContextSchema,
         },
-        'Converting request schema to JSON Schema for database storage'
+        'Converting request headers schema to JSON Schema for database storage'
       );
 
-      // Check if it's a createRequestSchema result or a regular Zod schema
-      if (
-        typeof options.requestContextSchema === 'object' &&
-        'toJsonSchema' in options.requestContextSchema
-      ) {
-        // It's a createRequestSchema result
-        requestContextSchema = options.requestContextSchema.toJsonSchema();
-      } else {
-        // It's a regular Zod schema
-        requestContextSchema = convertZodToJsonSchema(options.requestContextSchema);
+      // Automatically apply .loose() to ZodObject schemas for more permissive validation
+      // This allows additional properties to pass through without validation errors
+      let schema = options.requestContextSchema;
+      if (schema instanceof z.ZodObject) {
+        schema = schema.loose();
+        logger.debug(
+          { schemaType: 'ZodObject' },
+          'Applied .loose() to ZodObject requestContextSchema for more permissive validation'
+        );
       }
+
+      // It's a regular Zod schema for headers validation
+      requestContextSchema = convertZodToJsonSchema(schema);
     }
 
     this.config = {

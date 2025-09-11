@@ -1,214 +1,111 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { createRequestSchema } from '../../context/ContextConfig';
 import {
   getCachedValidator,
   HTTP_REQUEST_PARTS,
   type HttpRequestPart,
-  isComprehensiveRequestSchema,
   isValidHttpRequest,
   type ParsedHttpRequest,
-  validateHttpRequestParts,
-  validateRequestContext,
+  validateHttpRequestHeaders,
 } from '../../middleware/contextValidation';
-import { dbClient } from '../setup';
 
-// Mock @inkeep/agents-core functions
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
-  return {
-    ...actual,
-    getAgentGraphWithDefaultAgent: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
-    getContextConfigById: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
-  };
-});
+// Mock the data access functions directly  
+vi.mock('../../data-access/agentGraphs', () => ({
+  getAgentGraphWithDefaultAgent: vi.fn(),
+}));
 
-describe('ContextValidation - Comprehensive Request Schema', () => {
+vi.mock('../../data-access/contextConfigs', () => ({
+  getContextConfigById: vi.fn(),
+}));
+
+describe('ContextValidation - Headers Only Implementation', () => {
   let getAgentGraphWithDefaultAgent: any;
   let getContextConfigById: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const coreModule = await import('@inkeep/agents-core');
-    getAgentGraphWithDefaultAgent = coreModule.getAgentGraphWithDefaultAgent;
-    getContextConfigById = coreModule.getContextConfigById;
+    const agentGraphModule = await import('../../data-access/agentGraphs');
+    const contextConfigModule = await import('../../data-access/contextConfigs');
+    getAgentGraphWithDefaultAgent = agentGraphModule.getAgentGraphWithDefaultAgent;
+    getContextConfigById = contextConfigModule.getContextConfigById;
   });
 
-  describe('isComprehensiveRequestSchema', () => {
-    it('should identify comprehensive request schema', () => {
-      const comprehensiveSchema = {
-        schemas: {
-          body: { type: 'object' },
-          headers: { type: 'object' },
-        },
-        options: {},
-      };
-
-      expect(isComprehensiveRequestSchema(comprehensiveSchema)).toBe(true);
-    });
-
-    it('should identify legacy schema', () => {
-      const legacySchema = {
+  describe('validateHttpRequestHeaders', () => {
+    it('should validate headers successfully', async () => {
+      const headersSchema = {
         type: 'object',
         properties: {
-          userId: { type: 'string' },
+          'x-user-id': {
+            type: 'string',
+            format: 'uuid',
+          },
         },
       };
-
-      expect(isComprehensiveRequestSchema(legacySchema)).toBe(false);
-    });
-  });
-
-  describe('validateHttpRequestParts', () => {
-    it('should validate all HTTP parts successfully', async () => {
-      const requestSchema = createRequestSchema({
-        body: z.object({
-          org_alias: z.string(),
-          project_id: z.string(),
-        }),
-        headers: z.object({
-          authorization: z.string().startsWith('Bearer '),
-        }),
-        query: z.object({
-          page: z.coerce.number().min(1).default(1),
-        }),
-        params: z.object({
-          id: z.coerce.number(),
-        }),
-      });
 
       const httpRequest: ParsedHttpRequest = {
-        body: {
-          org_alias: 'test-org',
-          project_id: 'test-project',
-        },
-        headers: {
-          authorization: 'Bearer token123',
-        },
-        query: {
-          page: 2,
-        },
-        params: {
-          id: 123,
-        },
+        headers: { 'x-user-id': '123e4567-e89b-12d3-a456-426614174000' },
       };
 
-      const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+      const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
       expect(result.valid).toBe(true);
       expect(result.errors).toEqual([]);
-      expect(result.validatedContext).toBeDefined();
-      expect(result.validatedContext?.body).toEqual({
-        org_alias: 'test-org',
-        project_id: 'test-project',
-      });
-      expect(result.validatedContext?.headers).toEqual({
-        authorization: 'Bearer token123',
+      expect(result.validatedContext).toEqual({
+        'x-user-id': '123e4567-e89b-12d3-a456-426614174000',
       });
     });
 
-    it('should handle validation errors for specific parts', async () => {
-      const requestSchema = createRequestSchema({
-        body: z.object({
-          org_alias: z.string(),
-          project_id: z.string(),
-        }),
-        headers: z.object({
-          authorization: z.string().startsWith('Bearer '),
-        }),
-      });
-
-      const httpRequest: ParsedHttpRequest = {
-        body: {
-          org_alias: 'test-org',
-          // missing project_id
+    it('should handle validation errors for headers', async () => {
+      const headersSchema = {
+        type: 'object',
+        properties: {
+          'x-user-id': {
+            type: 'string',
+          },
         },
-        headers: {
-          authorization: 'InvalidToken', // doesn't start with Bearer
-        },
+        required: ['x-user-id'],
       };
 
-      const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+      const httpRequest: ParsedHttpRequest = {
+        headers: { 'other-header': 'value' }, // Missing required x-user-id
+      };
+
+      const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) => e.field.includes('body'))).toBe(true);
       expect(result.errors.some((e) => e.field.includes('headers'))).toBe(true);
+      expect(result.validatedContext).toBeUndefined();
     });
 
-    it('should validate headers correctly', async () => {
-      const requestSchema = createRequestSchema({
-        headers: z.object({
-          'x-user-id': z.string().uuid().optional(),
-          authorization: z.string().optional(),
-        }),
-      });
+    it('should validate headers correctly with multiple properties', async () => {
+      const headersSchema = {
+        type: 'object',
+        properties: {
+          'x-user-id': {
+            type: 'string',
+            format: 'uuid',
+          },
+          'content-type': {
+            type: 'string',
+          },
+        },
+      };
 
       const httpRequest: ParsedHttpRequest = {
         headers: {
           'x-user-id': '123e4567-e89b-12d3-a456-426614174000',
-          authorization: 'Bearer token',
+          'content-type': 'application/json',
         },
       };
 
-      const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), httpRequest);
+      const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
 
       expect(result.valid).toBe(true);
-      expect(result.validatedContext?.headers).toBeDefined();
-      expect(result.validatedContext?.headers['x-user-id']).toBe(
-        '123e4567-e89b-12d3-a456-426614174000'
-      );
-      expect(result.validatedContext?.headers.authorization).toBe('Bearer token');
-    });
-  });
-
-  describe('validateRequestContext integration', () => {
-    it('should handle comprehensive schema in end-to-end validation', async () => {
-      const comprehensiveSchema = createRequestSchema({
-        body: z.object({
-          org_alias: z.string(),
-          project_id: z.string(),
-        }),
-        headers: z.object({
-          authorization: z.string().startsWith('Bearer '),
-        }),
+      expect(result.validatedContext).toEqual({
+        'x-user-id': '123e4567-e89b-12d3-a456-426614174000',
+        'content-type': 'application/json',
       });
-
-      vi.mocked(getAgentGraphWithDefaultAgent).mockReturnValue(
-        vi.fn().mockResolvedValue({
-          id: 'test-graph',
-          contextConfigId: 'test-config',
-        } as any)
-      );
-
-      vi.mocked(getContextConfigById).mockReturnValue(
-        vi.fn().mockResolvedValue({
-          id: 'test-config',
-          requestContextSchema: comprehensiveSchema.toJsonSchema(),
-        } as any)
-      );
-
-      const httpRequest: ParsedHttpRequest = {
-        body: {
-          org_alias: 'test-org',
-          project_id: 'test-project',
-        },
-        headers: {
-          authorization: 'Bearer token123',
-        },
-      };
-
-      const result = await validateRequestContext(
-        'test-tenant',
-        'test-project',
-        'test-graph',
-        'test-conversation',
-        httpRequest,
-        dbClient
-      );
-
-      expect(result.valid).toBe(true);
-      expect(result.validatedContext).toBeDefined();
     });
   });
 
@@ -216,7 +113,6 @@ describe('ContextValidation - Comprehensive Request Schema', () => {
     describe('Type Guards', () => {
       it('should identify valid HTTP requests', () => {
         const validRequest: ParsedHttpRequest = {
-          body: { name: 'test' },
           headers: { auth: 'token' },
         };
 
@@ -230,112 +126,173 @@ describe('ContextValidation - Comprehensive Request Schema', () => {
           'string',
           123,
           [],
-          {}, // Empty object with no HTTP parts
-          { randomKey: 'value' }, // Object without HTTP parts
+          {},
+          { body: 'test' }, // Missing headers
+          { query: 'test' }, // Missing headers
         ];
 
-        for (const invalid of invalidRequests) {
-          expect(isValidHttpRequest(invalid)).toBe(false);
+        for (const req of invalidRequests) {
+          expect(isValidHttpRequest(req)).toBe(false);
         }
       });
 
-      it('should accept requests with any HTTP part', () => {
-        for (const part of HTTP_REQUEST_PARTS) {
-          const request = { [part]: { test: 'data' } };
-          expect(isValidHttpRequest(request)).toBe(true);
+      it('should accept requests with headers', () => {
+        const validRequests = [
+          { headers: {} },
+          { headers: { 'x-test': 'value' } },
+          { headers: { auth: 'bearer token', 'content-type': 'json' } },
+        ];
+
+        for (const req of validRequests) {
+          expect(isValidHttpRequest(req)).toBe(true);
         }
       });
     });
 
     describe('Schema Caching', () => {
       it('should cache compiled validators', () => {
-        const schema = {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            age: { type: 'number' },
-          },
-        };
-
+        const schema = { type: 'object', properties: { name: { type: 'string' } } };
+        
         const validator1 = getCachedValidator(schema);
         const validator2 = getCachedValidator(schema);
 
-        // Should return the same cached instance
-        expect(validator1).toBe(validator2);
+        expect(validator1).toBe(validator2); // Same instance from cache
       });
 
       it('should create different validators for different schemas', () => {
-        const schema1 = { type: 'string' };
-        const schema2 = { type: 'number' };
+        const schema1 = { type: 'object', properties: { name: { type: 'string' } } };
+        const schema2 = { type: 'object', properties: { age: { type: 'number' } } };
 
         const validator1 = getCachedValidator(schema1);
         const validator2 = getCachedValidator(schema2);
 
-        // Should be different validators
-        expect(validator1).not.toBe(validator2);
+        expect(validator1).not.toBe(validator2); // Different instances
       });
 
       it('should validate correctly with cached validators', () => {
-        const schema = {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-          },
-          required: ['name'],
-        };
-
+        const schema = { type: 'object', properties: { name: { type: 'string' } } };
         const validator = getCachedValidator(schema);
 
         expect(validator({ name: 'John' })).toBe(true);
-        expect(validator({})).toBe(false); // Missing required field
-        expect(validator({ name: 123 })).toBe(false); // Wrong type
+        expect(validator({ name: 123 })).toBe(false);
+        expect(validator({})).toBe(true); // No required properties
       });
     });
 
     describe('Constants', () => {
       it('should export HTTP_REQUEST_PARTS constant', () => {
-        expect(HTTP_REQUEST_PARTS).toEqual(['body', 'headers', 'query', 'params']);
+        expect(HTTP_REQUEST_PARTS).toEqual(['headers']);
       });
 
       it('should have correct type for HttpRequestPart', () => {
-        const validParts: HttpRequestPart[] = ['body', 'headers', 'query', 'params'];
+        const validParts: HttpRequestPart[] = ['headers'];
         expect(validParts).toEqual(HTTP_REQUEST_PARTS);
       });
     });
 
     describe('Performance Improvements', () => {
       it('should use the same validator instance for identical schemas', () => {
-        const schema = {
-          type: 'object',
-          properties: { id: { type: 'string' } },
-        };
+        const schema = { type: 'string', minLength: 3 };
+        
+        // Call multiple times with same schema
+        const validator1 = getCachedValidator(schema);
+        const validator2 = getCachedValidator(schema);
+        const validator3 = getCachedValidator(schema);
 
-        // Multiple calls should use cached validator
-        const start = performance.now();
-        for (let i = 0; i < 100; i++) {
-          getCachedValidator(schema);
-        }
-        const end = performance.now();
-
-        // Should be very fast due to caching
-        expect(end - start).toBeLessThan(50); // Less than 50ms for 100 calls (generous for CI)
+        expect(validator1).toBe(validator2);
+        expect(validator2).toBe(validator3);
+        
+        // All should work correctly
+        expect(validator1('test')).toBe(true);
+        expect(validator2('ab')).toBe(false);
+        expect(validator3('hello')).toBe(true);
       });
     });
 
     describe('HTTP Request Validation with Type Guards', () => {
-      it('should reject invalid HTTP requests in validateHttpRequestParts', async () => {
-        const requestSchema = createRequestSchema({
-          body: z.object({ name: z.string() }),
-        });
+      it('should reject invalid HTTP requests in validateHttpRequestHeaders', async () => {
+        const headersSchema = {
+          type: 'object',
+          properties: {
+            'x-user-id': { type: 'string' },
+          },
+        };
 
-        const invalidRequest = {} as ParsedHttpRequest; // Empty object
+        const invalidRequest = { invalid: true };
 
-        const result = await validateHttpRequestParts(requestSchema.toJsonSchema(), invalidRequest);
+        const result = await validateHttpRequestHeaders(
+          headersSchema,
+          invalidRequest as any
+        );
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toHaveLength(1);
         expect(result.errors[0].field).toBe('httpRequest');
-        expect(result.errors[0].message).toContain('Invalid HTTP request format');
+        expect(result.errors[0].message).toContain(
+          'Invalid HTTP request format - must contain headers'
+        );
+      });
+
+      it('should validate requests with proper headers structure', async () => {
+        const headersSchema = {
+          type: 'object',
+          properties: {
+            authorization: { type: 'string' },
+          },
+        };
+
+        const validRequest = {
+          headers: {
+            authorization: 'Bearer token123',
+            'extra-header': 'will be filtered',
+          },
+        };
+
+        const result = await validateHttpRequestHeaders(headersSchema, validRequest);
+
+        expect(result.valid).toBe(true);
+        expect(result.validatedContext).toEqual({
+          authorization: 'Bearer token123',
+          // extra-header should be filtered out
+        });
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should handle malformed schemas gracefully', async () => {
+        const malformedSchema = {
+          type: 'invalid_type',
+          properties: {
+            'test': { type: 'unknown_type' },
+          },
+        };
+
+        const httpRequest: ParsedHttpRequest = {
+          headers: { 'test': 'value' },
+        };
+
+        const result = await validateHttpRequestHeaders(malformedSchema, httpRequest);
+
+        // Should not crash, but may fail validation
+        expect(typeof result.valid).toBe('boolean');
+        expect(Array.isArray(result.errors)).toBe(true);
+      });
+
+      it('should handle empty headers gracefully', async () => {
+        const headersSchema = {
+          type: 'object',
+          properties: {
+            'x-required': { type: 'string' },
+          },
+        };
+
+        const httpRequest: ParsedHttpRequest = {
+          headers: {},
+        };
+
+        const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
+
+        expect(result.valid).toBe(true); // Empty headers are valid if no required fields
+        expect(result.validatedContext).toEqual({});
       });
     });
   });

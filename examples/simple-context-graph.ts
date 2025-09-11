@@ -1,7 +1,7 @@
 // Import builders from management-api
 
 // Import context functions from core
-import { contextConfig, createRequestSchema } from '@inkeep/agents-core';
+import { contextConfig, } from '@inkeep/agents-core';
 import { agent, agentGraph } from '@inkeep/agents-sdk';
 import { z } from 'zod';
 
@@ -24,20 +24,17 @@ const contextAwareAgent = agent({
   description: 'An AI assistant with a specific identity',
   prompt: `You are an AI assistant with a specific identity.
   
-  Your name is: {{requestContext.headers.username}}
+  Your name is: {{requestContext.username}}
   
   If someone asks "What is your name?", respond with your name.
   
   Be friendly and helpful in all interactions.`,
 });
 
-const requestSchema = createRequestSchema({
-  headers: z
-    .object({
-      username: z.string(),
-    })
-    .loose(),
-});
+const requestSchema = z.object({
+  username: z.string(),
+})
+
 
 const testContextConfig = contextConfig({
   id: 'simple-context-config',
