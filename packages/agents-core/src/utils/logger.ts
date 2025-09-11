@@ -72,7 +72,11 @@ class LoggerFactory {
   getLogger(name: string): Logger {
     // Check cache first
     if (this.loggers.has(name)) {
-      return this.loggers.get(name)!;
+      const logger = this.loggers.get(name);
+      if (!logger) {
+        throw new Error(`Logger '${name}' not found in cache`);
+      }
+      return logger;
     }
 
     // Create logger using factory or default

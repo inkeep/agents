@@ -289,10 +289,11 @@ describe('getCredentialStoreLookupKeyFromRetrievalParams', () => {
       expect(result1).toBe(result2);
 
       // Should be valid JSON
-      expect(() => JSON.parse(result1!)).not.toThrow();
+      expect(result1).toBeDefined();
+      expect(() => JSON.parse(result1 as string)).not.toThrow();
 
       // Should have expected structure
-      const parsed = JSON.parse(result1!);
+      const parsed = JSON.parse(result1 as string);
       expect(parsed).toEqual({
         connectionId: 'test-connection',
         providerConfigKey: 'test-provider',
