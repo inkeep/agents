@@ -2,11 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ESNext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "ESNext"
-    ],
+    "lib": ["dom", "dom.iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,12 +15,8 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "@/.source": [
-        "./.source/index.ts"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
+      "@/.source": ["./.source/index.ts"],
+      "@/*": ["./src/*"]
     },
     "plugins": [
       {
@@ -41,7 +33,5 @@
     "content/docs/talk-to-your-agents/a2a.mdx",
     "content/docs/talk-to-your-agents/mcp-server.mdx"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
