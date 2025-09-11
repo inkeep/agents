@@ -64,6 +64,9 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
+  "peerDependencies": {
+    "zod": "^4.1.5"
+  },
   "engines": {
     "node": ">=22.0.0"
   },

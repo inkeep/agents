@@ -51,6 +51,7 @@ describe('create command', () => {
     mockPrompts.isCancel = vi.fn().mockReturnValue(false);
     mockPrompts.text = vi.fn();
     mockPrompts.confirm = vi.fn();
+    mockPrompts.select = vi.fn();
   });
 
   afterEach(() => {
@@ -84,10 +85,15 @@ describe('create command', () => {
         expect.objectContaining({
           name: 'test-project',
           version: '0.1.0',
-          packageManager: 'npm@10.0.0',
-          workspaces: ['apps/*'],
+          packageManager: 'pnpm@10.10.0',
         }),
         { spaces: 2 }
+      );
+
+      // Verify pnpm-workspace.yaml is created
+      expect(mockFs.writeFile).toHaveBeenCalledWith(
+        'pnpm-workspace.yaml',
+        expect.stringContaining('packages:\n  - "apps/*"')
       );
 
       // Verify environment files are created with correct ports
@@ -123,13 +129,18 @@ describe('create command', () => {
       mockPrompts.text
         .mockResolvedValueOnce('prompted-project') // dirName
         .mockResolvedValueOnce('prompted-tenant') // tenantId
-        .mockResolvedValueOnce('prompted-project-id') // projectId
+        .mockResolvedValueOnce('prompted-project-id'); // projectId
+      
+      mockPrompts.select.mockResolvedValueOnce('both'); // provider choice
+      
+      mockPrompts.text
         .mockResolvedValueOnce('sk-ant-prompted') // anthropicKey
         .mockResolvedValueOnce('sk-prompted'); // openAiKey
 
       await createAgents({});
 
       expect(mockPrompts.text).toHaveBeenCalledTimes(5);
+      expect(mockPrompts.select).toHaveBeenCalledTimes(1);
       expect(mockPrompts.text).toHaveBeenCalledWith(
         expect.objectContaining({
           message: 'What do you want to name your agents directory?',
@@ -140,11 +151,20 @@ describe('create command', () => {
           message: 'Enter your tenant ID :',
         })
       );
+      expect(mockPrompts.select).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Which AI provider(s) would you like to use?',
+        })
+      );
     });
 
     it('should handle existing directory with overwrite confirmation', async () => {
       mockFs.pathExists.mockResolvedValueOnce(true);
       mockPrompts.confirm.mockResolvedValueOnce(true);
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
 
       await createAgents({
         dirName: 'existing-project',
@@ -168,6 +188,10 @@ describe('create command', () => {
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
 
       await expect(
         createAgents({
@@ -181,6 +205,11 @@ describe('create command', () => {
     });
 
     it('should use default ports when not provided', async () => {
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
+        
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -198,6 +227,11 @@ describe('create command', () => {
     });
 
     it('should create proper workspace structure', async () => {
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
+        
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -233,6 +267,11 @@ describe('create command', () => {
     });
 
     it('should create configuration files', async () => {
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
+        
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -335,19 +374,29 @@ describe('create command', () => {
     });
 
     it('should run npm install and database setup', async () => {
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
+        
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
         projectId: 'test-project',
       });
 
-      expect(mockExecAsync).toHaveBeenCalledWith('npm install');
-      expect(mockExecAsync).toHaveBeenCalledWith('npx drizzle-kit push');
+      expect(mockExecAsync).toHaveBeenCalledWith('pnpm install');
+      expect(mockExecAsync).toHaveBeenCalledWith('pnpm exec drizzle-kit push');
     });
 
     it('should handle installation errors gracefully', async () => {
-      // Mock exec to fail on the 'npm install' call
-      mockExecAsync.mockRejectedValueOnce(new Error('npm install failed'));
+      mockPrompts.select.mockResolvedValueOnce('both');
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test')
+        .mockResolvedValueOnce('sk-test');
+      
+      // Mock exec to fail on the 'pnpm install' call
+      mockExecAsync.mockRejectedValueOnce(new Error('pnpm install failed'));
       
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
@@ -362,7 +411,7 @@ describe('create command', () => {
       ).rejects.toThrow('Process exit');
 
       expect(mockPrompts.cancel).toHaveBeenCalledWith(
-        expect.stringContaining('npm install failed')
+        expect.stringContaining('pnpm install failed')
       );
       expect(exitSpy).toHaveBeenCalledWith(1);
     });
@@ -379,6 +428,80 @@ describe('create command', () => {
 
       expect(mockPrompts.cancel).toHaveBeenCalledWith('Operation cancelled');
       expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it('should prompt for only Anthropic key when anthropic provider is selected', async () => {
+      mockPrompts.text
+        .mockResolvedValueOnce('test-project') // dirName
+        .mockResolvedValueOnce('test-tenant') // tenantId
+        .mockResolvedValueOnce('test-project-id'); // projectId
+      
+      mockPrompts.select.mockResolvedValueOnce('anthropic'); // provider choice
+      
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-ant-test'); // anthropicKey only
+
+      await createAgents({});
+
+      expect(mockPrompts.select).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Which AI provider(s) would you like to use?',
+        })
+      );
+      expect(mockPrompts.text).toHaveBeenCalledTimes(4); // No OpenAI key prompt
+    });
+
+    it('should prompt for only OpenAI key when openai provider is selected', async () => {
+      mockPrompts.text
+        .mockResolvedValueOnce('test-project') // dirName
+        .mockResolvedValueOnce('test-tenant') // tenantId
+        .mockResolvedValueOnce('test-project-id'); // projectId
+      
+      mockPrompts.select.mockResolvedValueOnce('openai'); // provider choice
+      
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-test'); // openAiKey only
+
+      await createAgents({});
+
+      expect(mockPrompts.select).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Which AI provider(s) would you like to use?',
+        })
+      );
+      expect(mockPrompts.text).toHaveBeenCalledTimes(4); // No Anthropic key prompt
+    });
+
+    it('should prompt for missing keys when some are provided via CLI', async () => {
+      mockPrompts.text
+        .mockResolvedValueOnce('sk-test'); // openAiKey (missing)
+
+      await createAgents({
+        dirName: 'test-project',
+        tenantId: 'test-tenant',
+        projectId: 'test-project-id',
+        anthropicKey: 'sk-ant-provided', // provided via CLI
+      });
+
+      expect(mockPrompts.text).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Enter your OpenAI API key (optional):',
+        })
+      );
+      expect(mockPrompts.select).not.toHaveBeenCalled(); // No provider selection when keys are partially provided
+    });
+
+    it('should not prompt for provider selection when both keys are provided', async () => {
+      await createAgents({
+        dirName: 'test-project',
+        tenantId: 'test-tenant',
+        projectId: 'test-project-id',
+        anthropicKey: 'sk-ant-provided',
+        openAiKey: 'sk-provided',
+      });
+
+      expect(mockPrompts.select).not.toHaveBeenCalled();
+      expect(mockPrompts.text).not.toHaveBeenCalled();
     });
   });
 });

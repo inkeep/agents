@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { defaultOpenaiModelConfigurations, defaultAnthropicModelConfigurations, defaultDualModelConfigurations, ModelConfigurationResult } from '../utils/model-config';
 
 const execAsync = promisify(exec);
 
@@ -15,6 +16,7 @@ type FileConfig = {
   anthropicKey?: string;
   manageApiPort: string;
   runApiPort: string;
+  modelSettings: Record<string, any>;
 };
 
 export const createAgents = async (
@@ -83,34 +85,98 @@ export const createAgents = async (
     projectId = projectIdResponse as string;
   }
 
-  // Prompt for Anthropic API key
-  if (!anthropicKey) {
-    const anthropicKeyResponse = await p.text({
-      message: 'Enter your Anthropic API key (recommended):',
-      placeholder: 'sk-ant-...',
-      defaultValue: '',
+  // If keys aren't provided via CLI args, prompt for provider selection and keys
+  if (!anthropicKey && !openAiKey) {
+    const providerChoice = await p.select({
+      message: 'Which AI provider(s) would you like to use?',
+      options: [
+        { value: 'both', label: 'Both Anthropic and OpenAI (recommended)' },
+        { value: 'anthropic', label: 'Anthropic only' },
+        { value: 'openai', label: 'OpenAI only' },
+      ],
     });
 
-    if (p.isCancel(anthropicKeyResponse)) {
+    if (p.isCancel(providerChoice)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    anthropicKey = (anthropicKeyResponse as string) || undefined;
+
+    // Prompt for keys based on selection
+    if (providerChoice === 'anthropic' || providerChoice === 'both') {
+      const anthropicKeyResponse = await p.text({
+        message: 'Enter your Anthropic API key:',
+        placeholder: 'sk-ant-...',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'Anthropic API key is required';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(anthropicKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      anthropicKey = anthropicKeyResponse as string;
+    }
+
+    if (providerChoice === 'openai' || providerChoice === 'both') {
+      const openAiKeyResponse = await p.text({
+        message: 'Enter your OpenAI API key:',
+        placeholder: 'sk-...',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'OpenAI API key is required';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(openAiKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      openAiKey = openAiKeyResponse as string;
+    }
+  } else {
+    // If some keys are provided via CLI args, prompt for missing ones
+    if (!anthropicKey) {
+      const anthropicKeyResponse = await p.text({
+        message: 'Enter your Anthropic API key (optional):',
+        placeholder: 'sk-ant-...',
+        defaultValue: '',
+      });
+
+      if (p.isCancel(anthropicKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      anthropicKey = (anthropicKeyResponse as string) || undefined;
+    }
+
+    if (!openAiKey) {
+      const openAiKeyResponse = await p.text({
+        message: 'Enter your OpenAI API key (optional):',
+        placeholder: 'sk-...',
+        defaultValue: '',
+      });
+
+      if (p.isCancel(openAiKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      openAiKey = (openAiKeyResponse as string) || undefined;
+    }
   }
 
-  // Prompt for OpenAI API key
-  if (!openAiKey) {
-    const openAiKeyResponse = await p.text({
-      message: 'Enter your OpenAI API key (optional):',
-      placeholder: 'sk-...',
-      defaultValue: '',
-    });
-
-    if (p.isCancel(openAiKeyResponse)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-    openAiKey = (openAiKeyResponse as string) || undefined;
+  let defaultModelSettings = {}
+  if (anthropicKey && openAiKey) {
+    defaultModelSettings = defaultDualModelConfigurations;
+  } else if (anthropicKey) {
+    defaultModelSettings = defaultAnthropicModelConfigurations;
+  } else if (openAiKey) {
+    defaultModelSettings = defaultOpenaiModelConfigurations;
   }
 
   const s = p.spinner();
@@ -146,6 +212,7 @@ export const createAgents = async (
       anthropicKey,
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
+      modelSettings: defaultModelSettings,
     };
 
     // Create workspace structure
@@ -187,17 +254,17 @@ export const createAgents = async (
       `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
-        `  npm run dev (for APIs only)\n` +
-        `  npx inkeep dev (for APIs + Management Dashboard)\n\n` +
+        `  pnpm run dev (for APIs only)\n` +
+        `  inkeep dev (for APIs + Management Dashboard)\n\n` +
         `${color.yellow('Available services:')}\n` +
         `  • Management API: http://localhost:${manageApiPort || '3002'}\n` +
         `  • Execution API: http://localhost:${runApiPort || '3003'}\n` +
-        `  • Management Dashboard: Available with 'npx inkeep dev'\n` +
+        `  • Management Dashboard: Available with 'inkeep dev'\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
         `  • Edit src/${projectId}/hello.graph.ts for agent definitions\n` +
-        `  • Use 'npx inkeep push' to deploy agents to the platform\n` +
-        `  • Use 'npx inkeep chat' to test your agents locally\n`,
+        `  • Use 'inkeep push' to deploy agents to the platform\n` +
+        `  • Use 'inkeep chat' to test your agents locally\n`,
       'Ready to go!'
     );
   } catch (error) {
@@ -240,11 +307,16 @@ async function setupPackageConfigurations(dirName: string) {
     engines: {
       node: '>=22.x',
     },
-    packageManager: 'npm@10.0.0',
-    workspaces: ['apps/*'],
+    packageManager: 'pnpm@10.10.0',
   };
 
   await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
+
+  // Create pnpm-workspace.yaml for pnpm workspaces
+  const pnpmWorkspace = `packages:
+  - "apps/*"
+`;
+  await fs.writeFile('pnpm-workspace.yaml', pnpmWorkspace);
 
   // Add shared dependencies to root package.json
   rootPackageJson.dependencies = {
@@ -498,14 +570,15 @@ export const graph = agentGraph({
   // Inkeep config (if using CLI)
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
 
-    const config = defineConfig({
-      tenantId: "${config.tenantId}",
-      projectId: "${config.projectId}",
-      agentsManageApiUrl: \`http://localhost:\${process.env.MANAGE_API_PORT || '3002'}\`,
-      agentsRunApiUrl: \`http://localhost:\${process.env.RUN_API_PORT || '3003'}\`,
-    });
+const config = defineConfig({
+  tenantId: "${config.tenantId}",
+  projectId: "${config.projectId}",
+  agentsManageApiUrl: \`http://localhost:\${process.env.MANAGE_API_PORT || '3002'}\`,
+  agentsRunApiUrl: \`http://localhost:\${process.env.RUN_API_PORT || '3003'}\`,
+  modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
+});
     
-    export default config;`;
+export default config;`;
 
   await fs.writeFile(`src/${config.projectId}/inkeep.config.ts`, inkeepConfig);
 
@@ -691,18 +764,22 @@ This project follows a workspace structure with the following services:
   - Handles entity management and configuration endpoints.
 - **Agents Run API** (Port 3003): Agent execution and chat processing  
   - Handles agent communication. You can interact with your agents either over MCP from an MCP client or through our React UI components library
-- **Management Dashboard** (Port 3000): Web interface available via \`npx inkeep dev\`
+- **Management Dashboard** (Port 3000): Web interface available via \`inkeep dev\`
   - The agent framework visual builder. From the builder you can create, manage and visualize all your graphs.
 
 ## Quick Start
+1. **Install the Inkeep CLI:**
+   \`\`\`bash
+   pnpm install -g @inkeep/agents-cli
+   \`\`\`
 
 1. **Start services:**
    \`\`\`bash
    # Start Agents Management API and Agents Run API
-   npm run dev
+   pnpm run dev
    
    # Start Dashboard
-   npx inkeep dev
+   inkeep dev
    \`\`\`
 
 3. **Deploy your first agent graph:**
@@ -711,7 +788,7 @@ This project follows a workspace structure with the following services:
    cd src/${config.projectId}/
    
    # Push the hello graph to create it
-   npx inkeep push hello.graph.ts
+   inkeep push hello.graph.ts
    \`\`\`
   - Follow the prompts to create the project and graph
   - Click on the \"View graph in UI:\" link to see the graph in the management dashboard
@@ -728,7 +805,8 @@ ${config.dirName}/
 │   └── shared/              # Shared code between API services
 │       └── credential-stores.ts  # Shared credential store configuration
 ├── turbo.json               # Turbo configuration
-└── package.json             # Root package configuration with npm workspaces
+├── pnpm-workspace.yaml      # pnpm workspace configuration
+└── package.json             # Root package configuration
 \`\`\`
 
 ## Configuration
@@ -760,7 +838,7 @@ RUN_API_PORT=3003
 MANAGE_API_PORT
 \`\`\`
 
-After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`npx inkeep dev\`:
+After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`inkeep dev\`:
 
 \`\`\`bash
 # UI Configuration (for dashboard)
@@ -787,7 +865,7 @@ Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.
 ### Updating Your Agents
 
 1. Edit \`src/${config.projectId}/index.ts\`
-2. Push the graph to the platform to update: \`npx inkeep push hello.graph.ts\` 
+2. Push the graph to the platform to update: \`inkeep push hello.graph.ts\` 
 
 ### API Documentation
 
@@ -810,7 +888,7 @@ Once services are running, view the OpenAPI documentation:
 
 ### Services won't start
 
-1. Ensure all dependencies are installed: \`npm install\`
+1. Ensure all dependencies are installed: \`pnpm install\`
 2. Check that ports 3000-3003 are available
 
 ### Agents won't respond
@@ -822,13 +900,13 @@ Once services are running, view the OpenAPI documentation:
 }
 
 async function installDependencies() {
-  await execAsync('npm install');
+  await execAsync('pnpm install');
 }
 
 async function setupDatabase() {
   try {
     // Run drizzle-kit push to create database file and apply schema
-    await execAsync('npx drizzle-kit push');
+    await execAsync('pnpm db:push');
   } catch (error) {
     throw new Error(
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`

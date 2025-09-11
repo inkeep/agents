@@ -73,7 +73,7 @@ describe('Init Command', () => {
       );
       expect(writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('inkeep.config.ts'),
-        expect.stringContaining("managementApiUrl: 'http://localhost:3002'")
+        expect.stringContaining("agentsManageApiUrl: 'http://localhost:3002'")
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.any(String), // The checkmark

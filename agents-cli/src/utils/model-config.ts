@@ -17,6 +17,52 @@ export interface ModelConfigurationResult {
   };
 }
 
+export const defaultDualModelConfigurations = {
+  base: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+  pull: {
+    model: 'openai/gpt-5-2025-08-07',
+  },
+  structuredOutput: {
+    model: 'openai/gpt-4.1-mini-2025-04-14',
+  },
+  summarizer: {
+    model: 'openai/gpt-4.1-nano-2025-04-14',
+  },
+}
+
+export const defaultOpenaiModelConfigurations = {
+  base: {
+    model: 'openai/gpt-5-2025-08-07',
+  },
+  pull: {
+    model: 'openai/gpt-5-2025-08-07',
+  },
+  structuredOutput: {
+    model: 'openai/gpt-4.1-mini-2025-04-14',
+  },
+  summarizer: {
+    model: 'openai/gpt-4.1-nano-2025-04-14',
+  },
+}
+
+export const defaultAnthropicModelConfigurations = {
+  base: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+  pull: {
+    model: 'anthropic/claude-opus-4-1-20250805',
+  },
+  structuredOutput: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+  summarizer: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+}
+
+
 /**
  * Prompt user for model configuration (providers and model selection)
  * This is shared between init and push commands
