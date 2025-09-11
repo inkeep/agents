@@ -6,7 +6,12 @@ import {
 } from '@inkeep/agents-core';
 import { Agent } from './agent';
 import { ArtifactComponent } from './artifact-component';
-import type { ArtifactComponentConfig, DataComponentConfig, MCPServerConfig } from './builders';
+import type {
+  AgentMcpConfig,
+  ArtifactComponentConfig,
+  DataComponentConfig,
+  MCPServerConfig,
+} from './builders';
 import { DataComponent } from './data-component';
 import { AgentGraph } from './graph';
 import { Tool } from './tool';
@@ -156,7 +161,9 @@ export function mcpServer(config: MCPServerConfig): Tool {
 export function mcpTool(config: MCPToolConfig): Tool {
   const validatedConfig = MCPToolConfigSchema.parse(config);
   return new Tool(validatedConfig);
-} // ============================================================================
+}
+
+// ============================================================================
 // Component Builders
 // ============================================================================
 /**
@@ -223,4 +230,11 @@ export function dataComponent(config: DataComponentConfig): DataComponent {
     tenantId: config.tenantId || 'default',
     projectId: config.projectId || 'default',
   });
+}
+
+export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
+  return {
+    server: config.server,
+    selectedTools: config.selectedTools,
+  };
 }
