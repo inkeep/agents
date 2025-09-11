@@ -6,8 +6,9 @@ import {
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { env } from './env';
 
-const otlpUrl = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:14318/v1/traces';
+const otlpUrl = env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:14318/v1/traces';
 const otlpExporter = new OTLPTraceExporter({ url: otlpUrl });
 
 // Minimal fan-out so NodeSDK can accept ONE spanProcessor
@@ -26,11 +27,14 @@ class FanOutSpanProcessor {
     return Promise.all(this.inner.map((p) => p.shutdown?.())).then(() => {});
   }
 }
+// Configure batch size based on environment
+const maxExportBatchSize = env.OTEL_MAX_EXPORT_BATCH_SIZE 
+  ?? (env.ENVIRONMENT === 'development' ? 1 : 512);
 
 const spanProcessor = new FanOutSpanProcessor([
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
   new BatchSpanProcessor(otlpExporter, {
-    maxExportBatchSize: 1,
+    maxExportBatchSize,
   }),
 
 ]);
