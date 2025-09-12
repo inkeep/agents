@@ -22,20 +22,7 @@ export function ProjectSwitcher() {
       .then((res) => {
         setIsLoading(false);
         if (res.success && res.data) {
-          let projectResults = res.data;
-          // If current projectId is not in the list, add a placeholder
-          if (projectId && !projectResults.some((p: Project) => p.projectId === projectId)) {
-            projectResults = [
-              ...projectResults,
-              {
-                projectId: projectId as string,
-                name: projectId as string,
-                description: '',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-            ];
-          }
+          const projectResults = res.data;
           setProjects(projectResults);
         } else {
           setProjects([]);
@@ -46,7 +33,7 @@ export function ProjectSwitcher() {
         setIsLoading(false);
         setProjects([]);
       });
-  }, [tenantId, projectId]);
+  }, [tenantId]);
 
   return (
     <div className="flex flex-col gap-2">

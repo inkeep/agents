@@ -4,7 +4,7 @@ export interface ModelSettings {
 }
 
 export interface ProjectModels {
-  base?: ModelSettings;
+  base: ModelSettings;
   structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 }
@@ -19,7 +19,7 @@ export interface Project {
   projectId: string; // Frontend field (mapped from id)
   name: string;
   description: string;
-  models?: ProjectModels;
+  models: ProjectModels;
   stopWhen?: ProjectStopWhen;
   createdAt: string;
   updatedAt: string;

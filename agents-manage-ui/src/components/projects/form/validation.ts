@@ -6,7 +6,7 @@ const modelSettingsSchema = z.object({
 });
 
 const projectModelsSchema = z.object({
-  base: modelSettingsSchema.required(),
+  base: modelSettingsSchema,
   structuredOutput: modelSettingsSchema.optional(),
   summarizer: modelSettingsSchema.optional(),
 });
