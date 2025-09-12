@@ -1,4 +1,3 @@
-import { Hono } from 'hono';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -7,6 +6,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
@@ -187,6 +187,8 @@ function createExecutionHono(
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('*', async (c, next) => {
+    const logger = getLogger();
+
     // Get the API key context if available (set by auth middleware)
     const executionContext = c.get('executionContext');
 
@@ -204,7 +206,7 @@ function createExecutionHono(
         const body = await c.req.json();
         conversationId = body?.conversationId;
       } catch (_) {
-        // Silently ignore parse errors for non-JSON bodies
+        logger.debug('Conversation ID not found in JSON body');
       }
     }
 
