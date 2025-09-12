@@ -9,10 +9,7 @@ type BodyTemplateProps = {
 export function BodyTemplate({ children, breadcrumbs }: BodyTemplateProps) {
   return (
     <div className="h-[calc(100vh-16px)] flex flex-col overflow-hidden">
-      <SiteHeader
-        title={breadcrumbs[breadcrumbs.length - 1]?.label ?? ''}
-        breadcrumbs={breadcrumbs}
-      />
+      <SiteHeader breadcrumbs={breadcrumbs} />
       <SiteContent>{children}</SiteContent>
     </div>
   );
