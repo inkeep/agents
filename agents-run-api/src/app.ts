@@ -31,7 +31,7 @@ function createExecutionHono(
   serverConfig: ServerConfig,
   credentialStores: CredentialStoreRegistry
 ) {
-  const app = new OpenAPIHono<{ Variables: AppVariables }>();
+  const app = new Hono<{ Variables: AppVariables }>();
 
   // Request ID middleware
   app.use('*', requestId());
@@ -232,8 +232,14 @@ function createExecutionHono(
     return otelContext.with(ctxWithBag, () => next());
   });
 
-  // Health check endpoint (no auth required)
-  app.openapi(
+  // Mount execution routes - API key provides tenant, project, and graph context
+  app.route('/v1/chat', chatRoutes);
+  app.route('/api', chatDataRoutes);
+  app.route('/v1/mcp', mcpRoutes);
+  app.route('/agents', agentRoutes);
+
+  const appOpenAPI = new OpenAPIHono();
+  appOpenAPI.openapi(
     createRoute({
       method: 'get',
       path: '/health',
@@ -250,20 +256,11 @@ function createExecutionHono(
       return c.body(null, 204);
     }
   );
-
-  // Mount execution routes - API key provides tenant, project, and graph context
-  app.route('/v1/chat', chatRoutes);
-  app.route('/api', chatDataRoutes);
-  app.route('/v1/mcp', mcpRoutes);
-  app.route('/agents', agentRoutes);
-
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
-  setupOpenAPIRoutes(app);
+  setupOpenAPIRoutes(appOpenAPI);
+  app.route('/', appOpenAPI);
 
-  const baseApp = new Hono();
-  baseApp.route('/', app);
-  
-  return baseApp;
+  return app;
 }
 
 export { createExecutionHono };
