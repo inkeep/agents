@@ -4,10 +4,10 @@ import {
   BaggageSpanProcessor,
 } from '@opentelemetry/baggage-span-processor';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import { resourceFromAttributes } from '@opentelemetry/resources';
 import { env } from './env';
 
 const maxExportBatchSize =
@@ -15,18 +15,17 @@ const maxExportBatchSize =
 
 const otlpExporter = new OTLPTraceExporter();
 
+const batchProcessor = new BatchSpanProcessor(otlpExporter, {
+  maxExportBatchSize,
+});
+
 const resource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
 });
 
 const sdk = new NodeSDK({
   resource: resource,
-  spanProcessors: [
-    new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
-    new BatchSpanProcessor(otlpExporter, {
-      maxExportBatchSize,
-    }),
-  ],
+  spanProcessors: [new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS), batchProcessor],
   instrumentations: [
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-http': {
@@ -52,3 +51,5 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+
+export { batchProcessor };
