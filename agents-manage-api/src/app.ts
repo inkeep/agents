@@ -22,7 +22,7 @@ function createManagementHono(
   serverConfig: ServerConfig,
   credentialStores: CredentialStoreRegistry
 ) {
-  const app = new OpenAPIHono<{ Variables: AppVariables }>();
+  const app = new Hono<{ Variables: AppVariables }>();
 
   // Request ID middleware
   app.use('*', requestId());
@@ -150,8 +150,17 @@ function createManagementHono(
     })
   );
 
-  // Health check endpoint
-  app.openapi(
+  // API Key authentication middleware for protected routes
+  app.use('/tenants/*', apiKeyAuth());
+
+  // Mount CRUD routes for all entities
+  app.route('/tenants/:tenantId/crud', crudRoutes);
+
+  // Mount OAuth routes - global OAuth callback endpoint
+  app.route('/oauth', oauthRoutes);
+
+  const honoOpenAPIapp = new OpenAPIHono();
+  honoOpenAPIapp.openapi(
     createRoute({
       method: 'get',
       path: '/health',
@@ -168,23 +177,11 @@ function createManagementHono(
       return c.body(null, 204);
     }
   );
-
-  // API Key authentication middleware for protected routes
-  app.use('/tenants/*', apiKeyAuth());
-
-  // Mount CRUD routes for all entities
-  app.route('/tenants/:tenantId/crud', crudRoutes);
-
-  // Mount OAuth routes - global OAuth callback endpoint
-  app.route('/oauth', oauthRoutes);
-
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
-  setupOpenAPIRoutes(app);
+  setupOpenAPIRoutes(honoOpenAPIapp);
+  app.route('/', honoOpenAPIapp);
 
-  const baseApp = new Hono();
-  baseApp.route('/', app);
-  
-  return baseApp;
+  return app;
 }
 
 export { createManagementHono };
