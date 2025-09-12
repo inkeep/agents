@@ -1,4 +1,3 @@
-import { Hono } from 'hono';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -7,6 +6,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
@@ -179,23 +179,6 @@ function createExecutionHono(
     })
   );
 
-  app.use('/agents/*', (c, next) => {
-    batchProcessor.forceFlush();
-    return next();
-  });
-  app.use('/v1/chat', (c, next) => {
-    batchProcessor.forceFlush();
-    return next();
-  });
-  app.use('/v1/mcp', (c, next) => {
-    batchProcessor.forceFlush();
-    return next();
-  });
-  app.use('/agents', (c, next) => {
-    batchProcessor.forceFlush();
-    return next();
-  });
-
   // Apply API key authentication to all routes except health and docs
   app.use('/tenants/*', apiKeyAuth());
   app.use('/agents/*', apiKeyAuth());
@@ -277,6 +260,23 @@ function createExecutionHono(
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
+
+  app.use('/tenants/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
+  app.use('/agents/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
+  app.use('/v1/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
+  app.use('/api/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
 
   const baseApp = new Hono();
   baseApp.route('/', app);
