@@ -21,7 +21,7 @@ interface SidePaneContentProps {
 function SidePaneRoot({ isOpen, children }: SidePaneRootProps) {
   return (
     <div
-      className={`relative top-0 right-0 bg-background h-full flex flex-col rounded-br-[14px] transform transition-transform duration-300 ease-in-out group z-50 ${isOpen ? 'translate-x-0 w-[400px]' : 'translate-x-full w-0'}`}
+      className={`relative top-0 right-0 bg-background h-full flex flex-col rounded-br-[14px] transform transition-transform duration-300 ease-in-out group z-50 ${isOpen ? 'translate-x-0 w-[480px]' : 'translate-x-full w-0'}`}
     >
       {children}
     </div>
