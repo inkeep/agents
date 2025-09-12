@@ -16,7 +16,7 @@ export const apiKeyAuth = () =>
     };
   }>(async (c, next) => {
     // If bypass secret is configured, only allow bypass authentication
-    if (env.INKEEP_AGENTS_MANAGE_API_SECRET) {
+    if (env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
       const authHeader = c.req.header('Authorization');
 
       // Check for Bearer token
@@ -28,7 +28,7 @@ export const apiKeyAuth = () =>
 
       const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-      if (apiKey === env.INKEEP_AGENTS_MANAGE_API_SECRET) {
+      if (apiKey === env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
         logger.info({}, 'Bypass secret authenticated successfully');
 
         await next();

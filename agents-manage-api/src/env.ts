@@ -44,7 +44,7 @@ const envSchema = z.object({
   AGENT_BASE_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SECRET_KEY: z.string().optional(),
-  INKEEP_AGENTS_MANAGE_API_SECRET: z.string().optional(),
+  INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
 });
 
 const parseEnv = () => {
