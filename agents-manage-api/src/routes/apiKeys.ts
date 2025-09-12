@@ -164,23 +164,42 @@ app.openapi(
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
     };
-    const result = await createApiKey(dbClient)(insertData);
-    // Remove sensitive fields from the apiKey object (but keep the full key)
-    const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = result;
 
-    return c.json(
-      {
-        data: {
-          apiKey: {
-            ...sanitizedApiKey,
-            lastUsedAt: sanitizedApiKey.lastUsedAt ?? null,
-            expiresAt: sanitizedApiKey.expiresAt ?? null,
+    try {
+      const result = await createApiKey(dbClient)(insertData);
+      // Remove sensitive fields from the apiKey object (but keep the full key)
+      const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = result;
+
+      return c.json(
+        {
+          data: {
+            apiKey: {
+              ...sanitizedApiKey,
+              lastUsedAt: sanitizedApiKey.lastUsedAt ?? null,
+              expiresAt: sanitizedApiKey.expiresAt ?? null,
+            },
+            key: key,
           },
-          key: key,
         },
-      },
-      201
-    );
+        201
+      );
+    } catch (error: any) {
+      // Handle foreign key constraint violations (invalid graphId)
+      if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
+        return c.json(
+          {
+            title: 'Bad Request',
+            status: 400,
+            detail: 'Invalid graphId - graph does not exist',
+            code: 'invalid_graph_id',
+          },
+          400
+        );
+      }
+
+      // Re-throw other errors to be handled by the global error handler
+      throw error;
+    }
   }
 );
 

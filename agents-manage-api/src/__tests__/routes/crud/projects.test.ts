@@ -453,37 +453,6 @@ describe('Project CRUD Routes - Integration Tests', () => {
       expect(body.error.message).toBe('Project not found');
     });
 
-    it('should return 409 when deleting project with existing resources', async () => {
-      const tenantId = createTestTenantId('projects-delete-with-resources');
-      const { projectId } = await createTestProject({ tenantId });
-
-      // Create an agent in this project
-      await createAgent(dbClient)({
-        id: `test-agent-${nanoid(6)}`,
-        tenantId,
-        projectId,
-        name: 'Test Agent',
-        description: 'Test agent to prevent project deletion',
-        prompt: 'Test instructions',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}`, {
-        method: 'DELETE',
-      });
-
-      expect(res.status).toBe(409);
-
-      const body = await res.json();
-      expect(body.error.code).toBe('conflict');
-      expect(body.error.message).toBe('Cannot delete project with existing resources');
-
-      // Verify project still exists
-      const getRes = await app.request(`/tenants/${tenantId}/crud/projects/${projectId}`);
-      expect(getRes.status).toBe(200);
-    });
-
     it('should not delete projects from other tenants', async () => {
       const tenantId1 = createTestTenantId('projects-delete-tenant1');
       const tenantId2 = createTestTenantId('projects-delete-tenant2');

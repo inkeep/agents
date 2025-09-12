@@ -43,6 +43,9 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     tenantId: string,
     projectId: string = 'default-project'
   ) => {
+    // Ensure the project exists for this tenant before creating the graph
+    await ensureTestProject(tenantId, projectId);
+
     const graphId = `test-graph${nanoid(6)}`;
     const graphData = createFullGraphData(graphId);
     await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
@@ -321,9 +324,10 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/api-keys`, {
         method: 'POST',
         body: JSON.stringify(createData),
+        expectError: true,
       });
 
-      expect(res.status).toBe(500); // Should fail due to foreign key constraint
+      expect(res.status).toBe(400); // Invalid graphId returns Bad Request
     });
   });
 

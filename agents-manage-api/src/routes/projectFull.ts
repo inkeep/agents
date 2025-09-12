@@ -90,13 +90,31 @@ app.openapi(
     // Validate the project data
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
-    // Create the full project using the server-side data layer operations
-    const createdProject = await createFullProjectServerSide(dbClient, logger)(
-      { tenantId },
-      validatedProjectData
-    );
+    try {
+      // Create the full project using the server-side data layer operations
+      const createdProject = await createFullProjectServerSide(dbClient, logger)(
+        { tenantId },
+        validatedProjectData
+      );
 
-    return c.json({ data: createdProject }, 201);
+      return c.json({ data: createdProject }, 201);
+    } catch (error: any) {
+      // Handle duplicate project creation (SQLite primary key constraint)
+      if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
+        return c.json(
+          {
+            title: 'Conflict',
+            status: 409,
+            detail: `Project with ID '${projectData.id}' already exists`,
+            code: 'duplicate_project',
+          },
+          409
+        );
+      }
+
+      // Re-throw other errors to be handled by the global error handler
+      throw error;
+    }
   }
 );
 
