@@ -9,10 +9,10 @@ export function setupOpenAPIRoutes(app: any) {
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
-          title: 'Inkeep Execution API',
+          title: 'Inkeep Agents Run API',
           version: '1.0.0',
           description:
-            'Complete REST API for Inkeep Execution application including chat completions, A2A agent communication, and comprehensive CRUD operations for all entities',
+            'Chat completions, MCP, and A2A run endpoints in the Inkeep Agent Framework.',
         },
         servers: [
           {
@@ -37,7 +37,7 @@ export function setupOpenAPIRoutes(app: any) {
     '/docs',
     swaggerUI({
       url: '/openapi.json',
-      title: 'Inkeep Execution API Documentation',
+      title: 'Inkeep Agents Run API Documentation',
     })
   );
 }

@@ -33,7 +33,7 @@ program
   .option('--project-id <project-id>', 'Project ID')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--manage-api-port <port>', 'Management API port', '3002')
+  .option('--manage-api-port <port>', 'Manage API port', '3002')
   .option('--run-api-port <port>', 'Run API port', '3003')
   .action(async (directory, options) => {
     await createCommand(directory, options);

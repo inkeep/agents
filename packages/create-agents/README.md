@@ -44,7 +44,7 @@ npx @inkeep/create-agents my-agent-directory --tenant-id my-tenant --project-id 
 - `--project-id <project-id>` - Project identifier for your agents
 - `--openai-key <openai-key>` - OpenAI API key (optional)
 - `--anthropic-key <anthropic-key>` - Anthropic API key (recommended)
-- `--manage-api-port <port>` - Management API port (default: 3002)
+- `--manage-api-port <port>` - Manage API port (default: 3002)
 - `--run-api-port <port>` - Run API port (default: 3003)
 
 ## What's Created
@@ -59,12 +59,12 @@ my-agent-directory/
 │       ├── inkeep.config.ts    # Inkeep CLI configuration
 │       └── .env                # CLI environment variables
 ├── apps/
-│   ├── manage-api/             # Management API service
+│   ├── manage-api/             # Manage API service
 │   │   ├── src/index.ts        # API server entry point
 │   │   ├── package.json        # Service dependencies
 │   │   ├── tsconfig.json       # TypeScript config
 │   │   └── .env                # Service environment
-│   ├── run-api/                # Execution API service  
+│   ├── run-api/                # Run API service  
 │   │   ├── src/index.ts        # API server entry point
 │   │   ├── package.json        # Service dependencies
 │   │   ├── tsconfig.json       # TypeScript config
@@ -90,11 +90,11 @@ my-agent-directory/
 
 2. **Start the services:**
    ```bash
-   # Start both Management and Run APIs
+   # Start both Manage API and Run API
    npm run dev
    ```
 
-3. **In a new terminal, start the Management Dashboard:**
+3. **In a new terminal, start the Manage UI:**
    ```bash
    npx inkeep dev
    ```
@@ -114,15 +114,15 @@ my-agent-directory/
 
 After setup, you'll have access to:
 
-- **Management API** (Port 3002): Agent configuration and management
+- **Manage API** (Port 3002): Agent configuration and management
 - **Run API** (Port 3003): Agent execution and chat processing  
-- **Management Dashboard** (Port 3000): Visual agent builder (via `npx inkeep dev`)
+- **Manage UI** (Port 3000): Visual agent builder (via `npx inkeep dev`)
 
 ## Commands Available in Your Directory
 
 - `npm run dev` - Start both API services with hot reload
 - `npm run db:push` - Apply database schema changes
-- `npx inkeep dev` - Start the Management Dashboard
+- `npx inkeep dev` - Start the Manage UI
 - `npx inkeep push <graph-file>` - Deploy agent configurations
 - `npx inkeep chat` - Interactive chat with your agents
 
@@ -149,7 +149,7 @@ LOG_LEVEL=debug
 ```
 
 ### Service-specific `.env` files
-- `apps/manage-api/.env` - Management API configuration
+- `apps/manage-api/.env` - Manage API configuration
 - `apps/run-api/.env` - Run API configuration  
 - `src/<project-id>/.env` - CLI configuration
 

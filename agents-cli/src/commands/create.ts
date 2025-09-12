@@ -260,11 +260,11 @@ export const createAgents = async (
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
         `  pnpm run dev (for APIs only)\n` +
-        `  inkeep dev (for APIs + Management Dashboard)\n\n` +
+        `  inkeep dev (for APIs + Manage UI)\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Management API: http://localhost:${manageApiPort || '3002'}\n` +
-        `  • Execution API: http://localhost:${runApiPort || '3003'}\n` +
-        `  • Management Dashboard: Available with 'inkeep dev'\n` +
+        `  • Manage API: http://localhost:${manageApiPort || '3002'}\n` +
+        `  • Run API: http://localhost:${runApiPort || '3003'}\n` +
+        `  • Manage UI: Available with 'inkeep dev'\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
         `  • Edit src/${projectId}/weather.graph.ts for agent definitions\n` +
@@ -332,11 +332,11 @@ async function setupPackageConfigurations(dirName: string) {
 
   await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
 
-  // Management API package
+  // Manage API package
   const manageApiPackageJson = {
     name: `@${dirName}/manage-api`,
     version: '0.1.0',
-    description: 'Management API for agents',
+    description: 'Manage API for agents',
     type: 'module',
     scripts: {
       build: 'tsc',
@@ -360,7 +360,7 @@ async function setupPackageConfigurations(dirName: string) {
 
   await fs.writeJson('apps/manage-api/package.json', manageApiPackageJson, { spaces: 2 });
 
-  // Execution API package
+  // Run API package
   const runApiPackageJson = {
     name: `@${dirName}/run-api`,
     version: '0.1.0',
@@ -658,7 +658,7 @@ export const credentialStores = [
 
   await fs.writeFile('apps/shared/credential-stores.ts', credentialStoresFile);
 
-  // Management API
+  // Manage API
   const manageApiIndex = `import { serve } from '@hono/node-server';
 import { createManagementApp } from '@inkeep/agents-manage-api';
 import { getLogger } from '@inkeep/agents-core';
@@ -695,7 +695,7 @@ serve(
 
   await fs.writeFile('apps/manage-api/src/index.ts', manageApiIndex);
 
-  // Execution API
+  // Run API
   const runApiIndex = `import { serve } from '@hono/node-server';
 import { createExecutionApp } from '@inkeep/agents-run-api';
 import { credentialStores } from '../../shared/credential-stores.js';
@@ -726,7 +726,7 @@ serve(
     port,
   },
   (info) => {
-    logger.info({}, \`📝 Execution API running on http://localhost:\${info.port}\`);
+    logger.info({}, \`📝 Run API running on http://localhost:\${info.port}\`);
     logger.info({}, \`📝 OpenAPI documentation available at http://localhost:\${info.port}/openapi.json\`);
   }
 );`;
@@ -797,11 +797,11 @@ An Inkeep Agent Framework project with multi-service architecture.
 
 This project follows a workspace structure with the following services:
 
-- **Agents Management API** (Port 3002): Agent configuration and managemen
+- **Agents Manage API** (Port 3002): Agent configuration and managemen
   - Handles entity management and configuration endpoints.
 - **Agents Run API** (Port 3003): Agent execution and chat processing  
   - Handles agent communication. You can interact with your agents either over MCP from an MCP client or through our React UI components library
-- **Management Dashboard** (Port 3000): Web interface available via \`inkeep dev\`
+- **Agents Manage UI** (Port 3000): Web interface available via \`inkeep dev\`
   - The agent framework visual builder. From the builder you can create, manage and visualize all your graphs.
 
 ## Quick Start
@@ -812,7 +812,7 @@ This project follows a workspace structure with the following services:
 
 1. **Start services:**
    \`\`\`bash
-   # Start Agents Management API and Agents Run API
+   # Start Agents Manage API and Agents Run API
    pnpm run dev
    
    # Start Dashboard
@@ -837,7 +837,7 @@ ${config.dirName}/
 ├── src/
 │   ├── /${config.projectId}              # Agent configurations
 ├── apps/
-│   ├── manage-api/          # Agents Management API service
+│   ├── manage-api/          # Agents Manage API service
 │   ├── run-api/             # Agents Run API service
 │   └── shared/              # Shared code between API services
 │       └── credential-stores.ts  # Shared credential store configuration
@@ -852,7 +852,7 @@ ${config.dirName}/
 
 Environment variables are defined in the following places:
 
-- \`apps/manage-api/.env\`: Agents Management API environment variables
+- \`apps/manage-api/.env\`: Agents Manage API environment variables
 - \`apps/run-api/.env\`: Agents Run API environment variables
 - \`src/${config.projectId}/.env\`: Inkeep CLI environment variables
 - \`.env\`: Root environment variables 
@@ -872,7 +872,7 @@ To change the ports used by your services modify \`apps/manage-api/.env\` and \`
 RUN_API_PORT=3003
 
 # Service port for apps/manage-api
-MANAGE_API_PORT
+MANAGE_API_PORT=3002
 \`\`\`
 
 After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`inkeep dev\`:
@@ -893,8 +893,8 @@ Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.
 
 - \`tenantId\`: The tenant ID
 - \`projectId\`: The project ID
-- \`agentsManageApiUrl\`: The management API URL
-- \`agentsRunApiUrl\`: The execution API URL
+- \`agentsManageApiUrl\`: The Manage API URL
+- \`agentsRunApiUrl\`: The Run API URL
 
 
 ## Development
@@ -908,8 +908,8 @@ Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.
 
 Once services are running, view the OpenAPI documentation:
 
-- Management API: http://localhost:${config.manageApiPort}/docs
-- Execution API: http://localhost:${config.runApiPort}/docs
+- Manage API: http://localhost:${config.manageApiPort}/docs
+- Run API: http://localhost:${config.runApiPort}/docs
 
 ## Learn More
 

@@ -14,6 +14,7 @@ interface ChatWidgetProps {
   setConversationId: (conversationId: string) => void;
   startPolling: () => void;
   stopPolling: () => void;
+  customHeaders?: Record<string, string>;
 }
 
 const styleOverrides = `
@@ -107,6 +108,7 @@ export function ChatWidget({
   setConversationId,
   startPolling,
   stopPolling,
+  customHeaders,
 }: ChatWidgetProps) {
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -196,6 +198,7 @@ export function ChatWidget({
               'x-inkeep-project-id': projectId,
               'x-inkeep-graph-id': graphId,
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              ...customHeaders,
             },
             components: {
               IkpMessage,
