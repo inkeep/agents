@@ -331,8 +331,8 @@ CRITICAL JSON FORMATTING RULES - MUST FOLLOW EXACTLY:
 3. The props field contains the actual component data using exact property names from the schema
 4. NEVER omit the id and name fields
 
-CORRECT: [{"id": "component1", "name": "Component1", "props": {"field1": "value1", "field2": "value2"}}, {"id": "component2", "name": "Component2", "props": {"field3": "value3"}}]
-WRONG: [{"field1": "value1", "field2": "value2"}, {"field3": "value3"}]
+CORRECT: [{\"id\": \"component1\", \"name\": \"Component1\", \"props\": {\"field1\": \"value1\", \"field2\": \"value2\"}}, {\"id\": \"component2\", \"name\": \"Component2\", \"props\": {\"field3\": \"value3\"}}]
+WRONG: [{\"field1\": \"value1\", \"field2\": \"value2\"}, {\"field3\": \"value3\"}]
 
 ">
   ${dataComponentsXml}
