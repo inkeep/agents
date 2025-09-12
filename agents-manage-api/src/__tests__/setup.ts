@@ -10,8 +10,8 @@ beforeAll(async () => {
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
 
-    // Temporarily disable foreign key constraints for tests due to composite key issues
-    await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
+    // Enable foreign key constraints to test proper relationships
+    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
 
     // Use path relative to project root to work with both direct and turbo execution
     const migrationsPath = process.cwd().includes('agents-manage-api')

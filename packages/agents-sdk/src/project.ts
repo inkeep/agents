@@ -427,6 +427,7 @@ export class Project implements ProjectInterface {
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
       graphs: graphsObject,
+      tools: {}, // Empty tools object as SDK doesn't manage tools directly yet
       credentialReferences: undefined, // Projects don't directly hold credentials yet
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

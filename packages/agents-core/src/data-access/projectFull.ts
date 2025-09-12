@@ -163,6 +163,20 @@ export const updateFullProjectServerSide =
     );
 
     try {
+      // Check if project exists first
+      const existingProject = await getProject(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      if (!existingProject) {
+        // Project doesn't exist, create it instead
+        logger.info({ projectId: typed.id }, 'Project not found, creating new project');
+        return await createFullProjectServerSide(db, logger)(
+          { tenantId, projectId: typed.id },
+          projectData
+        );
+      }
+
       // Step 1: Update the project itself
       const projectUpdatePayload = {
         name: typed.name,

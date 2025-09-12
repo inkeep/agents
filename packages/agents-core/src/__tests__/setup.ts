@@ -12,8 +12,8 @@ const dbClient = createDatabaseClient({ url: ':memory:' });
 beforeAll(async () => {
   const logger = getLogger('Test Setup');
   try {
-    // Temporarily disable foreign key constraints for tests due to composite key issues
-    await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
+    // Enable foreign key constraints to test proper relationships
+    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
 
     // Use absolute path to ensure migrations are found correctly
     const projectRoot = process.cwd().includes('packages/agents-core')
