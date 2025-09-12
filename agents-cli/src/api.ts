@@ -152,8 +152,8 @@ export class ExecutionApiClient extends BaseApiClient {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-        ...(process.env.INKEEP_AGENTS_RUN_BYPASS_SECRET && {
-          Authorization: `Bearer ${process.env.INKEEP_AGENTS_RUN_BYPASS_SECRET}`,
+        ...(process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
+          Authorization: `Bearer ${process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
         }),
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,

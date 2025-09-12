@@ -29,7 +29,7 @@ vi.mock('../../data/db/dbClient.js', () => ({
 
 vi.mock('../../env.js', () => ({
   env: {
-    INKEEP_AGENTS_RUN_BYPASS_SECRET: undefined as string | undefined,
+    INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined as string | undefined,
   },
 }));
 
@@ -182,12 +182,12 @@ describe('API Key Authentication Middleware', () => {
   describe('apiKeyAuth middleware with bypass secret', () => {
     beforeEach(() => {
       // Set the bypass secret
-      env.INKEEP_AGENTS_RUN_BYPASS_SECRET = 'test-bypass-secret';
+      env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET = 'test-bypass-secret';
     });
 
     afterEach(() => {
       // Clear the bypass secret
-      env.INKEEP_AGENTS_RUN_BYPASS_SECRET = undefined;
+      env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET = undefined;
     });
 
     it('should accept requests with valid bypass secret', async () => {

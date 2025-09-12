@@ -204,7 +204,7 @@ export function ChatWidget({
 							"x-inkeep-tenant-id": tenantId,
 							"x-inkeep-project-id": projectId,
 							"x-inkeep-graph-id": graphId,
-							Authorization: `Bearer ${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_BYPASS_SECRET}`,
+							Authorization: `Bearer ${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
 						},
 						components: {
 							IkpMessage,

@@ -25,7 +25,7 @@ curl -H "x-inkeep-tenant-id: tenant-123" \
 
 ### Standard Mode
 
-When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_BYPASS_SECRET` is not set:
+When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is not set:
 
 - Use API keys created from the Management UI
 - No additional headers required (scope encoded in key)
@@ -37,7 +37,7 @@ curl -H "Authorization: Bearer sk_live_abc123..." \
 
 ### Bypass Mode
 
-When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_BYPASS_SECRET` is set:
+When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is set:
 
 **Option 1: Bypass Secret**
 
@@ -68,7 +68,7 @@ To run multiple Run API instances with different auth configurations:
 
 ```bash
 # Instance 1: Port 3003 with bypass secret
-PORT=3003 INKEEP_AGENTS_RUN_BYPASS_SECRET=secret123 pnpm dev
+PORT=3003 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=secret123 pnpm dev
 
 # Instance 2: Port 3004 without bypass secret
 PORT=3004 pnpm dev

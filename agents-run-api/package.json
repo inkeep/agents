@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "vite",
     "dev:with-bypass": "PORT=3003 vite",
-    "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_BYPASS_SECRET= vite",
+    "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_API_BYPASS_SECRET= vite",
     "build": "tsup",
     "start": "node dist/server.js",
     "test": "./run-tests.sh",

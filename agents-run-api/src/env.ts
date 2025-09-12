@@ -48,7 +48,7 @@ const envSchema = z.object({
   NANGO_SECRET_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string(),
-  INKEEP_AGENTS_RUN_BYPASS_SECRET: z.string().optional(),
+  INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
   OTEL_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional(),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional().default('http://localhost:14318/v1/traces'),
 });

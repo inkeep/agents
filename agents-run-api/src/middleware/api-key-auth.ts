@@ -8,7 +8,7 @@ import { createExecutionContext } from '../types/execution-context';
 const logger = getLogger('env-key-auth');
 /**
  * Middleware to authenticate API requests using Bearer token authentication
- * First checks if token matches INKEEP_AGENTS_RUN_BYPASS_SECRET, then falls back to API key validation
+ * First checks if token matches INKEEP_AGENTS_RUN_API_BYPASS_SECRET, then falls back to API key validation
  * Extracts and validates API keys, then adds execution context to the request
  */
 export const apiKeyAuth = () =>
@@ -79,8 +79,8 @@ export const apiKeyAuth = () =>
     const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // If bypass secret is configured, allow bypass authentication or api key validation
-    if (env.INKEEP_AGENTS_RUN_BYPASS_SECRET) {
-      if (apiKey === env.INKEEP_AGENTS_RUN_BYPASS_SECRET) {
+    if (env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
+      if (apiKey === env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
         // Extract base URL from request
 
         if (!tenantId || !projectId || !graphId) {
