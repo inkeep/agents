@@ -25,7 +25,7 @@ export async function createFullProjectViaAPI(
     'Creating full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects`;
+  const url = `${apiUrl}/tenants/${tenantId}/project-full`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -91,7 +91,7 @@ export async function updateFullProjectViaAPI(
     'Updating full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -156,7 +156,7 @@ export async function getFullProjectViaAPI(
     'Getting full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -230,7 +230,7 @@ export async function deleteFullProjectViaAPI(
     'Deleting full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
   const response = await fetch(url, {
     method: 'DELETE',
     headers: {

@@ -1,7 +1,7 @@
-import { Hono } from 'hono';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import { handleApiError } from '@inkeep/agents-core';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
@@ -12,6 +12,7 @@ import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
 import crudRoutes from './routes/index';
 import oauthRoutes from './routes/oauth';
+import projectFullRoutes from './routes/projectFull';
 
 type AppVariables = {
   serverConfig: ServerConfig;
@@ -174,6 +175,9 @@ function createManagementHono(
 
   // Mount CRUD routes for all entities
   app.route('/tenants/:tenantId/crud', crudRoutes);
+
+  // Mount full project routes directly under tenant (not under /crud)
+  app.route('/tenants/:tenantId', projectFullRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);

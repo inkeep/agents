@@ -656,6 +656,12 @@ export const ProjectSelectSchema = createSelectSchema(projects);
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
     models: ProjectModelSchema.optional(),
+    stopWhen: z
+      .object({
+        transferCountIs: z.number().min(1).max(100).optional(),
+        stepCountIs: z.number().min(1).max(1000).optional(),
+      })
+      .optional(),
   })
   .omit({
     createdAt: true,
@@ -671,13 +677,13 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 // Full Project Definition Schema - extends Project with graphs and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   graphs: z.record(z.string(), FullGraphDefinitionSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema),
+  dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
+  artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
+  contextConfig: z.optional(ContextConfigApiInsertSchema),
+  statusUpdates: z.optional(StatusUpdateSchema),
+  models: ModelSchema.optional(),
   credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
-  stopWhen: z
-    .object({
-      transferCountIs: z.number().min(1).max(100).optional(),
-      stepCountIs: z.number().min(1).max(1000).optional(),
-    })
-    .optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

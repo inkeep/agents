@@ -34,7 +34,7 @@ export const projects = sqliteTable(
     name: text('name').notNull(),
     description: text('description').notNull(),
 
-    // Project-level default model settingsuration that can be inherited by graphs and agents
+    // Project-level default model settings that can be inherited by graphs and agents
     models: text('models', { mode: 'json' }).$type<ProjectModels>(),
 
     // Project-level stopWhen configuration that can be inherited by graphs and agents
