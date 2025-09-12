@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.1.3",
+  "version": "0.1.6",
   "description": "Execution API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "vite",
     "dev:with-bypass": "PORT=3003 vite",
-    "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_BYPASS_SECRET= vite",
+    "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_API_BYPASS_SECRET= vite",
     "build": "tsup",
     "start": "node dist/server.js",
     "test": "./run-tests.sh",

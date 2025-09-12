@@ -653,12 +653,14 @@ export const RemovedResponseSchema = z.object({
 
 // === Project Schemas ===
 export const ProjectSelectSchema = createSelectSchema(projects);
-export const ProjectInsertSchema = createInsertSchema(projects).extend({
-  models: ProjectModelSchema.optional(),
-}).omit({
-  createdAt: true,
-  updatedAt: true,
-});
+export const ProjectInsertSchema = createInsertSchema(projects)
+  .extend({
+    models: ProjectModelSchema.optional(),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  });
 export const ProjectUpdateSchema = ProjectInsertSchema.partial();
 
 // Projects API schemas - only omit tenantId since projects table doesn't have projectId

@@ -4,7 +4,12 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import { defaultOpenaiModelConfigurations, defaultAnthropicModelConfigurations, defaultDualModelConfigurations, ModelConfigurationResult } from '../utils/model-config';
+import {
+  defaultOpenaiModelConfigurations,
+  defaultAnthropicModelConfigurations,
+  defaultDualModelConfigurations,
+  ModelConfigurationResult,
+} from '../utils/model-config';
 
 const execAsync = promisify(exec);
 
@@ -170,7 +175,7 @@ export const createAgents = async (
     }
   }
 
-  let defaultModelSettings = {}
+  let defaultModelSettings = {};
   if (anthropicKey && openAiKey) {
     defaultModelSettings = defaultDualModelConfigurations;
   } else if (anthropicKey) {
@@ -262,7 +267,7 @@ export const createAgents = async (
         `  • Management Dashboard: Available with 'inkeep dev'\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
-        `  • Edit src/${projectId}/hello.graph.ts for agent definitions\n` +
+        `  • Edit src/${projectId}/weather.graph.ts for agent definitions\n` +
         `  • Use 'inkeep push' to deploy agents to the platform\n` +
         `  • Use 'inkeep chat' to test your agents locally\n`,
       'Ready to go!'
@@ -545,27 +550,59 @@ pids/
 }
 
 async function createServiceFiles(config: FileConfig) {
-  const agentsGraph = `import { agent, agentGraph } from '@inkeep/agents-sdk';
+  const agentsGraph = `import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
 
-// Router agent - the entry point that routes users to specialist agents
-const helloAgent = agent({
-  id: 'hello',
-  name: 'Hello Agent',
-  description: 'A hello agent that just says hello.',
-  prompt: \`You are a hello agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...\`,
+// MCP Tools
+const forecastWeatherTool = mcpTool({
+  id: 'fUI2riwrBVJ6MepT8rjx0',
+  name: 'Forecast weather',
+  serverUrl: 'https://weather-forecast-mcp.vercel.app/mcp',
 });
 
+const geocodeAddressTool = mcpTool({
+  id: 'fdxgfv9HL7SXlfynPx8hf',
+  name: 'Geocode address',
+  serverUrl: 'https://geocoder-mcp.vercel.app/mcp',
+});
 
-// Create the agent graph
-export const graph = agentGraph({
-  id: 'hello',
-  name: 'Hello Graph',
-  description: 'A graph that contains the hello agent.',
-  defaultAgent: helloAgent,
-  agents: () => [helloAgent],
+// Agents
+const weatherAssistant = agent({
+  id: 'weather-assistant',
+  name: 'Weather assistant',
+  description: 'Responsible for routing between the geocoder agent and weather forecast agent',
+  prompt:
+    'You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast',
+  canDelegateTo: () => [weatherForecaster, geocoderAgent],
+});
+
+const weatherForecaster = agent({
+  id: 'weather-forecaster',
+  name: 'Weather forecaster',
+  description:
+    'This agent is responsible for taking in coordinates and returning the forecast for the weather at that location',
+  prompt:
+    'You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool',
+  canUse: () => [forecastWeatherTool],
+});
+
+const geocoderAgent = agent({
+  id: 'geocoder-agent',
+  name: 'Geocoder agent',
+  description: 'Responsible for converting location or address into coordinates',
+  prompt:
+    'You are a helpful assistant responsible for converting location or address into coordinates using your geocode tool',
+  canUse: () => [geocodeAddressTool],
+});
+
+// Agent Graph
+export const weatherGraph = agentGraph({
+  id: 'weather-graph',
+  name: 'Weather graph',
+  defaultAgent: weatherAssistant,
+  agents: () => [weatherAssistant, weatherForecaster, geocoderAgent],
 });`;
 
-  await fs.writeFile(`src/${config.projectId}/hello.graph.ts`, agentsGraph);
+  await fs.writeFile(`src/${config.projectId}/weather.graph.ts`, agentsGraph);
 
   // Inkeep config (if using CLI)
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
@@ -787,8 +824,8 @@ This project follows a workspace structure with the following services:
    # Navigate to your project's graph directory
    cd src/${config.projectId}/
    
-   # Push the hello graph to create it
-   inkeep push hello.graph.ts
+   # Push the weather graph to create it
+   inkeep push weather.graph.ts
    \`\`\`
   - Follow the prompts to create the project and graph
   - Click on the \"View graph in UI:\" link to see the graph in the management dashboard
@@ -848,9 +885,9 @@ NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
 
 ### Agent Configuration
 
-Your agents are defined in \`src/${config.projectId}/index.ts\`. The default setup includes:
+Your graphs are defined in \`src/${config.projectId}/weather.graph.ts\`. The default setup includes:
 
-- **Hello Agent**: A hello agent that just says hello.
+- **Weather Graph**: A graph that can forecast the weather in a given location.
 
 Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.ts\`. The inkeep configuration is used to configure defaults for the inkeep CLI. The configuration includes:
 
@@ -864,8 +901,8 @@ Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.
 
 ### Updating Your Agents
 
-1. Edit \`src/${config.projectId}/index.ts\`
-2. Push the graph to the platform to update: \`inkeep push hello.graph.ts\` 
+1. Edit \`src/${config.projectId}/weather.graph.ts\`
+2. Push the graph to the platform to update: \`inkeep pus weather.graph.ts\` 
 
 ### API Documentation
 

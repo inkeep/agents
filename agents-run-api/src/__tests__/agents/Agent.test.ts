@@ -80,10 +80,12 @@ const {
     })
   );
   const graphHasArtifactComponentsMock = vi.fn(() => vi.fn().mockResolvedValue(false));
-  const getToolsForAgentMock = vi.fn(() => vi.fn().mockResolvedValue({
-    data: [],
-    pagination: { page: 1, limit: 10, total: 0, pages: 0 }
-  }));
+  const getToolsForAgentMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+    })
+  );
 
   return {
     getCredentialReferenceMock,
@@ -129,7 +131,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     }),
   };
 });
-
 
 // Mock anthropic
 vi.mock('@ai-sdk/anthropic', () => ({

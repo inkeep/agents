@@ -21,7 +21,9 @@ export class ModelFactory {
    */
   static createModel(config: ModelSettings): LanguageModel {
     if (!config?.model?.trim()) {
-      throw new Error('Model configuration is required. Please configure models at the project level.');
+      throw new Error(
+        'Model configuration is required. Please configure models at the project level.'
+      );
     }
 
     const modelSettings = config;
@@ -47,7 +49,9 @@ export class ModelFactory {
           return ModelFactory.createOpenAIModel(modelName, modelSettings.providerOptions);
 
         default:
-          throw new Error(`Unsupported provider: ${provider}. Supported providers are: ${ModelFactory.SUPPORTED_PROVIDERS.join(', ')}`);
+          throw new Error(
+            `Unsupported provider: ${provider}. Supported providers are: ${ModelFactory.SUPPORTED_PROVIDERS.join(', ')}`
+          );
       }
     } catch (error) {
       logger.error(
@@ -60,7 +64,9 @@ export class ModelFactory {
       );
 
       // Re-throw the error instead of falling back to a default
-      throw new Error(`Failed to create model ${modelString}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to create model ${modelString}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 

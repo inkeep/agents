@@ -1,0 +1,16 @@
+# @inkeep/agents-cli
+
+## 0.1.6
+
+### Patch Changes
+
+- 3c4fd25: Removed pull model configs.
+- 2f5e8d5: Add model config defaults in create command
+- 7a63d95: publish create-agents
+- d0b23e0: Added weather graph example
+- 239aa8a: - Cli --env flag
+  - Run API middleware update
+- Updated dependencies [3c4fd25]
+- Updated dependencies [239aa8a]
+  - @inkeep/agents-core@0.1.6
+  - @inkeep/agents-manage-ui@0.1.6

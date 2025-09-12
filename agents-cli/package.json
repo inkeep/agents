@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -71,7 +71,7 @@
     "node": ">=22.0.0"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "files": [

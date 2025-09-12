@@ -57,15 +57,17 @@ vi.mock('@inkeep/agents-core', () => ({
   getActiveAgentForConversation: getActiveAgentForConversationMock,
   getFullGraph: getFullGraphMock,
   getTracer: vi.fn(() => ({
-    startActiveSpan: vi.fn((name, fn) => fn({ 
-      setAttributes: vi.fn(), 
-      setStatus: vi.fn(), 
-      end: vi.fn() 
-    })),
-    startSpan: vi.fn(() => ({ 
-      setAttributes: vi.fn(), 
-      setStatus: vi.fn(), 
-      end: vi.fn() 
+    startActiveSpan: vi.fn((name, fn) =>
+      fn({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      })
+    ),
+    startSpan: vi.fn(() => ({
+      setAttributes: vi.fn(),
+      setStatus: vi.fn(),
+      end: vi.fn(),
     })),
   })),
   setSpanWithError: vi.fn(),

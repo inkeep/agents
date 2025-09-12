@@ -1,15 +1,15 @@
-import axios from "axios";
-import axiosRetry from "axios-retry";
+import axios from 'axios';
+import axiosRetry from 'axios-retry';
 
 // Configure axios retry
 axiosRetry(axios, {
-	retries: 3,
-	retryDelay: axiosRetry.exponentialDelay,
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
 });
 
 // Attribute key constants
 const ATTRIBUTE_KEYS = {
-	CONVERSATION_ID: "conversation.id",
+  CONVERSATION_ID: 'conversation.id',
 } as const;
 
 /**
@@ -17,65 +17,65 @@ const ATTRIBUTE_KEYS = {
  */
 
 export type SpanRow = {
-	trace_id: string;
-	span_id: string;
-	timestamp: string;
-	name: string;
-	parent_span_id: string | null;
-	attributes_string_json: string;
-	attributes_number_json: string;
-	attributes_bool_json: string;
-	resources_string_json: string;
+  trace_id: string;
+  span_id: string;
+  timestamp: string;
+  name: string;
+  parent_span_id: string | null;
+  attributes_string_json: string;
+  attributes_number_json: string;
+  attributes_bool_json: string;
+  resources_string_json: string;
 };
 
 /**
  * Fetch all span attributes for given trace IDs using optimized SQL query
  */
 export async function fetchAllSpanAttributes_SQL(
-	conversationId: string,
-	sigNozUrl: string,
-	apiKey: string,
+  conversationId: string,
+  sigNozUrl: string,
+  apiKey: string
 ): Promise<
-	Array<{
-		spanId: string;
-		traceId: string;
-		timestamp: string;
-		data: Record<string, any>;
-	}>
+  Array<{
+    spanId: string;
+    traceId: string;
+    timestamp: string;
+    data: Record<string, any>;
+  }>
 > {
-	console.log(`🔍 DEBUG - fetchAllSpanAttributes_SQL called with:`, {
-		conversationId,
-		sigNozUrl,
-	});
+  console.log(`🔍 DEBUG - fetchAllSpanAttributes_SQL called with:`, {
+    conversationId,
+    sigNozUrl,
+  });
 
-	const results: Array<{
-		spanId: string;
-		traceId: string;
-		timestamp: string;
-		data: Record<string, any>;
-	}> = [];
+  const results: Array<{
+    spanId: string;
+    traceId: string;
+    timestamp: string;
+    data: Record<string, any>;
+  }> = [];
 
-	const LIMIT = 1000;
-	let offset = 0;
-	const tableName = "distributed_signoz_index_v3";
+  const LIMIT = 1000;
+  let offset = 0;
+  const tableName = 'distributed_signoz_index_v3';
 
-	console.log(`🔍 DEBUG - Using table: ${tableName}, LIMIT: ${LIMIT}`);
+  console.log(`🔍 DEBUG - Using table: ${tableName}, LIMIT: ${LIMIT}`);
 
-	const basePayload = {
-		start: new Date("2020-01-01T00:00:00Z").getTime(),
-		end: Date.now(),
-		step: 60,
-		variables: {
-			conversation_id: conversationId,
-			limit: LIMIT,
-			offset: 0,
-		},
-		compositeQuery: {
-			queryType: "clickhouse_sql",
-			panelType: "table",
-			chQueries: {
-				A: {
-					query: `
+  const basePayload = {
+    start: new Date('2020-01-01T00:00:00Z').getTime(),
+    end: Date.now(),
+    step: 60,
+    variables: {
+      conversation_id: conversationId,
+      limit: LIMIT,
+      offset: 0,
+    },
+    compositeQuery: {
+      queryType: 'clickhouse_sql',
+      panelType: 'table',
+      chQueries: {
+        A: {
+          query: `
             SELECT
               trace_id, span_id, parent_span_id,
               timestamp,
@@ -91,92 +91,85 @@ export async function fetchAllSpanAttributes_SQL(
             ORDER BY timestamp DESC
             LIMIT {{.limit}} OFFSET {{.offset}}
           `,
-				},
-			},
-		},
-	};
+        },
+      },
+    },
+  };
 
-	while (true) {
-		const payload = JSON.parse(JSON.stringify(basePayload));
-		payload.variables.offset = offset;
-		const signozEndpoint = `${sigNozUrl}/api/v4/query_range`;
-		try {
-			const response = await axios.post(signozEndpoint, payload, {
-				headers: {
-					"Content-Type": "application/json",
-					"SIGNOZ-API-KEY": apiKey,
-				},
-				timeout: 30000,
-			});
+  while (true) {
+    const payload = JSON.parse(JSON.stringify(basePayload));
+    payload.variables.offset = offset;
+    const signozEndpoint = `${sigNozUrl}/api/v4/query_range`;
+    try {
+      const response = await axios.post(signozEndpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'SIGNOZ-API-KEY': apiKey,
+        },
+        timeout: 30000,
+      });
 
-			console.log(
-				`🔍 DEBUG - Page response status: ${response.status} ${response.statusText}`,
-			);
+      console.log(`🔍 DEBUG - Page response status: ${response.status} ${response.statusText}`);
 
-			const json = response.data;
-			console.log(
-				`🔍 DEBUG - Page response JSON:`,
-				JSON.stringify(json, null, 2),
-			);
+      const json = response.data;
+      console.log(`🔍 DEBUG - Page response JSON:`, JSON.stringify(json, null, 2));
 
-			const result = json?.data?.result?.[0];
-			let rows: SpanRow[] = [];
-			rows = result.series
-				.map((s: any) => ({
-					trace_id: s.labels?.trace_id,
-					span_id: s.labels?.span_id,
-					parent_span_id: s.labels?.parent_span_id,
-					timestamp: s.labels?.timestamp,
-					name: s.labels?.name,
-					attributes_string_json: s.labels?.attributes_string_json,
-					attributes_number_json: s.labels?.attributes_number_json,
-					attributes_bool_json: s.labels?.attributes_bool_json,
-					resources_string_json: s.labels?.resources_string_json,
-				}))
-				.filter((r: any) => r.trace_id && r.span_id); // Filter out incomplete rows
+      const result = json?.data?.result?.[0];
+      let rows: SpanRow[] = [];
+      rows = result.series
+        .map((s: any) => ({
+          trace_id: s.labels?.trace_id,
+          span_id: s.labels?.span_id,
+          parent_span_id: s.labels?.parent_span_id,
+          timestamp: s.labels?.timestamp,
+          name: s.labels?.name,
+          attributes_string_json: s.labels?.attributes_string_json,
+          attributes_number_json: s.labels?.attributes_number_json,
+          attributes_bool_json: s.labels?.attributes_bool_json,
+          resources_string_json: s.labels?.resources_string_json,
+        }))
+        .filter((r: any) => r.trace_id && r.span_id); // Filter out incomplete rows
 
-			if (!rows.length) {
-				break;
-			}
+      if (!rows.length) {
+        break;
+      }
 
-			for (const r of rows) {
-				// Build the span.data bag from the projected JSON maps
-				const attrsString = JSON.parse(r.attributes_string_json || "{}");
-				const attrsNum = JSON.parse(r.attributes_number_json || "{}");
-				const attrsBool = JSON.parse(r.attributes_bool_json || "{}");
-				const resString = JSON.parse(r.resources_string_json || "{}");
+      for (const r of rows) {
+        // Build the span.data bag from the projected JSON maps
+        const attrsString = JSON.parse(r.attributes_string_json || '{}');
+        const attrsNum = JSON.parse(r.attributes_number_json || '{}');
+        const attrsBool = JSON.parse(r.attributes_bool_json || '{}');
+        const resString = JSON.parse(r.resources_string_json || '{}');
 
-				results.push({
-					spanId: r.span_id,
-					traceId: r.trace_id,
-					timestamp: r.timestamp,
-					data: {
-						// Essential span identification fields
-						name: r.name,
-						spanID: r.span_id,
-						traceID: r.trace_id,
-						parentSpanID: r.parent_span_id,
-						// All actual attributes from OpenTelemetry
-						...attrsString,
-						...attrsNum,
-						...attrsBool,
-						...resString,
-					},
-				});
-			}
+        results.push({
+          spanId: r.span_id,
+          traceId: r.trace_id,
+          timestamp: r.timestamp,
+          data: {
+            // Essential span identification fields
+            name: r.name,
+            spanID: r.span_id,
+            traceID: r.trace_id,
+            parentSpanID: r.parent_span_id,
+            // All actual attributes from OpenTelemetry
+            ...attrsString,
+            ...attrsNum,
+            ...attrsBool,
+            ...resString,
+          },
+        });
+      }
 
-			offset += LIMIT;
-			if (rows.length < LIMIT) {
-				console.log(
-					`🔍 DEBUG - Last page (${rows.length} < ${LIMIT}), breaking pagination`,
-				);
-				break;
-			}
-		} catch (error) {
-			console.error(`❌ Error fetching spans at offset ${offset}:`, error);
-			break;
-		}
-	}
+      offset += LIMIT;
+      if (rows.length < LIMIT) {
+        console.log(`🔍 DEBUG - Last page (${rows.length} < ${LIMIT}), breaking pagination`);
+        break;
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching spans at offset ${offset}:`, error);
+      break;
+    }
+  }
 
-	return results;
+  return results;
 }

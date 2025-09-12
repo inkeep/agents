@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 /**
  * Custom hook that creates a ref for text input elements and automatically positions
@@ -28,24 +28,21 @@ import { useEffect, useRef } from "react";
  * @returns A ref to attach to the text input element
  */
 export function useCursorToEnd<
-	T extends HTMLInputElement | HTMLTextAreaElement = HTMLTextAreaElement,
+  T extends HTMLInputElement | HTMLTextAreaElement = HTMLTextAreaElement,
 >() {
-	const inputRef = useRef<T>(null);
+  const inputRef = useRef<T>(null);
 
-	useEffect(() => {
-		if (
-			inputRef.current &&
-			typeof inputRef.current.setSelectionRange === "function"
-		) {
-			const element = inputRef.current;
-			const textLength = element.value?.length || 0;
-			try {
-				element.setSelectionRange(textLength, textLength);
-			} catch (error) {
-				console.error(error);
-			}
-		}
-	}, []);
+  useEffect(() => {
+    if (inputRef.current && typeof inputRef.current.setSelectionRange === 'function') {
+      const element = inputRef.current;
+      const textLength = element.value?.length || 0;
+      try {
+        element.setSelectionRange(textLength, textLength);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }, []);
 
-	return inputRef;
+  return inputRef;
 }

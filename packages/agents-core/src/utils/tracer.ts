@@ -1,7 +1,6 @@
 import { getTracer } from './tracer-factory';
-import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
+// Import package.json using require() to avoid import assertion syntax
 const pkg = require('../../package.json');
 
 // Pre-configured tracer for agents-core

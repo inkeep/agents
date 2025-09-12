@@ -77,7 +77,7 @@ function syncLicenses() {
       // Write SUPPLEMENTAL_TERMS.md with header indicating it's auto-generated
       writeFileSync(supplementalPath, generatedSupplementalHeader + supplementalContent);
       console.log(`✅ Copied SUPPLEMENTAL_TERMS.md to ${packagePath}/`);
-      
+
       successCount++;
     } catch (error) {
       console.error(`❌ Failed to copy license files to ${packagePath}/: ${error.message}`);

@@ -6,7 +6,7 @@ import { env } from '../env';
 const logger = getLogger('env-key-auth');
 /**
  * Middleware to authenticate API requests using Bearer token authentication
- * First checks if token matches INKEEP_AGENTS_RUN_BYPASS_SECRET, then falls back to API key validation
+ * First checks if token matches INKEEP_AGENTS_RUN_API_BYPASS_SECRET, then falls back to API key validation
  * Extracts and validates API keys, then adds execution context to the request
  */
 export const apiKeyAuth = () =>
@@ -16,7 +16,7 @@ export const apiKeyAuth = () =>
     };
   }>(async (c, next) => {
     // If bypass secret is configured, only allow bypass authentication
-    if (env.INKEEP_AGENTS_MANAGE_API_SECRET) {
+    if (env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
       const authHeader = c.req.header('Authorization');
 
       // Check for Bearer token
@@ -28,7 +28,7 @@ export const apiKeyAuth = () =>
 
       const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-      if (apiKey === env.INKEEP_AGENTS_MANAGE_API_SECRET) {
+      if (apiKey === env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
         logger.info({}, 'Bypass secret authenticated successfully');
 
         await next();

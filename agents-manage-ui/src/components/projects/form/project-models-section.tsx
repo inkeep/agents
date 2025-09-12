@@ -48,7 +48,7 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
           try {
             const parsed = JSON.parse(value);
             providerOptionsField.onChange(parsed);
-          } catch (error) {
+          } catch {
             // Invalid JSON - don't update the field value
           }
         }}
@@ -102,7 +102,7 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
           try {
             const parsed = JSON.parse(value);
             providerOptionsField.onChange(parsed);
-          } catch (error) {
+          } catch {
             // Invalid JSON - don't update the field value
           }
         }}
@@ -156,7 +156,7 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
           try {
             const parsed = JSON.parse(value);
             providerOptionsField.onChange(parsed);
-          } catch (error) {
+          } catch {
             // Invalid JSON - don't update the field value
           }
         }}

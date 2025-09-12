@@ -183,7 +183,7 @@ function createManagementHono(
 
   const baseApp = new Hono();
   baseApp.route('/', app);
-  
+
   return baseApp;
 }
 

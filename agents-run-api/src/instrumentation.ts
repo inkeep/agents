@@ -28,17 +28,15 @@ class FanOutSpanProcessor {
   }
 }
 // Configure batch size based on environment
-const maxExportBatchSize = env.OTEL_MAX_EXPORT_BATCH_SIZE 
-  ?? (env.ENVIRONMENT === 'development' ? 1 : 512);
+const maxExportBatchSize =
+  env.OTEL_MAX_EXPORT_BATCH_SIZE ?? (env.ENVIRONMENT === 'development' ? 1 : 512);
 
 const spanProcessor = new FanOutSpanProcessor([
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
   new BatchSpanProcessor(otlpExporter, {
     maxExportBatchSize,
   }),
-
 ]);
-
 
 export const sdk = new NodeSDK({
   serviceName: 'inkeep-agents-run-api',

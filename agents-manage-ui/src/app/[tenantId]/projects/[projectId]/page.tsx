@@ -1,12 +1,12 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
 async function ProjectPage({
-	params,
+  params,
 }: {
-	params: Promise<{ tenantId: string; projectId: string }>;
+  params: Promise<{ tenantId: string; projectId: string }>;
 }) {
-	const { tenantId, projectId } = await params;
-	redirect(`/${tenantId}/projects/${projectId}/graphs`);
+  const { tenantId, projectId } = await params;
+  redirect(`/${tenantId}/projects/${projectId}/graphs`);
 }
 
 export default ProjectPage;

@@ -194,7 +194,6 @@ export async function pullCommand(graphId: string, options: PullOptions) {
       console.log(chalk.gray(`  • View the file: ${outputFilePath}`));
       console.log(chalk.gray(`  • Use the data in your application`));
     } else {
-
       // Generate TypeScript file with validation and retry logic
       const maxRetries = options.maxRetries || 3;
       let attempt = 1;
@@ -214,19 +213,15 @@ export async function pullCommand(graphId: string, options: PullOptions) {
         }
 
         // TODO: configure this based on environment variable?
-        const pullModel = config.modelSettings?.base || { model: 'anthropic/claude-sonnet-4-20250514' };
+        const pullModel = config.modelSettings?.base || {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        };
 
-        await generateTypeScriptFileWithLLM(
-          graphData,
-          graphId,
-          outputFilePath,
-          pullModel,
-          {
-            attempt,
-            maxRetries,
-            previousDifferences: attempt > 1 ? previousDifferences : undefined,
-          }
-        );
+        await generateTypeScriptFileWithLLM(graphData, graphId, outputFilePath, pullModel, {
+          attempt,
+          maxRetries,
+          previousDifferences: attempt > 1 ? previousDifferences : undefined,
+        });
 
         // Only validate when merging into existing file
         if (shouldValidate) {

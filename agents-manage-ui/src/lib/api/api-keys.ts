@@ -5,115 +5,116 @@
  * inkeep-chat backend API Keys REST API endpoints.
  */
 
-"use server";
+'use server';
 
 import type {
-	ApiKeyApiCreationResponse,
-	ApiKeyApiSelect,
-} from "@inkeep/agents-core/client-exports";
-import type { ListResponse, SingleResponse } from "../types/response";
-import { makeManagementApiRequest } from "./api-config";
-import { validateProjectId, validateTenantId } from "./resource-validation";
+  ApiKeyApiCreationResponse,
+  ApiKeyApiSelect,
+} from '@inkeep/agents-core/client-exports';
+import type { ListResponse, SingleResponse } from '../types/response';
+import { makeManagementApiRequest } from './api-config';
+import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: ApiKeyApiSelect might not have a 'name' field yet, and UI expects undefined instead of null
-export type ApiKey = Omit<ApiKeyApiSelect, "lastUsedAt" | "expiresAt"> & {
-	name?: string; // todo: will be added soon (should be required then)
-	lastUsedAt?: string; // Convert null to undefined for UI compatibility
-	expiresAt?: string; // Convert null to undefined for UI compatibility
+export type ApiKey = Omit<ApiKeyApiSelect, 'lastUsedAt' | 'expiresAt'> & {
+  name?: string; // todo: will be added soon (should be required then)
+  lastUsedAt?: string; // Convert null to undefined for UI compatibility
+  expiresAt?: string; // Convert null to undefined for UI compatibility
 };
 
 // The core ApiKeyApiCreationResponse has a 'data' wrapper, but we want a flat structure
 export type ApiKeyCreateResponse = {
-	apiKey: ApiKey;
-	key: string; // The full API key value (shown only once)
+  apiKey: ApiKey;
+  key: string; // The full API key value (shown only once)
 };
 
 export async function fetchApiKeys(
-	tenantId: string,
-	projectId: string,
+  tenantId: string,
+  projectId: string
 ): Promise<ListResponse<ApiKey>> {
-	validateTenantId(tenantId);
-	validateProjectId(projectId);
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
 
-	const response = await makeManagementApiRequest<
-		ListResponse<ApiKeyApiSelect>
-	>(`tenants/${tenantId}/crud/projects/${projectId}/api-keys`);
+  const response = await makeManagementApiRequest<ListResponse<ApiKeyApiSelect>>(
+    `tenants/${tenantId}/crud/projects/${projectId}/api-keys`
+  );
 
-	// Transform the response to convert nulls to undefined
-	return {
-		...response,
-		data: response.data.map((item) => ({
-			...item,
-			lastUsedAt: item.lastUsedAt ?? undefined,
-			expiresAt: item.expiresAt ?? undefined,
-		})),
-	} as ListResponse<ApiKey>;
+  // Transform the response to convert nulls to undefined
+  return {
+    ...response,
+    data: response.data.map((item) => ({
+      ...item,
+      lastUsedAt: item.lastUsedAt ?? undefined,
+      expiresAt: item.expiresAt ?? undefined,
+    })),
+  } as ListResponse<ApiKey>;
 }
 
 /**
  * Create a new api key
  */
 export async function createApiKey(
-	tenantId: string,
-	projectId: string,
-	apiKeyData: Partial<ApiKey>,
+  tenantId: string,
+  projectId: string,
+  apiKeyData: Partial<ApiKey>
 ): Promise<ApiKeyCreateResponse> {
-	validateTenantId(tenantId);
-	validateProjectId(projectId);
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
 
-	const response = await makeManagementApiRequest<
-		SingleResponse<ApiKeyApiCreationResponse>
-	>(`tenants/${tenantId}/crud/projects/${projectId}/api-keys`, {
-		method: "POST",
-		body: JSON.stringify(apiKeyData),
-	});
+  const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiCreationResponse>>(
+    `tenants/${tenantId}/crud/projects/${projectId}/api-keys`,
+    {
+      method: 'POST',
+      body: JSON.stringify(apiKeyData),
+    }
+  );
 
-	// The response.data contains the ApiKeyApiCreationResponse structure
-	// We need to extract and transform it to our expected structure
-	const rawResponse = response.data as any;
-	if (rawResponse?.data?.apiKey && rawResponse?.data?.key) {
-		const { apiKey, key } = rawResponse.data;
-		return {
-			apiKey: {
-				...apiKey,
-				lastUsedAt: apiKey.lastUsedAt ?? undefined,
-				expiresAt: apiKey.expiresAt ?? undefined,
-			},
-			key,
-		};
-	}
+  // The response.data contains the ApiKeyApiCreationResponse structure
+  // We need to extract and transform it to our expected structure
+  const rawResponse = response.data as any;
+  if (rawResponse?.data?.apiKey && rawResponse?.data?.key) {
+    const { apiKey, key } = rawResponse.data;
+    return {
+      apiKey: {
+        ...apiKey,
+        lastUsedAt: apiKey.lastUsedAt ?? undefined,
+        expiresAt: apiKey.expiresAt ?? undefined,
+      },
+      key,
+    };
+  }
 
-	// Fallback for direct structure (if API returns flat response)
-	if (rawResponse?.apiKey && rawResponse?.key) {
-		return {
-			apiKey: {
-				...rawResponse.apiKey,
-				lastUsedAt: rawResponse.apiKey.lastUsedAt ?? undefined,
-				expiresAt: rawResponse.apiKey.expiresAt ?? undefined,
-			},
-			key: rawResponse.key,
-		};
-	}
+  // Fallback for direct structure (if API returns flat response)
+  if (rawResponse?.apiKey && rawResponse?.key) {
+    return {
+      apiKey: {
+        ...rawResponse.apiKey,
+        lastUsedAt: rawResponse.apiKey.lastUsedAt ?? undefined,
+        expiresAt: rawResponse.apiKey.expiresAt ?? undefined,
+      },
+      key: rawResponse.key,
+    };
+  }
 
-	return rawResponse;
+  return rawResponse;
 }
 
 /**
  * Delete an api key
  */
 export async function deleteApiKey(
-	tenantId: string,
-	projectId: string,
-	apiKeyId: string,
+  tenantId: string,
+  projectId: string,
+  apiKeyId: string
 ): Promise<void> {
-	validateTenantId(tenantId);
-	validateProjectId(projectId);
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
 
-	await makeManagementApiRequest(
-		`tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKeyId}`,
-		{
-			method: "DELETE",
-		},
-	);
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKeyId}`,
+    {
+      method: 'DELETE',
+    }
+  );
 }

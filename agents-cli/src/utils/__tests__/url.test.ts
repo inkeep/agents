@@ -15,7 +15,9 @@ describe('normalizeBaseUrl', () => {
 
   it('should handle URLs with paths', () => {
     expect(normalizeBaseUrl('http://localhost:3000/app/')).toBe('http://localhost:3000/app');
-    expect(normalizeBaseUrl('https://example.com/dashboard/')).toBe('https://example.com/dashboard');
+    expect(normalizeBaseUrl('https://example.com/dashboard/')).toBe(
+      'https://example.com/dashboard'
+    );
   });
 
   it('should trim whitespace', () => {
@@ -45,22 +47,35 @@ describe('buildGraphViewUrl', () => {
 
   it('should build correct URL with provided base URL', () => {
     const result = buildGraphViewUrl('http://localhost:3000', tenantId, projectId, graphId);
-    expect(result).toBe('http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph');
+    expect(result).toBe(
+      'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph'
+    );
   });
 
   it('should use default URL when manageUiUrl is undefined', () => {
     const result = buildGraphViewUrl(undefined, tenantId, projectId, graphId);
-    expect(result).toBe('http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph');
+    expect(result).toBe(
+      'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph'
+    );
   });
 
   it('should handle trailing slashes in base URL', () => {
     const result = buildGraphViewUrl('http://localhost:3000/', tenantId, projectId, graphId);
-    expect(result).toBe('http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph');
+    expect(result).toBe(
+      'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph'
+    );
   });
 
   it('should handle URLs with existing paths', () => {
-    const result = buildGraphViewUrl('https://app.example.com/dashboard/', tenantId, projectId, graphId);
-    expect(result).toBe('https://app.example.com/dashboard/test-tenant/projects/test-project/graphs/test-graph');
+    const result = buildGraphViewUrl(
+      'https://app.example.com/dashboard/',
+      tenantId,
+      projectId,
+      graphId
+    );
+    expect(result).toBe(
+      'https://app.example.com/dashboard/test-tenant/projects/test-project/graphs/test-graph'
+    );
   });
 
   it('should handle special characters in IDs', () => {
@@ -70,11 +85,15 @@ describe('buildGraphViewUrl', () => {
       'project_456',
       'graph.with.dots'
     );
-    expect(result).toBe('http://localhost:3000/tenant-123/projects/project_456/graphs/graph.with.dots');
+    expect(result).toBe(
+      'http://localhost:3000/tenant-123/projects/project_456/graphs/graph.with.dots'
+    );
   });
 
   it('should throw error for invalid base URL', () => {
-    expect(() => buildGraphViewUrl('not-a-url', tenantId, projectId, graphId)).toThrow('Invalid URL format');
+    expect(() => buildGraphViewUrl('not-a-url', tenantId, projectId, graphId)).toThrow(
+      'Invalid URL format'
+    );
   });
 
   it('should handle production URLs', () => {
@@ -84,6 +103,8 @@ describe('buildGraphViewUrl', () => {
       'prod-project',
       'prod-graph'
     );
-    expect(result).toBe('https://manage.inkeep.com/prod-tenant/projects/prod-project/graphs/prod-graph');
+    expect(result).toBe(
+      'https://manage.inkeep.com/prod-tenant/projects/prod-project/graphs/prod-graph'
+    );
   });
 });

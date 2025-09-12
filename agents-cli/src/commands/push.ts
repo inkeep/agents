@@ -180,11 +180,11 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
 
       // Check if we have model settings in the config file
       let models = config.modelSettings;
-      
+
       if (!models || !models.base) {
         // No models configured in config file, prompt for them
         spinner.stop(); // Stop spinner before prompting
-        console.log(chalk.cyan('\nNow let\'s configure the AI models for this project.'));
+        console.log(chalk.cyan("\nNow let's configure the AI models for this project."));
         console.log(chalk.gray('Models are required for agents to function properly.\n'));
 
         const { modelSettings } = await promptForModelConfiguration();
@@ -201,7 +201,7 @@ export async function pushCommand(graphPath: string, options: PushOptions) {
           tenantId: tenantId,
           name: projectName,
           description: projectDescription || 'No description provided',
-          models: models,  // Pass models directly when creating the project
+          models: models, // Pass models directly when creating the project
         });
         spinner.succeed(`Project "${projectName}" created successfully with model configuration`);
       } catch (error: any) {
