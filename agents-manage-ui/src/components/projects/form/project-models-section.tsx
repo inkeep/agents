@@ -24,16 +24,18 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
   });
 
   return (
-    <div className="space-y-2">
-      <ModelSelector
-        label="Base Model"
-        placeholder="Select base model"
-        value={modelField.value || ''}
-        onValueChange={modelField.onChange}
-        isRequired
-        canClear={false}
-      />
-      <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <ModelSelector
+          label="Base Model"
+          placeholder="Select base model"
+          value={modelField.value || ''}
+          onValueChange={modelField.onChange}
+          isRequired
+          canClear={false}
+        />
+        <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
+      </div>
       <ExpandableJsonEditor
         name="models.base.providerOptions"
         label="Provider Options"
@@ -75,18 +77,20 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
   const baseModel = useWatch({ control, name: 'models.base.model' });
 
   return (
-    <div className="space-y-2">
-      <ModelSelector
-        label="Structured Output Model"
-        placeholder="Select structured output model (optional)"
-        value={modelField.value || ''}
-        onValueChange={modelField.onChange}
-        inheritedValue={baseModel}
-        canClear={true}
-      />
-      <p className="text-xs text-muted-foreground">
-        Model for structured outputs and data components (defaults to base model)
-      </p>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <ModelSelector
+          label="Structured Output Model"
+          placeholder="Select structured output model (optional)"
+          value={modelField.value || ''}
+          onValueChange={modelField.onChange}
+          inheritedValue={baseModel}
+          canClear={true}
+        />
+        <p className="text-xs text-muted-foreground">
+          Model for structured outputs and data components (defaults to base model)
+        </p>
+      </div>
       <ExpandableJsonEditor
         name="models.structuredOutput.providerOptions"
         label="Provider Options"
@@ -128,18 +132,20 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
   const baseModel = useWatch({ control, name: 'models.base.model' });
 
   return (
-    <div className="space-y-2">
-      <ModelSelector
-        label="Summarizer Model"
-        placeholder="Select summarizer model (optional)"
-        value={modelField.value || ''}
-        onValueChange={modelField.onChange}
-        inheritedValue={baseModel}
-        canClear={true}
-      />
-      <p className="text-xs text-muted-foreground">
-        Model for summarization tasks (defaults to base model)
-      </p>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <ModelSelector
+          label="Summarizer Model"
+          placeholder="Select summarizer model (optional)"
+          value={modelField.value || ''}
+          onValueChange={modelField.onChange}
+          inheritedValue={baseModel}
+          canClear={true}
+        />
+        <p className="text-xs text-muted-foreground">
+          Model for summarization tasks (defaults to base model)
+        </p>
+      </div>
       <ExpandableJsonEditor
         name="models.summarizer.providerOptions"
         label="Provider Options"
@@ -189,7 +195,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
             Configure Default Models
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6 mt-4 border rounded-md p-4 bg-muted/30">
+        <CollapsibleContent className="space-y-8 mt-4 border rounded-md p-4 bg-muted/30">
           {/* Base Model */}
           <BaseModelSection control={control} />
 
