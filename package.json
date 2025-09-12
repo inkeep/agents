@@ -43,6 +43,8 @@
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:studio": "pnpm --filter @inkeep/agents-core db:studio",
     "db:clean": "pnpm --filter @inkeep/agents-core db:clean",
+    "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
+    "db:reset": "pnpm --filter @inkeep/agents-core db:reset",
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
     "db:reset-schema": "pnpm --filter @inkeep/agents-core db:reset-schema",
     "workflow:profile": "node scripts/workflows/profile.mjs",

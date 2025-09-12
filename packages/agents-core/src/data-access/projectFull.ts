@@ -326,6 +326,7 @@ export const getFullProject =
         models: project.models || undefined,
         stopWhen: project.stopWhen || undefined,
         graphs,
+        tools: {}, // TODO: Implement proper tools retrieval
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };
