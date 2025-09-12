@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { JsonEditor } from '@/components/form/json-editor';
@@ -68,6 +69,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
       }
     }
     setCustomHeaders(parsedHeaders || {});
+    toast.success('Custom headers applied, you can now use them in the chat.');
     setIsOpen(false);
   };
 
