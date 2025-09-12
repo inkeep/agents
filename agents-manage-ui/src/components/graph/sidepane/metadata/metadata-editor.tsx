@@ -318,7 +318,7 @@ function MetadataEditor() {
 							updateMetadata("models", {
 								...(models || {}),
 								base: {
-									model: models.base!.model,
+									model: models.base?.model || "",
 									providerOptions: value,
 								},
 							});
@@ -340,7 +340,7 @@ function MetadataEditor() {
 							updateMetadata("models", {
 								...(models || {}),
 								structuredOutput: {
-									model: models.structuredOutput!.model,
+									model: models.structuredOutput?.model || "",
 									providerOptions: value,
 								},
 							});
@@ -362,7 +362,7 @@ function MetadataEditor() {
 							updateMetadata("models", {
 								...(models || {}),
 								summarizer: {
-									model: models.summarizer!.model,
+									model: models.summarizer?.model || "",
 									providerOptions: value,
 								},
 							});

@@ -63,7 +63,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 		setTimeRange: setSelectedTimeRange,
 		setCustomDateRange,
 		setSpanFilter,
-		clearFilters,
 	} = useTracesQueryState();
 
 	// Track local state for show/hide span filters

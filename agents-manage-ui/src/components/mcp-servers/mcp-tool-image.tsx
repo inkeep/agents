@@ -42,7 +42,7 @@ export function MCPToolImage({
 	// Handle base64 images
 	if (imageUrl.startsWith("data:image/")) {
 		return (
-			<img
+			<Image
 				src={imageUrl}
 				alt={name}
 				width={size}

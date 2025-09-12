@@ -1,12 +1,9 @@
 import type { Message } from "@inkeep/cxkit-react-oss/types";
 import {
-	AlertCircle,
 	BookOpen,
 	Check,
-	CheckCircle,
 	ChevronRight,
 	LoaderCircle,
-	Sparkles,
 } from "lucide-react";
 import { type FC, useEffect, useState, useRef } from "react";
 import supersub from "remark-supersub";
@@ -373,139 +370,6 @@ function useProcessedOperations(parts: Message["parts"]) {
 	return { operations, textContent, artifacts };
 }
 
-// Individual operation components
-const OperationStep: FC<{ operation: any; isLast: boolean }> = ({
-	operation,
-	isLast,
-}) => {
-	const { type, ctx } = operation;
-
-	const getStepIcon = () => {
-		switch (type) {
-			case "agent_initializing":
-				return <LoaderCircle className="w-3 h-3 animate-spin" />;
-			case "agent_ready":
-				return <CheckCircle className="w-3 h-3" />;
-			case "completion":
-				return <CheckCircle className="w-3 h-3" />;
-			case "error":
-				return <AlertCircle className="w-3 h-3 text-red-500" />;
-			default:
-				return <Sparkles className="w-3 h-3" />;
-		}
-	};
-
-	const getStepLabel = () => {
-		switch (type) {
-			case "agent_initializing":
-				return "Initializing agent...";
-			case "agent_ready":
-				return "Agent ready";
-			case "completion":
-				return `Completed by ${ctx.agent} agent`;
-			case "error":
-				return `Error: ${ctx.error}`;
-			default:
-				// For any other structured data operations, render the context dynamically
-				return renderStructuredLabel(type, ctx);
-		}
-	};
-
-	const renderStructuredLabel = (operationType: string, context: any) => {
-		// Convert snake_case to readable format
-		const readableType = operationType
-			.replace(/_/g, " ")
-			.replace(/\b\w/g, (l: string) => l.toUpperCase());
-
-		// Try to find the most meaningful fields to display
-		const meaningfulFields = Object.entries(context).filter(
-			([, value]) =>
-				typeof value === "string" && value.length > 0 && value.length < 100,
-		);
-
-		if (meaningfulFields.length > 0) {
-			const [, firstValue] = meaningfulFields[0];
-			return `${readableType}: ${firstValue}`;
-		}
-
-		return readableType;
-	};
-
-	const getStepColor = () => {
-		switch (type) {
-			case "tool_invocation":
-				if (ctx.status === "error") return "text-red-600 dark:text-red-400";
-				return "text-gray-500 dark:text-muted-foreground";
-			default:
-				return "text-gray-500 dark:text-muted-foreground";
-		}
-	};
-
-	// Check if this is a structured data operation (not one of our core operations)
-	const isStructuredOperation = ![
-    'agent_initializing',
-    'agent_ready',
-    'completion',
-    'error',
-	].includes(type);
-
-	const [isExpanded, setIsExpanded] = useState(false);
-
-	return (
-		<div className="relative">
-			<div className="flex items-center gap-2 relative">
-				{/* Connection line */}
-				{!isLast && (
-					<div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
-				)}
-
-				{/* Step indicator */}
-				<div
-					className={cn(
-						"flex items-center justify-center w-3 h-3 z-10",
-						getStepColor(),
-					)}
-				>
-					{getStepIcon()}
-				</div>
-
-				{/* Step label */}
-				<span className={cn("text-xs font-medium", getStepColor())}>
-					{getStepLabel()}
-				</span>
-
-				{/* Expand button for structured operations */}
-				{isStructuredOperation && Object.keys(ctx).length > 1 && (
-					<button
-						onClick={() => setIsExpanded(!isExpanded)}
-						className="ml-2 text-xs text-blue-500 hover:text-blue-700"
-					>
-						{isExpanded ? "▼" : "▶"}
-					</button>
-				)}
-			</div>
-
-			{/* Expanded structured data */}
-			{isStructuredOperation && isExpanded && (
-				<div className="ml-6 mt-2 p-2 bg-gray-50 rounded text-xs">
-					{Object.entries(ctx).map(([key, value]) => (
-						<div key={key} className="mb-1">
-							<span className="font-semibold text-gray-600">
-								{key
-									.replace(/_/g, " ")
-									.replace(/\b\w/g, (l) => l.toUpperCase())}
-								:
-							</span>{" "}
-							<span className="text-gray-800">
-								{typeof value === "string" ? value : JSON.stringify(value)}
-							</span>
-						</div>
-					))}
-				</div>
-			)}
-		</div>
-	);
-};
 
 export const IkpMessage: FC<IkpMessageProps> = ({
 	message,
@@ -515,22 +379,9 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 	const { operations, textContent, artifacts } = useProcessedOperations(
 		message.parts,
 	);
-	const [showOperations, setShowOperations] = useState(true);
 
 	// Just use operations in chronological order
 	const displayOperations = operations;
-
-	// Auto-collapse operations after completion unless there were errors
-	useEffect(() => {
-		const hasCompletion = operations.some((op) => op.type === "completion");
-		const hasErrors = false; // No error operations in our minimal set
-
-		// Since AI SDK has already processed the stream, we're not streaming individual operations
-		if (hasCompletion && !hasErrors) {
-			const timer = setTimeout(() => setShowOperations(false), 2000);
-			return () => clearTimeout(timer);
-		}
-	}, [operations]);
 
 	if (message.role === "user") {
 		return (

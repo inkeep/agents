@@ -37,7 +37,6 @@ const JsonSchemaObjectSchema = Type.Object({
 	description: Type.Optional(Type.String()),
 });
 
-type JsonSchemaProperty = Static<typeof JsonSchemaPropertySchema>;
 type JsonSchemaObject = Static<typeof JsonSchemaObjectSchema>;
 
 // Compile validators for better performance

@@ -4,10 +4,8 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function SiteHeader({
-	title,
 	breadcrumbs,
 }: {
-	title: string;
 	breadcrumbs?: BreadcrumbItem[];
 }) {
 	return (

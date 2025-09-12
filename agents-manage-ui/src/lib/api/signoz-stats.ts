@@ -217,7 +217,7 @@ class SigNozStatsAPI {
         const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
         const t = numberFromSeries(s);
         if (!id || !content) continue;
-        (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id)!).push({
+        (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({
           t,
           c: content,
         });

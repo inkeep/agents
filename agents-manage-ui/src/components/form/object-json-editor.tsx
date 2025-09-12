@@ -66,7 +66,7 @@ export function ObjectJsonEditor({
       if (JSON.stringify(parsed) !== JSON.stringify(currentValueRef.current)) {
         onChange(parsed);
       }
-    } catch (error) {
+    } catch {
       // Invalid JSON - don't update the object value, just preserve the string
       // This allows users to type through invalid states without cursor jumping
     }

@@ -42,8 +42,8 @@ export class ModuleHostedToolManager {
 
 		// Check if tool is already deployed
 		if (this.servers.has(toolId)) {
-			const existingServer = this.servers.get(toolId)!;
-			if (existingServer.status === "running") {
+			const existingServer = this.servers.get(toolId);
+			if (existingServer?.status === "running") {
 				logger.info({ toolId }, "Inline tool already deployed and running");
 				return existingServer;
 			}

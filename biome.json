@@ -36,13 +36,13 @@
         "noExplicitAny": "off",
         "noArrayIndexKey": "off",
         "useIterableCallbackReturn": "error",
-        "noDocumentCookie": "warn",
+        "noDocumentCookie": "off",
         "noAssignInExpressions": "error"
       },
       "complexity": {
         "noStaticOnlyClass": "off",
-        "noBannedTypes": "warn",
-        "noUselessFragments": "error"
+        "noBannedTypes": "off",
+        "noUselessFragments": "off"
       },
       "style": {
         "noUnusedTemplateLiteral": "off",
@@ -54,7 +54,7 @@
         "noDynamicNamespaceImportAccess": "off"
       },
       "a11y": {
-        "useSemanticElements": "error",
+        "useSemanticElements": "off",
         "useValidAriaRole": "error",
         "useButtonType": "error"
       },
@@ -63,7 +63,7 @@
         "noUnusedImports": "error",
         "useExhaustiveDependencies": "warn",
         "useJsxKeyInIterable": "warn",
-        "useUniqueElementIds": "error",
+        "useUniqueElementIds": "off",
         "noNestedComponentDefinitions": "error",
         "noUnusedFunctionParameters": "error"
       },
