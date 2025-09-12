@@ -115,7 +115,7 @@ interface StatusUpdateState {
   config: StatusUpdateSettings;
   summarizerModel?: ModelSettings;
   baseModel?: ModelSettings;
-  updateLock?: boolean;  // Atomic lock for status updates
+  updateLock?: boolean; // Atomic lock for status updates
 }
 
 /**
@@ -149,7 +149,11 @@ export class GraphSession {
   /**
    * Initialize status updates for this session
    */
-  initializeStatusUpdates(config: StatusUpdateSettings, summarizerModel?: ModelSettings, baseModel?: ModelSettings): void {
+  initializeStatusUpdates(
+    config: StatusUpdateSettings,
+    summarizerModel?: ModelSettings,
+    baseModel?: ModelSettings
+  ): void {
     const now = Date.now();
     this.statusUpdateState = {
       lastUpdateTime: now,
@@ -221,21 +225,24 @@ export class GraphSession {
     // Process artifact if it's pending generation
     if (eventType === 'artifact_saved' && (data as ArtifactSavedData).pendingGeneration) {
       const artifactId = (data as ArtifactSavedData).artifactId;
-      
+
       // Check for backpressure - prevent unbounded growth of pending artifacts
       if (this.pendingArtifacts.size >= this.MAX_PENDING_ARTIFACTS) {
-        logger.warn({
-          sessionId: this.sessionId,
-          artifactId,
-          pendingCount: this.pendingArtifacts.size,
-          maxAllowed: this.MAX_PENDING_ARTIFACTS
-        }, 'Too many pending artifacts, skipping processing');
+        logger.warn(
+          {
+            sessionId: this.sessionId,
+            artifactId,
+            pendingCount: this.pendingArtifacts.size,
+            maxAllowed: this.MAX_PENDING_ARTIFACTS,
+          },
+          'Too many pending artifacts, skipping processing'
+        );
         return;
       }
-      
+
       // Track this artifact as pending
       this.pendingArtifacts.add(artifactId);
-      
+
       // Fire and forget - process artifact completely asynchronously without any blocking
       setImmediate(() => {
         // No await, no spans at trigger level - truly fire and forget
@@ -249,28 +256,34 @@ export class GraphSession {
             // Track error count
             const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
             this.artifactProcessingErrors.set(artifactId, errorCount);
-            
+
             // Remove from pending after max retries
             if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
               this.pendingArtifacts.delete(artifactId);
-              logger.error({
-              sessionId: this.sessionId,
-                artifactId,
-                errorCount,
-                maxRetries: this.MAX_ARTIFACT_RETRIES,
-              error: error instanceof Error ? error.message : 'Unknown error',
-              stack: error instanceof Error ? error.stack : undefined,
-              }, 'Artifact processing failed after max retries, giving up');
+              logger.error(
+                {
+                  sessionId: this.sessionId,
+                  artifactId,
+                  errorCount,
+                  maxRetries: this.MAX_ARTIFACT_RETRIES,
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined,
+                },
+                'Artifact processing failed after max retries, giving up'
+              );
             } else {
               // Keep in pending for potential retry
-              logger.warn({
-                sessionId: this.sessionId,
-                artifactId,
-                errorCount,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              }, 'Artifact processing failed, may retry');
+              logger.warn(
+                {
+                  sessionId: this.sessionId,
+                  artifactId,
+                  errorCount,
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                },
+                'Artifact processing failed, may retry'
+              );
             }
-        });
+          });
       });
     }
 
@@ -426,11 +439,11 @@ export class GraphSession {
       this.statusUpdateTimer = undefined;
     }
     this.statusUpdateState = undefined;
-    
+
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
     this.artifactProcessingErrors.clear();
-    
+
     // Clear any scheduled timeouts to prevent race conditions
     if (this.scheduledTimeouts) {
       for (const timeoutId of this.scheduledTimeouts) {
@@ -783,7 +796,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           let modelToUse = summarizerModel;
           if (!summarizerModel?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              throw new Error('Either summarizer or base model is required for progress summary generation. Please configure models at the project level.');
+              throw new Error(
+                'Either summarizer or base model is required for progress summary generation. Please configure models at the project level.'
+              );
             }
             modelToUse = this.statusUpdateState.baseModel;
           }
@@ -933,7 +948,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           let modelToUse = summarizerModel;
           if (!summarizerModel?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              throw new Error('Either summarizer or base model is required for status update generation. Please configure models at the project level.');
+              throw new Error(
+                'Either summarizer or base model is required for status update generation. Please configure models at the project level.'
+              );
             }
             modelToUse = this.statusUpdateState.baseModel;
           }
@@ -1291,7 +1308,9 @@ Make it specific and relevant.`;
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              throw new Error('Either summarizer or base model is required for artifact name generation. Please configure models at the project level.');
+              throw new Error(
+                'Either summarizer or base model is required for artifact name generation. Please configure models at the project level.'
+              );
             }
             modelToUse = this.statusUpdateState.baseModel;
           }

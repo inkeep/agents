@@ -1,8 +1,6 @@
 import { z } from 'zod/v4';
 import type { ContextConfigSelect, FetchDefinition } from '../types/index';
-import type {
-  ContextFetchDefinition,
-} from '../types/utility';
+import type { ContextFetchDefinition } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 

@@ -1,8 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import {
-  validateRequestContext,
-  type ParsedHttpRequest,
-} from '../../middleware/contextValidation';
+import { validateRequestContext, type ParsedHttpRequest } from '../../middleware/contextValidation';
 import { dbClient } from '../setup';
 
 // Mock the data access functions
@@ -54,17 +51,17 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
 
     const result = await validateRequestContext({
       tenantId: 'tenant1',
-      projectId: 'project1', 
+      projectId: 'project1',
       graphId: 'graph1',
       conversationId: 'conv1',
       parsedRequest,
-      dbClient
+      dbClient,
     });
 
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
-    
-    // The validatedContext should be the headers directly (flattened), 
+
+    // The validatedContext should be the headers directly (flattened),
     // and filtered to only include schema-defined properties
     expect(result.validatedContext).toEqual({
       'x-api-key': 'abc123',
@@ -101,15 +98,15 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
     const result = await validateRequestContext({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1', 
+      graphId: 'graph1',
       conversationId: 'conv1',
       parsedRequest,
-      dbClient
+      dbClient,
     });
 
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
-    expect(result.errors.some(e => e.field.includes('headers'))).toBe(true);
+    expect(result.errors.some((e) => e.field.includes('headers'))).toBe(true);
   });
 
   it('should work without context config (no validation)', async () => {
@@ -127,9 +124,9 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       tenantId: 'tenant1',
       projectId: 'project1',
       graphId: 'graph1',
-      conversationId: 'conv1', 
+      conversationId: 'conv1',
       parsedRequest,
-      dbClient
+      dbClient,
     });
 
     expect(result.valid).toBe(true);

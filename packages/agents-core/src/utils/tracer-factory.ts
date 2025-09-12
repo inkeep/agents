@@ -7,9 +7,7 @@ import {
 } from '@opentelemetry/api';
 import { getLogger } from '.';
 
-
 const logger = getLogger('tracer');
-
 
 // No-op span implementation for when OpenTelemetry is not available
 const createNoOpSpan = (): Span => ({
@@ -79,10 +77,10 @@ export function setSpanWithError(
  * Returns a no-op tracer if OpenTelemetry is not available
  */
 export function getTracer(serviceName: string, serviceVersion?: string): Tracer {
-    try {
-      return trace.getTracer(serviceName, serviceVersion);
-    } catch (_error) {
-      logger.debug({}, 'OpenTelemetry tracer not available, using no-op tracer');
-      return noopTracer;
-    }
+  try {
+    return trace.getTracer(serviceName, serviceVersion);
+  } catch (_error) {
+    logger.debug({}, 'OpenTelemetry tracer not available, using no-op tracer');
+    return noopTracer;
+  }
 }

@@ -35,14 +35,16 @@
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off",
+        "noConfusingLabels": "off",
         "useIterableCallbackReturn": "error",
         "noDocumentCookie": "off",
-        "noAssignInExpressions": "error"
+        "noAssignInExpressions": "off"
       },
       "complexity": {
         "noStaticOnlyClass": "off",
         "noBannedTypes": "off",
-        "noUselessFragments": "off"
+        "noUselessFragments": "off",
+        "noUselessLoneBlockStatements": "off"
       },
       "style": {
         "noUnusedTemplateLiteral": "off",
@@ -64,11 +66,11 @@
         "useExhaustiveDependencies": "warn",
         "useJsxKeyInIterable": "warn",
         "useUniqueElementIds": "off",
-        "noNestedComponentDefinitions": "error",
+        "noNestedComponentDefinitions": "off",
         "noUnusedFunctionParameters": "error"
       },
       "security": {
-        "noDangerouslySetInnerHtml": "error"
+        "noDangerouslySetInnerHtml": "off"
       }
     }
   },

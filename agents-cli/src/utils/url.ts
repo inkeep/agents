@@ -7,12 +7,12 @@
 export function normalizeBaseUrl(url: string): string {
   // Trim whitespace
   const trimmedUrl = url.trim();
-  
+
   // Basic URL validation - must start with http:// or https://
   if (!trimmedUrl.match(/^https?:\/\//i)) {
     throw new Error(`Invalid URL format: ${url}. Must start with http:// or https://`);
   }
-  
+
   // Remove trailing slash(es)
   return trimmedUrl.replace(/\/+$/, '');
 }

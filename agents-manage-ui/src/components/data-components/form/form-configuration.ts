@@ -1,8 +1,8 @@
-import type { DataComponentFormData } from "./validation";
+import type { DataComponentFormData } from './validation';
 
 export const defaultValues: DataComponentFormData = {
-	id: "",
-	name: "",
-	description: "",
-	props: "",
+  id: '',
+  name: '',
+  description: '',
+  props: '',
 };

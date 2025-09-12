@@ -1,7 +1,7 @@
 // Import builders from management-api
 
 // Import context functions from core
-import { contextConfig, } from '@inkeep/agents-core';
+import { contextConfig } from '@inkeep/agents-core';
 import { agent, agentGraph } from '@inkeep/agents-sdk';
 import { z } from 'zod';
 
@@ -33,8 +33,7 @@ const contextAwareAgent = agent({
 
 const requestSchema = z.object({
   username: z.string(),
-})
-
+});
 
 const testContextConfig = contextConfig({
   id: 'simple-context-config',

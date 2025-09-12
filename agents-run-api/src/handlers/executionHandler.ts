@@ -104,10 +104,10 @@ export class ExecutionHandler {
       // Use atomic upsert pattern to handle race conditions properly
       const taskId = `task_${conversationId}-${requestId}`;
 
-        logger.info(
-          { taskId, currentAgentId, conversationId, requestId },
+      logger.info(
+        { taskId, currentAgentId, conversationId, requestId },
         'Attempting to create or reuse existing task'
-        );
+      );
 
       try {
         // Try to create the task atomically
@@ -139,15 +139,23 @@ export class ExecutionHandler {
       } catch (error: any) {
         // Handle race condition: if task already exists due to concurrent request,
         // fetch and reuse the existing task instead of failing
-        if (error?.message?.includes('UNIQUE constraint failed') || 
-            error?.message?.includes('PRIMARY KEY constraint failed') ||
-            error?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
-          logger.info({ taskId, error: error.message }, 'Task already exists, fetching existing task');
-          
+        if (
+          error?.message?.includes('UNIQUE constraint failed') ||
+          error?.message?.includes('PRIMARY KEY constraint failed') ||
+          error?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY'
+        ) {
+          logger.info(
+            { taskId, error: error.message },
+            'Task already exists, fetching existing task'
+          );
+
           const existingTask = await getTask(dbClient)({ id: taskId });
           if (existingTask) {
             task = existingTask;
-            logger.info({ taskId, existingTask }, 'Successfully reused existing task from race condition');
+            logger.info(
+              { taskId, existingTask },
+              'Successfully reused existing task from race condition'
+            );
           } else {
             // This should not happen, but handle gracefully
             logger.error({ taskId, error }, 'Task constraint failed but task not found');

@@ -262,7 +262,7 @@ function createExecutionHono(
 
   const baseApp = new Hono();
   baseApp.route('/', app);
-  
+
   return baseApp;
 }
 

@@ -84,7 +84,7 @@ export const Folder = ({ item, depth = 0 }: { item: SidebarPage; depth?: number 
         <CollapsibleContent>
           <SidebarMenuSub>
             {item.pages?.map((page, i) => {
-              if (!page) return;
+              if (!page) return null;
 
               if ('group' in page) {
                 return <Folder key={i} item={page} depth={depth + 1} />;

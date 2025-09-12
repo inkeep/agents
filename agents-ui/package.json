@@ -1,49 +1,49 @@
 {
-	"name": "@inkeep/agents-ui",
-	"version": "0.1.0",
-	"type": "module",
-	"license": "SEE LICENSE IN LICENSE.md",
-	"scripts": {
-		"dev": "vite",
-		"build": "tsc -b && vite build",
-		"lint": "biome lint",
-		"lint:fix": "biome check --write",
-		"format": "biome format --write",
-		"format:check": "biome format",
-		"preview": "vite preview",
-		"test": "echo 'No tests configured for chat-widget'"
-	},
-	"dependencies": {
-		"@inkeep/cxkit-react": "0.0.0-rc-20250905022240",
-		"@inkeep/cxkit-react-oss": "0.0.0-rc-20250905022240",
-		"lucide-react": "^0.539.0",
-		"react": "^19.1.1",
-		"react-dom": "^19.1.1"
-	},
-	"devDependencies": {
-		"@types/node": "^24.2.0",
-		"@types/react": "^19.1.8",
-		"@types/react-dom": "^19.1.6",
-		"@vitejs/plugin-react": "^5.0.0",
-		"typescript": "~5.9.2",
-		"vite": "^7.0.4"
-	},
-	"engines": {
-		"node": ">=22.0.0"
-	},
-	"publishConfig": {
-		"access": "restricted",
-		"registry": "https://registry.npmjs.org/"
-	},
-	"files": [
-		"dist",
-		"README.md",
-		"LICENSE.md",
-		"SUPPLEMENTAL_TERMS.md"
-	],
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/inkeep/agents.git",
-		"directory": "agents-ui"
-	}
+  "name": "@inkeep/agents-ui",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "biome lint",
+    "lint:fix": "biome check --write",
+    "format": "biome format --write",
+    "format:check": "biome format",
+    "preview": "vite preview",
+    "test": "echo 'No tests configured for chat-widget'"
+  },
+  "dependencies": {
+    "@inkeep/cxkit-react": "0.0.0-rc-20250905022240",
+    "@inkeep/cxkit-react-oss": "0.0.0-rc-20250905022240",
+    "lucide-react": "^0.539.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.0.4"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md",
+    "SUPPLEMENTAL_TERMS.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "agents-ui"
+  }
 }

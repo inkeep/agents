@@ -25,14 +25,7 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import {
-  generateObject,
-  generateText,
-  streamText,
-  type ToolSet,
-  tool,
-  type Tool,
-} from 'ai';
+import { generateObject, generateText, streamText, type ToolSet, tool, type Tool } from 'ai';
 import { z } from 'zod';
 import {
   createDefaultConversationHistoryConfig,

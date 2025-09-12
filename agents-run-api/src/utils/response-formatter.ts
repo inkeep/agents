@@ -5,7 +5,6 @@ import { tracer, setSpanWithError } from './tracer';
 
 const logger = getLogger('ResponseFormatter');
 
-
 /**
  * Response formatter that uses the unified ArtifactParser to convert artifact markers
  * into data parts for consistent artifact handling across all agent responses

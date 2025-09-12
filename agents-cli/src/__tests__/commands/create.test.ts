@@ -25,20 +25,20 @@ const mockPrompts = p as any;
 describe('create command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset the shared mock function
     mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
-    
+
     // Mock fs operations
     mockFs.pathExists = vi.fn().mockResolvedValue(false);
     mockFs.ensureDir = vi.fn().mockResolvedValue(undefined);
     mockFs.emptyDir = vi.fn().mockResolvedValue(undefined);
     mockFs.writeJson = vi.fn().mockResolvedValue(undefined);
     mockFs.writeFile = vi.fn().mockResolvedValue(undefined);
-    
+
     // Mock process.chdir (avoid the unsupported workers issue)
     vi.spyOn(process, 'chdir').mockImplementation(() => {});
-    
+
     // Mock prompt functions
     mockPrompts.intro = vi.fn();
     mockPrompts.spinner = vi.fn().mockReturnValue({
@@ -130,9 +130,9 @@ describe('create command', () => {
         .mockResolvedValueOnce('prompted-project') // dirName
         .mockResolvedValueOnce('prompted-tenant') // tenantId
         .mockResolvedValueOnce('prompted-project-id'); // projectId
-      
+
       mockPrompts.select.mockResolvedValueOnce('both'); // provider choice
-      
+
       mockPrompts.text
         .mockResolvedValueOnce('sk-ant-prompted') // anthropicKey
         .mockResolvedValueOnce('sk-prompted'); // openAiKey
@@ -162,9 +162,7 @@ describe('create command', () => {
       mockFs.pathExists.mockResolvedValueOnce(true);
       mockPrompts.confirm.mockResolvedValueOnce(true);
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
 
       await createAgents({
         dirName: 'existing-project',
@@ -177,9 +175,7 @@ describe('create command', () => {
           message: expect.stringContaining('Directory existing-project already exists'),
         })
       );
-      expect(mockFs.emptyDir).toHaveBeenCalledWith(
-        path.resolve(process.cwd(), 'existing-project')
-      );
+      expect(mockFs.emptyDir).toHaveBeenCalledWith(path.resolve(process.cwd(), 'existing-project'));
     });
 
     it('should cancel if user declines to overwrite existing directory', async () => {
@@ -189,9 +185,7 @@ describe('create command', () => {
         throw new Error('Process exit');
       });
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
 
       await expect(
         createAgents({
@@ -206,10 +200,8 @@ describe('create command', () => {
 
     it('should use default ports when not provided', async () => {
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
-        
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
+
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -228,10 +220,8 @@ describe('create command', () => {
 
     it('should create proper workspace structure', async () => {
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
-        
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
+
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -268,10 +258,8 @@ describe('create command', () => {
 
     it('should create configuration files', async () => {
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
-        
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
+
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -375,10 +363,8 @@ describe('create command', () => {
 
     it('should run npm install and database setup', async () => {
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
-        
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
+
       await createAgents({
         dirName: 'test-project',
         tenantId: 'test-tenant',
@@ -391,13 +377,11 @@ describe('create command', () => {
 
     it('should handle installation errors gracefully', async () => {
       mockPrompts.select.mockResolvedValueOnce('both');
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test')
-        .mockResolvedValueOnce('sk-test');
-      
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test').mockResolvedValueOnce('sk-test');
+
       // Mock exec to fail on the 'pnpm install' call
       mockExecAsync.mockRejectedValueOnce(new Error('pnpm install failed'));
-      
+
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
@@ -419,7 +403,7 @@ describe('create command', () => {
     it('should cancel on user prompt cancellation', async () => {
       mockPrompts.text.mockResolvedValueOnce('test-project');
       mockPrompts.isCancel.mockReturnValueOnce(true);
-      
+
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
@@ -435,11 +419,10 @@ describe('create command', () => {
         .mockResolvedValueOnce('test-project') // dirName
         .mockResolvedValueOnce('test-tenant') // tenantId
         .mockResolvedValueOnce('test-project-id'); // projectId
-      
+
       mockPrompts.select.mockResolvedValueOnce('anthropic'); // provider choice
-      
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-ant-test'); // anthropicKey only
+
+      mockPrompts.text.mockResolvedValueOnce('sk-ant-test'); // anthropicKey only
 
       await createAgents({});
 
@@ -456,11 +439,10 @@ describe('create command', () => {
         .mockResolvedValueOnce('test-project') // dirName
         .mockResolvedValueOnce('test-tenant') // tenantId
         .mockResolvedValueOnce('test-project-id'); // projectId
-      
+
       mockPrompts.select.mockResolvedValueOnce('openai'); // provider choice
-      
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-test'); // openAiKey only
+
+      mockPrompts.text.mockResolvedValueOnce('sk-test'); // openAiKey only
 
       await createAgents({});
 
@@ -473,8 +455,7 @@ describe('create command', () => {
     });
 
     it('should prompt for missing keys when some are provided via CLI', async () => {
-      mockPrompts.text
-        .mockResolvedValueOnce('sk-test'); // openAiKey (missing)
+      mockPrompts.text.mockResolvedValueOnce('sk-test'); // openAiKey (missing)
 
       await createAgents({
         dirName: 'test-project',

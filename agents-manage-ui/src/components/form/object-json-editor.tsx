@@ -16,7 +16,7 @@ interface ObjectJsonEditorProps {
 /**
  * A specialized version of ExpandableJsonEditor that works with objects instead of strings.
  * This prevents cursor jumping issues by managing string conversion internally.
- * 
+ *
  * The component:
  * 1. Takes object values and returns object values (React Hook Form compatible)
  * 2. Internally manages string state during editing
@@ -33,7 +33,7 @@ export function ObjectJsonEditor({
 }: ObjectJsonEditorProps) {
   // Local string state to preserve user input during typing
   const [jsonString, setJsonString] = useState(() => formatJsonField(value));
-  
+
   // Ref to track the current object value to avoid loops
   const currentValueRef = useRef(value);
   currentValueRef.current = value;
@@ -50,7 +50,7 @@ export function ObjectJsonEditor({
   const handleChange = (newJsonString: string) => {
     // Always update the local string state immediately (preserves cursor)
     setJsonString(newJsonString);
-    
+
     // Try to parse and update the object value
     if (!newJsonString?.trim()) {
       // Empty string should result in undefined

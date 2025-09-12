@@ -24,7 +24,7 @@ export const defaultDualModelConfigurations = {
   summarizer: {
     model: 'openai/gpt-4.1-nano-2025-04-14',
   },
-}
+};
 
 export const defaultOpenaiModelConfigurations = {
   base: {
@@ -36,7 +36,7 @@ export const defaultOpenaiModelConfigurations = {
   summarizer: {
     model: 'openai/gpt-4.1-nano-2025-04-14',
   },
-}
+};
 
 export const defaultAnthropicModelConfigurations = {
   base: {
@@ -48,8 +48,7 @@ export const defaultAnthropicModelConfigurations = {
   summarizer: {
     model: 'anthropic/claude-sonnet-4-20250514',
   },
-}
-
+};
 
 /**
  * Prompt user for model configuration (providers and model selection)
@@ -118,7 +117,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   let optionalModels: any = {};
   if (modelAnswers.configureOptionalModels) {
     const optionalChoices = [...availableModels, { name: 'Use base model', value: null }];
-    
+
     optionalModels = await inquirer.prompt([
       {
         type: 'list',

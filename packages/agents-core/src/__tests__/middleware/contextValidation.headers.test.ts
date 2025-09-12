@@ -71,10 +71,7 @@ describe('validateHttpRequestHeaders', () => {
 
     const invalidRequest = { invalid: true };
 
-    const result = await validateHttpRequestHeaders(
-      headersSchema,
-      invalidRequest as any
-    );
+    const result = await validateHttpRequestHeaders(headersSchema, invalidRequest as any);
 
     expect(result.valid).toBe(false);
     expect(result.errors[0].field).toBe('httpRequest');

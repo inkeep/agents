@@ -4,7 +4,12 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import { defaultOpenaiModelConfigurations, defaultAnthropicModelConfigurations, defaultDualModelConfigurations, ModelConfigurationResult } from '../utils/model-config';
+import {
+  defaultOpenaiModelConfigurations,
+  defaultAnthropicModelConfigurations,
+  defaultDualModelConfigurations,
+  ModelConfigurationResult,
+} from '../utils/model-config';
 
 const execAsync = promisify(exec);
 
@@ -170,7 +175,7 @@ export const createAgents = async (
     }
   }
 
-  let defaultModelSettings = {}
+  let defaultModelSettings = {};
   if (anthropicKey && openAiKey) {
     defaultModelSettings = defaultDualModelConfigurations;
   } else if (anthropicKey) {

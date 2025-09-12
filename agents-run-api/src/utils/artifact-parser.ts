@@ -52,7 +52,9 @@ export class ArtifactParser {
     // Use safe, non-backtracking patterns to prevent ReDoS attacks
     // Check if text ends with any partial artifact pattern
     return (
-      /^.*<(?:artifact(?::ref)?|a(?:r(?:t(?:i(?:f(?:a(?:c(?:t(?::(?:r(?:e(?:f)?)?)?)?)?)?)?)?)?)?)?)?$/.test(text) ||
+      /^.*<(?:artifact(?::ref)?|a(?:r(?:t(?:i(?:f(?:a(?:c(?:t(?::(?:r(?:e(?:f)?)?)?)?)?)?)?)?)?)?)?)?$/.test(
+        text
+      ) ||
       /^.*<artifact:ref(?:[^>]*)$/.test(text) || // Incomplete artifact:ref at end
       this.findSafeTextBoundary(text) < text.length
     );

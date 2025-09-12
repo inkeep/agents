@@ -206,7 +206,6 @@ export interface ProjectResourceCounts {
   externalAgents: number;
 }
 
-
 export type toolStatus = 'healthy' | 'unhealthy' | 'unknown';
 
 export const TOOL_STATUS_VALUES = [

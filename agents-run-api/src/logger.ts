@@ -3,8 +3,6 @@ import type { Next } from 'hono';
 import { pino } from 'pino';
 import { env } from './env';
 
-
-
 // Create logger configuration based on environment
 const isDevelopment = env.ENVIRONMENT === 'development';
 

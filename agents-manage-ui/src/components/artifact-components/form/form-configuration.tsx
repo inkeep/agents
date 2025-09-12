@@ -1,9 +1,9 @@
-import type { ArtifactComponentFormData } from "./validation";
+import type { ArtifactComponentFormData } from './validation';
 
 export const defaultValues: ArtifactComponentFormData = {
-	id: "",
-	name: "",
-	description: "",
-	summaryProps: "",
-	fullProps: "",
+  id: '',
+  name: '',
+  description: '',
+  summaryProps: '',
+  fullProps: '',
 };
