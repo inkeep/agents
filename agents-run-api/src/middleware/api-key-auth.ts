@@ -1,3 +1,4 @@
+
 import { type ExecutionContext, getLogger, validateAndGetApiKey } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -17,6 +18,12 @@ export const apiKeyAuth = () =>
       executionContext: ExecutionContext;
     };
   }>(async (c, next) => {
+    // Skip authentication for OPTIONS requests (CORS preflight)
+    if (c.req.method === 'OPTIONS') {
+      await next();
+      return;
+    }
+    
     const authHeader = c.req.header('Authorization');
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');

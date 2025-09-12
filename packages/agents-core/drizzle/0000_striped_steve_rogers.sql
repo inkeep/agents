@@ -6,6 +6,7 @@ CREATE TABLE `agent_artifact_components` (
 	`artifact_component_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`artifact_component_id`) REFERENCES `artifact_components`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -18,6 +19,7 @@ CREATE TABLE `agent_data_components` (
 	`data_component_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`data_component_id`) REFERENCES `data_components`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -37,7 +39,7 @@ CREATE TABLE `agent_graph` (
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agent_relations` (
@@ -52,7 +54,7 @@ CREATE TABLE `agent_relations` (
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agent_tool_relations` (
@@ -65,6 +67,7 @@ CREATE TABLE `agent_tool_relations` (
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`tool_id`) REFERENCES `tools`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -82,7 +85,7 @@ CREATE TABLE `agents` (
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `api_keys` (
@@ -97,6 +100,7 @@ CREATE TABLE `api_keys` (
 	`expires_at` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`) REFERENCES `agent_graph`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -114,7 +118,8 @@ CREATE TABLE `artifact_components` (
 	`full_props` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `context_cache` (
@@ -131,7 +136,8 @@ CREATE TABLE `context_cache` (
 	`fetch_duration_ms` integer,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `context_cache_lookup_idx` ON `context_cache` (`conversation_id`,`context_config_id`,`context_variable_key`);--> statement-breakpoint
@@ -145,7 +151,8 @@ CREATE TABLE `context_configs` (
 	`context_variables` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `conversations` (
@@ -159,7 +166,8 @@ CREATE TABLE `conversations` (
 	`metadata` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `credential_references` (
@@ -171,7 +179,8 @@ CREATE TABLE `credential_references` (
 	`retrieval_params` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `data_components` (
@@ -183,7 +192,8 @@ CREATE TABLE `data_components` (
 	`props` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `external_agents` (
@@ -198,6 +208,7 @@ CREATE TABLE `external_agents` (
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`credential_reference_id`) REFERENCES `credential_references`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
@@ -219,7 +230,8 @@ CREATE TABLE `ledger_artifacts` (
 	`derived_from` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `messages` (
@@ -243,7 +255,8 @@ CREATE TABLE `messages` (
 	`metadata` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `projects` (
@@ -267,7 +280,8 @@ CREATE TABLE `task_relations` (
 	`relation_type` text DEFAULT 'parent_child',
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `tasks` (
@@ -280,7 +294,8 @@ CREATE TABLE `tasks` (
 	`agent_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `tools` (
@@ -300,5 +315,6 @@ CREATE TABLE `tools` (
 	`last_tools_sync` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`)
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );

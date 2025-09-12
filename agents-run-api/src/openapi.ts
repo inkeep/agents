@@ -16,7 +16,7 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.AGENT_BASE_URL || `http://localhost:3003`,
+            url: env.AGENTS_RUN_API_URL,
             description: 'Development server',
           },
         ],

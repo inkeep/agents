@@ -3,16 +3,16 @@ export type ModelSettings = {
   providerOptions?: string; // JSON string representation for form compatibility
 };
 
+import type { GraphStopWhen } from '@inkeep/agents-core/client-exports';
+
 export type GraphModels = {
   base?: ModelSettings;
   structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 };
 
-export type GraphStopWhen = {
-  transferCountIs?: number;
-  // stepCountIs is agent-level only, not graph-level
-};
+// Re-export the shared type for consistency
+export type { GraphStopWhen };
 
 export type StatusUpdateSettings = {
   enabled?: boolean;

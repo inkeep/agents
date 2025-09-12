@@ -46,6 +46,9 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
+    // Ensure the project exists for this tenant before creating the artifact component
+    await ensureTestProject(tenantId, projectId);
+
     const artifactComponentData = createArtifactComponentData({ suffix });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/crud/projects/${projectId}/artifact-components`,
@@ -373,9 +376,10 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         {
           method: 'POST',
           body: JSON.stringify(artifactComponentData),
+          expectError: true,
         }
       );
-      expect(secondRes.status).toBe(500); // Database constraint error
+      expect(secondRes.status).toBe(409); // Conflict - duplicate ID
     });
   });
 

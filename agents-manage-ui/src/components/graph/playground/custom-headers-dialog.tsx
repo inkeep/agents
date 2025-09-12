@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { JsonEditor } from '@/components/form/json-editor';
@@ -37,29 +38,6 @@ const customHeadersSchema = z.object({
     }, 'All header values must be strings'),
 });
 
-const FORBIDDEN_HEADERS = new Set([
-  'authorization',
-  'content-length',
-  'content-type',
-  'host',
-  'origin',
-  'proxy-authorization',
-]);
-
-const validateHeaders = (headers: Record<string, string>) => {
-  for (const [name, value] of Object.entries(headers)) {
-    if (FORBIDDEN_HEADERS.has(name.toLowerCase())) {
-      throw new Error(`Cannot override system header: ${name}`);
-    }
-    if (!/^[a-zA-Z0-9!#$&-.^_`|~]+$/.test(name)) {
-      throw new Error(`Invalid header name: ${name}`);
-    }
-    if (/[\r\n]/.test(value)) {
-      throw new Error(`Header injection detected in value for ${name}`);
-    }
-  }
-};
-
 export type CustomHeadersFormData = z.infer<typeof customHeadersSchema>;
 
 interface CustomHeadersDialogProps {
@@ -82,7 +60,6 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
     if (headers) {
       try {
         parsedHeaders = JSON.parse(headers);
-        validateHeaders(parsedHeaders || {});
       } catch (error) {
         console.error('Error parsing JSON:', error);
         form.setError('headers', {
@@ -92,6 +69,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
       }
     }
     setCustomHeaders(parsedHeaders || {});
+    toast.success('Custom headers applied, you can now use them in the chat.');
     setIsOpen(false);
   };
 

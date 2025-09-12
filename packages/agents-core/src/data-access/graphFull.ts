@@ -220,7 +220,7 @@ export const createFullGraphServerSide =
       }
 
       // Step 2: Create/update tools (agents depend on them)
-      const toolPromises = Object.entries(typed.tools).map(async ([toolId, toolData]) => {
+      const toolPromises = Object.entries(typed.tools || {}).map(async ([toolId, toolData]) => {
         try {
           logger.info({ toolId }, 'Processing tool');
           await upsertTool(db)({
@@ -239,7 +239,7 @@ export const createFullGraphServerSide =
 
       await Promise.all(toolPromises);
       logger.info(
-        { toolCount: Object.keys(typed.tools).length },
+        { toolCount: Object.keys(typed.tools || {}).length },
         'All tools created/updated successfully'
       );
 
@@ -659,7 +659,7 @@ export const updateFullGraphServerSide =
         tenantId,
         graphId: typedGraphDefinition.id,
         agentCount: Object.keys(typedGraphDefinition.agents).length,
-        toolCount: Object.keys(typedGraphDefinition.tools).length,
+        toolCount: Object.keys(typedGraphDefinition.tools || {}).length,
       },
       'Updating full graph in database'
     );
@@ -730,7 +730,7 @@ export const updateFullGraphServerSide =
       }
 
       // Step 2: Create/update tools (agents depend on them)
-      const toolPromises = Object.entries(typedGraphDefinition.tools).map(
+      const toolPromises = Object.entries(typedGraphDefinition.tools || {}).map(
         async ([toolId, toolData]) => {
           try {
             logger.info({ toolId }, 'Processing tool');
@@ -751,7 +751,7 @@ export const updateFullGraphServerSide =
 
       await Promise.all(toolPromises);
       logger.info(
-        { toolCount: Object.keys(typedGraphDefinition.tools).length },
+        { toolCount: Object.keys(typedGraphDefinition.tools || {}).length },
         'All tools created/updated successfully'
       );
 

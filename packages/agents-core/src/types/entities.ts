@@ -93,6 +93,7 @@ import type {
   FetchDefinitionSchema,
   FullGraphAgentInsertSchema,
   FullGraphDefinitionSchema,
+  FullProjectDefinitionSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -301,6 +302,9 @@ export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSche
 // === Full Graph Types ===
 export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
 export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
+
+// === Full Project Types ===
+export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
 // Type helpers for better TypeScript support
 export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
   tools: string[];

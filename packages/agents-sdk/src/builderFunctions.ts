@@ -14,6 +14,8 @@ import type {
 } from './builders';
 import { DataComponent } from './data-component';
 import { AgentGraph } from './graph';
+import type { ProjectConfig } from './project';
+import { Project } from './project';
 import { Tool } from './tool';
 import type { AgentConfig, GraphConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
@@ -24,6 +26,43 @@ import { generateIdFromName } from './utils/generateIdFromName';
 
 export function agentGraph(config: GraphConfig): AgentGraph {
   return new AgentGraph(config);
+}
+
+/**
+ * Helper function to create projects - OpenAI style
+ *
+ * Projects are the top-level organizational unit that contains graphs, agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to graphs and agents.
+ *
+ * @param config - Project configuration
+ * @returns A new Project instance
+ *
+ * @example
+ * ```typescript
+ * const customerSupport = project({
+ *   id: 'customer-support-project',
+ *   name: 'Customer Support System',
+ *   description: 'Multi-agent customer support system',
+ *   models: {
+ *     base: { model: 'gpt-4o-mini' },
+ *     structuredOutput: { model: 'gpt-4o' }
+ *   },
+ *   stopWhen: {
+ *     transferCountIs: 10,
+ *     stepCountIs: 50
+ *   },
+ *   graphs: () => [
+ *     agentGraph({
+ *       id: 'support-graph',
+ *       name: 'Support Graph',
+ *       // ... graph config
+ *     })
+ *   ]
+ * });
+ * ```
+ */
+export function project(config: ProjectConfig): Project {
+  return new Project(config);
 }
 
 // ============================================================================

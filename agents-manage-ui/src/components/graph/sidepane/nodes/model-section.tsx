@@ -138,11 +138,7 @@ export function ModelSection({
           onChange={(value) => {
             updatePath('models.base.providerOptions', value);
           }}
-          value={
-            models?.base?.providerOptions
-              ? JSON.stringify(models.base.providerOptions, null, 2)
-              : ''
-          }
+          value={models?.base?.providerOptions || ''}
           placeholder={`{
   "temperature": 0.7,
   "maxTokens": 2048
@@ -158,11 +154,7 @@ export function ModelSection({
           onChange={(value) => {
             updatePath('models.structuredOutput.providerOptions', value);
           }}
-          value={
-            models?.structuredOutput?.providerOptions
-              ? JSON.stringify(models.structuredOutput.providerOptions, null, 2)
-              : ''
-          }
+          value={models?.structuredOutput?.providerOptions || ''}
           placeholder={`{
   "temperature": 0.1,
   "maxTokens": 1024
@@ -178,11 +170,7 @@ export function ModelSection({
           onChange={(value) => {
             updatePath('models.summarizer.providerOptions', value);
           }}
-          value={
-            models?.summarizer?.providerOptions
-              ? JSON.stringify(models.summarizer.providerOptions, null, 2)
-              : ''
-          }
+          value={models?.summarizer?.providerOptions || ''}
           placeholder={`{
   "temperature": 0.3,
   "maxTokens": 1024

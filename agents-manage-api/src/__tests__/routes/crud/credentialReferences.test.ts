@@ -131,6 +131,9 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
+    // Ensure the project exists for this tenant before creating the credential
+    await ensureTestProject(tenantId, projectId);
+
     const credentialData = createCredentialData({ suffix });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,

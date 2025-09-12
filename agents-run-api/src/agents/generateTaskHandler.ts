@@ -19,6 +19,7 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { Agent } from './Agent';
+import { resolveModelConfig } from '../utils/model-resolver';
 
 /** Turn any string value that is valid JSON into an object/array (in place). */
 export function parseEmbeddedJson<T>(data: T): T {
@@ -423,7 +424,7 @@ export const createTaskHandlerConfig = async (params: {
   }
 
   // Inherit graph models if agent doesn't have one
-  const effectiveModels = agent.models || agentGraph?.models || undefined;
+  const effectiveModels = await resolveModelConfig(params.graphId, agent);
   const effectiveConversationHistoryConfig = agent.conversationHistoryConfig || { mode: 'full' };
 
   return {
@@ -436,7 +437,7 @@ export const createTaskHandlerConfig = async (params: {
       name: agent.name,
       description: agent.description,
       prompt: agent.prompt,
-      models: effectiveModels || null,
+      models: effectiveModels,
       conversationHistoryConfig: effectiveConversationHistoryConfig || null,
       stopWhen: agent.stopWhen || null,
       createdAt: agent.createdAt,

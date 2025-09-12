@@ -6,13 +6,13 @@ Create an Inkeep Agent Framework directory with multi-service architecture.
 
 ```bash
 # Interactive mode
-npx @inkeep/create-agents
+pnpm create-agents
 
 # With directory name
-npx @inkeep/create-agents my-agent-directory
+pnpm create-agents my-agent-directory
 
 # With options
-npx @inkeep/create-agents my-agent-directory --tenant-id default --project-id my-project --openai-key sk-... --anthropic-key sk-ant-...
+npx create-agents my-agent-directory --tenant-id default --project-id my-project --openai-key sk-... --anthropic-key sk-ant-...
 ```
 
 ## Usage
@@ -22,7 +22,7 @@ npx @inkeep/create-agents my-agent-directory --tenant-id default --project-id my
 ### Interactive Mode
 Run without arguments for an interactive setup experience:
 ```bash
-npx @inkeep/create-agents
+pnpm create-agents
 ```
 
 You'll be prompted for:
@@ -35,7 +35,7 @@ You'll be prompted for:
 ### Direct Mode
 Specify options directly:
 ```bash
-npx @inkeep/create-agents my-agent-directory --tenant-id my-tenant --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
+pnpm create-agents my-agent-directory --tenant-id my-tenant --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
 ```
 
 ## Options
@@ -91,23 +91,23 @@ my-agent-directory/
 2. **Start the services:**
    ```bash
    # Start both Manage API and Run API
-   npm run dev
+   pnpm dev
    ```
 
 3. **In a new terminal, start the Manage UI:**
    ```bash
-   npx inkeep dev
+   inkeep dev
    ```
 
 4. **Deploy your first agent graph:**
    ```bash
    cd src/<project-id>/
-   npx inkeep push hello.graph.ts
+   pnpm inkeep push hello.graph.ts
    ```
 
 5. **Test your agents:**
    ```bash
-   npx inkeep chat
+   pnpm inkeep chat
    ```
 
 ## Available Services
@@ -120,11 +120,11 @@ After setup, you'll have access to:
 
 ## Commands Available in Your Directory
 
-- `npm run dev` - Start both API services with hot reload
-- `npm run db:push` - Apply database schema changes
-- `npx inkeep dev` - Start the Manage UI
-- `npx inkeep push <graph-file>` - Deploy agent configurations
-- `npx inkeep chat` - Interactive chat with your agents
+- `pnpm dev` - Start both API services with hot reload
+- `pnpm db:push` - Apply database schema changes
+- `inkeep dev` - Start the Manage UI
+- `inkeep push <graph-file>` - Deploy agent configurations
+- `inkeep chat` - Interactive chat with your agents
 
 ## Environment Variables
 

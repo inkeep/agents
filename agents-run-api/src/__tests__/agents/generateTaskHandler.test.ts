@@ -18,6 +18,7 @@ const {
   getAgentGraphMock,
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
+  getProjectMock,
 } = vi.hoisted(() => {
   const getRelatedAgentsForGraphMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
@@ -104,6 +105,24 @@ const {
     ])
   );
 
+  const getProjectMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      id: 'test-project',
+      name: 'Test Project',
+      models: {
+        base: {
+          model: 'openai/gpt-4',
+        },
+        structuredOutput: {
+          model: 'openai/gpt-4',
+        },
+        summarizer: {
+          model: 'openai/gpt-3.5-turbo',
+        },
+      },
+    })
+  );
+
   return {
     getRelatedAgentsForGraphMock,
     getToolsForAgentMock,
@@ -111,6 +130,7 @@ const {
     getAgentGraphMock,
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
+    getProjectMock,
   };
 });
 
@@ -121,6 +141,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentGraph: getAgentGraphMock,
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+  getProject: getProjectMock,
   TaskState: {
     Completed: 'completed',
     Failed: 'failed',
@@ -595,6 +616,7 @@ describe('generateTaskHandler', () => {
         projectId: 'test-project',
         graphId: 'test-graph',
         agentId: 'test-agent',
+        baseUrl: 'https://test.com',
       });
 
       expect(config).toEqual({
@@ -607,7 +629,17 @@ describe('generateTaskHandler', () => {
           name: 'Test Agent',
           description: 'Test agent description',
           prompt: 'You are a helpful test agent',
-          models: null,
+          models: {
+            base: {
+              model: 'openai/gpt-4',
+            },
+            structuredOutput: {
+              model: 'openai/gpt-4',
+            },
+            summarizer: {
+              model: 'openai/gpt-3.5-turbo',
+            },
+          },
           stopWhen: null,
           conversationHistoryConfig: {
             mode: 'full',
@@ -616,6 +648,8 @@ describe('generateTaskHandler', () => {
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
+        baseUrl: 'https://test.com',
+        apiKey: undefined,
         name: 'Test Agent',
         description: 'Test agent description',
         conversationHistoryConfig: {
@@ -636,6 +670,7 @@ describe('generateTaskHandler', () => {
           projectId: 'test-project',
           graphId: 'test-graph',
           agentId: 'non-existent',
+          baseUrl: 'https://test.com',
         })
       ).rejects.toThrow('Agent not found: non-existent');
     });
@@ -673,10 +708,29 @@ describe('generateTaskHandler', () => {
         projectId: 'test-project',
         graphId: 'test-graph',
         agentId: 'test-agent',
+        baseUrl: 'https://test.com',
       });
 
       expect(config.agentSchema.models).toEqual({
         base: {
+          model: 'anthropic/claude-4-sonnet-20250514',
+          providerOptions: {
+            anthropic: {
+              temperature: 0.8,
+              maxTokens: 2048,
+            },
+          },
+        },
+        structuredOutput: {
+          model: 'anthropic/claude-4-sonnet-20250514',
+          providerOptions: {
+            anthropic: {
+              temperature: 0.8,
+              maxTokens: 2048,
+            },
+          },
+        },
+        summarizer: {
           model: 'anthropic/claude-4-sonnet-20250514',
           providerOptions: {
             anthropic: {
@@ -711,9 +765,20 @@ describe('generateTaskHandler', () => {
         projectId: 'test-project',
         graphId: 'test-graph',
         agentId: 'test-agent',
+        baseUrl: 'https://test.com',
       });
 
-      expect(config.agentSchema.models).toEqual(null);
+      expect(config.agentSchema.models).toEqual({
+        base: {
+          model: 'openai/gpt-4',
+        },
+        structuredOutput: {
+          model: 'openai/gpt-4',
+        },
+        summarizer: {
+          model: 'openai/gpt-3.5-turbo',
+        },
+      });
     });
 
     it('should handle different model providers in models', async () => {
@@ -750,10 +815,31 @@ describe('generateTaskHandler', () => {
         projectId: 'test-project',
         graphId: 'test-graph',
         agentId: 'test-agent',
+        baseUrl: 'https://test.com',
       });
 
       expect(config.agentSchema.models).toEqual({
         base: {
+          model: 'openai/gpt-4o',
+          providerOptions: {
+            openai: {
+              temperature: 0.3,
+              frequencyPenalty: 0.1,
+              presencePenalty: 0.2,
+            },
+          },
+        },
+        structuredOutput: {
+          model: 'openai/gpt-4o',
+          providerOptions: {
+            openai: {
+              temperature: 0.3,
+              frequencyPenalty: 0.1,
+              presencePenalty: 0.2,
+            },
+          },
+        },
+        summarizer: {
           model: 'openai/gpt-4o',
           providerOptions: {
             openai: {

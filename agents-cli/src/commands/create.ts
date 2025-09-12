@@ -455,6 +455,8 @@ DB_FILE_NAME=file:../../local.db
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
+
+AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
 `;
 
   const manageApiEnvContent = `# Environment
@@ -462,6 +464,8 @@ ENVIRONMENT=development
 
 # Database (relative path from API directory)
 DB_FILE_NAME=file:../../local.db
+
+AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
 `;
 
   await fs.writeFile('apps/manage-api/.env', manageApiEnvContent);
@@ -813,9 +817,9 @@ This project follows a workspace structure with the following services:
 1. **Start services:**
    \`\`\`bash
    # Start Agents Manage API and Agents Run API
-   pnpm run dev
+   pnpm dev
    
-   # Start Dashboard
+   # Start the Dashboard
    inkeep dev
    \`\`\`
 

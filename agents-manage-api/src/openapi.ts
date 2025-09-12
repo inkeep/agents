@@ -16,9 +16,7 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.MANAGEMENT_PORT
-              ? `http://localhost:${env.MANAGEMENT_PORT}`
-              : `http://localhost:3002`,
+            url: env.AGENTS_MANAGE_API_URL,
             description: 'Development server',
           },
         ],

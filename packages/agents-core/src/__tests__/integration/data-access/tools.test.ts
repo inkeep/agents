@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { createProject } from '../../../data-access/projects';
 import {
   createTool,
   deleteTool,
@@ -15,24 +16,47 @@ import {
 import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
 
+// Helper function to create test project data with unique IDs
+const createProjectData = ({ suffix = '' }: { suffix?: string } = {}) => {
+  const timestamp = Date.now();
+  const randomId = Math.floor(Math.random() * 10000);
+  return {
+    tenantId: `test-tenant-${suffix}-${timestamp}-${randomId}`,
+    id: `test-project-${suffix}-${timestamp}-${randomId}`,
+    name: `Test Project ${suffix}`,
+    description: `Test project ${suffix} for tools integration tests`,
+  };
+};
+
 // Helper function to create test tool data
-const createToolData = ({ suffix = '' }: { suffix?: string } = {}): ToolInsert => ({
-  tenantId: `test-tenant-${suffix}`,
-  projectId: `test-project-${suffix}`,
-  id: `test-tool-${suffix}`,
-  name: `Test MCP Tool${suffix}`,
-  config: {
-    type: 'mcp',
-    mcp: {
-      server: {
-        url: 'https://api.example.com/mcp',
-      },
-      transport: {
-        type: MCPTransportType.streamableHttp,
+const createToolData = ({
+  suffix = '',
+  projectData,
+}: {
+  suffix?: string;
+  projectData?: { tenantId: string; id: string };
+} = {}): ToolInsert => {
+  const timestamp = Date.now();
+  const randomId = Math.floor(Math.random() * 10000);
+
+  return {
+    tenantId: projectData?.tenantId || `test-tenant-${suffix}-${timestamp}-${randomId}`,
+    projectId: projectData?.id || `test-project-${suffix}-${timestamp}-${randomId}`,
+    id: `test-tool-${suffix}-${timestamp}-${randomId}`,
+    name: `Test MCP Tool${suffix}`,
+    config: {
+      type: 'mcp',
+      mcp: {
+        server: {
+          url: 'https://api.example.com/mcp',
+        },
+        transport: {
+          type: MCPTransportType.streamableHttp,
+        },
       },
     },
-  },
-});
+  };
+};
 
 describe('Tools Data Access - Integration Tests', () => {
   let db: DatabaseClient;
@@ -59,7 +83,11 @@ describe('Tools Data Access - Integration Tests', () => {
 
   describe('createTool & getToolById', () => {
     it('should create and retrieve a tool with full configuration', async () => {
-      const toolData = createToolData({ suffix: '1' });
+      // Create project first (required for foreign key constraint)
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
+      const toolData = createToolData({ suffix: '1', projectData });
 
       // Validate with schema
       const validatedData = ToolInsertSchema.parse(toolData);
@@ -101,10 +129,19 @@ describe('Tools Data Access - Integration Tests', () => {
 
   describe('listTools', () => {
     it('should list tools with proper tenant isolation', async () => {
+      // Create projects for each tenant first
+      const project1Data = createProjectData({ suffix: '1' });
+      const project2Data = createProjectData({ suffix: '2' });
+      const project3Data = createProjectData({ suffix: '3' });
+
+      await createProject(db)(project1Data);
+      await createProject(db)(project2Data);
+      await createProject(db)(project3Data);
+
       // Create tools for different tenants
-      const tool1Data = createToolData({ suffix: '1' });
-      const tool2Data = createToolData({ suffix: '2' });
-      const tool3Data = createToolData({ suffix: '3' });
+      const tool1Data = createToolData({ suffix: '1', projectData: project1Data });
+      const tool2Data = createToolData({ suffix: '2', projectData: project2Data });
+      const tool3Data = createToolData({ suffix: '3', projectData: project3Data });
 
       await createTool(db)({
         ...tool1Data,
@@ -151,8 +188,12 @@ describe('Tools Data Access - Integration Tests', () => {
 
   describe('updateTool', () => {
     it('should update tool properties and timestamps', async () => {
+      // Create project first
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
       // Create initial tool
-      const initialData = createToolData({ suffix: '1' });
+      const initialData = createToolData({ suffix: '1', projectData });
 
       const createdTool = await createTool(db)({
         ...initialData,
@@ -194,7 +235,11 @@ describe('Tools Data Access - Integration Tests', () => {
     });
 
     it('should handle partial updates', async () => {
-      const toolData = createToolData({ suffix: '1' });
+      // Create project first
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
+      const toolData = createToolData({ suffix: '1', projectData });
 
       await createTool(db)({
         ...toolData,
@@ -214,7 +259,11 @@ describe('Tools Data Access - Integration Tests', () => {
     });
 
     it('should handle configuration updates', async () => {
-      const toolData = createToolData({ suffix: '1' });
+      // Create project first
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
+      const toolData = createToolData({ suffix: '1', projectData });
 
       await createTool(db)({
         ...toolData,
@@ -248,7 +297,11 @@ describe('Tools Data Access - Integration Tests', () => {
     });
 
     it('should maintain tenant isolation during updates', async () => {
-      const tenant1Tool = createToolData({ suffix: '1' });
+      // Create project first
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
+      const tenant1Tool = createToolData({ suffix: '1', projectData });
 
       await createTool(db)({
         ...tenant1Tool,
@@ -278,7 +331,11 @@ describe('Tools Data Access - Integration Tests', () => {
 
   describe('deleteTool', () => {
     it('should delete tool and verify removal', async () => {
-      const toolData = createToolData({ suffix: '1' });
+      // Create project first
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
+      const toolData = createToolData({ suffix: '1', projectData });
 
       // Create tool
       await createTool(db)({
@@ -309,7 +366,11 @@ describe('Tools Data Access - Integration Tests', () => {
     });
 
     it('should maintain tenant isolation during deletion', async () => {
-      const tenant1Tool = createToolData({ suffix: '1' });
+      // Create project first
+      const projectData = createProjectData({ suffix: '1' });
+      await createProject(db)(projectData);
+
+      const tenant1Tool = createToolData({ suffix: '1', projectData });
 
       await createTool(db)({
         ...tenant1Tool,
