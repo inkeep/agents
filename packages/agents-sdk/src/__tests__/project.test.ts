@@ -179,7 +179,7 @@ describe('Project', () => {
       await project.init();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/projects/test-project',
+        'http://localhost:3002/tenants/test-tenant/project-full/test-project',
         expect.objectContaining({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -201,7 +201,7 @@ describe('Project', () => {
       await project.init();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/projects/test-project',
+        'http://localhost:3002/tenants/test-tenant/project-full/test-project',
         expect.objectContaining({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

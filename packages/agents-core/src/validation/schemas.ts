@@ -620,7 +620,7 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
 
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
-  tools: z.record(z.string(), ToolApiInsertSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(),
   credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
@@ -632,7 +632,7 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
 });
 
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), AgentApiInsertSchema),
+  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
   models: ModelSchema.optional(),
   stopWhen: GraphStopWhenSchema.optional(),
   graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
@@ -692,7 +692,7 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 
 // Full Project Definition Schema - extends Project with graphs and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
-  graphs: z.record(z.string(), FullGraphDefinitionSchema), // where FullGraphDefinitionSchema is the same minus tools record type. FullGraphSync behavior will change a bit.
+  graphs: z.record(z.string(), GraphWithinContextOfProjectSchema),
   tools: z.record(z.string(), ToolApiInsertSchema),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),

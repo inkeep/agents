@@ -1,9 +1,11 @@
 import type {
   AgentApiInsert,
   AgentConversationHistoryConfig,
+  AgentStopWhen,
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
+  GraphStopWhen,
   McpTransportConfig,
   ToolInsert,
 } from '@inkeep/agents-core';
@@ -71,9 +73,7 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
-  stopWhen?: {
-    stepCountIs?: number;
-  };
+  stopWhen?: AgentStopWhen;
   memory?: {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
@@ -241,9 +241,7 @@ export interface GraphConfig {
   tenantId?: string;
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
-  stopWhen?: {
-    transferCountIs?: number;
-  };
+  stopWhen?: GraphStopWhen;
   graphPrompt?: string;
   models?: {
     base?: ModelSettings;

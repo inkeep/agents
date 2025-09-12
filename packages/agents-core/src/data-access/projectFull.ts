@@ -88,9 +88,14 @@ export const createFullProjectServerSide =
             logger.info({ projectId: typed.id, graphId }, 'Creating graph in project');
 
             // Create the full graph with project scoping
+            // Convert null statusUpdates to undefined for type compatibility
+            const graphDataWithUndefined = {
+              ...graphData,
+              statusUpdates: graphData.statusUpdates === null ? undefined : graphData.statusUpdates,
+            };
             await createFullGraphServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              graphData
+              graphDataWithUndefined
             );
 
             logger.info({ projectId: typed.id, graphId }, 'Graph created successfully in project');
@@ -207,9 +212,14 @@ export const updateFullProjectServerSide =
             logger.info({ projectId: typed.id, graphId }, 'Updating graph in project');
 
             // Update/create the full graph with project scoping
+            // Convert null statusUpdates to undefined for type compatibility
+            const graphDataWithUndefined = {
+              ...graphData,
+              statusUpdates: graphData.statusUpdates === null ? undefined : graphData.statusUpdates,
+            };
             await updateFullGraphServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              graphData
+              graphDataWithUndefined
             );
 
             logger.info({ projectId: typed.id, graphId }, 'Graph updated successfully in project');

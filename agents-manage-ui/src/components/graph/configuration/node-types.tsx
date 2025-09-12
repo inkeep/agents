@@ -11,11 +11,12 @@ interface NodeData {
   isDefault?: boolean;
 }
 
+import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
+
 export interface MCPNodeData extends MCPTool, Record<string, unknown> {}
 
-export interface AgentStopWhen {
-  stepCountIs?: number;
-}
+// Re-export the shared type for consistency
+export type { AgentStopWhen };
 
 export interface AgentNodeData extends Record<string, unknown> {
   id: string;

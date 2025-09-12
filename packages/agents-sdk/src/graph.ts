@@ -1,4 +1,8 @@
-import type { CredentialReferenceApiInsert, FullGraphDefinition } from '@inkeep/agents-core';
+import type {
+  CredentialReferenceApiInsert,
+  FullGraphDefinition,
+  GraphStopWhen,
+} from '@inkeep/agents-core';
 import { createDatabaseClient, getLogger, getProject } from '@inkeep/agents-core';
 import { ExternalAgent } from './externalAgent';
 import { updateFullGraphViaAPI } from './graphFullClient';
@@ -46,7 +50,7 @@ export class AgentGraph implements GraphInterface {
   };
   private statusUpdateSettings?: StatusUpdateSettings;
   private graphPrompt?: string;
-  private stopWhen?: { transferCountIs?: number };
+  private stopWhen?: GraphStopWhen;
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
   constructor(config: GraphConfig) {
@@ -905,7 +909,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get the graph's stopWhen configuration
    */
-  getStopWhen(): { transferCountIs?: number } {
+  getStopWhen(): GraphStopWhen {
     return this.stopWhen || { transferCountIs: 10 };
   }
 

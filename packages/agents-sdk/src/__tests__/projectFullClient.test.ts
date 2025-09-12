@@ -27,6 +27,7 @@ describe('projectFullClient', () => {
       transferCountIs: 10,
       stepCountIs: 50,
     },
+    tools: {},
     graphs: {},
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -51,7 +52,7 @@ describe('projectFullClient', () => {
 
       const result = await createFullProjectViaAPI(tenantId, apiUrl, mockProjectData);
 
-      expect(mockFetch).toHaveBeenCalledWith(`${apiUrl}/tenants/${tenantId}/projects`, {
+      expect(mockFetch).toHaveBeenCalledWith(`${apiUrl}/tenants/${tenantId}/project-full`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ describe('projectFullClient', () => {
       const result = await updateFullProjectViaAPI(tenantId, apiUrl, projectId, mockProjectData);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${apiUrl}/tenants/${tenantId}/projects/${projectId}`,
+        `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
         {
           method: 'PUT',
           headers: {
@@ -129,7 +130,7 @@ describe('projectFullClient', () => {
       const result = await getFullProjectViaAPI(tenantId, apiUrl, projectId);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${apiUrl}/tenants/${tenantId}/projects/${projectId}`,
+        `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
         {
           method: 'GET',
           headers: {
@@ -176,7 +177,7 @@ describe('projectFullClient', () => {
       await deleteFullProjectViaAPI(tenantId, apiUrl, projectId);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${apiUrl}/tenants/${tenantId}/projects/${projectId}`,
+        `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
         {
           method: 'DELETE',
           headers: {

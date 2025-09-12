@@ -1,4 +1,9 @@
-import type { FullProjectDefinition, ProjectApiInsert, ProjectModels } from '@inkeep/agents-core';
+import type {
+  FullProjectDefinition,
+  ProjectApiInsert,
+  ProjectModels,
+  StopWhen,
+} from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
@@ -20,10 +25,7 @@ export interface ProjectConfig {
     structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
-  stopWhen?: {
-    transferCountIs?: number;
-    stepCountIs?: number;
-  };
+  stopWhen?: StopWhen;
   graphs?: () => AgentGraph[];
 }
 
@@ -88,10 +90,7 @@ export class Project implements ProjectInterface {
     structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
-  private stopWhen?: {
-    transferCountIs?: number;
-    stepCountIs?: number;
-  };
+  private stopWhen?: StopWhen;
   private graphs: AgentGraph[] = [];
   private graphMap: Map<string, AgentGraph> = new Map();
 

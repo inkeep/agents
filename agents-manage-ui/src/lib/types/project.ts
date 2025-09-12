@@ -1,3 +1,5 @@
+import type { StopWhen as ProjectStopWhen } from '@inkeep/agents-core/client-exports';
+
 export interface ModelSettings {
   model: string;
   providerOptions?: Record<string, any>;
@@ -9,10 +11,8 @@ export interface ProjectModels {
   summarizer?: ModelSettings;
 }
 
-export interface ProjectStopWhen {
-  transferCountIs?: number;
-  stepCountIs?: number;
-}
+// Re-export the shared type with the original name for backward compatibility
+export type { ProjectStopWhen };
 
 export interface Project {
   id?: string; // Backend field
