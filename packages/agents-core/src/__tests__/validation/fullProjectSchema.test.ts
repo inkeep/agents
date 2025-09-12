@@ -6,15 +6,6 @@ describe('FullProjectDefinitionSchema', () => {
     id: 'test-project',
     name: 'Test Project',
     description: 'A test project for validation',
-    models: {
-      base: {
-        model: 'gpt-4o-mini',
-        providerOptions: { openai: { temperature: 0.7 } },
-      },
-      structuredOutput: {
-        model: 'gpt-4o',
-      },
-    },
     stopWhen: {
       transferCountIs: 10,
       stepCountIs: 50,
@@ -29,6 +20,7 @@ describe('FullProjectDefinitionSchema', () => {
           'agent-1': {
             id: 'agent-1',
             name: 'Test Agent',
+            description: 'A test agent for validation',
             prompt: 'You are a test agent',
             tools: [],
             type: 'internal',
@@ -37,10 +29,11 @@ describe('FullProjectDefinitionSchema', () => {
         tools: {},
       },
     },
+    tools: {},
     credentialReferences: [
       {
         id: 'cred-1',
-        type: 'bearer' as const,
+        type: 'memory' as const,
         credentialStoreId: 'store-1',
         retrievalParams: {},
       },
@@ -60,16 +53,16 @@ describe('FullProjectDefinitionSchema', () => {
       name: 'Minimal Project',
       description: '',
       graphs: {},
+      tools: {},
     };
 
     const result = FullProjectDefinitionSchema.safeParse(minimalProject);
     expect(result.success).toBe(true);
   });
 
-  it('should require id and name fields', () => {
+  it('should require id, name, graphs, and tools fields', () => {
     const invalidProject = {
       description: 'Missing required fields',
-      graphs: {},
     };
 
     const result = FullProjectDefinitionSchema.safeParse(invalidProject);
@@ -79,23 +72,11 @@ describe('FullProjectDefinitionSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({ path: ['id'] }),
           expect.objectContaining({ path: ['name'] }),
+          expect.objectContaining({ path: ['graphs'] }),
+          expect.objectContaining({ path: ['tools'] }),
         ])
       );
     }
-  });
-
-  it('should validate models structure', () => {
-    const projectWithInvalidModels = {
-      ...validFullProject,
-      models: {
-        base: {
-          model: 123, // Should be string
-        },
-      },
-    };
-
-    const result = FullProjectDefinitionSchema.safeParse(projectWithInvalidModels);
-    expect(result.success).toBe(false);
   });
 
   it('should validate stopWhen constraints', () => {
@@ -143,8 +124,8 @@ describe('FullProjectDefinitionSchema', () => {
       name: 'Test Project',
       description: 'A test project',
       graphs: {},
+      tools: {},
       // credentialReferences omitted
-      // models omitted
       // stopWhen omitted
       // createdAt omitted
       // updatedAt omitted
@@ -160,8 +141,9 @@ describe('FullProjectDefinitionSchema', () => {
       credentialReferences: [
         {
           id: 'cred-1',
-          type: 'invalid-type', // Should be valid credential type
+          type: 'invalid-type', // Should be one of: memory, keychain, nango
           credentialStoreId: 'store-1',
+          retrievalParams: {},
         },
       ],
     };

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from '../env';
 
 /**
@@ -19,8 +20,24 @@ export async function deleteDatabase() {
       dbFilePath = dbFilePath.replace('file:', '');
     }
 
-    // Resolve the path relative to the current working directory
-    const resolvedPath = path.resolve(process.cwd(), dbFilePath);
+    // Normalize relative paths to always point to project root
+    // This ensures consistent behavior regardless of where the command is run from
+    let resolvedPath: string;
+    if (path.isAbsolute(dbFilePath)) {
+      resolvedPath = dbFilePath;
+    } else {
+      // Calculate project root from this file's location: agents-core/src/db -> project root
+      const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
+      const projectRoot = path.resolve(currentFileDir, '../../../../');
+
+      // If the path is just "local.db" (from .env), put it in project root
+      // Otherwise, resolve it relative to project root
+      if (dbFilePath === 'local.db' || dbFilePath === './local.db') {
+        resolvedPath = path.join(projectRoot, 'local.db');
+      } else {
+        resolvedPath = path.resolve(projectRoot, dbFilePath);
+      }
+    }
 
     console.log(`📍 Resolved path: ${resolvedPath}`);
 
