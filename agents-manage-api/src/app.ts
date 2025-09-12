@@ -159,8 +159,8 @@ function createManagementHono(
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
-  const honoOpenAPIapp = new OpenAPIHono();
-  honoOpenAPIapp.openapi(
+  const appOpenAPI = new OpenAPIHono();
+  appOpenAPI.openapi(
     createRoute({
       method: 'get',
       path: '/health',
@@ -178,8 +178,8 @@ function createManagementHono(
     }
   );
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
-  setupOpenAPIRoutes(honoOpenAPIapp);
-  app.route('/', honoOpenAPIapp);
+  setupOpenAPIRoutes(appOpenAPI);
+  app.route('/', appOpenAPI);
 
   return app;
 }
