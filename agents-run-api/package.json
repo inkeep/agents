@@ -1,7 +1,7 @@
 {
   "name": "@inkeep/agents-run-api",
   "version": "0.1.6",
-  "description": "Execution API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
+  "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

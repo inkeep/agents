@@ -1,6 +1,6 @@
-# Inkeep Management API
+# Inkeep Agents Manage API
 
-The Management API is responsible for entity management and CRUD operations for the Inkeep Agent Framework. It provides the administrative layer for creating, configuring, and managing agents, graphs, tools, and projects.
+The Agents Manage API is responsible for entity management and CRUD operations for the Inkeep Agent Framework. It provides the administrative layer for creating, configuring, and managing agents, graphs, tools, and projects.
 
 ## Overview
 
@@ -145,14 +145,14 @@ const createAgentSchema = z.object({
 
 ## Integration
 
-### With Execution API
-The Management API provides the configuration that the Execution API reads during runtime. Changes to agents, graphs, or tools are immediately available to the execution layer.
+### With Agents Run API
+The Agents Manage API provides the configuration that the Agents Run API reads during runtime. Changes to agents, graphs, or tools are immediately available to the execution layer.
 
-### With CLI
-The Inkeep CLI uses the Management API for all `push` operations, creating and updating entities from configuration files.
+### With Agents CLI
+The Agents CLI uses the Agents Manage API for all `push` operations, creating and updating entities from configuration files.
 
-### With Agent Builder
-The Agent Builder UI provides a web interface for all Management API operations, offering visual agent and graph creation.
+### With Agents Manage UI
+The Agents Manage UI provides a web interface for all Agents Manage API operations, offering visual agent and graph creation.
 
 ## Error Handling
 

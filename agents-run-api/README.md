@@ -1,6 +1,6 @@
-# Inkeep Execution API
+# Inkeep Agents Run API
 
-The Execution API is responsible for runtime agent operations, including Agent-to-Agent (A2A) communication, chat completions, and MCP (Model Context Protocol) tool integrations.
+The Agents Run API is responsible for runtime agent operations, including Agent-to-Agent (A2A) communication, chat completions, and MCP (Model Context Protocol) tool integrations.
 
 ## Overview
 
@@ -82,8 +82,8 @@ The API uses environment-based configuration with defaults for local development
 
 ## Integration
 
-### With Management API
-The Execution API reads agent configurations and relationships created by the Management API but doesn't modify them during runtime.
+### With Agents Manage API
+The Agents Run API reads agent configurations and relationships created by the Agents Manage API but doesn't modify them during runtime.
 
 ### With MCP Tools
 Supports multiple MCP transport types:

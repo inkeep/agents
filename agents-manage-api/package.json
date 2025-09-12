@@ -1,7 +1,7 @@
 {
   "name": "@inkeep/agents-manage-api",
   "version": "0.1.6",
-  "description": "Management API for Inkeep Agent Framework - handles CRUD operations and OAuth",
+  "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "SEE LICENSE IN LICENSE.md",
