@@ -28,8 +28,9 @@ export const SvgIcon = forwardRef<SVGSVGElement, IconComponentProps>(
 		},
 		ref,
 	) => (
-		// biome-ignore lint/a11y/noSvgWithoutTitle: title is in the children
 		<svg
+			role="img"
+			aria-label="SVG Icon"
 			ref={ref}
 			{...defaultAttributes}
 			className={className}

@@ -141,8 +141,9 @@ interface GridPatternProps {
 
 export function GridPattern({ primaryColor }: GridPatternProps): ReactElement {
   return (
-    // biome-ignore lint/a11y/noSvgWithoutTitle: <explanation>
     <svg
+      role="img"
+      aria-label="Grid Pattern"
       width="790"
       height="640"
       viewBox="0 0 790 718"

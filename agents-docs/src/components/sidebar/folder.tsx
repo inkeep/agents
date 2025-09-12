@@ -45,7 +45,6 @@ export const Folder = ({ item, depth = 0 }: { item: SidebarPage; depth?: number 
 
   useEffect(() => {
     if (active && !open) setOpen(active);
-    // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   }, [active, open]);
 
   return (
