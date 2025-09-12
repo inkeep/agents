@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
-  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
+  providerOptions: z.record(z.string(), z.any()).optional(),
 });
 
 const projectModelsSchema = z.object({
