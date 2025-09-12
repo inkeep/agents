@@ -9,10 +9,10 @@ export function setupOpenAPIRoutes(app: any) {
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
-          title: 'Inkeep Agent Framework Management API',
+          title: 'Inkeep Agents Manage API',
           version: '1.0.0',
           description:
-            'Complete REST API for Inkeep Agent Framework Management application including chat completions, A2A agent communication, and comprehensive CRUD operations for all entities',
+            'REST API for the management of the Inkeep Agent Framework.',
         },
         servers: [
           {
@@ -39,7 +39,7 @@ export function setupOpenAPIRoutes(app: any) {
     '/docs',
     swaggerUI({
       url: '/openapi.json',
-      title: 'InkeepAgent Framework Management API Documentation',
+      title: 'Inkeep Agents Manage API Documentation',
     })
   );
 }

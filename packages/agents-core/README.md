@@ -170,14 +170,14 @@ Tests use in-memory SQLite databases for isolation and speed.
 
 This package is designed to support a multi-service architecture:
 
-### Management API
+### Agents Manage API
 Handles CRUD operations and entity management:
 - Creating/updating agents
 - Managing agent relationships
 - Configuring tools
 - Database migrations
 
-### Execution API
+### Agents Run API
 Handles runtime operations:
 - Processing conversations
 - Executing tasks
