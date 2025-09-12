@@ -82,8 +82,7 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
         value={modelField.value || ''}
         onValueChange={modelField.onChange}
         inheritedValue={baseModel}
-        isRequired
-        canClear={false}
+        canClear={true}
       />
       <p className="text-xs text-muted-foreground">
         Model for structured outputs and data components (defaults to base model)
@@ -136,8 +135,7 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
         value={modelField.value || ''}
         onValueChange={modelField.onChange}
         inheritedValue={baseModel}
-        isRequired
-        canClear={false}
+        canClear={true}
       />
       <p className="text-xs text-muted-foreground">
         Model for summarization tasks (defaults to base model)

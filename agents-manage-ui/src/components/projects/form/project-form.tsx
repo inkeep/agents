@@ -24,6 +24,31 @@ interface ProjectFormProps {
   initialData?: ProjectFormData;
 }
 
+const serializeData = (data: ProjectFormData) => {
+  return {
+    ...data,
+    models: {
+      ...data.models,
+      base: {
+        model: data.models.base.model,
+        providerOptions: data.models.base.providerOptions,
+      },
+      structuredOutput: data.models?.structuredOutput?.model
+        ? {
+            model: data.models.structuredOutput.model,
+            providerOptions: data.models.structuredOutput.providerOptions,
+          }
+        : undefined,
+      summarizer: data.models?.summarizer?.model
+        ? {
+            model: data.models.summarizer.model,
+            providerOptions: data.models.summarizer.providerOptions,
+          }
+        : undefined,
+    },
+  };
+};
+
 export function ProjectForm({
   tenantId,
   projectId,
@@ -51,9 +76,10 @@ export function ProjectForm({
   });
 
   const onSubmit = async (data: ProjectFormData) => {
+    const serializedData = serializeData(data);
     try {
       if (projectId) {
-        const res = await updateProjectAction(tenantId, projectId, data);
+        const res = await updateProjectAction(tenantId, projectId, serializedData);
         if (!res.success) {
           toast.error(res.error || 'Failed to update project');
           return;
@@ -63,7 +89,7 @@ export function ProjectForm({
           onSuccess(data.id);
         }
       } else {
-        const res = await createProjectAction(tenantId, data);
+        const res = await createProjectAction(tenantId, serializedData);
         if (!res.success) {
           toast.error(res.error || 'Failed to create project');
           return;

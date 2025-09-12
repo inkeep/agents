@@ -7,8 +7,8 @@ const modelSettingsSchema = z.object({
 
 const projectModelsSchema = z.object({
   base: modelSettingsSchema.required(),
-  structuredOutput: modelSettingsSchema,
-  summarizer: modelSettingsSchema,
+  structuredOutput: modelSettingsSchema.optional(),
+  summarizer: modelSettingsSchema.optional(),
 });
 
 const projectStopWhenSchema = z
