@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "53e2c81c-ccb3-49c8-b3e8-55756a96790f",
+  "id": "71257c4b-e1c4-48ac-9ff0-7257cef19ef2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -53,6 +53,21 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "agent_artifact_components_project_fk": {
+          "name": "agent_artifact_components_project_fk",
+          "tableFrom": "agent_artifact_components",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "agent_artifact_components_agent_fk": {
           "name": "agent_artifact_components_agent_fk",
           "tableFrom": "agent_artifact_components",
@@ -150,6 +165,21 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "agent_data_components_project_fk": {
+          "name": "agent_data_components_project_fk",
+          "tableFrom": "agent_data_components",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "agent_data_components_agent_fk": {
           "name": "agent_data_components_agent_fk",
           "tableFrom": "agent_data_components",
@@ -309,7 +339,7 @@
             "tenant_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -416,7 +446,7 @@
             "tenant_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -497,6 +527,21 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "agent_tool_relations_project_fk": {
+          "name": "agent_tool_relations_project_fk",
+          "tableFrom": "agent_tool_relations",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "agent_tool_relations_agent_fk": {
           "name": "agent_tool_relations_agent_fk",
           "tableFrom": "agent_tool_relations",
@@ -642,7 +687,7 @@
             "tenant_id",
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -774,6 +819,21 @@
         }
       },
       "foreignKeys": {
+        "api_keys_project_fk": {
+          "name": "api_keys_project_fk",
+          "tableFrom": "api_keys",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "api_keys_graph_fk": {
           "name": "api_keys_graph_fk",
           "tableFrom": "api_keys",
@@ -866,7 +926,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "artifact_components_project_fk": {
+          "name": "artifact_components_project_fk",
+          "tableFrom": "artifact_components",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "artifact_components_tenant_id_project_id_id_pk": {
           "columns": [
@@ -988,7 +1064,23 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "context_cache_project_fk": {
+          "name": "context_cache_project_fk",
+          "tableFrom": "context_cache",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "context_cache_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1072,7 +1164,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "context_configs_project_fk": {
+          "name": "context_configs_project_fk",
+          "tableFrom": "context_configs",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "context_configs_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1163,7 +1271,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "conversations_project_fk": {
+          "name": "conversations_project_fk",
+          "tableFrom": "conversations",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "conversations_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1240,7 +1364,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "credential_references_project_fk": {
+          "name": "credential_references_project_fk",
+          "tableFrom": "credential_references",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "credential_references_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1317,7 +1457,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "data_components_project_fk": {
+          "name": "data_components_project_fk",
+          "tableFrom": "data_components",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "data_components_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1409,6 +1565,21 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "external_agents_project_fk": {
+          "name": "external_agents_project_fk",
+          "tableFrom": "external_agents",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "external_agents_credential_reference_fk": {
           "name": "external_agents_credential_reference_fk",
           "tableFrom": "external_agents",
@@ -1568,7 +1739,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "ledger_artifacts_project_fk": {
+          "name": "ledger_artifacts_project_fk",
+          "tableFrom": "ledger_artifacts",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "ledger_artifacts_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1731,7 +1918,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "messages_project_fk": {
+          "name": "messages_project_fk",
+          "tableFrom": "messages",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "messages_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1885,7 +2088,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "task_relations_project_fk": {
+          "name": "task_relations_project_fk",
+          "tableFrom": "task_relations",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "task_relations_tenant_id_project_id_id_pk": {
           "columns": [
@@ -1969,7 +2188,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "tasks_project_fk": {
+          "name": "tasks_project_fk",
+          "tableFrom": "tasks",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "tasks_tenant_id_project_id_id_pk": {
           "columns": [
@@ -2103,7 +2338,23 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "tools_project_fk": {
+          "name": "tools_project_fk",
+          "tableFrom": "tools",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "tools_tenant_id_project_id_id_pk": {
           "columns": [
