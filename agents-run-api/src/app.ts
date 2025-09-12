@@ -22,6 +22,8 @@ import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
 
+const logger = getLogger('agents-run-api');
+
 type AppVariables = {
   executionContext: ExecutionContext;
   serverConfig: ServerConfig;
@@ -63,7 +65,7 @@ function createExecutionHono(
   // Logging middleware
   app.use(
     pinoLogger({
-      pino: getLogger() || pino({ level: 'debug' }),
+      pino: logger || pino({ level: 'debug' }),
       http: {
         onResLevel(c) {
           if (c.res.status >= 500) {
@@ -113,7 +115,6 @@ function createExecutionHono(
       if (!isExpectedError) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         const errorStack = err instanceof Error ? err.stack : undefined;
-        const logger = getLogger();
         if (logger) {
           logger.error(
             {
@@ -127,7 +128,6 @@ function createExecutionHono(
           );
         }
       } else {
-        const logger = getLogger();
         if (logger) {
           logger.error(
             {
@@ -147,7 +147,6 @@ function createExecutionHono(
         const response = err.getResponse();
         return response;
       } catch (responseError) {
-        const logger = getLogger();
         if (logger) {
           logger.error({ error: responseError }, 'Error while handling HTTPException response');
         }
@@ -187,8 +186,6 @@ function createExecutionHono(
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('*', async (c, next) => {
-    const logger = getLogger();
-
     // Get the API key context if available (set by auth middleware)
     const executionContext = c.get('executionContext');
 
