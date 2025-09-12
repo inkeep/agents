@@ -32,7 +32,9 @@ const getDatabaseUrl = () => {
   if (dbPath === 'local.db' || dbPath === './local.db') {
     return `file:${path.join(projectRoot, 'local.db')}`;
   } else {
-    return `file:${path.resolve(projectRoot, dbPath)}`;
+    // Ensure path is relative to project root without backward navigation
+    const normalizedPath = dbPath.replace(/\.\./g, '').replace(/^\//, '');
+    return `file:${path.join(projectRoot, normalizedPath)}`;
   }
 };
 
