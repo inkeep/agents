@@ -6,7 +6,7 @@ import type {
 
 // Base interfaces for version-agnostic system prompt building
 export interface VersionConfig<TConfig> {
-  templateFiles: string[];
+  loadTemplates(): Map<string, string>;
   assemble(templates: Map<string, string>, config: TConfig): string;
 }
 
