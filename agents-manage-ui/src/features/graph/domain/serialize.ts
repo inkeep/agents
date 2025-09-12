@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { nanoid } from 'nanoid';
+import { metadata } from '@/app/layout';
 import type { A2AEdgeData } from '@/components/graph/configuration/edge-types';
 import { EdgeType } from '@/components/graph/configuration/edge-types';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
@@ -44,7 +45,37 @@ function safeJsonParse(jsonString: string | undefined | null): any {
     return undefined;
   }
 }
+function processModels(modelsData: GraphMetadata['models']): GraphMetadata['models'] | undefined {
+  if (modelsData && typeof modelsData === 'object') {
+    const hasNonEmptyValue = Object.values(modelsData).some(
+      (value) => value !== null && value !== undefined && String(value).trim() !== ''
+    );
 
+    if (hasNonEmptyValue) {
+      return {
+        base: modelsData.base
+          ? {
+              model: modelsData.base.model,
+              providerOptions: safeJsonParse(modelsData.base.providerOptions),
+            }
+          : undefined,
+        structuredOutput: modelsData.structuredOutput
+          ? {
+              model: modelsData.structuredOutput.model,
+              providerOptions: safeJsonParse(modelsData.structuredOutput.providerOptions),
+            }
+          : undefined,
+        summarizer: modelsData.summarizer
+          ? {
+              model: modelsData.summarizer.model,
+              providerOptions: safeJsonParse(modelsData.summarizer.providerOptions),
+            }
+          : undefined,
+      };
+    }
+  }
+  return undefined;
+}
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
@@ -75,17 +106,7 @@ export function serializeGraphData(
       });
       // Process models - only include if it has non-empty, non-whitespace values
       const modelsData = node.data.models as GraphMetadata['models'] | undefined;
-      let processedModels: GraphMetadata['models'] | undefined;
-
-      if (modelsData && typeof modelsData === 'object') {
-        const hasNonEmptyValue = Object.values(modelsData).some(
-          (value) => value !== null && value !== undefined && String(value).trim() !== ''
-        );
-
-        if (hasNonEmptyValue) {
-          processedModels = modelsData;
-        }
-      }
+      const processedModels = processModels(modelsData);
 
       const stopWhen = (node.data as any).stopWhen;
       const agent: ExtendedAgent = {
