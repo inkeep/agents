@@ -1,6 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
 import { nanoid } from 'nanoid';
-import { metadata } from '@/app/layout';
 import type { A2AEdgeData } from '@/components/graph/configuration/edge-types';
 import { EdgeType } from '@/components/graph/configuration/edge-types';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
