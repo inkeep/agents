@@ -1,5 +1,13 @@
 # @inkeep/agents-cli
 
+## 0.1.8
+
+### Patch Changes
+
+- 17c116d: Readme fix
+  - @inkeep/agents-manage-ui@0.1.8
+  - @inkeep/agents-core@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

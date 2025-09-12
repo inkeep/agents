@@ -1,5 +1,13 @@
 # @inkeep/create-agents
 
+## 0.1.8
+
+### Patch Changes
+
+- 17c116d: Readme fix
+- Updated dependencies [17c116d]
+  - @inkeep/agents-cli@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @inkeep/agents-run-api
 
+## 0.1.8
+
+### Patch Changes
+
+- fe6187f: Fix templates loading
+  - @inkeep/agents-core@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes
