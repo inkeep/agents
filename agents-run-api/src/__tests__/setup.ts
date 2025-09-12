@@ -76,7 +76,12 @@ beforeAll(async () => {
     // Temporarily disable foreign key constraints for tests due to composite key issues
     await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
 
-    await migrate(dbClient, { migrationsFolder: '../packages/agents-core/drizzle' });
+    // Use path relative to project root to work with both direct and turbo execution
+    const migrationsPath = process.cwd().includes('agents-run-api')
+      ? '../packages/agents-core/drizzle'
+      : './packages/agents-core/drizzle';
+
+    await migrate(dbClient, { migrationsFolder: migrationsPath });
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');

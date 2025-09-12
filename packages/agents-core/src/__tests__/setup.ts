@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
@@ -14,7 +15,14 @@ beforeAll(async () => {
     // Temporarily disable foreign key constraints for tests due to composite key issues
     await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
 
-    await migrate(dbClient, { migrationsFolder: './drizzle' });
+    // Use absolute path to ensure migrations are found correctly
+    const projectRoot = process.cwd().includes('packages/agents-core')
+      ? process.cwd()
+      : path.join(process.cwd(), 'packages/agents-core');
+
+    const migrationsPath = path.join(projectRoot, 'drizzle');
+
+    await migrate(dbClient, { migrationsFolder: migrationsPath });
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');
     throw error;

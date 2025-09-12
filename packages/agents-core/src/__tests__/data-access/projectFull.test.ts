@@ -6,12 +6,12 @@ import {
   getFullProject,
   updateFullProjectServerSide,
 } from '../../data-access/projectFull';
-import { createDatabaseClient } from '../../db/client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { getLogger } from '../../utils/logger';
+import { dbClient } from '../setup';
 
 describe('projectFull data access', () => {
-  const db = createDatabaseClient({ url: ':memory:' });
+  const db = dbClient;
   const logger = getLogger('test');
   const tenantId = `tenant-${nanoid()}`;
 
