@@ -24,6 +24,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../types/utility';
+import type { AgentStopWhen, GraphStopWhen, StopWhen } from '../validation/schemas';
 
 // Projects table: Stores project metadata
 export const projects = sqliteTable(
@@ -38,10 +39,7 @@ export const projects = sqliteTable(
     models: text('models', { mode: 'json' }).$type<ProjectModels>(),
 
     // Project-level stopWhen configuration that can be inherited by graphs and agents
-    stopWhen: text('stop_when', { mode: 'json' }).$type<{
-      transferCountIs?: number;
-      stepCountIs?: number;
-    }>(),
+    stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
 
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -140,9 +138,7 @@ export const agents = sqliteTable(
     models: text('models', { mode: 'json' }).$type<Models>(),
 
     // Agent-level stopWhen configuration (inherited from project)
-    stopWhen: text('stop_when', { mode: 'json' }).$type<{
-      stepCountIs?: number;
-    }>(),
+    stopWhen: text('stop_when', { mode: 'json' }).$type<AgentStopWhen>(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -242,9 +238,7 @@ export const agentGraph = sqliteTable(
     graphPrompt: text('graph_prompt'),
 
     // Graph-level stopWhen configuration that can be inherited by agents
-    stopWhen: text('stop_when', { mode: 'json' }).$type<{
-      transferCountIs?: number;
-    }>(),
+    stopWhen: text('stop_when', { mode: 'json' }).$type<GraphStopWhen>(),
 
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
