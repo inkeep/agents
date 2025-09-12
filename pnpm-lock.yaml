@@ -355,11 +355,11 @@ importers:
         specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/cxkit-react':
-        specifier: 0.0.0-rc-20250905022240
-        version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)
+        specifier: '@inkeep/cxkit-react-oss'
+        version: link:@inkeep/cxkit-react-oss
       '@inkeep/cxkit-react-oss':
-        specifier: 0.0.0-rc-20250905022240
-        version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: '@inkeep/cxkit-react-oss'
+        version: link:@inkeep/cxkit-react-oss
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
@@ -705,11 +705,11 @@ importers:
   agents-ui:
     dependencies:
       '@inkeep/cxkit-react':
-        specifier: 0.0.0-rc-20250905022240
-        version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)
+        specifier: 0.0.0-rc-20250912162759
+        version: 0.0.0-rc-20250912162759(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)
       '@inkeep/cxkit-react-oss':
-        specifier: 0.0.0-rc-20250905022240
-        version: 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.0.0-rc-20250912162759
+        version: 0.0.0-rc-20250912162759(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       lucide-react:
         specifier: ^0.539.0
         version: 0.539.0(react@19.1.1)
@@ -1982,11 +1982,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@inkeep/cxkit-react-oss@0.0.0-rc-20250905022240':
-    resolution: {integrity: sha512-5jqtAh0U2Lls12bbAO4332JcDWUaWrozVyzrK56LBnN3GiGp4kTtf9dkJdJK1TT2y4jJb4zVz5VQKpxAbmAMOg==}
+  '@inkeep/cxkit-react-oss@0.0.0-rc-20250912162759':
+    resolution: {integrity: sha512-8a1J1TlSdKVK80rpnk1fjRxDXXOUbFEh4Eh0X+thiDrcYK4WTQ0FgNLbFed+MtUdYOH0yAt3vFhqnylp2XFt+Q==}
 
-  '@inkeep/cxkit-react@0.0.0-rc-20250905022240':
-    resolution: {integrity: sha512-wFNYO9NprHzugc569Axv4SkbcVlW6U5x/q2s0B6J9jDSzgnxhIGstUMR/WFsnJi0f4QxZm5FV79MsvtqhswqEw==}
+  '@inkeep/cxkit-react@0.0.0-rc-20250912162759':
+    resolution: {integrity: sha512-AlCJNpG6SJ3M4LhhSHolcBd4ydEZTl11CkIxgUrVWOdGTKhOCUSiL5z6KkECOJ73rFxhNDL/OGGsBAWpqpKLgg==}
 
   '@inkeep/docskit@0.0.6':
     resolution: {integrity: sha512-v+JHrbvChrMp3On9FYK/S9y9hYO4hsxMGAhiBxEefrqE5sxIJlooJXnn2iOi87zCghmvyWuabX4rlFHBG+N3CQ==}
@@ -10096,7 +10096,7 @@ snapshots:
   '@img/sharp-win32-x64@0.34.3':
     optional: true
 
-  '@inkeep/cxkit-react-oss@0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@inkeep/cxkit-react-oss@0.0.0-rc-20250912162759(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.5)
       '@ai-sdk/react': 2.0.5(react@19.1.1)(zod@4.1.5)
@@ -10162,10 +10162,10 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/cxkit-react@0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)':
+  '@inkeep/cxkit-react@0.0.0-rc-20250912162759(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@4.1.5)':
     dependencies:
       '@ai-sdk/ui-utils': 1.2.11(zod@4.1.5)
-      '@inkeep/cxkit-react-oss': 0.0.0-rc-20250905022240(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@inkeep/cxkit-react-oss': 0.0.0-rc-20250912162759(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.1.12)(react@19.1.1)
       lucide-react: 0.503.0(react@19.1.1)
     transitivePeerDependencies:
