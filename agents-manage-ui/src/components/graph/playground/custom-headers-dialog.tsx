@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -72,6 +73,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
     defaultValues: {
       headers: JSON.stringify(customHeaders, null, 2),
     },
+    resolver: zodResolver(customHeadersSchema),
   });
   const { isSubmitting } = form.formState;
 
