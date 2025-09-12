@@ -238,6 +238,8 @@ function getTitleFromCode(code: ErrorCodes): string {
       return 'Forbidden';
     case 'not_found':
       return 'Not Found';
+    case 'conflict':
+      return 'Conflict';
     case 'unprocessable_entity':
       return 'Unprocessable Entity';
     case 'internal_server_error':

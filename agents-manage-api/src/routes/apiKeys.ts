@@ -186,15 +186,10 @@ app.openapi(
     } catch (error: any) {
       // Handle foreign key constraint violations (invalid graphId)
       if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
-        return c.json(
-          {
-            title: 'Bad Request',
-            status: 400,
-            detail: 'Invalid graphId - graph does not exist',
-            code: 'invalid_graph_id',
-          },
-          400
-        );
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Invalid graphId - graph does not exist',
+        });
       }
 
       // Re-throw other errors to be handled by the global error handler

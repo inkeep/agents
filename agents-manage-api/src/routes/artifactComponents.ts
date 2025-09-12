@@ -151,15 +151,10 @@ app.openapi(
     } catch (error: any) {
       // Handle duplicate artifact component (primary key constraint)
       if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
-        return c.json(
-          {
-            title: 'Conflict',
-            status: 409,
-            detail: `Artifact component with ID '${finalId}' already exists`,
-            code: 'duplicate_artifact_component',
-          },
-          409
-        );
+        throw createApiError({
+          code: 'conflict',
+          message: `Artifact component with ID '${finalId}' already exists`,
+        });
       }
 
       // Re-throw other errors to be handled by the global error handler

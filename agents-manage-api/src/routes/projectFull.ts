@@ -93,7 +93,7 @@ app.openapi(
     try {
       // Create the full project using the server-side data layer operations
       const createdProject = await createFullProjectServerSide(dbClient, logger)(
-        { tenantId },
+        { tenantId, projectId: validatedProjectData.id },
         validatedProjectData
       );
 
@@ -101,15 +101,10 @@ app.openapi(
     } catch (error: any) {
       // Handle duplicate project creation (SQLite primary key constraint)
       if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
-        return c.json(
-          {
-            title: 'Conflict',
-            status: 409,
-            detail: `Project with ID '${projectData.id}' already exists`,
-            code: 'duplicate_project',
-          },
-          409
-        );
+        throw createApiError({
+          code: 'conflict',
+          message: `Project with ID '${projectData.id}' already exists`,
+        });
       }
 
       // Re-throw other errors to be handled by the global error handler
@@ -151,7 +146,7 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId },
+        scopes: { tenantId, projectId },
         projectId,
       });
 
@@ -240,15 +235,21 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId },
+        scopes: { tenantId, projectId },
         projectId,
       });
       const isCreate = !existingProject;
 
       // Update/create the full project using server-side data layer operations
       const updatedProject: FullProjectDefinition = isCreate
-        ? await createFullProjectServerSide(dbClient, logger)({ tenantId }, validatedProjectData)
-        : await updateFullProjectServerSide(dbClient, logger)({ tenantId }, validatedProjectData);
+        ? await createFullProjectServerSide(dbClient, logger)(
+            { tenantId, projectId },
+            validatedProjectData
+          )
+        : await updateFullProjectServerSide(dbClient, logger)(
+            { tenantId, projectId },
+            validatedProjectData
+          );
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
     } catch (error) {
@@ -302,7 +303,7 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId },
+        scopes: { tenantId, projectId },
         projectId,
       });
 
