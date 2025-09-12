@@ -6,8 +6,6 @@ packages:
   - agents-ui
   - examples
   - agents-docs
-  - packages/agents-core
-  - packages/agents-sdk
-  - packages/create-agents
+  - "packages/*"
 onlyBuiltDependencies:
   - keytar

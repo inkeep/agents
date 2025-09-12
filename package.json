@@ -35,6 +35,7 @@
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
     "prepare": "husky",
+    "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
