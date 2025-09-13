@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.1.10
+
+### Patch Changes
+
+- 148c9aa: Project name fix
+
 ## 0.1.9
 
 ### Patch Changes
