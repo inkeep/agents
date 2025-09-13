@@ -69,7 +69,7 @@ function createExecutionHono(
     if (bag && typeof bag.setEntry === 'function') {
       bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
       const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-      return otelContext.with(ctxWithBag, () => next());
+      return await otelContext.with(ctxWithBag, async () => await next());
     }
     return next();
   });
@@ -200,7 +200,7 @@ function createExecutionHono(
     if (requestBody) {
       conversationId = requestBody.conversationId;
       if (!conversationId) {
-        logger.debug({}, 'No conversation ID found in request body');
+        logger.debug({requestBody}, 'No conversation ID found in request body');
       }
     }
 
@@ -227,7 +227,7 @@ function createExecutionHono(
     );
 
     const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-    return otelContext.with(ctxWithBag, () => next());
+    return await otelContext.with(ctxWithBag, async () => await next());
   });
 
   // Health check endpoint (no auth required)
