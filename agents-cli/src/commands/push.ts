@@ -1,323 +1,235 @@
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { createDatabaseClient, createProject, getProject } from '@inkeep/agents-core';
+import { join, resolve } from 'node:path';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { findUp } from 'find-up';
 import ora from 'ora';
-import { ManagementApiClient } from '../api';
-import { validateConfiguration } from '../utils/config';
-import { promptForModelConfiguration } from '../utils/model-config';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
-import { buildGraphViewUrl } from '../utils/url';
 
 export interface PushOptions {
-  tenantId?: string;
+  project?: string;
   agentsManageApiUrl?: string;
-  configFilePath?: string;
   env?: string;
+  json?: boolean;
 }
 
-export async function pushCommand(graphPath: string, options: PushOptions) {
-  const spinner = ora('Loading graph configuration...').start();
+/**
+ * Find project directory by looking for inkeep.config.ts
+ */
+async function findProjectDirectory(projectId?: string): Promise<string | null> {
+  const cwd = process.cwd();
+
+  if (projectId) {
+    // Check if projectId is a path
+    if (projectId.includes('/') || projectId.includes('\\')) {
+      const projectPath = resolve(cwd, projectId);
+      if (existsSync(join(projectPath, 'inkeep.config.ts'))) {
+        return projectPath;
+      }
+    } else {
+      // Look for directory with projectId name
+      const projectPath = join(cwd, projectId);
+      if (existsSync(join(projectPath, 'inkeep.config.ts'))) {
+        return projectPath;
+      }
+    }
+    return null;
+  }
+
+  // Use find-up to look for inkeep.config.ts starting from current directory
+  const configPath = await findUp('inkeep.config.ts', { cwd });
+
+  if (configPath) {
+    // Return the directory containing the config file
+    return resolve(configPath, '..');
+  }
+
+  return null;
+}
+
+/**
+ * Load and validate project from index.ts
+ */
+async function loadProject(projectDir: string) {
+  const indexPath = join(projectDir, 'index.ts');
+
+  if (!existsSync(indexPath)) {
+    throw new Error(`index.ts not found in project directory: ${projectDir}`);
+  }
+
+  // Import the module with TypeScript support
+  const module = await importWithTypeScriptSupport(indexPath);
+
+  // Find the first export with __type = "project"
+  const exports = Object.keys(module);
+  for (const exportKey of exports) {
+    const value = module[exportKey];
+    if (value && typeof value === 'object' && value.__type === 'project') {
+      return value;
+    }
+  }
+
+  throw new Error(
+    'No project export found in index.ts. Expected an export with __type = "project"'
+  );
+}
+
+export async function pushCommand(options: PushOptions) {
+  const spinner = ora('Detecting project...').start();
 
   try {
-    // Resolve the absolute path
-    const absolutePath = resolve(process.cwd(), graphPath);
+    // Find project directory
+    const projectDir = await findProjectDirectory(options.project);
 
-    // Check if file exists
-    if (!existsSync(absolutePath)) {
-      spinner.fail('Graph file not found');
-      console.error(chalk.red(`File not found: ${absolutePath}`));
+    if (!projectDir) {
+      spinner.fail('Project not found');
+      if (options.project) {
+        console.error(chalk.red(`Project directory not found: ${options.project}`));
+        console.error(
+          chalk.yellow('Make sure the project directory contains an inkeep.config.ts file')
+        );
+      } else {
+        console.error(chalk.red('No project found in current directory or parent directories'));
+        console.error(
+          chalk.yellow(
+            'Either run this command from within a project directory or use --project <project-id>'
+          )
+        );
+      }
       process.exit(1);
     }
 
-    // Set environment for graph loading if --env flag is provided
+    spinner.succeed(`Project found: ${projectDir}`);
+
+    // Set environment if provided
     if (options.env) {
       process.env.INKEEP_ENV = options.env;
       spinner.text = `Setting environment to '${options.env}'...`;
     }
 
-    // Import the module with TypeScript support
-    spinner.text = 'Loading graph module...';
-    const module = await importWithTypeScriptSupport(absolutePath);
+    // Load project from index.ts
+    spinner.text = 'Loading project from index.ts...';
+    const project = await loadProject(projectDir);
 
-    // Validate that exactly one graph is exported
-    const exports = Object.keys(module);
-    const graphExports = exports.filter((key) => {
-      const value = module[key];
-      // Check for AgentGraph-like objects (has required methods)
-      return (
-        value &&
-        typeof value === 'object' &&
-        typeof value.init === 'function' &&
-        typeof value.getId === 'function' &&
-        typeof value.getName === 'function' &&
-        typeof value.getAgents === 'function'
-      );
-    });
+    spinner.succeed('Project loaded successfully');
 
-    if (graphExports.length === 0) {
-      spinner.fail('No AgentGraph exported from configuration file');
-      console.error(chalk.red('Configuration file must export at least one AgentGraph instance'));
-      process.exit(1);
-    }
-
-    if (graphExports.length > 1) {
-      spinner.fail('Multiple AgentGraphs exported from configuration file');
-      console.error(chalk.red('Configuration file must export exactly one AgentGraph instance'));
-      console.error(chalk.yellow('Found exports:'), graphExports.join(', '));
-      process.exit(1);
-    }
-
-    // Get the graph instance
-    const graphKey = graphExports[0];
-    const graph = module[graphKey];
-
+    // Load inkeep.config.ts for configuration
     spinner.text = 'Loading configuration...';
+    const configPath = join(projectDir, 'inkeep.config.ts');
+    const configModule = await importWithTypeScriptSupport(configPath);
+    const config = configModule.default;
 
-    // Validate configuration
-    let config: any;
-    try {
-      config = await validateConfiguration(
-        options.tenantId,
-        options.agentsManageApiUrl,
-        undefined, // agentsRunApiUrl not needed for push
-        options.configFilePath
-      );
-    } catch (error: any) {
-      spinner.fail('Configuration validation failed');
-      console.error(chalk.red(error.message));
-      process.exit(1);
+    if (!config) {
+      throw new Error('No default export found in inkeep.config.ts');
+    }
+
+    // Override config with CLI options
+    const finalConfig = {
+      ...config,
+      agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
+    };
+
+    if (!finalConfig.tenantId || !finalConfig.projectId || !finalConfig.agentsManageApiUrl) {
+      throw new Error('Missing required configuration: tenantId, projectId, or agentsManageApiUrl');
     }
 
     spinner.succeed('Configuration loaded');
 
-    // Log configuration sources for debugging
+    // Log configuration sources
     console.log(chalk.gray('Configuration sources:'));
-    console.log(chalk.gray(`  • Tenant ID: ${config.sources.tenantId}`));
-    console.log(chalk.gray(`  • Project ID: ${config.sources.projectId}`));
-    console.log(chalk.gray(`  • API URL: ${config.sources.agentsManageApiUrl}`));
+    console.log(chalk.gray(`  • Tenant ID: ${finalConfig.tenantId}`));
+    console.log(chalk.gray(`  • Project ID: ${finalConfig.projectId}`));
+    console.log(chalk.gray(`  • API URL: ${finalConfig.agentsManageApiUrl}`));
 
-    const tenantId = config.tenantId;
-    const projectId = config.projectId;
-    const agentsManageApiUrl = config.agentsManageApiUrl;
-
-    // Check if project exists in the database
-    spinner.text = 'Validating project...';
-
-    // Use local.db to check if project exists
-    let dbUrl = process.env.DB_FILE_NAME || 'local.db';
-
-    // Convert relative path to absolute path for libsql
-    if (
-      dbUrl !== ':memory:' &&
-      !dbUrl.startsWith('file:') &&
-      !dbUrl.startsWith('libsql:') &&
-      !dbUrl.startsWith('http')
-    ) {
-      const absolutePath = resolve(process.cwd(), dbUrl);
-
-      // Validate database file exists
-      if (!existsSync(absolutePath)) {
-        spinner.fail(`Database file not found: ${absolutePath}`);
-        console.error(
-          chalk.red(
-            'Please ensure the database file exists or set DB_FILE_NAME environment variable'
-          )
-        );
-        process.exit(1);
-      }
-
-      dbUrl = `file:${absolutePath}`;
+    // Set configuration on the project
+    if (typeof project.setConfig === 'function') {
+      project.setConfig(finalConfig.tenantId, finalConfig.agentsManageApiUrl);
     }
 
-    const dbClient = createDatabaseClient({ url: dbUrl });
+    // Dump project data to JSON file if --json flag is set
+    if (options.json) {
+      spinner.text = 'Generating project data JSON...';
 
-    const existingProject = await getProject(dbClient)({
-      scopes: { tenantId, projectId },
-    });
-
-    if (!existingProject) {
-      spinner.warn(`Project "${projectId}" does not exist`);
-      spinner.stop(); // Stop spinner before prompting
-
-      // Ask user if they want to create the project
-      const { shouldCreate } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'shouldCreate',
-          message: `Project "${projectId}" does not exist. Would you like to create it?`,
-          default: true,
-        },
-      ]);
-
-      if (!shouldCreate) {
-        console.log(chalk.yellow('Push cancelled. Project must exist before pushing a graph.'));
-        process.exit(0);
-      }
-
-      // Prompt for project details
-      const { projectName, projectDescription } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'projectName',
-          message: 'Enter a name for the project:',
-          default: projectId,
-          validate: (input: any) => {
-            if (!input || input.trim() === '') {
-              return 'Project name is required';
-            }
-            return true;
-          },
-        },
-        {
-          type: 'input',
-          name: 'projectDescription',
-          message: 'Enter a description for the project (optional):',
-          default: '',
-        },
-      ]);
-
-      // Check if we have model settings in the config file
-      let models = config.modelSettings;
-
-      if (!models || !models.base) {
-        // No models configured in config file, prompt for them
-        spinner.stop(); // Stop spinner before prompting
-        console.log(chalk.cyan("\nNow let's configure the AI models for this project."));
-        console.log(chalk.gray('Models are required for agents to function properly.\n'));
-
-        const { modelSettings } = await promptForModelConfiguration();
-        models = modelSettings;
-      } else {
-        console.log(chalk.gray('\nUsing model settings from config file.'));
-      }
-
-      // Create the project with model settings
-      spinner.start('Creating project with configured models...');
       try {
-        await createProject(dbClient)({
-          id: projectId,
-          tenantId: tenantId,
-          name: projectName,
-          description: projectDescription || 'No description provided',
-          models: models, // Pass models directly when creating the project
-        });
-        spinner.succeed(`Project "${projectName}" created successfully with model configuration`);
+        // Generate the project definition without initializing
+        const projectDefinition = await (project as any).toFullProjectDefinition();
+
+        // Create the JSON file path
+        const jsonFilePath = join(projectDir, `${finalConfig.projectId}.json`);
+
+        // Write the project data to JSON file
+        const fs = await import('node:fs/promises');
+        await fs.writeFile(jsonFilePath, JSON.stringify(projectDefinition, null, 2));
+
+        spinner.succeed(`Project data saved to ${jsonFilePath}`);
+        console.log(chalk.gray(`  • File: ${jsonFilePath}`));
+        console.log(chalk.gray(`  • Size: ${JSON.stringify(projectDefinition).length} bytes`));
+
+        // Show a summary of what was saved
+        const graphCount = Object.keys(projectDefinition.graphs || {}).length;
+        const toolCount = Object.keys(projectDefinition.tools || {}).length;
+        const agentCount = Object.values(projectDefinition.graphs || {}).reduce(
+          (total: number, graph: any) => {
+            return total + Object.keys(graph.agents || {}).length;
+          },
+          0
+        );
+
+        console.log(chalk.cyan('\n📊 Project Data Summary:'));
+        console.log(chalk.gray(`  • Graphs: ${graphCount}`));
+        console.log(chalk.gray(`  • Tools: ${toolCount}`));
+        console.log(chalk.gray(`  • Agents: ${agentCount}`));
+
+        // Exit after generating JSON (don't initialize the project)
+        console.log(chalk.green('\n✨ JSON file generated successfully!'));
+        process.exit(0);
       } catch (error: any) {
-        spinner.fail('Failed to create project');
+        spinner.fail('Failed to generate JSON file');
         console.error(chalk.red('Error:'), error.message);
         process.exit(1);
       }
-    } else {
-      spinner.succeed(`Project "${existingProject.name || projectId}" validated`);
     }
 
-    // Create API client with validated configuration (not used directly since graph handles its own API calls)
-    await ManagementApiClient.create(
-      config.agentsManageApiUrl,
-      options.configFilePath,
-      config.tenantId
-    );
+    // Initialize the project (this will push to the backend)
+    spinner.start('Initializing project...');
+    await project.init();
 
-    // Inject configuration into the graph
-    if (typeof graph.setConfig === 'function') {
-      graph.setConfig(tenantId, projectId, agentsManageApiUrl);
-    }
+    // Get project details
+    const projectId = project.getId();
+    const projectName = project.getName();
+    const stats = project.getStats();
 
-    spinner.start('Initializing graph...');
+    spinner.succeed(`Project "${projectName}" (${projectId}) pushed successfully`);
 
-    // Initialize the graph (this will push to the backend)
-    await graph.init();
+    // Display summary
+    console.log(chalk.cyan('\n📊 Project Summary:'));
+    console.log(chalk.gray(`  • Project ID: ${projectId}`));
+    console.log(chalk.gray(`  • Name: ${projectName}`));
+    console.log(chalk.gray(`  • Graphs: ${stats.graphCount}`));
+    console.log(chalk.gray(`  • Tenant: ${stats.tenantId}`));
 
-    // Get graph details
-    const graphId = graph.getId();
-    const graphName = graph.getName();
-    const stats = graph.getStats();
-
-    spinner.succeed(`Graph "${graphName}" (${graphId}) pushed successfully`);
-
-    // Validate for dangling resources
-    const agents = graph.getAgents();
-    const warnings: string[] = [];
-
-    // Check for agents not referenced in any relationships
-    for (const agent of agents) {
-      const agentName = agent.getName();
-      let isReferenced = false;
-
-      // Check if this agent is referenced by any other agent
-      for (const otherAgent of agents) {
-        if (otherAgent === agent) continue;
-
-        // Check transfers (only for internal agents)
-        if (typeof otherAgent.getTransfers === 'function') {
-          const transfers = otherAgent.getTransfers();
-          if (transfers.some((h: any) => h.getName() === agentName)) {
-            isReferenced = true;
-            break;
-          }
-        }
-
-        // Check delegates (only for internal agents)
-        if (typeof otherAgent.getDelegates === 'function') {
-          const delegates = otherAgent.getDelegates();
-          if (delegates.some((d: any) => d.getName() === agentName)) {
-            isReferenced = true;
-            break;
-          }
-        }
-      }
-
-      // Check if it's the default agent
-      const defaultAgent = graph.getDefaultAgent();
-      if (defaultAgent && defaultAgent.getName() === agentName) {
-        isReferenced = true;
-      }
-
-      if (!isReferenced && agents.length > 1) {
-        warnings.push(
-          `Agent "${agentName}" is not referenced in any transfer or delegation relationships`
+    // Display graph details if any
+    const graphs = project.getGraphs();
+    if (graphs.length > 0) {
+      console.log(chalk.cyan('\n📊 Graph Details:'));
+      for (const graph of graphs) {
+        const graphStats = graph.getStats();
+        console.log(
+          chalk.gray(
+            `  • ${graph.getName()} (${graph.getId()}): ${graphStats.agentCount} agents, ${graphStats.toolCount} tools`
+          )
         );
       }
     }
 
-    // Display warnings if any
-    if (warnings.length > 0) {
-      console.log(chalk.yellow('\n⚠️  Warnings:'));
-      warnings.forEach((warning) => {
-        console.log(chalk.yellow(`  • ${warning}`));
-      });
-    }
-
-    // Display summary
-    console.log(chalk.cyan('\n📊 Graph Summary:'));
-    console.log(chalk.gray(`  • Graph ID: ${graphId}`));
-    console.log(chalk.gray(`  • Name: ${graphName}`));
-    console.log(chalk.gray(`  • Agents: ${stats.agentCount}`));
-    console.log(chalk.gray(`  • Tools: ${stats.toolCount}`));
-    console.log(chalk.gray(`  • Relations: ${stats.relationCount}`));
-
     // Provide next steps
     console.log(chalk.green('\n✨ Next steps:'));
-
-    // Add view graph link if manageUiUrl is available
-    try {
-      const viewGraphUrl = buildGraphViewUrl(config.manageUiUrl, tenantId, projectId, graphId);
-      console.log(chalk.gray(`  • View graph in UI: ${chalk.cyan(viewGraphUrl)}`));
-    } catch (error) {
-      // If URL construction fails, just skip displaying the link
-      console.debug('Could not generate UI link:', error);
-    }
-
-    console.log(chalk.gray(`  • Test your graph: inkeep chat ${graphId}`));
+    console.log(chalk.gray(`  • Test your project: inkeep chat`));
     console.log(chalk.gray(`  • View all graphs: inkeep list-graphs`));
-    console.log(chalk.gray(`  • Get graph details: inkeep get-graph ${graphId}`));
 
     // Force exit to avoid hanging due to OpenTelemetry or other background tasks
     process.exit(0);
   } catch (error: any) {
-    spinner.fail('Failed to push graph');
+    spinner.fail('Failed to push project');
     console.error(chalk.red('Error:'), error.message);
 
     if (error.stack && process.env.DEBUG) {
