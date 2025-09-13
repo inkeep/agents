@@ -196,7 +196,7 @@ function createExecutionHono(
 
     // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
-    const requestBody = c.get('requestBody');
+    const requestBody = c.get('requestBody') || {};
     if (requestBody) {
       conversationId = requestBody.conversationId;
     }

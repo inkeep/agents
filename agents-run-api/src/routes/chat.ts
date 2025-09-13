@@ -188,7 +188,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     );
 
     // Get conversationId from request body or generate new one
-    const body = c.get('requestBody');
+    const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || nanoid();
 
     // Get the graph from the full graph system first, fall back to legacy system
