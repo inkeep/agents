@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import chalk from 'chalk';
-import { findUp } from 'find-up';
 import ora from 'ora';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { findProjectDirectory } from '../utils/project-directory';
+import { loadEnvironmentCredentials } from '../utils/environment-loader';
 
 export interface PushOptions {
   project?: string;
@@ -12,39 +13,6 @@ export interface PushOptions {
   json?: boolean;
 }
 
-/**
- * Find project directory by looking for inkeep.config.ts
- */
-async function findProjectDirectory(projectId?: string): Promise<string | null> {
-  const cwd = process.cwd();
-
-  if (projectId) {
-    // Check if projectId is a path
-    if (projectId.includes('/') || projectId.includes('\\')) {
-      const projectPath = resolve(cwd, projectId);
-      if (existsSync(join(projectPath, 'inkeep.config.ts'))) {
-        return projectPath;
-      }
-    } else {
-      // Look for directory with projectId name
-      const projectPath = join(cwd, projectId);
-      if (existsSync(join(projectPath, 'inkeep.config.ts'))) {
-        return projectPath;
-      }
-    }
-    return null;
-  }
-
-  // Use find-up to look for inkeep.config.ts starting from current directory
-  const configPath = await findUp('inkeep.config.ts', { cwd });
-
-  if (configPath) {
-    // Return the directory containing the config file
-    return resolve(configPath, '..');
-  }
-
-  return null;
-}
 
 /**
  * Load and validate project from index.ts
@@ -143,6 +111,24 @@ export async function pushCommand(options: PushOptions) {
     // Set configuration on the project
     if (typeof project.setConfig === 'function') {
       project.setConfig(finalConfig.tenantId, finalConfig.agentsManageApiUrl);
+    }
+
+    // Load environment credentials if --env flag is provided
+    if (options.env && typeof project.setCredentials === 'function') {
+      spinner.text = `Loading credentials for environment '${options.env}'...`;
+      
+      try {
+        const credentials = await loadEnvironmentCredentials(projectDir, options.env);
+        project.setCredentials(credentials);
+        
+        spinner.text = 'Project loaded with credentials';
+        console.log(chalk.gray(`  • Environment: ${options.env}`));
+        console.log(chalk.gray(`  • Credentials loaded: ${Object.keys(credentials).length}`));
+      } catch (error: any) {
+        spinner.fail('Failed to load environment credentials');
+        console.error(chalk.red('Error:'), error.message);
+        process.exit(1);
+      }
     }
 
     // Dump project data to JSON file if --json flag is set

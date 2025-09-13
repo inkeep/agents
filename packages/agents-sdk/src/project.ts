@@ -1,4 +1,5 @@
 import type {
+  CredentialReferenceApiInsert,
   FullProjectDefinition,
   ProjectApiInsert,
   ProjectModels,
@@ -94,6 +95,7 @@ export class Project implements ProjectInterface {
   private stopWhen?: StopWhen;
   private graphs: AgentGraph[] = [];
   private graphMap: Map<string, AgentGraph> = new Map();
+  private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -149,6 +151,22 @@ export class Project implements ProjectInterface {
         apiUrl: this.baseURL,
       },
       'Project configuration updated'
+    );
+  }
+
+  /**
+   * Set credential references for the project
+   * This is used by the CLI to inject environment-specific credentials
+   */
+  setCredentials(credentials: Record<string, CredentialReferenceApiInsert>): void {
+    this.credentialReferences = Object.values(credentials);
+
+    logger.info(
+      {
+        projectId: this.projectId,
+        credentialCount: this.credentialReferences?.length || 0,
+      },
+      'Project credentials updated'
     );
   }
 

@@ -2,9 +2,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import { findUp } from 'find-up';
 import ora from 'ora';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { findProjectDirectory } from '../utils/project-directory';
 import { generateTypeScriptFileWithLLM } from './pull.llm-generate';
 
 export interface PullOptions {
@@ -14,33 +14,6 @@ export interface PullOptions {
   json?: boolean;
 }
 
-/**
- * Find project directory by looking for inkeep.config.ts
- */
-async function findProjectDirectory(projectId?: string): Promise<string | null> {
-  if (projectId) {
-    // Check if it's a path
-    if (projectId.includes('/') || projectId.includes('\\')) {
-      const configPath = join(projectId, 'inkeep.config.ts');
-      if (existsSync(configPath)) {
-        return projectId;
-      }
-    } else {
-      // Look for project directory with this ID in current directory
-      const currentDir = process.cwd();
-      const projectDir = join(currentDir, projectId);
-      const configPath = join(projectDir, 'inkeep.config.ts');
-      if (existsSync(configPath)) {
-        return projectDir;
-      }
-    }
-    return null;
-  }
-
-  // Look for inkeep.config.ts in current directory and parents
-  const configPath = await findUp('inkeep.config.ts');
-  return configPath ? join(configPath, '..') : null;
-}
 
 /**
  * Load and validate inkeep.config.ts
