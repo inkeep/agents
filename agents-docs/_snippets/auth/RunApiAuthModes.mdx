@@ -1,0 +1,34 @@
+## Authentication (Run API Modes)
+
+There are three ways to authenticate requests to the Run API. Choose one and follow the header requirements below.
+
+### 1. Standard API Key (Recommended)
+
+- **What it is:** Per-graph secret created via the Management UI or the Management API
+- **Scope:** Encodes `tenantId`, `projectId`, and `graphId` inside the key
+- **Headers needed:** Only `Authorization: Bearer <key>` (no scope headers)
+
+**Create via Management API:**
+
+```bash
+# POST /tenants/{tenantId}/crud/projects/{projectId}/api-keys
+curl -X POST "https://<manage-api>/tenants/<tenantId>/crud/projects/<projectId>/api-keys" \
+  -H "Content-Type: application/json" \
+  -d '{ "graphId": "<graph-id>", "expiresAt": null }'
+```
+
+<Note>
+  See [Authentication → Run API](/api-reference/authentication/run-api) for details.
+</Note>
+
+### 2. Global Bypass Secret (Infrastructure/Internal Use)
+
+- **What it is:** Environment variable set on the Run API server
+- **Configuration:** Set `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` on the server
+- **Headers needed:** Bearer token plus all scope headers: `x-inkeep-tenant-id`, `x-inkeep-project-id`, `x-inkeep-graph-id`
+
+### 3. Development Mode
+
+- **When:** `ENVIRONMENT=development` on the Run API server
+- **Authentication:** No API key required
+- **Headers needed:** Scope headers to specify the tenant/project/graph

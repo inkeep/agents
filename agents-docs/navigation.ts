@@ -47,6 +47,7 @@ export default {
       pages: [
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
+        'talk-to-your-agents/api',
         {
           group: 'React UI Components',
           icon: 'LuLayers',

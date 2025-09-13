@@ -6,6 +6,10 @@ icon: "LuServer"
 
 The MCP server allows you to talk to your agents through the Model Context Protocol.
 
+## Authentication
+
+<Snippet file="auth/RunApiAuthModes.mdx" />
+
 ## MCP Server Implementation
 
 The MCP server is implemented in the `@inkeep/agents-run-api` library and provides a standard interface for agent communication.
@@ -36,9 +40,9 @@ The tool handles:
 
 ## Using with Cursor
 
-Add the following configuration to your Cursor MCP settings:
+Add the following configuration to your Cursor MCP settings.
 
-### Production Mode (with API Key)
+### Production (Standard API Key)
 
 ```json
 {
@@ -46,7 +50,21 @@ Add the following configuration to your Cursor MCP settings:
     "type": "mcp",
     "url": "http://<your-run-api-url>/v1/mcp",
     "headers": {
-      "Authorization": "Bearer <api-key>",
+      "Authorization": "Bearer <graph_api_key>"
+    }
+  }
+}
+```
+
+### Production (Global Bypass Secret)
+
+```json
+{
+  "AgentName": {
+    "type": "mcp",
+    "url": "http://<your-run-api-url>/v1/mcp",
+    "headers": {
+      "Authorization": "Bearer <bypass_secret>",
       "x-inkeep-tenant-id": "your-tenant-id",
       "x-inkeep-project-id": "your-project-id",
       "x-inkeep-graph-id": "your-graph-id"
@@ -57,11 +75,11 @@ Add the following configuration to your Cursor MCP settings:
 
 ### Development Mode (No API Key)
 
-When `agents-run-api` is running with `ENVIRONMENT=development`, authentication is not required:
+When `agents-run-api` is running with `ENVIRONMENT=development`, authentication is not required. Provide scope headers:
 
 ```json
 {
-  "BasicFactAgent": {
+  "AgentName": {
     "type": "mcp",
     "url": "http://<your-run-api-url>/v1/mcp",
     "headers": {
@@ -73,8 +91,18 @@ When `agents-run-api` is running with `ENVIRONMENT=development`, authentication 
 }
 ```
 
+## Session Management (Required by MCP HTTP Transport)
+
+- Initialize a session by sending an `initialize` JSON-RPC request to `/v1/mcp`.
+- The server will respond and set `Mcp-Session-Id` in response headers.
+- For all subsequent JSON-RPC requests in that session, include `Mcp-Session-Id` header with the value from initialization.
+
+<Note>
+  Session management is required by MCP’s HTTP transport. If `Mcp-Session-Id` is missing or invalid on follow-up requests, the server will return a JSON-RPC error (e.g., "Session not found").
+</Note>
+
 ## Configuration Notes
 
 - **URL**: Point to your `agents-run-api` instance (default: `http://localhost:3003`)
-- **Headers**: Required scope headers for identifying the tenant, project, and graph
-- **Authorization**: Only required when not in development mode
+- **Headers**: Use the appropriate authentication mode per the section above
+- **Authorization**: Only required outside development mode
