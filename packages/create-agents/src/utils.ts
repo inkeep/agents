@@ -4,14 +4,43 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import {
-  defaultOpenaiModelConfigurations,
-  defaultAnthropicModelConfigurations,
-  defaultDualModelConfigurations,
-  ModelConfigurationResult,
-} from '../utils/model-config';
-
 const execAsync = promisify(exec);
+
+export const defaultDualModelConfigurations = {
+    base: {
+      model: 'anthropic/claude-sonnet-4-20250514',
+    },
+    structuredOutput: {
+      model: 'openai/gpt-4.1-mini-2025-04-14',
+    },
+    summarizer: {
+      model: 'openai/gpt-4.1-nano-2025-04-14',
+    },
+  };
+  
+  export const defaultOpenaiModelConfigurations = {
+    base: {
+      model: 'openai/gpt-5-2025-08-07',
+    },
+    structuredOutput: {
+      model: 'openai/gpt-4.1-mini-2025-04-14',
+    },
+    summarizer: {
+      model: 'openai/gpt-4.1-nano-2025-04-14',
+    },
+  };
+  
+  export const defaultAnthropicModelConfigurations = {
+    base: {
+      model: 'anthropic/claude-sonnet-4-20250514',
+    },
+    structuredOutput: {
+      model: 'anthropic/claude-sonnet-4-20250514',
+    },
+    summarizer: {
+      model: 'anthropic/claude-sonnet-4-20250514',
+    },
+  };
 
 type FileConfig = {
   dirName: string;
@@ -19,24 +48,25 @@ type FileConfig = {
   projectId?: string;
   openAiKey?: string;
   anthropicKey?: string;
-  manageApiPort: string;
-  runApiPort: string;
+  manageApiPort?: string;
+  runApiPort?: string;
   modelSettings: Record<string, any>;
 };
 
 export const createAgents = async (
   args: {
-    tenantId?: string;
     projectId?: string;
     dirName?: string;
     openAiKey?: string;
     anthropicKey?: string;
-    manageApiPort?: string;
-    runApiPort?: string;
+
   } = {}
 ) => {
-  let { tenantId, projectId, dirName, openAiKey, anthropicKey, manageApiPort, runApiPort } = args;
-
+  let {  projectId, dirName, openAiKey, anthropicKey } = args;
+  const tenantId = 'default';
+  const manageApiPort = '3002';
+  const runApiPort = '3003';
+  
   p.intro(color.inverse(' Create Agents Directory '));
 
   // Prompt for directory name if not provided
@@ -58,21 +88,6 @@ export const createAgents = async (
       process.exit(0);
     }
     dirName = dirResponse as string;
-  }
-
-  // Prompt for tenant id
-  if (!tenantId) {
-    const tenantIdResponse = await p.text({
-      message: 'Enter your tenant ID :',
-      placeholder: '(default)',
-      defaultValue: 'default',
-    });
-
-    if (p.isCancel(tenantIdResponse)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-    tenantId = tenantIdResponse as string;
   }
 
   // Prompt for project ID
@@ -252,19 +267,26 @@ export const createAgents = async (
     s.message('Setting up database...');
     await setupDatabase();
 
+    // Setup project in database
+    s.message('Setting up project in database...');
+    await setupProjectInDatabase(config);
+
     s.stop();
 
     // Success message with next steps
     p.note(
       `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
+        `${color.yellow('Ready to go!')}\n\n` +
+        `${color.green('✓')} Project created in file system\n` +
+        `${color.green('✓')} Database configured\n` +
+        `${color.green('✓')} Project added to database\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
-        `  pnpm run dev (for APIs only)\n` +
-        `  inkeep dev (for APIs + Manage UI)\n\n` +
+        `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
         `  • Manage API: http://localhost:${manageApiPort || '3002'}\n` +
         `  • Run API: http://localhost:${runApiPort || '3003'}\n` +
-        `  • Manage UI: Available with 'inkeep dev'\n` +
+        `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
         `  • Edit src/${projectId}/weather.graph.ts for agent definitions\n` +
@@ -287,6 +309,7 @@ async function createWorkspaceStructure(projectId: string) {
   await fs.ensureDir('apps/manage-api/src');
   await fs.ensureDir('apps/run-api/src');
   await fs.ensureDir('apps/shared');
+  await fs.ensureDir('scripts');
 }
 
 async function setupPackageConfigurations(dirName: string) {
@@ -300,6 +323,9 @@ async function setupPackageConfigurations(dirName: string) {
     scripts: {
       dev: 'turbo dev',
       'db:push': 'drizzle-kit push',
+      setup: 'node scripts/setup.js',
+      'dev:setup': 'node scripts/dev-setup.js',
+      start: 'pnpm dev:setup'
     },
     dependencies: {},
     devDependencies: {
@@ -308,6 +334,8 @@ async function setupPackageConfigurations(dirName: string) {
       'drizzle-kit': '^0.31.4',
       tsx: '^4.19.0',
       turbo: '^2.5.5',
+      "concurrently": '^8.2.0',
+      'wait-on': '^8.0.0',
     },
     engines: {
       node: '>=22.x',
@@ -327,6 +355,7 @@ async function setupPackageConfigurations(dirName: string) {
   rootPackageJson.dependencies = {
     '@inkeep/agents-core': '^0.1.0',
     '@inkeep/agents-sdk': '^0.1.0',
+    dotenv: '^16.0.0',
     zod: '^4.1.5',
   };
 
@@ -435,8 +464,7 @@ MANAGE_API_PORT=${config.manageApiPort}
 RUN_API_PORT=${config.runApiPort}
 
 # UI Configuration (for dashboard)
-NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
-NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
+
 `;
 
   await fs.writeFile('.env', envContent);
@@ -444,6 +472,12 @@ NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
   // Create .env.example
   const envExample = envContent.replace(/=.+$/gm, '=');
   await fs.writeFile('.env.example', envExample);
+
+  // Create setup script
+  await createSetupScript(config);
+  
+  // Create dev-setup script
+  await createDevSetupScript(config);
 
   // Create .env files for each API service
   const runApiEnvContent = `# Environment
@@ -553,6 +587,148 @@ pids/
   await fs.writeJson('biome.json', biomeConfig, { spaces: 2 });
 }
 
+async function createSetupScript(config: FileConfig) {
+  const setupScriptContent = `#!/usr/bin/env node
+
+import { createDatabaseClient, createProject, getProject } from '@inkeep/agents-core';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+const dbUrl = process.env.DB_FILE_NAME || 'file:local.db';
+const tenantId = '${config.tenantId}';
+const projectId = '${config.projectId}';
+const projectName = '${config.dirName}';
+const projectDescription = 'Generated Inkeep Agents project';
+
+async function setupProject() {
+  console.log('🚀 Setting up your Inkeep Agents project...');
+  
+  try {
+    const dbClient = createDatabaseClient({ url: dbUrl });
+    
+    // Check if project already exists
+    console.log('📋 Checking if project already exists...');
+    try {
+      const existingProject = await getProject(dbClient)({ 
+        id: projectId, 
+        tenantId: tenantId 
+      });
+      
+      if (existingProject) {
+        console.log('✅ Project already exists in database:', existingProject.name);
+        console.log('🎯 Project ID:', projectId);
+        console.log('🏢 Tenant ID:', tenantId);
+        return;
+      }
+    } catch (error) {
+      // Project doesn't exist, continue with creation
+    }
+    
+    // Create the project in the database
+    console.log('📦 Creating project in database...');
+    await createProject(dbClient)({
+      id: projectId,
+      tenantId: tenantId,
+      name: projectName,
+      description: projectDescription,
+      models: ${JSON.stringify(config.modelSettings, null, 2)},
+    });
+    
+    console.log('✅ Project created successfully!');
+    console.log('🎯 Project ID:', projectId);
+    console.log('🏢 Tenant ID:', tenantId);
+    console.log('');
+    console.log('🎉 Setup complete! Your development servers are running.');
+    console.log('');
+    console.log('📋 Available URLs:');
+    console.log('   - Management UI: http://localhost:${config.manageApiPort}');
+    console.log('   - Runtime API:   http://localhost:${config.runApiPort}');
+    console.log('');
+    console.log('🚀 Ready to build agents!');
+    
+  } catch (error) {
+    console.error('❌ Failed to setup project:', error);
+    process.exit(1);
+  }
+}
+
+setupProject();
+`;
+
+  await fs.writeFile('scripts/setup.js', setupScriptContent);
+  
+  // Make the script executable
+  await fs.chmod('scripts/setup.js', 0o755);
+}
+
+async function createDevSetupScript(config: FileConfig) {
+  const devSetupScriptContent = `#!/usr/bin/env node
+
+import { spawn } from 'child_process';
+import { promisify } from 'util';
+import { exec } from 'child_process';
+
+const execAsync = promisify(exec);
+
+async function devSetup() {
+  console.log('🚀 Starting Inkeep Agents development environment...');
+  console.log('');
+  
+  try {
+    // Start development servers in background
+    console.log('📡 Starting development servers...');
+    const devProcess = spawn('pnpm', ['dev'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: false
+    });
+    
+    // Give servers time to start
+    console.log('⏳ Waiting for servers to start...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    console.log('');
+    console.log('📦 Servers are ready! Setting up project in database...');
+    
+    // Run the setup script
+    await execAsync('pnpm setup');
+    
+    console.log('');
+    console.log('🎉 Development environment is ready!');
+    console.log('');
+    console.log('📋 Available URLs:');
+    console.log(\`   - Management UI: http://localhost:${config.manageApiPort}\`);
+    console.log(\`   - Runtime API:   http://localhost:${config.runApiPort}\`);
+    console.log('');
+    console.log('✨ The servers will continue running. Press Ctrl+C to stop.');
+    
+    // Keep the script running so servers don't terminate
+    process.on('SIGINT', () => {
+      console.log('\\n👋 Shutting down development servers...');
+      devProcess.kill();
+      process.exit(0);
+    });
+    
+    // Wait for the dev process to finish or be killed
+    devProcess.on('close', (code) => {
+      console.log(\`Development servers stopped with code \${code}\`);
+      process.exit(code);
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start development environment:', error.message);
+    process.exit(1);
+  }
+}
+
+devSetup();
+`;
+
+  await fs.writeFile('scripts/dev-setup.js', devSetupScriptContent);
+  await fs.chmod('scripts/dev-setup.js', 0o755);
+}
+
 async function createServiceFiles(config: FileConfig) {
   const agentsGraph = `import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
 
@@ -629,11 +805,6 @@ ENVIRONMENT=development
 
 # Database (relative path from project directory)
 DB_FILE_NAME=file:../../local.db
-
-# UI Configuration (for dashboard)
-NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
-NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
-
 `;
 
   await fs.writeFile(`src/${config.projectId}/.env`, projectEnvContent);
@@ -869,23 +1040,7 @@ ANTHROPIC_API_KEY=your-anthropic-key-here
 OPENAI_API_KEY=your-openai-key-here
 \`\`\`
 
-To change the ports used by your services modify \`apps/manage-api/.env\` and \`apps/run-api/.env\` respectively:
 
-\`\`\`bash
-# Service port for apps/run-api 
-RUN_API_PORT=3003
-
-# Service port for apps/manage-api
-MANAGE_API_PORT=3002
-\`\`\`
-
-After changing the API Service ports make sure that you modify the dashboard API urls from whichever directory you are running \`inkeep dev\`:
-
-\`\`\`bash
-# UI Configuration (for dashboard)
-NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
-NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
-\`\`\`
 
 ### Agent Configuration
 
@@ -944,6 +1099,57 @@ async function installDependencies() {
   await execAsync('pnpm install');
 }
 
+async function setupProjectInDatabase(config: FileConfig) {
+    const s = p.spinner();
+    s.start('🚀 Starting development servers and setting up database...');
+    
+    try {
+        // Start development servers in background
+        const { spawn } = await import('child_process');
+        const devProcess = spawn('pnpm', ['dev'], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            detached: true,  // Detach so we can kill the process group
+            cwd: process.cwd()
+        });
+
+        // Give servers time to start
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    
+        s.message('📦 Servers ready! Creating project in database...');
+        
+        // Run the database setup
+        await execAsync('node scripts/setup.js');
+        
+        // Kill the dev servers and their child processes
+        if (devProcess.pid) {
+            try {
+                // Kill the entire process group
+                process.kill(-devProcess.pid, 'SIGTERM');
+                
+                // Wait a moment for graceful shutdown
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Force kill if still running
+                try {
+                    process.kill(-devProcess.pid, 'SIGKILL');
+                } catch {
+                    // Process already terminated
+                }
+            } catch (error) {
+                // Process might already be dead, that's fine
+                console.log('Note: Dev servers may still be running in background');
+            }
+        }
+        
+        s.stop('✅ Project successfully created and configured in database!');
+        
+    } catch (error) {
+        s.stop('❌ Failed to setup project in database');
+        console.error('Setup error:', error);
+        // Continue anyway - user can run setup manually
+    }
+}
+
 async function setupDatabase() {
   try {
     // Run drizzle-kit push to create database file and apply schema
@@ -954,6 +1160,8 @@ async function setupDatabase() {
     );
   }
 }
+
+
 
 // Export the command function for the CLI
 export async function createCommand(dirName?: string, options?: any) {

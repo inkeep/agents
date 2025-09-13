@@ -3,7 +3,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
-import { createCommand } from './commands/create';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listGraphsCommand } from './commands/list-graphs';
@@ -25,19 +24,6 @@ program
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
 
-// Create command
-program
-  .command('create [directory]')
-  .description('Create a new Inkeep Agent Framework Starter Directory')
-  .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--project-id <project-id>', 'Project ID')
-  .option('--openai-key <openai-key>', 'OpenAI API key')
-  .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--manage-api-port <port>', 'Manage API port', '3002')
-  .option('--run-api-port <port>', 'Run API port', '3003')
-  .action(async (directory, options) => {
-    await createCommand(directory, options);
-  });
 
 // Init command
 program
