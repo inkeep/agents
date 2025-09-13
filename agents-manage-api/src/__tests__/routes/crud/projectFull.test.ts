@@ -57,7 +57,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     tools: {
       [toolId]: createTestToolData(toolId, suffix),
     },
-    credentialReferences: [],
+    credentialReferences: {},
     dataComponents: {},
     artifactComponents: {},
     models: {

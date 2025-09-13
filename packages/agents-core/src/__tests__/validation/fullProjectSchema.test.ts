@@ -30,20 +30,23 @@ describe('FullProjectDefinitionSchema', () => {
       },
     },
     tools: {},
-    credentialReferences: [
-      {
+    credentialReferences: {
+      'cred-1': {
         id: 'cred-1',
         type: 'memory' as const,
         credentialStoreId: 'store-1',
         retrievalParams: {},
       },
-    ],
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
   it('should validate a complete full project definition', () => {
     const result = FullProjectDefinitionSchema.safeParse(validFullProject);
+    if (!result.success) {
+      console.error('Validation failed:', result.error.format());
+    }
     expect(result.success).toBe(true);
   });
 
@@ -135,17 +138,17 @@ describe('FullProjectDefinitionSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should validate credential references array', () => {
+  it('should validate credential references record', () => {
     const projectWithInvalidCredentials = {
       ...validFullProject,
-      credentialReferences: [
-        {
+      credentialReferences: {
+        'cred-1': {
           id: 'cred-1',
-          type: 'invalid-type', // Should be one of: memory, keychain, nango
+          type: 'invalid-type' as any, // Should be one of: memory, keychain, nango
           credentialStoreId: 'store-1',
           retrievalParams: {},
         },
-      ],
+      },
     };
 
     const result = FullProjectDefinitionSchema.safeParse(projectWithInvalidCredentials);

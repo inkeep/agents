@@ -5,7 +5,7 @@ export interface GraphData {
   agents: Record<string, any>;
   tools: Record<string, any>;
   contextConfigs: any[];
-  credentialReferences: any[];
+  credentialReferences: Record<string, any>;
 }
 
 export type FullGraphDefinition = GraphData;

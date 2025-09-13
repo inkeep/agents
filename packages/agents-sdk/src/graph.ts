@@ -181,16 +181,22 @@ export class AgentGraph implements GraphInterface {
         const selectedToolsMapping: Record<string, string[]> = {};
         const agentTools = internalAgent.getTools();
 
-        for (const [toolName, toolInstance] of Object.entries(agentTools)) {
+        for (const [_toolName, toolInstance] of Object.entries(agentTools)) {
           if (toolInstance && typeof toolInstance === 'object') {
             let toolId: string;
 
             // Get tool ID
             toolId = (toolInstance as any).getId?.() || (toolInstance as any).id;
-            
+
             // Check if this tool instance has selectedTools (from AgentMcpConfig processing)
-            if ('selectedTools' in toolInstance && (toolInstance as any).selectedTools !== undefined) {
-              logger.info({ toolId, selectedTools: (toolInstance as any).selectedTools }, 'Selected tools');
+            if (
+              'selectedTools' in toolInstance &&
+              (toolInstance as any).selectedTools !== undefined
+            ) {
+              logger.info(
+                { toolId, selectedTools: (toolInstance as any).selectedTools },
+                'Selected tools'
+              );
               selectedToolsMapping[toolId] = (toolInstance as any).selectedTools;
             }
 
@@ -409,12 +415,18 @@ export class AgentGraph implements GraphInterface {
       agents: agentsObject,
       tools: toolsObject,
       contextConfig: this.contextConfig?.toObject(),
-      credentialReferences: this.credentials?.map((credentialReference) => ({
-        type: credentialReference.type,
-        id: credentialReference.id,
-        credentialStoreId: credentialReference.credentialStoreId,
-        retrievalParams: credentialReference.retrievalParams || {},
-      })),
+      credentialReferences: this.credentials?.reduce(
+        (acc, credentialReference) => {
+          acc[credentialReference.id] = {
+            type: credentialReference.type,
+            id: credentialReference.id,
+            credentialStoreId: credentialReference.credentialStoreId,
+            retrievalParams: credentialReference.retrievalParams || {},
+          };
+          return acc;
+        },
+        {} as Record<string, any>
+      ),
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
       graphPrompt: this.graphPrompt,
