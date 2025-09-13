@@ -21,7 +21,7 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core'; // Updated to use the consolidated schema
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('a2aClient');
 

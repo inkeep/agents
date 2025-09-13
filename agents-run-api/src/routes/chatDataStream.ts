@@ -17,7 +17,7 @@ import { stream } from 'hono/streaming';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {

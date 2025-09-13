@@ -1,11 +1,26 @@
 import './instrumentation';
 import {
+  configureLogging,
+  createPinoLogger,
+  createPinoLoggerFactory,
   type CredentialStore,
   CredentialStoreRegistry,
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import { env } from './env';
 import { createExecutionHono } from './app';
+
+// Configure the core logger with Pino at application startup
+const pinoLogger = createPinoLogger({
+  level: env.LOG_LEVEL,
+  environment: env.ENVIRONMENT,
+  prettyPrint: env.ENVIRONMENT === 'development',
+});
+
+configureLogging({
+  loggerFactory: createPinoLoggerFactory(pinoLogger),
+});
 
 // Create default configuration
 const defaultConfig: ServerConfig = {

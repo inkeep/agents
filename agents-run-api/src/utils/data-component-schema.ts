@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('DataComponentSchema');
 

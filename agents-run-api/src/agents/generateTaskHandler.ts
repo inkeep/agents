@@ -17,7 +17,7 @@ import { nanoid } from 'nanoid';
 import traverse from 'traverse'; // tiny object walker
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { Agent } from './Agent';
 import { resolveModelConfig } from '../utils/model-resolver';
 

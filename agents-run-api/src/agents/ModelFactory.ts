@@ -1,7 +1,7 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('ModelFactory');
 

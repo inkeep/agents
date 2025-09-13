@@ -1,5 +1,5 @@
 import type { MessageContent } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { ArtifactParser, type StreamPart } from './artifact-parser';
 import { tracer, setSpanWithError } from './tracer';
 

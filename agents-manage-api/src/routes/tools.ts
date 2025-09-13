@@ -32,7 +32,7 @@ import {
   syncToolDefinitions,
   updateToolHealth,
 } from '../data/tools';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { oauthService } from '../utils/oauth-service';
 
 type AppVariables = {

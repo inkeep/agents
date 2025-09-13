@@ -22,7 +22,7 @@ import {
   updateTool,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
 
 type AppVariables = {

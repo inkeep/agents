@@ -13,7 +13,7 @@ import {
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('projectFull');
 

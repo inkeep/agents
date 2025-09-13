@@ -4,6 +4,7 @@ import {
   createTask,
   getActiveAgentForConversation,
   getFullGraph,
+  getLogger,
   getTask,
   type SendMessageResponse,
   updateTask,
@@ -11,7 +12,6 @@ import {
 import { trace } from '@opentelemetry/api';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
-import { getLogger } from '../logger.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { graphSessionManager } from '../utils/graph-session.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';

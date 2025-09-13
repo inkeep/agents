@@ -28,7 +28,7 @@ import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { createMCPStreamHelper } from '../utils/stream-helpers';
 
 const logger = getLogger('mcp');

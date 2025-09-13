@@ -1,6 +1,6 @@
 import { setActiveAgentForThread } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import type { TransferResponse } from './types';
 
 const logger = getLogger('Transfer');

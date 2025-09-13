@@ -11,7 +11,7 @@ import { a2aHandler } from '../a2a/handlers';
 import { getRegisteredGraph } from '../data/agentGraph';
 import { getRegisteredAgent } from '../data/agents';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;

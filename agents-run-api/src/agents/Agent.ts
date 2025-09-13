@@ -34,7 +34,7 @@ import {
 } from '../data/conversations';
 
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';

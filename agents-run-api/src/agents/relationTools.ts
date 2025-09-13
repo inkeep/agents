@@ -14,7 +14,7 @@ import z from 'zod';
 import { A2AClient } from '../a2a/client';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { graphSessionManager } from '../utils/graph-session';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';

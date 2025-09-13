@@ -5,4 +5,5 @@ export * from './error';
 export * from './execution';
 export * from './logger';
 export * from './mcp-client';
+export * from './pino-logger';
 export * from './tracer-factory';

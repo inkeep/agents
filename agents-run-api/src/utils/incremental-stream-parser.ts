@@ -1,4 +1,4 @@
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { ArtifactParser, type StreamPart } from './artifact-parser';
 import type { StreamHelper } from './stream-helpers';
 

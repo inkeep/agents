@@ -19,7 +19,7 @@ import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import type { ContentItem, Message } from '../types/chat';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 

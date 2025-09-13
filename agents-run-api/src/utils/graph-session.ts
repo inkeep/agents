@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { tracer, setSpanWithError } from './tracer';
 import { statusUpdateOp } from './agent-operations';
 import { getStreamHelper } from './stream-registry';

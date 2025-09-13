@@ -1,12 +1,13 @@
 /**
  * Logger interface for core package components
- * Allows services to inject their own logger implementation
+ * Compatible with Pino logger signature
  */
 export interface Logger {
-  error(data: any, message: string): void;
-  warn(data: any, message: string): void;
-  info(data: any, message: string): void;
-  debug(data: any, message: string): void;
+  error(obj: any, msg?: string): void;
+  warn(obj: any, msg?: string): void;
+  info(obj: any, msg?: string): void;
+  debug(obj: any, msg?: string): void;
+  child?(bindings: Record<string, any>): Logger;
 }
 
 /**
@@ -15,20 +16,48 @@ export interface Logger {
 export class ConsoleLogger implements Logger {
   constructor(private name: string) {}
 
-  error(data: any, message: string): void {
-    console.error(`[${this.name}] ${message}`, data);
+  error(obj: any, msg?: string): void {
+    if (msg) {
+      console.error(`[${this.name}] ${msg}`, obj);
+    } else if (typeof obj === 'string') {
+      console.error(`[${this.name}] ${obj}`);
+    } else {
+      console.error(`[${this.name}]`, obj);
+    }
   }
 
-  warn(data: any, message: string): void {
-    console.warn(`[${this.name}] ${message}`, data);
+  warn(obj: any, msg?: string): void {
+    if (msg) {
+      console.warn(`[${this.name}] ${msg}`, obj);
+    } else if (typeof obj === 'string') {
+      console.warn(`[${this.name}] ${obj}`);
+    } else {
+      console.warn(`[${this.name}]`, obj);
+    }
   }
 
-  info(data: any, message: string): void {
-    console.info(`[${this.name}] ${message}`, data);
+  info(obj: any, msg?: string): void {
+    if (msg) {
+      console.info(`[${this.name}] ${msg}`, obj);
+    } else if (typeof obj === 'string') {
+      console.info(`[${this.name}] ${obj}`);
+    } else {
+      console.info(`[${this.name}]`, obj);
+    }
   }
 
-  debug(data: any, message: string): void {
-    console.debug(`[${this.name}] ${message}`, data);
+  debug(obj: any, msg?: string): void {
+    if (msg) {
+      console.debug(`[${this.name}] ${msg}`, obj);
+    } else if (typeof obj === 'string') {
+      console.debug(`[${this.name}] ${obj}`);
+    } else {
+      console.debug(`[${this.name}]`, obj);
+    }
+  }
+
+  child(bindings: Record<string, any>): Logger {
+    return new ConsoleLogger(`${this.name}:${JSON.stringify(bindings)}`);
   }
 }
 
@@ -36,10 +65,13 @@ export class ConsoleLogger implements Logger {
  * No-op logger that silently ignores all log calls
  */
 export class NoOpLogger implements Logger {
-  error(_data: any, _message: string): void {}
-  warn(_data: any, _message: string): void {}
-  info(_data: any, _message: string): void {}
-  debug(_data: any, _message: string): void {}
+  error(_obj: any, _msg?: string): void {}
+  warn(_obj: any, _msg?: string): void {}
+  info(_obj: any, _msg?: string): void {}
+  debug(_obj: any, _msg?: string): void {}
+  child(_bindings: Record<string, any>): Logger {
+    return this;
+  }
 }
 
 /**

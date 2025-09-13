@@ -1,4 +1,4 @@
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import type { VersionConfig } from './types';
 
 const logger = getLogger('SystemPromptBuilder');

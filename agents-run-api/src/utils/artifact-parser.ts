@@ -1,6 +1,6 @@
 import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('ArtifactParser');
 

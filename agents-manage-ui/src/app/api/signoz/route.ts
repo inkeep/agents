@@ -1,8 +1,19 @@
+import { configureLogging, createPinoLogger, createPinoLoggerFactory, getLogger } from '@inkeep/agents-core';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getLogger } from '@/lib/logger';
+
+// Configure the core logger with Pino at module load
+const pinoLogger = createPinoLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  environment: process.env.NODE_ENV || 'development',
+  prettyPrint: process.env.NODE_ENV === 'development',
+});
+
+configureLogging({
+  loggerFactory: createPinoLoggerFactory(pinoLogger),
+});
 
 // Configure axios retry
 axiosRetry(axios, {

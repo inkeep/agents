@@ -3,8 +3,10 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   type ExecutionContext,
+  getLogger,
   handleApiError,
   type ServerConfig,
+  withRequestContext,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { cors } from 'hono/cors';
@@ -14,7 +16,6 @@ import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
 import { pino } from 'pino';
 import { batchProcessor } from './instrumentation';
-import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
@@ -38,6 +39,15 @@ function createExecutionHono(
 
   // Request ID middleware
   app.use('*', requestId());
+
+  // Request context middleware for logging
+  app.use('*', async (c, next) => {
+    const reqId = c.get('requestId');
+    if (reqId) {
+      return withRequestContext(reqId, next);
+    }
+    return next();
+  });
 
   // Server config and credential stores middleware
   app.use('*', async (c, next) => {

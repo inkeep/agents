@@ -19,7 +19,7 @@ import {
   type ToolUpdate,
   updateTool,
 } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import dbClient from './db/dbClient';
 
 /**

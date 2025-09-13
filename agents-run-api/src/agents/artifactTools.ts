@@ -3,7 +3,7 @@ import { tool } from 'ai';
 import jmespath from 'jmespath';
 import { nanoid } from 'nanoid';
 import z from 'zod';
-import { getLogger } from '../logger';
+import { getLogger } from '@inkeep/agents-core';
 import { graphSessionManager } from '../utils/graph-session';
 import { parseEmbeddedJson } from './generateTaskHandler';
 import { toolSessionManager } from './ToolSessionManager';

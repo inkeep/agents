@@ -859,6 +859,12 @@ importers:
       nanoid:
         specifier: ^5.0.9
         version: 5.1.5
+      pino:
+        specifier: ^9.9.5
+        version: 9.9.5
+      pino-pretty:
+        specifier: ^13.1.1
+        version: 13.1.1
       ts-pattern:
         specifier: ^5.7.1
         version: 5.8.0
@@ -7782,6 +7788,10 @@ packages:
 
   pino@9.9.4:
     resolution: {integrity: sha512-d1XorUQ7sSKqVcYdXuEYs2h1LKxejSorMEJ76XoZ0pPDf8VzJMe7GlPXpMBZeQ9gE4ZPIp5uGD+5Nw7scxiigg==}
+    hasBin: true
+
+  pino@9.9.5:
+    resolution: {integrity: sha512-d1s98p8/4TfYhsJ09r/Azt30aYELRi6NNnZtEbqFw6BoGsdPVf5lKNK3kUwH8BmJJfpTLNuicjUQjaMbd93dVg==}
     hasBin: true
 
   pirates@4.0.7:
@@ -17457,6 +17467,20 @@ snapshots:
   pino-std-serializers@7.0.0: {}
 
   pino@9.9.4:
+    dependencies:
+      atomic-sleep: 1.0.0
+      fast-redact: 3.5.0
+      on-exit-leak-free: 2.1.2
+      pino-abstract-transport: 2.0.0
+      pino-std-serializers: 7.0.0
+      process-warning: 5.0.0
+      quick-format-unescaped: 4.0.4
+      real-require: 0.2.0
+      safe-stable-stringify: 2.5.0
+      sonic-boom: 4.2.0
+      thread-stream: 3.1.0
+
+  pino@9.9.5:
     dependencies:
       atomic-sleep: 1.0.0
       fast-redact: 3.5.0

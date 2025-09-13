@@ -3,7 +3,7 @@
  */
 
 import type { McpTool } from '../types/entities';
-import type { Logger } from './logging';
+import type { Logger } from './logger';
 
 /**
  * OAuth configuration interface
