@@ -79,6 +79,7 @@ export interface ProjectInterface {
  * ```
  */
 export class Project implements ProjectInterface {
+  public readonly __type = 'project' as const;
   private projectId: string;
   private projectName: string;
   private projectDescription?: string;
@@ -170,7 +171,40 @@ export class Project implements ProjectInterface {
     );
 
     try {
-      // Initialize all graphs first (they need to be initialized to generate their full definitions)
+      // First, create the project metadata without graphs to ensure it exists in the database
+      const projectMetadata = {
+        id: this.projectId,
+        name: this.projectName,
+        description: this.projectDescription || '',
+        models: this.models as any,
+        stopWhen: this.stopWhen,
+        graphs: {}, // Empty graphs object for now
+        tools: {}, // Empty tools object
+        credentialReferences: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      logger.info(
+        {
+          projectId: this.projectId,
+          mode: 'api-client',
+          apiUrl: this.baseURL,
+        },
+        'Creating project metadata first'
+      );
+
+      // Create the project metadata first
+      await updateFullProjectViaAPI(this.tenantId, this.baseURL, this.projectId, projectMetadata);
+
+      logger.info(
+        {
+          projectId: this.projectId,
+        },
+        'Project metadata created successfully'
+      );
+
+      // Now initialize all graphs (they can now reference the existing project)
       const initPromises = this.graphs.map(async (graph) => {
         try {
           await graph.init();
