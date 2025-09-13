@@ -428,11 +428,11 @@ export class ExecutionHandler {
           await sseHelper.complete();
 
           // End the GraphSession and clean up resources
-          logger.info('Ending GraphSession and cleaning up');
+          logger.info({} , 'Ending GraphSession and cleaning up');
           graphSessionManager.endSession(requestId);
 
           // Clean up streamHelper
-          logger.info('Cleaning up streamHelper');
+          logger.info({} , 'Cleaning up streamHelper');
           unregisterStreamHelper(requestId);
 
           // Extract captured response if using MCPStreamHelper
@@ -442,7 +442,7 @@ export class ExecutionHandler {
             response = captured.text || 'No response content';
           }
 
-          logger.info('ExecutionHandler returning success');
+          logger.info({} , 'ExecutionHandler returning success');
           return { success: true, iterations, response };
         }
 

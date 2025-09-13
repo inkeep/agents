@@ -191,7 +191,7 @@ function createExecutionHono(
 
     if (!executionContext) {
       // No API key context, skip baggage setup
-      logger.debug('Empty execution context');
+      logger.debug({}, 'Empty execution context');
       return next();
     }
 
@@ -206,7 +206,7 @@ function createExecutionHono(
         const body = await cloned.json().catch(() => null);
         conversationId = body?.conversationId;
       } catch (_) {
-        logger.debug('Conversation ID not found in JSON body');
+        logger.debug({}, 'Conversation ID not found in JSON body');
       }
     }
 
@@ -223,7 +223,7 @@ function createExecutionHono(
     );
 
     if (!Object.keys(entries).length) {
-      logger.debug('Empty entries for baggage');
+      logger.debug({}, 'Empty entries for baggage');
       return next();
     }
 
