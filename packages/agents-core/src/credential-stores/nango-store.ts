@@ -76,11 +76,11 @@ export class NangoCredentialStore implements CredentialStore {
     switch (type) {
       case 'API_KEY':
         return {
-          token: credentials.api_key,
+          token: (credentials as any).apiKey || (credentials as any).api_key,
         };
       case 'APP':
         return {
-          token: credentials.access_token,
+          token: (credentials as any).accessToken || (credentials as any).access_token,
         };
       case 'BASIC':
         return {
