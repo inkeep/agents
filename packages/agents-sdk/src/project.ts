@@ -1,4 +1,5 @@
 import type {
+  CredentialReferenceApiInsert,
   FullProjectDefinition,
   ProjectApiInsert,
   ProjectModels,
@@ -79,6 +80,7 @@ export interface ProjectInterface {
  * ```
  */
 export class Project implements ProjectInterface {
+  public readonly __type = 'project' as const;
   private projectId: string;
   private projectName: string;
   private projectDescription?: string;
@@ -93,6 +95,7 @@ export class Project implements ProjectInterface {
   private stopWhen?: StopWhen;
   private graphs: AgentGraph[] = [];
   private graphMap: Map<string, AgentGraph> = new Map();
+  private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -152,6 +155,22 @@ export class Project implements ProjectInterface {
   }
 
   /**
+   * Set credential references for the project
+   * This is used by the CLI to inject environment-specific credentials
+   */
+  setCredentials(credentials: Record<string, CredentialReferenceApiInsert>): void {
+    this.credentialReferences = Object.values(credentials);
+
+    logger.info(
+      {
+        projectId: this.projectId,
+        credentialCount: this.credentialReferences?.length || 0,
+      },
+      'Project credentials updated'
+    );
+  }
+
+  /**
    * Initialize the project and create/update it in the backend using full project approach
    */
   async init(): Promise<void> {
@@ -170,7 +189,40 @@ export class Project implements ProjectInterface {
     );
 
     try {
-      // Initialize all graphs first (they need to be initialized to generate their full definitions)
+      // First, create the project metadata without graphs to ensure it exists in the database
+      const projectMetadata = {
+        id: this.projectId,
+        name: this.projectName,
+        description: this.projectDescription || '',
+        models: this.models as any,
+        stopWhen: this.stopWhen,
+        graphs: {}, // Empty graphs object for now
+        tools: {}, // Empty tools object
+        credentialReferences: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      logger.info(
+        {
+          projectId: this.projectId,
+          mode: 'api-client',
+          apiUrl: this.baseURL,
+        },
+        'Creating project metadata first'
+      );
+
+      // Create the project metadata first
+      await updateFullProjectViaAPI(this.tenantId, this.baseURL, this.projectId, projectMetadata);
+
+      logger.info(
+        {
+          projectId: this.projectId,
+        },
+        'Project metadata created successfully'
+      );
+
+      // Now initialize all graphs (they can now reference the existing project)
       const initPromises = this.graphs.map(async (graph) => {
         try {
           await graph.init();

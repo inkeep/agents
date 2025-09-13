@@ -1,347 +1,268 @@
-import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, extname, join, resolve } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
-import type { FullGraphDefinition } from '../types/graph';
-import { type ValidatedConfiguration, validateConfiguration } from '../utils/config';
-import { compareJsonObjects, getDifferenceSummary } from '../utils/json-comparator';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { findProjectDirectory } from '../utils/project-directory';
+import { findAllTypeScriptFiles, categorizeTypeScriptFiles } from '../utils/file-finder';
 import { generateTypeScriptFileWithLLM } from './pull.llm-generate';
 
 export interface PullOptions {
-  tenantId?: string;
-  apiUrl?: string;
-  configFilePath?: string;
-  outputPath?: string;
+  project?: string;
+  agentsManageApiUrl?: string;
+  env?: string;
   json?: boolean;
-  maxRetries?: number;
 }
+
 
 /**
- * Determine if the output path is a directory or file and return the appropriate file path
+ * Load and validate inkeep.config.ts
  */
-function resolveOutputFilePath(
-  outputPath: string,
-  graphId: string,
-  isJson: boolean
-): {
-  filePath: string;
-  isExistingFile: boolean;
-} {
-  const absoluteOutputPath = resolve(process.cwd(), outputPath);
+async function loadProjectConfig(projectDir: string): Promise<{
+  tenantId: string;
+  projectId: string;
+  agentsManageApiUrl: string;
+}> {
+  const configPath = join(projectDir, 'inkeep.config.ts');
 
-  // Check if the path exists
-  if (existsSync(absoluteOutputPath)) {
-    const stats = statSync(absoluteOutputPath);
-
-    if (stats.isDirectory()) {
-      // It's a directory, create file path with graph ID
-      const extension = isJson ? '.json' : '.graph.ts';
-      const filePath = join(absoluteOutputPath, `${graphId}${extension}`);
-      return {
-        filePath,
-        isExistingFile: existsSync(filePath),
-      };
-    } else {
-      // It's a file, use it directly
-      return {
-        filePath: absoluteOutputPath,
-        isExistingFile: true,
-      };
-    }
-  } else {
-    // Path doesn't exist, check if it has an extension
-    const extension = extname(absoluteOutputPath);
-
-    if (extension) {
-      // It's a file path (has extension), create parent directory if needed
-      const parentDir = dirname(absoluteOutputPath);
-      if (!existsSync(parentDir)) {
-        mkdirSync(parentDir, { recursive: true });
-      }
-      return {
-        filePath: absoluteOutputPath,
-        isExistingFile: false,
-      };
-    } else {
-      // It's a directory path, create it and return file path
-      mkdirSync(absoluteOutputPath, { recursive: true });
-      const extension = isJson ? '.json' : '.graph.ts';
-      const filePath = join(absoluteOutputPath, `${graphId}${extension}`);
-      return {
-        filePath,
-        isExistingFile: false,
-      };
-    }
+  if (!existsSync(configPath)) {
+    throw new Error(`Configuration file not found: ${configPath}`);
   }
-}
-
-/**
- * Convert a TypeScript graph file to its JSON representation
- * Uses the exact same approach as the push command
- */
-export async function convertTypeScriptToJson(graphPath: string): Promise<FullGraphDefinition> {
-  // Resolve the absolute path
-  const absolutePath = resolve(process.cwd(), graphPath);
-
-  // Check if file exists
-  if (!existsSync(absolutePath)) {
-    throw new Error(`File not found: ${absolutePath}`);
-  }
-
-  // Import the module with TypeScript support
-  const module = await importWithTypeScriptSupport(absolutePath);
-
-  // Validate that exactly one graph is exported
-  const exports = Object.keys(module);
-
-  const graphExports = exports.filter((key) => {
-    const value = module[key];
-    // Check for AgentGraph-like objects (has required methods)
-    return (
-      value &&
-      typeof value === 'object' &&
-      typeof value.init === 'function' &&
-      typeof value.getId === 'function' &&
-      typeof value.getName === 'function' &&
-      typeof value.getAgents === 'function'
-    );
-  });
-
-  if (graphExports.length === 0) {
-    throw new Error('No AgentGraph exported from configuration file');
-  }
-
-  if (graphExports.length > 1) {
-    throw new Error(
-      `Multiple AgentGraphs exported from configuration file. Found: ${graphExports.join(', ')}`
-    );
-  }
-
-  // Get the graph instance
-  const graphKey = graphExports[0];
-  const graph = module[graphKey];
-
-  // Get the full graph definition using the same method as push
-  return await graph.toFullGraphDefinition();
-}
-
-export async function pullCommand(graphId: string, options: PullOptions) {
-  const spinner = ora('Loading configuration...').start();
 
   try {
-    // Validate configuration
-    let config: ValidatedConfiguration;
-    try {
-      config = await validateConfiguration(
-        options.tenantId,
-        options.apiUrl,
-        options.configFilePath
-      );
-    } catch (error: any) {
-      spinner.fail('Configuration validation failed');
-      console.error(chalk.red(error.message));
-      process.exit(1);
+    const configModule = await importWithTypeScriptSupport(configPath);
+
+    // Look for default export or named export
+    const config = configModule.default || configModule.config;
+
+    if (!config) {
+      throw new Error('No configuration found in inkeep.config.ts');
     }
 
-    // Get output path from options or use default
-    const outputPath = options.outputPath || './graphs';
+    return {
+      tenantId: config.tenantId || 'default',
+      projectId: config.projectId || 'default',
+      agentsManageApiUrl: config.agentsManageApiUrl || 'http://localhost:3002',
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to load configuration: ${error.message}`);
+  }
+}
 
-    // Resolve the output file path and determine if it's an existing file
-    const { filePath: outputFilePath, isExistingFile } = resolveOutputFilePath(
-      outputPath,
-      graphId,
-      !!options.json
-    );
+/**
+ * Fetch project data from backend API
+ */
+async function fetchProjectData(tenantId: string, projectId: string, apiUrl: string): Promise<any> {
+  const response = await fetch(`${apiUrl}/tenants/${tenantId}/project-full/${projectId}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
 
-    spinner.text = 'Fetching graph from API...';
-
-    // Fetch graph from API
-    const response = await fetch(
-      `${config.agentsManageApiUrl}/tenants/${config.tenantId}/crud/projects/${config.projectId}/graph/${graphId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        spinner.fail(`Graph with ID "${graphId}" not found`);
-        process.exit(1);
-      }
-      spinner.fail(`Failed to fetch graph: ${response.statusText}`);
-      process.exit(1);
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(`Project "${projectId}" not found`);
     }
+    throw new Error(`Failed to fetch project: ${response.statusText}`);
+  }
 
-    const responseData = await response.json();
-    const graphData: any = responseData.data;
+  const responseData = await response.json();
+  return responseData.data;
+}
 
-    if (options.json) {
-      // Output JSON file
-      spinner.text = 'Writing JSON file...';
-      writeFileSync(outputFilePath, JSON.stringify(graphData, null, 2), 'utf-8');
+/**
+ * Find all TypeScript files in the project that need updating
+ * Excludes files in the environments directory
+ */
+function findProjectFiles(projectDir: string): {
+  indexFile: string | null;
+  graphFiles: string[];
+  agentFiles: string[];
+  toolFiles: string[];
+  otherFiles: string[];
+} {
+  // Find all TypeScript files excluding environments directory
+  const allTsFiles = findAllTypeScriptFiles(projectDir, ['environments', 'node_modules']);
+  
+  // Categorize the files
+  const categorized = categorizeTypeScriptFiles(allTsFiles, projectDir);
 
-      spinner.succeed(`Graph "${graphData.name}" pulled successfully`);
-      console.log(
-        chalk.green(`✅ JSON file ${isExistingFile ? 'updated' : 'created'}: ${outputFilePath}`)
-      );
+  return {
+    indexFile: categorized.indexFile,
+    graphFiles: categorized.graphFiles,
+    agentFiles: categorized.agentFiles,
+    toolFiles: categorized.toolFiles,
+    otherFiles: categorized.otherFiles,
+  };
+}
 
-      // Display next steps for JSON
-      console.log(chalk.cyan('\n✨ Next steps:'));
-      console.log(chalk.gray(`  • View the file: ${outputFilePath}`));
-      console.log(chalk.gray(`  • Use the data in your application`));
-    } else {
-      // Generate TypeScript file with validation and retry logic
-      const maxRetries = options.maxRetries || 3;
-      let attempt = 1;
-      let validationPassed = false;
-      let previousDifferences: string[] = [];
+/**
+ * Update project files using LLM based on backend data
+ */
+async function updateProjectFilesWithLLM(
+  projectDir: string,
+  projectData: any,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const { graphs, tools } = projectData;
+  const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } = findProjectFiles(projectDir);
 
-      // Only validate when merging into existing file, not when creating new file
-      const shouldValidate = isExistingFile;
+  // Update index.ts
+  if (indexFile && existsSync(indexFile)) {
+    console.log(chalk.gray('  • Updating index.ts...'));
+    await generateTypeScriptFileWithLLM(projectData, 'project', indexFile, modelSettings);
+  }
 
-      while (attempt <= maxRetries && (!shouldValidate || !validationPassed)) {
-        if (attempt > 1) {
-          spinner.text = `Regenerating TypeScript file (attempt ${attempt}/${maxRetries})...`;
-        } else {
-          spinner.text = isExistingFile
-            ? 'Merging into existing TypeScript file with LLM...'
-            : 'Generating TypeScript file with LLM...';
+  // Update graph files
+  for (const graphFilePath of graphFiles) {
+    const fileName = graphFilePath.split('/').pop()?.replace('.ts', '').replace('.graph', '');
+    if (fileName && graphs[fileName]) {
+      console.log(chalk.gray(`  • Updating graph: ${fileName}`));
+      await generateTypeScriptFileWithLLM(graphs[fileName], fileName, graphFilePath, modelSettings);
+    }
+  }
+
+  // Update agent files
+  for (const agentFilePath of agentFiles) {
+    const fileName = agentFilePath.split('/').pop()?.replace('.ts', '');
+    if (fileName) {
+      // Find the agent in any graph
+      let agentData = null;
+      for (const graph of Object.values(graphs)) {
+        const graphData = graph as any;
+        if (graphData.agents && graphData.agents[fileName]) {
+          agentData = graphData.agents[fileName];
+          break;
         }
-
-        // TODO: configure this based on environment variable?
-        const pullModel = config.modelSettings?.base || {
-          model: 'anthropic/claude-sonnet-4-20250514',
-        };
-
-        await generateTypeScriptFileWithLLM(graphData, graphId, outputFilePath, pullModel, {
-          attempt,
-          maxRetries,
-          previousDifferences: attempt > 1 ? previousDifferences : undefined,
-        });
-
-        // Only validate when merging into existing file
-        if (shouldValidate) {
-          spinner.text = 'Validating generated TypeScript file...';
-
-          try {
-            // Convert the generated TypeScript back to JSON
-            const convertedResult = await convertTypeScriptToJson(outputFilePath);
-
-            // Compare with the original graph data
-            const comparison = compareJsonObjects(graphData, convertedResult, {
-              ignoreArrayOrder: true,
-              ignoreCase: false,
-              ignoreWhitespace: false,
-              showDetails: true,
-            });
-
-            if (comparison.isEqual) {
-              validationPassed = true;
-              spinner.succeed('TypeScript file validation passed');
-              console.log(chalk.green('✅ Generated TypeScript file matches original graph data'));
-            } else {
-              // Collect differences for next retry
-              previousDifferences = comparison.differences.map(
-                (diff) => `${diff.path}: ${diff.description}`
-              );
-
-              if (attempt < maxRetries) {
-                spinner.warn(`Validation failed (attempt ${attempt}/${maxRetries}), retrying...`);
-                console.log(
-                  chalk.yellow(
-                    '⚠️  Generated TypeScript file has differences from original graph data:'
-                  )
-                );
-                console.log(chalk.gray(getDifferenceSummary(comparison)));
-
-                console.log(chalk.gray('\n🔄 Retrying with improved prompt...'));
-              } else {
-                // Final attempt failed
-                spinner.fail('TypeScript file validation failed after all retries');
-                console.log(
-                  chalk.red('❌ Generated TypeScript file has differences from original:')
-                );
-                console.log(chalk.gray(getDifferenceSummary(comparison)));
-
-                console.log(
-                  chalk.yellow(
-                    '\n💡 You may need to manually edit the generated file or check the LLM configuration.'
-                  )
-                );
-              }
-            }
-          } catch (validationError: any) {
-            // Collect validation error for next retry
-            previousDifferences = [`Validation error: ${validationError.message}`];
-
-            if (attempt < maxRetries) {
-              spinner.warn(`Validation failed (attempt ${attempt}/${maxRetries}), retrying...`);
-              console.log(
-                chalk.yellow(
-                  '⚠️  Could not validate generated TypeScript file against original graph data:'
-                )
-              );
-              console.log(chalk.gray(validationError.message));
-              console.log(
-                chalk.gray(
-                  'This might be due to the generated file having syntax errors or missing dependencies.'
-                )
-              );
-              console.log(chalk.gray('\n🔄 Retrying with improved prompt...'));
-            } else {
-              // Final attempt failed
-              spinner.fail('TypeScript file validation failed after all retries');
-              console.log(
-                chalk.red(
-                  '❌ Could not validate generated TypeScript file against original graph data:'
-                )
-              );
-              console.log(chalk.gray(validationError.message));
-              console.log(
-                chalk.gray(
-                  'This might be due to the generated file having syntax errors or missing dependencies.'
-                )
-              );
-              console.log(
-                chalk.yellow(
-                  '\n💡 You may need to manually edit the generated file or check the LLM configuration.'
-                )
-              );
-            }
-          }
-        } else {
-          // No validation needed for new files
-          validationPassed = true;
-        }
-
-        attempt++;
       }
+      if (agentData) {
+        console.log(chalk.gray(`  • Updating agent: ${fileName}`));
+        await generateTypeScriptFileWithLLM(agentData, fileName, agentFilePath, modelSettings);
+      }
+    }
+  }
 
-      spinner.succeed(`Graph "${graphData.name}" pulled successfully`);
-      console.log(
-        chalk.green(
-          `✅ TypeScript file ${isExistingFile ? 'updated' : 'created'}: ${outputFilePath}`
+  // Update tool files
+  for (const toolFilePath of toolFiles) {
+    const fileName = toolFilePath.split('/').pop()?.replace('.ts', '');
+    if (fileName && tools[fileName]) {
+      console.log(chalk.gray(`  • Updating tool: ${fileName}`));
+      await generateTypeScriptFileWithLLM(tools[fileName], fileName, toolFilePath, modelSettings);
+    }
+  }
+
+  // Update other TypeScript files with project context
+  for (const otherFilePath of otherFiles) {
+    const fileName = otherFilePath.split('/').pop()?.replace('.ts', '');
+    if (fileName) {
+      console.log(chalk.gray(`  • Updating file: ${fileName}.ts`));
+      // Use the entire project data as context for other files
+      await generateTypeScriptFileWithLLM(projectData, fileName, otherFilePath, modelSettings);
+    }
+  }
+}
+
+/**
+ * Main pull command
+ */
+export async function pullProjectCommand(options: PullOptions): Promise<void> {
+  const spinner = ora('Finding project...').start();
+
+  try {
+    // Find project directory
+    const projectDir = await findProjectDirectory(options.project);
+    if (!projectDir) {
+      spinner.fail('Project not found');
+      console.error(chalk.red('Error: No project found.'));
+      console.error(
+        chalk.gray(
+          'Either run this command from within a project directory or specify --project <project-id>'
         )
       );
+      process.exit(1);
+    }
 
-      // Display next steps
-      console.log(chalk.cyan('\n✨ Next steps:'));
-      console.log(chalk.gray(`  • Edit the file: ${outputFilePath}`));
-      console.log(chalk.gray(`  • Test locally: inkeep push ${outputFilePath}`));
-      console.log(chalk.gray(`  • Version control: git add ${outputFilePath}`));
+    spinner.succeed(`Project found: ${projectDir}`);
+
+    // Load configuration
+    spinner.start('Loading configuration...');
+    const config = await loadProjectConfig(projectDir);
+
+    // Override with CLI options
+    const finalConfig = {
+      tenantId: options.agentsManageApiUrl ? options.env || config.tenantId : config.tenantId,
+      projectId: config.projectId,
+      agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
+    };
+
+    spinner.succeed('Configuration loaded');
+    console.log(chalk.gray('Configuration:'));
+    console.log(chalk.gray(`  • Tenant ID: ${finalConfig.tenantId}`));
+    console.log(chalk.gray(`  • Project ID: ${finalConfig.projectId}`));
+    console.log(chalk.gray(`  • API URL: ${finalConfig.agentsManageApiUrl}`));
+
+    // Fetch project data
+    spinner.start('Fetching project data from backend...');
+    const projectData = await fetchProjectData(
+      finalConfig.tenantId,
+      finalConfig.projectId,
+      finalConfig.agentsManageApiUrl
+    );
+    spinner.succeed('Project data fetched');
+
+    // Show project summary
+    const graphCount = Object.keys(projectData.graphs || {}).length;
+    const toolCount = Object.keys(projectData.tools || {}).length;
+    const agentCount = Object.values(projectData.graphs || {}).reduce(
+      (total: number, graph: any) => {
+        return total + Object.keys(graph.agents || {}).length;
+      },
+      0
+    );
+
+    console.log(chalk.cyan('\n📊 Project Summary:'));
+    console.log(chalk.gray(`  • Name: ${projectData.name}`));
+    console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
+    console.log(chalk.gray(`  • Graphs: ${graphCount}`));
+    console.log(chalk.gray(`  • Tools: ${toolCount}`));
+    console.log(chalk.gray(`  • Agents: ${agentCount}`));
+
+    if (options.json) {
+      // Save as JSON file
+      const jsonFilePath = join(projectDir, `${finalConfig.projectId}.json`);
+      writeFileSync(jsonFilePath, JSON.stringify(projectData, null, 2));
+
+      spinner.succeed(`Project data saved to ${jsonFilePath}`);
+      console.log(chalk.green(`✅ JSON file created: ${jsonFilePath}`));
+    } else {
+      // Update project files using LLM
+      spinner.start('Updating project files with LLM...');
+
+      // Get model settings from config or use default
+      const modelSettings: ModelSettings = {
+        model: 'anthropic/claude-sonnet-4-20250514',
+      };
+
+      // Get file counts for summary
+      const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } = findProjectFiles(projectDir);
+      const totalFiles = [indexFile].filter(Boolean).length + graphFiles.length + agentFiles.length + toolFiles.length + otherFiles.length;
+
+      await updateProjectFilesWithLLM(projectDir, projectData, modelSettings);
+      spinner.succeed(`Project files updated (${totalFiles} files processed)`);
+
+      console.log(chalk.green('\n✨ Project pulled successfully!'));
+      console.log(chalk.cyan('\n📝 Next steps:'));
+      console.log(chalk.gray('  • Review the updated files'));
+      console.log(chalk.gray('  • Test locally: npx inkeep push'));
+      console.log(
+        chalk.gray('  • Commit changes: git add . && git commit -m "Pull project updates"')
+      );
     }
   } catch (error: any) {
-    spinner.fail('Failed to pull graph');
+    spinner.fail('Failed to pull project');
     console.error(chalk.red('Error:'), error.message);
-
-    if (error.stack && process.env.DEBUG) {
-      console.error(chalk.gray(error.stack));
-    }
-
     process.exit(1);
   }
 }
