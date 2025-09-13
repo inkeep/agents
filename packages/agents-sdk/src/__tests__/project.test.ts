@@ -15,8 +15,14 @@ vi.mock('../logger', () => ({
 }));
 
 // Mock fetch
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+const mockFetch = vi.fn(() => Promise.resolve({
+  ok: true,
+  json: async () => ({ data: {} }),
+  text: async () => '',
+  status: 200,
+  statusText: 'OK',
+} as any));
+global.fetch = mockFetch as any;
 
 describe('Project', () => {
   let projectConfig: ProjectConfig;
@@ -63,6 +69,8 @@ describe('Project', () => {
   afterEach(() => {
     delete process.env.ENVIRONMENT;
     delete process.env.INKEEP_API_URL;
+    mockFetch.mockClear();
+    mockFetch.mockReset();
   });
 
   describe('constructor', () => {
@@ -153,6 +161,7 @@ describe('Project', () => {
       const project = new Project(projectConfig);
 
       // Mock successful API call for initialization
+      // The project init will make a PUT call to update the project
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: mockProjectData }),
