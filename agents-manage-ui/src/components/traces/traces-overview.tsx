@@ -522,7 +522,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
                   onClick={addAttribute}
                   className="text-xs"
                 >
-                  <Plus className="h-3 w-3 mr-1" />
+                  <Plus className="h-3 w-3" />
                   Add Attribute
                 </Button>
               </div>

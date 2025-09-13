@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import type { ContextConfigSelect, FetchDefinition } from '../types/index';
 import type { ContextFetchDefinition } from '../types/utility';
 import { getLogger } from '../utils/logger';

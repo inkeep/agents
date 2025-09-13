@@ -13,7 +13,7 @@ import type {
   SelectedPanel,
 } from '@/components/traces/timeline/types';
 import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 

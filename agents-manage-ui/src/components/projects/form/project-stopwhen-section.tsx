@@ -43,13 +43,10 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Transfer Count Limit */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Max Transfers</Label>
-              <p className="text-xs text-muted-foreground">
-                Maximum number of agent transfers per conversation (graph-level, default: 10)
-              </p>
-              <GenericInput<ProjectFormData>
+              <GenericInput
                 control={control}
                 name="stopWhen.transferCountIs"
+                description="Maximum number of agent transfers per conversation (graph-level, default: 10)"
                 label="Max Transfers"
                 type="number"
                 placeholder="10"
@@ -59,17 +56,14 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
 
             {/* Step Count Limit */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Max Steps</Label>
-              <p className="text-xs text-muted-foreground">
-                Maximum number of execution steps per agent (agent-level limit)
-              </p>
-              <GenericInput<ProjectFormData>
+              <GenericInput
                 control={control}
                 name="stopWhen.stepCountIs"
                 label="Max Steps"
                 type="number"
                 placeholder="50"
                 min="1"
+                description="Maximum number of execution steps per agent (agent-level limit)"
               />
             </div>
           </div>
