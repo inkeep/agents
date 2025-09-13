@@ -20,7 +20,7 @@ const weatherAssistant = agent({
   description: 'Responsible for routing between the geocoder agent and weather forecast agent',
   prompt:
     'You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast',
-  canDelegateTo: () => [weatherForecaster, geocoderAgent],
+  canDelegateTo: () => [geocoderAgent, weatherForecaster],
 });
 
 const weatherForecaster = agent({
