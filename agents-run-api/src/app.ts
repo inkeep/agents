@@ -230,20 +230,7 @@ function createExecutionHono(
       propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
     );
 
-    // Log baggage entries properly
-    const baggageEntries = Object.fromEntries(
-      bag.getAllEntries().map(([key, entry]) => [key, entry.value])
-    );
-    logger.info({ baggageEntries }, 'Baggage set');
-
     const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-
-    // Verify baggage is set in context
-    const verifyBag = propagation.getBaggage(ctxWithBag);
-    const verifyEntries = verifyBag
-      ? Object.fromEntries(verifyBag.getAllEntries().map(([key, entry]) => [key, entry.value]))
-      : {};
-    logger.info({ verifyEntries }, 'Context with baggage set');
     return otelContext.with(ctxWithBag, () => next());
   });
 
