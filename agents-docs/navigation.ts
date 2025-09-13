@@ -1,6 +1,6 @@
 export default {
   docs: [
-    { pages: ['overview', 'quick-start', 'oss-enterprise-comparison'] },
+    { pages: ['overview', 'quick-start', 'concepts', 'oss-enterprise-comparison'] },
     {
       group: 'Typescript SDK',
       icon: 'LuCode',
