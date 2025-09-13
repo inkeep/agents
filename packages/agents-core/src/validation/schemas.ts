@@ -621,7 +621,7 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
   tools: z.record(z.string(), ToolApiInsertSchema).optional(),
-  credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
+  credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
@@ -698,7 +698,7 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   contextConfig: z.record(z.string(), ContextConfigApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),
-  credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
+  credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

@@ -60,33 +60,32 @@ describe('projectFull data access', () => {
               description: 'A test agent',
               prompt: 'You are a helpful assistant.',
               canDelegateTo: [],
-              tools: [],
+              tools: [toolId], // Reference tool by ID
               dataComponents: [],
               artifactComponents: [],
               type: 'internal',
             },
           },
-          tools: {
-            [toolId]: {
-              id: toolId,
-              name: 'Test Tool',
-              config: {
-                type: 'mcp',
-                mcp: {
-                  server: {
-                    url: 'http://localhost:3001',
-                  },
-                },
+          // No tools here - they're at project level now
+        },
+      },
+      // Tools are now at project level
+      tools: {
+        [toolId]: {
+          id: toolId,
+          name: 'Test Tool',
+          config: {
+            type: 'mcp',
+            mcp: {
+              server: {
+                url: 'http://localhost:3001',
               },
-              status: 'unknown',
-              capabilities: { tools: true },
-              lastHealthCheck: new Date().toISOString(),
-              availableTools: [],
             },
           },
-          credentialReferences: [],
-          dataComponents: {},
-          artifactComponents: {},
+          status: 'unknown',
+          capabilities: { tools: true },
+          lastHealthCheck: new Date().toISOString(),
+          availableTools: [],
         },
       },
       createdAt: new Date().toISOString(),
@@ -202,6 +201,46 @@ describe('projectFull data access', () => {
       }
       // Note: The actual graph count depends on implementation
       // This test verifies structure, not exact content
+    });
+
+    it('should have tools at project level, not in graphs', async () => {
+      const projectId = `project-${nanoid()}`;
+      const projectData = createTestProjectWithGraphs(projectId);
+
+      // Create the project with graphs and tools
+      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+
+      // Retrieve it
+      const result = await getFullProject(
+        db,
+        logger
+      )({
+        scopes: { tenantId },
+        projectId,
+      });
+
+      expect(result).toBeDefined();
+      if (result) {
+        // Tools should be at project level
+        expect(result.tools).toBeDefined();
+        const toolIds = Object.keys(result.tools);
+        expect(toolIds.length).toBeGreaterThan(0);
+
+        // Graphs should NOT have tools
+        const graphIds = Object.keys(result.graphs);
+        for (const graphId of graphIds) {
+          const graph = result.graphs[graphId];
+          // Graph should not have tools property (or it should be undefined/empty)
+          expect(graph.tools).toBeUndefined();
+        }
+
+        // Verify the tool structure at project level
+        const firstToolId = toolIds[0];
+        const tool = result.tools[firstToolId];
+        expect(tool).toBeDefined();
+        expect(tool.name).toBe('Test Tool');
+        expect(tool.config).toBeDefined();
+      }
     });
   });
 

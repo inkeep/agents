@@ -284,7 +284,7 @@ export async function createNangoApiKeyConnection({
 
       const credentials: ApiKeyCredentials = {
         type: 'API_KEY',
-        apiKey: apiKeyToSet,
+        api_key: apiKeyToSet,
       };
 
       const body = {
