@@ -27,7 +27,7 @@
     "@nangohq/types": "^0.66.0",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
-    "hono": "^4.8.10",
+    "hono": "^4.9.7",
     "hono-pino": "^0.10.1",
     "keytar": "^7.9.0",
     "nanoid": "^5.1.5",

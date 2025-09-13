@@ -61,7 +61,7 @@
     "drizzle-orm": "^0.44.4",
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",
-    "hono": "^4.8.10",
+    "hono": "^4.9.7",
     "jmespath": "^0.16.0",
     "keytar": "^7.9.0",
     "nanoid": "^5.0.9",
