@@ -1,4 +1,3 @@
-import { Hono } from 'hono';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -7,6 +6,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
@@ -26,6 +26,7 @@ type AppVariables = {
   executionContext: ExecutionContext;
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  requestBody?: any;
 };
 
 function createExecutionHono(
@@ -44,6 +45,19 @@ function createExecutionHono(
     return next();
   });
 
+  // Body parsing middleware - parse once and share across all handlers
+  app.use('*', async (c, next) => {
+    if (c.req.header('content-type')?.includes('application/json')) {
+      try {
+        const body = await c.req.json();
+        c.set('requestBody', body);
+      } catch (error) {
+        logger.debug({ error }, 'Failed to parse JSON body, continuing without parsed body');
+      }
+    }
+    return next();
+  });
+
   // OpenTelemetry baggage middleware
   app.use('*', async (c, next) => {
     const reqId = c.get('requestId');
@@ -59,7 +73,6 @@ function createExecutionHono(
     }
     return next();
   });
-
 
   // Error handling
   app.onError(async (err, c) => {
@@ -181,17 +194,11 @@ function createExecutionHono(
 
     const { tenantId, projectId, graphId } = executionContext;
 
-    // Extract conversation ID from JSON body if present
+    // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
-    if (c.req.header('content-type')?.includes('application/json')) {
-      //look into
-      try {
-        const cloned = c.req.raw.clone();
-        const body = await cloned.json().catch(() => null);
-        conversationId = body?.conversationId;
-      } catch (_) {
-        logger.debug({}, 'Conversation ID not found in JSON body');
-      }
+    const requestBody = c.get('requestBody');
+    if (requestBody) {
+      conversationId = requestBody.conversationId;
     }
 
     const entries = Object.fromEntries(

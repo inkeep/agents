@@ -25,6 +25,7 @@ import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
+  requestBody?: any;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -187,7 +188,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     );
 
     // Get conversationId from request body or generate new one
-    const body = c.req.valid('json');
+    const body = c.get('requestBody');
     const conversationId = body.conversationId || nanoid();
 
     // Get the graph from the full graph system first, fall back to legacy system

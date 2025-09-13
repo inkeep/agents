@@ -22,6 +22,7 @@ import { createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
+  requestBody?: any;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -88,7 +89,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const executionContext = getRequestExecutionContext(c);
     const { tenantId, projectId, graphId } = executionContext;
 
-    const body = await c.req.valid('json');
+    // Get parsed body from middleware (shared across all handlers)
+    const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || nanoid();
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
