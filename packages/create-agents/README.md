@@ -12,7 +12,7 @@ npx create-agents
 npx create-agents my-agent-directory
 
 # With options
-npx create-agents my-agent-directory --tenant-id default --project-id my-project --openai-key sk-... --anthropic-key sk-ant-...
+npx create-agents my-agent-directory  --project-id my-project --openai-key sk-... --anthropic-key sk-ant-...
 ```
 
 ## Usage
@@ -35,17 +35,14 @@ You'll be prompted for:
 ### Direct Mode
 Specify options directly:
 ```bash
-pnpm create-agents my-agent-directory --tenant-id my-tenant --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
+pnpm create-agents my-agent-directory --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
 ```
 
 ## Options
 
-- `--tenant-id <tenant-id>` - Your Inkeep tenant ID
 - `--project-id <project-id>` - Project identifier for your agents
 - `--openai-key <openai-key>` - OpenAI API key (optional)
 - `--anthropic-key <anthropic-key>` - Anthropic API key (recommended)
-- `--manage-api-port <port>` - Manage API port (default: 3002)
-- `--run-api-port <port>` - Run API port (default: 3003)
 
 ## What's Created
 

@@ -1,5 +1,18 @@
 # @inkeep/create-agents
 
+## 0.1.10
+
+### Patch Changes
+
+- 148c9aa: Project name fix
+
+## 0.1.9
+
+### Patch Changes
+
+- 8528928: Public packages
+- 0ba5696: Move create logic to create-agents
+
 ## 0.1.8
 
 ### Patch Changes

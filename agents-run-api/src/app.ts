@@ -1,3 +1,4 @@
+import { batchProcessor } from './instrumentation';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -11,7 +12,6 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
-import { batchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -197,7 +197,7 @@ function createExecutionHono(
 
     // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
-    const requestBody = c.get('requestBody') || {};
+    const requestBody = c.get('requestBody') || {}; 
     if (requestBody) {
       conversationId = requestBody.conversationId;
       if (!conversationId) {

@@ -1,5 +1,24 @@
 # @inkeep/agents-manage-ui
 
+## 0.1.10
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.1.10
+- @inkeep/agents-run-api@0.1.10
+- @inkeep/agents-core@0.1.10
+
+## 0.1.9
+
+### Patch Changes
+
+- 270ddbf: bug fix
+- 735a92c: Switch default tenant
+- Updated dependencies [8528928]
+  - @inkeep/agents-core@0.1.9
+  - @inkeep/agents-manage-api@0.1.9
+  - @inkeep/agents-run-api@0.1.9
+
 ## 0.1.8
 
 ### Patch Changes
