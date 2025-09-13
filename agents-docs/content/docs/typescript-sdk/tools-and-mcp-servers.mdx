@@ -55,6 +55,7 @@ const apiKeyTool = mcpTool({
   name: "weather",
   description: "Get weather information",
   serverUrl: "https://api.weather.com/mcp",
+  imageUrl: "https://i.pinimg.com/originals/d5/3b/01/d53b014d86a6b6761bf649a0ed813c2b.png",
   credential: credential({
     id: "weather-api-credential",
     type: CredentialStoreType.memory,
@@ -82,6 +83,21 @@ const customHeadersTool = mcpTool({
     "User-Agent": "Inkeep-Agent/1.0",
     "X-Client-Version": "2024.1",
   },
+});
+```
+
+### Custom Icons
+
+Add custom icons to your MCP tools using the `imageUrl` option. Supports both URLs and base64 data URLs.
+
+```typescript
+import { mcpServer, mcpTool } from "@inkeep/agents-sdk";
+
+const weatherServer = mcpServer({
+  name: "weather",
+  description: "Weather information service",
+  serverUrl: "https://api.weather.com/mcp",
+  imageUrl: "https://i.pinimg.com/originals/d5/3b/01/d53b014d86a6b6761bf649a0ed813c2b.png",
 });
 ```
 
@@ -115,13 +131,23 @@ To ensure agents properly utilize their tools, follow these best practices:
 Example with best practices applied:
 
 ```typescript
-import { mcpTool, agent } from "@inkeep/agents-sdk";
+import { mcpServer, mcpTool, agent } from "@inkeep/agents-sdk";
+
+// Create tools with clear naming and custom icons
+const weatherTool = mcpServer({
+  name: "weather_service",
+  description: "Get real-time weather data and forecasts for any location",
+  serverUrl: "https://api.weather.com/mcp",
+  imageUrl: "https://i.pinimg.com/originals/d5/3b/01/d53b014d86a6b6761bf649a0ed813c2b.png", // Custom weather icon
+  activeTools: ["get_current_weather", "get_forecast"], // Only expose needed capabilities
+});
 
 const productTool = mcpTool({
   id: "product-tool",
   name: "product",
   description: "Search product information, pricing, and specifications",
   serverUrl: "https://mcp.inkeep.com/inkeep/mcp",
+  imageUrl: "https://cdn.example.com/icons/product.svg", // Custom product icon
   activeTools: ["search_products", "get_pricing", "get_specifications"], // Only enable needed tools
 });
 
