@@ -3,12 +3,17 @@ import {
   ALLOW_ALL_BAGGAGE_KEYS,
   BaggageSpanProcessor,
 } from '@opentelemetry/baggage-span-processor';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import {
+  CompositePropagator,
+  W3CBaggagePropagator,
+  W3CTraceContextPropagator,
+} from '@opentelemetry/core';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { env } from './env';
 
 const maxExportBatchSize =
@@ -27,6 +32,9 @@ const resource = resourceFromAttributes({
 const sdk = new NodeSDK({
   resource: resource,
   contextManager: new AsyncLocalStorageContextManager(),
+  textMapPropagator: new CompositePropagator({
+    propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
+  }),
   spanProcessors: [new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS), batchProcessor],
   instrumentations: [
     getNodeAutoInstrumentations({
