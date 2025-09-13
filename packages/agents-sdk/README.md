@@ -2,6 +2,8 @@
 
 SDK for building and managing agents in the Inkeep Agent Framework.
 
+> ⚠️ **Branch Protection Active**: All PRs to main require passing CI checks and approval.
+
 ## Installation
 
 ```bash
