@@ -592,6 +592,9 @@ importers:
       '@opentelemetry/baggage-span-processor':
         specifier: ^0.4.0
         version: 0.4.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/context-async-hooks':
+        specifier: ^2.1.0
+        version: 2.1.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/exporter-trace-otlp-http':
         specifier: ^0.205.0
         version: 0.205.0(@opentelemetry/api@1.9.0)
