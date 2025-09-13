@@ -52,6 +52,7 @@
     "fetch-to-node": "^2.1.0",
     "hono": "^4.9.7",
     "jmespath": "^0.16.0",
+    "keytar": "^7.9.0",
     "nanoid": "^5.1.5",
     "traverse": "^0.6.11",
     "ts-pattern": "^5.7.1",

@@ -341,6 +341,11 @@ async function setupPackageConfigurations(dirName: string) {
       node: '>=22.x',
     },
     packageManager: 'pnpm@10.10.0',
+    pnpm: {
+      onlyBuiltDependencies: [
+        'keytar'
+      ]
+    },
   };
 
   await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
