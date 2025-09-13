@@ -1020,6 +1020,7 @@ Key requirements:
         threadId: string;
         taskId: string;
         streamRequestId: string;
+        apiKey?: string;
       };
     }
   ) {

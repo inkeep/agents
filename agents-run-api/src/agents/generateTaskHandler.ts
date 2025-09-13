@@ -262,6 +262,7 @@ export const createTaskHandler = (
           taskId: task.id,
           threadId: contextId, // using conversationId as threadId for now
           streamRequestId: streamRequestId,
+          ...(config.apiKey ? { apiKey: config.apiKey } : {}),
         },
       });
 
