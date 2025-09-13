@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 import { findProjectDirectory } from '../utils/project-directory';
+import { findAllTypeScriptFiles, categorizeTypeScriptFiles } from '../utils/file-finder';
 import { generateTypeScriptFileWithLLM } from './pull.llm-generate';
 
 export interface PullOptions {
@@ -73,55 +74,28 @@ async function fetchProjectData(tenantId: string, projectId: string, apiUrl: str
 
 /**
  * Find all TypeScript files in the project that need updating
+ * Excludes files in the environments directory
  */
 function findProjectFiles(projectDir: string): {
-  indexFile: string;
+  indexFile: string | null;
   graphFiles: string[];
   agentFiles: string[];
   toolFiles: string[];
+  otherFiles: string[];
 } {
-  const indexFile = join(projectDir, 'index.ts');
-  const graphFiles: string[] = [];
-  const agentFiles: string[] = [];
-  const toolFiles: string[] = [];
+  // Find all TypeScript files excluding environments directory
+  const allTsFiles = findAllTypeScriptFiles(projectDir, ['environments', 'node_modules']);
+  
+  // Categorize the files
+  const categorized = categorizeTypeScriptFiles(allTsFiles, projectDir);
 
-  // Find graph files
-  const graphsDir = join(projectDir, 'graphs');
-  if (existsSync(graphsDir)) {
-    const fs = require('node:fs');
-    const files = fs.readdirSync(graphsDir);
-    files.forEach((file: string) => {
-      if (file.endsWith('.ts') || file.endsWith('.graph.ts')) {
-        graphFiles.push(join(graphsDir, file));
-      }
-    });
-  }
-
-  // Find agent files
-  const agentsDir = join(projectDir, 'agents');
-  if (existsSync(agentsDir)) {
-    const fs = require('node:fs');
-    const files = fs.readdirSync(agentsDir);
-    files.forEach((file: string) => {
-      if (file.endsWith('.ts')) {
-        agentFiles.push(join(agentsDir, file));
-      }
-    });
-  }
-
-  // Find tool files
-  const toolsDir = join(projectDir, 'tools');
-  if (existsSync(toolsDir)) {
-    const fs = require('node:fs');
-    const files = fs.readdirSync(toolsDir);
-    files.forEach((file: string) => {
-      if (file.endsWith('.ts')) {
-        toolFiles.push(join(toolsDir, file));
-      }
-    });
-  }
-
-  return { indexFile, graphFiles, agentFiles, toolFiles };
+  return {
+    indexFile: categorized.indexFile,
+    graphFiles: categorized.graphFiles,
+    agentFiles: categorized.agentFiles,
+    toolFiles: categorized.toolFiles,
+    otherFiles: categorized.otherFiles,
+  };
 }
 
 /**
@@ -133,10 +107,10 @@ async function updateProjectFilesWithLLM(
   modelSettings: ModelSettings
 ): Promise<void> {
   const { graphs, tools } = projectData;
-  const { indexFile, graphFiles, agentFiles, toolFiles } = findProjectFiles(projectDir);
+  const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } = findProjectFiles(projectDir);
 
   // Update index.ts
-  if (existsSync(indexFile)) {
+  if (indexFile && existsSync(indexFile)) {
     console.log(chalk.gray('  • Updating index.ts...'));
     await generateTypeScriptFileWithLLM(projectData, 'project', indexFile, modelSettings);
   }
@@ -176,6 +150,16 @@ async function updateProjectFilesWithLLM(
     if (fileName && tools[fileName]) {
       console.log(chalk.gray(`  • Updating tool: ${fileName}`));
       await generateTypeScriptFileWithLLM(tools[fileName], fileName, toolFilePath, modelSettings);
+    }
+  }
+
+  // Update other TypeScript files with project context
+  for (const otherFilePath of otherFiles) {
+    const fileName = otherFilePath.split('/').pop()?.replace('.ts', '');
+    if (fileName) {
+      console.log(chalk.gray(`  • Updating file: ${fileName}.ts`));
+      // Use the entire project data as context for other files
+      await generateTypeScriptFileWithLLM(projectData, fileName, otherFilePath, modelSettings);
     }
   }
 }
@@ -261,8 +245,12 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
         model: 'anthropic/claude-sonnet-4-20250514',
       };
 
+      // Get file counts for summary
+      const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } = findProjectFiles(projectDir);
+      const totalFiles = [indexFile].filter(Boolean).length + graphFiles.length + agentFiles.length + toolFiles.length + otherFiles.length;
+
       await updateProjectFilesWithLLM(projectDir, projectData, modelSettings);
-      spinner.succeed('Project files updated');
+      spinner.succeed(`Project files updated (${totalFiles} files processed)`);
 
       console.log(chalk.green('\n✨ Project pulled successfully!'));
       console.log(chalk.cyan('\n📝 Next steps:'));
