@@ -200,7 +200,7 @@ function createExecutionHono(
     if (requestBody) {
       conversationId = requestBody.conversationId;
       if (!conversationId) {
-        logger.debug({requestBody}, 'No conversation ID found in request body');
+        logger.debug({ requestBody }, 'No conversation ID found in request body');
       }
     }
 
