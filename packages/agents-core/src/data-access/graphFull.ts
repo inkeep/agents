@@ -187,34 +187,36 @@ export const createFullGraphServerSide =
 
     try {
       // Step 1: Create/update credential references first (tools and context configs depend on them)
-      if (typed.credentialReferences) {
+      if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
-          { credentialReferencesCount: typed.credentialReferences.length },
+          { credentialReferencesCount: Object.keys(typed.credentialReferences).length },
           'Processing credential references'
         );
-        const credentialRefPromises = typed.credentialReferences.map(async (credData) => {
-          try {
-            logger.info({ credId: credData.id }, 'Processing credential reference');
-            await upsertCredentialReference(db)({
-              data: {
-                ...credData,
-                tenantId,
-                projectId,
-              },
-            });
-            logger.info({ credId: credData.id }, 'Credential reference processed successfully');
-          } catch (error) {
-            logger.error(
-              { credId: credData.id, error },
-              'Failed to create/update credential reference'
-            );
-            throw error;
+        const credentialRefPromises = Object.entries(typed.credentialReferences).map(
+          async ([_credId, credData]) => {
+            try {
+              logger.info({ credId: credData.id }, 'Processing credential reference');
+              await upsertCredentialReference(db)({
+                data: {
+                  ...credData,
+                  tenantId,
+                  projectId,
+                },
+              });
+              logger.info({ credId: credData.id }, 'Credential reference processed successfully');
+            } catch (error) {
+              logger.error(
+                { credId: credData.id, error },
+                'Failed to create/update credential reference'
+              );
+              throw error;
+            }
           }
-        });
+        );
 
         await Promise.all(credentialRefPromises);
         logger.info(
-          { credentialReferencesCount: typed.credentialReferences.length },
+          { credentialReferencesCount: Object.keys(typed.credentialReferences).length },
           'All credential references created/updated successfully'
         );
       }
@@ -695,13 +697,19 @@ export const updateFullGraphServerSide =
       const existingGraphModels = existingGraph.models;
 
       // Step 1: Create/update credential references first (tools and context configs depend on them)
-      if (typedGraphDefinition.credentialReferences) {
+      if (
+        typedGraphDefinition.credentialReferences &&
+        Object.keys(typedGraphDefinition.credentialReferences).length > 0
+      ) {
         logger.info(
-          { credentialReferencesCount: typedGraphDefinition.credentialReferences.length },
+          {
+            credentialReferencesCount: Object.keys(typedGraphDefinition.credentialReferences)
+              .length,
+          },
           'Processing credential references'
         );
-        const credentialRefPromises = typedGraphDefinition.credentialReferences.map(
-          async (credData) => {
+        const credentialRefPromises = Object.entries(typedGraphDefinition.credentialReferences).map(
+          async ([_credId, credData]) => {
             try {
               logger.info({ credId: credData.id }, 'Processing credential reference');
               await upsertCredentialReference(db)({
@@ -724,7 +732,10 @@ export const updateFullGraphServerSide =
 
         await Promise.all(credentialRefPromises);
         logger.info(
-          { credentialReferencesCount: typedGraphDefinition.credentialReferences.length },
+          {
+            credentialReferencesCount: Object.keys(typedGraphDefinition.credentialReferences)
+              .length,
+          },
           'All credential references created/updated successfully'
         );
       }
