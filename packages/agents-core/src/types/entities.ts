@@ -306,14 +306,7 @@ export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
 // === Full Project Types ===
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
 // Type helpers for better TypeScript support
-export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
-  tools: string[];
-  selectedTools?: Record<string, string[]>;
-  dataComponents?: string[];
-  artifactComponents?: string[];
-  canTransferTo?: string[];
-  canDelegateTo?: string[];
-};
+export type InternalAgentDefinition = z.infer<typeof FullGraphAgentInsertSchema>;
 
 export type AgentDefinition = InternalAgentDefinition | ExternalAgentApiInsert;
 export type ToolDefinition = ToolApiInsert & { credentialReferenceId?: string | null };

@@ -186,8 +186,10 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(
     z.string(),
     z.union([
-      AgentApiInsertSchema.extend({
+      // Internal agent schema - prompt is optional for initial creation
+      AgentApiInsertSchema.omit({ prompt: true }).extend({
         id: z.string(),
+        prompt: z.string().optional(), // Make prompt optional for graph creation
         tools: z.array(z.string()),
         dataComponents: z.array(z.string()).optional(),
         artifactComponents: z.array(z.string()).optional(),

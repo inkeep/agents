@@ -609,7 +609,9 @@ export const StatusUpdateSchema = z.object({
   statusComponents: z.array(StatusComponentSchema).optional(),
 });
 
-export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
+// Create a base schema for internal agents with prompt optional for graph creation
+const FullGraphInternalAgentBaseSchema = AgentApiInsertSchema.omit({ prompt: true }).extend({
+  prompt: z.string().optional(), // Make prompt optional for initial creation
   tools: z.array(z.string()),
   selectedTools: z.record(z.string(), z.array(z.string())).optional(),
   dataComponents: z.array(z.string()).optional(),
@@ -618,8 +620,20 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
   canDelegateTo: z.array(z.string()).optional(),
 });
 
+// Add discriminated type field for better validation messages
+export const FullGraphInternalAgentSchema = FullGraphInternalAgentBaseSchema.extend({
+  type: z.literal('internal').optional(), // Optional for backward compatibility
+});
+
+export const FullGraphExternalAgentSchema = ExternalAgentApiInsertSchema.extend({
+  type: z.literal('external').optional(), // Optional for backward compatibility
+});
+
+// Keep the original schema name for backward compatibility
+export const FullGraphAgentInsertSchema = FullGraphInternalAgentSchema;
+
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  agents: z.record(z.string(), z.union([FullGraphInternalAgentSchema, FullGraphExternalAgentSchema])),
   tools: z.record(z.string(), ToolApiInsertSchema).optional(),
   credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
@@ -632,7 +646,7 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
 });
 
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  agents: z.record(z.string(), z.union([FullGraphInternalAgentSchema, FullGraphExternalAgentSchema])),
   models: ModelSchema.optional(),
   stopWhen: GraphStopWhenSchema.optional(),
   graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),

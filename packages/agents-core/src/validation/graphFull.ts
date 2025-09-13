@@ -9,7 +9,9 @@ import { FullGraphDefinitionSchema } from '../validation/schemas';
 
 // Type guard functions
 export function isInternalAgent(agent: AgentDefinition): agent is InternalAgentDefinition {
-  return 'prompt' in agent;
+  // Check for absence of baseUrl to identify internal agents
+  // since prompt is now optional for initial creation
+  return !('baseUrl' in agent);
 }
 
 export function isExternalAgent(agent: AgentDefinition): agent is ExternalAgentApiInsert {
