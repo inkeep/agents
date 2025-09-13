@@ -1,5 +1,6 @@
 
-import { type ExecutionContext, getLogger, validateAndGetApiKey } from '@inkeep/agents-core';
+import { type ExecutionContext, validateAndGetApiKey } from '@inkeep/agents-core';
+import { getLogger } from '../logger';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';

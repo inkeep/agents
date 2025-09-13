@@ -11,8 +11,6 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
-import { pinoLogger } from 'hono-pino';
-import { pino } from 'pino';
 import { batchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
@@ -62,20 +60,6 @@ function createExecutionHono(
     return next();
   });
 
-  // Logging middleware
-  app.use(
-    pinoLogger({
-      pino: logger || pino({ level: 'debug' }),
-      http: {
-        onResLevel(c) {
-          if (c.res.status >= 500) {
-            return 'error';
-          }
-          return 'info';
-        },
-      },
-    })
-  );
 
   // Error handling
   app.onError(async (err, c) => {
