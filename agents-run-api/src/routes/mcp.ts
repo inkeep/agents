@@ -685,7 +685,7 @@ app.openapi(
 );
 
 app.get('/', async (c) => {
-  logger.info({}, 'Received GET MCP request');
+  logger.info({} , 'Received GET MCP request');
   return c.json(
     {
       jsonrpc: '2.0',
@@ -701,7 +701,7 @@ app.get('/', async (c) => {
 
 // We want to maintain conversations in the database. (https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#session-management)
 app.delete('/', async (c) => {
-  logger.info({}, 'Received DELETE MCP request');
+  logger.info({} , 'Received DELETE MCP request');
 
   return c.json(
     {
