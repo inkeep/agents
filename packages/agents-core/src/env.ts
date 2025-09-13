@@ -1,9 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config({ quiet: true });
+
+// Calculate workspace root from agents-core package location
+// This ensures consistent database path regardless of where commands are run from
+const currentFileDir = path.dirname(fileURLToPath(import.meta.url)); // Current file directory
+const workspaceRoot = path.resolve(currentFileDir, '../../../'); // agents-core/src -> agents-core -> packages -> workspace
+const defaultDbPath = `file:${path.join(workspaceRoot, 'local.db')}`;
 
 const environmentSchema = z.enum(['development', 'pentest', 'production', 'test']);
 
@@ -36,7 +43,7 @@ const loadEnvFile = () => {
 loadEnvFile();
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
-  DB_FILE_NAME: z.string().default('file:../../local.db'),
+  DB_FILE_NAME: z.string().default(defaultDbPath),
   OTEL_TRACES_FORCE_FLUSH_ENABLED: z.stringbool().optional(),
 });
 

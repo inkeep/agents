@@ -1,14 +1,26 @@
 import type { Artifact, DataComponentApiInsert, McpTool } from '@inkeep/agents-core';
+// Import template content as raw text
+import artifactTemplate from '../../../templates/v1/artifact.xml?raw';
+import dataComponentTemplate from '../../../templates/v1/data-component.xml?raw';
+import systemPromptTemplate from '../../../templates/v1/system-prompt.xml?raw';
+import thinkingPreparationTemplate from '../../../templates/v1/thinking-preparation.xml?raw';
+import toolTemplate from '../../../templates/v1/tool.xml?raw';
+
 import type { SystemPromptV1, ToolData, VersionConfig } from '../types';
 
 export class V1Config implements VersionConfig<SystemPromptV1> {
-  readonly templateFiles = [
-    'system-prompt.xml',
-    'tool.xml',
-    'data-component.xml',
-    'artifact.xml',
-    'thinking-preparation.xml',
-  ];
+  loadTemplates(): Map<string, string> {
+    const templates = new Map<string, string>();
+
+    // Map template names to imported content
+    templates.set('system-prompt', systemPromptTemplate);
+    templates.set('tool', toolTemplate);
+    templates.set('data-component', dataComponentTemplate);
+    templates.set('artifact', artifactTemplate);
+    templates.set('thinking-preparation', thinkingPreparationTemplate);
+
+    return templates;
+  }
 
   static convertMcpToolsToToolData(mcpTools: McpTool[] | undefined): ToolData[] {
     if (!mcpTools || mcpTools.length === 0) {

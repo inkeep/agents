@@ -50,21 +50,62 @@ inkeep init --no-interactive
 
 ### `inkeep push`
 
-**Primary use case:** Push a TypeScript file containing agent configurations to your server. This is the main workflow for deploying agents.
+**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all graphs, agents, and tools.
 
 ```bash
-inkeep push <graph-path>
+inkeep push
 ```
-
-**Arguments:**
-
-- `graph-path` - Path to the TypeScript file containing your agent graph
 
 **Options:**
 
-- `--tenant-id <id>` - Tenant ID (use with --api-url)
-- `--api-url <url>` - API URL (use with --tenant-id or alone to override config)
-- `--config-file-path <path>` - Path to configuration file
+- `--project <project-path>` - Specify project directory by path or ID (defaults to current directory or searches for `inkeep.config.ts`)
+- `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
+- `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--json` - Generate project data as JSON file instead of pushing to server
+
+**Examples:**
+
+```bash
+# Push project from current directory
+inkeep push
+
+# Push specific project directory
+inkeep push --project ./my-project
+
+# Push with development environment credentials
+inkeep push --env development
+
+# Generate project JSON without pushing
+inkeep push --json
+
+# Override API URL
+inkeep push --agents-manage-api-url https://api.example.com
+```
+
+**Environment Credentials:**
+
+The `--env` flag loads environment-specific credentials when pushing your project. This will look for files like `environments/development.env.ts` or `environments/production.env.ts` in your project directory and load the credential configurations defined there.
+
+**Example environment file:**
+
+```typescript
+// environments/development.env.ts
+import { CredentialStoreType } from "@inkeep/agents-core";
+import { registerEnvironmentSettings } from "@inkeep/agents-sdk";
+
+export const development = registerEnvironmentSettings({
+  credentials: {
+    "api-key-dev": {
+      id: "api-key-dev",
+      type: CredentialStoreType.memory,
+      credentialStoreId: "memory-default",
+      retrievalParams: {
+        key: "API_KEY_DEV",
+      },
+    },
+  },
+});
+```
 
 #### Project Validation
 
@@ -101,55 +142,57 @@ The CLI will:
 
 ### `inkeep pull`
 
-Pull an agent graph configuration from the server and save it locally as either a TypeScript or JSON file.
+Pull project configuration from the server and update all TypeScript files in your local project using LLM generation.
 
 ```bash
-inkeep pull <graph-id>
+inkeep pull
 ```
-
-**Arguments:**
-
-- `graph-id` - ID of the graph to pull from the server
 
 **Options:**
 
-- `--tenant-id <id>` - Tenant ID (use with --api-url)
-- `--api-url <url>` - API URL (use with --tenant-id or alone to override config)
-- `--config-file-path <path>` - Path to configuration file
-- `--output-path <path>` - Output directory for the generated file (default: ./agent-configurations)
-- `--json` - Output as JSON file instead of TypeScript
-- `--max-retries <number>` - Maximum number of retries for TypeScript generation (default: 3)
+- `--project <project-path>` - Specify project directory by path or ID (defaults to current directory or searches for `inkeep.config.ts`)
+- `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--env <environment>` - Override tenant ID when using custom API URL
+- `--json` - Save project data as JSON file instead of updating TypeScript files
 
-#### TypeScript Generation (Default)
+**How it Works:**
 
-By default, the pull command generates a TypeScript file using an LLM. This process includes:
+The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
 
-1. **LLM Generation**: Uses your configured model to convert the JSON graph data into TypeScript code
-2. **Validation**: Automatically validates the generated TypeScript by converting it back to JSON and comparing with the original
-3. **Retry Logic**: If validation fails, automatically retries with improved prompts (up to `--max-retries` times)
+1. **File Discovery**: Recursively finds all `.ts` files in your project (excluding `environments/` and `node_modules/`)
+2. **Smart Categorization**: Categorizes files as index, graphs, agents, tools, or other files
+3. **Context-Aware Updates**: Updates each file with relevant context from the server:
+   - **Graph files**: Updated with specific graph data
+   - **Agent files**: Updated with specific agent configurations
+   - **Tool files**: Updated with specific tool definitions
+   - **Other files**: Updated with full project context
+4. **LLM Generation**: Uses AI to maintain code structure while updating with latest data
 
-**Example TypeScript generation:**
+#### TypeScript Updates (Default)
 
-```bash
-# Pull graph as TypeScript (requires modelConfig)
-inkeep pull my-graph-id
+By default, the pull command updates your existing TypeScript files using LLM generation:
 
-# Pull with custom output directory and retry settings
-inkeep pull my-graph-id --output-path ./graphs --max-retries 5
-```
+1. **Context Preservation**: Maintains your existing code structure and patterns
+2. **Selective Updates**: Only updates relevant parts based on server configuration changes
+3. **File-Specific Context**: Each file type receives appropriate context (graphs get graph data, agents get agent data, etc.)
 
-#### JSON Output
-
-Use the `--json` flag to output the raw graph data as JSON without LLM processing:
-
-**Example JSON output:**
+**Examples:**
 
 ```bash
-# Pull graph as JSON
-inkeep pull my-graph-id --json
+# Pull and update all project files from current directory
+inkeep pull
 
-# Pull to specific directory as JSON
-inkeep pull my-graph-id --json --output-path ./data
+# Pull specific project directory
+inkeep pull --project ./my-project
+
+# Save project data as JSON file instead of updating files
+inkeep pull --json
+
+# Pull with custom API endpoint
+inkeep pull --agents-manage-api-url https://api.example.com
+
+# Override tenant ID when using custom API URL
+inkeep pull --agents-manage-api-url https://api.example.com --env production
 ```
 
 #### Model Configuration
@@ -185,35 +228,6 @@ modelConfig: {
     anthropic: {}, // Uses default Anthropic model
   },
 },
-```
-
-#### Validation Process
-
-When generating TypeScript files, the CLI performs automatic validation:
-
-1. **Round-trip Test**: Converts the generated TypeScript back to JSON
-2. **Comparison**: Compares the result with the original graph data
-3. **Difference Detection**: Identifies any discrepancies in structure or data
-4. **Retry on Failure**: Automatically retries with improved prompts if validation fails
-5. **Detailed Reporting**: Shows specific differences if validation ultimately fails
-
-**Example with validation:**
-
-```bash
-$ inkeep pull my-graph-id
-
-✓ Configuration loaded
-✓ Fetching graph from API...
-✓ Generating TypeScript file with LLM...
-✓ Validating generated TypeScript file...
-✓ TypeScript file validation passed
-✅ Generated TypeScript file matches original graph data
-✅ TypeScript file created: ./agent-configurations/my-graph-id.graph.ts
-
-✨ Next steps:
-  • Edit the file: ./agent-configurations/my-graph-id.graph.ts
-  • Test locally: inkeep push ./agent-configurations/my-graph-id.graph.ts
-  • Version control: git add ./agent-configurations/my-graph-id.graph.ts
 ```
 
 ### `inkeep chat`
@@ -375,36 +389,51 @@ DB_FILE_NAME=my-database.db inkeep push graph.ts
 
 ## Common Workflows
 
-### Deploy a New Agent Graph
+### Deploy a Multi-Agent Project
 
-1. Create your agent configuration in TypeScript:
+1. Create your project structure with agent configurations:
 
 ```typescript
-// src/agents/my-graph.ts
-import { agent, agentGraph } from "@inkeep/framework";
+// index.ts
+import { project } from "@inkeep/agents-sdk";
+import { supportGraph } from "./graphs/support.graph";
 
-const myAgent = agent({
-  id: "my-agent",
-  name: "My Agent",
-  prompt: "Help users with tasks",
-});
-
-export const graph = agentGraph({
-  defaultAgent: myAgent,
-  agents: () => [myAgent],
+export const myProject = project({
+  id: "customer-support",
+  name: "Customer Support System",
+  description: "Multi-agent customer support system",
+  graphs: () => [supportGraph],
 });
 ```
 
-2. Push the configuration:
+```typescript
+// graphs/support.graph.ts
+import { agent, agentGraph } from "@inkeep/agents-sdk";
+
+const supportAgent = agent({
+  id: "support-agent",
+  name: "Support Agent",
+  prompt: "Help customers with their inquiries",
+});
+
+export const supportGraph = agentGraph({
+  id: "support-graph",
+  name: "Support Graph",
+  defaultAgent: supportAgent,
+  agents: () => [supportAgent],
+});
+```
+
+2. Push the entire project:
 
 ```bash
-inkeep push src/agents/my-graph.ts
+inkeep push
 ```
 
 3. Start chatting:
 
 ```bash
-inkeep chat my-graph
+inkeep chat support-graph
 ```
 
 ### Local Development Setup
@@ -421,10 +450,10 @@ inkeep init
 pnpm dev
 ```
 
-3. Push your agent configuration:
+3. Push your project configuration:
 
 ```bash
-inkeep push src/agents/graph.ts
+inkeep push
 ```
 
 4. Begin interactive chat:
@@ -433,36 +462,37 @@ inkeep push src/agents/graph.ts
 inkeep chat
 ```
 
-### Pull and Modify Existing Graph
+### Pull and Modify Existing Project
 
-1. List available graphs:
+1. List available graphs in your project:
 
 ```bash
 inkeep list-graphs
 ```
 
-2. Pull an existing graph configuration:
+2. Pull the latest project configuration and update all files:
 
 ```bash
-inkeep pull existing-graph-id
+inkeep pull
 ```
 
-3. Edit the generated TypeScript file:
+3. Edit the updated TypeScript files as needed:
 
 ```bash
-# File created at: ./existing-graph-id.graph.ts
+# Files updated in place throughout your project
+# Review changes in: index.ts, graphs/, agents/, tools/, etc.
 ```
 
 4. Push your modifications:
 
 ```bash
-inkeep push ./existing-graph-id.graph.ts
+inkeep push
 ```
 
-5. Test the updated graph:
+5. Test the updated project:
 
 ```bash
-inkeep chat existing-graph-id
+inkeep chat
 ```
 
 ## Troubleshooting
@@ -475,17 +505,25 @@ inkeep chat existing-graph-id
 - Ensure your server is running if using local development
 - Check network connectivity
 
-**Graph push fails:**
+**Project push fails:**
 
-- Ensure TypeScript file exports a valid agent graph
-- Check for syntax errors in your configuration
-- Verify all required agent properties are defined
+- Ensure your `index.ts` exports a valid project with `__type = "project"`
+- Check for syntax errors in your TypeScript files
+- Verify all required agent and graph properties are defined
+- If using `--env`, ensure the environment file exists in `environments/` directory
 
-**Graph pull fails:**
+**Project pull fails:**
 
-- Verify the graph ID exists: `inkeep list-graphs`
-- Ensure you have access to the graph with your current tenant/project configuration
+- Verify the project exists and you have access with your current tenant configuration
 - Check network connectivity to the API server
+- Ensure your project directory contains an `inkeep.config.ts` file
+
+**Environment credentials fail to load:**
+
+- Verify the environment file exists: `environments/{environment}.env.ts`
+- Check that the environment file exports valid credential configurations
+- Ensure the environment file follows the correct structure with `registerEnvironmentSettings()`
+- Verify credential store IDs and types are valid
 
 **TypeScript generation fails:**
 

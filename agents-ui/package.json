@@ -14,8 +14,8 @@
     "test": "echo 'No tests configured for chat-widget'"
   },
   "dependencies": {
-    "@inkeep/cxkit-react": "0.0.0-rc-20250905022240",
-    "@inkeep/cxkit-react-oss": "0.0.0-rc-20250905022240",
+    "@inkeep/cxkit-react": "0.0.0-rc-20250912162759",
+    "@inkeep/cxkit-react-oss": "0.0.0-rc-20250912162759",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
@@ -32,7 +32,7 @@
     "node": ">=22.0.0"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "files": [

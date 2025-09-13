@@ -1,5 +1,6 @@
 import {
   type AgentConversationHistoryConfig,
+  type AgentStopWhen,
   type Artifact,
   type ArtifactComponentApiInsert,
   ContextResolver,
@@ -25,7 +26,7 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import { generateObject, generateText, streamText, type ToolSet, tool, type Tool } from 'ai';
+import { generateObject, generateText, streamText, type Tool, type ToolSet, tool } from 'ai';
 import { z } from 'zod';
 import {
   createDefaultConversationHistoryConfig,
@@ -34,7 +35,6 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { tracer, setSpanWithError } from '../utils/tracer';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
@@ -43,6 +43,7 @@ import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
 import { ResponseFormatter } from '../utils/response-formatter';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
+import { setSpanWithError, tracer } from '../utils/tracer';
 import { createSaveToolResultTool } from './artifactTools';
 import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
@@ -114,9 +115,7 @@ export type AgentConfig = {
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
-  stopWhen?: {
-    stepCountIs?: number;
-  };
+  stopWhen?: AgentStopWhen;
 };
 
 export type ExternalAgentConfig = {
@@ -1021,6 +1020,7 @@ Key requirements:
         threadId: string;
         taskId: string;
         streamRequestId: string;
+        apiKey?: string;
       };
     }
   ) {

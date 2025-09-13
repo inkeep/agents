@@ -3,11 +3,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
-import { createCommand } from './commands/create';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listGraphsCommand } from './commands/list-graphs';
-import { pullCommand } from './commands/pull';
+import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
 
 // Get the current directory for ESM
@@ -25,19 +24,6 @@ program
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
 
-// Create command
-program
-  .command('create [directory]')
-  .description('Create a new Inkeep Agent Framework Starter Directory')
-  .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--project-id <project-id>', 'Project ID')
-  .option('--openai-key <openai-key>', 'OpenAI API key')
-  .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--manage-api-port <port>', 'Manage API port', '3002')
-  .option('--run-api-port <port>', 'Run API port', '3003')
-  .action(async (directory, options) => {
-    await createCommand(directory, options);
-  });
 
 // Init command
 program
@@ -77,36 +63,29 @@ configCommand
 
 // Push command
 program
-  .command('push <graph-path>')
-  .description('Push a graph configuration to the backend')
-  .option('--tenant-id <tenant-id>', 'Tenant ID (use with --api-url)')
-  .option('--api-url <api-url>', 'API URL (use with --tenant-id or alone to override config)')
-  .option(
-    '--config-file-path <path>',
-    'Path to configuration file (alternative to --tenant-id/--api-url)'
-  )
+  .command('push')
+  .description('Push a project configuration to the backend')
+  .option('--project <project-id>', 'Project ID or path to project directory')
+  .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
   .option(
     '--env <environment>',
     'Environment to use for credential resolution (e.g., development, production)'
   )
-  .action(async (graphPath, options) => {
-    await pushCommand(graphPath, options);
+  .option('--json', 'Generate project data JSON file instead of pushing to backend')
+  .action(async (options) => {
+    await pushCommand(options);
   });
 
-// Pull command
+// Pull command (project-based)
 program
-  .command('pull <graph-id>')
-  .description('Pull a graph configuration from the backend and generate TypeScript file')
-  .option('--tenant-id <tenant-id>', 'Tenant ID (use with --api-url)')
-  .option('--api-url <api-url>', 'API URL (use with --tenant-id or alone to override config)')
-  .option(
-    '--config-file-path <path>',
-    'Path to configuration file (alternative to --tenant-id/--api-url)'
-  )
-  .option('--output-path <path>', 'Output directory for the generated file (overrides config)')
-  .option('--json', 'Output as JSON file instead of TypeScript')
-  .action(async (graphId, options) => {
-    await pullCommand(graphId, options);
+  .command('pull')
+  .description('Pull entire project configuration from backend and update local files')
+  .option('--project <project-id>', 'Project ID or path to project directory')
+  .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
+  .option('--env <environment>', 'Environment to use for credential resolution')
+  .option('--json', 'Generate project data JSON file instead of updating files')
+  .action(async (options) => {
+    await pullProjectCommand(options);
   });
 
 // Chat command

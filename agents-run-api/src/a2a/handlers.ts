@@ -19,7 +19,7 @@ const logger = getLogger('a2aHandler');
 
 export async function a2aHandler(c: Context, agent: RegisteredAgent): Promise<Response> {
   try {
-    const rpcRequest: JsonRpcRequest = await c.req.json();
+    const rpcRequest: JsonRpcRequest = c.get('requestBody');
 
     // Validate JSON-RPC format
     if (rpcRequest.jsonrpc !== '2.0') {

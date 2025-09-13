@@ -1,4 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
+import { Check } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -215,16 +216,20 @@ export function MCPServerNodeEditor({
                 <Tooltip key={tool.name}>
                   <TooltipTrigger asChild>
                     <Badge
-                      variant={isSelected ? 'default' : 'code'}
-                      className={`flex items-center gap-2 cursor-pointer transition-colors ${
+                      variant={isSelected ? 'primary' : 'code'}
+                      className={`flex items-center gap-1 cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                          ? 'hover:bg-primary/10'
+                          : 'bg-transparent dark:bg-transparent dark:hover:bg-muted/50 hover:bg-muted/100'
                       }`}
                       onClick={() => toggleToolSelection(tool.name)}
                     >
                       {tool.name}
-                      {isSelected && <span className="text-xs">✓</span>}
+                      {isSelected && (
+                        <span className="text-xs">
+                          <Check className="w-2.5 h-2.5" />
+                        </span>
+                      )}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs text-sm">

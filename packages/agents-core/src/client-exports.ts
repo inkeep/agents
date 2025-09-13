@@ -9,6 +9,27 @@
 import { z } from 'zod';
 import { CredentialStoreType, MCPTransportType } from './types';
 
+// === Reusable StopWhen Schemas ===
+// Import from validation schemas
+import {
+  type AgentStopWhen,
+  AgentStopWhenSchema,
+  type GraphStopWhen,
+  GraphStopWhenSchema,
+  type StopWhen,
+  StopWhenSchema,
+} from './validation/schemas';
+
+// Re-export StopWhen schemas and types for client usage
+export {
+  StopWhenSchema,
+  GraphStopWhenSchema,
+  AgentStopWhenSchema,
+  type StopWhen,
+  type GraphStopWhen,
+  type AgentStopWhen,
+};
+
 // Common parameter schemas
 export const TenantParamsSchema = z.object({
   tenantId: z.string(),

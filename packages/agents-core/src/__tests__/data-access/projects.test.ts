@@ -762,49 +762,36 @@ describe('Projects Data Access', () => {
       expect(result).toBe(false);
     });
 
-    it('should throw error when project has resources', async () => {
-      const mockSelect = vi
-        .fn()
-        .mockReturnValueOnce({
-          // First call - projectExistsInTable (should return true)
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
-            }),
+    it('should successfully delete project with cascading delete enabled', async () => {
+      // With cascading delete enabled at the database level, projects can be deleted
+      // even when they have related resources. The database will automatically clean up
+      // all related resources.
+
+      const mockSelect = vi.fn().mockReturnValueOnce({
+        // First call - projectExistsInTable (should return true)
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ id: testProjectId1 }]), // Project exists in table
           }),
-        })
-        .mockReturnValue({
-          // Subsequent calls - projectExists checks (should return true/has resources)
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([{ id: 'agent-1' }]), // Has resources
-            }),
-          }),
-        });
+        }),
+      });
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined), // Successfully deleted
+      });
 
       const mockDb = {
         ...db,
         select: mockSelect,
+        delete: mockDelete,
       } as any;
 
-      // Mock Promise.all to return some resources
-      vi.spyOn(Promise, 'all').mockResolvedValue([
-        [{ id: 'agent-1' }], // Has agents
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-      ]);
+      const result = await deleteProject(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId1 },
+      });
 
-      await expect(
-        deleteProject(mockDb)({
-          scopes: { tenantId: testTenantId, projectId: testProjectId1 },
-        })
-      ).rejects.toThrow('Cannot delete project with existing resources');
-
-      vi.restoreAllMocks();
+      expect(result).toBe(true);
+      expect(mockDelete).toHaveBeenCalled();
     });
   });
 

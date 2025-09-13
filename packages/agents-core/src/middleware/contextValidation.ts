@@ -411,7 +411,8 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
         return next(); // Let the main handler deal with missing params
       }
 
-      const body = await c.req.json();
+      // Get parsed body from middleware (shared across all handlers)
+      const body = (c as any).get('requestBody') || {};
       const conversationId = body.conversationId || '';
 
       // Extract headers from the request

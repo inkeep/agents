@@ -1,4 +1,8 @@
-import type { CredentialReferenceApiInsert, FullGraphDefinition } from '@inkeep/agents-core';
+import type {
+  CredentialReferenceApiInsert,
+  FullGraphDefinition,
+  GraphStopWhen,
+} from '@inkeep/agents-core';
 import { createDatabaseClient, getLogger, getProject } from '@inkeep/agents-core';
 import { ExternalAgent } from './externalAgent';
 import { updateFullGraphViaAPI } from './graphFullClient';
@@ -46,7 +50,7 @@ export class AgentGraph implements GraphInterface {
   };
   private statusUpdateSettings?: StatusUpdateSettings;
   private graphPrompt?: string;
-  private stopWhen?: { transferCountIs?: number };
+  private stopWhen?: GraphStopWhen;
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
   constructor(config: GraphConfig) {
@@ -177,21 +181,23 @@ export class AgentGraph implements GraphInterface {
         const selectedToolsMapping: Record<string, string[]> = {};
         const agentTools = internalAgent.getTools();
 
-        for (const [toolName, toolInstance] of Object.entries(agentTools)) {
+        for (const [_toolName, toolInstance] of Object.entries(agentTools)) {
           if (toolInstance && typeof toolInstance === 'object') {
             let toolId: string;
 
-            // Check if this is an AgentMcpConfig
-            if ('server' in toolInstance && 'selectedTools' in toolInstance) {
-              const mcpConfig = toolInstance as any; // AgentMcpConfig
-              toolId = mcpConfig.server.getId();
-              // Store the selectedTools mapping (including empty arrays)
-              if (mcpConfig.selectedTools !== undefined) {
-                selectedToolsMapping[toolId] = mcpConfig.selectedTools;
-              }
-            } else {
-              // Regular tool instance
-              toolId = (toolInstance as any).getId?.() || (toolInstance as any).id || toolName;
+            // Get tool ID
+            toolId = (toolInstance as any).getId?.() || (toolInstance as any).id;
+
+            // Check if this tool instance has selectedTools (from AgentMcpConfig processing)
+            if (
+              'selectedTools' in toolInstance &&
+              (toolInstance as any).selectedTools !== undefined
+            ) {
+              logger.info(
+                { toolId, selectedTools: (toolInstance as any).selectedTools },
+                'Selected tools'
+              );
+              selectedToolsMapping[toolId] = (toolInstance as any).selectedTools;
             }
 
             tools.push(toolId);
@@ -409,12 +415,18 @@ export class AgentGraph implements GraphInterface {
       agents: agentsObject,
       tools: toolsObject,
       contextConfig: this.contextConfig?.toObject(),
-      credentialReferences: this.credentials?.map((credentialReference) => ({
-        type: credentialReference.type,
-        id: credentialReference.id,
-        credentialStoreId: credentialReference.credentialStoreId,
-        retrievalParams: credentialReference.retrievalParams || {},
-      })),
+      credentialReferences: this.credentials?.reduce(
+        (acc, credentialReference) => {
+          acc[credentialReference.id] = {
+            type: credentialReference.type,
+            id: credentialReference.id,
+            credentialStoreId: credentialReference.credentialStoreId,
+            retrievalParams: credentialReference.retrievalParams || {},
+          };
+          return acc;
+        },
+        {} as Record<string, any>
+      ),
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
       graphPrompt: this.graphPrompt,
@@ -905,7 +917,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get the graph's stopWhen configuration
    */
-  getStopWhen(): { transferCountIs?: number } {
+  getStopWhen(): GraphStopWhen {
     return this.stopWhen || { transferCountIs: 10 };
   }
 

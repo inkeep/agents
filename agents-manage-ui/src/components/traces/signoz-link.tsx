@@ -1,3 +1,4 @@
+import { useParams } from 'next/navigation';
 import { ExternalLink } from '../ui/external-link';
 
 const SIGNOZ_BASE = process.env.NEXT_PUBLIC_SIGNOZ_URL ?? 'http://localhost:3080';
@@ -147,6 +148,7 @@ interface ConversationTracesLinkProps {
 }
 
 export function ConversationTracesLink({ conversationId }: ConversationTracesLinkProps) {
-  const tracesUrl = `http://localhost:3000/inkeep/projects/default/traces/conversations/${conversationId}`;
+  const { tenantId, projectId } = useParams();
+  const tracesUrl = `/${tenantId}/projects/${projectId}/traces/conversations/${conversationId}`;
   return <ExternalLink href={tracesUrl}>View Conversation Traces</ExternalLink>;
 }

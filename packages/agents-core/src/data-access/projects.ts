@@ -373,13 +373,8 @@ export const deleteProject =
       return false; // Project not found
     }
 
-    // Check if project has any resources
-    const hasResources = await projectExists(db)(params.scopes);
-    if (hasResources) {
-      throw new Error('Cannot delete project with existing resources');
-    }
-
-    // Project exists and has no resources, safe to delete
+    // With database-level cascading delete, we can safely delete projects with resources
+    // The database will automatically clean up all related resources
     await db
       .delete(projects)
       .where(

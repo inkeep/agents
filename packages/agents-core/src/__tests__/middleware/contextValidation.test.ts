@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { convertZodToJsonSchema } from '../../context/ContextConfig';
 import { validationHelper } from '../../middleware/contextValidation';
 

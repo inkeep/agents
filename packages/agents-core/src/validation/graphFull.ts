@@ -26,7 +26,7 @@ export function validateAndTypeGraphData(data: unknown): z.infer<typeof FullGrap
  */
 export function validateToolReferences(graphData: FullGraphDefinition): void {
   const errors: string[] = [];
-  const availableToolIds = new Set(Object.keys(graphData.tools));
+  const availableToolIds = new Set(Object.keys(graphData.tools || {}));
 
   for (const [agentId, agentData] of Object.entries(graphData.agents)) {
     // Only internal agents have tools

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.1.6",
+  "version": "0.1.10",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,11 +10,11 @@
   "exports": {
     ".": "./dist/index.js",
     "./config": "./dist/config.js",
-    "./commands/create": "./dist/commands/create.js",
     "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsup",
+    "prepare": "pnpm build --no-dts",
     "dev": "MODE=watch tsup",
     "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
     "test:debug": "vitest --run --reporter=verbose --no-coverage",
@@ -46,6 +46,7 @@
     "commander": "^14.0.0",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.5",
+    "find-up": "^7.0.0",
     "fs-extra": "^11.2.0",
     "inquirer": "^9.2.12",
     "inquirer-autocomplete-prompt": "^3.0.1",

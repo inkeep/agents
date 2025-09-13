@@ -1,6 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { getLogger } from '../logger';
 import type { VersionConfig } from './types';
 
@@ -15,24 +12,15 @@ export class SystemPromptBuilder<TConfig> {
     private versionConfig: VersionConfig<TConfig>
   ) {}
 
-  private async loadTemplates(): Promise<void> {
+  private loadTemplates(): void {
     if (this.loaded) return;
 
     try {
-      const currentDir = dirname(fileURLToPath(import.meta.url));
-      const templatesDir = join(currentDir, '..', '..', 'templates', this.version);
+      // Delegate template loading to the version config
+      const loadedTemplates = this.versionConfig.loadTemplates();
 
-      // Load all required template files for this version
-      const templatePromises = this.versionConfig.templateFiles.map(async (filename) => {
-        const filePath = join(templatesDir, filename);
-        const content = await readFile(filePath, 'utf-8');
-        const templateName = filename.replace('.xml', ''); // Remove extension for key
-        return [templateName, content] as const;
-      });
-
-      const templateEntries = await Promise.all(templatePromises);
-
-      for (const [name, content] of templateEntries) {
+      // Copy templates to our internal map
+      for (const [name, content] of loadedTemplates) {
         this.templates.set(name, content);
       }
 
@@ -44,8 +32,8 @@ export class SystemPromptBuilder<TConfig> {
     }
   }
 
-  public async buildSystemPrompt(config: TConfig): Promise<string> {
-    await this.loadTemplates();
+  public buildSystemPrompt(config: TConfig): string {
+    this.loadTemplates();
 
     // Validate that all required template variables are present
     this.validateTemplateVariables(config);

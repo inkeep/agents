@@ -52,12 +52,12 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
           </div>
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-1.5 pl-4 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
+      <CollapsibleContent className="space-y-3 pl-4 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
         {Object.entries(groupedErrors).map(([itemId, itemErrors]) => (
           <div key={itemId} className="space-y-1">
             <div className="flex items-center gap-1.5">
               {getItemLabel && (
-                <span className="text-xs font-medium text-foreground">
+                <span className="text-xs font-medium text-foreground truncate">
                   {getItemLabel(itemErrors[0])}
                 </span>
               )}
@@ -72,15 +72,17 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
                 </Button>
               )}
             </div>
-            {itemErrors.map((error, index) => (
-              <div
-                key={`${itemId}-${index}`}
-                className="text-xs text-red-700 dark:text-red-300 bg-red-50/90 dark:bg-red-950/40 p-2 rounded border-l-2 border-red-300 dark:border-red-700 shadow-sm"
-              >
-                <div className="font-medium mb-1">{error.field}:</div>
-                <div className="text-xs leading-relaxed">{error.message}</div>
-              </div>
-            ))}
+            <div className="space-y-2">
+              {itemErrors.map((error, index) => (
+                <div
+                  key={`${itemId}-${index}`}
+                  className="text-xs text-red-700 dark:text-red-300 bg-red-50/90 dark:bg-red-950/40 p-2 rounded border border-red-200 dark:border-red-700"
+                >
+                  <div className="font-medium mb-1">{error.field}:</div>
+                  <div className="text-xs leading-relaxed">{error.message}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </CollapsibleContent>
@@ -120,11 +122,11 @@ export function GraphErrorSummaryComponent({
 
   const getAgentLabel = (error: ProcessedGraphError) => {
     // You might want to get the actual agent name from the graph data
-    return `Agent (${error.nodeId?.slice(-8)})`;
+    return `Agent (${error.nodeId})`;
   };
 
   const getConnectionLabel = (error: ProcessedGraphError) => {
-    return `Connection (${error.edgeId?.slice(-8)})`;
+    return `Connection (${error.edgeId})`;
   };
 
   return (

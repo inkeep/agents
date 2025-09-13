@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.1.6",
+  "version": "0.1.10",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "prepare": "pnpm build",
+    "prepare": "pnpm build --no-dts",
     "test": "vitest --run",
     "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
     "test:integration": "vitest --run src/__tests__/integration/",
@@ -29,6 +29,8 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:clean": "tsx src/db/clean.ts",
+    "db:delete": "tsx src/db/delete.ts",
+    "db:reset": "pnpm db:delete && pnpm db:push",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check",
     "db:reset-schema": "rm -rf drizzle/* && echo 'All migration files removed, generating new schema' && drizzle-kit generate",
@@ -59,7 +61,7 @@
     "drizzle-orm": "^0.44.4",
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",
-    "hono": "^4.8.10",
+    "hono": "^4.9.7",
     "jmespath": "^0.16.0",
     "keytar": "^7.9.0",
     "nanoid": "^5.0.9",
@@ -72,6 +74,7 @@
     "@vitest/coverage-v8": "^2.0.0",
     "clean-package": "^2.2.0",
     "drizzle-kit": "^0.31.4",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.2",
     "vitest": "^3.1.4"
   },
@@ -79,7 +82,7 @@
     "node": ">=22.0.0"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "files": [

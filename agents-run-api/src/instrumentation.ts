@@ -3,44 +3,39 @@ import {
   ALLOW_ALL_BAGGAGE_KEYS,
   BaggageSpanProcessor,
 } from '@opentelemetry/baggage-span-processor';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import {
+  CompositePropagator,
+  W3CBaggagePropagator,
+  W3CTraceContextPropagator,
+} from '@opentelemetry/core';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { env } from './env';
 
-const otlpUrl = env.OTEL_EXPORTER_OTLP_ENDPOINT;
-const otlpExporter = new OTLPTraceExporter({ url: otlpUrl });
-
-// Minimal fan-out so NodeSDK can accept ONE spanProcessor
-class FanOutSpanProcessor {
-  constructor(private inner: any[]) {}
-  onStart(span: any, parent: any) {
-    this.inner.forEach((p) => p.onStart(span, parent));
-  }
-  onEnd(span: any) {
-    this.inner.forEach((p) => p.onEnd(span));
-  }
-  forceFlush() {
-    return Promise.all(this.inner.map((p) => p.forceFlush?.())).then(() => {});
-  }
-  shutdown() {
-    return Promise.all(this.inner.map((p) => p.shutdown?.())).then(() => {});
-  }
-}
-// Configure batch size based on environment
 const maxExportBatchSize =
   env.OTEL_MAX_EXPORT_BATCH_SIZE ?? (env.ENVIRONMENT === 'development' ? 1 : 512);
 
-const spanProcessor = new FanOutSpanProcessor([
-  new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
-  new BatchSpanProcessor(otlpExporter, {
-    maxExportBatchSize,
-  }),
-]);
+const otlpExporter = new OTLPTraceExporter();
 
-export const sdk = new NodeSDK({
-  serviceName: 'inkeep-agents-run-api',
-  spanProcessor,
+const batchProcessor = new BatchSpanProcessor(otlpExporter, {
+  maxExportBatchSize,
+});
+
+const resource = resourceFromAttributes({
+  [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
+});
+
+const sdk = new NodeSDK({
+  resource: resource,
+  contextManager: new AsyncLocalStorageContextManager(),
+  textMapPropagator: new CompositePropagator({
+    propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
+  }),
+  spanProcessors: [new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS), batchProcessor],
   instrumentations: [
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-http': {
@@ -65,8 +60,6 @@ export const sdk = new NodeSDK({
   ],
 });
 
-// Export the span processor for force flush access
-export { spanProcessor };
-
-// SDK starts automatically when imported
 sdk.start();
+
+export { batchProcessor };

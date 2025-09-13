@@ -441,16 +441,12 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {} }:
       artifactComponentLookup
     );
 
-    console.log('serializedData', serializedData);
-
     const res = await saveGraph(
       tenantId,
       projectId,
       serializedData,
       graph?.id // graphid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
     );
-
-    console.log('res', res);
 
     if (res.success) {
       // Clear any existing errors on successful save

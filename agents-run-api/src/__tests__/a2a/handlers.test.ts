@@ -58,7 +58,10 @@ describe('A2A Handlers', () => {
       agentId: 'test-agent',
     };
 
-    // Mock context
+    // Mock context with proper get/set methods
+    const contextData = new Map();
+    contextData.set('executionContext', mockExecutionContext);
+
     mockContext = {
       req: {
         json: vi.fn(),
@@ -66,7 +69,15 @@ describe('A2A Handlers', () => {
       },
       json: vi.fn().mockImplementation((data) => new Response(JSON.stringify(data))),
       text: vi.fn().mockImplementation((text) => new Response(text)),
-      get: vi.fn().mockReturnValue(mockExecutionContext), // Add the get method that returns executionContext
+      get: vi.fn().mockImplementation((key) => {
+        if (key === 'executionContext') {
+          return mockExecutionContext;
+        }
+        return contextData.get(key);
+      }),
+      set: vi.fn().mockImplementation((key, value) => {
+        contextData.set(key, value);
+      }),
     } as any;
 
     // Mock registered agent
@@ -93,7 +104,7 @@ describe('A2A Handlers', () => {
         params: {},
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(invalidRequest);
+      mockContext.set('requestBody', invalidRequest);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -116,7 +127,7 @@ describe('A2A Handlers', () => {
         params: {},
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -132,7 +143,8 @@ describe('A2A Handlers', () => {
     });
 
     it('should handle parse errors', async () => {
-      mockContext.req.json = vi.fn().mockRejectedValue(new Error('Parse error'));
+      // Don't set requestBody to simulate parse error
+      mockContext.set('requestBody', undefined);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -176,7 +188,7 @@ describe('A2A Handlers', () => {
         ],
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockResolvedValue(mockTaskResult);
 
       const response = await a2aHandler(mockContext, mockAgent);
@@ -225,7 +237,7 @@ describe('A2A Handlers', () => {
         ],
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockResolvedValue(mockTaskResult);
 
       const response = await a2aHandler(mockContext, mockAgent);
@@ -271,7 +283,7 @@ describe('A2A Handlers', () => {
         ],
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockResolvedValue(mockTaskResult);
 
       const response = await a2aHandler(mockContext, mockAgent);
@@ -306,7 +318,7 @@ describe('A2A Handlers', () => {
         artifacts: [],
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockResolvedValue(mockTaskResult);
 
       await a2aHandler(mockContext, mockAgent);
@@ -346,7 +358,7 @@ describe('A2A Handlers', () => {
         artifacts: [],
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockResolvedValue(mockTaskResult);
 
       await a2aHandler(mockContext, mockAgent);
@@ -375,7 +387,7 @@ describe('A2A Handlers', () => {
         params: { id: 'task-123' },
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -396,7 +408,7 @@ describe('A2A Handlers', () => {
         params: { id: 'task-123' },
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -425,7 +437,7 @@ describe('A2A Handlers', () => {
         artifacts: [],
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockResolvedValue(mockTaskResult);
 
       const response = await a2aHandler(mockContext, mockAgent);
@@ -446,7 +458,7 @@ describe('A2A Handlers', () => {
         params: {},
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -469,7 +481,7 @@ describe('A2A Handlers', () => {
         params: {},
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
 
       const response = await a2aHandler(mockContext, mockAgent);
       const result = await response.json();
@@ -498,7 +510,7 @@ describe('A2A Handlers', () => {
         },
       };
 
-      mockContext.req.json = vi.fn().mockResolvedValue(request);
+      mockContext.set('requestBody', request);
       mockAgent.taskHandler = vi.fn().mockRejectedValue(new Error('Task failed'));
 
       const response = await a2aHandler(mockContext, mockAgent);

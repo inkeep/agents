@@ -84,7 +84,7 @@ export async function getRegisteredAgent(
   executionContext: ExecutionContext,
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, graphId, agentId, baseUrl } = executionContext;
+  const { tenantId, projectId, graphId, agentId, baseUrl, apiKey } = executionContext;
 
   if (!agentId) {
     throw new Error('Agent ID is required');
@@ -104,5 +104,6 @@ export async function getRegisteredAgent(
     graphId,
     baseUrl: agentFrameworkBaseUrl,
     credentialStoreRegistry,
+    apiKey,
   });
 }

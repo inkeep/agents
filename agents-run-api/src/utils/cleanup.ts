@@ -12,11 +12,11 @@ const logger = getLogger('cleanup');
  */
 export function gracefulExit(code: number = 0, delayMs: number = 1000, message?: string): void {
   if (message) {
-    logger.info(message);
+    logger.info({}, message);
   }
 
   setTimeout(() => {
-    logger.debug('Forcing process exit after cleanup delay');
+    logger.debug({}, 'Forcing process exit after cleanup delay');
     process.exit(code);
   }, delayMs);
 }
@@ -34,11 +34,11 @@ export function setupGracefulShutdown(
   for (const signal of signals) {
     process.on(signal, async () => {
       if (isShuttingDown) {
-        logger.warn(`Received ${signal} during shutdown, forcing exit`);
+        logger.warn({}, `Received ${signal} during shutdown, forcing exit`);
         process.exit(1);
       }
 
-      logger.info(`Received ${signal}, starting graceful shutdown`);
+      logger.info({}, `Received ${signal}, starting graceful shutdown`);
       isShuttingDown = true;
 
       try {
@@ -60,7 +60,7 @@ export function setupGracefulShutdown(
 export async function stopAllAgentTools(
   agents: Array<{ getTools: () => Record<string, any> }>
 ): Promise<void> {
-  logger.info('Stopping all agent tools...');
+  logger.info({}, 'Stopping all agent tools...');
 
   for (const agent of agents) {
     const tools = agent.getTools();
@@ -69,9 +69,9 @@ export async function stopAllAgentTools(
         try {
           await (toolInstance as any).stop();
           const toolName = (toolInstance as any).config?.name || 'unknown';
-          logger.debug(`Stopped tool: ${toolName}`);
+          logger.debug({}, `Stopped tool: ${toolName}`);
         } catch (error) {
-          logger.warn(
+          logger.warn({},
             `Failed to stop tool: ${error instanceof Error ? error.message : 'Unknown error'}`
           );
         }
@@ -79,5 +79,5 @@ export async function stopAllAgentTools(
     }
   }
 
-  logger.info('All agent tools stopped');
+  logger.info({}, 'All agent tools stopped');
 }

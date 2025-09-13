@@ -177,7 +177,7 @@ async function createNangoConnectSession({
   endUserId = 'test-tenant',
   endUserEmail = 'test@test-tenant.com',
   endUserDisplayName = 'Test User',
-  organizationId = process.env.NEXT_PUBLIC_TENANT_ID || 'inkeep',
+  organizationId = process.env.NEXT_PUBLIC_TENANT_ID || 'default',
   organizationDisplayName = 'Test Organization',
   integrationId,
 }: {
@@ -284,7 +284,7 @@ export async function createNangoApiKeyConnection({
 
       const credentials: ApiKeyCredentials = {
         type: 'API_KEY',
-        apiKey: apiKeyToSet,
+        api_key: apiKeyToSet,
       };
 
       const body = {

@@ -30,6 +30,24 @@ import {
   VALID_RELATION_TYPES,
 } from '../types/utility';
 
+// === Reusable StopWhen Schemas ===
+// Full stopWhen schema with both transfer and step count limits
+export const StopWhenSchema = z.object({
+  transferCountIs: z.number().min(1).max(100).optional(),
+  stepCountIs: z.number().min(1).max(1000).optional(),
+});
+
+// Subset for graph level (only transfer count)
+export const GraphStopWhenSchema = StopWhenSchema.pick({ transferCountIs: true });
+
+// Subset for agent level (only step count)
+export const AgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true });
+
+// Type inference for use in database schema and elsewhere
+export type StopWhen = z.infer<typeof StopWhenSchema>;
+export type GraphStopWhen = z.infer<typeof GraphStopWhenSchema>;
+export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
+
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
 export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
@@ -602,18 +620,21 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
 
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
-  tools: z.record(z.string(), ToolApiInsertSchema),
-  credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(),
+  credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
-  stopWhen: z
-    .object({
-      transferCountIs: z.number().min(1).max(100).optional(),
-    })
-    .optional(),
+  stopWhen: GraphStopWhenSchema.optional(),
+  graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
+});
+
+export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
+  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  models: ModelSchema.optional(),
+  stopWhen: GraphStopWhenSchema.optional(),
   graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
 });
 
@@ -656,6 +677,7 @@ export const ProjectSelectSchema = createSelectSchema(projects);
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
     models: ProjectModelSchema.optional(),
+    stopWhen: StopWhenSchema.optional(),
   })
   .omit({
     createdAt: true,
@@ -667,6 +689,19 @@ export const ProjectUpdateSchema = ProjectInsertSchema.partial();
 export const ProjectApiSelectSchema = ProjectSelectSchema.omit({ tenantId: true });
 export const ProjectApiInsertSchema = ProjectInsertSchema.omit({ tenantId: true });
 export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true });
+
+// Full Project Definition Schema - extends Project with graphs and other nested resources
+export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
+  graphs: z.record(z.string(), GraphWithinContextOfProjectSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema),
+  dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
+  artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
+  contextConfig: z.record(z.string(), ContextConfigApiInsertSchema).optional(),
+  statusUpdates: z.optional(StatusUpdateSchema),
+  credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
 
 // === Common parameter schemas ===
 export const HeadersScopeSchema = z.object({

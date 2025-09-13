@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { batchProcessor } from './instrumentation';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -7,12 +7,11 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
-import { pinoLogger } from 'hono-pino';
-import { pino } from 'pino';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -20,11 +19,15 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
+import { otel } from '@hono/otel'
+
+const logger = getLogger('agents-run-api');
 
 type AppVariables = {
   executionContext: ExecutionContext;
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  requestBody?: any;
 };
 
 function createExecutionHono(
@@ -33,6 +36,8 @@ function createExecutionHono(
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
+  app.use('*', otel());
+
   // Request ID middleware
   app.use('*', requestId());
 
@@ -40,6 +45,19 @@ function createExecutionHono(
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
+    return next();
+  });
+
+  // Body parsing middleware - parse once and share across all handlers
+  app.use('*', async (c, next) => {
+    if (c.req.header('content-type')?.includes('application/json')) {
+      try {
+        const body = await c.req.json();
+        c.set('requestBody', body);
+      } catch (error) {
+        logger.debug({ error }, 'Failed to parse JSON body, continuing without parsed body');
+      }
+    }
     return next();
   });
 
@@ -54,25 +72,10 @@ function createExecutionHono(
     if (bag && typeof bag.setEntry === 'function') {
       bag = bag.setEntry('request.id', { value: String(reqId ?? 'unknown') });
       const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-      return otelContext.with(ctxWithBag, () => next());
+      return await otelContext.with(ctxWithBag, async () => await next());
     }
     return next();
   });
-
-  // Logging middleware
-  app.use(
-    pinoLogger({
-      pino: getLogger() || pino({ level: 'debug' }),
-      http: {
-        onResLevel(c) {
-          if (c.res.status >= 500) {
-            return 'error';
-          }
-          return 'info';
-        },
-      },
-    })
-  );
 
   // Error handling
   app.onError(async (err, c) => {
@@ -112,7 +115,6 @@ function createExecutionHono(
       if (!isExpectedError) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         const errorStack = err instanceof Error ? err.stack : undefined;
-        const logger = getLogger();
         if (logger) {
           logger.error(
             {
@@ -126,7 +128,6 @@ function createExecutionHono(
           );
         }
       } else {
-        const logger = getLogger();
         if (logger) {
           logger.error(
             {
@@ -146,7 +147,6 @@ function createExecutionHono(
         const response = err.getResponse();
         return response;
       } catch (responseError) {
-        const logger = getLogger();
         if (logger) {
           logger.error({ error: responseError }, 'Error while handling HTTPException response');
         }
@@ -191,19 +191,19 @@ function createExecutionHono(
 
     if (!executionContext) {
       // No API key context, skip baggage setup
+      logger.debug({}, 'Empty execution context');
       return next();
     }
 
     const { tenantId, projectId, graphId } = executionContext;
 
-    // Extract conversation ID from JSON body if present
+    // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
-    if (c.req.header('content-type')?.includes('application/json')) {
-      try {
-        const body = await c.req.json();
-        conversationId = body?.conversationId;
-      } catch (_) {
-        // Silently ignore parse errors for non-JSON bodies
+    const requestBody = c.get('requestBody') || {}; 
+    if (requestBody) {
+      conversationId = requestBody.conversationId;
+      if (!conversationId) {
+        logger.debug({ requestBody }, 'No conversation ID found in request body');
       }
     }
 
@@ -220,6 +220,7 @@ function createExecutionHono(
     );
 
     if (!Object.keys(entries).length) {
+      logger.debug({}, 'Empty entries for baggage');
       return next();
     }
 
@@ -229,7 +230,7 @@ function createExecutionHono(
     );
 
     const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
-    return otelContext.with(ctxWithBag, () => next());
+    return await otelContext.with(ctxWithBag, async () => await next());
   });
 
   // Health check endpoint (no auth required)
@@ -259,6 +260,23 @@ function createExecutionHono(
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
+
+  app.use('/tenants/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
+  app.use('/agents/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
+  app.use('/v1/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
+  app.use('/api/*', async (c, next) => {
+    await next();
+    await batchProcessor.forceFlush();
+  });
 
   const baseApp = new Hono();
   baseApp.route('/', app);

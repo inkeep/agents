@@ -1,6 +1,6 @@
 import { redirectToProject } from '../lib/utils/project-redirect';
 
-const DEFAULT_TENANT_ID = 'inkeep';
+const DEFAULT_TENANT_ID = 'default';
 
 async function Home() {
   if (!process.env.NEXT_PUBLIC_TENANT_ID) {

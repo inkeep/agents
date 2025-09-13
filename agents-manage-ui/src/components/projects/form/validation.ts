@@ -1,3 +1,4 @@
+import { StopWhenSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 const modelSettingsSchema = z.object({
@@ -11,13 +12,8 @@ const projectModelsSchema = z.object({
   summarizer: modelSettingsSchema.optional(),
 });
 
-const projectStopWhenSchema = z
-  .object({
-    transferCountIs: z.number().min(1).max(100).optional(),
-    stepCountIs: z.number().min(1).max(1000).optional(),
-  })
-  .optional()
-  .nullable();
+// Use the shared StopWhen schema with optional and nullable modifiers
+const projectStopWhenSchema = StopWhenSchema.optional().nullable();
 
 export const projectSchema = z.object({
   id: z
