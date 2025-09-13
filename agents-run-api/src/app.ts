@@ -1,4 +1,3 @@
-import { Hono } from 'hono';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -7,6 +6,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
@@ -199,8 +199,10 @@ function createExecutionHono(
     // Extract conversation ID from JSON body if present
     let conversationId: string | undefined;
     if (c.req.header('content-type')?.includes('application/json')) {
+      //look into
       try {
-        const body = await c.req.json();
+        const cloned = c.req.raw.clone();
+        const body = await cloned.json().catch(() => null);
         conversationId = body?.conversationId;
       } catch (_) {
         logger.debug('Conversation ID not found in JSON body');
@@ -228,7 +230,20 @@ function createExecutionHono(
       propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
     );
 
+    // Log baggage entries properly
+    const baggageEntries = Object.fromEntries(
+      bag.getAllEntries().map(([key, entry]) => [key, entry.value])
+    );
+    logger.info({ baggageEntries }, 'Baggage set');
+
     const ctxWithBag = propagation.setBaggage(otelContext.active(), bag);
+
+    // Verify baggage is set in context
+    const verifyBag = propagation.getBaggage(ctxWithBag);
+    const verifyEntries = verifyBag
+      ? Object.fromEntries(verifyBag.getAllEntries().map(([key, entry]) => [key, entry.value]))
+      : {};
+    logger.info({ verifyEntries }, 'Context with baggage set');
     return otelContext.with(ctxWithBag, () => next());
   });
 
@@ -260,19 +275,19 @@ function createExecutionHono(
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
-  app.use('/tenants/*', async (c, next) => {
+  app.use('/tenants/*', async (_c, next) => {
     await next();
     await batchProcessor.forceFlush();
   });
-  app.use('/agents/*', async (c, next) => {
+  app.use('/agents/*', async (_c, next) => {
     await next();
     await batchProcessor.forceFlush();
   });
-  app.use('/v1/*', async (c, next) => {
+  app.use('/v1/*', async (_c, next) => {
     await next();
     await batchProcessor.forceFlush();
   });
-  app.use('/api/*', async (c, next) => {
+  app.use('/api/*', async (_c, next) => {
     await next();
     await batchProcessor.forceFlush();
   });
