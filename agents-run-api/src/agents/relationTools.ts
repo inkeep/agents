@@ -116,6 +116,7 @@ export function createDelegateToAgentTool({
     threadId: string;
     streamRequestId?: string;
     streamBaseUrl?: string;
+    apiKey?: string;
   };
   sessionId?: string;
   agent: any; // Will be properly typed as Agent, but avoiding circular import
@@ -219,7 +220,7 @@ export function createDelegateToAgentTool({
         }
       } else {
         resolvedHeaders = {
-          Authorization: `Bearer ${delegateConfig.config.apiKey}`,
+          Authorization: `Bearer ${metadata.apiKey}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
           'x-inkeep-graph-id': graphId,
