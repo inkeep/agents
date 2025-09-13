@@ -50,7 +50,7 @@
     "drizzle-orm": "^0.44.4",
     "exit-hook": "^4.0.0",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.8.10",
+    "hono": "^4.9.7",
     "jmespath": "^0.16.0",
     "nanoid": "^5.1.5",
     "traverse": "^0.6.11",
