@@ -36,6 +36,8 @@ function createExecutionHono(
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
+  app.use('*', otel());
+
   // Request ID middleware
   app.use('*', requestId());
 
@@ -277,7 +279,6 @@ function createExecutionHono(
   });
 
   const baseApp = new Hono();
-  app.use('*', otel());
   baseApp.route('/', app);
 
   return baseApp;
