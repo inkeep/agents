@@ -46,7 +46,9 @@ This guide shows how to call your agent graph directly over HTTP and stream resp
 - **`conversationId`** — Optional; server generates one if omitted
 - **`requestContext`** — Optional; validated against your graph's context configuration if present
 
-### Example cURL (Standard API Key)
+### Example cURL
+
+When using an API key for auth:
 
 ```bash
 curl -N \
@@ -58,23 +60,6 @@ curl -N \
       { "role": "user", "content": "What can you do?" }
     ],
     "conversationId": "chat-1234"
-  }'
-```
-
-### Example cURL (Global Bypass Secret)
-
-```bash
-curl -N \
-  -X POST "http://localhost:3003/api/chat" \
-  -H "Authorization: Bearer $INKEEP_AGENTS_RUN_API_BYPASS_SECRET" \
-  -H "x-inkeep-tenant-id: your-tenant-id" \
-  -H "x-inkeep-project-id: your-project-id" \
-  -H "x-inkeep-graph-id: your-graph-id" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      { "role": "user", "content": "What can you do?" }
-    ]
   }'
 ```
 

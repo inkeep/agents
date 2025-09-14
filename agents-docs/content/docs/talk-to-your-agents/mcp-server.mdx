@@ -40,7 +40,9 @@ The tool handles:
 
 Add the following configuration to your Cursor MCP settings.
 
-### Production (Standard API Key)
+### Example
+
+Example when using an API key for auth:
 
 ```json
 {
@@ -49,41 +51,6 @@ Add the following configuration to your Cursor MCP settings.
     "url": "http://<your-run-api-url>/v1/mcp",
     "headers": {
       "Authorization": "Bearer <graph_api_key>"
-    }
-  }
-}
-```
-
-### Production (Global Bypass Secret)
-
-```json
-{
-  "AgentName": {
-    "type": "mcp",
-    "url": "http://<your-run-api-url>/v1/mcp",
-    "headers": {
-      "Authorization": "Bearer <bypass_secret>",
-      "x-inkeep-tenant-id": "your-tenant-id",
-      "x-inkeep-project-id": "your-project-id",
-      "x-inkeep-graph-id": "your-graph-id"
-    }
-  }
-}
-```
-
-### Development Mode (No API Key)
-
-When `agents-run-api` is running with `ENVIRONMENT=development`, authentication is not required. Provide scope headers:
-
-```json
-{
-  "AgentName": {
-    "type": "mcp",
-    "url": "http://<your-run-api-url>/v1/mcp",
-    "headers": {
-      "x-inkeep-tenant-id": "inkeep",
-      "x-inkeep-project-id": "default",
-      "x-inkeep-graph-id": "inkeep-qa-graph"
     }
   }
 }

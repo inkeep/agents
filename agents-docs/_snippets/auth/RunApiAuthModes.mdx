@@ -3,7 +3,23 @@
 Choose the authentication method based on your environment:
 
 <Tabs>
-<Tab title="Development (No Auth)">
+<Tab title="Using API Key">
+
+For production, use a graph-scoped API key for secure authentication.
+
+**Create an API Key:**
+1. Open the Visual Builder Dashboard
+2. Go to your Project → **API Keys**
+3. Click **Create**, select the target agent graph
+4. Copy the API key (it will be shown once) and store it securely
+
+**Request Header:**
+```http
+Authorization: Bearer <graph_api_key>
+```
+</Tab>
+
+<Tab title="Without API key">
 
 When running the API server locally with `pnpm dev`, authentication is automatically bypassed. You can use headers in the request instead:
 
@@ -20,21 +36,6 @@ This mode is for development only. Never use in production as it bypasses all se
 
 </Tab>
 
-<Tab title="Production (API Key)">
-
-For production, use a graph-scoped API key for secure authentication.
-
-**Create an API Key:**
-1. Open the Visual Builder Dashboard
-2. Go to your Project → **API Keys**
-3. Click **Create**, select the target agent graph
-4. Copy the API key (it will be shown once) and store it securely
-
-**Request Header:**
-```http
-Authorization: Bearer <graph_api_key>
-```
-</Tab>
 </Tabs>
 
 See [Authentication → Run API](/api-reference/authentication/run-api) for more details.
