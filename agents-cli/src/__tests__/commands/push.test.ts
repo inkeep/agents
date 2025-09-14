@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
 import { pushCommand } from '../../commands/push';
-import * as core from '@inkeep/agents-core';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { existsSync } from 'node:fs';
@@ -8,7 +7,9 @@ import { importWithTypeScriptSupport } from '../../utils/tsx-loader';
 
 // Mock all external dependencies
 vi.mock('node:fs');
-vi.mock('@inkeep/agents-core');
+vi.mock('node:fs/promises', () => ({
+  writeFile: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('inquirer');
 vi.mock('chalk', () => ({
   default: {
@@ -29,49 +30,26 @@ vi.mock('ora', () => ({
     text: '',
   })),
 }));
-vi.mock('../../api.js', () => ({
-  ManagementApiClient: {
-    create: vi.fn(),
-  },
-}));
-vi.mock('../../utils/config.js', () => ({
-  validateConfiguration: vi.fn().mockResolvedValue({
-    tenantId: 'test-tenant',
-    projectId: 'test-project',
-    agentsManageApiUrl: 'http://localhost:3002',
-    sources: {
-      tenantId: 'config',
-      projectId: 'config',
-      agentsManageApiUrl: 'config',
-    },
-  }),
-}));
 
 vi.mock('../../utils/tsx-loader.js', () => ({
   importWithTypeScriptSupport: vi.fn(),
 }));
 
+vi.mock('../../utils/project-directory.js', () => ({
+  findProjectDirectory: vi.fn(),
+}));
+
+vi.mock('../../utils/environment-loader.js', () => ({
+  loadEnvironmentCredentials: vi.fn().mockResolvedValue({}),
+}));
+
 describe('Push Command - Project Validation', () => {
-  let mockDbClient: any;
-  let mockGetProject: Mock;
-  let mockCreateProject: Mock;
   let mockExit: Mock;
   let mockLog: Mock;
+  let mockError: Mock;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-
-    // Ensure tsx-loader is not mocked for these tests
-    (importWithTypeScriptSupport as Mock).mockReset();
-
-    // Setup database client mock
-    mockDbClient = {};
-    mockGetProject = vi.fn();
-    mockCreateProject = vi.fn();
-
-    (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
-    (core.getProject as Mock).mockReturnValue(mockGetProject);
-    (core.createProject as Mock).mockReturnValue(mockCreateProject);
 
     // Mock process.exit to prevent test runner from exiting
     mockExit = vi.fn();
@@ -79,639 +57,419 @@ describe('Push Command - Project Validation', () => {
 
     // Mock console methods
     mockLog = vi.fn();
+    mockError = vi.fn();
     vi.spyOn(console, 'log').mockImplementation(mockLog);
-    vi.spyOn(console, 'error').mockImplementation(vi.fn());
+    vi.spyOn(console, 'error').mockImplementation(mockError);
 
-    // Mock file existence check for graph file
+    // Default environment
+    process.env.TSX_RUNNING = '1';
+  });
+
+  afterEach(() => {
+    delete process.env.TSX_RUNNING;
+    delete process.env.INKEEP_ENV;
+    delete process.env.DB_FILE_NAME;
+  });
+
+  it('should load and push project successfully', async () => {
+    // Mock project directory finding
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+
+    // Mock file exists (index.ts and inkeep.config.ts)
     (existsSync as Mock).mockReturnValue(true);
 
-    // Mock configuration validation
-    const { validateConfiguration } = await import('../../utils/config.js');
-    (validateConfiguration as Mock).mockResolvedValue({
+    // Mock project module
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      setCredentials: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({
+        graphCount: 1,
+        tenantId: 'test-tenant',
+      }),
+      getGraphs: vi.fn().mockReturnValue([]),
+    };
+
+    // Mock config module
+    const mockConfig = {
       tenantId: 'test-tenant',
       projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
-      agentsRunApiUrl: 'http://localhost:3001',
-      manageUiUrl: 'http://localhost:3000',
-      sources: {
-        tenantId: 'config',
-        projectId: 'config',
-        agentsManageApiUrl: 'config',
-        agentsRunApiUrl: 'config',
-      },
-    });
-
-    // Mock ManagementApiClient
-    const { ManagementApiClient } = await import('../../api.js');
-    const mockApi = {
-      pushGraph: vi.fn().mockResolvedValue({
-        id: 'test-graph-id',
-        name: 'Test Graph',
-        agents: [],
-        tools: [],
-        relations: [],
-      }),
     };
-    (ManagementApiClient.create as Mock).mockResolvedValue(mockApi);
 
-    // Default environment
-    process.env.DB_FILE_NAME = 'test.db';
+    // First call returns project, second returns config
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
+
+    await pushCommand({ project: '/test/project' });
+
+    // Verify project was loaded
+    expect(importWithTypeScriptSupport).toHaveBeenCalledWith('/test/project/index.ts');
+    expect(importWithTypeScriptSupport).toHaveBeenCalledWith('/test/project/inkeep.config.ts');
+
+    // Verify config was set on project
+    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://localhost:3002');
+
+    // Verify init was called
+    expect(mockProject.init).toHaveBeenCalled();
   });
 
-  it('should validate project exists before pushing graph', async () => {
-    // Mock project exists
-    mockGetProject.mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
-      tenantId: 'test-tenant',
-    });
+  it('should handle missing index.ts file', async () => {
+    // Mock project directory finding
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
 
-    // Mock graph file import
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
-    };
+    // Mock file doesn't exist
+    (existsSync as Mock).mockReturnValue(false);
 
-    // Mock the tsx-loader to return our graph
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
+    await pushCommand({ project: '/test/project' });
 
-    // Run in TypeScript mode (skip tsx spawn)
-    process.env.TSX_RUNNING = '1';
-
-    await pushCommand('/test/path/graph.js', {});
-
-    // Verify project validation was called
-    expect(mockGetProject).toHaveBeenCalledWith({
-      scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
-    });
-  });
-
-  it('should prompt to create project when it does not exist', async () => {
-    // Mock project doesn't exist
-    mockGetProject.mockResolvedValue(null);
-
-    // Mock user confirms project creation and model configuration
-    (inquirer.prompt as unknown as Mock)
-      .mockResolvedValueOnce({ shouldCreate: true })
-      .mockResolvedValueOnce({
-        projectName: 'New Project',
-        projectDescription: 'Test description',
-      })
-      .mockResolvedValueOnce({
-        providers: ['anthropic'],
-      })
-      .mockResolvedValueOnce({
-        baseModel: 'anthropic/claude-sonnet-4-20250514',
-        pullModel: 'anthropic/claude-sonnet-4-20250514',
-        configureOptionalModels: false,
-      });
-
-    // Mock project creation success
-    mockCreateProject.mockResolvedValue({
-      id: 'test-project',
-      name: 'New Project',
-      description: 'Test description',
-      tenantId: 'test-tenant',
-    });
-
-    // Mock graph file import
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
-    };
-
-    // Mock the tsx-loader to return our graph
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
-
-    process.env.TSX_RUNNING = '1';
-
-    await pushCommand('/test/path/graph.js', {});
-
-    // Verify project creation was prompted
-    expect(inquirer.prompt).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'confirm',
-          name: 'shouldCreate',
-          message: expect.stringContaining('does not exist'),
-        }),
-      ])
+    // Verify error was shown (console.error is called with two args: 'Error:' and the message)
+    expect(mockError).toHaveBeenCalledWith(
+      'Error:',
+      expect.stringContaining('index.ts not found')
     );
-
-    // Verify project was created with models
-    expect(mockCreateProject).toHaveBeenCalledWith({
-      id: 'test-project',
-      tenantId: 'test-tenant',
-      name: 'New Project',
-      description: 'Test description',
-      models: {
-        base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
-        },
-      },
-    });
-  });
-
-  it('should exit if user declines to create missing project', async () => {
-    // Mock project doesn't exist
-    mockGetProject.mockResolvedValue(null);
-
-    // Mock user declines project creation
-    (inquirer.prompt as unknown as Mock).mockResolvedValueOnce({ shouldCreate: false });
-
-    // Mock graph file import (needed to prevent errors)
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
-    };
-
-    // Mock the tsx-loader to return our graph
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
-
-    process.env.TSX_RUNNING = '1';
-
-    await pushCommand('/test/path/graph.js', {});
-
-    // Verify push was cancelled
-    expect(mockExit).toHaveBeenCalledWith(0);
-    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Push cancelled'));
-
-    // Verify project was not created
-    expect(mockCreateProject).not.toHaveBeenCalled();
-  });
-
-  it('should handle project creation errors gracefully', async () => {
-    // Mock project doesn't exist
-    mockGetProject.mockResolvedValue(null);
-
-    // Mock user confirms project creation and model configuration
-    (inquirer.prompt as unknown as Mock)
-      .mockResolvedValueOnce({ shouldCreate: true })
-      .mockResolvedValueOnce({
-        projectName: 'New Project',
-        projectDescription: '',
-      })
-      .mockResolvedValueOnce({
-        providers: ['anthropic'],
-      })
-      .mockResolvedValueOnce({
-        baseModel: 'anthropic/claude-sonnet-4-20250514',
-        pullModel: 'anthropic/claude-sonnet-4-20250514',
-        configureOptionalModels: false,
-      });
-
-    // Mock project creation failure
-    mockCreateProject.mockRejectedValue(new Error('Database error'));
-
-    // Mock graph file import
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
-    };
-
-    // Mock the tsx-loader to return our graph
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
-
-    process.env.TSX_RUNNING = '1';
-
-    await pushCommand('/test/path/graph.js', {});
-
-    // Verify error handling
     expect(mockExit).toHaveBeenCalledWith(1);
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Error'), 'Database error');
   });
 
-  it('should use DB_FILE_NAME environment variable for database location', async () => {
-    process.env.DB_FILE_NAME = 'custom-location.db';
+  it('should handle missing project export', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
 
-    mockGetProject.mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
-      tenantId: 'test-tenant',
+    (existsSync as Mock).mockReturnValue(true);
+
+    // Mock module without project export
+    (importWithTypeScriptSupport as Mock).mockResolvedValue({
+      someOtherExport: {},
     });
 
-    const mockGraph = {
+    await pushCommand({ project: '/test/project' });
+
+    // Verify error was shown
+    expect(mockError).toHaveBeenCalledWith(
+      'Error:',
+      expect.stringContaining('No project export found')
+    );
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should handle project not found', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue(null);
+
+    await pushCommand({ project: '/nonexistent' });
+
+    // Verify error was shown
+    expect(mockError).toHaveBeenCalledWith(
+      expect.stringContaining('Project directory not found')
+    );
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should use environment flag for credentials', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    const { loadEnvironmentCredentials } = await import('../../utils/environment-loader.js');
+    
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
+
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      setCredentials: vi.fn(),
       init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
+    };
+
+    const mockConfig = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
+
+    const mockCredentials = { apiKey: 'test-key' };
+    (loadEnvironmentCredentials as Mock).mockResolvedValue(mockCredentials);
+
+    await pushCommand({ project: '/test/project', env: 'production' });
+
+    // Verify environment was set
+    expect(process.env.INKEEP_ENV).toBe('production');
+
+    // Verify credentials were loaded and set
+    expect(loadEnvironmentCredentials).toHaveBeenCalledWith('/test/project', 'production');
+    expect(mockProject.setCredentials).toHaveBeenCalledWith(mockCredentials);
+  });
+
+  it('should override API URL from command line', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
+
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
+    };
+
+    const mockConfig = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
+
+    await pushCommand({ 
+      project: '/test/project',
+      agentsManageApiUrl: 'http://custom-api.com'
+    });
+
+    // Verify custom API URL was used
+    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://custom-api.com');
+  });
+
+  it('should handle missing configuration', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
+
+    const mockProject = {
+      __type: 'project',
       setConfig: vi.fn(),
     };
 
-    // Mock the tsx-loader to return our graph
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
-
-    process.env.TSX_RUNNING = '1';
-
-    await pushCommand('/test/path/graph.js', {});
-
-    // Verify correct database URL was used
-    expect(core.createDatabaseClient).toHaveBeenCalledWith({
-      url: expect.stringContaining('custom-location.db'),
-    });
-  });
-
-  it('should default to local.db when DB_FILE_NAME is not set', async () => {
-    delete process.env.DB_FILE_NAME;
-
-    mockGetProject.mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
+    // Config missing required fields
+    const mockConfig = {
       tenantId: 'test-tenant',
-    });
-
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
+      // Missing projectId and agentsManageApiUrl
     };
 
-    // Mock the tsx-loader to return our graph
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
+
+    await pushCommand({ project: '/test/project' });
+
+    // Verify error was shown
+    expect(mockError).toHaveBeenCalledWith(
+      'Error:',
+      expect.stringContaining('Missing required configuration')
+    );
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should handle JSON output mode', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
+
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      toFullProjectDefinition: vi.fn().mockResolvedValue({ 
+        graphs: {},
+        tools: {}
+      }),
+      init: vi.fn(),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
+    };
+
+    const mockConfig = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
+
+    // Mock fs.writeFileSync
+    const fs = await import('node:fs');
+    const mockWriteFileSync = vi.fn();
+    (fs as any).writeFileSync = mockWriteFileSync;
+
+    await pushCommand({ 
+      project: '/test/project',
+      json: true
     });
 
-    process.env.TSX_RUNNING = '1';
-
-    await pushCommand('/test/path/graph.js', {});
-
-    // Verify default database URL was used
-    expect(core.createDatabaseClient).toHaveBeenCalledWith({
-      url: expect.stringContaining('local.db'),
-    });
+    // Verify JSON was generated
+    expect(mockProject.toFullProjectDefinition).toHaveBeenCalled();
+    // In JSON mode, process.exit(0) is called after generating JSON
+    expect(mockExit).toHaveBeenCalledWith(0);
+    // Note: init might still be called because mocked process.exit doesn't stop execution
   });
 });
 
-describe('Push Command - UI Link Generation', () => {
-  let mockDbClient: any;
-  let mockGetProject: Mock;
-  let mockCreateProject: Mock;
+describe('Push Command - Output Messages', () => {
   let mockExit: Mock;
   let mockLog: Mock;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Reset the tsx-loader mock
-    (importWithTypeScriptSupport as Mock).mockReset();
+    mockExit = vi.fn();
+    vi.spyOn(process, 'exit').mockImplementation(mockExit as any);
 
-    // Reset environment
-    delete process.env.DB_FILE_NAME;
+    mockLog = vi.fn();
+    vi.spyOn(console, 'log').mockImplementation(mockLog);
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
+
+    process.env.TSX_RUNNING = '1';
+  });
+
+  afterEach(() => {
     delete process.env.TSX_RUNNING;
+  });
 
-    // Mock database client
-    mockDbClient = {
-      selectFrom: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      execute: vi
-        .fn()
-        .mockResolvedValue([{ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' }]),
-      insertInto: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockReturnThis(),
-      executeTakeFirst: vi.fn().mockResolvedValue({ id: 'test-id' }),
-      onConflict: vi.fn().mockReturnThis(),
-      doUpdate: vi.fn().mockReturnThis(),
-      set: vi.fn().mockReturnThis(),
-    };
-
-    // Mock core functions - ensure project exists to bypass creation prompts
-    mockGetProject = vi
-      .fn()
-      .mockResolvedValue({ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' });
-    mockCreateProject = vi
-      .fn()
-      .mockResolvedValue({ id: 'test-project', name: 'Test Project', tenantId: 'test-tenant' });
-
-    (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
-    (core.getProject as Mock).mockReturnValue(mockGetProject);
-    (core.createProject as Mock).mockReturnValue(mockCreateProject);
-
-    // Mock existsSync to return true for all files (graph file and database file)
+  it('should display next steps after successful push', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
     (existsSync as Mock).mockReturnValue(true);
 
-    // Mock process.exit to throw an error instead of actually exiting
-    mockExit = vi.fn((code) => {
-      throw new Error(`Process exited with code ${code}`);
-    });
-    process.exit = mockExit as any;
-
-    // Mock console methods
-    mockLog = vi.fn();
-    console.log = mockLog;
-    const mockError = vi.fn();
-    console.error = mockError;
-    console.debug = vi.fn();
-
-    // Mock ManagementApiClient with default successful push
-    const { ManagementApiClient } = await import('../../api.js');
-    const mockApi = {
-      pushGraph: vi.fn().mockResolvedValue({
-        id: 'test-graph-id',
-        name: 'Test Graph',
-        agents: [],
-        tools: [],
-        relations: [],
-      }),
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
-    (ManagementApiClient.create as Mock).mockResolvedValue(mockApi);
 
-    // Mock inquirer to prevent prompts
-    (inquirer.prompt as unknown as Mock).mockResolvedValue({ shouldCreate: false });
-  });
-
-  it('should display UI link with custom manageUiUrl', async () => {
-    // Mock validation to include manageUiUrl
-    const { validateConfiguration } = await import('../../utils/config.js');
-    (validateConfiguration as Mock).mockResolvedValue({
+    const mockConfig = {
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      agentsManageApiUrl: 'http://localhost:3002',
-      manageUiUrl: 'https://app.example.com',
-      sources: {
-        tenantId: 'config',
-        projectId: 'config',
-        agentsManageApiUrl: 'config',
-      },
-    });
-
-    // Mock graph with required methods and id
-    const mockGraph = {
-      id: 'test-graph-id', // Add graph ID
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph-id'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 2,
-        toolCount: 1,
-        relationCount: 1,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
+      agentsManageApiUrl: 'http://api.example.com',
+      manageUiUrl: 'http://ui.example.com',
     };
 
-    // Mock the tsx-loader to return our graph
-    const { importWithTypeScriptSupport } = await import('../../utils/tsx-loader.js');
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
 
-    process.env.TSX_RUNNING = '1';
+    await pushCommand({ project: '/test/project' });
 
-    try {
-      await pushCommand('/test/path/graph.js', {});
-      // Should not reach here since process.exit is called
-      expect.fail('Should have exited');
-    } catch (error: any) {
-      // Just verify it exited - we'll check the logs regardless
-      expect(error.message).toMatch(/Process exited with code/);
-    }
-
-    // Verify the UI link is displayed with correct URL
-    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('View graph in UI:'));
+    // The actual implementation shows next steps
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://app.example.com/test-tenant/projects/test-project/graphs/test-graph-id'
-      )
+      expect.stringContaining('✨ Next steps:')
     );
   });
 
-  it('should display UI link with default URL when manageUiUrl is not provided', async () => {
-    // Mock validation without manageUiUrl
-    const { validateConfiguration } = await import('../../utils/config.js');
-    (validateConfiguration as Mock).mockResolvedValue({
+  it('should display next steps with default config', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
+
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
+    };
+
+    const mockConfig = {
       tenantId: 'test-tenant',
       projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
-      manageUiUrl: undefined,
-      sources: {
-        tenantId: 'config',
-        projectId: 'config',
-        agentsManageApiUrl: 'config',
-      },
-    });
-
-    // Mock graph with required methods and id
-    const mockGraph = {
-      id: 'test-graph-id',
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph-id'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 2,
-        toolCount: 1,
-        relationCount: 1,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
+      // No manageUiUrl - should use default
     };
 
-    // Mock the tsx-loader to return our graph
-    const { importWithTypeScriptSupport } = await import('../../utils/tsx-loader.js');
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
 
-    process.env.TSX_RUNNING = '1';
+    await pushCommand({ project: '/test/project' });
 
-    try {
-      await pushCommand('/test/path/graph.js', {});
-      expect.fail('Should have exited');
-    } catch (error: any) {
-      expect(error.message).toMatch(/Process exited with code/);
-    }
-
-    // Verify the UI link is displayed with default URL
-    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('View graph in UI:'));
+    // The actual implementation shows next steps
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph-id'
-      )
+      expect.stringContaining('✨ Next steps:')
     );
   });
 
-  it('should handle invalid manageUiUrl gracefully', async () => {
-    // Mock validation with invalid manageUiUrl
-    const { validateConfiguration } = await import('../../utils/config.js');
-    (validateConfiguration as Mock).mockResolvedValue({
+  it('should handle push failure gracefully', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
+
+    const mockProject = {
+      __type: 'project',
+      setConfig: vi.fn(),
+      push: vi.fn().mockRejectedValue(new Error('Push failed')),
+    };
+
+    const mockConfig = {
       tenantId: 'test-tenant',
       projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
-      manageUiUrl: 'not-a-valid-url',
-      sources: {
-        tenantId: 'config',
-        projectId: 'config',
-        agentsManageApiUrl: 'config',
-      },
-    });
-
-    // Mock graph with required methods and id
-    const mockGraph = {
-      id: 'test-graph-id',
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph-id'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 2,
-        toolCount: 1,
-        relationCount: 1,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
     };
 
-    // Mock the tsx-loader to return our graph
-    const { importWithTypeScriptSupport } = await import('../../utils/tsx-loader.js');
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
 
-    process.env.TSX_RUNNING = '1';
+    await pushCommand({ project: '/test/project' });
 
-    try {
-      await pushCommand('/test/path/graph.js', {});
-      expect.fail('Should have exited');
-    } catch (error: any) {
-      expect(error.message).toMatch(/Process exited with code/);
-    }
-
-    // The UI link line should not be displayed
-    const viewGraphCalls = mockLog.mock.calls.filter((call: any[]) =>
-      call.some((arg: any) => typeof arg === 'string' && arg.includes('View graph in UI'))
-    );
-    expect(viewGraphCalls.length).toBe(0);
-
-    // Debug log should have been called
-    expect(console.debug).toHaveBeenCalledWith('Could not generate UI link:', expect.any(Error));
+    // Verify error exit
+    expect(mockExit).toHaveBeenCalledWith(1);
   });
 
-  it('should normalize trailing slashes in manageUiUrl', async () => {
-    // Mock validation with manageUiUrl having trailing slashes
-    const { validateConfiguration } = await import('../../utils/config.js');
-    (validateConfiguration as Mock).mockResolvedValue({
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      agentsManageApiUrl: 'http://localhost:3002',
-      manageUiUrl: 'https://app.example.com///',
-      sources: {
-        tenantId: 'config',
-        projectId: 'config',
-        agentsManageApiUrl: 'config',
-      },
-    });
+  it('should display next steps after push', async () => {
+    const { findProjectDirectory } = await import('../../utils/project-directory.js');
+    (findProjectDirectory as Mock).mockResolvedValue('/test/project');
+    (existsSync as Mock).mockReturnValue(true);
 
-    // Mock graph with required methods and id
-    const mockGraph = {
-      id: 'test-graph-id',
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph-id'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 2,
-        toolCount: 1,
-        relationCount: 1,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
+    const mockProject = {
+      __type: 'project',
       setConfig: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
-    // Mock the tsx-loader to return our graph
-    const { importWithTypeScriptSupport } = await import('../../utils/tsx-loader.js');
-    (importWithTypeScriptSupport as Mock).mockResolvedValue({
-      graph: mockGraph,
-    });
+    const mockConfig = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentsManageApiUrl: 'http://api.example.com/',
+      manageUiUrl: 'http://ui.example.com/',
+    };
 
-    process.env.TSX_RUNNING = '1';
+    (importWithTypeScriptSupport as Mock)
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
 
-    try {
-      await pushCommand('/test/path/graph.js', {});
-      expect.fail('Should have exited');
-    } catch (error: any) {
-      expect(error.message).toMatch(/Process exited with code/);
-    }
+    await pushCommand({ project: '/test/project' });
 
-    // Verify the UI link is displayed with normalized URL (no trailing slashes)
-    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('View graph in UI:'));
+    // The actual implementation shows next steps
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'https://app.example.com/test-tenant/projects/test-project/graphs/test-graph-id'
-      )
+      expect.stringContaining('✨ Next steps:')
     );
-    // Ensure no double slashes after the domain
-    const urlCalls = mockLog.mock.calls.filter((call: any[]) =>
-      call.some((arg: any) => typeof arg === 'string' && arg.includes('https://app.example.com'))
-    );
-    urlCalls.forEach((call: any[]) => {
-      call.forEach((arg: any) => {
-        if (typeof arg === 'string' && arg.includes('https://app.example.com')) {
-          expect(arg).not.toContain('https://app.example.com//');
-        }
-      });
-    });
   });
 });
