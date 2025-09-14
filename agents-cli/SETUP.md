@@ -91,8 +91,8 @@ inkeep tenant
 # List available graphs
 inkeep list-graphs
 
-# Push a graph configuration
-inkeep push ./my-graph.js
+# Push your project
+inkeep push
 
 # Start an interactive chat
 inkeep chat my-graph-id

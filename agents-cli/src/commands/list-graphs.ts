@@ -45,7 +45,9 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
     spinner.succeed(`Found ${graphs.length} graph(s)`);
 
     if (graphs.length === 0) {
-      console.log(chalk.gray('No graphs found. Push a graph with: inkeep push <graph-path>'));
+      console.log(
+        chalk.gray('No graphs found. Define graphs in your project and run: inkeep push')
+      );
       return;
     }
 

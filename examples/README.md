@@ -32,8 +32,8 @@ The examples package includes the Inkeep CLI as a dev dependency. From the examp
 # Initialize your configuration
 npx inkeep init
 
-# Push a graph configuration
-npx inkeep push ./agent-configurations/graph.graph.ts
+# Push your project
+npx inkeep push
 
 # List all graphs
 npx inkeep list-graphs
@@ -130,9 +130,9 @@ examples/
    // No graph.init() call - CLI handles initialization
    ```
 
-2. **Push the graph**:
+2. **Push the project**:
    ```bash
-   npx inkeep push ./agent-configurations/my-graph.graph.ts
+   npx inkeep push
    ```
 
 3. **Test with chat**:

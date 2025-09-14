@@ -57,7 +57,7 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
 
       if (graphs.length === 0) {
         console.error(
-          chalk.red('No graphs available. Push a graph first with: inkeep push <graph-path>')
+          chalk.red('No graphs available. Define graphs in your project and run: inkeep push')
         );
         process.exit(1);
       }
@@ -92,7 +92,10 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   // Check if graph exists
   const spinner = ora('Connecting to graph...').start();
   try {
-    const graph = await managementApi.getGraph(graphId!);
+    if (!graphId) {
+      throw new Error('No graph selected');
+    }
+    const graph = await managementApi.getGraph(graphId);
     if (!graph) {
       spinner.fail(`Graph "${graphId}" not found`);
 
@@ -105,8 +108,7 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
         });
         console.log(chalk.gray('\nRun "inkeep chat" without arguments for interactive selection'));
       } else {
-        console.log(chalk.yellow('\nNo graphs found. Please create and push a graph first.'));
-        console.log(chalk.gray('Example: inkeep push ./my-graph.js'));
+        console.log(chalk.yellow('\nNo graphs found. Please define graphs and push your project.'));
       }
       process.exit(1);
     }
@@ -338,7 +340,8 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
 
     try {
       // Send message to API using execution API
-      const response = await executionApi.chatCompletion(graphId!, messages, conversationId);
+      if (!graphId) throw new Error('No graph selected');
+      const response = await executionApi.chatCompletion(graphId, messages, conversationId);
 
       let assistantResponse: string;
       if (typeof response === 'string') {

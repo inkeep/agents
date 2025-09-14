@@ -53,13 +53,18 @@ A command-line interface for managing and interacting with Inkeep Agent Framewor
    - The command is still `inkeep` even though the package name is `@inkeep/agents-cli`
    - If linking fails, try unlinking first: `npm unlink -g @inkeep/agents-cli`
 
-3. **Configure tenant**
+3. **Configure your project**
    ```bash
-   # Set your tenant ID (required for most commands)
-   inkeep tenant your-tenant-id
+   # Create an inkeep.config.ts file with your tenant ID
+   inkeep init
    
-   # Verify configuration
-   inkeep tenant
+   # Or manually create inkeep.config.ts:
+   # export default defineConfig({
+   #   tenantId: "your-tenant-id",
+   #   projectId: "your-project-id",
+   #   agentsManageApiUrl: "http://localhost:3002",
+   #   agentsRunApiUrl: "http://localhost:3003"
+   # });
    ```
 
 ## Configuration
@@ -67,28 +72,32 @@ A command-line interface for managing and interacting with Inkeep Agent Framewor
 ### Configuration Sources (priority order)
 
 1. **Command-line flags** - Highest priority (e.g., `--tenant-id`, `--api-url`)
-2. **Environment variables** - `INKEEP_API_URL`
-3. **`.env` file** - In current directory
-4. **Config file** - `inkeep.config.ts` or `.inkeeprc.ts/js`
-5. **Defaults** - Lowest priority (api-url defaults to `http://localhost:3002`)
+2. **Config file** - `inkeep.config.ts` (required for most commands)
+3. **Environment variables** - `INKEEP_AGENTS_MANAGE_API_URL`, `INKEEP_AGENTS_RUN_API_URL`
+4. **Defaults** - Lowest priority (defaults to `http://localhost:3002` and `http://localhost:3003`)
 
 ### Environment Variables
 
 Create a `.env` file in your project directory:
 
 ```bash
-INKEEP_API_URL=http://localhost:3002
+INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002
+INKEEP_AGENTS_RUN_API_URL=http://localhost:3003
 ```
 
 Or export them in your shell:
 
 ```bash
-export INKEEP_API_URL=http://localhost:3002
+export INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002
+export INKEEP_AGENTS_RUN_API_URL=http://localhost:3003
 ```
 
 ## Commands
 
-### `inkeep tenant [tenant-id]`
+### `inkeep tenant [tenant-id]` ⚠️ NOT IMPLEMENTED
+
+> **⚠️ WARNING: This command is not yet implemented in the current CLI.**
+> Use `inkeep.config.ts` to set your tenant ID instead.
 
 Manage tenant configuration.
 
@@ -108,7 +117,7 @@ List all available graphs for the current tenant.
 inkeep list-graphs
 
 # With custom API URL
-inkeep list-graphs --url http://api.example.com:3002
+inkeep list-graphs --api-url http://api.example.com:3002
 ```
 
 Output:
@@ -121,16 +130,13 @@ Output:
 └─────────────────────────┴────────────────────┴───────────────┴───────────┘
 ```
 
-### `inkeep push <config-path>`
+### `inkeep push`
 
-Push a graph configuration to the backend.
+Push your project configuration to the backend.
 
 ```bash
-# Push a graph configuration
-inkeep push ./my-graph.js
-
-# With custom API URL
-inkeep push ./graph.ts --url http://api.example.com:3002
+# Push the current project (from the directory with inkeep.config.ts)
+inkeep push
 ```
 
 **Features:**
@@ -140,7 +146,7 @@ inkeep push ./graph.ts --url http://api.example.com:3002
 - Shows graph summary after successful push
 - Handles graph initialization automatically
 
-**Graph naming convention:** Graph files should follow the `*.graph.ts` naming pattern (e.g., `customer-support.graph.ts`, `qa-assistant.graph.ts`)
+**Graph files:** Define your graphs in your project (e.g., `graphs/*.graph.ts`). The CLI pushes the project containing those graphs.
 
 **Example graph configuration:**
 
@@ -183,7 +189,7 @@ inkeep chat my-graph-id
 inkeep chat
 
 # With custom API URL
-inkeep chat --url http://api.example.com:3002
+inkeep chat --api-url http://api.example.com:3003
 ```
 
 **Interactive Features:**
@@ -195,7 +201,10 @@ inkeep chat --url http://api.example.com:3002
   - `reset` - Reset conversation context
   - `exit` - End chat session
 
-### `inkeep mcp start <graph-file>`
+### `inkeep mcp start <graph-file>` ⚠️ NOT IMPLEMENTED
+
+> **⚠️ WARNING: This command is not yet implemented in the current CLI.**
+> MCP functionality is planned but not available in the current version.
 
 Start MCP (Model Context Protocol) servers defined in a graph file.
 
@@ -219,7 +228,9 @@ inkeep mcp start graph.graph.ts --verbose
 - Shows server names, ports, and URLs
 - Distinguishes between local (🏠) and remote (☁️) servers
 
-### `inkeep mcp stop`
+### `inkeep mcp stop` ⚠️ NOT IMPLEMENTED
+
+> **⚠️ WARNING: This command is not yet implemented in the current CLI.**
 
 Stop running MCP servers.
 
@@ -231,7 +242,9 @@ inkeep mcp stop --all
 inkeep mcp stop --graph customer-support-graph
 ```
 
-### `inkeep mcp status`
+### `inkeep mcp status` ⚠️ NOT IMPLEMENTED
+
+> **⚠️ WARNING: This command is not yet implemented in the current CLI.**
 
 Show status of all MCP servers.
 
@@ -247,7 +260,9 @@ Output shows:
 - Running status
 - Uptime
 
-### `inkeep mcp list`
+### `inkeep mcp list` ⚠️ NOT IMPLEMENTED
+
+> **⚠️ WARNING: This command is not yet implemented in the current CLI.**
 
 List all MCP servers with detailed information.
 
@@ -274,11 +289,15 @@ pnpm install
 pnpm build
 npm link
 
-# Configure tenant
-inkeep tenant test-tenant
+# Initialize configuration
+inkeep init
+# Edit inkeep.config.ts to set your tenantId and projectId
 ```
 
-### Working with Graphs and MCP Servers
+### Working with Graphs and MCP Servers ⚠️ NOT AVAILABLE
+
+> **⚠️ WARNING: MCP commands shown below are not yet implemented.**
+> This section shows planned functionality that is not available in the current version.
 
 1. **Create a graph with MCP tools** (`my-graph.graph.ts`)
 ```typescript
@@ -349,27 +368,28 @@ inkeep mcp stop --all
 
 ### Development
 ```bash
-# Using environment variable
-INKEEP_API_URL=http://localhost:3002 inkeep list-graphs
+# Using environment variables
+INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 inkeep list-graphs
 
 # Using .env file
-echo "INKEEP_API_URL=http://localhost:3002" > .env
+echo "INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002" > .env
+echo "INKEEP_AGENTS_RUN_API_URL=http://localhost:3003" >> .env
 inkeep chat my-graph
 ```
 
 ### Staging
 ```bash
-# Using command flag
-inkeep push graph.js --url https://staging-api.example.com
-
 # Set in config file
-# Edit your inkeep.config.ts to set apiUrl: 'https://staging-api.example.com'
+# Edit your inkeep.config.ts:
+# agentsManageApiUrl: 'https://staging-manage-api.example.com'
+# agentsRunApiUrl: 'https://staging-run-api.example.com'
 ```
 
 ### Production
 ```bash
 # Using environment variables
-export INKEEP_API_URL=https://api.example.com
+export INKEEP_AGENTS_MANAGE_API_URL=https://manage-api.example.com
+export INKEEP_AGENTS_RUN_API_URL=https://run-api.example.com
 inkeep list-graphs
 ```
 
@@ -438,11 +458,12 @@ agents-cli/
 # Check if backend is running
 curl http://localhost:3002/health
 
-# Verify API URL
-echo $INKEEP_API_URL
+# Verify API URLs
+echo $INKEEP_AGENTS_MANAGE_API_URL
+echo $INKEEP_AGENTS_RUN_API_URL
 
 # Try with explicit URL
-inkeep list-graphs --url http://localhost:3002
+inkeep list-graphs --api-url http://localhost:3002
 ```
 
 

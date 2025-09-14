@@ -96,10 +96,10 @@ my-agent-directory/
    inkeep dev
    ```
 
-4. **Deploy your first agent graph:**
+4. **Deploy your project:**
    ```bash
    cd src/<project-id>/
-   pnpm inkeep push hello.graph.ts
+   pnpm inkeep push
    ```
 
 5. **Test your agents:**
@@ -120,7 +120,7 @@ After setup, you'll have access to:
 - `pnpm dev` - Start both API services with hot reload
 - `pnpm db:push` - Apply database schema changes
 - `inkeep dev` - Start the Manage UI
-- `inkeep push <graph-file>` - Deploy agent configurations
+- `inkeep push` - Deploy project configurations
 - `inkeep chat` - Interactive chat with your agents
 
 ## Environment Variables
