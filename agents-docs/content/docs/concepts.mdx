@@ -13,7 +13,7 @@ In simple terms:
 - An **Agent** is an LLM (AI model) that receives a message and can use tools or collaborate with other agents to accomplish a goal.
 - **Tools** are actions that an Agent can take, like looking up information or taking an action on third-party systems and APIs.
 
-In Inkeep, tools are added to agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own. You can register MCP servers and their associated **Credentials**, then use them within Graphs.
+In Inkeep, tools are added to agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own. With Inkeep, you can register MCP servers and their associated **Credentials**, then use them within Agents as tools.
 
 Typically, you want an Agent to handle narrow, well-defined tasks. Keeping the scope narrow allows you to optimize your **prompt** (instructions) and the tools an agent has to be specific to a scenario or task. As a general rule of thumb, only add up to 5-7 tools to an agent.
 
@@ -60,15 +60,18 @@ API keys are the recommended approach for production use, providing secure, scop
 
 ## Agent replies with Structured Data
 
-- **Data Components**: Structured pieces of information (JSON) that agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
-- **Artifacts**: Structured pieces of information (JSON) *from a tool call* that an Agent can save and make available to others. For example, an Agent can save a webpage it looked at as an artifact. Once saved, an Agent can cite or reference artifacts in its responses, and other agents or users can fetch the full artifacts if they'd like.
-- **Status Updates**: Real-time progress indicators powered by AI that keep users informed about what the agent is doing during longer operations.
+Sometimes, you want your Agent to reply not in plain text, but with specific types of information 'Structured Outputs' (JSON).
+
+With Inkeep, there's a few ways to do this:
+- **Data Components**: Structured Outputs that agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
+- **Artifacts**: An Agent save information from a **tool call result** as an artifact in order to make it available to others. For example, an Agent that did a web search can save the contents of a webpage it looked at as an artifact. Once saved, an Agent can cite or reference artifacts in its response, and other agents or users can fetch the full artifacts if they'd like.
+- **Status Updates**: Real-time progress updates that can be plain text or Structure Outputs that can be used to keep users informed about what the agent is doing during longer operations. 
 
 ## Passing context to Agents
 
-Agents have a few ways of getting information:
-- **Headers**: In the API request to an Agent, the calling application can include headers (aka **Request Context**) for an agent.
-- **Context Fetchers**: Can be configured at the Graph level to always fetch information. For example, your Headers may include a `user-id`, which can then be used to fetch information about that user from a CRM. These happen without the need for Tool Calls.
+Beyond using Tools to fetch information, Agents also receive information via:
+- **Headers**: In the API request to an Agent, the calling application can include headers (a.k.a **Request Context**) for an agent.
+- **Context Fetchers**: Can be configured for a Graph so that at the beginning of a conversation, an API call is automatically made to an external service to get information that is is then made available to any Agent. For example, your Headers may include a `user-id` which can be used to auto-fetch information from a CRM about the user for any Agent to use.
 
 Headers and fetched context can then be referenced explicitly as `{{variables}}` in Agent prompts. Learn more [here](/typescript-sdk/request-context).
 
