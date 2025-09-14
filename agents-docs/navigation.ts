@@ -10,6 +10,7 @@ export default {
         'typescript-sdk/tools-and-mcp-servers',
         'typescript-sdk/credentials',
         'typescript-sdk/context-fetchers',
+        'typescript-sdk/request-context',
         'authentication',
         'typescript-sdk/data-components',
         'typescript-sdk/artifact-components',

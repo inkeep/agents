@@ -192,9 +192,7 @@ inkeep chat [graph-id]
 
 **Options:**
 
-- `--tenant-id <id>` - Tenant ID (use with --api-url)
-- `--api-url <url>` - API URL (use with --tenant-id or alone to override config)
-- `--config-file-path <path>` - Path to configuration file (alternative to --tenant-id/--api-url)
+- `--config-file-path <path>` - Path to configuration file
 
 **Examples:**
 
@@ -205,8 +203,8 @@ inkeep chat
 # Chat with specific graph
 inkeep chat my-graph-id
 
-# Use custom API endpoint
-inkeep chat --api-url http://localhost:3003
+# Use a specific config file
+inkeep chat --config-file-path ./inkeep.config.ts
 ```
 
 ### `inkeep list-graphs`
@@ -219,9 +217,7 @@ inkeep list-graphs
 
 **Options:**
 
-- `--tenant-id <id>` - Tenant ID (use with --api-url)
-- `--api-url <url>` - API URL (use with --tenant-id or alone to override config)
-- `--config-file-path <path>` - Path to configuration file (alternative to --tenant-id/--api-url)
+- `--config-file-path <path>` - Path to configuration file
 
 **Examples:**
 
@@ -229,8 +225,8 @@ inkeep list-graphs
 # List graphs using config file
 inkeep list-graphs
 
-# List graphs with custom API
-inkeep list-graphs --api-url http://localhost:3002 --tenant-id my-tenant
+# List graphs using a specific config file
+inkeep list-graphs --config-file-path ./inkeep.config.ts
 ```
 
 ### `inkeep dev`
@@ -303,7 +299,7 @@ inkeep config set <key> <value>
 
 ```bash
 inkeep config set tenantId my-tenant-id
-inkeep config set projectId my-project-id
+inkeep config set apiUrl http://localhost:3002
 ```
 
 #### `inkeep config list`
@@ -323,7 +319,7 @@ inkeep config list
 The CLI uses a configuration file (typically `inkeep.config.ts`) to store settings:
 
 ```typescript
-import { defineConfig } from "@inkeep/agents-sdk";
+import { defineConfig } from "@inkeep/agents-cli/config";
 
 export default defineConfig({
   tenantId: "your-tenant-id",
@@ -335,11 +331,11 @@ export default defineConfig({
 
 ### Configuration Priority
 
-Resolution order varies slightly by command:
+Effective resolution order:
 
 1. Command-line flags (highest)
-2. `inkeep.config.ts` values
-3. Environment variables (when applicable to the command)
+2. Environment variables (override config values)
+3. `inkeep.config.ts` values
 
 ## Environment Variables
 
@@ -356,7 +352,7 @@ The CLI and SDK respect the following environment variables:
 **Project Not Found:**
 
 - Ensure your `projectId` in `inkeep.config.ts` matches an existing project
-- The CLI will prompt you to create the project if it doesn't exist during push
+- `inkeep push` will create the project automatically if it does not exist
 
 ### Getting Help
 
