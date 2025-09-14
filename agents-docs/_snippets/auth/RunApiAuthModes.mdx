@@ -1,13 +1,71 @@
-## Authentication (Run API Modes)
+## Authentication
 
-To start, create an API Key scoped to your graph.
+Choose the authentication method based on your environment:
 
-### Create API key
+<Tabs>
+<Tab title="Development">
 
-Steps in the UI:
+### No Authentication
+
+When running the API server locally with `pnpm dev`, authentication is automatically bypassed. You can use headers in the request instead:
+
+**Request Headers:**
+```http
+x-inkeep-tenant-id: <tenant-id>
+x-inkeep-project-id: <project-id>
+x-inkeep-graph-id: <graph-id>
+```
+
+<Warning>
+This mode is for development only. Never use in production as it bypasses all security checks.
+</Warning>
+
+</Tab>
+
+<Tab title="Production">
+
+### API Key Authentication
+
+For production, use a graph-scoped API key for secure authentication.
+
+**Create an API Key:**
 1. Open the Visual Builder Dashboard
 2. Go to your Project → **API Keys**
 3. Click **Create**, select the target agent graph
 4. Copy the API key (it will be shown once) and store it securely
+
+**Request Header:**
+```http
+Authorization: Bearer <graph_api_key>
+```
+
+<Accordions>
+<Accordion title="Advanced: Global Bypass Secret">
+
+The global bypass secret allows internal services to authenticate without per-graph API keys.
+
+**Server Configuration:**
+```bash
+INKEEP_AGENTS_RUN_API_BYPASS_SECRET=<your-secret>
+```
+
+**Request Headers:**
+```http
+Authorization: Bearer <bypass_secret>
+x-inkeep-tenant-id: <tenant-id>
+x-inkeep-project-id: <project-id>
+x-inkeep-graph-id: <graph-id>
+```
+
+**Use Cases:**
+- Internal services accessing multiple graphs
+- Staging/testing environments
+- Automation tools managing multiple graphs
+
+</Accordion>
+</Accordions>
+
+</Tab>
+</Tabs>
 
 See [Authentication → Run API](/api-reference/authentication/run-api) for more details.

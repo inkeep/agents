@@ -6,30 +6,72 @@ icon: "LuMessageCircle"
 
 The chat button component is a simple way to trigger the Inkeep modal.
 
+## Installation
+
 <Tabs>
   <Tab title="npm">```bash npm install @inkeep/cxkit-react-oss ```</Tab>
   <Tab title="yarn">```bash yarn add @inkeep/cxkit-react-oss ```</Tab>
   <Tab title="pnpm">```bash pnpm add @inkeep/cxkit-react-oss ```</Tab>
 </Tabs>
 
-```tsx
-import {
-  InkeepChatButton,
-  type InkeepChatButtonProps,
-} from "@inkeep/cxkit-react-oss";
+## Quick Start
 
-const buttonProps: InkeepChatButtonProps = {
-  aiChatSettings: {
-    graphUrl: "http://localhost:3003/api/chat",
-    headers: {
-      "x-inkeep-tenant-id": "inkeep",
-      "x-inkeep-project-id": "default",
-      "x-inkeep-graph-id": "5dNDlFGC8tweVvtkaAFBz",
-    },
-  },
-};
+<Tabs>
+  <Tab title="Production">
+    
+    Use an API key for secure authentication in production:
+    
+    ```tsx
+    import {
+      InkeepChatButton,
+      type InkeepChatButtonProps,
+    } from "@inkeep/cxkit-react-oss";
 
-const ChatButton = () => {
-  return <InkeepChatButton {...buttonProps} />;
-};
-```
+    const buttonProps: InkeepChatButtonProps = {
+      aiChatSettings: {
+        graphUrl: "https://your-api.example.com/api/chat",
+        apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+      },
+    };
+
+    const ChatButton = () => {
+      return <InkeepChatButton {...buttonProps} />;
+    };
+    ```
+    
+    **To get an API key:**
+    1. Open the Visual Builder Dashboard
+    2. Navigate to your Project → **API Keys**
+    3. Click **Create New Key** and select your agent graph
+    4. Copy the key (shown once) and store it in your environment variables
+  </Tab>
+  
+  <Tab title="Development">
+    
+    For local development, use headers with your graph IDs:
+    
+    ```tsx
+    import {
+      InkeepChatButton,
+      type InkeepChatButtonProps,
+    } from "@inkeep/cxkit-react-oss";
+
+    const buttonProps: InkeepChatButtonProps = {
+      aiChatSettings: {
+        graphUrl: "http://localhost:3003/api/chat",
+        headers: {
+          "x-inkeep-tenant-id": "your-tenant-id",
+          "x-inkeep-project-id": "your-project-id",
+          "x-inkeep-graph-id": "your-graph-id",
+        },
+      },
+    };
+
+    const ChatButton = () => {
+      return <InkeepChatButton {...buttonProps} />;
+    };
+    ```
+    
+    **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+  </Tab>
+</Tabs>

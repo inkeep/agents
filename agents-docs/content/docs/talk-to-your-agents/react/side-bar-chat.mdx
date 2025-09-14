@@ -15,79 +15,161 @@ The InkeepSidebarChat component provides a slide-out panel interface for convers
   <Tab title="pnpm">```bash pnpm add @inkeep/cxkit-react-oss ```</Tab>
 </Tabs>
 
-## Trigger through react state
+## Quick Start
 
-Here's a simple implementation of the InkeepSidebarChat component:
+<Tabs>
+  <Tab title="Production">
+    
+    Use an API key for secure authentication in production:
+    
+    ### Trigger through React state
+    
+    ```tsx
+    import { useState } from "react";
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/cxkit-react-oss";
 
-```tsx
-import { useState } from "react";
-import {
-  InkeepSidebarChat,
-  type InkeepSidebarChatProps,
-} from "@inkeep/cxkit-react-oss";
+    export default function App() {
+      const [isOpen, setIsOpen] = useState(false);
 
-export default function App() {
-  const [isOpen, setIsOpen] = useState(false);
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          graphUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+        },
+        position: "right",
+        isOpen: isOpen,
+        onOpenChange: setIsOpen,
+      };
 
-  const sidebarChatProps: InkeepSidebarChatProps = {
-    aiChatSettings: {
-      graphUrl: "http://localhost:3003/api/chat",
-      headers: {
-        "x-inkeep-tenant-id": "your-tenant-id",
-        "x-inkeep-project-id": "your-project-id",
-        "x-inkeep-graph-id": "your-graph-id",
-      },
-    },
-    position: "right",
-    isOpen: isOpen,
-    onOpenChange: setIsOpen,
-  };
+      return (
+        <div>
+          <button onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? "Close" : "Open"} Sidebar Chat
+          </button>
 
-  return (
-    <div>
-      <button onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? "Close" : "Open"} Sidebar Chat
-      </button>
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+    
+    ### Trigger through data attributes
+    
+    ```tsx
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/cxkit-react-oss";
 
-      <InkeepSidebarChat {...sidebarChatProps} />
-    </div>
-  );
-}
-```
+    export default function App() {
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          graphUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+        },
+        position: "right",
+      };
 
-## Trigger through data attributes
+      return (
+        <div>
+          <button data-inkeep-sidebar-chat-trigger>
+            Click here to open sidebar chat
+          </button>
 
-```tsx
-import { useState } from "react";
-import {
-  InkeepSidebarChat,
-  type InkeepSidebarChatProps,
-} from "@inkeep/cxkit-react-oss";
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+    
+    **To get an API key:**
+    1. Open the Visual Builder Dashboard
+    2. Navigate to your Project → **API Keys**
+    3. Click **Create New Key** and select your agent graph
+    4. Copy the key (shown once) and store it in your environment variables
+  </Tab>
+  
+  <Tab title="Development">
+    
+    For local development, use headers with your graph IDs:
+    
+    ### Trigger through React state
+    
+    ```tsx
+    import { useState } from "react";
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/cxkit-react-oss";
 
-export default function App() {
-  const sidebarChatProps: InkeepSidebarChatProps = {
-    aiChatSettings: {
-      graphUrl: "http://localhost:3003/api/chat",
-      headers: {
-        "x-inkeep-tenant-id": "inkeep",
-        "x-inkeep-project-id": "default",
-        "x-inkeep-graph-id": "5dNDlFGC8tweVvtkaAFBz",
-      },
-    },
-    position: "right",
-  };
+    export default function App() {
+      const [isOpen, setIsOpen] = useState(false);
 
-  return (
-    <div>
-      <button data-inkeep-sidebar-chat-trigger>
-        Click here to open sidebar chat
-      </button>
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          graphUrl: "http://localhost:3003/api/chat",
+          headers: {
+            "x-inkeep-tenant-id": "your-tenant-id",
+            "x-inkeep-project-id": "your-project-id",
+            "x-inkeep-graph-id": "your-graph-id",
+          },
+        },
+        position: "right",
+        isOpen: isOpen,
+        onOpenChange: setIsOpen,
+      };
 
-      <InkeepSidebarChat {...sidebarChatProps} />
-    </div>
-  );
-}
-```
+      return (
+        <div>
+          <button onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? "Close" : "Open"} Sidebar Chat
+          </button>
+
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+    
+    ### Trigger through data attributes
+    
+    ```tsx
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/cxkit-react-oss";
+
+    export default function App() {
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          graphUrl: "http://localhost:3003/api/chat",
+          headers: {
+            "x-inkeep-tenant-id": "your-tenant-id",
+            "x-inkeep-project-id": "your-project-id",
+            "x-inkeep-graph-id": "your-graph-id",
+          },
+        },
+        position: "right",
+      };
+
+      return (
+        <div>
+          <button data-inkeep-sidebar-chat-trigger>
+            Click here to open sidebar chat
+          </button>
+
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+    
+    **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+  </Tab>
+</Tabs>
 
 ## Configuration Options
 

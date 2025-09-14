@@ -18,43 +18,92 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
 ## Quick Start
 
-### Basic Implementation
+<Tabs>
+  <Tab title="Production">
+    
+    Use an API key for secure authentication in production:
+    
+    ```tsx
+    import { useState } from "react";
+    import {
+      InkeepModalChat,
+      type InkeepModalChatProps,
+    } from "@inkeep/cxkit-react";
 
-Here's a simple example of creating a custom button to open an Inkeep chat modal:
+    function App() {
+      const [isModalOpen, setIsModalOpen] = useState(false);
 
-```tsx
-import { useState } from "react";
-import {
-  InkeepModalChat,
-  type InkeepModalChatProps,
-} from "@inkeep/cxkit-react";
+      const modalProps: InkeepModalChatProps = {
+        aiChatSettings: {
+          graphUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+        },
+        modalSettings: {
+          isOpen: isModalOpen,
+          onOpenChange: setIsModalOpen,
+        },
+      };
 
-function App() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setIsModalOpen(true)}>
+            Open Inkeep Assistant
+          </button>
 
-  const modalProps: InkeepModalChatProps = {
-    aiChatSettings: {
-      graphUrl: "http://localhost:3003/api/chat",
-      headers: {
-        "x-inkeep-tenant-id": "your-tenant-id",
-        "x-inkeep-project-id": "your-project-id",
-        "x-inkeep-graph-id": "your-graph-id",
-      },
-    },
-    modalSettings: {
-      isOpen: isModalOpen,
-      onOpenChange: setIsModalOpen,
-    },
-  };
+          <InkeepModalChat {...modalProps} />
+        </>
+      );
+    }
+    ```
+    
+    **To get an API key:**
+    1. Open the Visual Builder Dashboard
+    2. Navigate to your Project → **API Keys**
+    3. Click **Create New Key** and select your agent graph
+    4. Copy the key (shown once) and store it in your environment variables
+  </Tab>
+  
+  <Tab title="Development">
+    
+    For local development, use headers with your graph IDs:
+    
+    ```tsx
+    import { useState } from "react";
+    import {
+      InkeepModalChat,
+      type InkeepModalChatProps,
+    } from "@inkeep/cxkit-react";
 
-  return (
-    <>
-      <button onClick={() => setIsModalOpen(true)}>
-        Open Inkeep Assistant
-      </button>
+    function App() {
+      const [isModalOpen, setIsModalOpen] = useState(false);
 
-      <InkeepModalChat {...modalProps} />
-    </>
-  );
-}
-```
+      const modalProps: InkeepModalChatProps = {
+        aiChatSettings: {
+          graphUrl: "http://localhost:3003/api/chat",
+          headers: {
+            "x-inkeep-tenant-id": "your-tenant-id",
+            "x-inkeep-project-id": "your-project-id",
+            "x-inkeep-graph-id": "your-graph-id",
+          },
+        },
+        modalSettings: {
+          isOpen: isModalOpen,
+          onOpenChange: setIsModalOpen,
+        },
+      };
+
+      return (
+        <>
+          <button onClick={() => setIsModalOpen(true)}>
+            Open Inkeep Assistant
+          </button>
+
+          <InkeepModalChat {...modalProps} />
+        </>
+      );
+    }
+    ```
+    
+    **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+  </Tab>
+</Tabs>
