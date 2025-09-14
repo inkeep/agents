@@ -38,33 +38,6 @@ For production, use a graph-scoped API key for secure authentication.
 ```http
 Authorization: Bearer <graph_api_key>
 ```
-
-<Accordions>
-<Accordion title="Advanced: Global Bypass Secret">
-
-The global bypass secret allows internal services to authenticate without per-graph API keys.
-
-**Server Configuration:**
-```bash
-INKEEP_AGENTS_RUN_API_BYPASS_SECRET=<your-secret>
-```
-
-**Request Headers:**
-```http
-Authorization: Bearer <bypass_secret>
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-
-**Use Cases:**
-- Internal services accessing multiple graphs
-- Staging/testing environments
-- Automation tools managing multiple graphs
-
-</Accordion>
-</Accordions>
-
 </Tab>
 </Tabs>
 
