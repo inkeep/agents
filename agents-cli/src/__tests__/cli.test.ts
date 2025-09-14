@@ -92,19 +92,21 @@ describe('Inkeep CLI', () => {
   });
 
   describe('push command', () => {
-    it('should require config path argument', () => {
+    it('should work without required arguments', () => {
       const result = runCli(['push']);
 
+      // The push command now tries to detect project automatically
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("error: missing required argument 'graph-path'");
+      // It should fail because index.ts is not found in test environment
+      expect(result.stderr).toContain('index.ts not found');
     });
 
-    it('should accept --api-url option', () => {
-      const result = runCli(['push', 'non-existent.js', '--api-url', 'http://example.com']);
+    it('should accept --agents-manage-api-url option', () => {
+      const result = runCli(['push', '--project', 'non-existent', '--agents-manage-api-url', 'http://example.com']);
 
-      // Will fail because file doesn't exist, but should accept the option
+      // Will fail because project doesn't exist, but should accept the option
       expect(result.exitCode).toBe(1);
-      // Should fail for file not found, not for invalid option
+      // Should fail for project not found, not for invalid option
       expect(result.stderr).not.toContain('unknown option');
     });
   });
@@ -146,8 +148,8 @@ describe('Inkeep CLI', () => {
       const result = runCli(['push', '--help']);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Push a graph configuration');
-      expect(result.stdout).toContain('--api-url');
+      expect(result.stdout).toContain('Push a project configuration');
+      expect(result.stdout).toContain('--agents-manage-api-url');
     });
 
     it('should display help for chat command', () => {

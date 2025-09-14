@@ -6,6 +6,9 @@ import { pushCommand } from '../../commands/push';
 // Mock dependencies
 vi.mock('node:fs');
 vi.mock('@inkeep/agents-core');
+vi.mock('../../utils/project-directory.js', () => ({
+  findProjectDirectory: vi.fn(),
+}));
 vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
@@ -91,39 +94,30 @@ describe('Push Command - TypeScript Loading', () => {
   });
 
   it('should load TypeScript files using importWithTypeScriptSupport', async () => {
-    // Mock project exists
-    mockGetProject.mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
-      tenantId: 'test-tenant',
-    });
+    // Mock file exists
+    (existsSync as Mock).mockReturnValue(true);
 
-    // Mock graph module
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
+    // Mock project directory finding
+    const projectDir = await import('../../utils/project-directory.js');
+    (projectDir.findProjectDirectory as Mock).mockResolvedValue('/test/path');
+
+    // Mock project module
+    const mockProject = {
+      __type: 'project',
+      projectData: {},
     };
 
     mockImportWithTypeScriptSupport.mockResolvedValue({
-      default: mockGraph,
+      default: mockProject,
     });
 
     process.env.TSX_RUNNING = '1';
 
-    await pushCommand('/test/path/graph.ts', {});
+    await pushCommand({ project: '/test/path' });
 
     // Verify TypeScript loader was used
     expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
-      expect.stringContaining('/test/path/graph.ts')
+      expect.stringContaining('/test/path/index.ts')
     );
 
     // Verify spinner was created and used correctly
@@ -150,39 +144,30 @@ describe('Push Command - TypeScript Loading', () => {
   });
 
   it('should work with JavaScript files without tsx loader', async () => {
-    // Mock project exists
-    mockGetProject.mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
-      tenantId: 'test-tenant',
-    });
+    // Mock file exists
+    (existsSync as Mock).mockReturnValue(true);
 
-    // Mock graph module
-    const mockGraph = {
-      init: vi.fn().mockResolvedValue(undefined),
-      getId: vi.fn().mockReturnValue('test-graph'),
-      getName: vi.fn().mockReturnValue('Test Graph'),
-      getAgents: vi.fn().mockReturnValue([]),
-      getStats: vi.fn().mockReturnValue({
-        agentCount: 1,
-        toolCount: 0,
-        relationCount: 0,
-      }),
-      getDefaultAgent: vi.fn().mockReturnValue(null),
-      setConfig: vi.fn(),
+    // Mock project directory finding
+    const projectDir = await import('../../utils/project-directory.js');
+    (projectDir.findProjectDirectory as Mock).mockResolvedValue('/test/path');
+
+    // Mock project module
+    const mockProject = {
+      __type: 'project',
+      projectData: {},
     };
 
     mockImportWithTypeScriptSupport.mockResolvedValue({
-      default: mockGraph,
+      default: mockProject,
     });
 
     process.env.TSX_RUNNING = '1';
 
-    await pushCommand('/test/path/graph.js', {});
+    await pushCommand({ project: '/test/path' });
 
-    // Verify loader was called for JS file too
+    // Verify loader was called for index.ts file
     expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
-      expect.stringContaining('/test/path/graph.js')
+      expect.stringContaining('/test/path/index.ts')
     );
 
     // Verify success
