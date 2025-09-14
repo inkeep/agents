@@ -15,7 +15,7 @@ The A2A (Agent-to-Agent) endpoint lets external agents/services talk to your age
 - **A2A protocol (graph or agent-level):** `POST /agents/a2a`
 
 Notes:
-- If you supply `x-inkeep-agent-id` in headers (or use a graph-specific API key bound to an agent), requests target that specific agent. Otherwise, the default agent for the graph is used.
+- If you supply `x-inkeep-agent-id` in headers, requests target that specific agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the graph’s default agent. API keys bound to a specific agent are not yet supported.
 
 ## Message Send (Blocking)
 
@@ -155,10 +155,14 @@ data: {"jsonrpc":"2.0","result":{"kind":"task","id":"task-...","contextId":"conv
 - **Cancel task:** `POST /agents/a2a` with method `"tasks/cancel"` and params `{ "id": "task-..." }` → returns `{ "success": true }`
 - **Resubscribe (SSE, mock):** `POST /agents/a2a` with method `"tasks/resubscribe"` and params `{ "taskId": "task-..." }` → SSE with a task event
 
+<Note>
+Currently, `tasks/get` and `tasks/cancel` return stubbed responses, and `tasks/resubscribe` returns a mock SSE event. For live progress updates, use `message/stream`.
+</Note>
+
 ## Agent Card Discovery
 
 - **Graph-level:** `GET /agents/.well-known/agent.json` (uses graph default agent)
-- **Agent-level:** Provide `x-inkeep-agent-id` in headers to target a specific agent for discovery
+- **Agent-level (dev/bypass only):** Provide `x-inkeep-agent-id` in headers to target a specific agent for discovery
 
 ## Notes & Behavior
 

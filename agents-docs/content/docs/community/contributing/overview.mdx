@@ -51,11 +51,11 @@ pnpm dev
 
 Open `http://localhost:3000` in the browser and start building agents.
 
-# Push your first graph
+# Push your project
 
 A key advantage of the Inkeep agent framework is its seamless code-to-visual workflow: define your agents programmatically, push them to the visual builder, and continue developing with the intuitive drag-and-drop interface.
 
-Follow the steps below to push your first graph using the [Inkeep CLI](/typescript-sdk/cli-reference).
+Follow the steps below to push your project using the [Inkeep CLI](/typescript-sdk/cli-reference).
 
 ### Step 1: Download the Inkeep CLI
 
@@ -63,15 +63,15 @@ Follow the steps below to push your first graph using the [Inkeep CLI](/typescri
 pnpm install -g @inkeep/agents-cli
 ```
 
-### Step 2: Push a graph
+### Step 2: Push the project
 
 ```bash
 cd examples
-inkeep push basic.graph.ts
+inkeep push
 ```
 
 <Note>
-  The graph will be pushed to whichever project is specified in the
+  The project will be pushed according to the project specified in the
   `/examples/inkeep.config.ts` file, which is set to the `default` project by
   default. Feel free to change it to your own project.
 </Note>

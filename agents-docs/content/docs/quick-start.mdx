@@ -12,23 +12,27 @@ If you don't have pnpm yet, use Corepack:
   <Tab title="macOS">
     ```bash
     npm install -g corepack@latest
-    corepack enable pnpm
-    corepack use pnpm@latest-10
+    corepack enable
+    corepack prepare pnpm@latest-10 --activate
     ```
   </Tab>
   <Tab title="Linux">
     ```bash
     npm install -g corepack@latest
-    corepack enable pnpm
-    corepack use pnpm@latest-10
+    corepack enable
+    corepack prepare pnpm@latest-10 --activate
     ```
   </Tab>
   <Tab title="Windows">
     ```powershell
     npm install -g corepack@latest
-    corepack enable pnpm
-    corepack use pnpm@latest-10
+    corepack enable
+    corepack prepare pnpm@latest-10 --activate
     ```
+
+    <Note>
+      If PowerShell blocks pnpm due to execution policy, use Command Prompt (cmd) or run: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force`
+    </Note>
   </Tab>
 </Tabs>
 

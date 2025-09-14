@@ -1,14 +1,28 @@
 ---
-title: Remote Agent Configuration
-description: Learn how to configure and use external agents for A2A communication
+title: Add External Agents to your Graph
+sidebarTitle: External Agents
+description: Learn how to configure and use external agents using the A2A protocol
 icon: "LuGlobe"
 ---
 
-External agents are agents external to a graph that can communicate using the A2A (Agent-to-Agent) protocol. External agents enable you to delegate tasks between graphs within the agent framework or to third-party services.
+External agents let you integrate agents built outside of Inkeep—using other frameworks or platforms—into your Graph. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep agents can delegate tasks to them as if they were native.
+
+<Note>
+  Any agent that exposes an A2A‑compatible HTTP endpoint can be integrated by providing its `baseUrl` plus headers/auth (static or dynamic).
+</Note>
+
+Learn more about A2A:
+- A2A overview on the Google Developers Blog: [A2A — a new era of agent interoperability](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
+- A2A protocol site: [a2a.how](https://a2a.how/)
+
+Examples of platforms exposing agents via A2A (non‑exhaustive):
+- LangGraph — listed among A2A‑compatible platforms: [Partners and platforms](https://google-a2a.wiki/agents-platforms/)
+- CrewAI — listed among A2A‑compatible platforms: [Partners and platforms](https://google-a2a.wiki/agents-platforms/)
+- Salesforce Agentforce — listed among A2A‑compatible platforms: [Partners and platforms](https://google-a2a.wiki/agents-platforms/)
 
 ## Creating an External Agent
 
-Every external agent needs a unique identifier, name, description, base URL for A2A communication, and authentication configuration:
+Every external agent needs a unique identifier, name, description, base URL for A2A communication, and optional authentication configuration:
 
 ```typescript
 import { externalAgent } from "@inkeep/agents-manage-api/builders";
@@ -17,7 +31,7 @@ const technicalSupportAgent = externalAgent({
   id: "technical-support-agent",
   name: "Technical Support Team",
   description: "External technical support specialists for complex issues",
-  baseUrl: "https://api.example.com/agents/technical-support",
+  baseUrl: "https://api.example.com/agents/technical-support", // A2A endpoint
 });
 ```
 
@@ -44,16 +58,16 @@ export const supportGraph = agentGraph({
   description:
     "Handles customer inquiries and escalates to technical teams when needed",
   defaultAgent: supportAgent,
-  agents: () => [supportAgent, technicalExternalAgent],
+  agents: () => [supportAgent, technicalSupportAgent],
 });
 ```
 
 ## External Agent Options
 
-The framework supports comprehensive external agent configuration including authentication and custom headers:
+Configure authentication and custom headers as needed (static values or dynamic context variables).
 
 ```typescript
-const externalAgent = externalAgent({
+const supportExternal = externalAgent({
   // Required
   name: "External Support Agent", // Human-readable agent name
   description: "External AI agent for specialized support", // Agent's purpose
