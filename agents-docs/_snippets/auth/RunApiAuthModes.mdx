@@ -10,46 +10,4 @@ Steps in the UI:
 3. Click **Create**, select the target agent graph
 4. Copy the API key (it will be shown once) and store it securely
 
-<Accordions>
-<Accordion title="Advanced: Global Bypass Secret">
-
-The global bypass secret allows internal services to authenticate without per-graph API keys.
-
-**Configuration:**
-- Set `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` environment variable on the Run API server
-
-**When to use:**
-- Internal services that need to access multiple graphs
-- Staging/testing environments
-- Automation tools that manage multiple graphs
-
-**Headers required:**
-```http
-Authorization: Bearer <bypass_secret>
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-
-**Note:** The bypass secret must match the environment variable exactly. All scope headers are required to identify which graph to execute.
-
-</Accordion>
-
-<Accordion title="Advanced: Development Mode">
-
-Development mode disables authentication entirely for local development.
-
-**Configuration:**
-- Set `ENVIRONMENT=development` on the Run API server
-
-**Headers required:**
-```http
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-
-**Warning:** Never use development mode in production. It bypasses all authentication checks.
-
-</Accordion>
-</Accordions>
+See [Authentication → Run API](/api-reference/authentication/run-api) for more details.
