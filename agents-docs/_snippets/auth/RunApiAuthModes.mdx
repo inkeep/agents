@@ -1,11 +1,12 @@
 ## Authentication (Run API Modes)
 
-Start with the simplest option: a Standard API Key scoped to your graph. Use advanced modes only if you need them.
+Start with the simplest option: a Standard API Key scoped to your graph.
 
 ### Quick start (Recommended)
 
 - **Use a Standard API Key** created in the Visual Builder Dashboard
 - **Header:** `Authorization: Bearer <graph_api_key>`
+- **No other headers required** (tenant/project/graph are encoded in the key)
 
 Steps in the UI:
 1. Open the Visual Builder Dashboard
@@ -13,35 +14,4 @@ Steps in the UI:
 3. Click **Create**, select the target agent graph
 4. Copy the API key (it will be shown once) and store it securely
 
-<Note>
-  See [Authentication → Run API](/api-reference/authentication/run-api) for details.
-</Note>
-
-  <Accordion title="Advanced: Global Bypass Secret">
-
-- **What it is:** Environment variable set on the Run API server
-- **Configuration:** Set `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` on the server
-- **Headers needed:**
-
-```http
-Authorization: Bearer <bypass_secret>
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-
-  </Accordion>
-  <Accordion title="Advanced: Development Mode">
-
-- **When:** `ENVIRONMENT=development` on the Run API server
-- **Authentication:** No API key required
-- **Headers needed:**
-
-```http
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-
-  </Accordion>
-</Accordions>
+See Authentication → Run API for more details.
