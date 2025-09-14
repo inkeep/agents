@@ -25,7 +25,7 @@ export class SystemPromptBuilder<TConfig> {
       }
 
       this.loaded = true;
-      logger.debug(`Loaded ${this.templates.size} templates for version ${this.version}`);
+      logger.debug({ templateCount: this.templates.size, version: this.version }, `Loaded ${this.templates.size} templates for version ${this.version}`);
     } catch (error) {
       logger.error({ error }, `Failed to load templates for version ${this.version}`);
       throw new Error(`Template loading failed: ${error}`);

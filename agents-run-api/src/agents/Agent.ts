@@ -1205,7 +1205,7 @@ Key requirements:
                     }
                   );
                 } catch (error) {
-                  logger.debug('Failed to track agent reasoning');
+                  logger.debug({ error }, 'Failed to track agent reasoning');
                 }
               }
 
@@ -1308,7 +1308,7 @@ Key requirements:
                     }
                   );
                 } catch (error) {
-                  logger.debug('Failed to track agent reasoning');
+                  logger.debug({ error }, 'Failed to track agent reasoning');
                 }
               }
 
