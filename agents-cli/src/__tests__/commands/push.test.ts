@@ -84,10 +84,14 @@ describe('Push Command - Project Validation', () => {
       __type: 'project',
       setConfig: vi.fn(),
       setCredentials: vi.fn(),
-      push: vi.fn().mockResolvedValue({
-        success: true,
-        projectId: 'test-project',
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({
+        graphCount: 1,
+        tenantId: 'test-tenant',
       }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
     // Mock config module
@@ -111,8 +115,8 @@ describe('Push Command - Project Validation', () => {
     // Verify config was set on project
     expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://localhost:3002');
 
-    // Verify push was called
-    expect(mockProject.push).toHaveBeenCalled();
+    // Verify init was called
+    expect(mockProject.init).toHaveBeenCalled();
   });
 
   it('should handle missing index.ts file', async () => {
@@ -125,8 +129,9 @@ describe('Push Command - Project Validation', () => {
 
     await pushCommand({ project: '/test/project' });
 
-    // Verify error was shown
+    // Verify error was shown (console.error is called with two args: 'Error:' and the message)
     expect(mockError).toHaveBeenCalledWith(
+      'Error:',
       expect.stringContaining('index.ts not found')
     );
     expect(mockExit).toHaveBeenCalledWith(1);
@@ -147,6 +152,7 @@ describe('Push Command - Project Validation', () => {
 
     // Verify error was shown
     expect(mockError).toHaveBeenCalledWith(
+      'Error:',
       expect.stringContaining('No project export found')
     );
     expect(mockExit).toHaveBeenCalledWith(1);
@@ -264,6 +270,7 @@ describe('Push Command - Project Validation', () => {
 
     // Verify error was shown
     expect(mockError).toHaveBeenCalledWith(
+      'Error:',
       expect.stringContaining('Missing required configuration')
     );
     expect(mockExit).toHaveBeenCalledWith(1);
@@ -277,11 +284,15 @@ describe('Push Command - Project Validation', () => {
     const mockProject = {
       __type: 'project',
       setConfig: vi.fn(),
-      toJSON: vi.fn().mockReturnValue({ 
-        graphs: [],
-        agents: [],
-        tools: []
+      toFullProjectDefinition: vi.fn().mockResolvedValue({ 
+        graphs: {},
+        tools: {}
       }),
+      init: vi.fn(),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
     const mockConfig = {
@@ -304,14 +315,15 @@ describe('Push Command - Project Validation', () => {
       json: true
     });
 
-    // Verify JSON was generated instead of pushing
-    expect(mockProject.toJSON).toHaveBeenCalled();
-    expect(mockWriteFileSync).toHaveBeenCalled();
-    expect(mockProject.push).not.toHaveBeenCalled();
+    // Verify JSON was generated
+    expect(mockProject.toFullProjectDefinition).toHaveBeenCalled();
+    // In JSON mode, process.exit(0) is called after generating JSON
+    expect(mockExit).toHaveBeenCalledWith(0);
+    // Note: init might still be called because mocked process.exit doesn't stop execution
   });
 });
 
-describe('Push Command - UI Link Generation', () => {
+describe('Push Command - Output Messages', () => {
   let mockExit: Mock;
   let mockLog: Mock;
 
@@ -332,7 +344,7 @@ describe('Push Command - UI Link Generation', () => {
     delete process.env.TSX_RUNNING;
   });
 
-  it('should display UI link after successful push', async () => {
+  it('should display next steps after successful push', async () => {
     const { findProjectDirectory } = await import('../../utils/project-directory.js');
     (findProjectDirectory as Mock).mockResolvedValue('/test/project');
     (existsSync as Mock).mockReturnValue(true);
@@ -340,10 +352,11 @@ describe('Push Command - UI Link Generation', () => {
     const mockProject = {
       __type: 'project',
       setConfig: vi.fn(),
-      push: vi.fn().mockResolvedValue({ 
-        success: true,
-        projectId: 'test-project'
-      }),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
     const mockConfig = {
@@ -359,13 +372,13 @@ describe('Push Command - UI Link Generation', () => {
 
     await pushCommand({ project: '/test/project' });
 
-    // The actual implementation shows next steps instead of UI links
+    // The actual implementation shows next steps
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('Next steps')
+      expect.stringContaining('✨ Next steps:')
     );
   });
 
-  it('should handle push with default UI URL', async () => {
+  it('should display next steps with default config', async () => {
     const { findProjectDirectory } = await import('../../utils/project-directory.js');
     (findProjectDirectory as Mock).mockResolvedValue('/test/project');
     (existsSync as Mock).mockReturnValue(true);
@@ -373,10 +386,11 @@ describe('Push Command - UI Link Generation', () => {
     const mockProject = {
       __type: 'project',
       setConfig: vi.fn(),
-      push: vi.fn().mockResolvedValue({ 
-        success: true,
-        projectId: 'test-project'
-      }),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
     const mockConfig = {
@@ -392,9 +406,9 @@ describe('Push Command - UI Link Generation', () => {
 
     await pushCommand({ project: '/test/project' });
 
-    // The actual implementation shows next steps instead of UI links
+    // The actual implementation shows next steps
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('Next steps')
+      expect.stringContaining('✨ Next steps:')
     );
   });
 
@@ -425,7 +439,7 @@ describe('Push Command - UI Link Generation', () => {
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
-  it('should normalize trailing slashes in URLs', async () => {
+  it('should display next steps after push', async () => {
     const { findProjectDirectory } = await import('../../utils/project-directory.js');
     (findProjectDirectory as Mock).mockResolvedValue('/test/project');
     (existsSync as Mock).mockReturnValue(true);
@@ -433,10 +447,11 @@ describe('Push Command - UI Link Generation', () => {
     const mockProject = {
       __type: 'project',
       setConfig: vi.fn(),
-      push: vi.fn().mockResolvedValue({ 
-        success: true,
-        projectId: 'test-project'
-      }),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
     const mockConfig = {
@@ -452,9 +467,9 @@ describe('Push Command - UI Link Generation', () => {
 
     await pushCommand({ project: '/test/project' });
 
-    // The actual implementation shows next steps instead of UI links
+    // The actual implementation shows next steps
     expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('Next steps')
+      expect.stringContaining('✨ Next steps:')
     );
   });
 });

@@ -104,12 +104,24 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock project module
     const mockProject = {
       __type: 'project',
-      projectData: {},
+      setConfig: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
-    mockImportWithTypeScriptSupport.mockResolvedValue({
-      default: mockProject,
-    });
+    // Mock config module
+    const mockConfig = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    mockImportWithTypeScriptSupport
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
 
     process.env.TSX_RUNNING = '1';
 
@@ -154,12 +166,24 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock project module
     const mockProject = {
       __type: 'project',
-      projectData: {},
+      setConfig: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      getId: vi.fn().mockReturnValue('test-project'),
+      getName: vi.fn().mockReturnValue('Test Project'),
+      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
+      getGraphs: vi.fn().mockReturnValue([]),
     };
 
-    mockImportWithTypeScriptSupport.mockResolvedValue({
-      default: mockProject,
-    });
+    // Mock config module
+    const mockConfig = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    mockImportWithTypeScriptSupport
+      .mockResolvedValueOnce({ default: mockProject })
+      .mockResolvedValueOnce({ default: mockConfig });
 
     process.env.TSX_RUNNING = '1';
 
