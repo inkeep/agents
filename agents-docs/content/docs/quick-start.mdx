@@ -36,11 +36,16 @@ If you don't have pnpm yet, use Corepack:
   </Tab>
 </Tabs>
 
+<Tip>
+  **Prerequisites:** Make sure you have Node.js 18.12+ installed (LTS recommended) for PNPM 10 compatibility.
+</Tip>
+
 ### Step 1: Create a new agents project
 
 ```bash
 npx @inkeep/create-agents my-agent-directory
 cd my-agent-directory
+corepack use pnpm@latest-10  # pins pnpm version in package.json
 ```
 
 If used corepack for installing pnpm:
