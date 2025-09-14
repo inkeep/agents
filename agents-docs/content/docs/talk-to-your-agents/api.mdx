@@ -1,6 +1,6 @@
 ---
 title: How to call your AI Agent Graph via a Vercel AI SDK format API
-sidebarTitle: API (AI SDK format)
+sidebarTitle: Via API
 description: Use a raw HTTP request to stream responses from your agent graph over the Vercel AI SDK data stream protocol.
 icon: LuNetwork
 keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
@@ -22,67 +22,9 @@ This guide shows how to call your agent graph directly over HTTP and stream resp
 - **Content-Type (response):** `text/event-stream`
 - **Response Header:** `x-vercel-ai-data-stream: v2`
 
-## Get an INKEEP_API_KEY (Authentication Modes)
+## Authentication
 
-There are three ways to authenticate requests to the Run API. Choose one and follow the header requirements below.
-
-### 1. Standard API Key (Recommended)
-
-- **What it is:** Per-graph secret created via the Management UI or the Management API
-- **Scope:** Encodes `tenantId`, `projectId`, and `graphId` inside the key
-- **Headers needed:** Only `Authorization: Bearer <key>` (no scope headers)
-
-**Steps to create:**
-
-1. Use the Management UI (Project → API Keys → Create)
-2. Or call the Management API (returns the full key once):
-
-```bash
-# POST /tenants/{tenantId}/crud/projects/{projectId}/api-keys
-curl -X POST "https://<manage-api>/tenants/<tenantId>/crud/projects/<projectId>/api-keys" \
-  -H "Content-Type: application/json" \
-  -d '{ "graphId": "<graph-id>", "expiresAt": null }'
-```
-
-<Note>
-  See [Authentication → Run API](/api-reference/authentication/run-api) for more details.
-</Note>
-
-### 2. Global Bypass Secret (Infrastructure/Internal Use)
-
-- **What it is:** Environment variable set on the Run API server
-- **Configuration:** Set `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` on the server
-- **Headers needed:** Bearer token plus all scope headers
-
-### 3. Development Mode
-
-- **When:** `ENVIRONMENT=development` on the Run API server
-- **Authentication:** No API key required
-- **Headers needed:** Scope headers to specify the tenant/project/graph
-
-## Headers by Mode
-
-### Standard API Key
-```http
-Authorization: Bearer <graph_api_key>
-```
-No `x-inkeep-*` scope headers required.
-
-### Global Bypass Secret
-```http
-Authorization: Bearer <bypass_secret>
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-
-### Development Mode
-```http
-x-inkeep-tenant-id: <tenant-id>
-x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
-```
-`Authorization` header is optional in development mode.
+<Snippet file="auth/RunApiAuthModes.mdx" />
 
 ## Request Body Schema
 

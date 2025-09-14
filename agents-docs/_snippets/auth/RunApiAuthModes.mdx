@@ -1,34 +1,47 @@
 ## Authentication (Run API Modes)
 
-There are three ways to authenticate requests to the Run API. Choose one and follow the header requirements below.
+Start with the simplest option: a Standard API Key scoped to your graph. Use advanced modes only if you need them.
 
-### 1. Standard API Key (Recommended)
+### Quick start (Recommended)
 
-- **What it is:** Per-graph secret created via the Management UI or the Management API
-- **Scope:** Encodes `tenantId`, `projectId`, and `graphId` inside the key
-- **Headers needed:** Only `Authorization: Bearer <key>` (no scope headers)
+- **Use a Standard API Key** created in the Visual Builder Dashboard
+- **Header:** `Authorization: Bearer <graph_api_key>`
 
-**Create via Management API:**
-
-```bash
-# POST /tenants/{tenantId}/crud/projects/{projectId}/api-keys
-curl -X POST "https://<manage-api>/tenants/<tenantId>/crud/projects/<projectId>/api-keys" \
-  -H "Content-Type: application/json" \
-  -d '{ "graphId": "<graph-id>", "expiresAt": null }'
-```
+Steps in the UI:
+1. Open the Visual Builder Dashboard
+2. Go to your Project → **API Keys**
+3. Click **Create**, select the target agent graph
+4. Copy the API key (it will be shown once) and store it securely
 
 <Note>
   See [Authentication → Run API](/api-reference/authentication/run-api) for details.
 </Note>
 
-### 2. Global Bypass Secret (Infrastructure/Internal Use)
+  <Accordion title="Advanced: Global Bypass Secret">
 
 - **What it is:** Environment variable set on the Run API server
 - **Configuration:** Set `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` on the server
-- **Headers needed:** Bearer token plus all scope headers: `x-inkeep-tenant-id`, `x-inkeep-project-id`, `x-inkeep-graph-id`
+- **Headers needed:**
 
-### 3. Development Mode
+```http
+Authorization: Bearer <bypass_secret>
+x-inkeep-tenant-id: <tenant-id>
+x-inkeep-project-id: <project-id>
+x-inkeep-graph-id: <graph-id>
+```
+
+  </Accordion>
+  <Accordion title="Advanced: Development Mode">
 
 - **When:** `ENVIRONMENT=development` on the Run API server
 - **Authentication:** No API key required
-- **Headers needed:** Scope headers to specify the tenant/project/graph
+- **Headers needed:**
+
+```http
+x-inkeep-tenant-id: <tenant-id>
+x-inkeep-project-id: <project-id>
+x-inkeep-graph-id: <graph-id>
+```
+
+  </Accordion>
+</Accordions>

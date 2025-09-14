@@ -1,5 +1,6 @@
 ---
 title: Talk to your agent graph via A2A (JSON-RPC)
+sidebarTitle: Via A2A protocol
 description: Use the A2A JSON-RPC protocol to send messages to your agent graph and receive results, with optional streaming.
 icon: "LuNetwork"
 ---
@@ -12,15 +13,15 @@ The A2A (Agent-to-Agent) endpoint lets external agents/services talk to your age
 
 ## Endpoints
 
-- **Agent card discovery (graph or agent-level):** `GET /.well-known/agent.json`
-- **A2A protocol (graph or agent-level):** `POST /a2a`
+- **Agent card discovery (graph or agent-level):** `GET /agents/.well-known/agent.json`
+- **A2A protocol (graph or agent-level):** `POST /agents/a2a`
 
 Notes:
 - If you supply `x-inkeep-agent-id` in headers (or use a graph-specific API key bound to an agent), requests target that specific agent. Otherwise, the default agent for the graph is used.
 
 ## Message Send (Blocking)
 
-- **Path:** `POST /a2a`
+- **Path:** `POST /agents/a2a`
 - **Headers:** Per Authentication section (Standard API Key recommended)
 - **Body (JSON-RPC 2.0):**
 
@@ -111,7 +112,7 @@ Set `configuration.blocking` to `false`. The server immediately returns a `task`
 
 ## Streaming Messages (SSE)
 
-- **Path:** `POST /a2a`
+- **Path:** `POST /agents/a2a`
 - **Headers:** include `Accept: text/event-stream` plus Authentication headers
 - **Body (JSON-RPC 2.0):** same as blocking, but method `"message/stream"`
 
@@ -152,23 +153,23 @@ data: {"jsonrpc":"2.0","result":{"kind":"task","id":"task-...","contextId":"conv
 
 ## Task APIs
 
-- **Get task:** `POST /a2a` with method `"tasks/get"` and params `{ "id": "task-..." }` → returns the `task`
-- **Cancel task:** `POST /a2a` with method `"tasks/cancel"` and params `{ "id": "task-..." }` → returns `{ "success": true }`
-- **Resubscribe (SSE, mock):** `POST /a2a` with method `"tasks/resubscribe"` and params `{ "taskId": "task-..." }` → SSE with a task event
+- **Get task:** `POST /agents/a2a` with method `"tasks/get"` and params `{ "id": "task-..." }` → returns the `task`
+- **Cancel task:** `POST /agents/a2a` with method `"tasks/cancel"` and params `{ "id": "task-..." }` → returns `{ "success": true }`
+- **Resubscribe (SSE, mock):** `POST /agents/a2a` with method `"tasks/resubscribe"` and params `{ "taskId": "task-..." }` → SSE with a task event
 
 ## Agent Card Discovery
 
-- **Graph-level:** `GET /.well-known/agent.json` (uses graph default agent)
+- **Graph-level:** `GET /agents/.well-known/agent.json` (uses graph default agent)
 - **Agent-level:** Provide `x-inkeep-agent-id` in headers to target a specific agent for discovery
 
 ## Notes & Behavior
 
-- **contextId resolution:** If `message.contextId` is missing or `'default'`, the server tries `params.message.metadata.conversationId`, then the internal task context. Final fallback is `'default'`.
+- **contextId resolution:** The server first tries `task.context.conversationId` (derived from the request), then `params.message.metadata.conversationId`. Final fallback is `'default'`.
 - **Artifacts in responses:** Message/Task responses may include `artifacts[0].parts` as the agent's output parts.
 - **Errors (JSON-RPC):** Standard JSON-RPC error codes: `-32600`, `-32601`, `-32602`, `-32603`, `-32700`, plus A2A-specific `-3200x` codes.
 
 ## Development Notes
 
 - **Base URL (local):** `http://localhost:3003`
-- **Route Mounting:** A2A routes live under `/agents` app; use `/a2a` for RPC and `/.well-known/agent.json` for discovery
+- **Route Mounting:** A2A routes are mounted under `/agents`; use `/agents/a2a` for RPC and `/agents/.well-known/agent.json` for discovery
 - **Streaming support:** Requires agent capabilities `streaming: true` in the agent card
