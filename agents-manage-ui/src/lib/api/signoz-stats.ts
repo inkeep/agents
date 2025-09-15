@@ -167,10 +167,11 @@ class SigNozStatsAPI {
     filters?: SpanFilterOptions,
     projectId?: string,
     pagination?: { page: number; limit: number },
-    searchQuery?: string
+    searchQuery?: string,
+    graphId?: string
   ): Promise<ConversationStats[] | PaginatedConversationStats> {
     try {
-      const payload = this.buildCombinedPayload(startTime, endTime, filters, projectId);
+      const payload = this.buildCombinedPayload(startTime, endTime, filters, projectId, graphId);
       const resp = await this.makeRequest(payload);
 
       const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
@@ -470,11 +471,12 @@ class SigNozStatsAPI {
     startTime: number,
     endTime: number,
     filters?: SpanFilterOptions,
-    projectId?: string
+    projectId?: string,
+    graphId?: string
   ) {
     try {
       const resp = await this.makeRequest(
-        this.buildCombinedPayload(startTime, endTime, filters, projectId)
+        this.buildCombinedPayload(startTime, endTime, filters, projectId, graphId)
       );
 
       const toolsSeries = this.extractSeries(resp, 'tools');
@@ -1258,22 +1260,39 @@ class SigNozStatsAPI {
     start: number,
     end: number,
     _filters?: SpanFilterOptions,
-    projectId?: string
+    projectId?: string,
+    graphId?: string
   ) {
-    const withProject = (items: any[]) =>
-      projectId
-        ? [
-            ...items,
-            {
-              key: {
-                key: SPAN_KEYS.PROJECT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: projectId,
+    const withProjectAndGraph = (items: any[]) => {
+      let filtered = items;
+      if (projectId) {
+        filtered = [
+          ...filtered,
+          {
+            key: {
+              key: SPAN_KEYS.PROJECT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
-        : items;
+            op: OPERATORS.EQUALS,
+            value: projectId,
+          },
+        ];
+      }
+      if (graphId) {
+        filtered = [
+          ...filtered,
+          {
+            key: {
+              key: SPAN_KEYS.GRAPH_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            op: OPERATORS.EQUALS,
+            value: graphId,
+          },
+        ];
+      }
+      return filtered;
+    };
 
     return {
       start,
@@ -1294,7 +1313,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1352,7 +1371,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1414,7 +1433,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1476,7 +1495,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.CONVERSATION_ID,
@@ -1533,7 +1552,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.AI_OPERATION_ID,
@@ -1584,7 +1603,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.CONVERSATION_ID,
@@ -1622,7 +1641,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1676,7 +1695,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1730,7 +1749,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProject([
+              items: withProjectAndGraph([
                 {
                   key: {
                     key: SPAN_KEYS.MESSAGE_CONTENT,

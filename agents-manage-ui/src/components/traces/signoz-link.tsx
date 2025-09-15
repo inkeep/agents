@@ -1,7 +1,7 @@
 import { useParams } from 'next/navigation';
 import { ExternalLink } from '../ui/external-link';
 
-const SIGNOZ_BASE = process.env.NEXT_PUBLIC_SIGNOZ_URL ?? 'http://localhost:3080';
+const SIGNOZ_BASE = process.env.SIGNOZ_URL ?? 'http://localhost:3080';
 
 function makeTracesUrl(conversationId: string, relativeTime = '2months') {
   const compositeQuery = {

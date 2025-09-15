@@ -149,6 +149,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
+    graphId: selectedGraph,
   });
 
   // Get paginated conversations for the list display
@@ -159,6 +160,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     projectId: projectId as string,
     searchQuery: debouncedSearchQuery,
     pagination: { enabled: true, pageSize: 10 },
+    graphId: selectedGraph,
   });
 
   // Server-side pagination is now handled by the hook

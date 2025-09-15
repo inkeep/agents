@@ -1,24 +1,25 @@
 import {
-  type ExecutionContext,
   createMessage,
   createTask,
+  type ExecutionContext,
   getActiveAgentForConversation,
   getFullGraph,
   getTask,
   type SendMessageResponse,
+  setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { nanoid } from 'nanoid';
+import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { graphSessionManager } from '../utils/graph-session.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import dbClient from '../data/db/dbClient.js';
-import { nanoid } from 'nanoid';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -366,84 +367,90 @@ export class ExecutionHandler {
 
           // Stream completion operation
           // Completion operation (data operations removed)
-          const activeSpan = trace.getActiveSpan();
-          if (activeSpan) {
-            activeSpan.setAttributes({
-              'ai.response.content': textContent || 'No response content',
-              'ai.response.timestamp': new Date().toISOString(),
-              'ai.agent.name': currentAgentId,
-            });
-          }
+          return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+            try {
+              span.setAttributes({
+                'ai.response.content': textContent || 'No response content',
+                'ai.response.timestamp': new Date().toISOString(),
+                'ai.agent.name': currentAgentId,
+              });
 
-          // Store the agent response in the database with both text and parts
-          await createMessage(dbClient)({
-            id: nanoid(),
-            tenantId,
-            projectId,
-            conversationId,
-            role: 'agent',
-            content: {
-              text: textContent || undefined,
-              parts: responseParts.map((part: any) => ({
-                type: part.kind === 'text' ? 'text' : 'data',
-                text: part.kind === 'text' ? part.text : undefined,
-                data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
-              })),
-            },
-            visibility: 'user-facing',
-            messageType: 'chat',
-            agentId: currentAgentId,
-            fromAgentId: currentAgentId,
-            taskId: task.id,
-          });
-
-          // Mark task as completed
-          const updateTaskStart = Date.now();
-          await updateTask(dbClient)({
-            taskId: task.id,
-            data: {
-              status: 'completed',
-              metadata: {
-                ...task.metadata,
-                completed_at: new Date().toISOString(),
-                response: {
-                  text: textContent,
-                  parts: responseParts,
-                  hasText: !!textContent,
-                  hasData: responseParts.some((p: any) => p.kind === 'data'),
+              // Store the agent response in the database with both text and parts
+              await createMessage(dbClient)({
+                id: nanoid(),
+                tenantId,
+                projectId,
+                conversationId,
+                role: 'agent',
+                content: {
+                  text: textContent || undefined,
+                  parts: responseParts.map((part: any) => ({
+                    type: part.kind === 'text' ? 'text' : 'data',
+                    text: part.kind === 'text' ? part.text : undefined,
+                    data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
+                  })),
                 },
-              },
-            },
+                visibility: 'user-facing',
+                messageType: 'chat',
+                agentId: currentAgentId,
+                fromAgentId: currentAgentId,
+                taskId: task.id,
+              });
+
+              // Mark task as completed
+              const updateTaskStart = Date.now();
+              await updateTask(dbClient)({
+                taskId: task.id,
+                data: {
+                  status: 'completed',
+                  metadata: {
+                    ...task.metadata,
+                    completed_at: new Date().toISOString(),
+                    response: {
+                      text: textContent,
+                      parts: responseParts,
+                      hasText: !!textContent,
+                      hasData: responseParts.some((p: any) => p.kind === 'data'),
+                    },
+                  },
+                },
+              });
+              const updateTaskEnd = Date.now();
+              logger.info(
+                { duration: updateTaskEnd - updateTaskStart },
+                'Completed updateTask operation'
+              );
+
+              // Send completion data operation before ending session
+              await sseHelper.writeOperation(completionOp(currentAgentId, iterations));
+
+              // Complete the stream to flush any queued operations
+              await sseHelper.complete();
+
+              // End the GraphSession and clean up resources
+              logger.info({}, 'Ending GraphSession and cleaning up');
+              graphSessionManager.endSession(requestId);
+
+              // Clean up streamHelper
+              logger.info({}, 'Cleaning up streamHelper');
+              unregisterStreamHelper(requestId);
+
+              // Extract captured response if using MCPStreamHelper
+              let response: string | undefined;
+              if (sseHelper instanceof MCPStreamHelper) {
+                const captured = sseHelper.getCapturedResponse();
+                response = captured.text || 'No response content';
+              }
+
+              logger.info({}, 'ExecutionHandler returning success');
+              return { success: true, iterations, response };
+            } catch (error) {
+              setSpanWithError(span, error);
+              throw error;
+            } finally {
+              span.end();
+            }
           });
-          const updateTaskEnd = Date.now();
-          logger.info(
-            { duration: updateTaskEnd - updateTaskStart },
-            'Completed updateTask operation'
-          );
-
-          // Send completion data operation before ending session
-          await sseHelper.writeOperation(completionOp(currentAgentId, iterations));
-
-          // Complete the stream to flush any queued operations
-          await sseHelper.complete();
-
-          // End the GraphSession and clean up resources
-          logger.info({} , 'Ending GraphSession and cleaning up');
-          graphSessionManager.endSession(requestId);
-
-          // Clean up streamHelper
-          logger.info({} , 'Cleaning up streamHelper');
-          unregisterStreamHelper(requestId);
-
-          // Extract captured response if using MCPStreamHelper
-          let response: string | undefined;
-          if (sseHelper instanceof MCPStreamHelper) {
-            const captured = sseHelper.getCapturedResponse();
-            response = captured.text || 'No response content';
-          }
-
-          logger.info({} , 'ExecutionHandler returning success');
-          return { success: true, iterations, response };
         }
 
         // If we get here, we didn't get a valid response or transfer
