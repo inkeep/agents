@@ -85,9 +85,9 @@ describe('ModelFactory', () => {
       expect(model).toHaveProperty('type', 'openai');
     });
 
-    test('should handle model string without provider prefix (defaults to anthropic)', () => {
+    test('should create Anthropic model with proper provider prefix', () => {
       const config: ModelSettings = {
-        model: 'claude-3-5-haiku-20241022',
+        model: 'anthropic/claude-3-5-haiku-20241022',
       };
 
       const model = ModelFactory.createModel(config);
@@ -466,15 +466,12 @@ describe('ModelFactory', () => {
       expect(model).toHaveProperty('type', 'openai');
     });
 
-    test('should default to anthropic when no provider specified', () => {
+    test('should require provider prefix in model string', () => {
       const config: ModelSettings = {
         model: 'claude-3-5-haiku-20241022',
       };
 
-      const model = ModelFactory.createModel(config);
-
-      expect(model).toBeDefined();
-      expect(model).toHaveProperty('type', 'anthropic');
+      expect(() => ModelFactory.createModel(config)).toThrow('Invalid model provided: claude-3-5-haiku-20241022. Please provide a model in the format of provider/model-name.');
     });
   });
 
