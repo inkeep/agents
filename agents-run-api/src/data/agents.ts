@@ -8,7 +8,6 @@ import {
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
-import { categorizeRelations, generateEnhancedDescription, type CombinedRelationInfo } from '../utils/agent-description-formatter';
 import dbClient from './db/dbClient';
 
 // Agent hydration functions
@@ -16,36 +15,25 @@ import dbClient from './db/dbClient';
 const logger = getLogger('agents');
 
 /**
- * Create an AgentCard from database agent data with enhanced description
+ * Create an AgentCard from database agent data
  * Reusable function that standardizes agent card creation across the codebase
+ * Used for external discovery via /.well-known/agent.json endpoint
  */
-export async function createAgentCard({
+export function createAgentCard({
   dbAgent,
-  graphId,
   baseUrl,
-  preComputedRelations,
 }: {
   dbAgent: AgentSelect;
-  graphId: string;
   baseUrl: string;
-  preComputedRelations?: {
-    internalRelations: CombinedRelationInfo[];
-    externalRelations: CombinedRelationInfo[];
-  };
-}): Promise<AgentCard> {
-  // Generate enhanced description with transfer/delegation information
-  const baseDescription = dbAgent.description || 'AI Agent';
-  const enhancedDescription = await generateDescriptionWithTransfers(
-    baseDescription,
-    dbAgent,
-    graphId,
-    preComputedRelations
-  );
+}): AgentCard {
+  // Use the agent's base description for external discovery
+  // External systems don't need to know about internal transfer/delegate capabilities
+  const description = dbAgent.description || 'AI Agent';
 
   // Create AgentCard from database data using schema.ts types
   return {
     name: dbAgent.name,
-    description: enhancedDescription,
+    description,
     url: baseUrl ? `${baseUrl}/a2a` : '',
     version: '1.0.0',
     capabilities: {
@@ -68,53 +56,60 @@ export async function createAgentCard({
 
 /**
  * Generate an enhanced description that includes transfer and delegation information
- * This shows direct connections only (not the full transfer graph)
+ * Used in generateTaskHandler to help agents understand what other agents can do
  * 
  * @param baseDescription - The base description of the agent
- * @param dbAgent - The database agent record
- * @param graphId - The graph ID
- * @param preComputedRelations - Optional pre-computed relations to avoid redundant DB calls
+ * @param internalRelations - Pre-computed internal relations
+ * @param externalRelations - Pre-computed external relations
  */
-export async function generateDescriptionWithTransfers(
+export function generateDescriptionWithTransfers(
   baseDescription: string,
-  dbAgent: AgentSelect,
-  graphId: string,
-  preComputedRelations?: {
-    internalRelations: CombinedRelationInfo[];
-    externalRelations: CombinedRelationInfo[];
-  }
-): Promise<string> {
-  try {
-    let internalRelations: CombinedRelationInfo[];
-    let externalRelations: CombinedRelationInfo[];
+  internalRelations: any[],
+  externalRelations: any[]
+): string {
+  // Filter relations by type
+  const transfers = [
+    ...internalRelations.filter((rel) => rel.relationType === 'transfer'),
+    ...externalRelations.filter((rel) => rel.relationType === 'transfer'),
+  ];
 
-    if (preComputedRelations) {
-      // Use pre-computed relations to avoid redundant database calls
-      ({ internalRelations, externalRelations } = preComputedRelations);
-    } else {
-      // Fallback to fetching relations from database
-    const relatedAgents = await getRelatedAgentsForGraph(dbClient)({
-      scopes: { tenantId: dbAgent.tenantId, projectId: dbAgent.projectId },
-      graphId,
-      agentId: dbAgent.id,
-    });
-      ({ internalRelations, externalRelations } = relatedAgents);
-    }
+  const delegates = [
+    ...internalRelations.filter((rel) => rel.relationType === 'delegate'),
+    ...externalRelations.filter((rel) => rel.relationType === 'delegate'),
+  ];
 
-    // Use shared utility to categorize and format relations
-    const { transfers, delegates } = categorizeRelations(internalRelations, externalRelations);
-    return generateEnhancedDescription(baseDescription, transfers, delegates);
-  } catch (error) {
-    logger.warn(
-      {
-        agentId: dbAgent.id,
-        graphId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Failed to generate enhanced description with transfers, using base description'
-    );
+  // If no relations, return base description
+  if (transfers.length === 0 && delegates.length === 0) {
     return baseDescription;
   }
+
+  let enhancedDescription = baseDescription;
+
+  // Add transfer information
+  if (transfers.length > 0) {
+    const transferList = transfers
+      .map((rel) => {
+        const name = rel.externalAgent?.name || rel.name;
+        const desc = rel.externalAgent?.description || rel.description || '';
+        return `- ${name}: ${desc}`;
+      })
+      .join('\n');
+    enhancedDescription += `\n\nCan transfer to:\n${transferList}`;
+  }
+
+  // Add delegation information  
+  if (delegates.length > 0) {
+    const delegateList = delegates
+      .map((rel) => {
+        const name = rel.externalAgent?.name || rel.name;
+        const desc = rel.externalAgent?.description || rel.description || '';
+        return `- ${name}: ${desc}`;
+      })
+      .join('\n');
+    enhancedDescription += `\n\nCan delegate to:\n${delegateList}`;
+  }
+
+  return enhancedDescription;
 }
 /**
  * Create a RegisteredAgent from database agent data
@@ -146,9 +141,8 @@ async function hydrateAgent({
     const taskHandler = createTaskHandler(taskHandlerConfig, credentialStoreRegistry);
 
     // Use the reusable agent card creation function
-    const agentCard = await createAgentCard({
+    const agentCard = createAgentCard({
       dbAgent,
-      graphId,
       baseUrl,
     });
 

@@ -133,11 +133,10 @@ export const createTaskHandler = (
               });
               
               // Use the optimized version that accepts pre-computed relations
-              const enhancedDescription = await generateDescriptionWithTransfers(
+              const enhancedDescription = generateDescriptionWithTransfers(
                 relation.description || '',
-                relatedAgent,
-                config.graphId,
-                relatedAgentRelations // Pass pre-computed relations to avoid redundant DB call
+                relatedAgentRelations.internalRelations,
+                relatedAgentRelations.externalRelations
               );
               return { ...relation, description: enhancedDescription };
             }
