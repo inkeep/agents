@@ -33,7 +33,7 @@ The Agent Builder includes a traces view that displays real-time conversation st
 
 3. **Configure environment variables** in your `.env.local`:
    ```bash
-   SIGNOZ_URL=http://localhost:3080
+   NEXT_PUBLIC_SIGNOZ_URL=http://localhost:3080
    SIGNOZ_API_KEY=your-api-key-here
    ```
 

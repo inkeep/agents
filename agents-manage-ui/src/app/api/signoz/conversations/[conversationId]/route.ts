@@ -32,7 +32,7 @@ axiosRetry(axios, {
 
 export const dynamic = 'force-dynamic';
 
-const SIGNOZ_URL = process.env.SIGNOZ_URL || 'http://localhost:3080';
+const SIGNOZ_URL = process.env.NEXT_PUBLIC_SIGNOZ_URL || 'http://localhost:3080';
 const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // ---------- Types
