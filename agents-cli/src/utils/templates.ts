@@ -20,7 +20,7 @@ export async function getAvailableTemplates(): Promise<string[]> {
       'https://api.github.com/repos/inkeep/agents-cookbook/contents/templates'
     );
     const contents = await response.json();
-    
+
     return contents
       .filter((item: any) => item.type === 'dir')
       .map((item: any) => item.name);
