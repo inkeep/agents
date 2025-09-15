@@ -4,6 +4,8 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { cloneTemplate } from './template.js';
+
 const execAsync = promisify(exec);
 
 export const defaultDualModelConfigurations = {
@@ -87,7 +89,7 @@ export const createAgents = async (
   // Prompt for project ID
   if (!projectId) {
     const projectIdResponse = await p.text({
-      message: 'Enter your project ID:',
+      message: 'What do you want to name your project?',
       placeholder: '(default)',
       defaultValue: 'default',
     });
@@ -104,7 +106,6 @@ export const createAgents = async (
     const providerChoice = await p.select({
       message: 'Which AI provider(s) would you like to use?',
       options: [
-        { value: 'both', label: 'Both Anthropic and OpenAI (recommended)' },
         { value: 'anthropic', label: 'Anthropic only' },
         { value: 'openai', label: 'OpenAI only' },
       ],
@@ -116,7 +117,7 @@ export const createAgents = async (
     }
 
     // Prompt for keys based on selection
-    if (providerChoice === 'anthropic' || providerChoice === 'both') {
+    if (providerChoice === 'anthropic') {
       const anthropicKeyResponse = await p.text({
         message: 'Enter your Anthropic API key:',
         placeholder: 'sk-ant-...',
@@ -135,7 +136,7 @@ export const createAgents = async (
       anthropicKey = anthropicKeyResponse as string;
     }
 
-    if (providerChoice === 'openai' || providerChoice === 'both') {
+    if (providerChoice === 'openai') {
       const openAiKeyResponse = await p.text({
         message: 'Enter your OpenAI API key:',
         placeholder: 'sk-...',
@@ -214,8 +215,11 @@ export const createAgents = async (
       await fs.emptyDir(directoryPath);
     }
 
-    // Create the project directory
-    await fs.ensureDir(directoryPath);
+    // Clone the template repository
+    s.message('Building template...');
+    await cloneTemplate(directoryPath);
+
+    // Change to the project directory
     process.chdir(directoryPath);
 
     const config = {
@@ -229,13 +233,9 @@ export const createAgents = async (
       modelSettings: defaultModelSettings,
     };
 
-    // Create workspace structure
-    s.message('Setting up workspace structure...');
+    // Create workspace structure for project-specific files
+    s.message('Setting up project structure...');
     await createWorkspaceStructure(projectId);
-
-    // Setup package configurations
-    s.message('Creating package configurations...');
-    await setupPackageConfigurations(dirName);
 
     // Create environment files
     s.message('Setting up environment files...');
@@ -244,14 +244,6 @@ export const createAgents = async (
     // Create service files
     s.message('Creating service files...');
     await createServiceFiles(config);
-
-    // Create documentation
-    s.message('Creating documentation...');
-    await createDocumentation(config);
-
-    // Create turbo config
-    s.message('Setting up Turbo...');
-    await createTurboConfig();
 
     // Install dependencies
     s.message('Installing dependencies (this may take a while)...');
@@ -300,145 +292,6 @@ export const createAgents = async (
 async function createWorkspaceStructure(projectId: string) {
   // Create the workspace directory structure
   await fs.ensureDir(`src/${projectId}`);
-  await fs.ensureDir('apps/manage-api/src');
-  await fs.ensureDir('apps/run-api/src');
-  await fs.ensureDir('apps/shared');
-  await fs.ensureDir('scripts');
-}
-
-async function setupPackageConfigurations(dirName: string) {
-  // Root package.json (workspace root)
-  const rootPackageJson = {
-    name: dirName,
-    version: '0.1.0',
-    description: 'An Inkeep Agent Framework directory',
-    private: true,
-    type: 'module',
-    scripts: {
-      dev: 'turbo dev',
-      'db:push': 'drizzle-kit push',
-      setup: 'node scripts/setup.js',
-      'dev:setup': 'node scripts/dev-setup.js',
-      start: 'pnpm dev:setup',
-    },
-    dependencies: {},
-    devDependencies: {
-      '@biomejs/biome': '^1.8.0',
-      '@inkeep/agents-cli': '^0.1.1',
-      'drizzle-kit': '^0.31.4',
-      tsx: '^4.19.0',
-      turbo: '^2.5.5',
-      concurrently: '^8.2.0',
-      'wait-on': '^8.0.0',
-    },
-    engines: {
-      node: '>=22.x',
-    },
-    packageManager: 'pnpm@10.10.0',
-    pnpm: {
-      onlyBuiltDependencies: ['keytar'],
-    },
-  };
-
-  await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
-
-  // Create pnpm-workspace.yaml for pnpm workspaces
-  const pnpmWorkspace = `packages:
-  - "apps/*"
-`;
-  await fs.writeFile('pnpm-workspace.yaml', pnpmWorkspace);
-
-  // Add shared dependencies to root package.json
-  rootPackageJson.dependencies = {
-    '@inkeep/agents-core': '^0.1.0',
-    '@inkeep/agents-sdk': '^0.1.0',
-    dotenv: '^16.0.0',
-    zod: '^4.1.5',
-  };
-
-  await fs.writeJson('package.json', rootPackageJson, { spaces: 2 });
-
-  // Manage API package
-  const manageApiPackageJson = {
-    name: `@${dirName}/manage-api`,
-    version: '0.1.0',
-    description: 'Manage API for agents',
-    type: 'module',
-    scripts: {
-      build: 'tsc',
-      dev: 'tsx watch src/index.ts',
-      start: 'node dist/index.js',
-    },
-    dependencies: {
-      '@inkeep/agents-manage-api': '^0.1.1',
-      '@inkeep/agents-core': '^0.1.0',
-      '@hono/node-server': '^1.14.3',
-    },
-    devDependencies: {
-      '@types/node': '^20.12.0',
-      tsx: '^4.19.0',
-      typescript: '^5.4.0',
-    },
-    engines: {
-      node: '>=22.x',
-    },
-  };
-
-  await fs.writeJson('apps/manage-api/package.json', manageApiPackageJson, { spaces: 2 });
-
-  // Run API package
-  const runApiPackageJson = {
-    name: `@${dirName}/run-api`,
-    version: '0.1.0',
-    description: 'Run API for agents',
-    type: 'module',
-    scripts: {
-      dev: 'tsx watch src/index.ts',
-      start: 'node dist/index.js',
-    },
-    dependencies: {
-      '@inkeep/agents-run-api': '^0.1.1',
-      '@inkeep/agents-core': '^0.1.0',
-      '@hono/node-server': '^1.14.3',
-    },
-    devDependencies: {
-      '@types/node': '^20.12.0',
-      tsx: '^4.19.0',
-      typescript: '^5.4.0',
-    },
-    engines: {
-      node: '>=22.x',
-    },
-  };
-
-  await fs.writeJson('apps/run-api/package.json', runApiPackageJson, { spaces: 2 });
-
-  // TypeScript configs for API services
-  const apiTsConfig = {
-    compilerOptions: {
-      target: 'ES2022',
-      module: 'ESNext',
-      moduleResolution: 'bundler',
-      strict: true,
-      esModuleInterop: true,
-      skipLibCheck: true,
-      forceConsistentCasingInFileNames: true,
-      declaration: true,
-      outDir: './dist',
-      rootDir: '..',
-      allowImportingTsExtensions: false,
-      resolveJsonModule: true,
-      isolatedModules: true,
-      noEmit: false,
-    },
-    include: ['src/**/*', '../shared/**/*'],
-    exclude: ['node_modules', 'dist', '**/*.test.ts'],
-  };
-
-  await fs.writeJson('apps/manage-api/tsconfig.json', apiTsConfig, { spaces: 2 });
-  await fs.writeJson('apps/run-api/tsconfig.json', apiTsConfig, { spaces: 2 });
-
-  // No tsconfig needed for UI since we're using the packaged version
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
@@ -470,12 +323,6 @@ RUN_API_PORT=${config.runApiPort}
   const envExample = envContent.replace(/=.+$/gm, '=');
   await fs.writeFile('.env.example', envExample);
 
-  // Create setup script
-  await createSetupScript(config);
-
-  // Create dev-setup script
-  await createDevSetupScript(config);
-
   // Create .env files for each API service
   const runApiEnvContent = `# Environment
 ENVIRONMENT=development
@@ -501,230 +348,8 @@ AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
 
   await fs.writeFile('apps/manage-api/.env', manageApiEnvContent);
   await fs.writeFile('apps/run-api/.env', runApiEnvContent);
-
-  // Create .gitignore
-  const gitignore = `# Dependencies
-node_modules/
-.pnpm-store/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Build outputs
-dist/
-build/
-.next/
-.turbo/
-
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Coverage
-coverage/
-.nyc_output/
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Runtime data
-pids/
-*.pid
-*.seed
-*.pid.lock
-`;
-
-  await fs.writeFile('.gitignore', gitignore);
-
-  // Create biome.json
-  const biomeConfig = {
-    linter: {
-      enabled: true,
-      rules: {
-        recommended: true,
-      },
-    },
-    formatter: {
-      enabled: true,
-      indentStyle: 'space',
-      indentWidth: 2,
-    },
-    organizeImports: {
-      enabled: true,
-    },
-    javascript: {
-      formatter: {
-        semicolons: 'always',
-        quoteStyle: 'single',
-      },
-    },
-  };
-
-  await fs.writeJson('biome.json', biomeConfig, { spaces: 2 });
 }
 
-async function createSetupScript(config: FileConfig) {
-  const setupScriptContent = `#!/usr/bin/env node
-
-import { createDatabaseClient, createProject, getProject } from '@inkeep/agents-core';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
-
-const dbUrl = process.env.DB_FILE_NAME || 'file:local.db';
-const tenantId = '${config.tenantId}';
-const projectId = '${config.projectId}';
-const projectName = '${config.projectId}';
-const projectDescription = 'Generated Inkeep Agents project';
-
-async function setupProject() {
-  console.log('🚀 Setting up your Inkeep Agents project...');
-  
-  try {
-    const dbClient = createDatabaseClient({ url: dbUrl });
-    
-    // Check if project already exists
-    console.log('📋 Checking if project already exists...');
-    try {
-      const existingProject = await getProject(dbClient)({ 
-        id: projectId, 
-        tenantId: tenantId 
-      });
-      
-      if (existingProject) {
-        console.log('✅ Project already exists in database:', existingProject.name);
-        console.log('🎯 Project ID:', projectId);
-        console.log('🏢 Tenant ID:', tenantId);
-        return;
-      }
-    } catch (error) {
-      // Project doesn't exist, continue with creation
-    }
-    
-    // Create the project in the database
-    console.log('📦 Creating project in database...');
-    await createProject(dbClient)({
-      id: projectId,
-      tenantId: tenantId,
-      name: projectName,
-      description: projectDescription,
-      models: ${JSON.stringify(config.modelSettings, null, 2)},
-    });
-    
-    console.log('✅ Project created successfully!');
-    console.log('🎯 Project ID:', projectId);
-    console.log('🏢 Tenant ID:', tenantId);
-    console.log('');
-    console.log('🎉 Setup complete! Your development servers are running.');
-    console.log('');
-    console.log('📋 Available URLs:');
-    console.log('   - Management UI: http://localhost:${config.manageApiPort}');
-    console.log('   - Runtime API:   http://localhost:${config.runApiPort}');
-    console.log('');
-    console.log('🚀 Ready to build agents!');
-    
-  } catch (error) {
-    console.error('❌ Failed to setup project:', error);
-    process.exit(1);
-  }
-}
-
-setupProject();
-`;
-
-  await fs.writeFile('scripts/setup.js', setupScriptContent);
-
-  // Make the script executable
-  await fs.chmod('scripts/setup.js', 0o755);
-}
-
-async function createDevSetupScript(config: FileConfig) {
-  const devSetupScriptContent = `#!/usr/bin/env node
-
-import { spawn } from 'child_process';
-import { promisify } from 'util';
-import { exec } from 'child_process';
-
-const execAsync = promisify(exec);
-
-async function devSetup() {
-  console.log('🚀 Starting Inkeep Agents development environment...');
-  console.log('');
-  
-  try {
-    // Start development servers in background
-    console.log('📡 Starting development servers...');
-    const devProcess = spawn('pnpm', ['dev'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      detached: false
-    });
-    
-    // Give servers time to start
-    console.log('⏳ Waiting for servers to start...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    console.log('');
-    console.log('📦 Servers are ready! Setting up project in database...');
-    
-    // Run the setup script
-    await execAsync('pnpm setup');
-    
-    console.log('');
-    console.log('🎉 Development environment is ready!');
-    console.log('');
-    console.log('📋 Available URLs:');
-    console.log(\`   - Management UI: http://localhost:${config.manageApiPort}\`);
-    console.log(\`   - Runtime API:   http://localhost:${config.runApiPort}\`);
-    console.log('');
-    console.log('✨ The servers will continue running. Press Ctrl+C to stop.');
-    
-    // Keep the script running so servers don't terminate
-    process.on('SIGINT', () => {
-      console.log('\\n👋 Shutting down development servers...');
-      devProcess.kill();
-      process.exit(0);
-    });
-    
-    // Wait for the dev process to finish or be killed
-    devProcess.on('close', (code) => {
-      console.log(\`Development servers stopped with code \${code}\`);
-      process.exit(code);
-    });
-    
-  } catch (error) {
-    console.error('❌ Failed to start development environment:', error.message);
-    process.exit(1);
-  }
-}
-
-devSetup();
-`;
-
-  await fs.writeFile('scripts/dev-setup.js', devSetupScriptContent);
-  await fs.chmod('scripts/dev-setup.js', 0o755);
-}
 
 async function createServiceFiles(config: FileConfig) {
   const agentsGraph = `import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
@@ -781,6 +406,18 @@ export const weatherGraph = agentGraph({
 
   await fs.writeFile(`src/${config.projectId}/weather.graph.ts`, agentsGraph);
 
+  const projectIndex = `import { weatherGraph } from './weather.graph.ts';
+import { project } from '@inkeep/agents-sdk';
+
+export const myProject = project({
+  id: '${config.projectId}',
+  name: '${config.projectId}',
+  description: '${config.projectId}',
+  graphs: () => [weatherGraph],
+});`;
+
+  await fs.writeFile(`src/${config.projectId}/index.ts`, projectIndex);
+
   // Inkeep config (if using CLI)
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
 
@@ -806,291 +443,8 @@ DB_FILE_NAME=file:../../local.db
 
   await fs.writeFile(`src/${config.projectId}/.env`, projectEnvContent);
 
-  // Shared credential stores
-  const credentialStoresFile = `import {
-  InMemoryCredentialStore,
-  createNangoCredentialStore,
-  createKeyChainStore,
-} from '@inkeep/agents-core';
-
-// Shared credential stores configuration for all services
-export const credentialStores = [
-  new InMemoryCredentialStore('memory-default'),
-  ...(process.env.NANGO_SECRET_KEY
-    ? [
-        createNangoCredentialStore('nango-default', {
-          apiUrl: process.env.NANGO_HOST || 'https://api.nango.dev',
-          secretKey: process.env.NANGO_SECRET_KEY,
-        }),
-      ]
-    : []),
-  createKeyChainStore('keychain-default'),
-];
-`;
-
-  await fs.writeFile('apps/shared/credential-stores.ts', credentialStoresFile);
-
-  // Manage API
-  const manageApiIndex = `import { serve } from '@hono/node-server';
-import { createManagementApp } from '@inkeep/agents-manage-api';
-import { getLogger } from '@inkeep/agents-core';
-import { credentialStores } from '../../shared/credential-stores.js';
-
-const logger = getLogger('management-api');
-
-// Create the Hono app
-const app = createManagementApp({
-  serverConfig: {
-    port: Number(process.env.MANAGE_API_PORT) || 3002,
-    serverOptions: {
-      requestTimeout: 60000,
-      keepAliveTimeout: 60000,
-      keepAlive: true,
-    },
-  },
-  credentialStores,
-});
-
-const port = Number(process.env.MANAGE_API_PORT) || 3002;
-
-// Start the server using @hono/node-server
-serve(
-  {
-    fetch: app.fetch,
-    port,
-  },
-  (info) => {
-    logger.info({}, \`📝 Management API running on http://localhost:\${info.port}\`);
-    logger.info({}, \`📝 OpenAPI documentation available at http://localhost:\${info.port}/openapi.json\`);
-  }
-);`;
-
-  await fs.writeFile('apps/manage-api/src/index.ts', manageApiIndex);
-
-  // Run API
-  const runApiIndex = `import { serve } from '@hono/node-server';
-import { createExecutionApp } from '@inkeep/agents-run-api';
-import { credentialStores } from '../../shared/credential-stores.js';
-import { getLogger } from '@inkeep/agents-core';
-
-const logger = getLogger('execution-api');
-
-
-// Create the Hono app
-const app = createExecutionApp({
-  serverConfig: {
-    port: Number(process.env.RUN_API_PORT) || 3003,
-    serverOptions: {
-      requestTimeout: 120000,
-      keepAliveTimeout: 60000,
-      keepAlive: true,
-    },
-  },
-  credentialStores,
-});
-
-const port = Number(process.env.RUN_API_PORT) || 3003;
-
-// Start the server using @hono/node-server
-serve(
-  {
-    fetch: app.fetch,
-    port,
-  },
-  (info) => {
-    logger.info({}, \`📝 Run API running on http://localhost:\${info.port}\`);
-    logger.info({}, \`📝 OpenAPI documentation available at http://localhost:\${info.port}/openapi.json\`);
-  }
-);`;
-
-  await fs.writeFile('apps/run-api/src/index.ts', runApiIndex);
-
-  // Database configuration
-  const drizzleConfig = `import { defineConfig } from 'drizzle-kit';
-
-export default defineConfig({
-  schema: 'node_modules/@inkeep/agents-core/dist/db/schema.js',
-  dialect: 'sqlite',
-  dbCredentials: {
-    url: process.env.DB_FILE_NAME || 'file:./local.db'
-  },
-});`;
-
-  await fs.writeFile('drizzle.config.ts', drizzleConfig);
 }
 
-async function createTurboConfig() {
-  const turboConfig = {
-    $schema: 'https://turbo.build/schema.json',
-    ui: 'tui',
-    globalDependencies: ['**/.env', '**/.env.local', '**/.env.*'],
-    globalEnv: [
-      'NODE_ENV',
-      'CI',
-      'ANTHROPIC_API_KEY',
-      'OPENAI_API_KEY',
-      'ENVIRONMENT',
-      'DB_FILE_NAME',
-      'MANAGE_API_PORT',
-      'RUN_API_PORT',
-      'LOG_LEVEL',
-      'NANGO_SECRET_KEY',
-    ],
-    tasks: {
-      build: {
-        dependsOn: ['^build'],
-        inputs: ['$TURBO_DEFAULT$', '.env*'],
-        outputs: ['dist/**', 'build/**', '.next/**', '!.next/cache/**'],
-      },
-      dev: {
-        cache: false,
-        persistent: true,
-      },
-      start: {
-        dependsOn: ['build'],
-        cache: false,
-      },
-      'db:push': {
-        cache: false,
-        inputs: ['drizzle.config.ts', 'src/data/db/schema.ts'],
-      },
-    },
-  };
-
-  await fs.writeJson('turbo.json', turboConfig, { spaces: 2 });
-}
-
-async function createDocumentation(config: FileConfig) {
-  const readme = `# ${config.dirName}
-
-An Inkeep Agent Framework project with multi-service architecture.
-
-## Architecture
-
-This project follows a workspace structure with the following services:
-
-- **Agents Manage API** (Port 3002): Agent configuration and managemen
-  - Handles entity management and configuration endpoints.
-- **Agents Run API** (Port 3003): Agent execution and chat processing  
-  - Handles agent communication. You can interact with your agents either over MCP from an MCP client or through our React UI components library
-- **Agents Manage UI** (Port 3000): Web interface available via \`inkeep dev\`
-  - The agent framework visual builder. From the builder you can create, manage and visualize all your graphs.
-
-## Quick Start
-1. **Install the Inkeep CLI:**
-   \`\`\`bash
-   pnpm install -g @inkeep/agents-cli
-   \`\`\`
-
-1. **Start services:**
-   \`\`\`bash
-   # Start Agents Manage API and Agents Run API
-   pnpm dev
-   
-   # Start the Dashboard
-   inkeep dev
-   \`\`\`
-
-3. **Deploy your first agent graph:**
-   \`\`\`bash
-   # Navigate to your project's graph directory
-   cd src/${config.projectId}/
-   
-   # Push the weather graph to create it
-   inkeep push weather.graph.ts
-   \`\`\`
-  - Follow the prompts to create the project and graph
-  - Click on the \"View graph in UI:\" link to see the graph in the management dashboard
-
-## Project Structure
-
-\`\`\`
-${config.dirName}/
-├── src/
-│   ├── /${config.projectId}              # Agent configurations
-├── apps/
-│   ├── manage-api/          # Agents Manage API service
-│   ├── run-api/             # Agents Run API service
-│   └── shared/              # Shared code between API services
-│       └── credential-stores.ts  # Shared credential store configuration
-├── turbo.json               # Turbo configuration
-├── pnpm-workspace.yaml      # pnpm workspace configuration
-└── package.json             # Root package configuration
-\`\`\`
-
-## Configuration
-
-### Environment Variables
-
-Environment variables are defined in the following places:
-
-- \`apps/manage-api/.env\`: Agents Manage API environment variables
-- \`apps/run-api/.env\`: Agents Run API environment variables
-- \`src/${config.projectId}/.env\`: Inkeep CLI environment variables
-- \`.env\`: Root environment variables 
-
-To change the API keys used by your agents modify \`apps/run-api/.env\`. You are required to define at least one LLM provider key.
-
-\`\`\`bash
-# AI Provider Keys
-ANTHROPIC_API_KEY=your-anthropic-key-here
-OPENAI_API_KEY=your-openai-key-here
-\`\`\`
-
-
-
-### Agent Configuration
-
-Your graphs are defined in \`src/${config.projectId}/weather.graph.ts\`. The default setup includes:
-
-- **Weather Graph**: A graph that can forecast the weather in a given location.
-
-Your inkeep configuration is defined in \`src/${config.projectId}/inkeep.config.ts\`. The inkeep configuration is used to configure defaults for the inkeep CLI. The configuration includes:
-
-- \`tenantId\`: The tenant ID
-- \`projectId\`: The project ID
-- \`agentsManageApiUrl\`: The Manage API URL
-- \`agentsRunApiUrl\`: The Run API URL
-
-
-## Development
-
-### Updating Your Agents
-
-1. Edit \`src/${config.projectId}/weather.graph.ts\`
-2. Push the graph to the platform to update: \`inkeep pus weather.graph.ts\` 
-
-### API Documentation
-
-Once services are running, view the OpenAPI documentation:
-
-- Manage API: http://localhost:${config.manageApiPort}/docs
-- Run API: http://localhost:${config.runApiPort}/docs
-
-## Learn More
-
-- [Inkeep Documentation](https://docs.inkeep.com)
-
-## Troubleshooting
-
-## Inkeep CLI commands
-
-- Ensure you are runnning commands from \`cd src/${config.projectId}\`.
-- Validate the \`inkeep.config.ts\` file has the correct api urls.
-- Validate that the \`.env\` file in \`src/${config.projectId}\` has the correct \`DB_FILE_NAME\`.
-
-### Services won't start
-
-1. Ensure all dependencies are installed: \`pnpm install\`
-2. Check that ports 3000-3003 are available
-
-### Agents won't respond
-
-1. Ensure that the Agents Run API is running and includes a valid Anthropic or OpenAI API key in its .env file
-`;
-
-  await fs.writeFile('README.md', readme);
-}
 
 async function installDependencies() {
   await execAsync('pnpm install');
