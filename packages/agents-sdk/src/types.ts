@@ -212,11 +212,9 @@ export interface RunResult {
 
 // Graph types
 export interface StatusComponent {
-  id: string;
-  name: string;
   type: string;
   description?: string;
-  schema: {
+  schema?: {
     type: 'object';
     properties: Record<string, any>;
     required?: string[];

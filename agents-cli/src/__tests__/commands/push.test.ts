@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
-import { pushCommand } from '../../commands/push';
-import inquirer from 'inquirer';
-import chalk from 'chalk';
 import { existsSync } from 'node:fs';
+import chalk from 'chalk';
+import inquirer from 'inquirer';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { pushCommand } from '../../commands/push';
 import { importWithTypeScriptSupport } from '../../utils/tsx-loader';
 
 // Mock all external dependencies
@@ -113,7 +113,11 @@ describe('Push Command - Project Validation', () => {
     expect(importWithTypeScriptSupport).toHaveBeenCalledWith('/test/project/inkeep.config.ts');
 
     // Verify config was set on project
-    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://localhost:3002');
+    expect(mockProject.setConfig).toHaveBeenCalledWith(
+      'test-tenant',
+      'http://localhost:3002',
+      undefined
+    );
 
     // Verify init was called
     expect(mockProject.init).toHaveBeenCalled();
@@ -130,10 +134,7 @@ describe('Push Command - Project Validation', () => {
     await pushCommand({ project: '/test/project' });
 
     // Verify error was shown (console.error is called with two args: 'Error:' and the message)
-    expect(mockError).toHaveBeenCalledWith(
-      'Error:',
-      expect.stringContaining('index.ts not found')
-    );
+    expect(mockError).toHaveBeenCalledWith('Error:', expect.stringContaining('index.ts not found'));
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
@@ -165,16 +166,14 @@ describe('Push Command - Project Validation', () => {
     await pushCommand({ project: '/nonexistent' });
 
     // Verify error was shown
-    expect(mockError).toHaveBeenCalledWith(
-      expect.stringContaining('Project directory not found')
-    );
+    expect(mockError).toHaveBeenCalledWith(expect.stringContaining('Project directory not found'));
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
   it('should use environment flag for credentials', async () => {
     const { findProjectDirectory } = await import('../../utils/project-directory.js');
     const { loadEnvironmentCredentials } = await import('../../utils/environment-loader.js');
-    
+
     (findProjectDirectory as Mock).mockResolvedValue('/test/project');
     (existsSync as Mock).mockReturnValue(true);
 
@@ -237,13 +236,13 @@ describe('Push Command - Project Validation', () => {
       .mockResolvedValueOnce({ default: mockProject })
       .mockResolvedValueOnce({ default: mockConfig });
 
-    await pushCommand({ 
+    await pushCommand({
       project: '/test/project',
-      agentsManageApiUrl: 'http://custom-api.com'
+      agentsManageApiUrl: 'http://custom-api.com',
     });
 
     // Verify custom API URL was used
-    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://custom-api.com');
+    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://custom-api.com', undefined);
   });
 
   it('should handle missing configuration', async () => {
@@ -284,9 +283,9 @@ describe('Push Command - Project Validation', () => {
     const mockProject = {
       __type: 'project',
       setConfig: vi.fn(),
-      toFullProjectDefinition: vi.fn().mockResolvedValue({ 
+      toFullProjectDefinition: vi.fn().mockResolvedValue({
         graphs: {},
-        tools: {}
+        tools: {},
       }),
       init: vi.fn(),
       getId: vi.fn().mockReturnValue('test-project'),
@@ -310,9 +309,9 @@ describe('Push Command - Project Validation', () => {
     const mockWriteFileSync = vi.fn();
     (fs as any).writeFileSync = mockWriteFileSync;
 
-    await pushCommand({ 
+    await pushCommand({
       project: '/test/project',
-      json: true
+      json: true,
     });
 
     // Verify JSON was generated
@@ -373,9 +372,7 @@ describe('Push Command - Output Messages', () => {
     await pushCommand({ project: '/test/project' });
 
     // The actual implementation shows next steps
-    expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('✨ Next steps:')
-    );
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('✨ Next steps:'));
   });
 
   it('should display next steps with default config', async () => {
@@ -407,9 +404,7 @@ describe('Push Command - Output Messages', () => {
     await pushCommand({ project: '/test/project' });
 
     // The actual implementation shows next steps
-    expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('✨ Next steps:')
-    );
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('✨ Next steps:'));
   });
 
   it('should handle push failure gracefully', async () => {
@@ -468,8 +463,6 @@ describe('Push Command - Output Messages', () => {
     await pushCommand({ project: '/test/project' });
 
     // The actual implementation shows next steps
-    expect(mockLog).toHaveBeenCalledWith(
-      expect.stringContaining('✨ Next steps:')
-    );
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('✨ Next steps:'));
   });
 });

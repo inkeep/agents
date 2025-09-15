@@ -131,13 +131,18 @@ export class Project implements ProjectInterface {
    * Set or update the configuration (tenantId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(tenantId: string, apiUrl: string): void {
+  setConfig(tenantId: string, apiUrl: string, models?: ProjectConfig['models']): void {
     if (this.initialized) {
       throw new Error('Cannot set config after project has been initialized');
     }
 
     this.tenantId = tenantId;
     this.baseURL = apiUrl;
+    
+    // Update models if provided
+    if (models) {
+      this.models = models;
+    }
 
     // Update all graphs with new config
     for (const graph of this.graphs) {
@@ -149,6 +154,7 @@ export class Project implements ProjectInterface {
         projectId: this.projectId,
         tenantId: this.tenantId,
         apiUrl: this.baseURL,
+        hasModels: !!this.models,
       },
       'Project configuration updated'
     );
