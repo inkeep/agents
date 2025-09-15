@@ -58,7 +58,52 @@ export class Agent implements AgentInterface {
     return this.config.prompt;
   }
 
-  // adjust
+	/**
+	 * Get the agent's description (the human-readable description field)
+	 */
+	getDescription(): string {
+		return this.config.description || "";
+	}
+
+	/**
+	 * Get an enhanced description that includes direct transfer and delegation information with descriptions
+	 * This shows only immediate connections with their names and descriptions
+	 * Used for external agent discovery (A2A /.well-known/agent.json)
+	 */
+	getDescriptionWithTransfers(): string {
+		const baseDescription = this.getDescription();
+		const transfers = this.getTransfers();
+		const delegates = this.getDelegates();
+		
+		if (transfers.length === 0 && delegates.length === 0) {
+			return baseDescription;
+		}
+
+		let connectionInfo = "";
+
+		// Add transfer information
+		if (transfers.length > 0) {
+			const transferList = transfers.map(agent => {
+				const name = agent.getName();
+				const description = agent.getDescription ? agent.getDescription() : "";
+				return `- ${name}: ${description}`;
+			}).join("\n");
+			connectionInfo += `\n\nCan transfer to:\n${transferList}`;
+		}
+
+		// Add delegation information
+		if (delegates.length > 0) {
+			const delegateList = delegates.map(agent => {
+				const name = agent.getName();
+				const description = agent.getDescription ? agent.getDescription() : "";
+				return `- ${name}: ${description}`;
+			}).join("\n");
+			connectionInfo += `\n\nCan delegate to:\n${delegateList}`;
+		}
+		
+		return baseDescription + connectionInfo;
+	}
+
   getTools(): Record<string, unknown> {
     const tools = resolveGetter(this.config.canUse);
     if (!tools) {

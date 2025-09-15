@@ -247,7 +247,142 @@ describe('Agent Builder', () => {
     });
   });
 
-  describe('Initialization', () => {
+	describe("Description Methods", () => {
+		let sourceAgent: Agent;
+		let transferAgent: Agent;
+		let delegateAgent: Agent;
+
+		beforeEach(() => {
+			sourceAgent = new Agent({
+				id: "source-agent",
+				name: "Source Agent",
+				description: "Main agent that handles requests",
+				prompt: "You are the main agent",
+			});
+
+			transferAgent = new Agent({
+				id: "transfer-agent",
+				name: "Transfer Agent", 
+				description: "Specialized agent for transfers",
+				prompt: "You handle transfers",
+			});
+
+			delegateAgent = new Agent({
+				id: "delegate-agent",
+				name: "Delegate Agent",
+				description: "Specialized agent for delegations",
+				prompt: "You handle delegations",
+			});
+		});
+
+		it("should return basic description", () => {
+			const description = sourceAgent.getDescription();
+			expect(description).toBe("Main agent that handles requests");
+		});
+
+		it("should return empty string for missing description", () => {
+			const agentWithoutDesc = new Agent({
+				id: "no-desc-agent",
+				name: "No Description Agent",
+				prompt: "No description provided",
+			});
+			
+			const description = agentWithoutDesc.getDescription();
+			expect(description).toBe("");
+		});
+
+		it("should return enhanced description with transfer information", () => {
+			sourceAgent.addTransfer(transferAgent);
+			
+			const enhancedDescription = sourceAgent.getDescriptionWithTransfers();
+			
+			expect(enhancedDescription).toBe(`Main agent that handles requests
+
+Can transfer to:
+- Transfer Agent: Specialized agent for transfers`);
+		});
+
+		it("should return enhanced description with delegation information", () => {
+			sourceAgent.addDelegate(delegateAgent);
+			
+			const enhancedDescription = sourceAgent.getDescriptionWithTransfers();
+			
+			expect(enhancedDescription).toBe(`Main agent that handles requests
+
+Can delegate to:
+- Delegate Agent: Specialized agent for delegations`);
+		});
+
+		it("should return enhanced description with both transfers and delegates", () => {
+			sourceAgent.addTransfer(transferAgent);
+			sourceAgent.addDelegate(delegateAgent);
+			
+			const enhancedDescription = sourceAgent.getDescriptionWithTransfers();
+			
+			expect(enhancedDescription).toBe(`Main agent that handles requests
+
+Can transfer to:
+- Transfer Agent: Specialized agent for transfers
+
+Can delegate to:
+- Delegate Agent: Specialized agent for delegations`);
+		});
+
+		it("should handle multiple transfers and delegates", () => {
+			const secondTransfer = new Agent({
+				id: "second-transfer",
+				name: "Second Transfer Agent",
+				description: "Another transfer agent",
+				prompt: "Second transfer agent",
+			});
+
+			const secondDelegate = new Agent({
+				id: "second-delegate", 
+				name: "Second Delegate Agent",
+				description: "Another delegate agent",
+				prompt: "Second delegate agent",
+			});
+
+			sourceAgent.addTransfer(transferAgent, secondTransfer);
+			sourceAgent.addDelegate(delegateAgent, secondDelegate);
+			
+			const enhancedDescription = sourceAgent.getDescriptionWithTransfers();
+			
+			expect(enhancedDescription).toBe(`Main agent that handles requests
+
+Can transfer to:
+- Transfer Agent: Specialized agent for transfers
+- Second Transfer Agent: Another transfer agent
+
+Can delegate to:
+- Delegate Agent: Specialized agent for delegations
+- Second Delegate Agent: Another delegate agent`);
+		});
+
+		it("should return base description when no connections exist", () => {
+			const enhancedDescription = sourceAgent.getDescriptionWithTransfers();
+			expect(enhancedDescription).toBe("Main agent that handles requests");
+		});
+
+		it("should handle agents without descriptions in connections", () => {
+			const agentWithoutDesc = new Agent({
+				id: "no-desc-transfer",
+				name: "No Description Transfer",
+				prompt: "No description",
+			});
+
+			sourceAgent.addTransfer(agentWithoutDesc);
+			
+			const enhancedDescription = sourceAgent.getDescriptionWithTransfers();
+			
+			expect(enhancedDescription).toBe(`Main agent that handles requests
+
+Can transfer to:
+- No Description Transfer: `);
+		});
+	});
+
+	describe("Initialization", () => {
     let agent: Agent;
 
     beforeEach(() => {
