@@ -18,7 +18,7 @@ const logger = getLogger('agents');
  * Generate an enhanced description that includes transfer and delegation information
  * This shows direct connections only (not the full transfer graph)
  */
-async function generateDescriptionWithTransfers(
+export async function generateDescriptionWithTransfers(
   baseDescription: string,
   dbAgent: AgentSelect,
   graphId: string
@@ -53,16 +53,18 @@ async function generateDescriptionWithTransfers(
     // Add transfer information
     if (transfers.length > 0) {
       const transferList = transfers
-        .map((relation) => {
+        .map((relation: any) => {
           // Handle both internal and external relations
           if ('externalAgent' in relation && relation.externalAgent) {
             const { name, description } = relation.externalAgent;
             return `- ${name}: ${description || ''}`;
-          } else {
+          } else if ('name' in relation) {
             const { name, description } = relation;
             return `- ${name}: ${description || ''}`;
           }
+          return '';
         })
+        .filter(Boolean)
         .join('\n');
       connectionInfo += `\n\nCan transfer to:\n${transferList}`;
     }
@@ -70,16 +72,18 @@ async function generateDescriptionWithTransfers(
     // Add delegation information
     if (delegates.length > 0) {
       const delegateList = delegates
-        .map((relation) => {
+        .map((relation: any) => {
           // Handle both internal and external relations
           if ('externalAgent' in relation && relation.externalAgent) {
             const { name, description } = relation.externalAgent;
             return `- ${name}: ${description || ''}`;
-          } else {
+          } else if ('name' in relation) {
             const { name, description } = relation;
             return `- ${name}: ${description || ''}`;
           }
+          return '';
         })
+        .filter(Boolean)
         .join('\n');
       connectionInfo += `\n\nCan delegate to:\n${delegateList}`;
     }
