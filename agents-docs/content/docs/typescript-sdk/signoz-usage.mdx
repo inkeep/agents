@@ -44,7 +44,7 @@ Application → OTEL Collector → Jaeger → Jaeger UI (http://localhost:16686)
 
 Configure your agent framework to send traces to the OTEL Collector:
 
-```typescript
+```
 // Recommended: Use OTEL Collector for dual routing to Jaeger + SigNoz
 process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "http://localhost:14318/v1/traces";
 process.env.OTEL_SERVICE_NAME = "inkeep-agents";
