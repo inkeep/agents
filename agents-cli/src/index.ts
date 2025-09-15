@@ -8,6 +8,7 @@ import { initCommand } from './commands/init';
 import { listGraphsCommand } from './commands/list-graphs';
 import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
+import { addCommand } from './commands/add';
 
 // Get the current directory for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,15 @@ program
   .name('inkeep')
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
+
+// Add command
+program
+  .command('add [template]')
+  .description('Add a new template to the project')
+  .option('--target-path <path>', 'Target path to add the template to')
+  .action(async (template, options) => {
+    await addCommand({ template, ...options });
+  });
 
 // Init command
 program

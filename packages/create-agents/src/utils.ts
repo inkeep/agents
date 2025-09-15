@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import { cloneTemplate } from './template.js';
+import { cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
 
@@ -56,12 +56,30 @@ type FileConfig = {
 };
 
 export const createAgents = async (
-  args: { projectId?: string; dirName?: string; openAiKey?: string; anthropicKey?: string } = {}
+  args: {
+    projectId?: string;
+    dirName?: string;
+    openAiKey?: string;
+    anthropicKey?: string;
+    template?: string;
+  } = {}
 ) => {
-  let { projectId, dirName, openAiKey, anthropicKey } = args;
+  let {  projectId, dirName, openAiKey, anthropicKey, template } = args;
   const tenantId = 'default';
   const manageApiPort = '3002';
   const runApiPort = '3003';
+  
+  if (template) {
+    const availableTemplates = await getAvailableTemplates();
+    if (!availableTemplates.includes(template)) {
+      p.cancel(
+        `${color.red('✗')} Template "${template}" not found\n\n` +
+          `${color.yellow('Available templates:')}\n` +
+          `  • ${availableTemplates.join('\n  • ')}\n`,
+      );
+      process.exit(0);
+    }
+  }
 
   p.intro(color.inverse(' Create Agents Directory '));
 
@@ -198,6 +216,11 @@ export const createAgents = async (
   s.start('Creating directory structure...');
 
   try {
+    const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
+
+    const projectTemplateName = template || 'weather';
+    const projectTemplateRepo = `https://github.com/inkeep/agents-cookbook/templates/${projectTemplateName}`;
+
     const directoryPath = path.resolve(process.cwd(), dirName);
 
     // Check if directory already exists
@@ -217,7 +240,7 @@ export const createAgents = async (
 
     // Clone the template repository
     s.message('Building template...');
-    await cloneTemplate(directoryPath);
+    await cloneTemplate(agentsTemplateRepo, directoryPath);
 
     // Change to the project directory
     process.chdir(directoryPath);
@@ -235,13 +258,18 @@ export const createAgents = async (
 
     // Create workspace structure for project-specific files
     s.message('Setting up project structure...');
-    await createWorkspaceStructure(projectId);
+    await createWorkspaceStructure();
 
     // Create environment files
     s.message('Setting up environment files...');
     await createEnvironmentFiles(config);
 
-    // Create service files
+    // Create project template folder
+    s.message('Creating project template folder...');
+    const templateTargetPath = `src/${projectId}`;
+    await cloneTemplate(projectTemplateRepo, templateTargetPath);
+
+      // Create service files
     s.message('Creating service files...');
     await createServiceFiles(config);
 
@@ -289,9 +317,9 @@ export const createAgents = async (
   }
 };
 
-async function createWorkspaceStructure(projectId: string) {
+async function createWorkspaceStructure() {
   // Create the workspace directory structure
-  await fs.ensureDir(`src/${projectId}`);
+  await fs.ensureDir(`src`);
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
@@ -352,86 +380,6 @@ AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
 
 
 async function createServiceFiles(config: FileConfig) {
-  const agentsGraph = `import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
-
-// MCP Tools
-const forecastWeatherTool = mcpTool({
-  id: 'fUI2riwrBVJ6MepT8rjx0',
-  name: 'Forecast weather',
-  serverUrl: 'https://weather-forecast-mcp.vercel.app/mcp',
-});
-
-const geocodeAddressTool = mcpTool({
-  id: 'fdxgfv9HL7SXlfynPx8hf',
-  name: 'Geocode address',
-  serverUrl: 'https://geocoder-mcp.vercel.app/mcp',
-});
-
-// Agents
-const weatherAssistant = agent({
-  id: 'weather-assistant',
-  name: 'Weather assistant',
-  description: 'Responsible for routing between the geocoder agent and weather forecast agent',
-  prompt:
-    'You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast',
-  canDelegateTo: () => [weatherForecaster, geocoderAgent],
-});
-
-const weatherForecaster = agent({
-  id: 'weather-forecaster',
-  name: 'Weather forecaster',
-  description:
-    'This agent is responsible for taking in coordinates and returning the forecast for the weather at that location',
-  prompt:
-    'You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool',
-  canUse: () => [forecastWeatherTool],
-});
-
-const geocoderAgent = agent({
-  id: 'geocoder-agent',
-  name: 'Geocoder agent',
-  description: 'Responsible for converting location or address into coordinates',
-  prompt:
-    'You are a helpful assistant responsible for converting location or address into coordinates using your geocode tool',
-  canUse: () => [geocodeAddressTool],
-});
-
-// Agent Graph
-export const weatherGraph = agentGraph({
-  id: 'weather-graph',
-  name: 'Weather graph',
-  defaultAgent: weatherAssistant,
-  agents: () => [weatherAssistant, weatherForecaster, geocoderAgent],
-});`;
-
-  await fs.writeFile(`src/${config.projectId}/weather.graph.ts`, agentsGraph);
-
-  const projectIndex = `import { weatherGraph } from './weather.graph.ts';
-import { project } from '@inkeep/agents-sdk';
-
-export const myProject = project({
-  id: '${config.projectId}',
-  name: '${config.projectId}',
-  description: '${config.projectId}',
-  graphs: () => [weatherGraph],
-});`;
-
-  await fs.writeFile(`src/${config.projectId}/index.ts`, projectIndex);
-
-  // Inkeep config (if using CLI)
-  const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
-
-const config = defineConfig({
-  tenantId: "${config.tenantId}",
-  projectId: "${config.projectId}",
-  agentsManageApiUrl: \`http://localhost:\${process.env.MANAGE_API_PORT || '3002'}\`,
-  agentsRunApiUrl: \`http://localhost:\${process.env.RUN_API_PORT || '3003'}\`,
-  modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
-});
-    
-export default config;`;
-
-  await fs.writeFile(`src/${config.projectId}/inkeep.config.ts`, inkeepConfig);
 
   // Create .env file for the project directory (for inkeep CLI commands)
   const projectEnvContent = `# Environment

@@ -11,6 +11,7 @@ program
   .option('--project-id <project-id>', 'Project ID')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
+  .option('--template <template>', 'Template to use')
   .parse();
 
 async function main() {
@@ -23,6 +24,7 @@ async function main() {
       openAiKey: options.openaiKey,
       anthropicKey: options.anthropicKey,
       projectId: options.projectId,
+      template: options.template,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);
