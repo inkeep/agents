@@ -114,28 +114,10 @@ export const createTaskHandler = (
 
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
-      // Enhance internal relation descriptions with their transfer/delegation info
-      const enhancedInternalRelations = await Promise.all(
-        internalRelations.map(async (relation) => {
-          try {
-            const relatedAgent = await getAgentById(dbClient)({
-              scopes: { tenantId: config.tenantId, projectId: config.projectId },
-              agentId: relation.id,
-            });
-            if (relatedAgent) {
-              const enhancedDescription = await generateDescriptionWithTransfers(
-                relation.description || '',
-                relatedAgent,
-                config.graphId
-              );
-              return { ...relation, description: enhancedDescription };
-            }
-          } catch (error) {
-            logger.warn({ agentId: relation.id, error }, 'Failed to enhance agent description');
-          }
-          return relation;
-        })
-      );
+      // Note: We don't enhance related agent descriptions here to avoid expensive DB calls.
+      // Each agent's enhanced description with their transfer/delegate info is generated
+      // only when that specific agent is hydrated (in hydrateAgent function).
+      const enhancedInternalRelations = internalRelations;
 
       // Check if this is an internal agent (has prompt)
       const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
@@ -155,7 +137,7 @@ export const createTaskHandler = (
           agentPrompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          agentRelations: enhancedInternalRelations.map((relation) => ({
+          agentRelations: internalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -169,7 +151,7 @@ export const createTaskHandler = (
             agentRelations: [],
             transferRelations: [],
           })),
-          transferRelations: enhancedInternalRelations
+          transferRelations: internalRelations
             .filter((relation) => relation.relationType === 'transfer')
             .map((relation) => ({
               baseUrl: config.baseUrl,
@@ -187,7 +169,7 @@ export const createTaskHandler = (
             })),
           delegateRelations: [
             // Internal delegate relations
-            ...enhancedInternalRelations
+            ...internalRelations
               .filter((relation) => relation.relationType === 'delegate')
               .map((relation) => ({
                 type: 'internal' as const,
