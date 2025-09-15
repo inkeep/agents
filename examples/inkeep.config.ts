@@ -12,17 +12,5 @@ export default defineConfig({
         // API key should be set via ANTHROPIC_API_KEY environment variable
       },
     },
-    structuredOutput: {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
-      providerOptions: {
-        // API key should be set via ANTHROPIC_API_KEY environment variable
-      },
-    },
-    summarizer: {
-      model: 'openai/gpt-4.1-nano-2025-04-14',
-      providerOptions: {
-        // API key should be set via ANTHROPIC_API_KEY environment variable
-      },
-    },
   },
 });
