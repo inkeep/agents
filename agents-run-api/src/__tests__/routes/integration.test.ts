@@ -57,13 +57,15 @@ vi.mock('@inkeep/agents-core', () => ({
   getActiveAgentForConversation: getActiveAgentForConversationMock,
   getFullGraph: getFullGraphMock,
   getTracer: vi.fn(() => ({
-    startActiveSpan: vi.fn((name, fn) =>
-      fn({
+    startActiveSpan: vi.fn((name, options, fn) => {
+      // Handle both 2 and 3 argument versions
+      const callback = typeof options === 'function' ? options : fn;
+      return callback({
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
-      })
-    ),
+      });
+    }),
     startSpan: vi.fn(() => ({
       setAttributes: vi.fn(),
       setStatus: vi.fn(),
@@ -116,6 +118,33 @@ vi.mock('../../a2a/transfer.js', () => ({
 vi.mock('../../utils/stream-registry.js', () => ({
   registerStreamHelper: vi.fn(),
   unregisterStreamHelper: vi.fn(),
+}));
+
+vi.mock('../../utils/graph-session.js', () => ({
+  graphSessionManager: {
+    createSession: vi.fn(),
+    endSession: vi.fn(),
+    getSession: vi.fn().mockReturnValue(null),
+  },
+}));
+
+vi.mock('../../utils/tracer.js', () => ({
+  tracer: {
+    startActiveSpan: vi.fn((name, options, fn) => {
+      // Handle both 2 and 3 argument versions
+      const callback = typeof options === 'function' ? options : fn;
+      return callback({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      });
+    }),
+    startSpan: vi.fn(() => ({
+      setAttributes: vi.fn(),
+      setStatus: vi.fn(),
+      end: vi.fn(),
+    })),
+  },
 }));
 
 vi.mock('../../env.js', () => ({
