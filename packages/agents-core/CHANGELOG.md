@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.2.0
+
+### Minor Changes
+
+- d2a0c0f: project resources and keytar
+
 ## 0.1.10
 
 ## 0.1.9

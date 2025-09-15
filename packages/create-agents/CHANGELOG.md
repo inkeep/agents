@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.2.0
+
+### Minor Changes
+
+- d2a0c0f: project resources and keytar
+
 ## 0.1.10
 
 ### Patch Changes

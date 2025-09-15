@@ -1,5 +1,17 @@
 # @inkeep/agents-cli
 
+## 0.2.0
+
+### Minor Changes
+
+- d2a0c0f: project resources and keytar
+
+### Patch Changes
+
+- Updated dependencies [d2a0c0f]
+  - @inkeep/agents-manage-ui@0.2.0
+  - @inkeep/agents-core@0.2.0
+
 ## 0.1.10
 
 ### Patch Changes
