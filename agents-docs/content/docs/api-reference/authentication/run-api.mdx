@@ -27,7 +27,7 @@ curl -H "x-inkeep-tenant-id: tenant-123" \
 
 When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is not set:
 
-- Use API keys created from the Management UI
+- Use API keys created from the Manage UI
 - No additional headers required (scope encoded in key)
 
 ```bash
@@ -52,10 +52,9 @@ curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
      https://run-api.example.com/chat/completions
 ```
 
-**Option 2: Standard API Key**
+**Option 2: Standard API Keys remain valid**
 
-- Use API keys from Management UI
-- Falls back to database validation
+- Use API keys from the Manage UI
 
 ```bash
 curl -H "Authorization: Bearer sk_live_xyz789..." \
@@ -64,19 +63,18 @@ curl -H "Authorization: Bearer sk_live_xyz789..." \
 
 ## Running Multiple Instances
 
-To run multiple Run API instances with different auth configurations:
+You can run multiple Run API instances with different auth configurations. If you're deploying Inkeep Agents to production, it is common to only expose the deployment of Run API in standard mode and all other services remain internal.
 
 ```bash
-# Instance 1: Port 3003 with bypass secret
+# Instance 1: Port 3003 with bypass secret (intended for internal purposes)
 PORT=3003 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=secret123 pnpm dev
 
-# Instance 2: Port 3004 without bypass secret
+# Instance 2: Port 3004 without bypass secret (intended for external purposes)
 PORT=3004 pnpm dev
 ```
 
 ## Security Best Practices
 
-1. **Production**: Always use API keys or bypass secrets
+1. **Production**: Always use Standard API keys
 2. **Bypass Secret**: Use for internal services only
 3. **API Keys**: Rotate regularly and set expiration dates
-4. **Headers**: Use HTTPS to protect header values in transit
