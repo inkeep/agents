@@ -12,6 +12,8 @@ const redirects = JSON.parse(fs.readFileSync(redirectsPath, 'utf8'));
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  // Increase timeout for static page generation in CI environments
+  staticPageGenerationTimeout: 180, // 3 minutes instead of default 60 seconds
   async redirects() {
     return redirects.map((item) => ({ ...item, permanent: isProd }));
   },
