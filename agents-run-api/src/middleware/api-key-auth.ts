@@ -116,7 +116,8 @@ export const apiKeyAuth = () =>
         return;
       } else if (apiKey) {
         const executionContext = await extractContextFromApiKey(apiKey);
-
+        executionContext.agentId = agentId;
+        
         c.set('executionContext', executionContext);
 
         logger.info({}, 'API key authenticated successfully');
@@ -141,6 +142,7 @@ export const apiKeyAuth = () =>
 
     try {
       const executionContext = await extractContextFromApiKey(apiKey);
+      executionContext.agentId = agentId;
 
       c.set('executionContext', executionContext);
 
@@ -150,6 +152,7 @@ export const apiKeyAuth = () =>
           tenantId: executionContext.tenantId,
           projectId: executionContext.projectId,
           graphId: executionContext.graphId,
+          agentId: executionContext.agentId,
         },
         'API key authenticated successfully'
       );
