@@ -61,7 +61,7 @@ Define default models at the project level that all graphs and agents will inher
   name: "My AI Project",
   models: {
     base: {
-      model: "anthropic/claude-4-sonnet-20250514",
+      model: "anthropic/claude-sonnet-4-20250514",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 4096
@@ -188,16 +188,13 @@ Agent: {
 
 #### System Defaults
 
-When no model settings are configured at any level (project, graph, or agent), the system uses these defaults:
+**Supported Providers**: The framework supports Anthropic, OpenAI, and Google models.
 
-- **Default base model**: `anthropic/claude-4-sonnet-20250514`
-- **Default structured output model**: `openai/gpt-4.1-mini-2025-04-14`
-- **Default summarizer model**: `openai/gpt-4.1-nano-2025-04-14`
+**API Keys**: You need the appropriate API key for the provider you choose to use:
 
-**Required API Keys**: For the system defaults to work properly, you need both:
-
-- `ANTHROPIC_API_KEY` (for the base model)
-- `OPENAI_API_KEY` (for structured output and summarizer models)
+- `ANTHROPIC_API_KEY` for Anthropic models
+- `OPENAI_API_KEY` for OpenAI models  
+- `GOOGLE_API_KEY` for Google models
 
 ```typescript
 // No higher-level defaults - fallback to base occurs

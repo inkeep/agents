@@ -36,7 +36,7 @@ const agent = agent({
   // Optional - AI Model Settings
   models: {
     base: {
-      model: "anthropic/claude-4-sonnet-20250514",
+      model: "anthropic/claude-sonnet-4-20250514",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 2048,
@@ -132,7 +132,7 @@ The `models` object allows you to configure different models for different tasks
 ```typescript
 models: {
   base: {
-    model: "anthropic/claude-4-sonnet-20250514", // Primary model for text generation
+    model: "anthropic/claude-sonnet-4-20250514", // Primary model for text generation
     providerOptions: {
       temperature: 0.7,
       maxTokens: 2048
@@ -161,18 +161,19 @@ models: {
 - **`structuredOutput`**: Model used for structured JSON output only (falls back to base if not configured and nothing to inherit)
 - **`summarizer`**: Model used for summaries and status updates (falls back to base if not configured and nothing to inherit)
 
-### Default Models
+### Supported Providers
 
-When no model settings are configured at any level (project, graph, or agent), the system uses these defaults:
+The framework currently supports models from:
 
-- **Default base model**: `anthropic/claude-4-sonnet-20250514`
-- **Default structured output model**: `openai/gpt-4.1-mini-2025-04-14`
-- **Default summarizer model**: `openai/gpt-4.1-nano-2025-04-14`
+- **Anthropic**: `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, etc.
+- **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
+- **Google**: `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
 
-**Required API Keys**: For the system defaults to work properly, you need both:
+**API Keys**: You need the appropriate API key for the provider you choose to use:
 
-- `ANTHROPIC_API_KEY` (for the base model)
-- `OPENAI_API_KEY` (for structured output and summarizer models)
+- `ANTHROPIC_API_KEY` for Anthropic models
+- `OPENAI_API_KEY` for OpenAI models  
+- `GOOGLE_API_KEY` for Google models
 
 ### Provider Options
 
