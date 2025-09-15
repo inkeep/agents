@@ -114,10 +114,39 @@ export const createTaskHandler = (
 
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
-      // Note: We don't enhance related agent descriptions here to avoid expensive DB calls.
-      // Each agent's enhanced description with their transfer/delegate info is generated
-      // only when that specific agent is hydrated (in hydrateAgent function).
-      const enhancedInternalRelations = internalRelations;
+      // Enhance internal relation descriptions with their transfer/delegation info
+      // This allows agents to see the full capability graph for routing decisions
+      // We batch the operations to be more efficient than the original N+1 approach
+      const enhancedInternalRelations = await Promise.all(
+        internalRelations.map(async (relation) => {
+          try {
+            const relatedAgent = await getAgentById(dbClient)({
+              scopes: { tenantId: config.tenantId, projectId: config.projectId },
+              agentId: relation.id,
+            });
+            if (relatedAgent) {
+              // Get this agent's relations for enhanced description
+              const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
+                scopes: { tenantId: config.tenantId, projectId: config.projectId },
+                graphId: config.graphId,
+                agentId: relation.id,
+              });
+              
+              // Use the optimized version that accepts pre-computed relations
+              const enhancedDescription = await generateDescriptionWithTransfers(
+                relation.description || '',
+                relatedAgent,
+                config.graphId,
+                relatedAgentRelations // Pass pre-computed relations to avoid redundant DB call
+              );
+              return { ...relation, description: enhancedDescription };
+            }
+          } catch (error) {
+            logger.warn({ agentId: relation.id, error }, 'Failed to enhance agent description');
+          }
+          return relation;
+        })
+      );
 
       // Check if this is an internal agent (has prompt)
       const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
@@ -137,7 +166,7 @@ export const createTaskHandler = (
           agentPrompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          agentRelations: internalRelations.map((relation) => ({
+          agentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -151,7 +180,7 @@ export const createTaskHandler = (
             agentRelations: [],
             transferRelations: [],
           })),
-          transferRelations: internalRelations
+          transferRelations: enhancedInternalRelations
             .filter((relation) => relation.relationType === 'transfer')
             .map((relation) => ({
               baseUrl: config.baseUrl,
@@ -169,7 +198,7 @@ export const createTaskHandler = (
             })),
           delegateRelations: [
             // Internal delegate relations
-            ...internalRelations
+            ...enhancedInternalRelations
               .filter((relation) => relation.relationType === 'delegate')
               .map((relation) => ({
                 type: 'internal' as const,

@@ -258,7 +258,7 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   // Timing tracking for text sequences (text-end to text-start gap)
   private lastTextEndTimestamp: number = 0;
-  private readonly TEXT_GAP_THRESHOLD = 1000; // milliseconds - if gap between text sequences is less than this, queue operations
+  private readonly TEXT_GAP_THRESHOLD = 50; // milliseconds - if gap between text sequences is less than this, queue operations
 
   // Connection management and forced cleanup
   private connectionDropTimer?: NodeJS.Timeout;

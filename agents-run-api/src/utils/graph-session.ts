@@ -162,8 +162,8 @@ export class GraphSession {
       summarizerModel,
       baseModel,
       config: {
-        numEvents: config.numEvents || 10,
-        timeInSeconds: config.timeInSeconds || 30,
+        numEvents: config.numEvents || 1,
+        timeInSeconds: config.timeInSeconds || 2,
         ...config,
       },
     };
@@ -1165,8 +1165,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const data = event.data as DelegationReturnedData;
           // Hide delegation return as task completion
           activities.push(
-            `📥 **Completed subtask**\n` +
-              `   Result: ${JSON.stringify(data.result, null, 2)}`
+            `📥 **Completed subtask**\n` + `   Result: ${JSON.stringify(data.result, null, 2)}`
           );
           break;
         }
@@ -1187,8 +1186,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const data = event.data as AgentReasoningData;
           // Hide internal reasoning as analysis
           activities.push(
-            `⚙️ **Analyzing request**\n` +
-              `   Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Analyzing request**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
           break;
         }
@@ -1197,8 +1195,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const data = event.data as AgentGenerateData;
           // Hide generation type - just show we're working
           activities.push(
-            `⚙️ **Preparing response**\n` +
-              `   Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Preparing response**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
           break;
         }
