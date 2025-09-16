@@ -187,8 +187,8 @@ export const agents = sqliteTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [projects.tenantId, projects.id, agentGraph.id],
-      name: 'agents_project_graph_fk',
+      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+      name: 'agents_graph_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -215,8 +215,8 @@ export const agentRelations = sqliteTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [projects.tenantId, projects.id, agentGraph.id],
-      name: 'agent_relations_project_graph_fk',
+      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+      name: 'agent_relations_graph_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -241,8 +241,8 @@ export const externalAgents = sqliteTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [projects.tenantId, projects.id, agentGraph.id],
-      name: 'external_agents_project_graph_fk',
+      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+      name: 'external_agents_graph_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.credentialReferenceId],
@@ -344,11 +344,11 @@ export const agentDataComponents = sqliteTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'agent_data_components_project_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to graphs table
+    // Foreign key constraint to agents table (which includes graph scope)
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id, agents.id],
-      name: 'agent_data_components_graph_fk',
+      foreignColumns: [agents.tenantId, agents.projectId, agents.graphId, agents.id],
+      name: 'agent_data_components_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to data_components table
     foreignKey({
@@ -388,13 +388,16 @@ export const agentArtifactComponents = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    graphId: text('graph_id').notNull(),
     agentId: text('agent_id').notNull(),
+    id: text('id').notNull(),
     artifactComponentId: text('artifact_component_id').notNull(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({
+      columns: [table.tenantId, table.projectId, table.graphId, table.agentId, table.id],
+    }),
     // Foreign key constraint to projects table
     foreignKey({
       columns: [table.tenantId, table.projectId],
@@ -403,8 +406,8 @@ export const agentArtifactComponents = sqliteTable(
     }).onDelete('cascade'),
     // Foreign key constraint to agents table
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.graphId, agents.id],
       name: 'agent_artifact_components_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to artifact_components table
@@ -483,11 +486,11 @@ export const agentToolRelations = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
-    // Foreign key constraint to projects, graphs, and agents tables
+    // Foreign key constraint to agents table (which includes project and graph scope)
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
-      foreignColumns: [projects.tenantId, projects.id, agentGraph.id, agents.id],
-      name: 'agent_tool_relations_project_graph_agent_fk',
+      foreignColumns: [agents.tenantId, agents.projectId, agents.graphId, agents.id],
+      name: 'agent_tool_relations_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to tools table
     foreignKey({
