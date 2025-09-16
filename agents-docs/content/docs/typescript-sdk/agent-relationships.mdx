@@ -61,8 +61,8 @@ const supportGraph = agentGraph({
   agents: () => [routerAgent, qaAgent, orderAgent],
   // Optional: Set default model settings for all agents
   modelSettings: {
-    model: "anthropic/claude-3-sonnet-20240229",
-    structuredOutput: "openai/gpt-4o-mini-2024-07-18",
+    model: "anthropic/claude-sonnet-4-20250514",
+    structuredOutput: "openai/gpt-4.1-mini-2025-04-14",
     providerOptions: {
       anthropic: { temperature: 0.5 },
     },
@@ -114,7 +114,7 @@ const mathGraph = agentGraph({
   agents: () => [mathSupervisor, numberProducerA, numberProducerB],
   // Optional: Graph-level model settings inherited by agents without their own config
   modelSettings: {
-    model: "anthropic/claude-3-haiku-20240307", // Fast model for simple math tasks
+    model: "anthropic/claude-3-5-haiku-20241022", // Fast model for simple math tasks
     providerOptions: {
       anthropic: { temperature: 0.1 }, // Low creativity for precise calculations
     },

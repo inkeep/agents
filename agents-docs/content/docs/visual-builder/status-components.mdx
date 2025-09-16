@@ -89,7 +89,7 @@ models: {
     model: 'anthropic/claude-sonnet-4-20250514' // Primary model
   },
   summarizer: {
-    model: 'openai/gpt-4o-mini-2024-07-18', // Dedicated summarizer
+    model: 'openai/gpt-4.1-mini-2025-04-14', // Dedicated summarizer
     providerOptions: {
       temperature: 0.3, // Lower temperature for consistent summaries
       maxTokens: 1024
@@ -151,7 +151,7 @@ Status components, summarizer models, and status update prompts are configured a
 
 ### Model Selection
 
-- **Summarizer Model**: Faster, efficient models (GPT-4o-mini, Claude-3-Haiku) work well for status generation
+- **Summarizer Model**: Faster, efficient models (GPT-4.1-mini, Claude-3.5-Haiku) work well for status generation
 - **Consistency**: Use the same summarizer across related agents for consistent status updates
 
 ### Status Component Design
