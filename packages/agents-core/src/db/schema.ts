@@ -46,6 +46,46 @@ export const projects = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
 );
+
+// Define the agent graph table (updated to reference context configs)
+export const agentGraph = sqliteTable(
+  'agent_graph',
+  {
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    id: text('id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    defaultAgentId: text('default_agent_id').notNull(),
+
+    // Reference to shared context configuration for all agents in this graph
+    contextConfigId: text('context_config_id'),
+
+    // Graph-level model settingsuration that can be inherited by agents
+    models: text('models', { mode: 'json' }).$type<Models>(),
+
+    // Status updates configuration for intelligent progress summaries
+    statusUpdates: text('status_updates', { mode: 'json' }).$type<StatusUpdateSettings>(),
+
+    // Graph-level prompt that can be used as additional context for agents
+    graphPrompt: text('graph_prompt'),
+
+    // Graph-level stopWhen configuration that can be inherited by agents
+    stopWhen: text('stop_when', { mode: 'json' }).$type<GraphStopWhen>(),
+
+    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'agent_graph_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 // Context system: Shared context configurations
 export const contextConfigs = sqliteTable(
   'context_configs',
@@ -127,6 +167,7 @@ export const agents = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
+    graphId: text('graph_id').notNull(),
     id: text('id').notNull(),
     name: text('name').notNull(),
     description: text('description').notNull(),
@@ -143,11 +184,11 @@ export const agents = sqliteTable(
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'agents_project_fk',
+      columns: [table.tenantId, table.projectId, table.graphId],
+      foreignColumns: [projects.tenantId, projects.id, agentGraph.id],
+      name: 'agents_project_graph_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -159,8 +200,8 @@ export const agentRelations = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
     graphId: text('graph_id').notNull(),
+    id: text('id').notNull(),
     sourceAgentId: text('source_agent_id').notNull(),
     // For internal relationships
     targetAgentId: text('target_agent_id'),
@@ -171,11 +212,11 @@ export const agentRelations = sqliteTable(
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'agent_relations_project_fk',
+      columns: [table.tenantId, table.projectId, table.graphId],
+      foreignColumns: [projects.tenantId, projects.id, agentGraph.id],
+      name: 'agent_relations_project_graph_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -186,6 +227,7 @@ export const externalAgents = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
+    graphId: text('graph_id').notNull(),
     id: text('id').notNull(),
     name: text('name').notNull(),
     description: text('description').notNull(),
@@ -196,11 +238,11 @@ export const externalAgents = sqliteTable(
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'external_agents_project_fk',
+      columns: [table.tenantId, table.projectId, table.graphId],
+      foreignColumns: [projects.tenantId, projects.id, agentGraph.id],
+      name: 'external_agents_project_graph_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.credentialReferenceId],
@@ -211,45 +253,6 @@ export const externalAgents = sqliteTable(
       ],
       name: 'external_agents_credential_reference_fk',
     }).onDelete('set null'),
-  ]
-);
-
-// Define the agent graph table (updated to reference context configs)
-export const agentGraph = sqliteTable(
-  'agent_graph',
-  {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
-    name: text('name').notNull(),
-    description: text('description'),
-    defaultAgentId: text('default_agent_id').notNull(),
-
-    // Reference to shared context configuration for all agents in this graph
-    contextConfigId: text('context_config_id'),
-
-    // Graph-level model settingsuration that can be inherited by agents
-    models: text('models', { mode: 'json' }).$type<Models>(),
-
-    // Status updates configuration for intelligent progress summaries
-    statusUpdates: text('status_updates', { mode: 'json' }).$type<StatusUpdateSettings>(),
-
-    // Graph-level prompt that can be used as additional context for agents
-    graphPrompt: text('graph_prompt'),
-
-    // Graph-level stopWhen configuration that can be inherited by agents
-    stopWhen: text('stop_when', { mode: 'json' }).$type<GraphStopWhen>(),
-
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-    foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'agent_graph_project_fk',
-    }).onDelete('cascade'),
   ]
 );
 
@@ -327,8 +330,9 @@ export const agentDataComponents = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    graphId: text('graph_id').notNull(),
     agentId: text('agent_id').notNull(),
+    id: text('id').notNull(),
     dataComponentId: text('data_component_id').notNull(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -340,11 +344,11 @@ export const agentDataComponents = sqliteTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'agent_data_components_project_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to agents table
+    // Foreign key constraint to graphs table
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'agent_data_components_agent_fk',
+      columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
+      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id, agents.id],
+      name: 'agent_data_components_graph_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to data_components table
     foreignKey({
@@ -469,26 +473,21 @@ export const agentToolRelations = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    graphId: text('graph_id').notNull(),
     agentId: text('agent_id').notNull(),
+    id: text('id').notNull(),
     toolId: text('tool_id').notNull(),
     selectedTools: blob('selected_tools', { mode: 'json' }).$type<string[] | null>(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-    // Foreign key constraint to projects table
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    // Foreign key constraint to projects, graphs, and agents tables
     foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'agent_tool_relations_project_fk',
-    }).onDelete('cascade'),
-    // Foreign key constraint to agents table
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'agent_tool_relations_agent_fk',
+      columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
+      foreignColumns: [projects.tenantId, projects.id, agentGraph.id, agents.id],
+      name: 'agent_tool_relations_project_graph_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to tools table
     foreignKey({
