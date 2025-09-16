@@ -1,5 +1,13 @@
 # @inkeep/agents-cli
 
+## 0.2.1
+
+### Patch Changes
+
+- 56bb5ec: Inkeep add command
+  - @inkeep/agents-manage-ui@0.2.1
+  - @inkeep/agents-core@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
