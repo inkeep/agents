@@ -2,6 +2,7 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { AnthropicIcon } from '@/components/icons/anthropic';
+import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/graph/domain/deserialize';
@@ -100,6 +101,8 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
                 <OpenAIIcon className="size-3 text-xs text-muted-foreground flex-shrink-0" />
               ) : modelName?.startsWith('anthropic') ? (
                 <AnthropicIcon className="size-3 text-xs flex-shrink-0" />
+              ) : modelName?.startsWith('google') ? (
+                <GoogleIcon className="size-3 text-xs flex-shrink-0" />
               ) : null}
               <div className="truncate w-full">{modelName || ''}</div>
             </Badge>

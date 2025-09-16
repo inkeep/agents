@@ -49,8 +49,8 @@ export class ModelFactory {
         case 'openai':
           return ModelFactory.createOpenAIModel(modelName, modelSettings.providerOptions);
 
-        case 'gemini':
-          return ModelFactory.createGeminiModel(modelName, modelSettings.providerOptions);
+        case 'google':
+          return ModelFactory.createGoogleModel(modelName, modelSettings.providerOptions);
 
         default:
           throw new Error(
@@ -77,7 +77,7 @@ export class ModelFactory {
   /**
    * Supported providers for security validation
    */
-  private static readonly SUPPORTED_PROVIDERS = ['anthropic', 'openai'] as const;
+  private static readonly SUPPORTED_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
 
   /**
    * Parse model string to extract provider and model name
@@ -108,11 +108,9 @@ export class ModelFactory {
       };
     }
 
-    // Default to anthropic if no provider specified
-    return {
-      provider: 'anthropic',
-      modelName: modelString,
-    };
+    throw new Error(
+      `Invalid model provided: ${modelString}. Please provide a model in the format of provider/model-name.`
+    );
   }
 
   /**
@@ -193,31 +191,31 @@ export class ModelFactory {
   /**
    * Create an OpenAI model instance
    */
-  private static createGeminiModel(
+  private static createGoogleModel(
     modelName: string,
     providerOptions?: Record<string, unknown>
   ): LanguageModel {
-    const geminiConfig: any = {};
+    const googleConfig: any = {};
     // Extract provider configuration (baseURL, etc.)
     // Note: API keys should be provided via environment variables, not in configuration
 
     if (providerOptions?.baseUrl || providerOptions?.baseURL) {
-      geminiConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
+      googleConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
     }
 
     // Handle AI Gateway configuration if present
     if (providerOptions?.gateway) {
-      logger.info({ gateway: providerOptions.gateway }, 'Setting up AI Gateway for Gemini model');
-      Object.assign(geminiConfig, providerOptions.gateway);
+      logger.info({ gateway: providerOptions.gateway }, 'Setting up AI Gateway for Google model');
+      Object.assign(googleConfig, providerOptions.gateway);
     }
 
     // For AI SDK v5, model parameters like temperature are passed to generateText/streamText,
     // not to the model constructor. Only provider config (apiKey, baseURL) goes to the provider.
 
-    if (Object.keys(geminiConfig).length > 0) {
-      logger.info({ config: geminiConfig }, 'Applying custom Gemini provider configuration');
+    if (Object.keys(googleConfig).length > 0) {
+      logger.info({ config: googleConfig }, 'Applying custom Google provider configuration');
       // In AI SDK v5, use createGoogleGenerativeAI for custom config
-      const provider = createGoogleGenerativeAI(geminiConfig);
+      const provider = createGoogleGenerativeAI(googleConfig);
       return provider(modelName);
     }
 

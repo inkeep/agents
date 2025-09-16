@@ -8,15 +8,15 @@ import { cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
 
-export const defaultGeminiModelConfigurations = {
+export const defaultGoogleModelConfigurations = {
   base: {
-    model: 'gemini/gemini-2.5-flash',
+    model: 'google/gemini-2.5-flash',
   },
   structuredOutput: {
-    model: 'gemini/gemini-2.5-flash-lite',
+    model: 'google/gemini-2.5-flash-lite',
   },
   summarizer: {
-    model: 'gemini/gemini-2.5-flash-lite',
+    model: 'google/gemini-2.5-flash-lite',
   },
 };
 
@@ -50,7 +50,7 @@ type FileConfig = {
   projectId: string;
   openAiKey?: string;
   anthropicKey?: string;
-  geminiKey?: string;
+  googleKey?: string;
   manageApiPort?: string;
   runApiPort?: string;
   modelSettings: Record<string, any>;
@@ -63,12 +63,12 @@ export const createAgents = async (
     templateName?: string;
     openAiKey?: string;
     anthropicKey?: string;
-    geminiKey?: string;
+    googleKey?: string;
     template?: string;
     customProjectId?: string;
   } = {}
 ) => {
-  let { dirName, openAiKey, anthropicKey, geminiKey, template, customProjectId } = args;
+  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId } = args;
   const tenantId = 'default';
   const manageApiPort = '3002';
   const runApiPort = '3003';
@@ -132,7 +132,7 @@ export const createAgents = async (
       options: [
         { value: 'anthropic', label: 'Anthropic only' },
         { value: 'openai', label: 'OpenAI only' },
-        { value: 'gemini', label: 'Gemini only' },
+        { value: 'google', label: 'Google only' },
       ],
     });
 
@@ -176,23 +176,23 @@ export const createAgents = async (
         process.exit(0);
       }
       openAiKey = openAiKeyResponse as string;
-    } else if (providerChoice === 'gemini') {
-      const geminiKeyResponse = await p.text({
-        message: 'Enter your Gemini API key:',
+    } else if (providerChoice === 'google') {
+      const googleKeyResponse = await p.text({
+        message: 'Enter your Google API key:',
         placeholder: 'AIzaSy...',
         validate: (value) => {
           if (!value || value.trim() === '') {
-            return 'Gemini API key is required';
+            return 'Google API key is required';
           }
           return undefined;
         },
       });
 
-      if (p.isCancel(geminiKeyResponse)) {
+      if (p.isCancel(googleKeyResponse)) {
         p.cancel('Operation cancelled');
         process.exit(0);
       }
-      geminiKey = geminiKeyResponse as string;
+      googleKey = googleKeyResponse as string;
     }
   }
 
@@ -201,8 +201,8 @@ export const createAgents = async (
     defaultModelSettings = defaultAnthropicModelConfigurations;
   } else if (openAiKey) {
     defaultModelSettings = defaultOpenaiModelConfigurations;
-  } else if (geminiKey) {
-    defaultModelSettings = defaultGeminiModelConfigurations;
+  } else if (googleKey) {
+    defaultModelSettings = defaultGoogleModelConfigurations;
   }
 
   const s = p.spinner();
@@ -338,7 +338,7 @@ DB_FILE_NAME=file:./local.db
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-GEMINI_API_KEY=${config.geminiKey || 'your-gemini-key-here'}
+GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 
 # Logging
 LOG_LEVEL=debug
@@ -367,7 +367,7 @@ DB_FILE_NAME=file:../../local.db
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-GEMINI_API_KEY=${config.geminiKey || 'your-gemini-key-here'}
+GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 
 AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
 `;

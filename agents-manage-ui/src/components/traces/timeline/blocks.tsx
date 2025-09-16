@@ -1,4 +1,5 @@
 import { AnthropicIcon } from '@/components/icons/anthropic';
+import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import type { ActivityItem } from './types';
@@ -55,10 +56,12 @@ export function InfoRow({ label, value }: { label: string; value?: string | numb
 export function ModelBadge({ model }: { model: string }) {
   return (
     <Badge className="text-xs max-w-full flex-1" variant="code">
-      {model?.startsWith('gpt-') ? (
+      {model?.startsWith('gpt-') || model?.startsWith('openai/') ? (
         <OpenAIIcon className="size-3 text-xs text-muted-foreground flex-shrink-0" />
-      ) : model?.startsWith('claude-') ? (
+      ) : model?.startsWith('claude-') || model?.startsWith('anthropic/') ? (
         <AnthropicIcon className="size-3 text-xs flex-shrink-0" />
+      ) : model?.startsWith('gemini-') || model?.startsWith('google/') ? (
+        <GoogleIcon className="size-3 text-xs flex-shrink-0" />
       ) : null}
       <div className="truncate w-full">{model}</div>
     </Badge>

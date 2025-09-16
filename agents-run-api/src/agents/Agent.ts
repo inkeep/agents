@@ -1468,7 +1468,7 @@ ${output}`;
                 { role: 'user', content: userMessage },
                 ...reasoningFlow,
                 {
-                  role: 'system',
+                  role: 'user',
                   content: await this.buildPhase2SystemPrompt(),
                 },
               ],

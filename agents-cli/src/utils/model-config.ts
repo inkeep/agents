@@ -16,13 +16,13 @@ export interface ModelConfigurationResult {
 
 export const defaultGeminiModelConfigurations = {
   base: {
-    model: 'gemini/gemini-2.5-flash',
+    model: 'google/gemini-2.5-flash',
   },
   structuredOutput: {
-    model: 'gemini/gemini-2.5-flash-lite',
+    model: 'google/gemini-2.5-flash-lite',
   },
   summarizer: {
-    model: 'gemini/gemini-2.5-flash-lite',
+    model: 'google/gemini-2.5-flash-lite',
   },
 };
 
@@ -64,7 +64,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
       choices: [
         { name: 'Anthropic (Claude)', value: 'anthropic' },
         { name: 'OpenAI (GPT)', value: 'openai' },
-        { name: 'Google (Gemini)', value: 'gemini' },
+        { name: 'Google (Gemini)', value: 'google' },
       ],
       validate: (input: string[]) => {
         if (input.length === 0) {
@@ -91,9 +91,9 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     { name: 'GPT-4.1 Nano', value: 'openai/gpt-4.1-nano-2025-04-14' },
   ];
 
-  const geminiModels = [
-    { name: 'Gemini 2.5 Flash', value: 'gemini/gemini-2.5-flash' },
-    { name: 'Gemini 2.5 Flash Lite', value: 'gemini/gemini-2.5-flash-lite' },
+  const googleModels = [
+    { name: 'Gemini 2.5 Flash', value: 'google/gemini-2.5-flash' },
+    { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite' },
   ];
 
   // Collect all available models based on selected providers
@@ -104,8 +104,8 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   if (providers.includes('openai')) {
     availableModels.push(...openaiModels);
   }
-  if (providers.includes('gemini')) {
-    availableModels.push(...geminiModels);
+  if (providers.includes('google')) {
+    availableModels.push(...googleModels);
   }
 
   // Model selection for different use cases

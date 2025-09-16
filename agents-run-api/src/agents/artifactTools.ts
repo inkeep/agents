@@ -153,7 +153,7 @@ function createPropSelectorsSchema(artifactComponents?: ArtifactComponentApiInse
           propSchema[propName] = z
             .string()
             .describe(
-              `JMESPath selector for ${propName} (${propDescription}) - summary version, relative to base selector`
+              `JMESPath selector for ${propName} (${propDescription}) - summary version, MUST be relative to your baseSelector target level. Access fields WITHIN the items your baseSelector returns.`
             );
         });
       }
@@ -171,7 +171,7 @@ function createPropSelectorsSchema(artifactComponents?: ArtifactComponentApiInse
             propSchema[propName] = z
               .string()
               .describe(
-                `JMESPath selector for ${propName} (${propDescription}) - full version, relative to base selector`
+                `JMESPath selector for ${propName} (${propDescription}) - MUST be relative to your baseSelector target level. If baseSelector stops at a document, this accesses fields WITHIN that document. Examples: "title", "content.body", "metadata.author"`
               );
           }
         });
@@ -191,7 +191,21 @@ function createPropSelectorsSchema(artifactComponents?: ArtifactComponentApiInse
   return z
     .record(z.string(), z.string())
     .describe(
-      'Prop selectors mapping schema properties to JMESPath expressions relative to base selector'
+      'Prop selectors mapping schema properties to JMESPath expressions relative to base selector. Each path is relative to the item(s) your baseSelector returns.\n\n' +
+        '🎯 CRITICAL: PropSelectors work ONLY on the data your baseSelector returns!\n' +
+        'If baseSelector = "result.docs[0]" → propSelectors access fields INSIDE that doc\n' +
+        'If baseSelector = "result.docs[0].content[0]" → propSelectors access fields INSIDE that content item\n\n' +
+        '✅ CORRECT EXAMPLES (paths relative to baseSelector target):\n' +
+        '• baseSelector: "result.documents[?type==\'article\']" → propSelectors: {"title": "title", "url": "url"}\n' +
+        '• baseSelector: "result.content[0].text" → propSelectors: {"content": "content[0].text", "source": "content[0].source"}\n' +
+        '• baseSelector: "result.items" → propSelectors: {"name": "profile.name", "email": "contact.email"}\n\n' +
+        '❌ WRONG EXAMPLES (accessing data not at baseSelector level):\n' +
+        '• baseSelector: "result.docs[0].content[0]" → propSelectors: {"title": "title"} ← title is at doc level, not content level!\n' +
+        '• baseSelector: "result.source.content" → propSelectors: {"title": "content[4].text"} ← baseSelector ends at array, can\'t index into it!\n' +
+        '• baseSelector: "result.items" → propSelectors: {"title": "documents[0].title"} ← going deeper when baseSelector should handle depth\n\n' +
+        '❌ NEVER USE LITERAL VALUES:\n' +
+        '{"title": "Robert Tran", "url": "https://linkedin.com/..."}\n\n' +
+        '💡 TIP: Match your baseSelector depth to where the properties you need actually exist!'
     );
 }
 
@@ -205,7 +219,15 @@ function createInputSchema(artifactComponents?: ArtifactComponentApiInsert[]) {
     baseSelector: z
       .string()
       .describe(
-        'JMESPath selector to get to the main data array/object. ALWAYS start with "result." Example: "result.content[?type==\'text\']"'
+        'JMESPath selector to get to the main data array/object. ALWAYS start with "result." That is a mandatory prefix.\n\n' +
+          'Data structures are COMPLEX and NESTED. Examples:\n' +
+          '• "result.content[0].text.content[2]" - parsed JSON in text field\n' +
+          '• "result.structuredContent.content[1]" - direct structured data\n' +
+          '• "result.data.items[?type==\'doc\']" - filtered array\n\n' +
+          '🚨 CRITICAL: If you need data from array[4], your baseSelector must END at array[4], NOT at the array itself!\n' +
+          '✅ CORRECT: "result.source.content[4]" → propSelectors can access fields in that item\n' +
+          '❌ WRONG: "result.source.content" → propSelectors can\'t use content[4] because baseSelector already selected the array\n\n' +
+          '🔥 IF YOUR PATH FAILS: READ THE ERROR MESSAGE! It tells you the correct path! 🔥'
       ),
     propSelectors: createPropSelectorsSchema(artifactComponents),
   });
@@ -243,6 +265,9 @@ export function createSaveToolResultTool(
   return tool({
     description: `Save tool results as structured artifacts. Each artifact should represent ONE SPECIFIC, IMPORTANT, and UNIQUE document or data item.
 
+⚡ CRITICAL: JSON-like text content in tool results is AUTOMATICALLY PARSED into proper JSON objects - treat all data as structured, not text strings.
+🚨 CRITICAL: Data structures are deeply nested. When your path fails, READ THE ERROR MESSAGE - it shows the correct path!
+
 AVAILABLE ARTIFACT TYPES:
 ${availableTypesWithDescriptions}
 
@@ -254,26 +279,6 @@ Each artifact you save becomes a SEPARATE DATA COMPONENT in the structured respo
 ✅ UNIQUE with distinct value from other artifacts
 ✅ RENDERED AS INDIVIDUAL DATA COMPONENT in the UI
 
-❌ DO NOT save multiple different items in one artifact unless they are EXTREMELY SIMILAR
-❌ DO NOT batch unrelated items together - each item becomes its own data component
-❌ DO NOT save generic collections - break them into individual data components
-
-🎯 STRUCTURED DATA COMPONENT PRINCIPLE:
-Each artifact save creates ONE data component that will be rendered separately in the UI. If you have 5 important items, save them as 5 separate artifacts to create 5 separate data components for better user experience.
-
-THINK: "What is the ONE most important piece of information here that deserves its own data component?"
-
-EXAMPLES OF GOOD INDIVIDUAL ARTIFACTS (SEPARATE DATA COMPONENTS):
-- Nick Gomez's founder profile (specific person) → Individual data component
-- The /users/create API endpoint documentation (specific endpoint) → Individual data component  
-- Error message for authentication failure (specific error type) → Individual data component
-- Configuration for Redis caching (specific config topic) → Individual data component
-
-EXAMPLES OF BAD BATCHING:
-❌ "All team members" → Should be separate artifacts for each important member (separate data components)
-❌ "All API endpoints" → Should be separate artifacts for each distinct endpoint (separate data components)
-❌ "All error types" → Should be separate artifacts for each error category (separate data components)
-
 USAGE PATTERN:
 1. baseSelector: Navigate through nested structures to target ONE SPECIFIC item
    - Navigate through all necessary levels: "result.data.items.nested[?condition]"
@@ -283,9 +288,11 @@ USAGE PATTERN:
    - NOT: "result.items[*]" (too broad, gets everything)
 
 2. propSelectors: Extract properties relative to your selected item
-   - Always relative to the single item that baseSelector returns
-   - Simple paths from that item: { prop1: "field_x", prop2: "nested.field_y", prop3: "deep.nested.field_z" }
-   - The tool handles array iteration - your selectors work on individual items
+   - 🎯 CRITICAL: Always relative to the single item that baseSelector returns
+   - If baseSelector ends at a document → propSelectors access document fields
+   - If baseSelector ends at content[0] → propSelectors access content[0] fields
+   - Simple paths from that exact level: { prop1: "field_x", prop2: "nested.field_y" }
+   - ❌ DON'T try to go back up or deeper - adjust your baseSelector instead!
 
 3. Result: ONE artifact representing ONE important, unique item → ONE data component
 
@@ -294,15 +301,7 @@ USAGE PATTERN:
 - Focus on getting to the right level with baseSelector, then keep propSelectors simple
 - Test your baseSelector: Does it return exactly the items you want?
 
-⚠️  STRICT SELECTIVITY RULES FOR DATA COMPONENTS:
-- ALWAYS ask: "Is this ONE specific, important thing that deserves its own data component?"
-- If the answer is no, don't save it or find a more specific selector
-- Multiple similar items = Multiple separate artifact saves (use the tool multiple times) → Multiple data components
-- Each artifact should be independently valuable and uniquely identifiable → Each data component stands alone
-- BETTER to save 3 individual, specific artifacts (3 data components) than 1 generic collection (1 data component)
-
-🔄 MULTIPLE ARTIFACTS = MULTIPLE DATA COMPONENTS:
-Remember: Each time you call this tool, you create a separate data component. Call it multiple times for multiple items to create a rich, structured response with individual data components for each important piece of information.`,
+Please use Error Messages to Debug when there is an error in the tool call.`,
     inputSchema,
     execute: async ({ toolCallId, baseSelector, propSelectors, ...rest }, _context?: any) => {
       const artifactType = 'artifactType' in rest ? (rest.artifactType as string) : undefined;
