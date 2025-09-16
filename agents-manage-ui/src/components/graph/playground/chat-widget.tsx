@@ -108,7 +108,7 @@ export function ChatWidget({
   setConversationId,
   startPolling,
   stopPolling,
-  customHeaders,
+  customHeaders = {},
 }: ChatWidgetProps) {
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

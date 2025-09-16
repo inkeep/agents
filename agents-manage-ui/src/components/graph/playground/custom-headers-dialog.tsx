@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { JsonEditor } from '@/components/form/json-editor';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -46,6 +47,7 @@ interface CustomHeadersDialogProps {
 }
 
 function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersDialogProps) {
+  const numHeaders = Object.keys(customHeaders).length || 0;
   const [isOpen, setIsOpen] = useState(false);
   const form = useForm<CustomHeadersFormData>({
     defaultValues: {
@@ -73,12 +75,20 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
     setIsOpen(false);
   };
 
+  const onRemoveHeaders = () => {
+    form.reset({ headers: '{}' });
+    setCustomHeaders({});
+    setIsOpen(false);
+    toast.success('Custom headers removed.');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Plus className="w-4 h-4" />
+          {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           Custom Headers
+          {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}
         </Button>
       </DialogTrigger>
       <DialogContent className="!max-w-2xl">
@@ -99,6 +109,11 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
               )}
             </FormFieldWrapper>
             <div className="flex justify-end gap-2">
+              {numHeaders > 0 && (
+                <Button type="button" variant="outline" onClick={onRemoveHeaders}>
+                  Remove headers
+                </Button>
+              )}
               <Button type="submit" disabled={isSubmitting}>
                 Apply
               </Button>
