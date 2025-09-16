@@ -338,13 +338,7 @@ export const agentDataComponents = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-    // Foreign key constraint to projects table
-    foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'agent_data_components_project_fk',
-    }).onDelete('cascade'),
-    // Foreign key constraint to agents table (which includes graph scope)
+    // Foreign key constraint to agents table (ensures graph and project exist via cascade)
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
       foreignColumns: [agents.tenantId, agents.projectId, agents.graphId, agents.id],
@@ -398,13 +392,7 @@ export const agentArtifactComponents = sqliteTable(
     primaryKey({
       columns: [table.tenantId, table.projectId, table.graphId, table.agentId, table.id],
     }),
-    // Foreign key constraint to projects table
-    foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'agent_artifact_components_project_fk',
-    }).onDelete('cascade'),
-    // Foreign key constraint to agents table
+    // Foreign key constraint to agents table (ensures graph and project exist via cascade)
     foreignKey({
       columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
       foreignColumns: [agents.tenantId, agents.projectId, agents.graphId, agents.id],
