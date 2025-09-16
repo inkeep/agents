@@ -352,7 +352,7 @@ describe('generateTaskHandler', () => {
           ...mockConfig.agentSchema,
           models: {
             base: {
-              model: 'anthropic/claude-4-sonnet-20250514',
+              model: 'anthropic/claude-sonnet-4-20250514',
               providerOptions: {
                 anthropic: {
                   temperature: 0.7,
@@ -379,7 +379,7 @@ describe('generateTaskHandler', () => {
       expect(lastAgentConstructorArgs).toBeDefined();
       expect(lastAgentConstructorArgs.models).toEqual({
         base: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.7,
@@ -691,7 +691,7 @@ describe('generateTaskHandler', () => {
           prompt: 'You are a helpful test agent',
           models: {
             base: {
-              model: 'anthropic/claude-4-sonnet-20250514',
+              model: 'anthropic/claude-sonnet-4-20250514',
               providerOptions: {
                 anthropic: {
                   temperature: 0.8,
@@ -719,7 +719,7 @@ describe('generateTaskHandler', () => {
 
       expect(config.agentSchema.models).toEqual({
         base: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -728,7 +728,7 @@ describe('generateTaskHandler', () => {
           },
         },
         structuredOutput: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -737,7 +737,7 @@ describe('generateTaskHandler', () => {
           },
         },
         summarizer: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,

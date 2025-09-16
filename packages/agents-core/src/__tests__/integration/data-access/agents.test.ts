@@ -437,7 +437,7 @@ describe('Agents Data Access - Integration Tests', () => {
           model: 'gpt-4o-mini',
         },
         summarizer: {
-          model: 'claude-3-haiku',
+          model: 'claude-3.5-haiku',
           providerOptions: {
             anthropic: {
               maxTokens: 1000,

@@ -700,7 +700,7 @@ describe('AgentGraph', () => {
     it('should not override existing graph models but inherit missing ones', async () => {
       const graphModels = {
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
       };
 
       graph.setModels(graphModels);
@@ -711,7 +711,7 @@ describe('AgentGraph', () => {
       // Should keep existing graph models and inherit missing summarizer from project
       const expectedModels = {
         base: { model: 'claude-3-sonnet' }, // kept from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // kept from graph
+        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from graph
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       };
       expect(graph.getModels()).toEqual(expectedModels);
@@ -749,7 +749,7 @@ describe('AgentGraph', () => {
 
       const agent1Models = {
         base: { model: 'claude-3-opus' },
-        summarizer: { model: 'claude-3-haiku' },
+        summarizer: { model: 'claude-3.5-haiku' },
       };
 
       graph.setModels(graphModels);
@@ -760,7 +760,7 @@ describe('AgentGraph', () => {
       // Agent1 should keep its existing models and inherit missing structuredOutput from graph
       const expectedAgent1Models = {
         base: { model: 'claude-3-opus' }, // kept from agent
-        summarizer: { model: 'claude-3-haiku' }, // kept from agent
+        summarizer: { model: 'claude-3.5-haiku' }, // kept from agent
         structuredOutput: { model: 'gpt-4o-mini' }, // inherited from graph
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -778,7 +778,7 @@ describe('AgentGraph', () => {
 
       // Agent1 has partial models (missing base)
       const agent1PartialModels = {
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
         // no base - should inherit from graph
       };
@@ -791,7 +791,7 @@ describe('AgentGraph', () => {
       // Agent1 should inherit missing base from graph, keep existing models
       const expectedAgent1Models = {
         base: { model: 'gpt-4o' }, // inherited from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // kept from agent
+        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from agent
         summarizer: { model: 'claude-3-sonnet' }, // kept from agent
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -842,7 +842,7 @@ describe('AgentGraph', () => {
       // Set partial graph models (missing summarizer)
       const partialGraphModels = {
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
         // no summarizer - should inherit from project
       };
 
@@ -854,7 +854,7 @@ describe('AgentGraph', () => {
       const finalModels = graph.getModels();
       expect(finalModels).toEqual({
         base: { model: 'claude-3-sonnet' }, // kept from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // kept from graph
+        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from graph
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       });
     });
@@ -897,7 +897,7 @@ describe('AgentGraph', () => {
 
       // Agent1 has partial models (missing base)
       const agent1PartialModels = {
-        structuredOutput: { model: 'claude-3-haiku' }, // overrides graph
+        structuredOutput: { model: 'claude-3.5-haiku' }, // overrides graph
         // no base or summarizer - should inherit from graph/project
       };
 
@@ -919,7 +919,7 @@ describe('AgentGraph', () => {
       // Agent1 should inherit missing models from graph
       const expectedAgent1Models = {
         base: { model: 'claude-3-opus' }, // inherited from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // explicit in agent
+        structuredOutput: { model: 'claude-3.5-haiku' }, // explicit in agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from graph (which got it from project)
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);

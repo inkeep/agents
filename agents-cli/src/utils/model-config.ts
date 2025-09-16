@@ -92,6 +92,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   ];
 
   const googleModels = [
+    { name: 'Gemini 2.5 Pro', value: 'google/gemini-2.5-pro' },
     { name: 'Gemini 2.5 Flash', value: 'google/gemini-2.5-flash' },
     { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite' },
   ];

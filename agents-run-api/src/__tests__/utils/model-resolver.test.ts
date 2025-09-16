@@ -1,5 +1,5 @@
+import type { AgentGraphSelect, AgentSelect, ProjectSelect } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentSelect, AgentGraphSelect, ProjectSelect } from '@inkeep/agents-core';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
 // Mock the database client
@@ -85,7 +85,7 @@ describe('resolveModelConfig', () => {
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as AgentSelect;
 
@@ -94,7 +94,7 @@ describe('resolveModelConfig', () => {
       expect(result).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4-turbo' },
-        summarizer: { model: 'claude-3-haiku' },
+        summarizer: { model: 'claude-3.5-haiku' },
       });
     });
   });
@@ -112,7 +112,7 @@ describe('resolveModelConfig', () => {
         projectId: 'project-123',
         models: {
           base: { model: 'claude-3-sonnet' },
-          structuredOutput: { model: 'claude-3-haiku' },
+          structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: undefined,
         },
       } as AgentGraphSelect;
@@ -124,7 +124,7 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
       });
 
@@ -151,7 +151,7 @@ describe('resolveModelConfig', () => {
         projectId: 'project-123',
         models: {
           base: { model: 'claude-3-sonnet' },
-          structuredOutput: { model: 'claude-3-haiku' },
+          structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: { model: 'claude-3-opus' },
         },
       } as AgentGraphSelect;
@@ -215,7 +215,7 @@ describe('resolveModelConfig', () => {
         models: {
           base: undefined,
           structuredOutput: undefined,
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as AgentSelect;
 
@@ -245,7 +245,7 @@ describe('resolveModelConfig', () => {
       expect(result).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Falls back to project
-        summarizer: { model: 'claude-3-haiku' }, // Agent-specific takes precedence
+        summarizer: { model: 'claude-3.5-haiku' }, // Agent-specific takes precedence
       });
     });
   });
@@ -294,7 +294,7 @@ describe('resolveModelConfig', () => {
         models: {
           base: undefined,
           structuredOutput: { model: 'gpt-4' },
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as unknown as ProjectSelect;
 
@@ -374,7 +374,7 @@ describe('resolveModelConfig', () => {
         models: {
           base: { model: 'claude-3-sonnet' },
           structuredOutput: undefined,
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as AgentGraphSelect;
 
@@ -386,7 +386,7 @@ describe('resolveModelConfig', () => {
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
-        summarizer: { model: 'claude-3-haiku' }, // Falls back to graph
+        summarizer: { model: 'claude-3.5-haiku' }, // Falls back to graph
       });
     });
 

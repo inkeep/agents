@@ -24,7 +24,7 @@ describe('Graph Model Settings', () => {
           model: 'gpt-4o-mini',
         },
         summarizer: {
-          model: 'anthropic/claude-3-haiku-20240307',
+          model: 'anthropic/claude-3.5-haiku-20240307',
         },
       },
       defaultAgent: agent({
@@ -49,7 +49,7 @@ describe('Graph Model Settings', () => {
         model: 'gpt-4o-mini',
       },
       summarizer: {
-        model: 'anthropic/claude-3-haiku-20240307',
+        model: 'anthropic/claude-3.5-haiku-20240307',
       },
     });
   });
@@ -143,7 +143,7 @@ describe('Graph Model Settings', () => {
       name: 'Test Graph',
       models: {
         base: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
         },
       },
       defaultAgent: agent({

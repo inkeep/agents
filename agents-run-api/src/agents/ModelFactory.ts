@@ -36,25 +36,27 @@ export class ModelFactory {
    * Extract provider configuration from providerOptions
    * Only includes settings that go to the provider constructor (baseURL, apiKey, etc.)
    */
-  private static extractProviderConfig(providerOptions?: Record<string, unknown>): Record<string, unknown> {
+  private static extractProviderConfig(
+    providerOptions?: Record<string, unknown>
+  ): Record<string, unknown> {
     if (!providerOptions) {
       return {};
     }
 
     const providerConfig: Record<string, unknown> = {};
-    
+
     // Handle baseURL variations
     if (providerOptions.baseUrl || providerOptions.baseURL) {
       providerConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
     }
-    
+
     // Handle AI Gateway configuration if present
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
     }
-    
+
     // Note: API keys should come from environment variables, not configuration
-    
+
     return providerConfig;
   }
 
@@ -85,14 +87,14 @@ export class ModelFactory {
 
     // Extract provider configuration from providerOptions
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
-    
+
     // Only create custom provider if there's actual configuration
     if (Object.keys(providerConfig).length > 0) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
       return customProvider.languageModel(modelName);
     }
-    
+
     // Use default providers when no custom config
     switch (provider) {
       case 'anthropic':
@@ -113,8 +115,8 @@ export class ModelFactory {
 
   /**
    * Parse model string to extract provider and model name
-   * Examples: "anthropic/claude-4-sonnet" -> { provider: "anthropic", modelName: "claude-4-sonnet" }
-   *          "claude-4-sonnet" -> { provider: "anthropic", modelName: "claude-4-sonnet" } (default to anthropic)
+   * Examples: "anthropic/claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" }
+   *          "claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" } (default to anthropic)
    */
   static parseModelString(modelString: string): { provider: string; modelName: string } {
     // Handle format like "provider/model-name"
@@ -124,14 +126,13 @@ export class ModelFactory {
 
       // Validate provider is supported
       if (!ModelFactory.SUPPORTED_PROVIDERS.includes(normalizedProvider as any)) {
-        logger.warn(
+        logger.error(
           { provider: normalizedProvider, modelName: modelParts.join('/') },
           'Unsupported provider detected, falling back to anthropic'
         );
-        return {
-          provider: 'anthropic',
-          modelName: modelParts.join('/'),
-        };
+        throw new Error(
+          `Unsupported provider: ${normalizedProvider}. Please provide a model in the format of provider/model-name.`
+        );
       }
 
       return {
@@ -178,7 +179,7 @@ export class ModelFactory {
     model: LanguageModel;
     maxDuration?: number;
   } & Record<string, unknown> {
-    const modelString = modelSettings?.model?.trim() || 'anthropic/claude-4-sonnet-20250514';
+    const modelString = modelSettings?.model?.trim();
 
     // Create the model instance
     const model = ModelFactory.createModel({
