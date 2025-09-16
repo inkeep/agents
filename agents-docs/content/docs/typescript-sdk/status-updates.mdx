@@ -93,24 +93,11 @@ export const graph = agentGraph({
 ## Basic Example
 
 ```typescript
-import { agent, agentGraph, tool } from "@inkeep/agents-manage-api/builders";
-
 const searchAgent = agent({
   id: "search-agent",
   name: "Search Agent",
   prompt: "Help users search and analyze information.",
-  tools: {
-    search: tool({
-      id: "search",
-      name: "Web Search",
-      description: "Search for information",
-      parameters: { query: "string" },
-      execute: async ({ query }) => {
-        // Search implementation
-        return `Results for: ${query}`;
-      },
-    }),
-  },
+  canUse: () => [searchTool],
 });
 
 export const graph = agentGraph({
@@ -147,17 +134,14 @@ export const graph = agentGraph({
   id: "my-graph",
   defaultAgent: myAgent,
   agents: () => [myAgent],
-
   models: {
     summarizer: { model: "claude-3-5-sonnet-20241022" },
   },
-
   statusUpdates: {
     numEvents: 3,
     timeInSeconds: 15,
     // Custom prompt is appended to the base system prompt
-    prompt:
-      "KEEP ALL STATUS UPDATES SHORT AND CONCISE. Use bullet points and focus only on user-visible progress.",
+    prompt: "KEEP ALL STATUS UPDATES SHORT AND CONCISE. Use bullet points and focus only on user-visible progress.",
   },
 });
 ```

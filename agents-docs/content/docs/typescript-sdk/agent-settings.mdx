@@ -60,10 +60,7 @@ const agent = agent({
   },
 
   // Optional - Tools Integration
-  tools: {
-    searchTool: mySearchTool, // Custom tools
-    mcpTool: myMCPTool, // MCP (Model Context Protocol) tools
-  },
+  canUse: () => [searchTool, mcpTool],
 
   // Optional - Data Components (Structured Outputs)
   dataComponents: [
@@ -119,10 +116,10 @@ const agent = agent({
 | -------------------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`                 | string   | Yes      | Stable agent identifier used for consistency and persistence                                                                                                            |
 | `name`               | string   | Yes      | Human-readable name for the agent                                                                                                                                       |
-| `description`        | string   | Yes      | Brief description of the agent's purpose and capabilities                                                                                                               |
 | `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the agent                                                                                                            |
+| `description`        | string   | No      | Brief description of the agent's purpose and capabilities                                                                                                               |
 | `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models                                                                              |
-| `tools`              | object   | No       | MCP tools that the agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details                                                                  |
+| `canUse`              | object   | No       | MCP tools that the agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details                                                                  |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/data-components) for details                                        |
 | `artifactComponents` | array    | No       | Components for handling tool or agent outputs. See [Artifact Components](/typescript-sdk/artifact-components) for details                                               |
 | `canTransferTo`      | function | No       | Function returning array of agents this agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details     |

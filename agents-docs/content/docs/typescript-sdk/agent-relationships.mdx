@@ -26,11 +26,8 @@ const qaAgent = agent({
   id: "qa-agent",
   name: "QA Agent",
   description: "Answers product and service questions",
-  prompt:
-    "Provide accurate information using available tools. Hand back to router if unable to help.",
-  tools: {
-    knowledge_base: knowledgeBaseTool,
-  },
+  prompt: "Provide accurate information using available tools. Hand back to router if unable to help.",
+  canUse: () => [knowledgeBaseTool],
   // Sub-agents can hand back to the router
   canTransferTo: () => [routerAgent],
 });
@@ -40,9 +37,7 @@ const orderAgent = agent({
   name: "Order Agent",
   description: "Handles order-related inquiries and actions",
   prompt: "Assist with order tracking, modifications, and management.",
-  tools: {
-    order_system: orderSystemTool,
-  },
+  canUse: () => [orderSystemTool],
   canTransferTo: () => [routerAgent],
 });
 

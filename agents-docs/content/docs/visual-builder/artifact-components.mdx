@@ -38,6 +38,8 @@ Each agent uses its configured summarizer model for artifact generation:
 // Agent with custom summarizer for artifact generation
 const researchAgent = agent({
   id: "research-agent",
+  name: "Research Agent",
+  prompt: "You are a research agent that can generate artifact names and descriptions",
   models: {
     base: { model: "claude-4-sonnet" },
     summarizer: {

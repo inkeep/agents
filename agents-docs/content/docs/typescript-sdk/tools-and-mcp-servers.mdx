@@ -23,9 +23,7 @@ const qaAgent = agent({
   name: "QA Agent",
   description: "Responsible for answering questions about the company knowledge base.",
   prompt: "You are a QA agent that can answer questions about the company knowledge base.",
-  tools: {
-    knowledge_base: knowledgeBaseTool,
-  },
+  canUse: () => [knowledgeBaseTool],
 });
 ```
 
@@ -130,16 +128,14 @@ const productAgent = agent({
   name: "Product Agent",
   description: "Answers questions about the Inkeep product",
   prompt: `You are a product specialist for Inkeep. You have access to the product tool to search for:
-  - Product features and specifications
-  - Pricing information
-  - Technical documentation
-  - Integration guides
-  
-  Use the product tool when customers ask about features, pricing, or technical details.
-  If questions are outside the Inkeep product scope, transfer to the router agent.`,
-  tools: {
-    product: productTool,
-  },
+    - Product features and specifications
+    - Pricing information
+    - Technical documentation
+    - Integration guides
+    
+    Use the product tool when customers ask about features, pricing, or technical details.
+    If questions are outside the Inkeep product scope, transfer to the router agent.`,
+  canUse: () => [productTool],
   canTransferTo: () => [routerAgent],
 });
 ```

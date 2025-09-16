@@ -92,11 +92,8 @@ This creates a clear chain of evidence showing where each piece of information o
 // Example of how artifacts are created and used
 const factsAgent = agent({
   id: "facts",
-  tools: {
-    facts_tool: inkeepFactsTool, // When this tool is used...
-  },
-  prompt:
-    "Use the facts_tool to fetch information and create a fact component followed by an artifact component.",
+  canUse: () => [inkeepFactsTool],
+  prompt: "Use the inkeepFactsTool to fetch information and create a fact component followed by an artifact component.",
   artifactComponents: [
     {
       id: "document-artifact",
