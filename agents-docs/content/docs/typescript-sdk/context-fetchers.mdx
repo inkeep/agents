@@ -74,7 +74,6 @@ const userContext = contextConfig({
 
 // 4. Create and use the agent
 const personalAgent = agent({
-  tenantId: "your-tenant",
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
@@ -87,7 +86,6 @@ const personalAgent = agent({
 ```typescript
 // Initialize the graph
 const graph = agentGraph({
-  tenantId: "your-tenant",
   id: "personal-graph",
   name: "Personal Assistant Graph",
   defaultAgent: personalAgent,

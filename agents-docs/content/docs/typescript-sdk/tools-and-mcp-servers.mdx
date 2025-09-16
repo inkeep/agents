@@ -13,7 +13,6 @@ import { agent, mcpTool } from "@inkeep/agents-sdk";
 
 const knowledgeBaseTool = mcpTool({
   id: "knowledge-base-tool",
-  tenantId: "your-tenant",
   name: "knowledge_base",
   description: "Search the company knowledge base for information",
   serverUrl: "https://kb.yourcompany.com/mcp",
@@ -21,8 +20,9 @@ const knowledgeBaseTool = mcpTool({
 
 const qaAgent = agent({
   id: "qa-agent",
-  tenantId: "your-tenant",
   name: "QA Agent",
+  description: "Responsible for answering questions about the company knowledge base.",
+  prompt: "You are a QA agent that can answer questions about the company knowledge base.",
   tools: {
     knowledge_base: knowledgeBaseTool,
   },
