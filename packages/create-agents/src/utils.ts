@@ -347,16 +347,6 @@ DB_FILE_NAME=file:./local.db
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-
-# Logging
-LOG_LEVEL=debug
-
-# Service Ports
-MANAGE_API_PORT=${config.manageApiPort}
-RUN_API_PORT=${config.runApiPort}
-
-# UI Configuration (for dashboard)
-
 `;
 
   await fs.writeFile('.env', envContent);
