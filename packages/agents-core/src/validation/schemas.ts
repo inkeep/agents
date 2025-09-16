@@ -84,13 +84,13 @@ export const ProjectModelSchema = z.object({
 
 // Helper functions with better type preservation
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, graphId: true }).partial() satisfies z.ZodObject<any>;
 
 // === Agent Schemas ===
 export const AgentSelectSchema = createSelectSchema(agents);

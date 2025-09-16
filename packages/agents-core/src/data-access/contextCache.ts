@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { contextCache } from '../db/schema';
 import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities';
-import type { ScopeConfig } from '../types/utility';
+import type { ProjectScopeConfig } from '../types/utility';
 
 /**
  * Get cached context data for a conversation with optional request hash validation
@@ -87,7 +87,7 @@ export const setCacheEntry =
  */
 export const clearConversationCache =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; conversationId: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<number> => {
     const result = await db
       .delete(contextCache)
       .where(
@@ -106,7 +106,7 @@ export const clearConversationCache =
  */
 export const clearContextConfigCache =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; contextConfigId: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; contextConfigId: string }): Promise<number> => {
     const result = await db
       .delete(contextCache)
       .where(
@@ -125,7 +125,7 @@ export const clearContextConfigCache =
  */
 export const cleanupTenantCache =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .delete(contextCache)
       .where(
@@ -144,7 +144,7 @@ export const cleanupTenantCache =
 export const invalidateRequestContextCache =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     conversationId: string;
     contextConfigId: string;
   }): Promise<number> => {
@@ -169,7 +169,7 @@ export const invalidateRequestContextCache =
 export const invalidateInvocationDefinitionsCache =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     conversationId: string;
     contextConfigId: string;
     invocationDefinitionIds: string[];
@@ -201,7 +201,7 @@ export const invalidateInvocationDefinitionsCache =
 export const getConversationCacheEntries =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     conversationId: string;
   }): Promise<ContextCacheSelect[]> => {
     const result = await db.query.contextCache.findMany({
@@ -224,7 +224,7 @@ export const getConversationCacheEntries =
 export const getContextConfigCacheEntries =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     contextConfigId: string;
   }): Promise<ContextCacheSelect[]> => {
     const result = await db.query.contextCache.findMany({

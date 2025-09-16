@@ -1,40 +1,43 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { agentRelations, agents } from '../db/schema';
+import { agents } from '../db/schema';
 import type { AgentInsert, AgentSelect, AgentUpdate } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { GraphScopeConfig, PaginationConfig } from '../types/utility';
 
 export const getAgentById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentId: string }) => {
     const result = await db.query.agents.findFirst({
       where: and(
         eq(agents.tenantId, params.scopes.tenantId),
         eq(agents.projectId, params.scopes.projectId),
+        eq(agents.graphId, params.scopes.graphId),
         eq(agents.id, params.agentId)
       ),
     });
     return result;
   };
 
-export const listAgents = (db: DatabaseClient) => async (params: { scopes: ScopeConfig }) => {
+export const listAgents = (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
   return await db.query.agents.findMany({
     where: and(
       eq(agents.tenantId, params.scopes.tenantId),
-      eq(agents.projectId, params.scopes.projectId)
+      eq(agents.projectId, params.scopes.projectId),
+      eq(agents.graphId, params.scopes.graphId)
     ),
   });
 };
 
 export const listAgentsPaginated =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
     const whereClause = and(
       eq(agents.tenantId, params.scopes.tenantId),
-      eq(agents.projectId, params.scopes.projectId)
+      eq(agents.projectId, params.scopes.projectId),
+      eq(agents.graphId, params.scopes.graphId)
     );
 
     const [data, totalResult] = await Promise.all([
@@ -65,7 +68,7 @@ export const createAgent = (db: DatabaseClient) => async (params: AgentInsert) =
 
 export const updateAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; data: AgentUpdate }) => {
+  async (params: { scopes: GraphScopeConfig; agentId: string; data: AgentUpdate }) => {
     const data = params.data;
 
     // Handle model settings clearing - if empty object with no meaningful values, set to null
@@ -95,6 +98,7 @@ export const updateAgent =
         and(
           eq(agents.tenantId, params.scopes.tenantId),
           eq(agents.projectId, params.scopes.projectId),
+          eq(agents.graphId, params.scopes.graphId),
           eq(agents.id, params.agentId)
         )
       )
@@ -109,7 +113,11 @@ export const updateAgent =
 export const upsertAgent =
   (db: DatabaseClient) =>
   async (params: { data: AgentInsert }): Promise<AgentSelect> => {
-    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
+    const scopes = {
+      tenantId: params.data.tenantId,
+      projectId: params.data.projectId,
+      graphId: params.data.graphId,
+    };
 
     const existing = await getAgentById(db)({
       scopes,
@@ -141,13 +149,14 @@ export const upsertAgent =
   };
 
 export const deleteAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentId: string }) => {
     await db
       .delete(agents)
       .where(
         and(
           eq(agents.tenantId, params.scopes.tenantId),
           eq(agents.projectId, params.scopes.projectId),
+          eq(agents.graphId, params.scopes.graphId),
           eq(agents.id, params.agentId)
         )
       );
@@ -161,7 +170,7 @@ export const deleteAgent =
   };
 
 export const getAgentsByIds =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentIds: string[] }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentIds: string[] }) => {
     if (params.agentIds.length === 0) {
       return [];
     }
@@ -173,40 +182,8 @@ export const getAgentsByIds =
         and(
           eq(agents.tenantId, params.scopes.tenantId),
           eq(agents.projectId, params.scopes.projectId),
+          eq(agents.graphId, params.scopes.graphId),
           inArray(agents.id, params.agentIds)
-        )
-      );
-  };
-
-export const getAgentInGraphContext =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId: string; agentId: string }) => {
-    return await db
-      .select({
-        id: agents.id,
-        name: agents.name,
-        description: agents.description,
-        prompt: agents.prompt,
-        tenantId: agents.tenantId,
-        graphId: agentRelations.graphId,
-        sourceAgentId: agentRelations.sourceAgentId,
-      })
-      .from(agents)
-      .innerJoin(
-        agentRelations,
-        and(
-          eq(agents.tenantId, agentRelations.tenantId),
-          eq(agents.projectId, agentRelations.projectId),
-          eq(agents.id, agentRelations.sourceAgentId),
-          eq(agentRelations.graphId, params.graphId)
-        )
-      )
-      .where(
-        and(
-          eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId),
-          eq(agents.id, params.agentId),
-          eq(agentRelations.graphId, params.graphId)
         )
       );
   };

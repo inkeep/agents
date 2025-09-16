@@ -13,14 +13,14 @@ import {
   tools,
 } from '../db/schema';
 import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
 import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
 import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 
 export const getAgentGraph =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
     return await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
@@ -31,7 +31,7 @@ export const getAgentGraph =
   };
 
 export const getAgentGraphById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
@@ -43,7 +43,7 @@ export const getAgentGraphById =
   };
 
 export const getAgentGraphWithDefaultAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
@@ -57,18 +57,19 @@ export const getAgentGraphWithDefaultAgent =
     return result ?? null;
   };
 
-export const listAgentGraphs = (db: DatabaseClient) => async (params: { scopes: ScopeConfig }) => {
-  return await db.query.agentGraph.findMany({
-    where: and(
-      eq(agentGraph.tenantId, params.scopes.tenantId),
-      eq(agentGraph.projectId, params.scopes.projectId)
-    ),
-  });
-};
+export const listAgentGraphs =
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
+    return await db.query.agentGraph.findMany({
+      where: and(
+        eq(agentGraph.tenantId, params.scopes.tenantId),
+        eq(agentGraph.projectId, params.scopes.projectId)
+      ),
+    });
+  };
 
 export const listAgentGraphsPaginated =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -135,7 +136,7 @@ export const createAgentGraph = (db: DatabaseClient) => async (data: AgentGraphI
 
 export const updateAgentGraph =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId: string; data: AgentGraphUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; graphId: string; data: AgentGraphUpdate }) => {
     const data = params.data;
 
     // Handle model settings clearing - if empty object or no model field, set to null
@@ -196,7 +197,7 @@ export const updateAgentGraph =
   };
 
 export const deleteAgentGraph =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
     const result = await db
       .delete(agentGraph)
       .where(
@@ -217,7 +218,7 @@ export const deleteAgentGraph =
 export const fetchComponentRelationships =
   (db: DatabaseClient) =>
   async <T extends Record<string, any>>(
-    scopes: ScopeConfig,
+    scopes: ProjectScopeConfig,
     agentIds: string[],
     config: {
       relationTable: any;
@@ -257,7 +258,7 @@ export const getGraphAgentInfos =
     graphId,
     agentId,
   }: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     graphId: string;
     agentId: string;
   }) => {
@@ -291,7 +292,7 @@ export const getGraphAgentInfos =
     const agentInfos = await Promise.all(
       targetAgentIds.map(async (targetAgentId) => {
         const agent = await getAgentById(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           agentId: targetAgentId,
         });
         if (agent !== undefined) {
@@ -312,7 +313,7 @@ export const getFullGraphDefinition =
     scopes: { tenantId, projectId },
     graphId,
   }: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     graphId: string;
   }): Promise<FullGraphDefinition | null> => {
     // First, get the basic graph info
@@ -377,7 +378,7 @@ export const getFullGraphDefinition =
     const graphAgents = await Promise.all(
       Array.from(internalAgentIds).map(async (agentId) => {
         const agent = await getAgentById(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           agentId,
         });
         if (!agent) return null;

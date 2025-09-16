@@ -3,12 +3,14 @@ import type { AgentGraphInsert, AgentInsert, AgentRelationInsert } from '../../t
 export const createTestAgentData = (
   tenantId: string,
   projectId: string,
-  suffix: string
+  suffix: string,
+  graphId?: string
 ): AgentInsert => {
   return {
     id: `default-agent-${suffix}`,
     tenantId,
     projectId,
+    graphId: graphId || `test-graph-${suffix}`,
     name: `Default Agent ${suffix}`,
     description: 'The default agent for the graph',
     prompt: 'Route requests appropriately',

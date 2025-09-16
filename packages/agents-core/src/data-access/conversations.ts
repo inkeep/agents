@@ -9,13 +9,13 @@ import type {
   ConversationUpdate,
   MessageContent,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
 } from '../types/index';
 
 export const listConversations =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     userId?: string;
     pagination?: PaginationConfig;
   }): Promise<{ conversations: ConversationSelect[]; total: number }> => {
@@ -73,7 +73,11 @@ export const createConversation = (db: DatabaseClient) => async (params: Convers
 
 export const updateConversation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; conversationId: string; data: ConversationUpdate }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    data: ConversationUpdate;
+  }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -96,7 +100,7 @@ export const updateConversation =
 
 export const deleteConversation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; conversationId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<boolean> => {
     try {
       // Delete messages first (due to foreign key constraints)
       await db
@@ -129,7 +133,7 @@ export const deleteConversation =
 
 export const updateConversationActiveAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; conversationId: string; activeAgentId: string }) => {
+  async (params: { scopes: ProjectScopeConfig; conversationId: string; activeAgentId: string }) => {
     return updateConversation(db)({
       scopes: params.scopes,
       conversationId: params.conversationId,
@@ -141,7 +145,8 @@ export const updateConversationActiveAgent =
 
 //simpler getConversation
 export const getConversation =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; conversationId: string }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
         eq(conversations.tenantId, params.scopes.tenantId),
@@ -262,7 +267,7 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
 export const getConversationHistory =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     conversationId: string;
     options?: ConversationHistoryConfig;
   }): Promise<any[]> => {
@@ -308,7 +313,8 @@ export const getConversationHistory =
  * Get active agent for a conversation
  */
 export const getActiveAgentForConversation =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; conversationId: string }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
         eq(conversations.tenantId, params.scopes.tenantId),
@@ -324,7 +330,7 @@ export const getActiveAgentForConversation =
 export const setActiveAgentForConversation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     conversationId: string;
     agentId: string;
   }): Promise<void> => {
@@ -354,7 +360,7 @@ export const setActiveAgentForThread =
     threadId,
     agentId,
   }: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     threadId: string;
     agentId: string;
   }) => {
