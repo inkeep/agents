@@ -68,27 +68,30 @@ describe('Cascading Delete Tests', () => {
     };
     await dbClient.insert(projects).values(project);
 
-    // Create an agent
+    // Create an agent graph first
+    const graphId = nanoid();
+    const agentId = nanoid();
+    const graph = {
+      tenantId,
+      projectId,
+      id: graphId,
+      name: 'Test Graph',
+      description: 'Test graph',
+      defaultAgentId: agentId,
+    };
+    await dbClient.insert(agentGraph).values(graph);
+
+    // Create an agent (now with graphId)
     const agent = {
       tenantId,
       projectId,
-      id: nanoid(),
+      graphId,
+      id: agentId,
       name: 'Test Agent',
       description: 'Test agent',
       prompt: 'You are a test agent',
     };
     await dbClient.insert(agents).values(agent);
-
-    // Create an agent graph
-    const graph = {
-      tenantId,
-      projectId,
-      id: nanoid(),
-      name: 'Test Graph',
-      description: 'Test graph',
-      defaultAgentId: agent.id,
-    };
-    await dbClient.insert(agentGraph).values(graph);
 
     // Create context config
     const contextConfig = {
@@ -118,7 +121,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: nanoid(),
-      activeAgentId: agent.id,
+      activeAgentId: agentId,
     };
     await dbClient.insert(conversations).values(conversation);
 
@@ -140,7 +143,7 @@ describe('Cascading Delete Tests', () => {
       id: nanoid(),
       contextId: nanoid(),
       status: 'pending',
-      agentId: agent.id,
+      agentId: agentId,
     };
     await dbClient.insert(tasks).values(task);
 
@@ -199,7 +202,7 @@ describe('Cascading Delete Tests', () => {
       id: nanoid(),
       tenantId,
       projectId,
-      graphId: graph.id,
+      graphId: graphId,
       publicId: nanoid(),
       keyHash: 'test-hash',
       keyPrefix: 'sk_test_',
@@ -230,8 +233,9 @@ describe('Cascading Delete Tests', () => {
     const agentDataComponentRelation = {
       tenantId,
       projectId,
+      graphId,
       id: nanoid(),
-      agentId: agent.id,
+      agentId: agentId,
       dataComponentId: dataComponent.id,
     };
     await dbClient.insert(agentDataComponents).values(agentDataComponentRelation);
@@ -239,8 +243,9 @@ describe('Cascading Delete Tests', () => {
     const agentArtifactComponentRelation = {
       tenantId,
       projectId,
+      graphId,
       id: nanoid(),
-      agentId: agent.id,
+      agentId: agentId,
       artifactComponentId: artifactComponent.id,
     };
     await dbClient.insert(agentArtifactComponents).values(agentArtifactComponentRelation);
@@ -248,8 +253,9 @@ describe('Cascading Delete Tests', () => {
     const agentToolRelation = {
       tenantId,
       projectId,
+      graphId,
       id: nanoid(),
-      agentId: agent.id,
+      agentId: agentId,
       toolId: tool.id,
     };
     await dbClient.insert(agentToolRelations).values(agentToolRelation);
@@ -258,9 +264,9 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: nanoid(),
-      graphId: graph.id,
-      sourceAgentId: agent.id,
-      targetAgentId: agent.id,
+      graphId: graphId,
+      sourceAgentId: agentId,
+      targetAgentId: agentId,
     };
     await dbClient.insert(agentRelations).values(agentRelation);
 
@@ -411,11 +417,37 @@ describe('Cascading Delete Tests', () => {
       },
     ]);
 
-    // Create agents for both projects
+    // Create graphs for both projects
+    const graph1Id = nanoid();
+    const graph2Id = nanoid();
+    const agent1Id = nanoid();
+    const agent2Id = nanoid();
+
+    await dbClient.insert(agentGraph).values([
+      {
+        tenantId,
+        projectId: project1Id,
+        id: graph1Id,
+        name: 'Graph 1',
+        description: 'Graph for project 1',
+        defaultAgentId: agent1Id,
+      },
+      {
+        tenantId,
+        projectId: project2Id,
+        id: graph2Id,
+        name: 'Graph 2',
+        description: 'Graph for project 2',
+        defaultAgentId: agent2Id,
+      },
+    ]);
+
+    // Create agents for both projects (now with graphId)
     const agent1 = {
       tenantId,
       projectId: project1Id,
-      id: nanoid(),
+      graphId: graph1Id,
+      id: agent1Id,
       name: 'Agent 1',
       description: 'Agent for project 1',
       prompt: 'You are agent 1',
@@ -423,7 +455,8 @@ describe('Cascading Delete Tests', () => {
     const agent2 = {
       tenantId,
       projectId: project2Id,
-      id: nanoid(),
+      graphId: graph2Id,
+      id: agent2Id,
       name: 'Agent 2',
       description: 'Agent for project 2',
       prompt: 'You are agent 2',

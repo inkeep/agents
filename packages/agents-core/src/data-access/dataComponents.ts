@@ -7,7 +7,7 @@ import type {
   DataComponentSelect,
   DataComponentUpdate,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
 } from '../types/index';
 
 /**
@@ -16,7 +16,7 @@ import type {
 export const getDataComponent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     dataComponentId: string;
   }): Promise<DataComponentSelect | null> => {
     const result = await db.query.dataComponents.findFirst({
@@ -35,7 +35,7 @@ export const getDataComponent =
  */
 export const listDataComponents =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<DataComponentSelect[]> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select()
       .from(dataComponents)
@@ -54,7 +54,7 @@ export const listDataComponents =
 export const listDataComponentsPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
   }): Promise<{
     data: DataComponentSelect[];
@@ -117,7 +117,7 @@ export const createDataComponent =
 export const updateDataComponent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     dataComponentId: string;
     data: DataComponentUpdate;
   }): Promise<DataComponentSelect | null> => {
@@ -148,7 +148,7 @@ export const updateDataComponent =
  */
 export const deleteDataComponent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; dataComponentId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .delete(dataComponents)
       .where(
@@ -168,7 +168,10 @@ export const deleteDataComponent =
  */
 export const getDataComponentsForAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string }): Promise<DataComponentSelect[]> => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    agentId: string;
+  }): Promise<DataComponentSelect[]> => {
     return await db
       .select({
         id: dataComponents.id,
@@ -197,13 +200,19 @@ export const getDataComponentsForAgent =
  */
 export const associateDataComponentWithAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; dataComponentId: string }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    graphId: string;
+    agentId: string;
+    dataComponentId: string;
+  }) => {
     const association = await db
       .insert(agentDataComponents)
       .values({
         id: nanoid(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
+        graphId: params.graphId,
         agentId: params.agentId,
         dataComponentId: params.dataComponentId,
       })
@@ -218,7 +227,7 @@ export const associateDataComponentWithAgent =
 export const removeDataComponentFromAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     agentId: string;
     dataComponentId: string;
   }): Promise<boolean> => {
@@ -238,7 +247,7 @@ export const removeDataComponentFromAgent =
   };
 
 export const deleteAgentDataComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId: string }) => {
     const result = await db
       .delete(agentDataComponents)
       .where(
@@ -254,7 +263,8 @@ export const deleteAgentDataComponentRelationByAgent =
  * Get all agents that use a specific data component
  */
 export const getAgentsUsingDataComponent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; dataComponentId: string }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
     return await db
       .select({
         agentId: agentDataComponents.agentId,
@@ -277,7 +287,7 @@ export const getAgentsUsingDataComponent =
 export const isDataComponentAssociatedWithAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     agentId: string;
     dataComponentId: string;
   }): Promise<boolean> => {
@@ -302,7 +312,12 @@ export const isDataComponentAssociatedWithAgent =
  */
 export const upsertAgentDataComponentRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; dataComponentId: string }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    graphId: string;
+    agentId: string;
+    dataComponentId: string;
+  }) => {
     // Check if relation already exists
     const exists = await isDataComponentAssociatedWithAgent(db)(params);
 
@@ -321,7 +336,7 @@ export const upsertAgentDataComponentRelation =
  */
 export const countDataComponents =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(dataComponents)

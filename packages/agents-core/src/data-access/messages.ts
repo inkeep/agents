@@ -6,11 +6,11 @@ import type {
   MessageUpdate,
   MessageVisibility,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
 } from '../types/index';
 
 export const getMessageById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; messageId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     return db.query.messages.findFirst({
       where: and(
         eq(messages.tenantId, params.scopes.tenantId),
@@ -21,7 +21,8 @@ export const getMessageById =
   };
 
 export const listMessages =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; pagination: PaginationConfig }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; pagination: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -44,7 +45,11 @@ export const listMessages =
 
 export const getMessagesByConversation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; conversationId: string; pagination: PaginationConfig }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    pagination: PaginationConfig;
+  }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -68,7 +73,7 @@ export const getMessagesByConversation =
 
 export const getMessagesByTask =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; taskId: string; pagination: PaginationConfig }) => {
+  async (params: { scopes: ProjectScopeConfig; taskId: string; pagination: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -93,7 +98,7 @@ export const getMessagesByTask =
 export const getVisibleMessages =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     conversationId: string;
     visibility?: MessageVisibility[];
     pagination: PaginationConfig;
@@ -139,7 +144,7 @@ export const createMessage = (db: DatabaseClient) => async (params: MessageInser
 
 export const updateMessage =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; messageId: string; data: MessageUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; messageId: string; data: MessageUpdate }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -161,7 +166,7 @@ export const updateMessage =
   };
 
 export const deleteMessage =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; messageId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     const [deleted] = await db
       .delete(messages)
       .where(
@@ -177,7 +182,8 @@ export const deleteMessage =
   };
 
 export const countMessagesByConversation =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; conversationId: string }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     const result = await db
       .select({ count: count() })
       .from(messages)

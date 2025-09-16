@@ -27,7 +27,7 @@ import type {
   PaginationResult,
   ProjectInfo,
   ProjectResourceCounts,
-  ScopeConfig,
+  ProjectScopeConfig,
 } from '../types/utility';
 
 /**
@@ -181,7 +181,7 @@ export const listProjectsPaginated =
  */
 export const getProjectResourceCounts =
   (db: DatabaseClient) =>
-  async (params: ScopeConfig): Promise<ProjectResourceCounts> => {
+  async (params: ProjectScopeConfig): Promise<ProjectResourceCounts> => {
     const whereClause = (table: any) =>
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
 
@@ -215,7 +215,7 @@ export const getProjectResourceCounts =
  */
 export const projectExists =
   (db: DatabaseClient) =>
-  async (params: ScopeConfig): Promise<boolean> => {
+  async (params: ProjectScopeConfig): Promise<boolean> => {
     // Check if projectId exists in any table (stop at first match for efficiency)
     const whereClause = (table: any) =>
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
@@ -261,7 +261,7 @@ export const countProjects =
  */
 export const getProject =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<ProjectSelect | null> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<ProjectSelect | null> => {
     const result = await db.query.projects.findFirst({
       where: and(
         eq(projects.tenantId, params.scopes.tenantId),
@@ -296,7 +296,10 @@ export const createProject =
  */
 export const updateProject =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; data: ProjectUpdate }): Promise<ProjectSelect | null> => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    data: ProjectUpdate;
+  }): Promise<ProjectSelect | null> => {
     const now = new Date().toISOString();
 
     // First, get the current project to compare stopWhen values
@@ -340,7 +343,7 @@ export const updateProject =
  */
 export const projectExistsInTable =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const result = await db
       .select({ id: projects.id })
       .from(projects)
@@ -357,7 +360,7 @@ export const projectExistsInTable =
  */
 export const projectHasResources =
   (db: DatabaseClient) =>
-  async (params: ScopeConfig): Promise<boolean> => {
+  async (params: ProjectScopeConfig): Promise<boolean> => {
     return await projectExists(db)(params);
   };
 
@@ -366,7 +369,7 @@ export const projectHasResources =
  */
 export const deleteProject =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     // First check if the project exists in the projects table
     const projectExistsInTableResult = await projectExistsInTable(db)({ scopes: params.scopes });
     if (!projectExistsInTableResult) {
@@ -389,7 +392,7 @@ export const deleteProject =
  */
 async function cascadeStopWhenUpdates(
   db: DatabaseClient,
-  scopes: ScopeConfig,
+  scopes: ProjectScopeConfig,
   oldStopWhen: any,
   newStopWhen: any
 ): Promise<void> {

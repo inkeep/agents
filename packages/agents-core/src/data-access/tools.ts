@@ -6,7 +6,7 @@ import type {
   McpTool,
   McpToolStatus,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
   ToolInsert,
   ToolSelect,
   ToolUpdate,
@@ -45,7 +45,7 @@ export const dbResultToMcpTool = (dbResult: ToolSelect): McpTool => {
 };
 
 export const getToolById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; toolId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -58,7 +58,7 @@ export const getToolById =
 
 export const listTools =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -89,7 +89,7 @@ export const listTools =
   };
 
 export const getToolsByStatus =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; status: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; status: string }) => {
     return db
       .select()
       .from(tools)
@@ -103,7 +103,7 @@ export const getToolsByStatus =
   };
 
 export const listToolsByStatus =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; status: McpToolStatus }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; status: McpToolStatus }) => {
     const toolsList = await db.query.tools.findMany({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -132,7 +132,7 @@ export const createTool = (db: DatabaseClient) => async (params: ToolInsert) => 
 
 export const updateTool =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; toolId: string; data: ToolUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; toolId: string; data: ToolUpdate }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -154,7 +154,7 @@ export const updateTool =
   };
 
 export const deleteTool =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; toolId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
       .where(
@@ -172,7 +172,8 @@ export const deleteTool =
 export const addToolToAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
+    graphId: string;
     agentId: string;
     toolId: string;
     selectedTools?: string[] | null;
@@ -186,6 +187,7 @@ export const addToolToAgent =
         id,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
+        graphId: params.graphId,
         agentId: params.agentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
@@ -199,7 +201,7 @@ export const addToolToAgent =
 
 export const removeToolFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; toolId: string }) => {
+  async (params: { scopes: ProjectScopeConfig; agentId: string; toolId: string }) => {
     const [deleted] = await db
       .delete(agentToolRelations)
       .where(
@@ -221,7 +223,8 @@ export const removeToolFromAgent =
 export const upsertAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
+    graphId: string;
     agentId: string;
     toolId: string;
     selectedTools?: string[] | null;
@@ -255,7 +258,7 @@ export const upsertAgentToolRelation =
 export const updateToolStatus =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     toolId: string;
     status: string;
     lastHealthCheck?: string;
@@ -304,7 +307,7 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
 
 // Get healthy tools for agent execution
 export const getHealthyToolsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId: string }) => {
     const healthyTools = await db
       .select({
         tool: tools,

@@ -7,10 +7,10 @@ import type {
   ArtifactComponentSelect,
   ArtifactComponentUpdate,
 } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
 
 export const getArtifactComponentById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; id: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.artifactComponents.findFirst({
       where: and(
         eq(artifactComponents.tenantId, params.scopes.tenantId),
@@ -21,7 +21,7 @@ export const getArtifactComponentById =
   };
 
 export const listArtifactComponents =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return await db
       .select()
       .from(artifactComponents)
@@ -37,7 +37,7 @@ export const listArtifactComponents =
 export const listArtifactComponentsPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
   }): Promise<{
     data: ArtifactComponentSelect[];
@@ -91,7 +91,7 @@ export const createArtifactComponent =
 
 export const updateArtifactComponent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string; data: ArtifactComponentUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; id: string; data: ArtifactComponentUpdate }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -114,7 +114,7 @@ export const updateArtifactComponent =
 
 export const deleteArtifactComponent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
       const result = await db
         .delete(artifactComponents)
@@ -135,7 +135,7 @@ export const deleteArtifactComponent =
   };
 
 export const getArtifactComponentsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId: string }) => {
     return await db
       .select({
         id: artifactComponents.id,
@@ -165,13 +165,19 @@ export const getArtifactComponentsForAgent =
 
 export const associateArtifactComponentWithAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; artifactComponentId: string }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    graphId: string;
+    agentId: string;
+    artifactComponentId: string;
+  }) => {
     const [association] = await db
       .insert(agentArtifactComponents)
       .values({
         id: nanoid(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
+        graphId: params.graphId,
         agentId: params.agentId,
         artifactComponentId: params.artifactComponentId,
         createdAt: new Date().toISOString(),
@@ -183,7 +189,7 @@ export const associateArtifactComponentWithAgent =
 
 export const removeArtifactComponentFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; artifactComponentId: string }) => {
+  async (params: { scopes: ProjectScopeConfig; agentId: string; artifactComponentId: string }) => {
     try {
       const result = await db
         .delete(agentArtifactComponents)
@@ -205,7 +211,7 @@ export const removeArtifactComponentFromAgent =
   };
 
 export const deleteAgentArtifactComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId: string }) => {
     const result = await db
       .delete(agentArtifactComponents)
       .where(
@@ -218,7 +224,8 @@ export const deleteAgentArtifactComponentRelationByAgent =
   };
 
 export const getAgentsUsingArtifactComponent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; artifactComponentId: string }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; artifactComponentId: string }) => {
     return await db
       .select({
         agentId: agentArtifactComponents.agentId,
@@ -237,7 +244,7 @@ export const getAgentsUsingArtifactComponent =
 
 export const isArtifactComponentAssociatedWithAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; artifactComponentId: string }) => {
+  async (params: { scopes: ProjectScopeConfig; agentId: string; artifactComponentId: string }) => {
     const result = await db
       .select({ id: agentArtifactComponents.id })
       .from(agentArtifactComponents)
@@ -256,7 +263,7 @@ export const isArtifactComponentAssociatedWithAgent =
 
 export const graphHasArtifactComponents =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; graphId: string }): Promise<boolean> => {
     const result = await db
       .select({ count: count() })
       .from(agentArtifactComponents)
@@ -279,7 +286,7 @@ export const graphHasArtifactComponents =
 
 export const countArtifactComponents =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(artifactComponents)
@@ -296,7 +303,7 @@ export const countArtifactComponents =
 
 export const countArtifactComponentsForAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; agentId: string }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(agentArtifactComponents)
@@ -317,7 +324,12 @@ export const countArtifactComponentsForAgent =
  */
 export const upsertAgentArtifactComponentRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; artifactComponentId: string }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    graphId: string;
+    agentId: string;
+    artifactComponentId: string;
+  }) => {
     // Check if relation already exists
     const exists = await isArtifactComponentAssociatedWithAgent(db)(params);
 

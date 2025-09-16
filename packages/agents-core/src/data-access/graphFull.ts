@@ -8,7 +8,7 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '../types/entities';
-import type { ScopeConfig } from '../types/utility';
+import type { ProjectScopeConfig } from '../types/utility';
 import {
   isExternalAgent,
   isInternalAgent,
@@ -65,7 +65,7 @@ const defaultLogger: GraphLogger = {
 async function applyExecutionLimitsInheritance(
   db: DatabaseClient,
   logger: GraphLogger,
-  scopes: ScopeConfig,
+  scopes: ProjectScopeConfig,
   graphData: FullGraphDefinition
 ): Promise<void> {
   const { tenantId, projectId } = scopes;
@@ -174,7 +174,10 @@ async function applyExecutionLimitsInheritance(
  */
 export const createFullGraphServerSide =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (scopes: ScopeConfig, graphData: FullGraphDefinition): Promise<FullGraphDefinition> => {
+  async (
+    scopes: ProjectScopeConfig,
+    graphData: FullGraphDefinition
+  ): Promise<FullGraphDefinition> => {
     const { tenantId, projectId } = scopes;
 
     const typed = validateAndTypeGraphData(graphData);
@@ -245,7 +248,34 @@ export const createFullGraphServerSide =
         'All tools created/updated successfully'
       );
 
-      // Step 3: create/update context config
+      // Step 3: Create the graph metadata FIRST (before agents, as they need graphId)
+      let finalGraphId: string;
+      try {
+        const graphId = typed.id || nanoid();
+        logger.info({ graphId }, 'Creating agent graph metadata');
+        const agentGraph = await upsertAgentGraph(db)({
+          data: {
+            id: graphId,
+            tenantId,
+            projectId,
+            name: typed.name,
+            defaultAgentId: typed.defaultAgentId,
+            description: typed.description,
+            contextConfigId: undefined, // Will be updated later if context config exists
+            models: typed.models,
+            statusUpdates: typed.statusUpdates,
+            graphPrompt: typed.graphPrompt,
+            stopWhen: typed.stopWhen,
+          },
+        });
+        finalGraphId = agentGraph.id;
+        logger.info({ graphId: finalGraphId }, 'Agent graph metadata created successfully');
+      } catch (error) {
+        logger.error({ graphId: typed.id, error }, 'Failed to create/update graph metadata');
+        throw error;
+      }
+
+      // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typed.contextConfig) {
         try {
@@ -268,7 +298,7 @@ export const createFullGraphServerSide =
         }
       }
 
-      // Step 4: Create/update dataComponents (agents depend on them)
+      // Step 5: Create/update dataComponents (agents depend on them)
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         const dataComponentPromises = Object.entries(typed.dataComponents).map(
           async ([dataComponentId, dataComponentData]) => {
@@ -299,7 +329,7 @@ export const createFullGraphServerSide =
         );
       }
 
-      // Step 5: Create/update artifactComponents (agents depend on them)
+      // Step 6: Create/update artifactComponents (agents depend on them)
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
         const artifactComponentPromises = Object.entries(typed.artifactComponents).map(
           async ([artifactComponentId, artifactComponentData]) => {
@@ -334,7 +364,7 @@ export const createFullGraphServerSide =
         );
       }
 
-      // Step 6: Create/update internal agents
+      // Step 7: Create/update internal agents (now with graphId)
       const internalAgentPromises = Object.entries(typed.agents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([agentId, agentData]) => {
@@ -347,6 +377,7 @@ export const createFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: internalAgent.name || '',
                 description: internalAgent.description || '',
                 prompt: internalAgent.prompt || '',
@@ -368,7 +399,7 @@ export const createFullGraphServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      // Step 7: Create/update external agents
+      // Step 8: Create/update external agents (now with graphId)
       const externalAgentPromises = Object.entries(typed.agents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([agentId, agentData]) => {
@@ -381,6 +412,7 @@ export const createFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: externalAgent.name,
                 description: externalAgent.description || '',
                 baseUrl: externalAgent.baseUrl,
@@ -401,33 +433,29 @@ export const createFullGraphServerSide =
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
-      // Step 8: Create the graph metadata (or update if exists for upsert behavior)
-      let finalGraphId: string;
-      try {
-        logger.info({ graphId: typed.id }, 'Processing agent graph metadata');
-        const agentGraph = await upsertAgentGraph(db)({
-          data: {
-            id: typed.id || nanoid(),
-            tenantId,
-            projectId,
-            name: typed.name,
-            defaultAgentId: typed.defaultAgentId,
-            description: typed.description,
-            contextConfigId,
-            models: typed.models,
-            statusUpdates: typed.statusUpdates,
-            graphPrompt: typed.graphPrompt,
-            stopWhen: typed.stopWhen,
-          },
-        });
-        finalGraphId = agentGraph.id;
-        logger.info({ graphId: finalGraphId }, 'Agent graph metadata processed successfully');
-      } catch (error) {
-        logger.error({ graphId: typed.id, error }, 'Failed to create/update graph metadata');
-        throw error;
+      // Step 9: Update the graph with contextConfigId if it was created
+      if (contextConfigId) {
+        try {
+          logger.info(
+            { graphId: finalGraphId, contextConfigId },
+            'Updating graph with context config'
+          );
+          await updateAgentGraph(db)({
+            scopes: { tenantId, projectId },
+            graphId: finalGraphId,
+            data: { contextConfigId },
+          });
+          logger.info({ graphId: finalGraphId }, 'Graph updated with context config');
+        } catch (error) {
+          logger.error(
+            { graphId: finalGraphId, error },
+            'Failed to update graph with context config'
+          );
+          throw error;
+        }
       }
 
-      // Step 9: Create agent-tool relationships
+      // Step 10: Create agent-tool relationships
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [agentId, agentData] of Object.entries(typed.agents)) {
@@ -440,6 +468,7 @@ export const createFullGraphServerSide =
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId },
+                    graphId: finalGraphId,
                     agentId,
                     toolId,
                     selectedTools,
@@ -476,6 +505,7 @@ export const createFullGraphServerSide =
                   );
                   await upsertAgentDataComponentRelation(db)({
                     scopes: { tenantId, projectId },
+                    graphId: finalGraphId,
                     agentId,
                     dataComponentId,
                   });
@@ -514,6 +544,7 @@ export const createFullGraphServerSide =
                   );
                   await upsertAgentArtifactComponentRelation(db)({
                     scopes: { tenantId, projectId },
+                    graphId: finalGraphId,
                     agentId,
                     artifactComponentId,
                   });
@@ -647,7 +678,10 @@ export const createFullGraphServerSide =
  */
 export const updateFullGraphServerSide =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (scopes: ScopeConfig, graphData: FullGraphDefinition): Promise<FullGraphDefinition> => {
+  async (
+    scopes: ProjectScopeConfig,
+    graphData: FullGraphDefinition
+  ): Promise<FullGraphDefinition> => {
     const { tenantId, projectId } = scopes;
 
     const typedGraphDefinition = validateAndTypeGraphData(graphData);
@@ -766,7 +800,37 @@ export const updateFullGraphServerSide =
         'All tools created/updated successfully'
       );
 
-      // Step 3: create/update context config
+      // Step 3: Get or create the graph metadata FIRST (before agents, as they need graphId)
+      let finalGraphId: string;
+      try {
+        const graphId = typedGraphDefinition.id || nanoid();
+        logger.info({ graphId }, 'Getting/creating agent graph metadata');
+        const agentGraph = await upsertAgentGraph(db)({
+          data: {
+            id: graphId,
+            tenantId,
+            projectId,
+            name: typedGraphDefinition.name,
+            defaultAgentId: typedGraphDefinition.defaultAgentId,
+            description: typedGraphDefinition.description,
+            contextConfigId: undefined, // Will be updated later if context config exists
+            models: typedGraphDefinition.models,
+            statusUpdates: typedGraphDefinition.statusUpdates,
+            graphPrompt: typedGraphDefinition.graphPrompt,
+            stopWhen: typedGraphDefinition.stopWhen,
+          },
+        });
+        finalGraphId = agentGraph.id;
+        logger.info({ graphId: finalGraphId }, 'Agent graph metadata ready');
+      } catch (error) {
+        logger.error(
+          { graphId: typedGraphDefinition.id, error },
+          'Failed to get/update graph metadata'
+        );
+        throw error;
+      }
+
+      // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typedGraphDefinition.contextConfig) {
         try {
@@ -792,7 +856,7 @@ export const updateFullGraphServerSide =
         }
       }
 
-      // Step 4: Create/update dataComponents (agents depend on them)
+      // Step 5: Create/update dataComponents (agents depend on them)
       if (
         typedGraphDefinition.dataComponents &&
         Object.keys(typedGraphDefinition.dataComponents).length > 0
@@ -825,7 +889,7 @@ export const updateFullGraphServerSide =
           'All dataComponents created/updated successfully'
         );
       }
-      // Step 5: Create/update artifactComponents (agents depend on them)
+      // Step 6: Create/update artifactComponents (agents depend on them)
       if (
         typedGraphDefinition.artifactComponents &&
         Object.keys(typedGraphDefinition.artifactComponents).length > 0
@@ -863,7 +927,7 @@ export const updateFullGraphServerSide =
         );
       }
 
-      // Step 6: Create/update internal agents with model cascade logic
+      // Step 7: Create/update internal agents (now with graphId) with model cascade logic
       const internalAgentPromises = Object.entries(typedGraphDefinition.agents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([agentId, agentData]) => {
@@ -936,6 +1000,7 @@ export const updateFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: internalAgent.name || '',
                 description: internalAgent.description || '',
                 prompt: internalAgent.prompt || '',
@@ -957,7 +1022,7 @@ export const updateFullGraphServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      // Step 7: Create/update external agents
+      // Step 8: Create/update external agents (now with graphId)
       const externalAgentPromises = Object.entries(typedGraphDefinition.agents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([agentId, agentData]) => {
@@ -970,6 +1035,7 @@ export const updateFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: externalAgent.name,
                 description: externalAgent.description || '',
                 baseUrl: externalAgent.baseUrl,
@@ -1029,6 +1095,7 @@ export const updateFullGraphServerSide =
                   const selectedTools = agentData.selectedTools?.[toolId];
                   await createAgentToolRelation(db)({
                     scopes: { tenantId, projectId },
+                    graphId: finalGraphId,
                     data: {
                       agentId,
                       toolId,
@@ -1073,6 +1140,7 @@ export const updateFullGraphServerSide =
                 try {
                   await associateDataComponentWithAgent(db)({
                     scopes: { tenantId, projectId },
+                    graphId: finalGraphId,
                     agentId,
                     dataComponentId,
                   });
@@ -1117,6 +1185,7 @@ export const updateFullGraphServerSide =
                 try {
                   await associateArtifactComponentWithAgent(db)({
                     scopes: { tenantId, projectId },
+                    graphId: finalGraphId,
                     agentId,
                     artifactComponentId,
                   });
@@ -1264,7 +1333,10 @@ export const updateFullGraphServerSide =
  */
 export const getFullGraph =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: { scopes: ScopeConfig; graphId: string }): Promise<FullGraphDefinition | null> => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    graphId: string;
+  }): Promise<FullGraphDefinition | null> => {
     const { scopes, graphId } = params;
     const { tenantId, projectId } = scopes;
 
@@ -1309,7 +1381,7 @@ export const getFullGraph =
  */
 export const deleteFullGraph =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: { scopes: ScopeConfig; graphId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; graphId: string }): Promise<boolean> => {
     const { scopes, graphId } = params;
     const { tenantId, projectId } = scopes;
 

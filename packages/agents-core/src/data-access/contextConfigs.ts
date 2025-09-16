@@ -3,10 +3,10 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { contextConfigs } from '../db/schema';
 import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
 
 export const getContextConfigById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; id: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.contextConfigs.findFirst({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),
@@ -17,7 +17,7 @@ export const getContextConfigById =
   };
 
 export const listContextConfigs =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return await db.query.contextConfigs.findMany({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),
@@ -30,7 +30,7 @@ export const listContextConfigs =
 export const listContextConfigsPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
   }): Promise<{
     data: any[];
@@ -106,7 +106,11 @@ export const createContextConfig = (db: DatabaseClient) => async (params: Contex
 
 export const updateContextConfig =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string; data: Partial<ContextConfigUpdate> }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    id: string;
+    data: Partial<ContextConfigUpdate>;
+  }) => {
     const now = new Date().toISOString();
 
     // Process the update data to handle null/empty object clearing
@@ -149,7 +153,7 @@ export const updateContextConfig =
 
 export const deleteContextConfig =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
       const result = await db
         .delete(contextConfigs)
@@ -171,14 +175,14 @@ export const deleteContextConfig =
 
 export const hasContextConfig =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const contextConfig = await getContextConfigById(db)(params);
     return contextConfig !== null;
   };
 
 export const countContextConfigs =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(contextConfigs)
@@ -194,7 +198,7 @@ export const countContextConfigs =
   };
 
 export const getContextConfigsByName =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; name: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; name: string }) => {
     return await db.query.contextConfigs.findMany({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),

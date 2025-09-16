@@ -6,7 +6,7 @@
 
 import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect } from '../types/entities';
-import type { ScopeConfig } from '../types/utility';
+import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
@@ -26,11 +26,6 @@ const defaultLogger = getLogger('projectFull');
 
 export type ProjectLogger = ReturnType<typeof getLogger>;
 
-export interface ProjectScopeConfig {
-  tenantId: string;
-  projectId?: string;
-}
-
 /**
  * Validate and type the project data
  */
@@ -46,7 +41,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
 export const createFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (
-    scopes: ScopeConfig,
+    scopes: ProjectScopeConfig,
     projectData: FullProjectDefinition
   ): Promise<FullProjectDefinition> => {
     const { tenantId } = scopes;
@@ -386,7 +381,7 @@ export const createFullProjectServerSide =
 export const updateFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (
-    scopes: ScopeConfig,
+    scopes: ProjectScopeConfig,
     projectData: FullProjectDefinition
   ): Promise<FullProjectDefinition> => {
     const { tenantId } = scopes;
@@ -742,7 +737,7 @@ export const updateFullProjectServerSide =
 export const getFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     projectId: string;
   }): Promise<FullProjectDefinition | null> => {
     const { scopes, projectId } = params;
@@ -1010,7 +1005,7 @@ export const getFullProject =
  */
 export const deleteFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ScopeConfig; projectId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; projectId: string }): Promise<boolean> => {
     const { scopes, projectId } = params;
     const { tenantId } = scopes;
 
