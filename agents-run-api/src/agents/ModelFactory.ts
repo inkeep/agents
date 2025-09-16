@@ -1,4 +1,5 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
 import { getLogger } from '../logger';
@@ -47,6 +48,9 @@ export class ModelFactory {
 
         case 'openai':
           return ModelFactory.createOpenAIModel(modelName, modelSettings.providerOptions);
+
+        case 'gemini':
+          return ModelFactory.createGeminiModel(modelName, modelSettings.providerOptions);
 
         default:
           throw new Error(
@@ -187,6 +191,40 @@ export class ModelFactory {
   }
 
   /**
+   * Create an OpenAI model instance
+   */
+  private static createGeminiModel(
+    modelName: string,
+    providerOptions?: Record<string, unknown>
+  ): LanguageModel {
+    const geminiConfig: any = {};
+    // Extract provider configuration (baseURL, etc.)
+    // Note: API keys should be provided via environment variables, not in configuration
+
+    if (providerOptions?.baseUrl || providerOptions?.baseURL) {
+      geminiConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
+    }
+
+    // Handle AI Gateway configuration if present
+    if (providerOptions?.gateway) {
+      logger.info({ gateway: providerOptions.gateway }, 'Setting up AI Gateway for Gemini model');
+      Object.assign(geminiConfig, providerOptions.gateway);
+    }
+
+    // For AI SDK v5, model parameters like temperature are passed to generateText/streamText,
+    // not to the model constructor. Only provider config (apiKey, baseURL) goes to the provider.
+
+    if (Object.keys(geminiConfig).length > 0) {
+      logger.info({ config: geminiConfig }, 'Applying custom Gemini provider configuration');
+      // In AI SDK v5, use createGoogleGenerativeAI for custom config
+      const provider = createGoogleGenerativeAI(geminiConfig);
+      return provider(modelName);
+    }
+
+    return google(modelName);
+  }
+
+  /**
    * Get generation parameters from provider options
    * These are parameters that get passed to generateText/streamText calls
    */
@@ -215,9 +253,10 @@ export class ModelFactory {
    * Returns model instance and generation parameters ready to spread into generateText/streamText
    * Includes maxDuration if specified in provider options (in seconds, following Vercel standard)
    */
-  static prepareGenerationConfig(
-    modelSettings?: ModelSettings
-  ): { model: LanguageModel; maxDuration?: number } & Record<string, unknown> {
+  static prepareGenerationConfig(modelSettings?: ModelSettings): {
+    model: LanguageModel;
+    maxDuration?: number;
+  } & Record<string, unknown> {
     const modelString = modelSettings?.model?.trim() || 'anthropic/claude-4-sonnet-20250514';
 
     // Create the model instance

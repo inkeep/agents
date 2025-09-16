@@ -14,15 +14,15 @@ export interface ModelConfigurationResult {
   };
 }
 
-export const defaultDualModelConfigurations = {
+export const defaultGeminiModelConfigurations = {
   base: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: 'gemini/gemini-2.5-flash',
   },
   structuredOutput: {
-    model: 'openai/gpt-4.1-mini-2025-04-14',
+    model: 'gemini/gemini-2.5-flash-lite',
   },
   summarizer: {
-    model: 'openai/gpt-4.1-nano-2025-04-14',
+    model: 'gemini/gemini-2.5-flash-lite',
   },
 };
 
@@ -64,6 +64,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
       choices: [
         { name: 'Anthropic (Claude)', value: 'anthropic' },
         { name: 'OpenAI (GPT)', value: 'openai' },
+        { name: 'Google (Gemini)', value: 'gemini' },
       ],
       validate: (input: string[]) => {
         if (input.length === 0) {
@@ -78,6 +79,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   const anthropicModels = [
     { name: 'Claude Opus 4.1', value: 'anthropic/claude-opus-4-1-20250805' },
     { name: 'Claude Sonnet 4', value: 'anthropic/claude-sonnet-4-20250514' },
+    { name: 'Claude Haiku 3.5', value: 'anthropic/claude-3-5-haiku-20241022' },
   ];
 
   const openaiModels = [
@@ -89,6 +91,11 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     { name: 'GPT-4.1 Nano', value: 'openai/gpt-4.1-nano-2025-04-14' },
   ];
 
+  const geminiModels = [
+    { name: 'Gemini 2.5 Flash', value: 'gemini/gemini-2.5-flash' },
+    { name: 'Gemini 2.5 Flash Lite', value: 'gemini/gemini-2.5-flash-lite' },
+  ];
+
   // Collect all available models based on selected providers
   const availableModels = [];
   if (providers.includes('anthropic')) {
@@ -96,6 +103,9 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   }
   if (providers.includes('openai')) {
     availableModels.push(...openaiModels);
+  }
+  if (providers.includes('gemini')) {
+    availableModels.push(...geminiModels);
   }
 
   // Model selection for different use cases
