@@ -18,7 +18,7 @@ const goodbyeAgent = agent({
   canDelegateTo: () => [helloAgent, goodbyeAgent],
 });
 
-export const graph = agentGraph({
+export const basicGraph = agentGraph({
   id: 'basic-graph',
   name: 'Basic Graph Example',
   description: 'A basic graph',

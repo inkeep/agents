@@ -15,10 +15,12 @@ pnpm install
 ### Configuration
 
 The examples directory includes an `inkeep.config.ts` file with default settings:
+
 - Tenant ID: `example-tenant`
 - API URL: `http://localhost:3002`
 
 To use your own configuration, either:
+
 1. Edit the `inkeep.config.ts` file directly
 2. Or run `npx inkeep init` to create your own configuration
 
@@ -32,7 +34,7 @@ The examples package includes the Inkeep CLI as a dev dependency. From the examp
 # Initialize your configuration
 npx inkeep init
 
-# Push your project
+# Push your project (deploys all graphs to the Inkeep platform)
 npx inkeep push
 
 # List all graphs
@@ -42,39 +44,23 @@ npx inkeep list-graphs
 npx inkeep chat
 ```
 
-
 ## Example Categories
 
-### Agent Configurations (`/agent-configurations`)
+### Graph Configurations (`/graphs`)
 
-These examples demonstrate various agent configuration patterns:
+Complete graph examples ready to be pushed to the Inkeep platform:
 
-- **basic-model-example.ts** - Basic agent setup with different model settings
-- **delegation-example.ts** - Agent delegation and transfer patterns
-- **agent-framework-example.ts** - Complete framework usage example
-- **hosted-tool-example.ts** - Using hosted tools with agents
-- **credential-context-example.ts** - Managing credentials and context
-- **inkeep-context-example.ts** - Inkeep-specific context handling
-- **model-configuration-example.ts** - Advanced model settings options
+- **basic.graph.ts** - Basic multi-agent graph with hello/goodbye agents
+- **weather-graph.graph.ts** - Weather assistant with MCP tools for geocoding and forecasting
 
-### Graph Configurations
+### Environment Configurations (`/environments`)
 
-Complete graph examples ready to be pushed:
+Environment-specific settings and credential management:
 
-- **graph.graph.ts** - Basic graph configuration
-- **board-of-directors.graph.ts** - Multi-agent collaborative graph
-- **slack.graph.ts** - Slack integration example
-- **zendesk.graph.ts** - Zendesk integration example
-- **multi-turn.graph.ts** - Multi-turn conversation handling
-- **inter-graph-communication.graph.ts** - Communication between graphs
-
-### Tool Configurations (`/tool-configurations`)
-
-Examples of custom tool implementations and MCP server configurations.
-
-### MCP Servers (`/mcp-servers`)
-
-Examples of Model Context Protocol server configurations.
+- **development.env.ts** - Development environment configuration
+- **development.validation.ts** - Environment variable validation
+- **production.env.ts** - Production environment configuration
+- **production.validation.ts** - Production environment validation
 
 ## Environment Variables
 
@@ -99,38 +85,45 @@ Note: Tenant ID and API URL are configured in `inkeep.config.ts`, not via enviro
 examples/
 ├── package.json              # Package configuration with CLI dependency
 ├── inkeep.config.ts         # Inkeep configuration (tenant ID, API URL)
-├── .env                     # API keys and optional integrations
-├── .env.example             # Example environment variables
-├── agent-configurations/    # Agent and graph examples
-├── tool-configurations/     # Custom tool examples
-└── mcp-servers/            # MCP server configurations
+├── index.ts                 # Main entry point
+├── tsconfig.json           # TypeScript configuration
+├── graphs/                  # Graph configuration examples
+│   ├── basic.graph.ts      # Basic multi-agent example
+│   └── weather-graph.graph.ts # Weather assistant example
+└── environments/            # Environment configurations
+    ├── development.env.ts  # Development environment settings
+    ├── development.validation.ts # Development validation
+    ├── production.env.ts   # Production environment settings
+    └── production.validation.ts # Production validation
 ```
 
 ## Development Workflow
 
 1. **Create a new graph configuration**:
+
    ```typescript
-   // my-graph.graph.ts
-   import { agent, agentGraph } from '@inkeep/agent-framework';
-   
+   // graphs/my-graph.graph.ts
+   import { agent, agentGraph } from "@inkeep/agents-sdk";
+
    const myAgent = agent({
-     id: 'my-agent',
-     name: 'My Agent',
-     prompt: 'You are a helpful assistant',
+     id: "my-agent",
+     name: "My Agent",
+     prompt: "You are a helpful assistant",
      // No tenantId needed - CLI will inject it from inkeep.config.ts
    });
-   
-   export const graph = agentGraph({
-     id: 'my-graph',
-     name: 'My Graph',
+
+   export const myGraph = agentGraph({
+     id: "my-graph",
+     name: "My Graph",
      defaultAgent: myAgent,
-     agents: [myAgent],
+     agents: () => [myAgent],
      // No tenantId or apiUrl needed - CLI will inject them
    });
    // No graph.init() call - CLI handles initialization
    ```
 
-2. **Push the project**:
+2. **Push the project** (deploys all graphs to the Inkeep platform):
+
    ```bash
    npx inkeep push
    ```
@@ -142,18 +135,19 @@ examples/
 
 ## Tips
 
-- All examples use the `@inkeep/agents-manage-api/builders` package from the workspace
+- All examples use the `@inkeep/agents-sdk` package from the workspace
 - The CLI is available as `@inkeep/agents-cli` in devDependencies
 - The CLI handles TypeScript compilation automatically when pushing graphs
+- Environment configurations are managed through the `/environments` directory
 - Check individual example files for specific usage instructions
 
 ## Contributing
 
 When adding new examples:
 
-1. Place them in the appropriate subdirectory
-2. Use the package imports: `import { ... } from '@inkeep/agents-manage-api/builders'`
-3. Add a script to `package.json` if it's a runnable example
+1. Place graph examples in the `/graphs` directory
+2. Place environment configurations in the `/environments` directory
+3. Use the package imports: `import { ... } from '@inkeep/agents-sdk'`
 4. Include comments explaining the example's purpose and usage
 5. Test that the example works with the current framework version
 
