@@ -534,6 +534,27 @@ describe('ModelFactory', () => {
       expect(generateTextConfig).toHaveProperty('messages');
       expect(generateTextConfig).toHaveProperty('tools');
     });
+
+    test('should handle Google model configuration in prepareGenerationConfig', () => {
+      const modelSettings = {
+        model: 'google/gemini-2.5-flash',
+        providerOptions: {
+          temperature: 0.5,
+          maxTokens: 1024,
+          topP: 0.9,
+          baseURL: 'should-not-be-included',
+        },
+      };
+
+      const config = ModelFactory.prepareGenerationConfig(modelSettings);
+
+      expect(config).toHaveProperty('model');
+      expect(config.model).toHaveProperty('type', 'google');
+      expect(config).toHaveProperty('temperature', 0.5);
+      expect(config).toHaveProperty('maxTokens', 1024);
+      expect(config).toHaveProperty('topP', 0.9);
+      expect(config).not.toHaveProperty('baseURL'); // Should be filtered out
+    });
   });
 
   describe('model string parsing', () => {
@@ -725,6 +746,28 @@ describe('ModelFactory', () => {
         expect(result).toEqual({
           provider: 'openai',
           modelName: 'gpt-4o',
+        });
+      });
+
+      test('should support google provider', () => {
+        const result = ModelFactory.parseModelString('google/gemini-2.5-flash');
+        expect(result).toEqual({
+          provider: 'google',
+          modelName: 'gemini-2.5-flash',
+        });
+      });
+
+      test('should support google provider with different models', () => {
+        const result1 = ModelFactory.parseModelString('google/gemini-2.5-pro');
+        expect(result1).toEqual({
+          provider: 'google',
+          modelName: 'gemini-2.5-pro',
+        });
+
+        const result2 = ModelFactory.parseModelString('google/gemini-2.5-flash-lite');
+        expect(result2).toEqual({
+          provider: 'google',
+          modelName: 'gemini-2.5-flash-lite',
         });
       });
 
