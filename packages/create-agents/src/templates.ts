@@ -10,9 +10,7 @@ export async function cloneTemplate(templatePath: string, targetPath: string) {
   const emitter = degit(templatePathSuffix);
   try {
       await emitter.clone(targetPath);
-      p.note(`✅ Template "${templatePath}" added to ${targetPath}`);
     } catch (error) {
-      p.note(`❌ Failed to add template: ${error instanceof Error ? error.message : 'Unknown error'}`);
       process.exit(1);
     }
 }

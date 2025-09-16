@@ -46,30 +46,41 @@ export const defaultAnthropicModelConfigurations = {
 
 type FileConfig = {
   dirName: string;
-  tenantId?: string;
-  projectId?: string;
+  tenantId: string;
+  projectId: string;
   openAiKey?: string;
   anthropicKey?: string;
   manageApiPort?: string;
   runApiPort?: string;
   modelSettings: Record<string, any>;
+  customProject?: boolean;
 };
 
 export const createAgents = async (
-  args: {
-    projectId?: string;
+  args: { 
     dirName?: string;
+    templateName?: string;
     openAiKey?: string;
     anthropicKey?: string;
     template?: string;
+    customProjectId?: string;
   } = {}
 ) => {
-  let {  projectId, dirName, openAiKey, anthropicKey, template } = args;
+  let { dirName, openAiKey, anthropicKey, template, customProjectId } = args;
   const tenantId = 'default';
   const manageApiPort = '3002';
   const runApiPort = '3003';
-  
-  if (template) {
+
+  let projectId: string;
+  let templateName: string;
+
+  // Determine project ID and template based on user input
+  if (customProjectId) {
+    // User provided custom project ID - use it as-is, no template needed
+    projectId = customProjectId;
+    templateName = ''; // No template will be cloned
+  } else if (template) {
+    // User provided template - validate it exists and use template name as project ID
     const availableTemplates = await getAvailableTemplates();
     if (!availableTemplates.includes(template)) {
       p.cancel(
@@ -79,6 +90,12 @@ export const createAgents = async (
       );
       process.exit(0);
     }
+    projectId = template;
+    templateName = template;
+  } else {
+    // No template or custom project ID provided - use defaults
+    projectId = 'weather-graph';
+    templateName = 'weather-graph';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -104,20 +121,7 @@ export const createAgents = async (
     dirName = dirResponse as string;
   }
 
-  // Prompt for project ID
-  if (!projectId) {
-    const projectIdResponse = await p.text({
-      message: 'What do you want to name your project?',
-      placeholder: '(default)',
-      defaultValue: 'default',
-    });
-
-    if (p.isCancel(projectIdResponse)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-    projectId = projectIdResponse as string;
-  }
+  // Project ID is already determined above based on template/customProjectId logic
 
   // If keys aren't provided via CLI args, prompt for provider selection and keys
   if (!anthropicKey && !openAiKey) {
@@ -218,8 +222,7 @@ export const createAgents = async (
   try {
     const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
 
-    const projectTemplateName = template || 'weather';
-    const projectTemplateRepo = `https://github.com/inkeep/agents-cookbook/templates/${projectTemplateName}`;
+    const projectTemplateRepo = templateName ? `https://github.com/inkeep/agents-cookbook/templates/${templateName}` : null;
 
     const directoryPath = path.resolve(process.cwd(), dirName);
 
@@ -254,6 +257,7 @@ export const createAgents = async (
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
+      customProject: customProjectId ? true : false,
     };
 
     // Create workspace structure for project-specific files
@@ -264,10 +268,19 @@ export const createAgents = async (
     s.message('Setting up environment files...');
     await createEnvironmentFiles(config);
 
-    // Create project template folder
-    s.message('Creating project template folder...');
-    const templateTargetPath = `src/${projectId}`;
-    await cloneTemplate(projectTemplateRepo, templateTargetPath);
+    // Create project template folder (only if template is specified)
+    if (projectTemplateRepo) {
+      s.message('Creating project template folder...');
+      const templateTargetPath = `src/${projectId}`;
+      await cloneTemplate(projectTemplateRepo, templateTargetPath);
+    } else {
+      s.message('Creating empty project folder...');
+      await fs.ensureDir(`src/${projectId}`);
+    }
+
+    // create or overwrite inkeep.config.ts
+    s.message('Creating inkeep.config.ts...');
+    await createInkeepConfig(config);
 
       // Create service files
     s.message('Creating service files...');
@@ -282,8 +295,9 @@ export const createAgents = async (
     await setupDatabase();
 
     // Setup project in database
-    s.message('Setting up project in database...');
-    await setupProjectInDatabase();
+    s.message('Pushing project...');
+    await setupProjectInDatabase(config);
+    s.message('Project setup complete!');
 
     s.stop();
 
@@ -303,7 +317,7 @@ export const createAgents = async (
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
-        `  • Edit src/${projectId}/weather.graph.ts for agent definitions\n` +
+        `  • Edit files in src/${projectId}/ for agent definitions\n` +
         `  • Use 'inkeep push' to deploy agents to the platform\n` +
         `  • Use 'inkeep chat' to test your agents locally\n`,
       'Ready to go!'
@@ -393,32 +407,58 @@ DB_FILE_NAME=file:../../local.db
 
 }
 
+async function createInkeepConfig(config: FileConfig) {
+  const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
+
+  const config = defineConfig({
+    tenantId: "${config.tenantId}",
+    projectId: "${config.projectId}",
+    agentsManageApiUrl: 'http://localhost:3002',
+    agentsRunApiUrl: 'http://localhost:3003',
+    modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
+  });
+      
+  export default config;`
+  await fs.writeFile(`src/${config.projectId}/inkeep.config.ts`, inkeepConfig);
+
+  if (config.customProject) {
+    const customIndexContent = `import { project } from '@inkeep/agents-sdk';
+
+export const myProject = project({
+  id: "${config.projectId}",
+  name: "${config.projectId}",
+  description: "",
+  graphs: () => [],
+});`
+    await fs.writeFile(`src/${config.projectId}/index.ts`, customIndexContent);
+  }
+}
+
 
 async function installDependencies() {
   await execAsync('pnpm install');
 }
 
-async function setupProjectInDatabase() {
-  const s = p.spinner();
-  s.start('🚀 Starting development servers and setting up database...');
+async function setupProjectInDatabase(config: FileConfig) {
+  // Start development servers in background
+  const { spawn } = await import('child_process');
+  const devProcess = spawn('pnpm', ['dev:apis'], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    detached: true, // Detach so we can kill the process group
+    cwd: process.cwd(),
+  });
 
+  // Give servers time to start
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  // Run inkeep push
   try {
-    // Start development servers in background
-    const { spawn } = await import('child_process');
-    const devProcess = spawn('pnpm', ['dev'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      detached: true, // Detach so we can kill the process group
-      cwd: process.cwd(),
-    });
-
-    // Give servers time to start
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    s.message('📦 Servers ready! Creating project in database...');
-
-    // Run the database setup
-    await execAsync('node scripts/setup.js');
-
+    // Suppress all output
+    const { stdout, stderr } = await execAsync(`pnpm inkeep push --project src/${config.projectId}`);
+  } catch(error){
+    //Continue despite error - user can setup project manually
+  }
+  finally {
     // Kill the dev servers and their child processes
     if (devProcess.pid) {
       try {
@@ -439,12 +479,6 @@ async function setupProjectInDatabase() {
         console.log('Note: Dev servers may still be running in background');
       }
     }
-
-    s.stop('✅ Project successfully created and configured in database!');
-  } catch (error) {
-    s.stop('❌ Failed to setup project in database');
-    console.error('Setup error:', error);
-    // Continue anyway - user can run setup manually
   }
 }
 
@@ -452,6 +486,7 @@ async function setupDatabase() {
   try {
     // Run drizzle-kit push to create database file and apply schema
     await execAsync('pnpm db:push');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
     throw new Error(
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`

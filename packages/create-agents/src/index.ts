@@ -8,12 +8,12 @@ program
   .description('Create an Inkeep Agent Framework directory')
   .version('0.1.0')
   .argument('[directory-name]', 'Name of the directory')
-  .option('--project-id <project-id>', 'Project ID')
+  .option('--template <template>', 'Template to use')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--template <template>', 'Template to use')
+  .option('--custom-project-id <custom-project-id>', 'Custom project id for experienced users who want an empty project directory')
   .parse();
-
+  
 async function main() {
   const options = program.opts();
   const directoryName = program.args[0];
@@ -23,7 +23,7 @@ async function main() {
       dirName: directoryName,
       openAiKey: options.openaiKey,
       anthropicKey: options.anthropicKey,
-      projectId: options.projectId,
+      customProjectId: options.customProjectId,
       template: options.template,
     });
   } catch (error) {
