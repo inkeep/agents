@@ -54,6 +54,10 @@ export const modelOptions = {
   ],
   google: [
     {
+      value: 'google/gemini-2.5-pro',
+      label: 'google/gemini-2.5-pro',
+    },
+    {
       value: 'google/gemini-2.5-flash',
       label: 'google/gemini-2.5-flash',
     },

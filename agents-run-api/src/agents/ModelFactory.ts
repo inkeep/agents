@@ -1,7 +1,7 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
-import type { LanguageModel } from 'ai';
+import type { LanguageModel, Provider } from 'ai';
 import { getLogger } from '../logger';
 
 const logger = getLogger('ModelFactory');
@@ -16,6 +16,48 @@ export interface ModelSettings {
  * Supports multiple providers and AI Gateway integration
  */
 export class ModelFactory {
+  /**
+   * Create a provider instance with custom configuration
+   */
+  private static createProvider(provider: string, config: Record<string, unknown>): Provider {
+    switch (provider) {
+      case 'anthropic':
+        return createAnthropic(config);
+      case 'openai':
+        return createOpenAI(config);
+      case 'google':
+        return createGoogleGenerativeAI(config);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  }
+
+  /**
+   * Extract provider configuration from providerOptions
+   * Only includes settings that go to the provider constructor (baseURL, apiKey, etc.)
+   */
+  private static extractProviderConfig(providerOptions?: Record<string, unknown>): Record<string, unknown> {
+    if (!providerOptions) {
+      return {};
+    }
+
+    const providerConfig: Record<string, unknown> = {};
+    
+    // Handle baseURL variations
+    if (providerOptions.baseUrl || providerOptions.baseURL) {
+      providerConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
+    }
+    
+    // Handle AI Gateway configuration if present
+    if (providerOptions.gateway) {
+      Object.assign(providerConfig, providerOptions.gateway);
+    }
+    
+    // Note: API keys should come from environment variables, not configuration
+    
+    return providerConfig;
+  }
+
   /**
    * Create a language model instance from configuration
    * Throws error if no config provided - models must be configured at project level
@@ -41,36 +83,26 @@ export class ModelFactory {
       'Creating language model from config'
     );
 
-    try {
-      switch (provider) {
-        case 'anthropic':
-          return ModelFactory.createAnthropicModel(modelName, modelSettings.providerOptions);
-
-        case 'openai':
-          return ModelFactory.createOpenAIModel(modelName, modelSettings.providerOptions);
-
-        case 'google':
-          return ModelFactory.createGoogleModel(modelName, modelSettings.providerOptions);
-
-        default:
-          throw new Error(
-            `Unsupported provider: ${provider}. Supported providers are: ${ModelFactory.SUPPORTED_PROVIDERS.join(', ')}`
-          );
-      }
-    } catch (error) {
-      logger.error(
-        {
-          provider,
-          model: modelName,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to create model'
-      );
-
-      // Re-throw the error instead of falling back to a default
-      throw new Error(
-        `Failed to create model ${modelString}: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+    // Extract provider configuration from providerOptions
+    const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
+    
+    // Only create custom provider if there's actual configuration
+    if (Object.keys(providerConfig).length > 0) {
+      logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
+      const customProvider = ModelFactory.createProvider(provider, providerConfig);
+      return customProvider.languageModel(modelName);
+    }
+    
+    // Use default providers when no custom config
+    switch (provider) {
+      case 'anthropic':
+        return anthropic(modelName);
+      case 'openai':
+        return openai(modelName);
+      case 'google':
+        return google(modelName);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
@@ -111,115 +143,6 @@ export class ModelFactory {
     throw new Error(
       `Invalid model provided: ${modelString}. Please provide a model in the format of provider/model-name.`
     );
-  }
-
-  /**
-   * Create an Anthropic model instance
-   */
-  private static createAnthropicModel(
-    modelName: string,
-    providerOptions?: Record<string, unknown>
-  ): LanguageModel {
-    const anthropicConfig: any = {};
-
-    // Extract provider configuration (baseURL, etc.)
-    // Note: API keys should be provided via environment variables, not in configuration
-
-    if (providerOptions?.baseUrl || providerOptions?.baseURL) {
-      anthropicConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
-    }
-
-    // Handle AI Gateway configuration if present
-    if (providerOptions?.gateway) {
-      logger.info(
-        { gateway: providerOptions.gateway },
-        'Setting up AI Gateway for Anthropic model'
-      );
-      // AI Gateway configuration would go here
-      // This depends on the specific gateway implementation
-      Object.assign(anthropicConfig, providerOptions.gateway);
-    }
-
-    // For AI SDK v5, model parameters like temperature are passed to generateText/streamText,
-    // not to the model constructor. Only provider config (apiKey, baseURL) goes to the provider.
-
-    if (Object.keys(anthropicConfig).length > 0) {
-      logger.info({ config: anthropicConfig }, 'Applying custom Anthropic provider configuration');
-      // In AI SDK v5, use createAnthropic for custom config
-      const provider = createAnthropic(anthropicConfig);
-      return provider(modelName);
-    }
-
-    return anthropic(modelName);
-  }
-
-  /**
-   * Create an OpenAI model instance
-   */
-  private static createOpenAIModel(
-    modelName: string,
-    providerOptions?: Record<string, unknown>
-  ): LanguageModel {
-    const openaiConfig: any = {};
-
-    // Extract provider configuration (baseURL, etc.)
-    // Note: API keys should be provided via environment variables, not in configuration
-
-    if (providerOptions?.baseUrl || providerOptions?.baseURL) {
-      openaiConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
-    }
-
-    // Handle AI Gateway configuration if present
-    if (providerOptions?.gateway) {
-      logger.info({ gateway: providerOptions.gateway }, 'Setting up AI Gateway for OpenAI model');
-      Object.assign(openaiConfig, providerOptions.gateway);
-    }
-
-    // For AI SDK v5, model parameters like temperature are passed to generateText/streamText,
-    // not to the model constructor. Only provider config (apiKey, baseURL) goes to the provider.
-
-    if (Object.keys(openaiConfig).length > 0) {
-      logger.info({ config: openaiConfig }, 'Applying custom OpenAI provider configuration');
-      // In AI SDK v5, use createOpenAI for custom config
-      const provider = createOpenAI(openaiConfig);
-      return provider(modelName);
-    }
-
-    return openai(modelName);
-  }
-
-  /**
-   * Create an OpenAI model instance
-   */
-  private static createGoogleModel(
-    modelName: string,
-    providerOptions?: Record<string, unknown>
-  ): LanguageModel {
-    const googleConfig: any = {};
-    // Extract provider configuration (baseURL, etc.)
-    // Note: API keys should be provided via environment variables, not in configuration
-
-    if (providerOptions?.baseUrl || providerOptions?.baseURL) {
-      googleConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
-    }
-
-    // Handle AI Gateway configuration if present
-    if (providerOptions?.gateway) {
-      logger.info({ gateway: providerOptions.gateway }, 'Setting up AI Gateway for Google model');
-      Object.assign(googleConfig, providerOptions.gateway);
-    }
-
-    // For AI SDK v5, model parameters like temperature are passed to generateText/streamText,
-    // not to the model constructor. Only provider config (apiKey, baseURL) goes to the provider.
-
-    if (Object.keys(googleConfig).length > 0) {
-      logger.info({ config: googleConfig }, 'Applying custom Google provider configuration');
-      // In AI SDK v5, use createGoogleGenerativeAI for custom config
-      const provider = createGoogleGenerativeAI(googleConfig);
-      return provider(modelName);
-    }
-
-    return google(modelName);
   }
 
   /**
