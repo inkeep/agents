@@ -28,7 +28,7 @@ describe('resolveModelConfig', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup default mock implementations that return functions
     mockGetAgentGraph.mockReturnValue(vi.fn());
     mockGetProject.mockReturnValue(vi.fn());
@@ -191,7 +191,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
@@ -236,7 +236,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
@@ -269,7 +269,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
@@ -300,7 +300,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
@@ -327,7 +327,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
@@ -348,7 +348,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(null);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
@@ -412,7 +412,7 @@ describe('resolveModelConfig', () => {
 
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-      
+
       mockGetAgentGraph.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 

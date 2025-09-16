@@ -7,40 +7,40 @@ import path from 'path';
 const execAsync = promisify(exec);
 
 export const defaultDualModelConfigurations = {
-    base: {
-      model: 'anthropic/claude-sonnet-4-20250514',
-    },
-    structuredOutput: {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
-    },
-    summarizer: {
-      model: 'openai/gpt-4.1-nano-2025-04-14',
-    },
-  };
-  
-  export const defaultOpenaiModelConfigurations = {
-    base: {
-      model: 'openai/gpt-5-2025-08-07',
-    },
-    structuredOutput: {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
-    },
-    summarizer: {
-      model: 'openai/gpt-4.1-nano-2025-04-14',
-    },
-  };
-  
-  export const defaultAnthropicModelConfigurations = {
-    base: {
-      model: 'anthropic/claude-sonnet-4-20250514',
-    },
-    structuredOutput: {
-      model: 'anthropic/claude-sonnet-4-20250514',
-    },
-    summarizer: {
-      model: 'anthropic/claude-sonnet-4-20250514',
-    },
-  };
+  base: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+  structuredOutput: {
+    model: 'openai/gpt-4.1-mini-2025-04-14',
+  },
+  summarizer: {
+    model: 'openai/gpt-4.1-nano-2025-04-14',
+  },
+};
+
+export const defaultOpenaiModelConfigurations = {
+  base: {
+    model: 'openai/gpt-5-2025-08-07',
+  },
+  structuredOutput: {
+    model: 'openai/gpt-4.1-mini-2025-04-14',
+  },
+  summarizer: {
+    model: 'openai/gpt-4.1-nano-2025-04-14',
+  },
+};
+
+export const defaultAnthropicModelConfigurations = {
+  base: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+  structuredOutput: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+  summarizer: {
+    model: 'anthropic/claude-sonnet-4-20250514',
+  },
+};
 
 type FileConfig = {
   dirName: string;
@@ -54,19 +54,13 @@ type FileConfig = {
 };
 
 export const createAgents = async (
-  args: {
-    projectId?: string;
-    dirName?: string;
-    openAiKey?: string;
-    anthropicKey?: string;
-
-  } = {}
+  args: { projectId?: string; dirName?: string; openAiKey?: string; anthropicKey?: string } = {}
 ) => {
-  let {  projectId, dirName, openAiKey, anthropicKey } = args;
+  let { projectId, dirName, openAiKey, anthropicKey } = args;
   const tenantId = 'default';
   const manageApiPort = '3002';
   const runApiPort = '3003';
-  
+
   p.intro(color.inverse(' Create Agents Directory '));
 
   // Prompt for directory name if not provided
@@ -325,7 +319,7 @@ async function setupPackageConfigurations(dirName: string) {
       'db:push': 'drizzle-kit push',
       setup: 'node scripts/setup.js',
       'dev:setup': 'node scripts/dev-setup.js',
-      start: 'pnpm dev:setup'
+      start: 'pnpm dev:setup',
     },
     dependencies: {},
     devDependencies: {
@@ -334,7 +328,7 @@ async function setupPackageConfigurations(dirName: string) {
       'drizzle-kit': '^0.31.4',
       tsx: '^4.19.0',
       turbo: '^2.5.5',
-      "concurrently": '^8.2.0',
+      concurrently: '^8.2.0',
       'wait-on': '^8.0.0',
     },
     engines: {
@@ -342,9 +336,7 @@ async function setupPackageConfigurations(dirName: string) {
     },
     packageManager: 'pnpm@10.10.0',
     pnpm: {
-      onlyBuiltDependencies: [
-        'keytar'
-      ]
+      onlyBuiltDependencies: ['keytar'],
     },
   };
 
@@ -480,7 +472,7 @@ RUN_API_PORT=${config.runApiPort}
 
   // Create setup script
   await createSetupScript(config);
-  
+
   // Create dev-setup script
   await createDevSetupScript(config);
 
@@ -663,7 +655,7 @@ setupProject();
 `;
 
   await fs.writeFile('scripts/setup.js', setupScriptContent);
-  
+
   // Make the script executable
   await fs.chmod('scripts/setup.js', 0o755);
 }
@@ -1105,54 +1097,53 @@ async function installDependencies() {
 }
 
 async function setupProjectInDatabase() {
-    const s = p.spinner();
-    s.start('🚀 Starting development servers and setting up database...');
-    
-    try {
-        // Start development servers in background
-        const { spawn } = await import('child_process');
-        const devProcess = spawn('pnpm', ['dev'], {
-            stdio: ['pipe', 'pipe', 'pipe'],
-            detached: true,  // Detach so we can kill the process group
-            cwd: process.cwd()
-        });
+  const s = p.spinner();
+  s.start('🚀 Starting development servers and setting up database...');
 
-        // Give servers time to start
-        await new Promise(resolve => setTimeout(resolve, 5000));
-    
-        s.message('📦 Servers ready! Creating project in database...');
-        
-        // Run the database setup
-        await execAsync('node scripts/setup.js');
-        
-        // Kill the dev servers and their child processes
-        if (devProcess.pid) {
-            try {
-                // Kill the entire process group
-                process.kill(-devProcess.pid, 'SIGTERM');
-                
-                // Wait a moment for graceful shutdown
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Force kill if still running
-                try {
-                    process.kill(-devProcess.pid, 'SIGKILL');
-                } catch {
-                    // Process already terminated
-                }
-            } catch (error) {
-                // Process might already be dead, that's fine
-                console.log('Note: Dev servers may still be running in background');
-            }
+  try {
+    // Start development servers in background
+    const { spawn } = await import('child_process');
+    const devProcess = spawn('pnpm', ['dev'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: true, // Detach so we can kill the process group
+      cwd: process.cwd(),
+    });
+
+    // Give servers time to start
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    s.message('📦 Servers ready! Creating project in database...');
+
+    // Run the database setup
+    await execAsync('node scripts/setup.js');
+
+    // Kill the dev servers and their child processes
+    if (devProcess.pid) {
+      try {
+        // Kill the entire process group
+        process.kill(-devProcess.pid, 'SIGTERM');
+
+        // Wait a moment for graceful shutdown
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Force kill if still running
+        try {
+          process.kill(-devProcess.pid, 'SIGKILL');
+        } catch {
+          // Process already terminated
         }
-        
-        s.stop('✅ Project successfully created and configured in database!');
-        
-    } catch (error) {
-        s.stop('❌ Failed to setup project in database');
-        console.error('Setup error:', error);
-        // Continue anyway - user can run setup manually
+      } catch (error) {
+        // Process might already be dead, that's fine
+        console.log('Note: Dev servers may still be running in background');
+      }
     }
+
+    s.stop('✅ Project successfully created and configured in database!');
+  } catch (error) {
+    s.stop('❌ Failed to setup project in database');
+    console.error('Setup error:', error);
+    // Continue anyway - user can run setup manually
+  }
 }
 
 async function setupDatabase() {
@@ -1165,8 +1156,6 @@ async function setupDatabase() {
     );
   }
 }
-
-
 
 // Export the command function for the CLI
 export async function createCommand(dirName?: string, options?: any) {

@@ -291,7 +291,7 @@ export interface AgentInterface {
   init(): Promise<void>;
   getId(): string;
   getName(): string;
-	getDescription(): string;
+  getDescription(): string;
   getInstructions(): string;
   getTools(): Record<string, any>;
   getTransfers(): AgentInterface[];

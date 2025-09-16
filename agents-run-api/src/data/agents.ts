@@ -57,7 +57,7 @@ export function createAgentCard({
 /**
  * Generate an enhanced description that includes transfer and delegation information
  * Used in generateTaskHandler to help agents understand what other agents can do
- * 
+ *
  * @param baseDescription - The base description of the agent
  * @param internalRelations - Pre-computed internal relations
  * @param externalRelations - Pre-computed external relations
@@ -97,7 +97,7 @@ export function generateDescriptionWithTransfers(
     enhancedDescription += `\n\nCan transfer to:\n${transferList}`;
   }
 
-  // Add delegation information  
+  // Add delegation information
   if (delegates.length > 0) {
     const delegateList = delegates
       .map((rel) => {

@@ -224,7 +224,13 @@ export function useAggregateStats(options?: {
     } finally {
       setLoading(false);
     }
-  }, [options?.startTime, options?.endTime, options?.filters, options?.projectId, options?.graphId]);
+  }, [
+    options?.startTime,
+    options?.endTime,
+    options?.filters,
+    options?.projectId,
+    options?.graphId,
+  ]);
 
   useEffect(() => {
     fetchAggregateStats();

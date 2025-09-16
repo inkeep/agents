@@ -247,53 +247,52 @@ describe('Agent Builder', () => {
     });
   });
 
-	describe("Description Methods", () => {
-		let sourceAgent: Agent;
-		let transferAgent: Agent;
-		let delegateAgent: Agent;
+  describe('Description Methods', () => {
+    let sourceAgent: Agent;
+    let transferAgent: Agent;
+    let delegateAgent: Agent;
 
-		beforeEach(() => {
-			sourceAgent = new Agent({
-				id: "source-agent",
-				name: "Source Agent",
-				description: "Main agent that handles requests",
-				prompt: "You are the main agent",
-			});
+    beforeEach(() => {
+      sourceAgent = new Agent({
+        id: 'source-agent',
+        name: 'Source Agent',
+        description: 'Main agent that handles requests',
+        prompt: 'You are the main agent',
+      });
 
-			transferAgent = new Agent({
-				id: "transfer-agent",
-				name: "Transfer Agent", 
-				description: "Specialized agent for transfers",
-				prompt: "You handle transfers",
-			});
+      transferAgent = new Agent({
+        id: 'transfer-agent',
+        name: 'Transfer Agent',
+        description: 'Specialized agent for transfers',
+        prompt: 'You handle transfers',
+      });
 
-			delegateAgent = new Agent({
-				id: "delegate-agent",
-				name: "Delegate Agent",
-				description: "Specialized agent for delegations",
-				prompt: "You handle delegations",
-			});
-		});
+      delegateAgent = new Agent({
+        id: 'delegate-agent',
+        name: 'Delegate Agent',
+        description: 'Specialized agent for delegations',
+        prompt: 'You handle delegations',
+      });
+    });
 
-		it("should return basic description", () => {
-			const description = sourceAgent.getDescription();
-			expect(description).toBe("Main agent that handles requests");
-		});
+    it('should return basic description', () => {
+      const description = sourceAgent.getDescription();
+      expect(description).toBe('Main agent that handles requests');
+    });
 
-		it("should return empty string for missing description", () => {
-			const agentWithoutDesc = new Agent({
-				id: "no-desc-agent",
-				name: "No Description Agent",
-				prompt: "No description provided",
-			});
-			
-			const description = agentWithoutDesc.getDescription();
-			expect(description).toBe("");
-		});
+    it('should return empty string for missing description', () => {
+      const agentWithoutDesc = new Agent({
+        id: 'no-desc-agent',
+        name: 'No Description Agent',
+        prompt: 'No description provided',
+      });
 
-	});
+      const description = agentWithoutDesc.getDescription();
+      expect(description).toBe('');
+    });
+  });
 
-	describe("Initialization", () => {
+  describe('Initialization', () => {
     let agent: Agent;
 
     beforeEach(() => {

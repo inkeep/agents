@@ -11,8 +11,7 @@ export function setupOpenAPIRoutes(app: any) {
         info: {
           title: 'Inkeep Agents Manage API',
           version: '1.0.0',
-          description:
-            'REST API for the management of the Inkeep Agent Framework.',
+          description: 'REST API for the management of the Inkeep Agent Framework.',
         },
         servers: [
           {

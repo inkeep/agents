@@ -65,7 +65,7 @@ export class ArtifactParser {
     // First check for incomplete artifact patterns at the end
     const endPatterns = [
       /<artifact:ref(?![^>]*\/>).*$/, // artifact:ref that doesn't end with />
-      
+
       /<(a(r(t(i(f(a(c(t(:?(r(e(f)?)?)?)?)?)?)?)?)?)?)?)?$/, // Any partial artifact pattern at end
     ];
 

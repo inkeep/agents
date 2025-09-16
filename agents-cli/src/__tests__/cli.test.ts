@@ -102,7 +102,13 @@ describe('Inkeep CLI', () => {
     });
 
     it('should accept --agents-manage-api-url option', () => {
-      const result = runCli(['push', '--project', 'non-existent', '--agents-manage-api-url', 'http://example.com']);
+      const result = runCli([
+        'push',
+        '--project',
+        'non-existent',
+        '--agents-manage-api-url',
+        'http://example.com',
+      ]);
 
       // Will fail because project doesn't exist, but should accept the option
       expect(result.exitCode).toBe(1);

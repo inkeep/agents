@@ -43,7 +43,9 @@ describe('loadEnvironmentCredentials', () => {
 
     expect(result).toEqual(mockCredentials);
     expect(mockFs.existsSync).toHaveBeenCalledWith('/test/project/environments/development.env.ts');
-    expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith('/test/project/environments/development.env.ts');
+    expect(mockImportWithTypeScriptSupport).toHaveBeenCalledWith(
+      '/test/project/environments/development.env.ts'
+    );
   });
 
   it('should throw error if environment file does not exist', async () => {

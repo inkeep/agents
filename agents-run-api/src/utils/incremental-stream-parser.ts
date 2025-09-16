@@ -95,7 +95,10 @@ export class IncrementalStreamParser {
 
         // Prevent JSON buffer from growing too large
         if (jsonBuffer.length + delta.length > MAX_BUFFER_SIZE) {
-          logger.warn({ bufferSize: jsonBuffer.length + delta.length, maxSize: MAX_BUFFER_SIZE }, 'JSON buffer exceeded maximum size, truncating');
+          logger.warn(
+            { bufferSize: jsonBuffer.length + delta.length, maxSize: MAX_BUFFER_SIZE },
+            'JSON buffer exceeded maximum size, truncating'
+          );
           jsonBuffer = jsonBuffer.slice(-MAX_BUFFER_SIZE / 2); // Keep last half
         }
 
@@ -105,7 +108,10 @@ export class IncrementalStreamParser {
         for (const char of delta) {
           // Prevent component buffer from growing too large
           if (componentBuffer.length > MAX_BUFFER_SIZE) {
-            logger.warn({ bufferSize: componentBuffer.length, maxSize: MAX_BUFFER_SIZE }, 'Component buffer exceeded maximum size, resetting');
+            logger.warn(
+              { bufferSize: componentBuffer.length, maxSize: MAX_BUFFER_SIZE },
+              'Component buffer exceeded maximum size, resetting'
+            );
             componentBuffer = '';
             depth = 0; // Reset depth tracking
             continue;

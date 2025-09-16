@@ -138,7 +138,7 @@ export class Project implements ProjectInterface {
 
     this.tenantId = tenantId;
     this.baseURL = apiUrl;
-    
+
     // Update models if provided
     if (models) {
       this.models = models;

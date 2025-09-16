@@ -6,15 +6,12 @@ export default {
         {
           group: 'Quick Start',
           icon: 'LuZap',
-          pages: [
-              'quick-start/getting-started',
-              'quick-start/credentials',
-          ],
+          pages: ['quick-start/getting-started', 'quick-start/credentials'],
         },
         'concepts',
       ],
     },
-    
+
     {
       group: 'Typescript SDK',
       icon: 'LuCode',
@@ -33,10 +30,7 @@ export default {
         {
           group: 'Observability',
           icon: 'LuChartColumn',
-          pages: [
-            'typescript-sdk/signoz-usage',
-            'typescript-sdk/langfuse-usage',
-          ],
+          pages: ['typescript-sdk/signoz-usage', 'typescript-sdk/langfuse-usage'],
         },
         'typescript-sdk/external-agents',
       ],
@@ -133,7 +127,11 @@ export default {
         {
           group: 'Contributing',
           icon: 'LuGitPullRequest',
-          pages: ['community/contributing/overview', 'community/contributing/project-constraints', 'community/contributing/spans'],
+          pages: [
+            'community/contributing/overview',
+            'community/contributing/project-constraints',
+            'community/contributing/spans',
+          ],
         },
       ],
     },

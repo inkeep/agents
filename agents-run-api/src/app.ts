@@ -19,7 +19,7 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
-import { otel } from '@hono/otel'
+import { otel } from '@hono/otel';
 
 const logger = getLogger('agents-run-api');
 
@@ -199,7 +199,7 @@ function createExecutionHono(
 
     // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
-    const requestBody = c.get('requestBody') || {}; 
+    const requestBody = c.get('requestBody') || {};
     if (requestBody) {
       conversationId = requestBody.conversationId;
       if (!conversationId) {

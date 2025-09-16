@@ -15,7 +15,6 @@ export interface PullOptions {
   json?: boolean;
 }
 
-
 /**
  * Load and validate inkeep.config.ts
  */
@@ -85,7 +84,7 @@ function findProjectFiles(projectDir: string): {
 } {
   // Find all TypeScript files excluding environments directory
   const allTsFiles = findAllTypeScriptFiles(projectDir, ['environments', 'node_modules']);
-  
+
   // Categorize the files
   const categorized = categorizeTypeScriptFiles(allTsFiles, projectDir);
 
@@ -246,8 +245,14 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       };
 
       // Get file counts for summary
-      const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } = findProjectFiles(projectDir);
-      const totalFiles = [indexFile].filter(Boolean).length + graphFiles.length + agentFiles.length + toolFiles.length + otherFiles.length;
+      const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } =
+        findProjectFiles(projectDir);
+      const totalFiles =
+        [indexFile].filter(Boolean).length +
+        graphFiles.length +
+        agentFiles.length +
+        toolFiles.length +
+        otherFiles.length;
 
       await updateProjectFilesWithLLM(projectDir, projectData, modelSettings);
       spinner.succeed(`Project files updated (${totalFiles} files processed)`);

@@ -15,13 +15,15 @@ vi.mock('../logger', () => ({
 }));
 
 // Mock fetch
-const mockFetch = vi.fn(() => Promise.resolve({
-  ok: true,
-  json: async () => ({ data: {} }),
-  text: async () => '',
-  status: 200,
-  statusText: 'OK',
-} as any));
+const mockFetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: async () => ({ data: {} }),
+    text: async () => '',
+    status: 200,
+    statusText: 'OK',
+  } as any)
+);
 global.fetch = mockFetch as any;
 
 describe('Project', () => {

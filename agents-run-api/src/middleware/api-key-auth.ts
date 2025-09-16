@@ -1,4 +1,3 @@
-
 import { type ExecutionContext, validateAndGetApiKey } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { createMiddleware } from 'hono/factory';
@@ -24,7 +23,7 @@ export const apiKeyAuth = () =>
       await next();
       return;
     }
-    
+
     const authHeader = c.req.header('Authorization');
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');
@@ -117,7 +116,7 @@ export const apiKeyAuth = () =>
       } else if (apiKey) {
         const executionContext = await extractContextFromApiKey(apiKey);
         executionContext.agentId = agentId;
-        
+
         c.set('executionContext', executionContext);
 
         logger.info({}, 'API key authenticated successfully');

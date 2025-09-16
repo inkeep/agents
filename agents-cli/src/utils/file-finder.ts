@@ -20,12 +20,12 @@ export function findAllTypeScriptFiles(rootDir: string, excludeDirs: string[] = 
     for (const item of items) {
       const fullPath = join(dir, item);
       const relativePath = relative(rootDir, fullPath);
-      
+
       // Skip excluded directories
-      const isExcludedDir = excludeDirs.some(excludeDir => 
-        relativePath === excludeDir || relativePath.startsWith(`${excludeDir}/`)
+      const isExcludedDir = excludeDirs.some(
+        (excludeDir) => relativePath === excludeDir || relativePath.startsWith(`${excludeDir}/`)
       );
-      
+
       if (isExcludedDir) {
         continue;
       }
@@ -52,7 +52,10 @@ export function findAllTypeScriptFiles(rootDir: string, excludeDirs: string[] = 
  * @param rootDir - Root directory for relative path calculation
  * @returns Object with categorized files
  */
-export function categorizeTypeScriptFiles(files: string[], rootDir: string): {
+export function categorizeTypeScriptFiles(
+  files: string[],
+  rootDir: string
+): {
   indexFile: string | null;
   configFiles: string[];
   graphFiles: string[];
@@ -60,7 +63,8 @@ export function categorizeTypeScriptFiles(files: string[], rootDir: string): {
   toolFiles: string[];
   otherFiles: string[];
 } {
-  const indexFile = files.find(file => file.endsWith('/index.ts') || file === join(rootDir, 'index.ts')) || null;
+  const indexFile =
+    files.find((file) => file.endsWith('/index.ts') || file === join(rootDir, 'index.ts')) || null;
   const configFiles: string[] = [];
   const graphFiles: string[] = [];
   const agentFiles: string[] = [];
@@ -75,13 +79,25 @@ export function categorizeTypeScriptFiles(files: string[], rootDir: string): {
       continue; // Already handled
     }
 
-    if (fileName.includes('.config.') || fileName.includes('.env.') || fileName === 'inkeep.config.ts') {
+    if (
+      fileName.includes('.config.') ||
+      fileName.includes('.env.') ||
+      fileName === 'inkeep.config.ts'
+    ) {
       configFiles.push(file);
     } else if (fileName.includes('.graph.') || relativePath.includes('graphs/')) {
       graphFiles.push(file);
-    } else if (fileName.includes('agent') || fileName.includes('Agent') || relativePath.includes('agents/')) {
+    } else if (
+      fileName.includes('agent') ||
+      fileName.includes('Agent') ||
+      relativePath.includes('agents/')
+    ) {
       agentFiles.push(file);
-    } else if (fileName.includes('tool') || fileName.includes('Tool') || relativePath.includes('tools/')) {
+    } else if (
+      fileName.includes('tool') ||
+      fileName.includes('Tool') ||
+      relativePath.includes('tools/')
+    ) {
       toolFiles.push(file);
     } else {
       otherFiles.push(file);

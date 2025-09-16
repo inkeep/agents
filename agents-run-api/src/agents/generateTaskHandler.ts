@@ -131,7 +131,7 @@ export const createTaskHandler = (
                 graphId: config.graphId,
                 agentId: relation.id,
               });
-              
+
               // Use the optimized version that accepts pre-computed relations
               const enhancedDescription = generateDescriptionWithTransfers(
                 relation.description || '',

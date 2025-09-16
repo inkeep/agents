@@ -71,7 +71,8 @@ export async function stopAllAgentTools(
           const toolName = (toolInstance as any).config?.name || 'unknown';
           logger.debug({}, `Stopped tool: ${toolName}`);
         } catch (error) {
-          logger.warn({},
+          logger.warn(
+            {},
             `Failed to stop tool: ${error instanceof Error ? error.message : 'Unknown error'}`
           );
         }

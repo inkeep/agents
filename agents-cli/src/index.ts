@@ -24,7 +24,6 @@ program
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
 
-
 // Init command
 program
   .command('init [path]')

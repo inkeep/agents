@@ -242,7 +242,11 @@ describe('Push Command - Project Validation', () => {
     });
 
     // Verify custom API URL was used
-    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://custom-api.com', undefined);
+    expect(mockProject.setConfig).toHaveBeenCalledWith(
+      'test-tenant',
+      'http://custom-api.com',
+      undefined
+    );
   });
 
   it('should handle missing configuration', async () => {

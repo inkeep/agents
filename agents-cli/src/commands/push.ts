@@ -13,7 +13,6 @@ export interface PushOptions {
   json?: boolean;
 }
 
-
 /**
  * Load and validate project from index.ts
  */
@@ -110,17 +109,21 @@ export async function pushCommand(options: PushOptions) {
 
     // Set configuration on the project
     if (typeof project.setConfig === 'function') {
-      project.setConfig(finalConfig.tenantId, finalConfig.agentsManageApiUrl, finalConfig.modelSettings);
+      project.setConfig(
+        finalConfig.tenantId,
+        finalConfig.agentsManageApiUrl,
+        finalConfig.modelSettings
+      );
     }
 
     // Load environment credentials if --env flag is provided
     if (options.env && typeof project.setCredentials === 'function') {
       spinner.text = `Loading credentials for environment '${options.env}'...`;
-      
+
       try {
         const credentials = await loadEnvironmentCredentials(projectDir, options.env);
         project.setCredentials(credentials);
-        
+
         spinner.text = 'Project loaded with credentials';
         console.log(chalk.gray(`  • Environment: ${options.env}`));
         console.log(chalk.gray(`  • Credentials loaded: ${Object.keys(credentials).length}`));
