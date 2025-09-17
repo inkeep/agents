@@ -1,6 +1,8 @@
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { redirectToProject } from '@/lib/utils/project-redirect';
 
+export const dynamic = 'force-dynamic';
+
 async function Home() {
   if (!process.env.TENANT_ID) {
     console.warn(`TENANT_ID is not set, using default tenantId: ${DEFAULT_TENANT_ID}`);
