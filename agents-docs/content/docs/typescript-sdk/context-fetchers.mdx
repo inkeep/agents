@@ -31,7 +31,7 @@ Let's create a simple context fetcher that retrieves user information:
 
 ```typescript
 import { z } from "zod";
-import { agent, agentGraph, fetchDefinition } from "@inkeep/agents-manage-api/builders";
+import { agent, agentGraph } from "@inkeep/agents-manage-api/builders";
 import { contextConfig, fetchDefinition } from "@inkeep/agents-core";
 
 // 1. Define request schema for headers validation. All header keys are converted to lowercase.
@@ -77,11 +77,7 @@ const personalAgent = agent({
   description: "A personalized AI assistant",
   prompt: "Hello {{userName}}! I'm your personal assistant.",
 });
-```
 
-### Using the Context Fetcher
-
-```typescript
 // Initialize the graph
 export const graph = agentGraph({
   id: "personal-graph",
