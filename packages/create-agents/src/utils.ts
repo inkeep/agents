@@ -343,6 +343,11 @@ INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
 # SigNoz
 SIGNOZ_URL=your-signoz-url-here
 SIGNOZ_API_KEY=your-signoz-api-key-here
+
+# Nango
+NANGO_HOST=your-nango-host-here
+NANGO_CONNECT_BASE_URL=your-nango-connect-base-url-here
+NANGO_SECRET_KEY=
 `;
 
   await fs.writeFile('.env', envContent);
