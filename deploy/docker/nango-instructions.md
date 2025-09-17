@@ -112,7 +112,7 @@ NANGO_SECRET_KEY="123abc..."
 ```bash
 # Nango Cloud configuration (server-side calls)
 NANGO_SECRET_KEY="123abc..."
-# Leave NEXT_PUBLIC_NANGO_HOST and NEXT_PUBLIC_NANGO_CONNECT_BASE_URL unset
+# Leave NANGO_HOST and NANGO_CONNECT_BASE_URL unset
 ```
 
 **Note:** When using Nango Cloud, omit the `NANGO_HOST` environment variables to automatically use the cloud endpoints.
