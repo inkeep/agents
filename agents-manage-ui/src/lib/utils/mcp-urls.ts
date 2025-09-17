@@ -2,7 +2,6 @@
 // This file does NOT have 'use server' so functions can be synchronous
 
 // Default configuration (same as in api/tools.ts)
-// import { INKEEP_AGENTS_MANAGE_API_URL } from '../api/api-config';
 
 /**
  * Get OAuth login URL for an MCP tool that requires authentication
