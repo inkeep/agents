@@ -1,47 +1,16 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import * as dotenv from 'dotenv';
+import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import { z } from 'zod';
 
-dotenv.config({ quiet: true });
+// Load all environment files using shared logic
+loadEnvironmentFiles();
 
-const _nodeEnvSchema = z.enum(['development', 'production']).default('development');
-const environmentSchema = z.enum(['development', 'pentest', 'production', 'test']);
-
-const criticalEnv = z
-  .object({
-    ENVIRONMENT: environmentSchema,
-  })
-  .parse(process.env);
-
-const loadEnvFile = () => {
-  // Priority of environment variables:
-  // 1. Existing process.env variables (highest priority)
-  // 2. Values from .env.{nodeEnv}.nonsecret file (lower priority)
-  // 3. Default values defined in schema (lowest priority)
-
-  const envPath = path.resolve(process.cwd(), `.env.${criticalEnv.ENVIRONMENT}.nonsecret`);
-
-  if (fs.existsSync(envPath)) {
-    const envConfig = dotenv.parse(fs.readFileSync(envPath));
-    for (const k in envConfig) {
-      // Only set if the environment variable doesn't already exist
-      // This preserves any values that were already set in process.env
-      if (!(k in process.env)) {
-        process.env[k] = envConfig[k];
-      }
-    }
-  }
-};
-
-loadEnvFile();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
   ENVIRONMENT: z
     .enum(['development', 'production', 'pentest', 'test'])
     .optional()
     .default('development'),
-  DB_FILE_NAME: z.string().default('file:../local.db'),
+  DB_FILE_NAME: z.string(),
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SECRET_KEY: z.string().optional(),

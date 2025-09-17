@@ -17,29 +17,26 @@ git clone https://github.com/inkeep/agents.git
 cd agents
 ```
 
-### Step 2: Configure environment variables
+### Step 2: Run the setup script
+For first-time setup, run:
 
 ```bash
-cp agents-manage-api/.env.example agents-manage-api/.env && cp agents-run-api/.env.example agents-run-api/.env && cp agents-manage-ui/.env.example agents-manage-ui/.env && cp examples/.env.example examples/.env
+./scripts/setup.sh
 ```
 
-Add your `ANTHROPIC_API_KEY` to an `.env` file at `/agents-run-api/`
+This will:
+1. Create `.env` from the template
+2. Set up user-global config at `~/.inkeep/config`
+3. Create `.env.local` for repo-specific overrides
+4. Install dependencies
+5. Initialize the database
+
+Add your `ANTHROPIC_API_KEY` to the root `.env`
 
 ```
 ANTHROPIC_API_KEY=sk-ant-xyz789
 ```
 
-### Step 3: Setup and install
-
-```bash
-pnpm install
-```
-
-### Step 4: Initialize database
-
-```bash
-pnpm --dir ./packages/agents-core db:push
-```
 
 ### Step 5: Run the agent framework
 
