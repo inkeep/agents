@@ -1,9 +1,8 @@
 import { useParams } from 'next/navigation';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { ExternalLink } from '../ui/external-link';
 
-const SIGNOZ_BASE = process.env.NEXT_PUBLIC_SIGNOZ_URL ?? 'http://localhost:3080';
-
-function makeTracesUrl(conversationId: string, relativeTime = '2months') {
+function makeTracesUrl(signozBaseUrl: string, conversationId: string, relativeTime = '2months') {
   const compositeQuery = {
     queryType: 'builder',
     builder: {
@@ -119,11 +118,11 @@ function makeTracesUrl(conversationId: string, relativeTime = '2months') {
   params.set('viewKey', '""');
   params.set('relativeTime', relativeTime);
 
-  return `${SIGNOZ_BASE}/traces-explorer?${params.toString()}`;
+  return `${signozBaseUrl}/traces-explorer?${params.toString()}`;
 }
 
-function makeSpanUrl(traceId: string, spanId: string) {
-  return `${SIGNOZ_BASE}/trace/${traceId}?spanId=${spanId}`;
+function makeSpanUrl(signozBaseUrl: string, traceId: string, spanId: string) {
+  return `${signozBaseUrl}/trace/${traceId}?spanId=${spanId}`;
 }
 
 interface SignozLinkProps {
@@ -136,11 +135,17 @@ interface SignozSpanLinkProps {
 }
 
 export function SignozLink({ conversationId }: SignozLinkProps) {
-  return <ExternalLink href={makeTracesUrl(conversationId)}>View in SigNoz</ExternalLink>;
+  const { SIGNOZ_URL } = useRuntimeConfig();
+  return (
+    <ExternalLink href={makeTracesUrl(SIGNOZ_URL, conversationId)}>View in SigNoz</ExternalLink>
+  );
 }
 
 export function SignozSpanLink({ traceId, spanId }: SignozSpanLinkProps) {
-  return <ExternalLink href={makeSpanUrl(traceId, spanId)}>View in SigNoz</ExternalLink>;
+  const { SIGNOZ_URL } = useRuntimeConfig();
+  return (
+    <ExternalLink href={makeSpanUrl(SIGNOZ_URL, traceId, spanId)}>View in SigNoz</ExternalLink>
+  );
 }
 
 interface ConversationTracesLinkProps {

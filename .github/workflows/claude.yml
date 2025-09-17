@@ -30,17 +30,13 @@ jobs:
       actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # This is an optional setting that allows Claude to read CI results on PRs
-
-          claude_args: "--model claude-opus-4-20250514"
-          
-
+          model: "claude-opus-4-1-20250805"

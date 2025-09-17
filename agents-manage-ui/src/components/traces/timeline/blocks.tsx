@@ -31,7 +31,6 @@ export function Info({ label, value }: { label: string; value?: React.ReactNode 
 }
 
 export function StatusBadge({ status }: { status: ActivityItem['status'] }) {
-  console.log(status);
   return (
     <div>
       <span className="text-sm font-medium text-foreground">Status</span>

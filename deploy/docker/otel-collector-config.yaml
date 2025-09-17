@@ -7,13 +7,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
-  # Redact auth header on spans
-  attributes:
-    actions:
-      - key: http.request.header.authorization
-        value: "[REDACTED]"
-        action: update
-  
   # Configure batch size for production
   batch:
     send_batch_size: 1
@@ -35,5 +28,5 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [attributes, batch]
+      processors: [batch]
       exporters: [otlp/jaeger, otlp/signoz]

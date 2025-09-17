@@ -3,7 +3,7 @@ import { InkeepEmbeddedChat } from '@inkeep/cxkit-react-oss';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/cxkit-react-oss/types';
 import { nanoid } from 'nanoid';
 import { useEffect, useRef } from 'react';
-import { INKEEP_AGENTS_RUN_API_URL } from '@/lib/api/api-config';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
 
 interface ChatWidgetProps {
@@ -110,6 +110,7 @@ export function ChatWidget({
   stopPolling,
   customHeaders = {},
 }: ChatWidgetProps) {
+  const { INKEEP_AGENTS_RUN_API_URL, INKEEP_AGENTS_RUN_API_BYPASS_SECRET } = useRuntimeConfig();
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -197,7 +198,7 @@ export function ChatWidget({
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
               'x-inkeep-graph-id': graphId,
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
             components: {

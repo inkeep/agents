@@ -48,7 +48,8 @@
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
     "db:reset-schema": "pnpm --filter @inkeep/agents-core db:reset-schema",
     "workflow:profile": "node scripts/workflows/profile.mjs",
-    "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose"
+    "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
+    "setup-dev": "sh scripts/setup.sh"
   },
   "version": "0.1.0",
   "dependencies": {

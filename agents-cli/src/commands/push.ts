@@ -2,9 +2,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
-import { importWithTypeScriptSupport } from '../utils/tsx-loader';
-import { findProjectDirectory } from '../utils/project-directory';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
+import { findProjectDirectory } from '../utils/project-directory';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 
 export interface PushOptions {
   project?: string;

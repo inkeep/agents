@@ -7,7 +7,8 @@ This library provides server actions and types for interacting with the GraphFul
 Set the following environment variable in your `.env.local` file:
 
 ```bash
-NEXT_PUBLIC_INKEEP_CHAT_API_URL="http://localhost:3002"
+INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 ```
 
 ## Usage
