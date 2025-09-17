@@ -41,7 +41,8 @@ describe('Agents Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
 
-      // Create a test graph for each project
+      // Create a test graph with a temporary default agent
+      const defaultAgentId = 'default-agent-setup';
       await db
         .insert(schema.agentGraph)
         .values({
@@ -50,6 +51,21 @@ describe('Agents Data Access - Integration Tests', () => {
           id: testGraphId,
           name: 'Test Graph',
           description: 'Graph for testing',
+          defaultAgentId: defaultAgentId,
+        })
+        .onConflictDoNothing();
+
+      // Create the default agent for the graph
+      await db
+        .insert(schema.agents)
+        .values({
+          tenantId: tenantId,
+          projectId: testProjectId,
+          graphId: testGraphId,
+          id: defaultAgentId,
+          name: 'Default Agent',
+          description: 'Default agent for testing',
+          prompt: 'You are a test agent',
         })
         .onConflictDoNothing();
     }
@@ -72,7 +88,8 @@ describe('Agents Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
 
-      // Create a test graph for each project
+      // Create a test graph with a temporary default agent
+      const defaultAgentId = 'default-agent-setup';
       await db
         .insert(schema.agentGraph)
         .values({
@@ -81,6 +98,21 @@ describe('Agents Data Access - Integration Tests', () => {
           id: testGraphId,
           name: 'Test Graph',
           description: 'Graph for testing',
+          defaultAgentId: defaultAgentId,
+        })
+        .onConflictDoNothing();
+
+      // Create the default agent for the graph
+      await db
+        .insert(schema.agents)
+        .values({
+          tenantId: tenantId,
+          projectId: testProjectId,
+          graphId: testGraphId,
+          id: defaultAgentId,
+          name: 'Default Agent',
+          description: 'Default agent for testing',
+          prompt: 'You are a test agent',
         })
         .onConflictDoNothing();
     }
@@ -193,6 +225,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'agent-1',
         tenantId: tenant1,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Tenant 1 Agent',
         description: 'Agent for tenant 1',
         prompt: 'Help tenant 1',
@@ -202,6 +235,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'agent-2',
         tenantId: tenant2,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Tenant 2 Agent',
         description: 'Agent for tenant 2',
         prompt: 'Help tenant 2',
@@ -211,6 +245,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'agent-3',
         tenantId: tenant1,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Another Tenant 1 Agent',
         description: 'Another agent for tenant 1',
         prompt: 'Also help tenant 1',
@@ -222,32 +257,63 @@ describe('Agents Data Access - Integration Tests', () => {
 
       await createAgent(db)(agent3Data);
 
-      // List agents for tenant 1 - should see 2 agents
+      // List agents for tenant 1 - should see 3 agents (2 created + 1 default from setup)
       const tenant1Agents = await listAgents(db)({
         scopes: { tenantId: tenant1, projectId: testProjectId, graphId: testGraphId },
       });
 
-      expect(tenant1Agents).toHaveLength(2);
+      expect(tenant1Agents).toHaveLength(3); // 2 created in test + 1 default from setup
       expect(tenant1Agents.every((agent) => agent.tenantId === tenant1)).toBe(true);
       const tenant1Names = tenant1Agents.map((a) => a.name).sort();
-      expect(tenant1Names).toEqual(['Another Tenant 1 Agent', 'Tenant 1 Agent']);
+      expect(tenant1Names).toEqual(['Another Tenant 1 Agent', 'Default Agent', 'Tenant 1 Agent']);
 
-      // List agents for tenant 2 - should see 1 agent
+      // List agents for tenant 2 - should see 2 agents (1 created + 1 default from setup)
       const tenant2Agents = await listAgents(db)({
         scopes: { tenantId: tenant2, projectId: testProjectId, graphId: testGraphId },
       });
 
-      expect(tenant2Agents).toHaveLength(1);
-      expect(tenant2Agents[0].name).toBe('Tenant 2 Agent');
-      expect(tenant2Agents[0].tenantId).toBe(tenant2);
+      expect(tenant2Agents).toHaveLength(2); // 1 created in test + 1 default from setup
+      const tenant2Names = tenant2Agents.map((a) => a.name).sort();
+      expect(tenant2Names).toEqual(['Default Agent', 'Tenant 2 Agent']);
+      expect(tenant2Agents.every((agent) => agent.tenantId === tenant2)).toBe(true);
     });
 
     it('should return empty array when no agents exist', async () => {
+      // Use a different graph that has no agents (except the default setup agent)
+      const emptyGraphId = 'empty-test-graph';
+
+      // Create a new graph with a default agent
+      await db
+        .insert(schema.agentGraph)
+        .values({
+          tenantId: testTenantId,
+          projectId: testProjectId,
+          id: emptyGraphId,
+          name: 'Empty Test Graph',
+          description: 'Graph for empty test',
+          defaultAgentId: 'empty-default-agent',
+        });
+
+      await db
+        .insert(schema.agents)
+        .values({
+          tenantId: testTenantId,
+          projectId: testProjectId,
+          graphId: emptyGraphId,
+          id: 'empty-default-agent',
+          name: 'Empty Default Agent',
+          description: 'Default agent for empty test',
+          prompt: 'You are a test agent',
+        });
+
+      // List agents for the empty graph (should only have the default agent)
       const result = await listAgents(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: emptyGraphId },
       });
 
-      expect(result).toEqual([]);
+      // Should have exactly one agent (the default)
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('empty-default-agent');
     });
   });
 
@@ -394,7 +460,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Try to delete from different tenant
       const deleteResult = await deleteAgent(db)({
-        scopes: { tenantId: 'tenant-2', projectId: testProjectId }, // Different tenant
+        scopes: { tenantId: 'tenant-2', projectId: testProjectId, graphId: testGraphId }, // Different tenant
         agentId: tenant1Agent.id,
       });
       expect(deleteResult).toBe(true);

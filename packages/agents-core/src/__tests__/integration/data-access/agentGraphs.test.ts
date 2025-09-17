@@ -77,7 +77,12 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       const createdGraph = await createAgentGraph(db)(graphData);
 
       // Now create an agent with the graphId
-      const defaultAgentData = createTestAgentData(testTenantId, testProjectId, '1', createdGraph.id);
+      const defaultAgentData = createTestAgentData(
+        testTenantId,
+        testProjectId,
+        '1',
+        createdGraph.id
+      );
       const defaultAgent = await createAgent(db)({
         ...defaultAgentData,
       });
@@ -98,7 +103,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Delete the agent and graph
       await deleteAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
         agentId: defaultAgent.id,
       });
 
@@ -136,7 +141,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Delete the agent and graph
       await deleteAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
         agentId: defaultAgent.id,
       });
 

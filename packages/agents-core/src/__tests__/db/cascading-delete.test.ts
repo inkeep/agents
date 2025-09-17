@@ -190,6 +190,7 @@ describe('Cascading Delete Tests', () => {
     const externalAgent = {
       tenantId,
       projectId,
+      graphId,
       id: nanoid(),
       name: 'Test External Agent',
       description: 'Test external agent',

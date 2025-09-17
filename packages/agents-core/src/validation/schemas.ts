@@ -13,6 +13,7 @@ import {
   contextCache,
   contextConfigs,
   conversations,
+  credentialReferences,
   dataComponents,
   externalAgents,
   ledgerArtifacts,
@@ -84,13 +85,27 @@ export const ProjectModelSchema = z.object({
 
 // Helper functions with better type preservation
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, graphId: true }).partial() satisfies z.ZodObject<any>;
+  schema
+    .omit({ tenantId: true, projectId: true })
+    .partial() satisfies z.ZodObject<any>;
+
+// Specific helper for graph-scoped entities that also need graphId omitted
+const createGraphScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+
+const createGraphScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+
+const createGraphScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema
+    .omit({ tenantId: true, projectId: true, graphId: true })
+    .partial() satisfies z.ZodObject<any>;
 
 // === Agent Schemas ===
 export const AgentSelectSchema = createSelectSchema(agents);
@@ -102,9 +117,9 @@ export const AgentInsertSchema = createInsertSchema(agents).extend({
 
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
-export const AgentApiSelectSchema = createApiSchema(AgentSelectSchema);
-export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema);
-export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema);
+export const AgentApiSelectSchema = createGraphScopedApiSchema(AgentSelectSchema);
+export const AgentApiInsertSchema = createGraphScopedApiInsertSchema(AgentInsertSchema);
+export const AgentApiUpdateSchema = createGraphScopedApiUpdateSchema(AgentUpdateSchema);
 
 // === Agent Relations Schemas ===
 export const AgentRelationSelectSchema = createSelectSchema(agentRelations);
@@ -117,8 +132,8 @@ export const AgentRelationInsertSchema = createInsertSchema(agentRelations).exte
 });
 export const AgentRelationUpdateSchema = AgentRelationInsertSchema.partial();
 
-export const AgentRelationApiSelectSchema = createApiSchema(AgentRelationSelectSchema);
-export const AgentRelationApiInsertSchema = createApiInsertSchema(AgentRelationInsertSchema)
+export const AgentRelationApiSelectSchema = createGraphScopedApiSchema(AgentRelationSelectSchema);
+export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(AgentRelationInsertSchema)
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES),
   })
@@ -135,7 +150,7 @@ export const AgentRelationApiInsertSchema = createApiInsertSchema(AgentRelationI
     }
   );
 
-export const AgentRelationApiUpdateSchema = createApiUpdateSchema(AgentRelationUpdateSchema)
+export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(AgentRelationUpdateSchema)
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES).optional(),
   })
@@ -325,11 +340,11 @@ export const AgentDataComponentSelectSchema = createSelectSchema(agentDataCompon
 export const AgentDataComponentInsertSchema = createInsertSchema(agentDataComponents);
 export const AgentDataComponentUpdateSchema = AgentDataComponentInsertSchema.partial();
 
-export const AgentDataComponentApiSelectSchema = createApiSchema(AgentDataComponentSelectSchema);
-export const AgentDataComponentApiInsertSchema = createApiInsertSchema(
+export const AgentDataComponentApiSelectSchema = createGraphScopedApiSchema(AgentDataComponentSelectSchema);
+export const AgentDataComponentApiInsertSchema = createGraphScopedApiInsertSchema(
   AgentDataComponentInsertSchema
 );
-export const AgentDataComponentApiUpdateSchema = createApiUpdateSchema(
+export const AgentDataComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentDataComponentUpdateSchema
 );
 
@@ -365,16 +380,17 @@ export const AgentArtifactComponentInsertSchema = createInsertSchema(
 });
 export const AgentArtifactComponentUpdateSchema = AgentArtifactComponentInsertSchema.partial();
 
-export const AgentArtifactComponentApiSelectSchema = createApiSchema(
+export const AgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
   AgentArtifactComponentSelectSchema
 );
 export const AgentArtifactComponentApiInsertSchema = AgentArtifactComponentInsertSchema.omit({
   tenantId: true,
   projectId: true,
+  graphId: true,
   id: true,
   createdAt: true,
 });
-export const AgentArtifactComponentApiUpdateSchema = createApiUpdateSchema(
+export const AgentArtifactComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentArtifactComponentUpdateSchema
 );
 
@@ -388,9 +404,9 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
-export const ExternalAgentApiSelectSchema = createApiSchema(ExternalAgentSelectSchema);
-export const ExternalAgentApiInsertSchema = createApiInsertSchema(ExternalAgentInsertSchema);
-export const ExternalAgentApiUpdateSchema = createApiUpdateSchema(ExternalAgentUpdateSchema);
+export const ExternalAgentApiSelectSchema = createGraphScopedApiSchema(ExternalAgentSelectSchema);
+export const ExternalAgentApiInsertSchema = createGraphScopedApiInsertSchema(ExternalAgentInsertSchema);
+export const ExternalAgentApiUpdateSchema = createGraphScopedApiUpdateSchema(ExternalAgentUpdateSchema);
 
 // Discriminated union for all agent types
 export const AllAgentSchema = z.discriminatedUnion('type', [
@@ -454,10 +470,8 @@ export const CredentialReferenceSelectSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const CredentialReferenceInsertSchema = z.object({
+export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
   id: resourceIdSchema,
-  tenantId: z.string(),
-  projectId: z.string(),
   type: z.string(),
   credentialStoreId: resourceIdSchema,
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
@@ -571,11 +585,11 @@ export const AgentToolRelationInsertSchema = createInsertSchema(agentToolRelatio
 
 export const AgentToolRelationUpdateSchema = AgentToolRelationInsertSchema.partial();
 
-export const AgentToolRelationApiSelectSchema = createApiSchema(AgentToolRelationSelectSchema);
-export const AgentToolRelationApiInsertSchema = createApiInsertSchema(
+export const AgentToolRelationApiSelectSchema = createGraphScopedApiSchema(AgentToolRelationSelectSchema);
+export const AgentToolRelationApiInsertSchema = createGraphScopedApiInsertSchema(
   AgentToolRelationInsertSchema
 );
-export const AgentToolRelationApiUpdateSchema = createApiUpdateSchema(
+export const AgentToolRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentToolRelationUpdateSchema
 );
 

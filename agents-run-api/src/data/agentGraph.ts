@@ -1,5 +1,5 @@
 import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
-import { type AgentGraphSelect, getAgentById, getAgentGraph } from '@inkeep/agents-core';
+import { type AgentGraphSelect, getAgentById, getAgentGraphById } from '@inkeep/agents-core';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
@@ -81,7 +81,7 @@ export async function getRegisteredGraph(
   executionContext: ExecutionContext
 ): Promise<RegisteredAgent | null> {
   const { tenantId, projectId, graphId, baseUrl, apiKey } = executionContext;
-  const dbGraph = await getAgentGraph(dbClient)({ scopes: { tenantId, projectId }, graphId });
+  const dbGraph = await getAgentGraphById(dbClient)({ scopes: { tenantId, projectId }, graphId });
   if (!dbGraph) {
     return null;
   }

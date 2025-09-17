@@ -45,7 +45,8 @@ describe('FullProjectDefinitionSchema', () => {
   it('should validate a complete full project definition', () => {
     const result = FullProjectDefinitionSchema.safeParse(validFullProject);
     if (!result.success) {
-      console.error('Validation failed:', result.error.format());
+      console.error('Validation failed:', JSON.stringify(result.error.format(), null, 2));
+      console.error('Raw issues:', result.error.issues);
     }
     expect(result.success).toBe(true);
   });
