@@ -11,6 +11,7 @@ vi.mock('../../data/db/dbClient', () => ({
 vi.mock('@inkeep/agents-core', () => ({
   getAgentGraphById: vi.fn(),
   getProject: vi.fn(),
+  agentGraph: {},  // Add the agentGraph export for other tests
 }));
 
 // Import mocked functions
@@ -30,7 +31,7 @@ describe('resolveModelConfig', () => {
     vi.clearAllMocks();
 
     // Setup default mock implementations that return functions
-    mockGetAgentGraphByIdById.mockReturnValue(vi.fn());
+    mockGetAgentGraphById.mockReturnValue(vi.fn());
     mockGetProject.mockReturnValue(vi.fn());
   });
 
@@ -56,7 +57,7 @@ describe('resolveModelConfig', () => {
       });
 
       // Should not call graph or project functions
-      expect(mockGetAgentGraphByIdById).not.toHaveBeenCalled();
+      expect(mockGetAgentGraphById).not.toHaveBeenCalled();
       expect(mockGetProject).not.toHaveBeenCalled();
     });
 

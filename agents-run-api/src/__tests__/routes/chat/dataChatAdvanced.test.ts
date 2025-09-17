@@ -90,22 +90,24 @@ describe('Chat Data Stream Advanced', () => {
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
 
-    // Create agent first, then graph
-    await createAgent(dbClient)({
-      id: agentId,
-      tenantId,
-      projectId,
-      name: 'Test Agent',
-      description: 'Test agent',
-      prompt: 'Test instructions',
-    });
-
+    // Create graph first
     await createAgentGraph(dbClient)({
       id: graphId,
       tenantId,
       projectId,
       name: 'Test Graph',
       defaultAgentId: agentId,
+    });
+
+    // Then create agent with graphId
+    await createAgent(dbClient)({
+      id: agentId,
+      tenantId,
+      projectId,
+      graphId,
+      name: 'Test Agent',
+      description: 'Test agent',
+      prompt: 'Test instructions',
     });
 
     return { tenantId, projectId, graphId, agentId };

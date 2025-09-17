@@ -50,7 +50,7 @@ app.openapi(
     const { page, limit } = c.req.valid('query');
 
     const result = await listExternalAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       pagination: { page, limit },
     });
     // Add type field to all external agents in the response
@@ -91,7 +91,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const externalAgent = await getExternalAgent(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       agentId: id,
     });
 
@@ -148,6 +148,7 @@ app.openapi(
     const externalAgentData = {
       tenantId,
       projectId,
+      graphId: 'default', // Use default graphId for backward compatibility
       id: body.id ? String(body.id) : nanoid(),
       name: body.name,
       description: body.description,
@@ -202,7 +203,7 @@ app.openapi(
     const body = c.req.valid('json');
 
     const updatedExternalAgent = await updateExternalAgent(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       agentId: id,
       data: body,
     });
@@ -252,7 +253,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
 
     const deleted = await deleteExternalAgent(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       agentId: id,
     });
 

@@ -88,22 +88,24 @@ describe('Chat Data Stream Route', () => {
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
 
-    // Create agent first, then graph
-    await createAgent(dbClient)({
-      id: agentId,
-      tenantId,
-      projectId,
-      name: 'Test Agent',
-      description: 'Test agent for streaming',
-      prompt: 'You are a helpful assistant.',
-    });
-
+    // Create graph first
     await createAgentGraph(dbClient)({
       id: graphId,
       tenantId,
       projectId,
       name: 'Test Graph',
       defaultAgentId: agentId,
+    });
+
+    // Then create agent with graphId
+    await createAgent(dbClient)({
+      id: agentId,
+      tenantId,
+      projectId,
+      graphId,
+      name: 'Test Agent',
+      description: 'Test agent for streaming',
+      prompt: 'You are a helpful assistant.',
     });
 
     const body = {
