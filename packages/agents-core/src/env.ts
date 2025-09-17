@@ -28,7 +28,7 @@ export const loadEnvironmentFiles = () => {
   // This allows sharing API keys across multiple local repo copies
   const userConfigPath = path.join(os.homedir(), '.inkeep', 'config');
   if (fs.existsSync(userConfigPath)) {
-    dotenv.config({ path: userConfigPath, override: true });
+    dotenv.config({ path: userConfigPath, override: true, quiet: true });
   }
 
   // Load all at once with dotenv supporting multiple files
@@ -36,6 +36,7 @@ export const loadEnvironmentFiles = () => {
     dotenv.config({
       path: environmentFiles,
       override: false,
+      quiet: true,
     });
     expand({ processEnv: process.env as Record<string, string> });
   }
