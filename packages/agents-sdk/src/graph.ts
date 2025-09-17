@@ -1159,7 +1159,27 @@ export class AgentGraph implements GraphInterface {
 
       // Inherit individual model types from graph if not set at agent level
       if (!agent.config.models.base && this.models.base) {
+        logger.info(
+          {
+            agentId: agent.getId(),
+            graphId: this.graphId,
+            inheritingFromGraph: true,
+            graphBaseModel: this.models.base.model,
+            graphHasProviderOptions: !!this.models.base.providerOptions,
+            providerOptionsKeys: this.models.base.providerOptions ? Object.keys(this.models.base.providerOptions) : [],
+          },
+          'Agent inheriting base model from graph'
+        );
         agent.config.models.base = this.models.base;
+        // Log what the agent has after assignment
+        logger.info(
+          {
+            agentId: agent.getId(),
+            agentBaseModel: agent.config.models.base?.model,
+            agentHasProviderOptions: !!agent.config.models.base?.providerOptions,
+          },
+          'Agent model after inheritance'
+        );
       }
       if (!agent.config.models.structuredOutput && this.models.structuredOutput) {
         agent.config.models.structuredOutput = this.models.structuredOutput;

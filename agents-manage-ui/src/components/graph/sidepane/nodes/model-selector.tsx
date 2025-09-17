@@ -2,7 +2,7 @@
 
 import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { modelOptions } from '@/components/graph/configuration/model-options';
+import { modelOptions, isCustomModelValue } from '@/components/graph/configuration/model-options';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -45,7 +45,8 @@ export function ModelSelector({
       const model = models.find((m) => m.value === value);
       if (model) return model;
     }
-    return value ? { value, label: value } : null;
+    // Handle custom models
+    return value ? { value, label: `${value} (custom)` } : null;
   }, [value]);
 
   const inheritedModel = useMemo(() => {
@@ -113,8 +114,42 @@ export function ModelSelector({
               <CommandInput placeholder="Search models..." />
               <CommandList className="max-h-64">
                 <CommandEmpty>
-                  <div className="text-muted-foreground">No model found.</div>
+                  <div className="p-2">
+                    <div className="text-muted-foreground text-sm mb-2">No model found in predefined options.</div>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      You can enter any model in format: provider/model-name
+                    </div>
+                    <button
+                      className="text-xs bg-muted hover:bg-muted/80 px-2 py-1 rounded"
+                      onClick={() => {
+                        const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                        if (input?.value && input.value.includes('/')) {
+                          onValueChange?.(input.value);
+                          setOpen(false);
+                        }
+                      }}
+                    >
+                      Use custom model
+                    </button>
+                  </div>
                 </CommandEmpty>
+                {/* Add Custom Model option at the top */}
+                <CommandGroup heading="Custom">
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__custom__"
+                    onSelect={() => {
+                      const customModel = prompt('Enter custom model (format: provider/model-name):\n\nExamples:\n- openrouter/anthropic/claude-3.5-sonnet\n- openrouter/meta-llama/llama-3.1-405b\n- together/meta-llama/Llama-3-70b-chat');
+                      if (customModel && customModel.includes('/')) {
+                        onValueChange?.(customModel);
+                      }
+                      setOpen(false);
+                    }}
+                  >
+                    Enter custom model...
+                  </CommandItem>
+                </CommandGroup>
+                {/* Predefined models */}
                 {Object.entries(modelOptions).map(([provider, models]) => (
                   <CommandGroup key={provider} heading={provider}>
                     {models.map((model) => (

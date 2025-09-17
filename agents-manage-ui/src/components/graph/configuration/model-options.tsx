@@ -10,6 +10,10 @@ export const DEFAULT_GOOGLE_BASE_MODEL = 'google/gemini-2.5-flash';
 export const DEFAULT_GOOGLE_STRUCTURED_OUTPUT_MODEL = 'google/gemini-2.5-flash-lite';
 export const DEFAULT_GOOGLE_SUMMARIZER_MODEL = 'google/gemini-2.5-flash-lite';
 
+export const DEFAULT_OPENROUTER_BASE_MODEL = 'openrouter/anthropic/claude-sonnet-4';
+export const DEFAULT_OPENROUTER_STRUCTURED_OUTPUT_MODEL = 'openrouter/openai/gpt-4.1-mini';
+export const DEFAULT_OPENROUTER_SUMMARIZER_MODEL = 'openrouter/openai/gpt-4.1-nano';
+
 export const modelOptions = {
   anthropic: [
     {
@@ -66,4 +70,28 @@ export const modelOptions = {
       label: 'google/gemini-2.5-flash-lite',
     },
   ],
+  openrouter: [
+    {
+      value: 'openrouter/anthropic/claude-sonnet-4',
+      label: 'openrouter/anthropic/claude-sonnet-4',
+    },
+    {
+      value: 'openrouter/openai/gpt-4.1-mini',
+      label: 'openrouter/openai/gpt-4.1-mini',
+    },
+    {
+      value: 'openrouter/openai/gpt-4.1-nano',
+      label: 'openrouter/openai/gpt-4.1-nano',
+    },
+  ],
+};
+
+// Helper function to check if a model value is custom (not in predefined options)
+export const isCustomModelValue = (value: string): boolean => {
+  for (const [_provider, models] of Object.entries(modelOptions)) {
+    if (models.some(m => m.value === value)) {
+      return false;
+    }
+  }
+  return Boolean(value) && value.includes('/');
 };

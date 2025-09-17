@@ -1,7 +1,10 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { createGateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
+import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel, Provider } from 'ai';
+
 import { getLogger } from '../logger';
 
 const logger = getLogger('ModelFactory');
@@ -27,8 +30,17 @@ export class ModelFactory {
         return createOpenAI(config);
       case 'google':
         return createGoogleGenerativeAI(config);
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
+      case 'openrouter':
+        // Use official OpenRouter provider, but it has this weird type error
+        return createOpenRouter({
+          apiKey: process.env.OPENROUTER_API_KEY,
+          ...config,
+        });
+      case 'gateway':
+        return createGateway({
+          apiKey: process.env.AI_GATEWAY_API_KEY,
+          ...config,
+        });
     }
   }
 
@@ -54,8 +66,6 @@ export class ModelFactory {
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
     }
-
-    // Note: API keys should come from environment variables, not configuration
 
     return providerConfig;
   }
@@ -89,6 +99,7 @@ export class ModelFactory {
     );
 
     // Extract provider configuration from providerOptions
+    // Pass provider name to determine if apiKey should be included
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
     // Only create custom provider if there's actual configuration
@@ -106,19 +117,33 @@ export class ModelFactory {
         return openai(modelName);
       case 'google':
         return google(modelName);
+      case 'openrouter':
+        return openrouter(modelName);
+      case 'gateway':
+        return modelName;
       default:
-        throw new Error(`Unsupported provider: ${provider}`);
+        // For unknown providers, require explicit configuration
+        throw new Error(
+          `Unknown provider: ${provider}. For custom providers, please provide providerOptions with baseURL and other configuration.`
+        );
     }
   }
 
   /**
-   * Supported providers for security validation
+   * Built-in providers that have special handling
    */
-  private static readonly SUPPORTED_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+  private static readonly BUILT_IN_PROVIDERS = [
+    'anthropic',
+    'openai',
+    'google',
+    'openrouter',
+    'gateway',
+  ] as const;
 
   /**
    * Parse model string to extract provider and model name
    * Examples: "anthropic/claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" }
+   *          "openrouter/anthropic/claude-sonnet-4" -> { provider: "openrouter", modelName: "anthropic/claude-sonnet-4" }
    *          "claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" } (default to anthropic)
    */
   static parseModelString(modelString: string): { provider: string; modelName: string } {
@@ -127,14 +152,11 @@ export class ModelFactory {
       const [provider, ...modelParts] = modelString.split('/');
       const normalizedProvider = provider.toLowerCase();
 
-      // Validate provider is supported
-      if (!ModelFactory.SUPPORTED_PROVIDERS.includes(normalizedProvider as any)) {
-        logger.error(
+      // Log info for custom providers (not an error)
+      if (!ModelFactory.BUILT_IN_PROVIDERS.includes(normalizedProvider as any)) {
+        logger.info(
           { provider: normalizedProvider, modelName: modelParts.join('/') },
-          'Unsupported provider detected, falling back to anthropic'
-        );
-        throw new Error(
-          `Unsupported provider: ${normalizedProvider}. Please provide a model in the format of provider/model-name.`
+          'Using custom provider - ensure providerOptions includes baseURL and configuration'
         );
       }
 
@@ -144,9 +166,8 @@ export class ModelFactory {
       };
     }
 
-    throw new Error(
-      `Invalid model provided: ${modelString}. Please provide a model in the format of provider/model-name.`
-    );
+    // throw error if no provider specified
+    throw new Error(`No provider specified in model string: ${modelString}`);
   }
 
   /**

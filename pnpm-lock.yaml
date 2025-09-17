@@ -568,6 +568,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: 2.0.2
         version: 2.0.2(zod@4.1.8)
+      '@ai-sdk/gateway':
+        specifier: ^1.0.23
+        version: 1.0.23(zod@4.1.8)
       '@ai-sdk/google':
         specifier: ^2.0.14
         version: 2.0.14(zod@4.1.8)
@@ -595,6 +598,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.2
         version: 1.18.0
+      '@openrouter/ai-sdk-provider':
+        specifier: ^1.2.0
+        version: 1.2.0(ai@5.0.11(zod@4.1.8))(zod@4.1.8)
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
@@ -978,6 +984,12 @@ packages:
 
   '@ai-sdk/anthropic@2.0.2':
     resolution: {integrity: sha512-R3xmEbbntgdKo/S3TDuW77RYALpo/OKQm4oSjQmryDAFiVGB6X6guZAr7FWt48C4fKGROScAu+y1MJTbzisfOQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
+  '@ai-sdk/gateway@1.0.23':
+    resolution: {integrity: sha512-ynV7WxpRK2zWLGkdOtrU2hW22mBVkEYVS3iMg1+ZGmAYSgzCqzC74bfOJZ2GU1UdcrFWUsFI9qAYjsPkd+AebA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -2294,6 +2306,13 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@openrouter/ai-sdk-provider@1.2.0':
+    resolution: {integrity: sha512-stuIwq7Yb7DNmk3GuCtz+oS3nZOY4TXEV3V5KsknDGQN7Fpu3KRMQVWRc1J073xKdf0FC9EHOctSyzsACmp5Ag==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      ai: ^5.0.0
+      zod: ^3.24.1 || ^v4
 
   '@opentelemetry/api-logs@0.203.0':
     resolution: {integrity: sha512-9B9RU0H7Ya1Dx/Rkyc4stuBZSGVQF27WigitInx2QQoj6KUpEFYPKoWjdFTunJYxmXmh17HeBvbMa1EhGyPmqQ==}
@@ -9734,6 +9753,12 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.2(zod@4.1.8)
       zod: 4.1.8
 
+  '@ai-sdk/gateway@1.0.23(zod@4.1.8)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
+      zod: 4.1.8
+
   '@ai-sdk/gateway@1.0.3(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -11092,6 +11117,11 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
+
+  '@openrouter/ai-sdk-provider@1.2.0(ai@5.0.11(zod@4.1.8))(zod@4.1.8)':
+    dependencies:
+      ai: 5.0.11(zod@4.1.8)
+      zod: 4.1.8
 
   '@opentelemetry/api-logs@0.203.0':
     dependencies:

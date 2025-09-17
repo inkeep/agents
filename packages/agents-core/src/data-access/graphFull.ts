@@ -728,25 +728,28 @@ export const updateFullGraphServerSide =
 
             for (const modelType of modelTypes) {
               // If the agent's current model matches the old graph model (was inheriting)
-              // and the graph model has changed, cascade the change
+              // and the graph model OR providerOptions have changed, cascade the change
               if (
                 agentModels[modelType]?.model &&
                 existingGraphModels?.[modelType]?.model &&
                 agentModels[modelType].model === existingGraphModels[modelType].model &&
-                graphModels[modelType]?.model &&
-                graphModels[modelType].model !== existingGraphModels[modelType].model
+                graphModels[modelType] &&
+                (
+                  // Model name changed
+                  graphModels[modelType].model !== existingGraphModels[modelType].model ||
+                  // OR providerOptions changed
+                  JSON.stringify(graphModels[modelType].providerOptions) !== JSON.stringify(existingGraphModels[modelType].providerOptions)
+                )
               ) {
-                // Agent was inheriting from graph, cascade the new value
-                cascadedModels[modelType] = {
-                  ...cascadedModels[modelType],
-                  model: graphModels[modelType].model,
-                };
+                // Agent was inheriting from graph, cascade the new value (including providerOptions)
+                cascadedModels[modelType] = graphModels[modelType];
                 logger.info(
                   {
                     agentId,
                     modelType,
                     oldModel: agentModels[modelType].model,
                     newModel: graphModels[modelType].model,
+                    hasProviderOptions: !!graphModels[modelType].providerOptions,
                   },
                   'Cascading model change from graph to agent'
                 );
