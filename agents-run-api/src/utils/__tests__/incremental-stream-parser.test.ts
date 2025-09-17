@@ -45,46 +45,47 @@ describe('IncrementalStreamParser', () => {
   });
 
   describe('processObjectDelta', () => {
-    it('should stream complete components once', async () => {
+    it('should stream complete components once when stable', async () => {
       const delta1 = {
-        dataComponents: [
-          { id: 'comp1' },
-        ],
-      };
-
-      const delta2 = {
-        dataComponents: [
-          { id: 'comp1', name: 'Component 1' },
-        ],
-      };
-
-      const delta3 = {
         dataComponents: [
           { id: 'comp1', name: 'Component 1', props: { value: 'test' } },
         ],
       };
 
-      // Process deltas
+      const delta2 = {
+        dataComponents: [
+          { id: 'comp1', name: 'Component 1', props: { value: 'test' } }, // Same props = stable
+        ],
+      };
+
+      // Process deltas - component becomes stable on delta2
       await parser.processObjectDelta(delta1);
       await parser.processObjectDelta(delta2);
-      await parser.processObjectDelta(delta3);
 
-      // Should only stream once when complete
+      // Should stream once when stable
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
       expect(mockStreamHelper.writeData).toHaveBeenCalledTimes(1);
     });
 
     it('should handle multiple components independently', async () => {
-      const delta = {
+      const delta1 = {
         dataComponents: [
           { id: 'comp1', name: 'Component 1', props: { value: 'test1' } },
           { id: 'comp2', name: 'Component 2', props: { value: 'test2' } },
         ],
       };
 
-      await parser.processObjectDelta(delta);
+      const delta2 = {
+        dataComponents: [
+          { id: 'comp1', name: 'Component 1', props: { value: 'test1' } }, // comp1 stable
+          { id: 'comp2', name: 'Component 2', props: { value: 'test2' } }, // comp2 stable
+        ],
+      };
 
-      // Should stream both components
+      await parser.processObjectDelta(delta1);
+      await parser.processObjectDelta(delta2);
+
+      // Should stream both components when they become stable
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(2);
       expect(mockStreamHelper.writeData).toHaveBeenCalledTimes(2);
     });
@@ -100,7 +101,7 @@ describe('IncrementalStreamParser', () => {
         ],
       };
 
-      const completeArtifact = {
+      const completeArtifact1 = {
         dataComponents: [
           {
             id: 'artifact1',
@@ -110,25 +111,49 @@ describe('IncrementalStreamParser', () => {
         ],
       };
 
+      const completeArtifact2 = {
+        dataComponents: [
+          {
+            id: 'artifact1',
+            name: 'Artifact',
+            props: { artifact_id: 'art123', task_id: 'task456' }, // Same = stable
+          },
+        ],
+      };
+
       // Process incomplete artifact
       await parser.processObjectDelta(incompleteArtifact);
       expect(mockArtifactParser.parseObject).not.toHaveBeenCalled();
 
-      // Process complete artifact
-      await parser.processObjectDelta(completeArtifact);
+      // Process complete artifact (twice to make it stable)
+      await parser.processObjectDelta(completeArtifact1);
+      await parser.processObjectDelta(completeArtifact2);
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
     });
 
     it('should prevent duplicate streaming of same component', async () => {
-      const delta = {
+      const delta1 = {
         dataComponents: [
           { id: 'comp1', name: 'Component 1', props: { value: 'test' } },
         ],
       };
 
-      // Process same delta twice
-      await parser.processObjectDelta(delta);
-      await parser.processObjectDelta(delta);
+      const delta2 = {
+        dataComponents: [
+          { id: 'comp1', name: 'Component 1', props: { value: 'test' } }, // Same = stable
+        ],
+      };
+
+      const delta3 = {
+        dataComponents: [
+          { id: 'comp1', name: 'Component 1', props: { value: 'test' } }, // Same again
+        ],
+      };
+
+      // Process deltas - component streams on delta2 when stable
+      await parser.processObjectDelta(delta1);
+      await parser.processObjectDelta(delta2); // Streams here
+      await parser.processObjectDelta(delta3); // Should not stream again
 
       // Should only stream once
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
@@ -166,10 +191,32 @@ describe('IncrementalStreamParser', () => {
         ],
       };
 
+      const delta3 = {
+        dataComponents: [
+          {
+            id: 'comp1',
+            name: 'Component 1',
+            props: { temp: '20', humidity: '80%' },
+          },
+        ],
+      };
+
+      const delta4 = {
+        dataComponents: [
+          {
+            id: 'comp1',
+            name: 'Component 1',
+            props: { temp: '20', humidity: '80%' }, // Same as delta3 = stable
+          },
+        ],
+      };
+
       await parser.processObjectDelta(delta1);
       await parser.processObjectDelta(delta2);
+      await parser.processObjectDelta(delta3);
+      await parser.processObjectDelta(delta4); // Make it stable
 
-      // Should merge props and stream once when complete
+      // Should merge props and stream once when stable
       expect(mockArtifactParser.parseObject).toHaveBeenCalledWith({
         dataComponents: [
           {
@@ -186,7 +233,7 @@ describe('IncrementalStreamParser', () => {
         Array.from({ length: 1000 }, (_, i) => [`prop${i}`, `value${i}`])
       );
 
-      const delta = {
+      const delta1 = {
         dataComponents: [
           {
             id: 'large-comp',
@@ -196,8 +243,19 @@ describe('IncrementalStreamParser', () => {
         ],
       };
 
+      const delta2 = {
+        dataComponents: [
+          {
+            id: 'large-comp',
+            name: 'Large Component',
+            props: largeProps, // Same = stable
+          },
+        ],
+      };
+
       const startTime = Date.now();
-      await parser.processObjectDelta(delta);
+      await parser.processObjectDelta(delta1);
+      await parser.processObjectDelta(delta2); // Make stable
       const duration = Date.now() - startTime;
 
       // Should complete within reasonable time (< 100ms)
@@ -208,61 +266,53 @@ describe('IncrementalStreamParser', () => {
 
   describe('component completion logic', () => {
     it('should require id, name, and props for regular components', async () => {
-      const testCases = [
-        { delta: { dataComponents: [{}] }, shouldStream: false },
-        { delta: { dataComponents: [{ id: 'test' }] }, shouldStream: false },
-        { delta: { dataComponents: [{ id: 'test', name: 'Test' }] }, shouldStream: false },
-        {
-          delta: { dataComponents: [{ id: 'test', name: 'Test', props: {} }] },
-          shouldStream: true,
-        },
-      ];
+      // Test incomplete components - these should not stream
+      await parser.processObjectDelta({ dataComponents: [{}] });
+      await parser.processObjectDelta({ dataComponents: [{ id: 'test' }] });
+      await parser.processObjectDelta({ dataComponents: [{ id: 'test', name: 'Test' }] });
+      
+      // Test complete component that becomes stable
+      const completeComponent1 = { dataComponents: [{ id: 'test', name: 'Test', props: { value: 'data' } }] };
+      const completeComponent2 = { dataComponents: [{ id: 'test', name: 'Test', props: { value: 'data' } }] }; // Same = stable
 
-      for (const { delta, shouldStream } of testCases) {
-        await parser.processObjectDelta(delta);
-      }
+      await parser.processObjectDelta(completeComponent1);
+      await parser.processObjectDelta(completeComponent2);
 
-      // Only the complete component should stream
+      // Only the complete component should stream when stable
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
     });
 
     it('should handle artifacts with special validation', async () => {
-      const testCases = [
-        {
-          delta: {
-            dataComponents: [
-              { id: 'art1', name: 'Artifact', props: {} },
-            ],
-          },
-          shouldStream: false,
-        },
-        {
-          delta: {
-            dataComponents: [
-              { id: 'art2', name: 'Artifact', props: { artifact_id: 'art123' } },
-            ],
-          },
-          shouldStream: false,
-        },
-        {
-          delta: {
-            dataComponents: [
-              {
-                id: 'art3',
-                name: 'Artifact',
-                props: { artifact_id: 'art123', task_id: 'task456' },
-              },
-            ],
-          },
-          shouldStream: true,
-        },
-      ];
+      // Test incomplete artifacts - these should not stream
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'art1', name: 'Artifact', props: {} }],
+      });
+      
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'art2', name: 'Artifact', props: { artifact_id: 'art123' } }],
+      });
 
-      for (const { delta } of testCases) {
-        await parser.processObjectDelta(delta);
-      }
+      // Test complete artifact that becomes stable
+      const completeArtifact1 = {
+        dataComponents: [{
+          id: 'art3',
+          name: 'Artifact',
+          props: { artifact_id: 'art123', task_id: 'task456' },
+        }],
+      };
 
-      // Only the complete artifact should stream
+      const completeArtifact2 = {
+        dataComponents: [{
+          id: 'art3',
+          name: 'Artifact',
+          props: { artifact_id: 'art123', task_id: 'task456' }, // Same = stable
+        }],
+      };
+
+      await parser.processObjectDelta(completeArtifact1);
+      await parser.processObjectDelta(completeArtifact2);
+
+      // Only the complete artifact should stream when stable
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
     });
   });
@@ -289,10 +339,11 @@ describe('IncrementalStreamParser', () => {
 
     it('should handle rapid component updates without thrashing', async () => {
       const componentId = 'rapid-comp';
-      const iterations = 100;
+      const iterations = 99;
 
       const startTime = Date.now();
 
+      // Process many changing deltas
       for (let i = 0; i < iterations; i++) {
         await parser.processObjectDelta({
           dataComponents: [
@@ -305,9 +356,20 @@ describe('IncrementalStreamParser', () => {
         });
       }
 
+      // Final stable delta
+      await parser.processObjectDelta({
+        dataComponents: [
+          {
+            id: componentId,
+            name: 'Rapid Component',
+            props: { counter: iterations - 1 }, // Same as last = stable
+          },
+        ],
+      });
+
       const duration = Date.now() - startTime;
 
-      // Should complete within reasonable time and only stream once
+      // Should complete within reasonable time and only stream once when stable
       expect(duration).toBeLessThan(1000); // < 1 second
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
     });

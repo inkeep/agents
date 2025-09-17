@@ -1,6 +1,6 @@
 import type { Message } from '@inkeep/cxkit-react-oss/types';
 import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
-import { type FC, useEffect, useState, useRef } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -426,7 +426,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                       </div>
                       <div className="p-3">
                         <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
-                          {JSON.stringify(part.data, null, 2)}
+                          {JSON.stringify(part.data.props, null, 2)}
                         </pre>
                       </div>
                     </div>

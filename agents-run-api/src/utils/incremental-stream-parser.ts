@@ -72,12 +72,29 @@ export class IncrementalStreamParser {
       return;
     }
 
+
     // Deep merge delta into accumulator
     this.componentAccumulator = this.deepMerge(this.componentAccumulator, delta);
 
     // Check if we have dataComponents to process
     if (this.componentAccumulator.dataComponents && Array.isArray(this.componentAccumulator.dataComponents)) {
       const components = this.componentAccumulator.dataComponents;
+      const currentComponentIds = new Set(components.filter(c => c?.id).map(c => c.id));
+      
+      // Check for new components - stream any previous components that are ready
+      for (const [componentId, snapshot] of this.componentSnapshots.entries()) {
+        if (!currentComponentIds.has(componentId) && !this.lastStreamedComponents.has(componentId)) {
+          // This component is no longer in the current delta - stream it if complete
+          try {
+            const component = JSON.parse(snapshot);
+            if (this.isComponentComplete(component)) {
+              await this.streamComponent(component);
+            }
+          } catch (e) {
+            // Ignore invalid snapshots
+          }
+        }
+      }
       
       for (let i = 0; i < components.length; i++) {
         const component = components[i];
@@ -89,34 +106,45 @@ export class IncrementalStreamParser {
         
         if (hasBeenStreamed) continue;
         
-        // Create a content snapshot to track changes
+        // Create snapshot of current component
         const currentSnapshot = JSON.stringify(component);
         const previousSnapshot = this.componentSnapshots.get(componentKey);
         
-        // Update the snapshot for next comparison
+        // Update snapshot
         this.componentSnapshots.set(componentKey, currentSnapshot);
         
-        // Stream component if it's complete AND stable (unchanged from previous delta)
-        if (this.isComponentComplete(component) && previousSnapshot === currentSnapshot) {
-          // Component is complete and hasn't changed - stream it now
-          const parts = await this.artifactParser.parseObject({
-            dataComponents: [component],
-          });
+        // Stream if component is complete AND props haven't changed (stable)
+        if (this.isComponentComplete(component)) {
+          const currentPropsSnapshot = JSON.stringify(component.props);
+          const previousPropsSnapshot = previousSnapshot ? JSON.stringify(JSON.parse(previousSnapshot).props) : null;
           
-          for (const part of parts) {
-            await this.streamPart(part);
+          if (previousPropsSnapshot === currentPropsSnapshot) {
+            await this.streamComponent(component);
           }
-          
-          // Mark as streamed
-          this.lastStreamedComponents.set(componentKey, true);
         }
       }
     }
   }
 
   /**
+   * Stream a component and mark it as streamed
+   */
+  private async streamComponent(component: any): Promise<void> {
+    const parts = await this.artifactParser.parseObject({
+      dataComponents: [component],
+    });
+    
+    for (const part of parts) {
+      await this.streamPart(part);
+    }
+    
+    // Mark as streamed
+    this.lastStreamedComponents.set(component.id, true);
+  }
+
+  /**
    * Check if a component has the basic structure required for streaming
-   * With stability-based streaming, we only check for id, name, and props object
+   * Requires id, name, and props object with content
    */
   private isComponentComplete(component: any): boolean {
     if (!component || !component.id || !component.name) {
