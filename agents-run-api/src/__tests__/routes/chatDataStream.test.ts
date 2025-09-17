@@ -1,7 +1,15 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { createAgentGraph, createAgent, createConversation } from '@inkeep/agents-core';
-import dbClient from '../../data/db/dbClient';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  agentGraphs,
+  agents,
+  conversations,
+  createAgent,
+  createAgentGraph,
+  createConversation,
+} from '@inkeep/agents-core';
+import { eq } from 'drizzle-orm';
 import app from '../../index';
+import dbClient from '../../data/db/dbClient';
 
 describe('chatDataStream route', () => {
   const tenantId = 'test-tenant';
@@ -13,25 +21,16 @@ describe('chatDataStream route', () => {
   beforeEach(async () => {
     // Clean up any existing test data
     await dbClient
-      .delete((await import('@inkeep/agents-core')).conversations)
-      .where((await import('drizzle-orm')).eq(
-        (await import('@inkeep/agents-core')).conversations.id,
-        conversationId
-      ));
+      .delete(conversations)
+      .where(eq(conversations.id, conversationId));
 
     await dbClient
-      .delete((await import('@inkeep/agents-core')).agents)
-      .where((await import('drizzle-orm')).eq(
-        (await import('@inkeep/agents-core')).agents.id,
-        agentId
-      ));
+      .delete(agents)
+      .where(eq(agents.id, agentId));
 
     await dbClient
-      .delete((await import('@inkeep/agents-core')).agentGraphs)
-      .where((await import('drizzle-orm')).eq(
-        (await import('@inkeep/agents-core')).agentGraphs.id,
-        graphId
-      ));
+      .delete(agentGraphs)
+      .where(eq(agentGraphs.id, graphId));
 
     // Create test graph
     await createAgentGraph(dbClient)({
@@ -96,9 +95,6 @@ describe('chatDataStream route', () => {
   });
 
   it('should properly query agent with graphId in scopes', async () => {
-    // Mock the getAgentById to verify it's called with correct parameters
-    const getAgentByIdSpy = vi.fn();
-
     // This test verifies that getAgentById is called with graphId in scopes
     // The actual implementation test would be more complex and require proper mocking setup
 
