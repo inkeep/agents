@@ -172,19 +172,8 @@ export async function getRegisteredAgent(
     throw new Error('Agent ID is required');
   }
 
-  // If graphId is not provided, we need to handle this case
-  // This can happen when the API key doesn't have a graphId associated
-  if (!graphId) {
-    // For now, we'll use 'default' as a fallback
-    // In production, this should be handled differently based on requirements
-    logger.warn(
-      { tenantId, projectId, agentId },
-      'GraphId not provided in execution context, using default'
-    );
-  }
-
   const dbAgent = await getAgentById(dbClient)({
-    scopes: { tenantId, projectId, graphId: graphId || 'default' },
+    scopes: { tenantId, projectId, graphId: graphId },
     agentId,
   });
   if (!dbAgent) {

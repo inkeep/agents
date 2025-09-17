@@ -216,8 +216,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     } else {
       // Fall back to legacy system
       agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {
         return c.json({ error: 'Agent graph not found' }, 404);
@@ -252,7 +251,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const agentId = activeAgent?.activeAgentId || defaultAgentId;
 
     const agentInfo = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       agentId: agentId as string,
     });
 
@@ -265,19 +264,20 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const credentialStores = c.get('credentialStores');
 
     // Context resolution with intelligent conversation state detection
-    await handleContextResolution(
+    await handleContextResolution({
       tenantId,
       projectId,
-      conversationId,
       graphId,
-      validatedContext,
+      conversationId,
+      requestContext: validatedContext,
       dbClient,
-      credentialStores
-    );
+      credentialStores,
+    });
 
     logger.info(
       {
         tenantId,
+        projectId,
         graphId,
         conversationId,
         defaultAgentId,

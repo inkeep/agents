@@ -348,19 +348,20 @@ const getServer = async (
           };
         }
 
-        const resolvedContext = await handleContextResolution(
+        const resolvedContext = await handleContextResolution({
           tenantId,
           projectId,
-          conversationId,
           graphId,
+          conversationId,
           requestContext,
           dbClient,
-          credentialStores
-        );
+          credentialStores,
+        });
 
         logger.info(
           {
             tenantId,
+            projectId,
             graphId,
             conversationId,
             hasContextConfig: !!agentGraph.contextConfigId,
