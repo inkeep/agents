@@ -1,23 +1,61 @@
 ---
-title: SigNoz Setup
-sidebarTitle: SigNoz Setup
-description: Configure SigNoz for distributed tracing and observability in your Inkeep agent framework
-icon: "brand/Signoz"
+title: Observability
+sidebarTitle: Observability
+description: Observe live traces of your agents and services with SigNoz
+icon: "LuEye"
 keywords: SigNoz, tracing, observability, OpenTelemetry, monitoring, distributed tracing
 ---
 
-# SigNoz Setup
-
-SigNoz is an open-source observability platform that provides distributed tracing. Setting up SigNoz with the Inkeep agent framework enables you to monitor and debug your agents' performance and behavior.
-
 ## Overview
 
-The Inkeep agent framework includes built-in OpenTelemetry instrumentation that can export traces to SigNoz. You can set up SigNoz in two ways:
+Monitor your agent performance and behavior with SigNoz, an open-source observability platform. The Inkeep agent framework includes built-in OpenTelemetry instrumentation that exports traces directly to SigNoz.
 
-1. **Local Setup**: Run SigNoz locally using Docker for development
-2. **Cloud Setup**: Use SigNoz Cloud for production or team environments
+You can set up SigNoz in two ways:
 
-## Option 1: Local SigNoz Setup
+1.  **Cloud Setup**: Use SigNoz Cloud for production or team environments
+2. **Local Setup**: Run SigNoz locally using Docker for development
+
+## Option 1: SigNoz Cloud Setup
+
+### Step 1: Create SigNoz Cloud Account
+
+1. Sign up at [SigNoz Cloud](https://signoz.io/teams/)
+2. Create a new project or use an existing one
+3. Note your ingestion endpoint and API key from the project settings
+
+### Step 2: Configure Run API Environment
+
+Navigate to your `run-api` directory under `apps` and create or update your `.env` file:
+
+```bash
+# OpenTelemetry Configuration for SigNoz Cloud
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
+OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
+```
+
+### Step 3: Configure Root Environment
+
+In your **root project directory**, update your `.env` file:
+
+```bash
+# SigNoz Cloud Configuration
+NEXT_PUBLIC_SIGNOZ_URL=https://<your-organization>.signoz.cloud
+SIGNOZ_API_KEY=<your-api-key>
+```
+
+
+### Step 4: Verify Cloud Setup
+
+1. Start your Inkeep agents:
+   ```bash
+   pnpm dev
+   ```
+
+2. Generate some traces by interacting with your agents
+
+3. Open your SigNoz Cloud dashboard and navigate to "Traces" to see your agent traces
+
+## Option 2: Local SigNoz Setup
 
 ### Prerequisites
 
@@ -72,43 +110,3 @@ To get your SigNoz API key:
 2. Make some requests to your agents to generate traces
 
 3. Open SigNoz at `http://localhost:3080` and navigate to the "Traces" section to see your agent traces
-
-## Option 2: SigNoz Cloud Setup
-
-### Step 1: Create SigNoz Cloud Account
-
-1. Sign up at [SigNoz Cloud](https://signoz.io/teams/)
-2. Create a new project or use an existing one
-3. Note your ingestion endpoint and API key from the project settings
-
-### Step 2: Configure Run API Environment
-
-Navigate to your `run-api` directory under `apps` and create or update your `.env` file:
-
-```bash
-# OpenTelemetry Configuration for SigNoz Cloud
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
-OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
-```
-
-### Step 3: Configure Root Environment
-
-In your **root project directory**, update your `.env` file:
-
-```bash
-# SigNoz Cloud Configuration
-NEXT_PUBLIC_SIGNOZ_URL=https://<your-organization>.signoz.cloud
-SIGNOZ_API_KEY=<your-api-key>
-```
-
-
-### Step 4: Verify Cloud Setup
-
-1. Start your Inkeep agents:
-   ```bash
-   pnpm dev
-   ```
-
-2. Generate some traces by interacting with your agents
-
-3. Open your SigNoz Cloud dashboard and navigate to "Traces" to see your agent traces
