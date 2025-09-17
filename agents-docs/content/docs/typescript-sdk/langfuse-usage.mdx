@@ -187,68 +187,151 @@ Langfuse provides a comprehensive catalog of pre-built evaluators including **Qu
 **Best for**: Specific evaluation needs not covered by managed evaluators
 
 1. **Click "+ Create Custom Evaluator"** button
-2. **Fill in evaluator details**:
 
-   - **Name**: Choose a descriptive name (e.g., "agent-accuracy")
-   - **Description**: Explain what this evaluator measures
-   - **Model**: Select evaluation model (GPT-4 recommended)
-   - **Temperature**: Set to low value (0.1) for consistent scoring
+## Example Custom Evaluator with Weather Graph Example
 
-3. **Create evaluation prompt** with variable placeholders:
-   - `{{input}}` - The original user input/question
-   - `{{output}}` - The AI agent's response
-   - `{{expected_output}}` - Expected or correct answer
-   - `{{context}}` - Additional context provided to the agent
+### Step 1: Create a New Custom Evaluator
 
-**Example Custom Evaluator Prompt:**
-
-```
-You are an expert evaluator for an AI customer support agent.
-
-Evaluate the helpfulness of this response on a scale of 0-1:
-
-User Question: {{input}}
-Agent Response: {{output}}
-Expected Response: {{expected_output}}
-
-Consider:
-- Does it directly answer the question?
-- Is the information accurate and complete?
-- Is the tone appropriate for customer support?
-- Does it provide actionable next steps?
-
-Provide only a numeric score between 0.0 and 1.0.
-```
-
-#### Configure Evaluation Scope
+1. **Navigate to Evaluations** → **"Running Evaluators"**
+2. **Click "Set up evaluator"** button
+3. **Select "+ Create Custom Evaluator"**
+4. **Configure the evaluator**:
 
 <img
-  src="/images/langfuse-variable-mapping.png"
-  alt="Langfuse evaluator configuration screen showing target data selection, trace filtering, sampling settings, and delay configuration"
+  src="/images/setup-evaluator.png"
+  alt="Langfuse Create new evaluator dialog showing Prompt section with evaluation prompt, score reasoning prompt, and score range prompt fields"
   width="100%"
   style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
 />
 
-This screen shows the evaluation configuration interface where you can:
 
-**Generated Score Name:**
+**Evaluation Prompt:**
+```
+You are an evaluator for a graph that utilizes a weather_info_tool to retrieve the weekly forecast for a specific location. Evaluate the {{output}} to determine if the agent is returning a 24 hour temperature forecast.
+```
 
-- **Score Name**: `Conciseness` (automatically filled based on selected evaluator)
-- This will be the name of the score that appears in your traces
+**Score Reasoning Prompt:**
+```
+Provide a detailed explanation of whether the {{output}} correctly contains a 24-hour temperature forecast. 
+Mention key evidence from the text (e.g., presence of hourly temperatures for 24 hours, or lack thereof). 
+Explain why this evidence supports a score of 1 (true/positive) or 0 (false/negative).
+```
+
+**Score Range Prompt:**
+```
+Score between 0 and 1. Score 0 if false or negative and 1 if true or positive.
+```
+
+### Step 2: Configure Evaluation Target and Scope
+
+<img
+  src="/images/setup-evaluator2.png"
+  alt="Langfuse Set up evaluator screen showing target data selection, evaluator runs configuration, target filter options, sampling settings, delay configuration, and variable mapping section"
+  width="100%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+/>
+
+**Target Data Selection:**
+- Select **"Dataset runs"** for pre-defined test cases.
 
 **Evaluator Runs On:**
+- ✅ **New dataset run items**: Evaluate future weather graph executions
+- ◻️ **Existing dataset run items**: Backfill historical evaluations (optional)
 
-- **New traces**: Automatically evaluate incoming traces
-- **Existing traces**: Backfill evaluation for historical data
+### Step 3: Variable Mapping
 
-**Target Filter:**
+In the **Variable Mapping** section:
 
-- **Add filter**: Create rules to target specific traces (by name, tags, user ID, etc.)
-- **Preview**: Shows sample traces that match your filters from the last 24 hours
+**Evaluation Prompt Variables:**
+- **`{{output}}`** → Map to **"Trace"** → **"Output"**
+  - This captures the final response from the weather graph
 
-#### Enable and Monitor
+**Object Variable Mapping:**
+- **Object**: `Trace`
+- **Object Variable**: `Output`
 
-1. **Click "Enable Evaluator"** to start automatic evaluation
-2. **Monitor evaluation progress** in the dashboard
-3. **View evaluation results** as they complete
-4. **Track evaluation costs** and adjust sampling if needed
+### Step 4: Enable and Test the Evaluator
+
+1. **Click "Save"** to create the evaluator
+2. **Enable the evaluator** to start automatic evaluation
+3. **Test with sample weather queries**:
+   - "What's the weather like in San Francisco tomorrow?"
+   - "Give me a 24-hour forecast for New York City"
+   - "What will the temperature be in London over the next day?"
+
+
+
+## Understanding Variable Mapping in Langfuse
+
+Variable mapping is the process of connecting variables in your evaluation prompts (like `{{input}}`, `{{output}}`, `{{agentName}}`) to actual data from your traces. This allows your evaluators to access specific information from your agent executions.
+
+### How to Discover Available Variables
+
+Before creating variable mappings, you need to understand what data is available in your traces. Here's how to explore your trace data:
+
+#### 1. Navigate to Your Traces
+
+1. **Go to your Langfuse project dashboard**
+2. **Click "Traces"** in the left sidebar
+3. **Select a representative trace** from your agent graph execution
+4. **Click on the trace** to view its detailed structure
+
+#### 2. Explore Trace Structure
+
+Your trace will contain several levels of data:
+
+**Trace Level (Top-level execution):**
+- `Input`: The original user query or request
+- `Output`: The final response from your agent graph
+- `Metadata`: Additional trace-level information
+- `Tags`: Custom labels you've added
+
+**Span Level (Individual agent/tool executions):**
+- Each operation creates a span
+- Spans contain their own input/output data
+- Span metadata includes execution details
+- Attributes contain structured data about the execution
+
+#### 3. Inspect Span Attributes
+
+Click on individual spans to see their attributes. Common attributes include:
+
+```json
+{
+  "agent.name": "weather-assistant",
+  "ai.toolCall.name": "weather_info_tool",
+  "ai.toolType": "delegation",
+  "service.name": "inkeep-agents"
+}
+```
+
+### Variable Mapping Syntax
+
+When mapping variables, you use different object types and paths:
+
+#### Object Types
+
+- **Trace**: Top-level execution data
+- **Span**: Individual agent/tool execution data
+
+#### Variable Paths
+
+- **Direct properties**: `Input`, `Output`, `Metadata`
+- **JSON paths**: `$.attributes["agent.name"]` for nested data
+- **Array access**: `$.toolCalls[0].parameters` for array elements
+
+### Common Variable Mapping Patterns
+
+#### Basic Trace Variables
+```
+{{input}} → Trace → Input
+{{output}} → Trace → Output  
+```
+
+#### Agent Information from Spans
+```
+{{agentName}} → Span → Metadata → $.attributes["agent.name"]
+{{toolUsed}} → Span → Metadata → $.attributes["ai.toolCall.name"]
+```
+
+This comprehensive variable mapping system allows you to create sophisticated evaluators that can assess any aspect of your agent's performance by accessing the rich trace data collected by Langfuse.
