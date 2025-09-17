@@ -139,6 +139,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getToolsForAgent: getToolsForAgentMock,
   getAgentById: getAgentByIdMock,
   getAgentGraph: getAgentGraphMock,
+  getAgentGraphById: getAgentGraphMock, // Add missing mock
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
   getProject: getProjectMock,

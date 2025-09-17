@@ -699,6 +699,8 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   }),
   // A task can have many messages associated with it
   messages: many(messages),
+  // A task can have many ledger artifacts
+  ledgerArtifacts: many(ledgerArtifacts),
 }));
 
 // Define relations for projects
@@ -717,6 +719,14 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   conversations: many(conversations),
   // A project can have many tasks
   tasks: many(tasks),
+  // A project can have many data components
+  dataComponents: many(dataComponents),
+  // A project can have many artifact components
+  artifactComponents: many(artifactComponents),
+  // A project can have many ledger artifacts
+  ledgerArtifacts: many(ledgerArtifacts),
+  // A project can have many credential references
+  credentialReferences: many(credentialReferences),
 }));
 
 // Define relations for taskRelations junction table
@@ -786,6 +796,10 @@ export const agentsRelations = relations(agents, ({ many, one }) => ({
     relationName: 'associatedAgent',
   }),
   toolRelations: many(agentToolRelations),
+  // Data component relations
+  dataComponentRelations: many(agentDataComponents),
+  // Artifact component relations
+  artifactComponentRelations: many(agentArtifactComponents),
 }));
 
 // Define relations for agent graphs (updated to include context config)
@@ -959,6 +973,45 @@ export const agentArtifactComponentsRelations = relations(agentArtifactComponent
   artifactComponent: one(artifactComponents, {
     fields: [agentArtifactComponents.artifactComponentId],
     references: [artifactComponents.id],
+  }),
+}));
+
+// Define relations for data components
+export const dataComponentsRelations = relations(dataComponents, ({ many, one }) => ({
+  // A data component belongs to one project
+  project: one(projects, {
+    fields: [dataComponents.tenantId, dataComponents.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  // A data component can be associated with many agents
+  agentRelations: many(agentDataComponents),
+}));
+
+// Define relations for agent-data component associations
+export const agentDataComponentsRelations = relations(agentDataComponents, ({ one }) => ({
+  // An agent-data component relation belongs to one agent
+  agent: one(agents, {
+    fields: [agentDataComponents.agentId],
+    references: [agents.id],
+  }),
+  // An agent-data component relation belongs to one data component
+  dataComponent: one(dataComponents, {
+    fields: [agentDataComponents.dataComponentId],
+    references: [dataComponents.id],
+  }),
+}));
+
+// Define relations for ledger artifacts
+export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => ({
+  // A ledger artifact belongs to one project
+  project: one(projects, {
+    fields: [ledgerArtifacts.tenantId, ledgerArtifacts.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  // A ledger artifact may be associated with one task
+  task: one(tasks, {
+    fields: [ledgerArtifacts.taskId],
+    references: [tasks.id],
   }),
 }));
 

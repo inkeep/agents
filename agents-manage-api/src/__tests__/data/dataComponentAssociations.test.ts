@@ -1,6 +1,7 @@
 import {
   associateDataComponentWithAgent,
   createAgent,
+  createAgentGraph,
   createDataComponent,
   getAgentsUsingDataComponent,
   getDataComponentsForAgent,
@@ -22,18 +23,31 @@ describe('Data Component Agent Associations', () => {
   const projectId = 'default';
   let agentId: string;
   let dataComponentId: string;
+  let graphId: string;
 
   beforeEach(async () => {
-    // Create test agent first (needed for graph's defaultAgentId)
-    const agent = await createAgent(dbClient)({
-      id: nanoid(),
+    // Create a test graph first
+    graphId = nanoid();
+    agentId = nanoid();
+
+    await createAgentGraph(dbClient)({
+      id: graphId,
       tenantId,
       projectId,
+      name: 'Test Graph',
+      defaultAgentId: agentId,
+    });
+
+    // Create test agent with graphId
+    const agent = await createAgent(dbClient)({
+      id: agentId,
+      tenantId,
+      projectId,
+      graphId,
       name: 'Test Agent',
       description: 'Test agent for data component testing',
       prompt: 'You are a test agent',
     });
-    agentId = agent.id;
 
     // Create test data component
     const dataComponent = await createDataComponent(dbClient)({
@@ -109,10 +123,11 @@ describe('Data Component Agent Associations', () => {
     });
 
     it('should only return components for the specific agent and graph', async () => {
-      // Create another agent
+      // Create another agent in the same graph
       const agent2 = await createAgent(dbClient)({
         tenantId,
         projectId,
+        graphId,
         id: nanoid(),
         name: 'Test Agent 2',
         description: 'Second test agent',
@@ -194,11 +209,12 @@ describe('Data Component Agent Associations', () => {
     });
 
     it('should return all agents using a data component', async () => {
-      // Create second agent
+      // Create second agent in the same graph
       const agent2 = await createAgent(dbClient)({
         id: nanoid(),
         tenantId,
         projectId,
+        graphId,
         name: 'Test Agent 2',
         description: 'Second test agent',
         prompt: 'You are another test agent',

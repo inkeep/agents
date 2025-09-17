@@ -51,7 +51,7 @@ app.openapi(
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     const result = await listAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       pagination: { page, limit },
     });
     // Add type field to all agents in the response
@@ -92,7 +92,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const agent = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       agentId: id,
     });
 
@@ -151,6 +151,7 @@ app.openapi(
       id: agentId,
       tenantId,
       projectId,
+      graphId: body.graphId || 'default', // Use default graphId for backward compatibility
     });
 
     // Add type field to the agent response
@@ -197,7 +198,7 @@ app.openapi(
     const body = c.req.valid('json');
 
     const updatedAgent = await updateAgent(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       agentId: id,
       data: body,
     });
@@ -247,7 +248,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
 
     const deleted = await deleteAgent(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       agentId: id,
     });
 
