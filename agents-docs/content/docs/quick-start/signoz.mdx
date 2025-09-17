@@ -89,11 +89,7 @@ Navigate to your `run-api` directory under `apps` and create or update your `.en
 # OpenTelemetry Configuration for SigNoz Cloud
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
 OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
-OTEL_MAX_EXPORT_BATCH_SIZE=1
 ```
-
-**Important Notes:**
-- The `OTEL_MAX_EXPORT_BATCH_SIZE=1` setting ensures traces are sent immediately for better development experience
 
 ### Step 3: Configure Root Environment
 
