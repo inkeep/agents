@@ -8,7 +8,7 @@ icon: "LuSettings"
 
 ## Overview
 
-The Inkeep Agents framework uses a **centralized environment configuration** pattern inspired by [Cal.com](https://github.com/calcom/cal.com). This approach provides a single source of truth for all environment variables across the monorepo, eliminating duplication and simplifying configuration management.
+The Inkeep Agents framework uses a **centralized environment configuration**. This approach provides a single source of truth for all environment variables across the monorepo, eliminating duplication and simplifying configuration management.
 
 ## Configuration Structure
 
@@ -20,7 +20,6 @@ All packages in the monorepo reference a **single `.env` file** at the repositor
 agents-4/
 ├── .env                    # Main configuration (gitignored)
 ├── .env.example            # Template with all variables
-├── .env.local              # Repo-specific overrides (gitignored)
 └── packages/
     └── agents-core/
         └── src/env.ts      # Centralized env loader
@@ -29,8 +28,7 @@ agents-4/
 ### Loading Priority
 
 Environment variables are loaded in the following order (highest priority first):
-
-1. **`.env.local`** - Repository-specific overrides
+1. **`/package-name/.env`** Package specific configuration
 2. **`.env`** - Main configuration file
 3. **`~/.inkeep/config`** - User-global settings (shared across all repo copies)
 4. **`.env.example`** - Default values
@@ -62,10 +60,6 @@ pnpm dev
 2. Verify file paths are correct
 3. Ensure `packages/agents-core` is built: `pnpm --filter @inkeep/agents-core build`
 
-### Multiple repositories conflicting
-
-Use `.env.local` for repo-specific settings like database URLs to avoid conflicts.
-
 ### Missing variables in production
 
 Ensure all required variables are set in your deployment environment. The application will fail fast if critical variables are missing.
@@ -73,4 +67,3 @@ Ensure all required variables are set in your deployment environment. The applic
 ### Database connection issues
 
 - For SQLite: Make sure youu are using an absolute path to the db file
-- For PostgreSQL: Ensure both `DATABASE_URL` and `DB_FILE_NAME` are set

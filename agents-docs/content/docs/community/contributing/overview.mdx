@@ -21,21 +21,36 @@ cd agents
 For first-time setup, run:
 
 ```bash
-./scripts/setup.sh
+pnpm setup-dev
 ```
 
 This will:
 1. Create `.env` from the template
 2. Set up user-global config at `~/.inkeep/config`
-3. Create `.env.local` for repo-specific overrides
 4. Install dependencies
 5. Initialize the database
 
-Add your `ANTHROPIC_API_KEY` to the root `.env`
+Add API keys for the AI providers you want to use to the root `.env`. You must have at least one AI provider configured.
 
 ```
 ANTHROPIC_API_KEY=sk-ant-xyz789
+OPENAI_API_KEY=sk-xxx
+GOOGLE_GENERATIVE_AI_API_KEY=sk-xxx
 ```
+
+Add your SigNoz API key to enable the traces feature (optional).
+
+```
+SIGNOZ_API_KEY=sk-xxx
+```
+
+Add your Nango secret key to enable the Nango credential store (optional).
+
+```
+NANGO_SECRET_KEY=sk-xxx
+```
+
+
 
 
 ### Step 5: Run the agent framework

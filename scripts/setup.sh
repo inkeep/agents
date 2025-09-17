@@ -23,7 +23,7 @@ fi
 
 # 1. Create .env from template if it doesn't exist
 if [ ! -f ".env" ]; then
-  cp env.example .env
+  cp .env.example .env
   
   # Get the current directory path for the database file
   CURRENT_DIR=$(pwd)
@@ -66,8 +66,6 @@ if [ ! -f "$USER_CONFIG_FILE" ]; then
 # ============================================
 # This file contains settings that apply to ALL local copies of the Inkeep repository.
 # Add your personal API keys here to avoid duplicating them across multiple repos.
-#
-# These settings have priority over .env but can be overridden by .env.local
 
 # Example: Add your API keys here
 # ANTHROPIC_API_KEY=sk-ant-xxx
@@ -80,33 +78,10 @@ else
   echo -e "${GREEN}✓${NC} User config already exists at ~/.inkeep/config"
 fi
 
-# 4. Create .env.local template if it doesn't exist
-if [ ! -f ".env.local" ]; then
-  cat > ".env.local" << 'EOF'
-# ============================================
-# Repository-Specific Overrides
-# ============================================
-# Use this file for configuration specific to this repository copy.
-# This is useful when you have multiple local copies with different databases.
-#
-# Example: Use a different database for this repo
-# DB_FILE_NAME=file:../../feature-branch.db
-
-EOF
-  echo -e "${GREEN}✓${NC} Created .env.local template for repo-specific overrides"
-else
-  echo -e "${GREEN}✓${NC} .env.local already exists"
-fi
-
-# 5. Add .env and .env.local to .gitignore if not already there
+# 4. Add .env to .gitignore if not already there
 if ! grep -q "^\.env$" .gitignore 2>/dev/null; then
   echo ".env" >> .gitignore
   echo -e "${GREEN}✓${NC} Added .env to .gitignore"
-fi
-
-if ! grep -q "^\.env\.local$" .gitignore 2>/dev/null; then
-  echo ".env.local" >> .gitignore
-  echo -e "${GREEN}✓${NC} Added .env.local to .gitignore"
 fi
 
 # 6. Install dependencies
@@ -129,12 +104,11 @@ echo ""
 echo "Next steps:"
 echo "1. Edit .env with your configuration (API keys, etc.)"
 echo "2. (Optional) Add personal settings to ~/.inkeep/config"
-echo "3. (Optional) Add repo-specific overrides to .env.local"
+echo "3. (Optional) Add repo-specific overrides to .env"
 echo "4. Run 'pnpm dev' to start the development servers"
 echo ""
 echo "Configuration loading order (highest priority first):"
-echo "  1. .env.local (repo-specific)"
+echo "  1. .env (main config)"
 echo "  2. ~/.inkeep/config (user-global)"
-echo "  3. .env (main config)"
-echo "  4. .env.example (defaults)"
+echo "  3. .env.example (defaults)"
 echo ""

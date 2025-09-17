@@ -10,31 +10,16 @@ export const loadEnvironmentFiles = () => {
   // Define files in priority order (highest to lowest priority)
   const environmentFiles: string[] = [];
 
-  // 1. current directory .env.local (highest priority)
-  const localOverride = path.resolve(process.cwd(), '.env.local');
-  if (fs.existsSync(localOverride)) {
-    environmentFiles.push(localOverride);
-  }
-
-  // 2. Current directory .env
+  // 1. Current directory .env
   const currentEnv = path.resolve(process.cwd(), '.env');
   if (fs.existsSync(currentEnv)) {
     environmentFiles.push(currentEnv);
   }
 
-  // 3. Search for root .env and root .env.local
+  // 3. Search for root .env
   const rootEnv = findUpSync('.env', { cwd: path.dirname(process.cwd()) });
   if (rootEnv) {
-    const rootDir = path.dirname(rootEnv);
-
-    // Check for root .env.local
-    const rootEnvLocal = path.join(rootDir, '.env.local');
-    if (fs.existsSync(rootEnvLocal) && rootEnvLocal !== localOverride) {
-      environmentFiles.push(rootEnvLocal);
-    }
-
-    // check for root .env
-    if (fs.existsSync(rootEnv) && rootEnv !== currentEnv) {
+    if (rootEnv !== currentEnv) {
       environmentFiles.push(rootEnv);
     }
   }
