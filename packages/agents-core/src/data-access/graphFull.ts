@@ -1077,7 +1077,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentToolRelationByAgent(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
           agentId,
         });
       }
@@ -1411,7 +1411,7 @@ export const deleteFullGraph =
         // Delete agent-tool relations for all agents in this graph
         for (const agentId of agentIds) {
           await deleteAgentToolRelationByAgent(db)({
-            scopes: { tenantId, projectId },
+            scopes: { tenantId, projectId, graphId, agentId },
             agentId,
           });
         }

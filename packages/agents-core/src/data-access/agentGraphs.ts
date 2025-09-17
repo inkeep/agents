@@ -264,9 +264,8 @@ export const getGraphAgentInfos =
     // Get all relations for the agent within the tenant
     // For now, this works without graph-specific filtering until schema is properly updated
     const relations = await getAgentRelations(db)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId, agentId },
       graphId,
-      agentId,
     });
     const targetAgentIds = relations
       .map((relation) => relation.targetAgentId)
@@ -317,8 +316,7 @@ export const getFullGraphDefinition =
     // Get all agents that are part of this graph through relations
     // First get all unique agent IDs in this graph (both source and target agents)
     const graphRelations = await getAgentRelationsByGraph(db)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     // Instead of collecting agent IDs from relationships and tools,

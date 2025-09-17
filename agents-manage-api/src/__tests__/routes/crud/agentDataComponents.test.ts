@@ -23,6 +23,18 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
+    // First create a default graph if it doesn't exist
+    const graphData = {
+      id: 'default',
+      name: 'Default Graph',
+      defaultAgentId: `test-agent${suffix}-${tenantId}`,
+    };
+    // Try to create the graph, ignore if it already exists
+    await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
+      method: 'POST',
+      body: JSON.stringify(graphData),
+    });
+
     const agentData = createAgentData({ suffix, tenantId });
     const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
       method: 'POST',
@@ -90,13 +102,16 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   const createAgentDataComponentData = ({
     agentId,
     dataComponentId,
+    graphId = 'default',
   }: {
     agentId: string;
     dataComponentId: string;
+    graphId?: string;
   }) => ({
     id: `${agentId}-${dataComponentId}`,
     agentId,
     dataComponentId,
+    graphId,
   });
 
   // Helper function to create an agent data component relation

@@ -92,7 +92,7 @@ app.openapi(
         result = { ...rawResult, data: rawResult.data };
       } else {
         const rawResult = await listAgentRelations(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId: 'default' },
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
@@ -134,7 +134,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const agentRelation = (await getAgentRelationById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: 'default' },
       relationId: id,
     })) as AgentRelationApiSelect | null;
 
@@ -217,7 +217,7 @@ app.openapi(
 
     // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentRelations(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: body.graphId },
       pagination: { page: 1, limit: 1000 },
     });
 

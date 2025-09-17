@@ -34,6 +34,18 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
+    // First create a default graph if it doesn't exist
+    const graphData = {
+      id: 'default',
+      name: 'Default Graph',
+      defaultAgentId: nanoid(),
+    };
+    // Try to create the graph, ignore if it already exists
+    await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
+      method: 'POST',
+      body: JSON.stringify(graphData),
+    });
+
     const agentData = createAgentData({ suffix, tenantId, projectId });
     const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
       method: 'POST',
@@ -105,12 +117,15 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
   const createAgentArtifactComponentData = ({
     agentId,
     artifactComponentId,
+    graphId = 'default',
   }: {
     agentId: string;
     artifactComponentId: string;
+    graphId?: string;
   }) => ({
     agentId,
     artifactComponentId,
+    graphId,
     // tenantId and projectId are extracted from URL path, not body
   });
 
