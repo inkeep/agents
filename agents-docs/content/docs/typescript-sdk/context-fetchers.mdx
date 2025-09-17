@@ -15,13 +15,15 @@ Context fetchers allow your agents to access real-time data from external APIs. 
 - **Request context integration**: Use request-specific parameters to customize data fetching.
 - **Data transformation**: Transform API responses into the exact format your agent needs.
 
-## How Context Fetchers Work
+## When to Use Context Fetchers
 
-- Request Arrives → HTTP request
-- Validation → Validate headers against request context schema
-- Context Resolution → Resolve context variables using templates
-- Caching → Check cache, fetch if needed, store results
-- Agent Execution → Provide resolved context to agent prompt
+Context fetchers are perfect when your agents need:
+- **User data**: "Hello John, here are your recent orders..."
+- **Real-time info**: Current weather, stock prices, system status
+- **External APIs**: CRM data, inventory levels, user permissions
+- **Dynamic content**: Personalization based on request headers
+
+Instead of hardcoding data, context fetchers fetch it fresh for each conversation.
 
 ## Basic Usage
 
@@ -94,10 +96,10 @@ export const graph = agentGraph({
 });
 ```
 
-## Template interpolation
+## Using Context Variables
 
 Use double curly braces `{{}}` to reference request context variables. 
-You can embed request variables in fetch definitions and agent prompts using the key `requestContext` :
+You can embed request variables in fetch definitions and agent prompts using the key `requestContext`:
 
 ```typescript
 const requestSchema = z.object({
@@ -167,3 +169,7 @@ transform: "items[0].name"; // Result: "First Item"
    - Always provide a `defaultValue`
    - Use appropriate response schemas
 
+## Common Issues
+
+- **"Context Validation Failed"**: Check your request context schema and response schemas.
+- **"F"**: Verify URL and add `defaultValue`
