@@ -177,7 +177,7 @@ async function createNangoConnectSession({
   endUserId = 'test-tenant',
   endUserEmail = 'test@test-tenant.com',
   endUserDisplayName = 'Test User',
-  organizationId = process.env.NEXT_PUBLIC_TENANT_ID || 'default',
+  organizationId = process.env.TENANT_ID || 'default',
   organizationDisplayName = 'Test Organization',
   integrationId,
 }: {

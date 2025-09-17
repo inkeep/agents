@@ -1,6 +1,6 @@
 import { ExternalLink } from '@/components/ui/external-link';
 
-export const DOCS_BASE_URL = process.env.NEXT_PUBLIC_DOCS_BASE_URL || 'https://docs.inkeep.com';
+export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 
 export const artifactDescription = (
   <>
