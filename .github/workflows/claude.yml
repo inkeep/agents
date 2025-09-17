@@ -23,9 +23,9 @@ jobs:
         (github.event.issue.author_association == 'MEMBER' || github.event.issue.author_association == 'OWNER')))
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
@@ -40,8 +40,6 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # This is an optional setting that allows Claude to read CI results on PRs
-          additional_permissions: |
-            actions: read
 
           claude_args: "--model claude-opus-4-20250514"
           
