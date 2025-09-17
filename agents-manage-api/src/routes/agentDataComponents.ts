@@ -146,10 +146,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const { agentId, dataComponentId } = c.req.valid('json');
+    const { agentId, dataComponentId, graphId } = c.req.valid('json');
 
     const [agent, dataComponent] = await Promise.all([
-      getAgentById(dbClient)({ scopes: { tenantId, projectId }, agentId }),
+      getAgentById(dbClient)({ scopes: { tenantId, projectId, graphId }, agentId }),
       getDataComponent(dbClient)({ scopes: { tenantId, projectId }, dataComponentId }),
     ]);
 
@@ -183,6 +183,7 @@ app.openapi(
 
     const association = await associateDataComponentWithAgent(dbClient)({
       scopes: { tenantId, projectId },
+      graphId,
       agentId,
       dataComponentId,
     });

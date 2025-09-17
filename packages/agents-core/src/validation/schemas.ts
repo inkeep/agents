@@ -91,9 +91,7 @@ const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) 
   schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema
-    .omit({ tenantId: true, projectId: true })
-    .partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
 
 // Specific helper for graph-scoped entities that also need graphId omitted
 const createGraphScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
@@ -133,7 +131,9 @@ export const AgentRelationInsertSchema = createInsertSchema(agentRelations).exte
 export const AgentRelationUpdateSchema = AgentRelationInsertSchema.partial();
 
 export const AgentRelationApiSelectSchema = createGraphScopedApiSchema(AgentRelationSelectSchema);
-export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(AgentRelationInsertSchema)
+export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
+  AgentRelationInsertSchema
+)
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES),
   })
@@ -150,7 +150,9 @@ export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(Age
     }
   );
 
-export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(AgentRelationUpdateSchema)
+export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
+  AgentRelationUpdateSchema
+)
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES).optional(),
   })
@@ -340,10 +342,15 @@ export const AgentDataComponentSelectSchema = createSelectSchema(agentDataCompon
 export const AgentDataComponentInsertSchema = createInsertSchema(agentDataComponents);
 export const AgentDataComponentUpdateSchema = AgentDataComponentInsertSchema.partial();
 
-export const AgentDataComponentApiSelectSchema = createGraphScopedApiSchema(AgentDataComponentSelectSchema);
-export const AgentDataComponentApiInsertSchema = createGraphScopedApiInsertSchema(
-  AgentDataComponentInsertSchema
+export const AgentDataComponentApiSelectSchema = createGraphScopedApiSchema(
+  AgentDataComponentSelectSchema
 );
+export const AgentDataComponentApiInsertSchema = AgentDataComponentInsertSchema.omit({
+  tenantId: true,
+  projectId: true,
+  id: true,
+  createdAt: true,
+});
 export const AgentDataComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentDataComponentUpdateSchema
 );
@@ -386,7 +393,6 @@ export const AgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
 export const AgentArtifactComponentApiInsertSchema = AgentArtifactComponentInsertSchema.omit({
   tenantId: true,
   projectId: true,
-  graphId: true,
   id: true,
   createdAt: true,
 });
@@ -405,8 +411,10 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
 export const ExternalAgentApiSelectSchema = createGraphScopedApiSchema(ExternalAgentSelectSchema);
-export const ExternalAgentApiInsertSchema = createGraphScopedApiInsertSchema(ExternalAgentInsertSchema);
-export const ExternalAgentApiUpdateSchema = createGraphScopedApiUpdateSchema(ExternalAgentUpdateSchema);
+export const ExternalAgentApiInsertSchema =
+  createGraphScopedApiInsertSchema(ExternalAgentInsertSchema);
+export const ExternalAgentApiUpdateSchema =
+  createGraphScopedApiUpdateSchema(ExternalAgentUpdateSchema);
 
 // Discriminated union for all agent types
 export const AllAgentSchema = z.discriminatedUnion('type', [
@@ -585,7 +593,9 @@ export const AgentToolRelationInsertSchema = createInsertSchema(agentToolRelatio
 
 export const AgentToolRelationUpdateSchema = AgentToolRelationInsertSchema.partial();
 
-export const AgentToolRelationApiSelectSchema = createGraphScopedApiSchema(AgentToolRelationSelectSchema);
+export const AgentToolRelationApiSelectSchema = createGraphScopedApiSchema(
+  AgentToolRelationSelectSchema
+);
 export const AgentToolRelationApiInsertSchema = createGraphScopedApiInsertSchema(
   AgentToolRelationInsertSchema
 );

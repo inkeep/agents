@@ -148,10 +148,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const { agentId, artifactComponentId } = c.req.valid('json');
+    const { agentId, artifactComponentId, graphId } = c.req.valid('json');
 
     // Validate that both agent and artifact component exist before creating association
-    const agent = await getAgentById(dbClient)({ scopes: { tenantId, projectId }, agentId });
+    const agent = await getAgentById(dbClient)({ scopes: { tenantId, projectId, graphId }, agentId });
     const artifactComponent = await getArtifactComponentById(dbClient)({
       scopes: { tenantId, projectId },
       id: artifactComponentId,
@@ -187,6 +187,7 @@ app.openapi(
 
     const association = await associateArtifactComponentWithAgent(dbClient)({
       scopes: { tenantId, projectId },
+      graphId,
       agentId,
       artifactComponentId,
     });
