@@ -1,6 +1,5 @@
-import { redirectToProject } from '../lib/utils/project-redirect';
-
-const DEFAULT_TENANT_ID = 'default';
+import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
+import { redirectToProject } from '@/lib/utils/project-redirect';
 
 async function Home() {
   if (!process.env.TENANT_ID) {

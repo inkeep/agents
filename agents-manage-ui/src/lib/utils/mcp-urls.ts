@@ -2,17 +2,19 @@
 // This file does NOT have 'use server' so functions can be synchronous
 
 // Default configuration (same as in api/tools.ts)
-import { INKEEP_AGENTS_MANAGE_API_URL } from '../api/api-config';
+// import { INKEEP_AGENTS_MANAGE_API_URL } from '../api/api-config';
 
 /**
  * Get OAuth login URL for an MCP tool that requires authentication
  * This returns the URL that should be used for redirect on the client side
  */
 export function getOAuthLoginUrl({
+  INKEEP_AGENTS_MANAGE_API_URL,
   tenantId,
   projectId,
   id,
 }: {
+  INKEEP_AGENTS_MANAGE_API_URL: string;
   tenantId: string;
   projectId: string;
   id: string;

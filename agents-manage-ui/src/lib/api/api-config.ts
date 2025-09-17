@@ -4,29 +4,30 @@
  * Centralized configuration for API endpoints and settings
  */
 
+import {
+  DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
+  DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+} from '../runtime-config/defaults';
 import { ApiError } from '../types/errors';
 
-const DEFAULT_INKEEP_AGENTS_MANAGE_API_URL = 'http://localhost:3002';
-const DEFAULT_INKEEP_AGENTS_RUN_API_URL = 'http://localhost:3003';
-
 // Management API (CRUD operations, configuration)
-if (!process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL) {
+if (!process.env.INKEEP_AGENTS_MANAGE_API_URL) {
   console.warn(
-    `NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_MANAGE_API_URL}`
+    `INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_MANAGE_API_URL}`
   );
 }
 
 // Inkeep Agents Run API (chat completions, agents run)
-if (!process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL) {
+if (!process.env.INKEEP_AGENTS_RUN_API_URL) {
   console.warn(
-    `NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_RUN_API_URL}`
+    `INKEEP_AGENTS_RUN_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_RUN_API_URL}`
   );
 }
 
-export const INKEEP_AGENTS_MANAGE_API_URL =
-  process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
-export const INKEEP_AGENTS_RUN_API_URL =
-  process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL || DEFAULT_INKEEP_AGENTS_RUN_API_URL;
+const INKEEP_AGENTS_MANAGE_API_URL =
+  process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
+const INKEEP_AGENTS_RUN_API_URL =
+  process.env.INKEEP_AGENTS_RUN_API_URL || DEFAULT_INKEEP_AGENTS_RUN_API_URL;
 
 async function makeApiRequestInternal<T>(
   baseUrl: string,

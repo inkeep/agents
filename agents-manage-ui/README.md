@@ -33,7 +33,7 @@ The Agent Builder includes a traces view that displays real-time conversation st
 
 3. **Configure environment variables** in your `.env.local`:
    ```bash
-   NEXT_PUBLIC_SIGNOZ_URL=http://localhost:3080
+   SIGNOZ_URL=http://localhost:3080
    SIGNOZ_API_KEY=your-api-key-here
    ```
 
@@ -48,9 +48,8 @@ Create a `.env.local` file with the following configuration:
 ```bash
 # Inkeep Configuration
 TENANT_ID="default"
-NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002" # URL where agents-manage-api is running
-NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
-NEXT_PUBLIC_INKEEP_AUTH_TOKEN=""
+INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002" # URL where agents-manage-api is running
+INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
 
 # SigNoz Configuration (for Traces feature)
 SIGNOZ_URL=http://localhost:3080
