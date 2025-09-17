@@ -443,13 +443,14 @@ export const updateAgentToolRelation =
 
 // Delete agent tool relation
 export const deleteAgentToolRelation =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     const result = await db
       .delete(agentToolRelations)
       .where(
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
           eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
           eq(agentToolRelations.id, params.relationId)
         )
       );
@@ -458,12 +459,14 @@ export const deleteAgentToolRelation =
   };
 
 export const deleteAgentToolRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentId: string }) => {
     const result = await db
       .delete(agentToolRelations)
       .where(
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
+          eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
           eq(agentToolRelations.agentId, params.agentId)
         )
       );
@@ -471,11 +474,12 @@ export const deleteAgentToolRelationByAgent =
   };
 
 export const getAgentToolRelationById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     return await db.query.agentToolRelations.findFirst({
       where: and(
         eq(agentToolRelations.tenantId, params.scopes.tenantId),
         eq(agentToolRelations.projectId, params.scopes.projectId),
+        eq(agentToolRelations.graphId, params.scopes.graphId),
         eq(agentToolRelations.id, params.relationId)
       ),
     });
