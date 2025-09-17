@@ -245,6 +245,7 @@ export const createAgents = async (
       projectId,
       openAiKey,
       anthropicKey,
+      googleKey,
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
