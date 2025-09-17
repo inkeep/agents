@@ -339,6 +339,10 @@ DB_FILE_NAME=file:./local.db
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
+
+# SigNoz
+NEXT_PUBLIC_SIGNOZ_URL=your-signoz-url-here
+SIGNOZ_API_KEY=your-signoz-api-key-here
 `;
 
   await fs.writeFile('.env', envContent);
