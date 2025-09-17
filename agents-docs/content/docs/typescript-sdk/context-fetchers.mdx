@@ -98,30 +98,7 @@ export const graph = agentGraph({
 
 ## Using Context Variables
 
-Use double curly braces `{{}}` to reference request context variables. 
-You can embed request variables in fetch definitions and agent prompts using the key `requestContext`:
-
-```typescript
-const requestSchema = z.object({
-  user_id: z.string(),
-  org_alias: z.string()
-  auth_token: z.string(),
-});
-
-const fetchDef = fetchDefinition({
-  // ... other properties
-  url: "https://api.example.com/users/{{requestContext.user_id}}",
-  headers: {
-    Authorization: "Bearer {{requestContext.auth_token}}",
-    "X-Org-Alias": "{{requestContext.org_alias}}",
-  },
-  responseSchema: z.object({
-    name: z.string(),
-    email: z.string(),
-  }),
-});
-```
-
+Use double curly braces `{{}}` to reference context variables. 
 You can embed fetched data in agent prompts using the key defined in `contextVariables`:
 
 ```typescript
@@ -144,10 +121,11 @@ const personalAgent = agent({
 });
 ```
 
+Context variables are resolved using [JSONPath notation](https://jsonpath.com).
 
 ## Data transformation
 
-The `transform` property on fetch definitions lets you extract exactly what you need from API responses using JMESPath notation:
+The `transform` property on fetch definitions lets you extract exactly what you need from API responses using JSONPath notation:
 
 ```typescript
 // API returns: { "user": { "profile": { "displayName": "John Doe" } } }
@@ -168,8 +146,3 @@ transform: "items[0].name"; // Result: "First Item"
 
    - Always provide a `defaultValue`
    - Use appropriate response schemas
-
-## Common Issues
-
-- **"Context Validation Failed"**: Check your request context schema and response schemas.
-- **"F"**: Verify URL and add `defaultValue`
