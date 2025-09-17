@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import fs from 'fs-extra';
-import { createAgents } from '../utils';
-import { getAvailableTemplates, cloneTemplate } from '../templates';
 import * as p from '@clack/prompts';
+import fs from 'fs-extra';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cloneTemplate, getAvailableTemplates } from '../templates';
+import { createAgents } from '../utils';
 
 // Mock all dependencies
 vi.mock('fs-extra');
@@ -56,7 +56,11 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(fs.remove).mockResolvedValue(undefined);
 
     // Mock templates
-    vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-graph', 'chatbot', 'data-analysis']);
+    vi.mocked(getAvailableTemplates).mockResolvedValue([
+      'weather-graph',
+      'chatbot',
+      'data-analysis',
+    ]);
     vi.mocked(cloneTemplate).mockResolvedValue(undefined);
 
     // Mock util.promisify to return a mock exec function
@@ -84,7 +88,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
-        anthropicKey: 'test-anthropic-key'
+        anthropicKey: 'test-anthropic-key',
       });
 
       // Should clone base template and weather-graph template
@@ -106,14 +110,8 @@ describe('createAgents - Template and Project ID Logic', () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
-        anthropicKey: 'test-anthropic-key'
+        anthropicKey: 'test-anthropic-key',
       });
-
-      // Check that .env file is created with correct project ID path
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/weather-graph/.env',
-        expect.any(String)
-      );
 
       // Check that inkeep.config.ts is created with correct project ID
       expect(fs.writeFile).toHaveBeenCalledWith(
@@ -129,7 +127,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         dirName: 'test-dir',
         template: 'chatbot',
         openAiKey: 'test-openai-key',
-        anthropicKey: 'test-anthropic-key'
+        anthropicKey: 'test-anthropic-key',
       });
 
       // Should validate template exists
@@ -146,12 +144,6 @@ describe('createAgents - Template and Project ID Logic', () => {
         'src/chatbot'
       );
 
-      // Should create config files with template name as project ID
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/chatbot/.env',
-        expect.any(String)
-      );
-
       expect(fs.writeFile).toHaveBeenCalledWith(
         'src/chatbot/inkeep.config.ts',
         expect.stringContaining('projectId: "chatbot"')
@@ -161,11 +153,13 @@ describe('createAgents - Template and Project ID Logic', () => {
     it('should exit with error when template does not exist', async () => {
       vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-graph', 'chatbot']);
 
-      await expect(createAgents({
-        dirName: 'test-dir',
-        template: 'non-existent-template',
-        openAiKey: 'test-openai-key'
-      })).rejects.toThrow('process.exit called');
+      await expect(
+        createAgents({
+          dirName: 'test-dir',
+          template: 'non-existent-template',
+          openAiKey: 'test-openai-key',
+        })
+      ).rejects.toThrow('process.exit called');
 
       expect(p.cancel).toHaveBeenCalledWith(
         expect.stringContaining('Template "non-existent-template" not found')
@@ -174,13 +168,19 @@ describe('createAgents - Template and Project ID Logic', () => {
     });
 
     it('should show available templates when invalid template is provided', async () => {
-      vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-graph', 'chatbot', 'data-analysis']);
+      vi.mocked(getAvailableTemplates).mockResolvedValue([
+        'weather-graph',
+        'chatbot',
+        'data-analysis',
+      ]);
 
-      await expect(createAgents({
-        dirName: 'test-dir',
-        template: 'invalid',
-        openAiKey: 'test-openai-key'
-      })).rejects.toThrow('process.exit called');
+      await expect(
+        createAgents({
+          dirName: 'test-dir',
+          template: 'invalid',
+          openAiKey: 'test-openai-key',
+        })
+      ).rejects.toThrow('process.exit called');
 
       const cancelCall = vi.mocked(p.cancel).mock.calls[0][0];
       expect(cancelCall).toContain('weather-graph');
@@ -195,7 +195,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         dirName: 'test-dir',
         customProjectId: 'my-custom-project',
         openAiKey: 'test-openai-key',
-        anthropicKey: 'test-anthropic-key'
+        anthropicKey: 'test-anthropic-key',
       });
 
       // Should clone base template but NOT project template
@@ -211,12 +211,6 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should create empty project directory
       expect(fs.ensureDir).toHaveBeenCalledWith('src/my-custom-project');
 
-      // Should create config files with custom project ID
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/my-custom-project/.env',
-        expect.any(String)
-      );
-
       expect(fs.writeFile).toHaveBeenCalledWith(
         'src/my-custom-project/inkeep.config.ts',
         expect.stringContaining('projectId: "my-custom-project"')
@@ -229,7 +223,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         template: 'chatbot',
         customProjectId: 'my-custom-project',
         openAiKey: 'test-openai-key',
-        anthropicKey: 'test-anthropic-key'
+        anthropicKey: 'test-anthropic-key',
       });
 
       // Should only clone base template, not project template
@@ -251,13 +245,16 @@ describe('createAgents - Template and Project ID Logic', () => {
 
   describe('Edge cases and validation', () => {
     it('should handle template names with hyphens correctly', async () => {
-      vi.mocked(getAvailableTemplates).mockResolvedValue(['my-complex-template', 'another-template']);
+      vi.mocked(getAvailableTemplates).mockResolvedValue([
+        'my-complex-template',
+        'another-template',
+      ]);
 
       await createAgents({
         dirName: 'test-dir',
         template: 'my-complex-template',
         openAiKey: 'test-key',
-        anthropicKey: 'test-key'
+        anthropicKey: 'test-key',
       });
 
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
@@ -272,7 +269,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         dirName: 'test-dir',
         customProjectId: 'my_project-123',
         openAiKey: 'test-key',
-        anthropicKey: 'test-key'
+        anthropicKey: 'test-key',
       });
 
       expect(fs.ensureDir).toHaveBeenCalledWith('src/my_project-123');
@@ -287,7 +284,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       await createAgents({
         dirName: 'dir1',
         openAiKey: 'key',
-        anthropicKey: 'key'
+        anthropicKey: 'key',
       });
       expect(fs.ensureDir).toHaveBeenCalledWith('src');
 
@@ -300,7 +297,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         dirName: 'dir2',
         template: 'chatbot',
         openAiKey: 'key',
-        anthropicKey: 'key'
+        anthropicKey: 'key',
       });
       expect(fs.ensureDir).toHaveBeenCalledWith('src');
 
@@ -313,7 +310,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         dirName: 'dir3',
         customProjectId: 'custom',
         openAiKey: 'key',
-        anthropicKey: 'key'
+        anthropicKey: 'key',
       });
       expect(fs.ensureDir).toHaveBeenCalledWith('src');
       expect(fs.ensureDir).toHaveBeenCalledWith('src/custom');

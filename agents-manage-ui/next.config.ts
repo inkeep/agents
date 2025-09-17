@@ -1,5 +1,17 @@
 import type { NextConfig } from 'next';
 
+// Load environment files from project root during development
+// This allows the Next.js app to read .env files from the workspace root in development
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const { loadEnvironmentFiles } = require('@inkeep/agents-core');
+    loadEnvironmentFiles();
+    console.log('✅ Loaded environment files from project root');
+  } catch (error) {
+    console.warn('Could not load environment files:', error);
+  }
+}
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   eslint: {
