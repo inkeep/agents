@@ -31,12 +31,8 @@ Let's create a simple context fetcher that retrieves user information:
 
 ```typescript
 import { z } from "zod";
-import {
-  agent,
-  agentGraph,
-  contextConfig,
-  fetchDefinition,
-} from "@inkeep/agents-manage-api/builders";
+import { agent, agentGraph, fetchDefinition } from "@inkeep/agents-manage-api/builders";
+import { contextConfig, fetchDefinition } from "@inkeep/agents-core";
 
 // 1. Define request schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.
@@ -146,3 +142,7 @@ transform: "items[0].name"; // Result: "First Item"
 
    - Always provide a `defaultValue`
    - Use appropriate response schemas
+
+## Related documentation
+
+- [Request Context](/typescript-sdk/request-context) - Learn how to pass dynamic context to your agents via HTTP headers

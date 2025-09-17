@@ -42,7 +42,8 @@ Define a schema for your request context and configure how it's used in your age
 
 ```typescript
 import { z } from "zod";
-import { agent, agentGraph, contextConfig, fetchDefinition } from "@inkeep/agents-manage-api/builders";
+import { agent, agentGraph, fetchDefinition } from "@inkeep/agents-manage-api/builders";
+import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
 
 // Define schema for expected headers (use lowercase keys)
 const requestSchema = z.object({
