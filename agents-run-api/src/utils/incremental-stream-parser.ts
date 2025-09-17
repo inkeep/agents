@@ -24,6 +24,7 @@ export class IncrementalStreamParser {
   private lastChunkWasToolResult = false;
   private componentAccumulator: any = {};
   private lastStreamedComponents = new Map<string, any>();
+  private componentSnapshots = new Map<string, string>();
 
   constructor(streamHelper: StreamHelper, tenantId: string, contextId: string) {
     this.streamHelper = streamHelper;
@@ -64,7 +65,7 @@ export class IncrementalStreamParser {
 
   /**
    * Process object deltas directly from Vercel AI SDK's fullStream
-   * Accumulates components until they're complete before streaming
+   * Accumulates components and streams them when they're stable (unchanged between deltas)
    */
   async processObjectDelta(delta: any): Promise<void> {
     if (!delta || typeof delta !== 'object') {
@@ -81,12 +82,23 @@ export class IncrementalStreamParser {
       for (let i = 0; i < components.length; i++) {
         const component = components[i];
         
+        if (!component?.id) continue;
+        
         const componentKey = component.id;
         const hasBeenStreamed = this.lastStreamedComponents.has(componentKey);
         
-        // Stream this component if it's complete and we haven't streamed it yet
-        if (this.isComponentComplete(component) && !hasBeenStreamed) {
-          // Stream this complete component
+        if (hasBeenStreamed) continue;
+        
+        // Create a content snapshot to track changes
+        const currentSnapshot = JSON.stringify(component);
+        const previousSnapshot = this.componentSnapshots.get(componentKey);
+        
+        // Update the snapshot for next comparison
+        this.componentSnapshots.set(componentKey, currentSnapshot);
+        
+        // Stream component if it's complete AND stable (unchanged from previous delta)
+        if (this.isComponentComplete(component) && previousSnapshot === currentSnapshot) {
+          // Component is complete and hasn't changed - stream it now
           const parts = await this.artifactParser.parseObject({
             dataComponents: [component],
           });
@@ -103,32 +115,29 @@ export class IncrementalStreamParser {
   }
 
   /**
-   * Check if a component is complete enough to stream
-   * Components need id, name, and props to be considered complete
+   * Check if a component has the basic structure required for streaming
+   * With stability-based streaming, we only check for id, name, and props object
    */
   private isComponentComplete(component: any): boolean {
     if (!component || !component.id || !component.name) {
       return false;
     }
 
-    // Must have props object
+    // Must have props object (can be empty, stability will handle completeness)
     if (!component.props || typeof component.props !== 'object') {
       return false;
     }
 
-    // For artifacts, check if we have both required fields
+    // For artifacts, still require both required fields
     const isArtifact = component.name === 'Artifact' || 
                       (component.props.artifact_id && component.props.task_id);
     
     if (isArtifact) {
-      // Artifacts must have both artifact_id and task_id
       return Boolean(component.props.artifact_id && component.props.task_id);
     }
 
-    // For regular components, check if props has meaningful content
-    // Could be customized based on your component schemas
-    const propKeys = Object.keys(component.props);
-    return propKeys.length > 0 && propKeys.some(key => component.props[key] !== null && component.props[key] !== undefined && component.props[key] !== '');
+    // For regular components, just need id, name, and props object
+    return true;
   }
 
   /**
@@ -163,6 +172,33 @@ export class IncrementalStreamParser {
    * Process any remaining buffer content at the end of stream
    */
   async finalize(): Promise<void> {
+    // Stream any remaining complete components that haven't been streamed yet
+    if (this.componentAccumulator.dataComponents && Array.isArray(this.componentAccumulator.dataComponents)) {
+      const components = this.componentAccumulator.dataComponents;
+      
+      for (let i = 0; i < components.length; i++) {
+        const component = components[i];
+        
+        if (!component?.id) continue;
+        
+        const componentKey = component.id;
+        const hasBeenStreamed = this.lastStreamedComponents.has(componentKey);
+        
+        // Stream any complete components that haven't been streamed yet
+        if (!hasBeenStreamed && this.isComponentComplete(component)) {
+          const parts = await this.artifactParser.parseObject({
+            dataComponents: [component],
+          });
+          
+          for (const part of parts) {
+            await this.streamPart(part);
+          }
+          
+          this.lastStreamedComponents.set(componentKey, true);
+        }
+      }
+    }
+
     if (this.buffer.trim()) {
       // Process remaining buffer as final text
       const part: StreamPart = {
