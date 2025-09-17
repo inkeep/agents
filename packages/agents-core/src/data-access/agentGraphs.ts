@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, like } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import {
@@ -13,7 +13,7 @@ import {
   tools,
 } from '../db/schema';
 import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities';
-import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
+import type { GraphScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
 import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
 import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
@@ -32,12 +32,12 @@ export const getAgentGraphById =
   };
 
 export const getAgentGraphWithDefaultAgent =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
         eq(agentGraph.projectId, params.scopes.projectId),
-        eq(agentGraph.id, params.graphId)
+        eq(agentGraph.id, params.scopes.graphId)
       ),
       with: {
         defaultAgent: true,
@@ -522,7 +522,7 @@ export const getFullGraphDefinition =
     let dataComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
-      const internalAgentIds = graphAgents.map(agent => agent.id);
+      const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
       dataComponentsObject = await fetchComponentRelationships(db)(
@@ -550,7 +550,7 @@ export const getFullGraphDefinition =
     let artifactComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
-      const internalAgentIds = graphAgents.map(agent => agent.id);
+      const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
       artifactComponentsObject = await fetchComponentRelationships(db)(

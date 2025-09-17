@@ -59,7 +59,7 @@ export const agentGraph = sqliteTable(
     defaultAgentId: text('default_agent_id').notNull(),
 
     // Reference to shared context configuration for all agents in this graph
-    contextConfigId: text('context_config_id'),
+    contextConfigId: text('context_config_id'), // add fk relationship
 
     // Graph-level model settingsuration that can be inherited by agents
     models: text('models', { mode: 'json' }).$type<Models>(),
@@ -92,6 +92,7 @@ export const contextConfigs = sqliteTable(
   {
     tenantId: text('tenant_id').notNull(),
     projectId: text('project_id').notNull(),
+    // Add graph level scoping
     id: text('id').notNull(),
     name: text('name').notNull(),
     description: text('description').notNull(),

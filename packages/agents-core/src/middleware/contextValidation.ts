@@ -277,8 +277,7 @@ export async function validateRequestContext({
   try {
     // Get the graph's context config
     const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     if (!agentGraph?.contextConfigId) {

@@ -8,7 +8,7 @@ import {
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { getLogger } from '../utils';
-import { tracer, setSpanWithError } from '../utils/tracer';
+import { setSpanWithError, tracer } from '../utils/tracer';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
@@ -69,15 +69,23 @@ async function handleContextConfigChange(
 }
 
 // Enhanced context resolution function
-async function handleContextResolution(
-  tenantId: string,
-  projectId: string,
-  conversationId: string,
-  graphId: string,
-  requestContext: Record<string, unknown>,
-  dbClient: DatabaseClient,
-  credentialStores?: CredentialStoreRegistry
-): Promise<ResolvedContext | null> {
+async function handleContextResolution({
+  tenantId,
+  projectId,
+  graphId,
+  conversationId,
+  requestContext,
+  dbClient,
+  credentialStores,
+}: {
+  tenantId: string;
+  projectId: string;
+  graphId: string;
+  conversationId: string;
+  requestContext: Record<string, unknown>;
+  dbClient: DatabaseClient;
+  credentialStores?: CredentialStoreRegistry;
+}): Promise<ResolvedContext | null> {
   // Create parent span for the entire context resolution process
   return tracer.startActiveSpan(
     'context.handle_context_resolution',
@@ -93,8 +101,7 @@ async function handleContextResolution(
       try {
         // 1. Get graph's context config
         agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-          scopes: { tenantId, projectId },
-          graphId,
+          scopes: { tenantId, projectId, graphId },
         });
         if (!agentGraph?.contextConfigId) {
           logger.debug({ graphId }, 'No context config found for graph');
