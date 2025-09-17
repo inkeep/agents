@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createAgentGraph,
   deleteAgentGraph,
-  getAgentGraph,
   getAgentGraphById,
   getAgentGraphWithDefaultAgent,
   listAgentGraphs,
@@ -21,7 +20,7 @@ describe('Agent Graph Data Access', () => {
     db = createInMemoryDatabaseClient();
   });
 
-  describe('getAgentGraph', () => {
+  describe('getAgentGraphById', () => {
     it('should retrieve an agent graph by tenant and graph ID', async () => {
       const graphId = 'graph-1';
       const expectedGraph = {
@@ -42,7 +41,7 @@ describe('Agent Graph Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getAgentGraph(mockDb)({
+      const result = await getAgentGraphById(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         graphId,
       });
@@ -63,7 +62,7 @@ describe('Agent Graph Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getAgentGraph(mockDb)({
+      const result = await getAgentGraphById(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         graphId: 'non-existent',
       });

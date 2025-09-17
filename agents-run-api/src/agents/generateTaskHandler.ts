@@ -3,7 +3,7 @@ import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   getAgentById,
-  getAgentGraph,
+  getAgentGraphById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getRelatedAgentsForGraph,
@@ -19,8 +19,8 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { Agent } from './Agent';
 import { resolveModelConfig } from '../utils/model-resolver';
+import { Agent } from './Agent';
 
 /** Turn any string value that is valid JSON into an object/array (in place). */
 export function parseEmbeddedJson<T>(data: T): T {
@@ -446,7 +446,7 @@ export const createTaskHandlerConfig = async (params: {
     agentId: params.agentId,
   });
 
-  const agentGraph = await getAgentGraph(dbClient)({
+  const agentGraph = await getAgentGraphById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,

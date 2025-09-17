@@ -8,14 +8,15 @@ import type {
   AgentToolRelationUpdate,
   ExternalAgentRelationInsert,
 } from '../types/entities';
-import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
+import type { GraphScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
 
 export const getAgentRelationById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     return db.query.agentRelations.findFirst({
       where: and(
         eq(agentRelations.tenantId, params.scopes.tenantId),
         eq(agentRelations.projectId, params.scopes.projectId),
+        eq(agentRelations.graphId, params.scopes.graphId),
         eq(agentRelations.id, params.relationId)
       ),
     });
@@ -23,14 +24,15 @@ export const getAgentRelationById =
 
 export const listAgentRelations =
   (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
-      eq(agentRelations.projectId, params.scopes.projectId)
+      eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId)
     );
 
     const [data, totalResult] = await Promise.all([
@@ -595,44 +597,6 @@ export const listAgentToolRelations =
             eq(agentToolRelations.projectId, params.scopes.projectId)
           )
         ),
-    ]);
-
-    const total = totalResult[0]?.count || 0;
-    const pages = Math.ceil(total / limit);
-
-    return {
-      data,
-      pagination: { page, limit, total, pages },
-    };
-  };
-
-// Get agent tool relations by agent with pagination
-export const listAgentToolRelationsByAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    agentId: string;
-    pagination?: PaginationConfig;
-  }) => {
-    const page = params.pagination?.page || 1;
-    const limit = Math.min(params.pagination?.limit || 10, 100);
-    const offset = (page - 1) * limit;
-
-    const whereClause = and(
-      eq(agentToolRelations.tenantId, params.scopes.tenantId),
-      eq(agentToolRelations.projectId, params.scopes.projectId),
-      eq(agentToolRelations.agentId, params.agentId)
-    );
-
-    const [data, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(agentToolRelations)
-        .where(whereClause)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(desc(agentToolRelations.createdAt)),
-      db.select({ count: count() }).from(agentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;

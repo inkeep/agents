@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createAgent } from '../../../data-access/agents';
 import { createAgentGraph } from '../../../data-access/agentGraphs';
+import { createAgent } from '../../../data-access/agents';
 import {
   createConversation,
   getConversation,
@@ -65,14 +65,32 @@ describe('Conversations Data Access - Integration Tests', () => {
 
       // Create test graphs for each project
       for (let i = 1; i <= 3; i++) {
+        const graphId = `test-graph-${i}`;
+        const defaultAgentId = `test-agent-${i}`;
+
         await db
           .insert(schema.agentGraph)
           .values({
             tenantId: tenantId,
             projectId: testProjectId,
-            id: `test-graph-${i}`,
+            id: graphId,
             name: `Test Graph ${i}`,
             description: 'Graph for testing',
+            defaultAgentId: defaultAgentId,
+          })
+          .onConflictDoNothing();
+
+        // Create the default agent for the graph
+        await db
+          .insert(schema.agents)
+          .values({
+            tenantId: tenantId,
+            projectId: testProjectId,
+            graphId: graphId,
+            id: defaultAgentId,
+            name: `Default Agent ${i}`,
+            description: 'Default agent for testing',
+            prompt: 'You are a test agent',
           })
           .onConflictDoNothing();
       }
@@ -98,14 +116,32 @@ describe('Conversations Data Access - Integration Tests', () => {
 
       // Create test graphs for each project
       for (let i = 1; i <= 3; i++) {
+        const graphId = `test-graph-${i}`;
+        const defaultAgentId = `test-agent-${i}`;
+
         await db
           .insert(schema.agentGraph)
           .values({
             tenantId: tenantId,
             projectId: testProjectId,
-            id: `test-graph-${i}`,
+            id: graphId,
             name: `Test Graph ${i}`,
             description: 'Graph for testing',
+            defaultAgentId: defaultAgentId,
+          })
+          .onConflictDoNothing();
+
+        // Create the default agent for the graph
+        await db
+          .insert(schema.agents)
+          .values({
+            tenantId: tenantId,
+            projectId: testProjectId,
+            graphId: graphId,
+            id: defaultAgentId,
+            name: `Default Agent ${i}`,
+            description: 'Default agent for testing',
+            prompt: 'You are a test agent',
           })
           .onConflictDoNothing();
       }
@@ -124,7 +160,9 @@ describe('Conversations Data Access - Integration Tests', () => {
       await createAgentGraph(db)(graphData);
 
       // Create an agent with graphId
-      const _agent = await createAgent(db)(createTestAgentData(testTenantId, testProjectId, '1', graphData.id));
+      const _agent = await createAgent(db)(
+        createTestAgentData(testTenantId, testProjectId, '1', graphData.id)
+      );
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
 

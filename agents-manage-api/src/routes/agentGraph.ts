@@ -10,7 +10,7 @@ import {
   deleteAgentGraph,
   ErrorResponseSchema,
   FullGraphDefinitionSchema,
-  getAgentGraph,
+  getAgentGraphById,
   getFullGraphDefinition,
   getGraphAgentInfos,
   IdParamsSchema,
@@ -94,7 +94,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const graph = await getAgentGraph(dbClient)({
+    const graph = await getAgentGraphById(dbClient)({
       scopes: { tenantId, projectId },
       graphId: id,
     });

@@ -19,17 +19,6 @@ import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 
-export const getAgentGraph =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
-    return await db.query.agentGraph.findFirst({
-      where: and(
-        eq(agentGraph.tenantId, params.scopes.tenantId),
-        eq(agentGraph.projectId, params.scopes.projectId),
-        eq(agentGraph.id, params.graphId)
-      ),
-    });
-  };
-
 export const getAgentGraphById =
   (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
     const result = await db.query.agentGraph.findFirst({
@@ -264,7 +253,7 @@ export const getGraphAgentInfos =
   }) => {
     const { tenantId, projectId } = scopes;
     // First, verify that the graph exists
-    const graph = await getAgentGraph(db)({
+    const graph = await getAgentGraphById(db)({
       scopes: { tenantId, projectId },
       graphId,
     });
