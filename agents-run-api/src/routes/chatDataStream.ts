@@ -129,7 +129,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const agentId = activeAgent?.activeAgentId || defaultAgentId;
 
     const agentInfo = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       agentId: agentId as string,
     });
     if (!agentInfo) {
