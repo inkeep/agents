@@ -1,50 +1,52 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import * as dotenv from 'dotenv';
+import dotenv from 'dotenv'; // Still needed for parsing additional config files
+import { expand } from 'dotenv-expand';
+import { findUpSync } from 'find-up';
 import { z } from 'zod';
 
-dotenv.config({ quiet: true });
+export const loadEnvironmentFiles = () => {
+  // Define files in priority order (highest to lowest priority)
+  const environmentFiles: string[] = [];
 
-// Calculate workspace root from agents-core package location
-// This ensures consistent database path regardless of where commands are run from
-const currentFileDir = path.dirname(fileURLToPath(import.meta.url)); // Current file directory
-const workspaceRoot = path.resolve(currentFileDir, '../../../'); // agents-core/src -> agents-core -> packages -> workspace
-const defaultDbPath = `file:${path.join(workspaceRoot, 'local.db')}`;
+  // 1. Current directory .env
+  const currentEnv = path.resolve(process.cwd(), '.env');
+  if (fs.existsSync(currentEnv)) {
+    environmentFiles.push(currentEnv);
+  }
 
-const environmentSchema = z.enum(['development', 'pentest', 'production', 'test']);
-
-const criticalEnv = z
-  .object({
-    ENVIRONMENT: environmentSchema,
-  })
-  .parse(process.env);
-
-const loadEnvFile = () => {
-  // Priority of environment variables:
-  // 1. Existing process.env variables (highest priority)
-  // 2. Values from .env.{nodeEnv}.nonsecret file (lower priority)
-  // 3. Default values defined in schema (lowest priority)
-
-  const envPath = path.resolve(process.cwd(), `.env.${criticalEnv.ENVIRONMENT}.nonsecret`);
-
-  if (fs.existsSync(envPath)) {
-    const envConfig = dotenv.parse(fs.readFileSync(envPath));
-    for (const k in envConfig) {
-      // Only set if the environment variable doesn't already exist
-      // This preserves any values that were already set in process.env
-      if (!(k in process.env)) {
-        process.env[k] = envConfig[k];
-      }
+  // 3. Search for root .env
+  const rootEnv = findUpSync('.env', { cwd: path.dirname(process.cwd()) });
+  if (rootEnv) {
+    if (rootEnv !== currentEnv) {
+      environmentFiles.push(rootEnv);
     }
+  }
+
+  // 3. Load user global config if exists (~/.inkeep/config)
+  // This allows sharing API keys across multiple local repo copies
+  const userConfigPath = path.join(os.homedir(), '.inkeep', 'config');
+  if (fs.existsSync(userConfigPath)) {
+    dotenv.config({ path: userConfigPath, override: true });
+  }
+
+  // Load all at once with dotenv supporting multiple files
+  if (environmentFiles.length > 0) {
+    dotenv.config({
+      path: environmentFiles,
+      override: false,
+    });
+    expand({ processEnv: process.env as Record<string, string> });
   }
 };
 
-loadEnvFile();
+loadEnvironmentFiles();
+
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
-  DB_FILE_NAME: z.string().default(defaultDbPath),
-  OTEL_TRACES_FORCE_FLUSH_ENABLED: z.stringbool().optional(),
+  DB_FILE_NAME: z.string(),
+  OTEL_TRACES_FORCE_FLUSH_ENABLED: z.coerce.boolean().optional(),
 });
 
 const parseEnv = () => {
