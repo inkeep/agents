@@ -180,8 +180,7 @@ app.post('/a2a', async (c: Context) => {
 
     // fetch the graph and the default agent
     const graph = await getAgentGraphWithDefaultAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     if (!graph) {

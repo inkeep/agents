@@ -271,7 +271,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-relations-list-single');
       await ensureTestProject(tenantId, projectId);
       const { sourceAgentId, targetAgentId, agentGraphId } = await setupTestEnvironment(tenantId);
-      const { agentRelationData } = await createTestAgentRelation({
+      const _ = await createTestAgentRelation({
         tenantId,
         graphId: agentGraphId,
         sourceAgentId,
@@ -402,7 +402,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-relations-get-by-id');
       await ensureTestProject(tenantId, projectId);
       const { sourceAgentId, targetAgentId, agentGraphId } = await setupTestEnvironment(tenantId);
-      const { agentRelationData, agentRelationId } = await createTestAgentRelation({
+      const { agentRelationId } = await createTestAgentRelation({
         tenantId,
         graphId: agentGraphId,
         sourceAgentId,

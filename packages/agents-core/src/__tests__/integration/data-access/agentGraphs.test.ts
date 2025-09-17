@@ -135,8 +135,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Fetch with relations
       const graphWithAgent = await getAgentGraphWithDefaultAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 
       // Delete the agent and graph

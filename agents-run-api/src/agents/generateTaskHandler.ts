@@ -93,8 +93,9 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
         }),
         getDataComponentsForAgent(dbClient)({
           scopes: {
@@ -121,7 +122,11 @@ export const createTaskHandler = (
         internalRelations.map(async (relation) => {
           try {
             const relatedAgent = await getAgentById(dbClient)({
-              scopes: { tenantId: config.tenantId, projectId: config.projectId },
+              scopes: {
+                tenantId: config.tenantId,
+                projectId: config.projectId,
+                graphId: config.graphId,
+              },
               agentId: relation.id,
             });
             if (relatedAgent) {
@@ -442,6 +447,7 @@ export const createTaskHandlerConfig = async (params: {
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
+      graphId: params.graphId,
     },
     agentId: params.agentId,
   });

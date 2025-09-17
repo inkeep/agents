@@ -7,7 +7,6 @@ import type {
   ExternalAgentUpdate,
   GraphScopeConfig,
   PaginationConfig,
-  ProjectScopeConfig,
 } from '../types/index';
 
 /**
