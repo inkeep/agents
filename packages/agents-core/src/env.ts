@@ -12,24 +12,20 @@ export const loadEnvironmentFiles = () => {
 
   // 1. current directory .env.local (highest priority)
   const localOverride = path.resolve(process.cwd(), '.env.local');
-  console.log('Local override:', localOverride);
   if (fs.existsSync(localOverride)) {
     environmentFiles.push(localOverride);
   }
 
   // 2. Current directory .env
   const currentEnv = path.resolve(process.cwd(), '.env');
-  console.log('Current env:', currentEnv);
   if (fs.existsSync(currentEnv)) {
     environmentFiles.push(currentEnv);
   }
 
   // 3. Search for root .env and root .env.local
   const rootEnv = findUpSync('.env', { cwd: path.dirname(process.cwd()) });
-  console.log('Root env:', rootEnv);
   if (rootEnv) {
     const rootDir = path.dirname(rootEnv);
-    console.log('Root directory:', rootDir);
 
     // Check for root .env.local
     const rootEnvLocal = path.join(rootDir, '.env.local');
