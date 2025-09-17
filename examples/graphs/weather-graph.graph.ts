@@ -1,4 +1,5 @@
 import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
+import * as z from 'zod';
 
 // MCP Tools
 const forecastWeatherTool = mcpTool({
@@ -17,10 +18,33 @@ const geocodeAddressTool = mcpTool({
 const weatherAssistant = agent({
   id: 'weather-assistant',
   name: 'Weather assistant',
-  description: 'Responsible for routing between the geocoder agent and weather forecast agent',
+  description:
+    'This component is used to render a group of times in a day along with the weather temperature (in Farenheit) and condition at give times.',
   prompt:
     'You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast',
   canDelegateTo: () => [weatherForecaster, geocoderAgent],
+  dataComponents() {
+    return [
+      {
+        id: 'weather-forecast',
+        name: 'WeatherForecast',
+        description: 'A hourly forecast for the weather at a given location',
+        props: z.toJSONSchema(
+          z.object({
+            forecast: z
+              .array(
+                z.object({
+                  time: z.string().describe('The time of current item E.g. 12PM, 1PM'),
+                  temperature: z.number().describe('The temperature at given time in Farenheit'),
+                  code: z.number().describe('Weather code at given time'),
+                })
+              )
+              .describe('The hourly forecast for the weather at a given location'),
+          })
+        ),
+      },
+    ];
+  },
 });
 
 const weatherForecaster = agent({
