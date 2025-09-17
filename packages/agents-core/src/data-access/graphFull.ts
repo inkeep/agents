@@ -467,8 +467,7 @@ export const createFullGraphServerSide =
                   const selectedTools = agentData.selectedTools?.[toolId];
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
-                    scopes: { tenantId, projectId },
-                    graphId: finalGraphId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId },
                     agentId,
                     toolId,
                     selectedTools,
