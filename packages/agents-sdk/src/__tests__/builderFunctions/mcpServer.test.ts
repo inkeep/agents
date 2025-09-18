@@ -108,4 +108,83 @@ describe('mcpServer builder function', () => {
     expect(httpServer.config.transport).toEqual({ type: 'http' });
     expect(wsServer.config.transport).toEqual({ type: 'websocket' });
   });
+
+  describe('imageUrl handling', () => {
+    it('should accept and store URL-based imageUrl', () => {
+      const config: MCPServerConfig = {
+        name: 'Weather Service',
+        description: 'Weather information service',
+        serverUrl: 'https://weather.example.com/mcp',
+        imageUrl: 'https://i.pinimg.com/originals/d5/3b/01/d53b014d86a6b6761bf649a0ed813c2b.png',
+      };
+
+      const server = mcpServer(config);
+      expect(server.config.imageUrl).toBe('https://i.pinimg.com/originals/d5/3b/01/d53b014d86a6b6761bf649a0ed813c2b.png');
+    });
+
+    it('should accept and store base64 data URL imageUrl', () => {
+      const base64Image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+      const config: MCPServerConfig = {
+        name: 'Custom Icon Server',
+        description: 'Server with base64 icon',
+        serverUrl: 'https://api.example.com/mcp',
+        imageUrl: base64Image,
+      };
+
+      const server = mcpServer(config);
+      expect(server.config.imageUrl).toBe(base64Image);
+    });
+
+    it('should handle servers without imageUrl', () => {
+      const config: MCPServerConfig = {
+        name: 'No Icon Server',
+        description: 'Server without custom icon',
+        serverUrl: 'https://api.example.com/mcp',
+      };
+
+      const server = mcpServer(config);
+      expect(server.config.imageUrl).toBeUndefined();
+    });
+
+    it('should preserve imageUrl when combined with other optional fields', () => {
+      const config: MCPServerConfig = {
+        name: 'Complete Server',
+        description: 'Server with all optional fields',
+        serverUrl: 'https://api.example.com/mcp',
+        imageUrl: 'https://example.com/icon.svg',
+        headers: { 'X-Custom': 'header' },
+        activeTools: ['tool1'],
+        transport: 'http',
+      };
+
+      const server = mcpServer(config);
+      expect(server.config.imageUrl).toBe('https://example.com/icon.svg');
+      expect(server.config.headers).toEqual({ 'X-Custom': 'header' });
+      expect(server.config.activeTools).toEqual(['tool1']);
+    });
+
+    it('should handle various image URL formats', () => {
+      const formats = [
+        'https://example.com/icon.png',
+        'https://example.com/icon.jpg',
+        'https://example.com/icon.svg',
+        'https://example.com/icon.gif',
+        'https://example.com/icon.webp',
+        'http://localhost:3000/static/icon.png',
+        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==',
+      ];
+
+      formats.forEach((imageUrl) => {
+        const config: MCPServerConfig = {
+          name: `Server with ${imageUrl.substring(0, 20)}`,
+          description: 'Testing various image formats',
+          serverUrl: 'https://api.example.com/mcp',
+          imageUrl,
+        };
+
+        const server = mcpServer(config);
+        expect(server.config.imageUrl).toBe(imageUrl);
+      });
+    });
+  });
 });
