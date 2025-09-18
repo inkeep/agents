@@ -81,7 +81,6 @@ The response is an SSE stream of JSON events compatible with the Vercel AI SDK U
 - **`data-artifact`** — Artifact data emitted by tools/agents (documents, files, saved results)
 - **`data-operation`** — Low-level operational events (agent lifecycle, completion, errors)
 - **`data-summary`** — AI-generated status updates with user-friendly labels and contextual details
-- **`error`** — Error message emitted by the server/agent
 
 ### Example Stream (abbreviated)
 
@@ -152,8 +151,20 @@ Structured UI data for rich interface components:
 ## Error Responses
 
 ### Streamed Errors
+Errors are now delivered as `data-operation` events with unified structure:
+
 ```json
-{ "type": "error", "errorText": "<message>" }
+{
+  "type": "data-operation",
+  "data": {
+    "type": "error",
+    "message": "Error description",
+    "agent": "agent-id",
+    "severity": "error",
+    "code": "optional-error-code",
+    "timestamp": 1640995200000
+  }
+}
 ```
 
 ### Non-Streaming Errors

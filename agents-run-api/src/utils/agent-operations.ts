@@ -38,14 +38,16 @@ export interface CompletionEvent {
 }
 
 /**
- * Error operation event
+ * Unified error event structure
+ * Can be used for both operational errors (with agent context) and general stream errors
  */
 export interface ErrorEvent {
   type: 'error';
-  ctx: {
-    error: string;
-    agent?: string;
-  };
+  message: string;
+  agent?: string;
+  severity?: 'error' | 'warning' | 'info';
+  code?: string;
+  timestamp?: number;
 }
 
 /**
@@ -124,15 +126,25 @@ export function completionOp(agentId: string, iterations: number): CompletionEve
 }
 
 /**
- * Creates an error operation
+ * Creates a unified error event
+ * @param message - Error message
+ * @param agentId - Optional agent ID for context
+ * @param severity - Error severity level
+ * @param code - Optional error code
  */
-export function errorOp(error: string, agentId?: string): ErrorEvent {
+export function errorOp(
+  message: string, 
+  agentId?: string, 
+  severity: 'error' | 'warning' | 'info' = 'error',
+  code?: string
+): ErrorEvent {
   return {
     type: 'error',
-    ctx: {
-      error,
-      agent: agentId,
-    },
+    message,
+    agent: agentId,
+    severity,
+    code,
+    timestamp: Date.now(),
   };
 }
 

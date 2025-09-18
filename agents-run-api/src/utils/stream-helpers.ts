@@ -1,6 +1,6 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
 import { parsePartialJson } from 'ai';
-import type { OperationEvent } from './agent-operations';
+import type { OperationEvent, ErrorEvent } from './agent-operations';
 
 // Common interface for all stream helpers
 export interface StreamHelper {
@@ -8,7 +8,7 @@ export interface StreamHelper {
   writeContent(content: string): Promise<void>;
   streamData(data: any): Promise<void>;
   streamText(text: string, delayMs?: number): Promise<void>;
-  writeError(errorMessage: string): Promise<void>;
+  writeError(error: string | ErrorEvent): Promise<void>;
   complete(): Promise<void>;
   writeData(type: string, data: any): Promise<void>;
   // Operation streaming (operations are defined in agent-operations.ts)
@@ -122,9 +122,10 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   /**
-   * Write error message
+   * Write error message or error event
    */
-  async writeError(errorMessage: string): Promise<void> {
+  async writeError(error: string | ErrorEvent): Promise<void> {
+    const errorMessage = typeof error === 'string' ? error : error.message;
     await this.writeContent(`\n\n${errorMessage}`);
   }
 
@@ -446,16 +447,26 @@ export class VercelDataStreamHelper implements StreamHelper {
     });
   }
 
-  async writeError(errorMessage: string): Promise<void> {
+  async writeError(error: string | ErrorEvent): Promise<void> {
     if (this.isCompleted) {
       console.warn('Attempted to write error to completed stream');
       return;
     }
 
-    this.writer.write({
-      type: 'error',
-      errorText: errorMessage,
-    });
+    // Handle both string and ErrorEvent formats
+    if (typeof error === 'string') {
+      this.writer.write({
+        type: 'error',
+        message: error,
+        severity: 'error',
+        timestamp: Date.now(),
+      });
+    } else {
+      this.writer.write({
+        type: 'error',
+        ...error,
+      });
+    }
   }
 
   async streamData(data: any): Promise<void> {
@@ -578,7 +589,9 @@ export class VercelDataStreamHelper implements StreamHelper {
       if (this.writer && !this.isCompleted) {
         this.writer.write({
           type: 'error',
-          errorText: `Stream terminated: ${reason}`,
+          message: `Stream terminated: ${reason}`,
+          severity: 'error',
+          timestamp: Date.now(),
         });
       }
     } catch (e) {
@@ -767,9 +780,9 @@ export class MCPStreamHelper implements StreamHelper {
     this.capturedOperations.push(operation);
   }
 
-  async writeError(errorMessage: string): Promise<void> {
+  async writeError(error: string | ErrorEvent): Promise<void> {
     this.hasError = true;
-    this.errorMessage = errorMessage;
+    this.errorMessage = typeof error === 'string' ? error : error.message;
   }
 
   async complete(): Promise<void> {

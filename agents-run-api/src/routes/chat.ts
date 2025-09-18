@@ -22,6 +22,7 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import type { ContentItem, Message } from '../types/chat';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { errorOp } from '../utils/agent-operations';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -354,8 +355,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       if (!result.success) {
         // If execution failed and no error was already streamed, send a default error
-        await sseHelper.writeError(
-          'Sorry, I was unable to process your request at this time. Please try again.'
+        await sseHelper.writeOperation(
+          errorOp('Sorry, I was unable to process your request at this time. Please try again.', 'system')
         );
       }
 

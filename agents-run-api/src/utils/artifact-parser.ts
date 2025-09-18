@@ -16,7 +16,7 @@ export interface ArtifactData {
   taskId: string;
   name: string;
   description: string;
-  artifactType?: string;
+  type?: string; // Artifact type for consistency with summary events
   artifactSummary: any;
 }
 
@@ -147,7 +147,7 @@ export class ArtifactParser {
       taskId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
-      artifactType: artifact.metadata?.artifactType,
+      type: artifact.metadata?.artifactType || artifact.artifactType, // Map artifactType to type for consistency
       artifactSummary: artifact.parts?.[0]?.data?.summary || {},
     };
   }

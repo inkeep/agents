@@ -432,9 +432,12 @@ describe('Integration Tests', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Agent communication failed');
 
-      // Verify error was streamed to client
-      expect(mockStreamHelper.writeError).toHaveBeenCalledWith(
-        expect.stringContaining('Agent communication failed')
+      // Verify error was streamed to client via operation event
+      expect(mockStreamHelper.writeOperation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'error',
+          message: expect.stringContaining('Agent communication failed')
+        })
       );
 
       // Verify task was marked as failed

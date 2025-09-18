@@ -19,6 +19,7 @@ import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import { createVercelStreamHelper } from '../utils/stream-helpers';
+import { errorOp } from '../utils/agent-operations';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -199,11 +200,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
           });
 
           if (!result.success) {
-            await streamHelper.writeError('Unable to process request');
+            await streamHelper.writeOperation(errorOp('Unable to process request', 'system'));
           }
         } catch (err) {
           logger.error({ err }, 'Streaming error');
-          await streamHelper.writeError('Internal server error');
+          await streamHelper.writeOperation(errorOp('Internal server error', 'system'));
         } finally {
           // Clean up stream helper resources if it has cleanup method
           if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {

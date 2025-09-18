@@ -553,8 +553,9 @@ export class GraphSession {
             }
 
             const summaryToSend = {
+              type: summary.data.type || summary.type, // Preserve the actual custom type from LLM
               label: summary.data.label,
-              data: Object.fromEntries(
+              details: Object.fromEntries(
                 Object.entries(summary.data).filter(([key]) => !['label', 'type'].includes(key))
               ),
             };
@@ -592,6 +593,7 @@ export class GraphSession {
 
         // Create standard status update operation
         const summaryToSend = {
+          type: 'update', // Simple text summaries get 'update' type
           label: summary,
         };
       }
@@ -782,7 +784,7 @@ export class GraphSession {
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
 
-Describe the ACTUAL finding, result, or specific information discovered (e.g., "Found Slack bot requires admin permissions", "Identified 3 channel types for ingestion", "Configuration requires OAuth token").
+Create a short 3-5 word label describing the ACTUAL finding. Use sentence case (only capitalize the first word and proper nouns). Examples: "Found admin permissions needed", "Identified three channel types", "OAuth token required".
 
 ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
@@ -926,9 +928,11 @@ Rules:
 - Fill in data for relevant components only
 - Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
-- Labels MUST contain the ACTUAL information discovered ("Found X", "Learned Y", "Discovered Z requires A")
+- Labels MUST be short 3-5 word phrases with ACTUAL information discovered
+- Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required")
 - DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
 - Include specific details, numbers, requirements, or insights discovered
+- Examples: "Admin permissions required", "Three OAuth steps found", "Token expires daily"
 - You are ONE unified AI system - NEVER mention agents, transfers, delegations, or routing
 - CRITICAL: NEVER use the words "transfer", "delegation", "agent", "routing", or any internal system terminology in labels
 - Present all operations as seamless actions by a single system

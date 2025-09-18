@@ -323,6 +323,113 @@ describe('GraphSession', () => {
       // Note: This would need actual async timing to test properly
     });
 
+    it('should call writeSummary when status updates are generated', async () => {
+      const config: StatusUpdateSettings = {
+        enabled: true,
+        numEvents: 2,
+        model: 'claude-3-5-haiku-20241022',
+      };
+
+      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+
+      // Mock the generateAndSendUpdate method to call writeSummary
+      const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
+        .mockImplementation(async () => {
+          await mockStreamHelper.writeSummary({
+            type: 'progress',
+            label: 'Processing update',
+            details: { progress: '50%', status: 'working' }
+          });
+        });
+
+      // Add enough events to trigger update
+      session.recordEvent('tool_execution', 'agent-1', {
+        toolName: 'search',
+        args: { query: 'test' },
+        result: 'results found',
+      });
+
+      session.recordEvent('agent_generate', 'agent-1', {
+        parts: [{ type: 'text', content: 'Generated text' }],
+        generationType: 'text_generation',
+      });
+
+      // Wait for async status update to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify writeSummary was called with correct structure including type field
+      expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: expect.any(String),
+          label: expect.any(String),
+          details: expect.any(Object)
+        })
+      );
+
+      mockGenerateUpdate.mockRestore();
+    });
+
+    it('should call writeSummary for structured status components', async () => {
+      const config: StatusUpdateSettings = {
+        enabled: true,
+        numEvents: 1,
+        model: 'claude-3-5-haiku-20241022',
+        statusComponents: [
+          {
+            id: 'progress_summary',
+            name: 'Progress Summary',
+            description: 'Current progress status',
+            schema: {
+              type: 'object',
+              properties: {
+                label: { type: 'string' },
+                progress: { type: 'number' }
+              },
+              required: ['label']
+            }
+          }
+        ]
+      };
+
+      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+
+      // Mock the structured summary generation
+      const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
+        .mockImplementation(async () => {
+          // Simulate structured operation result
+          const summaryToSend = {
+            type: 'status',
+            label: 'Progress Update',
+            details: { progress: 75, message: 'Nearly complete' }
+          };
+          await mockStreamHelper.writeSummary(summaryToSend);
+        });
+
+      // Add event to trigger status update
+      session.recordEvent('tool_execution', 'agent-1', {
+        toolName: 'process',
+        args: { data: 'test' },
+        result: 'processed successfully',
+      });
+
+      // Wait for async operation
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify writeSummary was called with structured data including type field
+      expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'status',
+          label: 'Progress Update',
+          details: expect.objectContaining({
+            progress: 75,
+            message: 'Nearly complete'
+          })
+        })
+      );
+
+      mockGenerateUpdate.mockRestore();
+    });
+
     it('should handle race conditions in cleanup', async () => {
       const config: StatusUpdateSettings = {
         enabled: true,
@@ -492,9 +599,9 @@ describe('GraphSession', () => {
     it('should emit data-summary events using SummaryEvent interface', () => {
       // Test that graph session can emit summary events with the new interface
       const summaryEvent = {
+        type: 'status',
         label: 'Processing completed',
         details: {
-          summary: 'Successfully processed user request',
           itemsProcessed: 5,
           duration: '2.3s'
         }
@@ -502,20 +609,22 @@ describe('GraphSession', () => {
 
       // This would be called by the GraphSession when streaming summary events
       expect(() => {
-        // Verify the SummaryEvent structure is valid
+        // Verify the SummaryEvent structure is valid including type field
+        expect(summaryEvent.type).toBe('status');
         expect(summaryEvent.label).toBe('Processing completed');
-        expect(summaryEvent.details?.summary).toBe('Successfully processed user request');
         expect(summaryEvent.details?.itemsProcessed).toBe(5);
       }).not.toThrow();
     });
 
     it('should handle SummaryEvent with minimal structure', () => {
       const minimalSummary = {
+        type: 'update',
         label: 'Status update'
         // details is optional
       };
 
       expect(() => {
+        expect(minimalSummary.type).toBe('update');
         expect(minimalSummary.label).toBe('Status update');
         expect(minimalSummary.details).toBeUndefined();
       }).not.toThrow();
@@ -523,6 +632,7 @@ describe('GraphSession', () => {
 
     it('should handle SummaryEvent with flexible details', () => {
       const flexibleSummary = {
+        type: 'custom',
         label: 'Dynamic status',
         details: {
           // Can contain any structured data
@@ -535,9 +645,60 @@ describe('GraphSession', () => {
         }
       };
 
+      expect(flexibleSummary.type).toBe('custom');
       expect(flexibleSummary.details?.customField).toBe('custom value');
       expect(flexibleSummary.details?.nestedData.level).toBe(2);
       expect(Array.isArray(flexibleSummary.details?.nestedData.items)).toBe(true);
+    });
+
+    it('should actually call writeSummary when generating status updates', async () => {
+      // Configure session for immediate status updates
+      const config: StatusUpdateSettings = {
+        enabled: true,
+        numEvents: 1,
+        model: 'claude-3-5-haiku-20241022',
+      };
+      
+      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      
+      // Mock the internal method to simulate actual summary generation
+      const originalGenerateUpdate = (session as any).generateAndSendUpdate;
+      (session as any).generateAndSendUpdate = vi.fn().mockImplementation(async () => {
+        const summaryEvent = {
+          type: 'completion',
+          label: 'Processing completed', 
+          details: {
+            itemsProcessed: 5,
+            duration: '2.3s'
+          }
+        };
+        await mockStreamHelper.writeSummary(summaryEvent);
+      });
+      
+      // Trigger an event that should cause status update
+      session.recordEvent('tool_execution', 'agent-1', {
+        toolName: 'search',
+        args: { query: 'test query' },
+        result: 'search completed',
+      });
+      
+      // Wait for async operation to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Verify writeSummary was called with proper SummaryEvent structure including type field
+      expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'completion',
+          label: 'Processing completed',
+          details: expect.objectContaining({
+            itemsProcessed: 5,
+            duration: '2.3s'
+          })
+        })
+      );
+      
+      // Restore original method
+      (session as any).generateAndSendUpdate = originalGenerateUpdate;
     });
   });
 

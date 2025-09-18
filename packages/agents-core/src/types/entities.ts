@@ -331,9 +331,9 @@ export type Pagination = z.infer<typeof PaginationSchema>;
 
 // === Summary Event Types ===
 export interface SummaryEvent {
-  label: string; // LLM-generated label for the UI
+  type: string; // Summary type to distinguish different summary categories (e.g., 'progress', 'status', 'completion')
+  label: string; // LLM-generated label for the UI (use sentence case)
   details?: {
-    summary?: string; // Unstructured summary text
     [key: string]: any; // Structured data from graph session
   };
 }

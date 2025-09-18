@@ -273,7 +273,6 @@ export class ExecutionHandler {
             const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
             logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
 
-            await sseHelper.writeError(errorMessage);
             await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
             if (task) {
@@ -465,7 +464,6 @@ export class ExecutionHandler {
           const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
           logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
 
-          await sseHelper.writeError(errorMessage);
           await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
           if (task) {
@@ -491,10 +489,6 @@ export class ExecutionHandler {
       // Max transfers reached
       const errorMessage = `Maximum transfer limit (${maxTransfers}) reached without completion`;
       logger.error({ maxTransfers, iterations }, errorMessage);
-
-      // Stream error operation
-      // Error operation (data operations removed)
-      await sseHelper.writeError(errorMessage);
 
       // Send error operation for max iterations reached
       await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
@@ -522,11 +516,8 @@ export class ExecutionHandler {
       const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
 
       // Stream error operation
-      // Error operation (data operations removed)
-      await sseHelper.writeError(`Execution error: ${errorMessage}`);
-
       // Send error operation for execution exception
-      await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
+      await sseHelper.writeOperation(errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system'));
 
       // Mark task as failed
       if (task) {
