@@ -204,7 +204,7 @@ export function ChatWidget({
             components: {
               IkpMessage,
             },
-            introMessage: 'Hi!',
+            introMessage: 'Hi! How can I help?',
           }}
         />
       </div>
