@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import fs from 'fs-extra';
 import ora from 'ora';
 import { addCommand, type AddOptions } from '../../commands/add';
@@ -87,8 +87,8 @@ describe('Add Command', () => {
     it('should proceed when template exists', async () => {
       const mockTemplates = ['weather', 'chatbot'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
 
       const options: AddOptions = {
@@ -112,7 +112,7 @@ describe('Add Command', () => {
     });
 
     it('should create template in current directory when no target path specified', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
 
       const options: AddOptions = {
         template: 'weather',
@@ -131,8 +131,8 @@ describe('Add Command', () => {
     });
 
     it('should create template in specified target path', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
 
       const options: AddOptions = {
         template: 'weather',
@@ -150,7 +150,7 @@ describe('Add Command', () => {
     });
 
     it('should prevent overwriting existing template directory', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(true);
+      vi.mocked(fs.pathExists).mockResolvedValue(true as any);
 
       const options: AddOptions = {
         template: 'weather',
@@ -167,9 +167,9 @@ describe('Add Command', () => {
 
     it('should create base directory if it does not exist', async () => {
       vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false) // Template directory doesn't exist
-        .mockResolvedValueOnce(false); // Base directory doesn't exist
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
+        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
 
       const options: AddOptions = {
         template: 'weather',
@@ -188,8 +188,8 @@ describe('Add Command', () => {
 
     it('should handle errors when creating base directory', async () => {
       vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false) // Template directory doesn't exist
-        .mockResolvedValueOnce(false); // Base directory doesn't exist
+        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
+        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
       vi.mocked(fs.mkdir).mockRejectedValue(new Error('Permission denied'));
 
       const options: AddOptions = {
@@ -211,7 +211,7 @@ describe('Add Command', () => {
     beforeEach(() => {
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
     });
 
     it('should clone template successfully', async () => {
@@ -253,9 +253,9 @@ describe('Add Command', () => {
       const mockTemplates = ['chatbot'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
       vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false) // Template directory doesn't exist
-        .mockResolvedValueOnce(false); // Base directory doesn't exist
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
+        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
 
       const options: AddOptions = {
@@ -291,8 +291,8 @@ describe('Add Command', () => {
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
       vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false) // Template directory check passes
-        .mockResolvedValueOnce(true);  // Base directory exists
+        .mockResolvedValueOnce(false as any) // Template directory check passes
+        .mockResolvedValueOnce(true as any);  // Base directory exists
       vi.mocked(cloneTemplate).mockRejectedValue(new Error('Network timeout'));
 
       const options: AddOptions = {
@@ -314,7 +314,7 @@ describe('Add Command', () => {
     beforeEach(() => {
       const mockTemplates = ['my-complex-template'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
-      vi.mocked(fs.pathExists).mockResolvedValue(false);
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
     });
 
@@ -335,9 +335,9 @@ describe('Add Command', () => {
 
     it('should handle deep target paths', async () => {
       vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false) // Template directory doesn't exist
-        .mockResolvedValueOnce(false); // Base directory doesn't exist
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
+        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
 
       const options: AddOptions = {
         template: 'my-complex-template',

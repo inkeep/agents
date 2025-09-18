@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import fs from 'fs-extra';
 import degit from 'degit';
 import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
@@ -205,7 +205,7 @@ describe('Template Utils', () => {
 
       // Mock cloneTemplate
       const mockEmitter = { clone: vi.fn().mockResolvedValue(undefined) };
-      vi.mocked(degit).mockReturnValue(mockEmitter);
+      vi.mocked(degit).mockReturnValue(mockEmitter as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
 
       // Test complete workflow
@@ -222,7 +222,7 @@ describe('Template Utils', () => {
 
     it('should handle concurrent template operations', async () => {
       const mockEmitter = { clone: vi.fn().mockResolvedValue(undefined) };
-      vi.mocked(degit).mockReturnValue(mockEmitter);
+      vi.mocked(degit).mockReturnValue(mockEmitter as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
 
       const clonePromises = [

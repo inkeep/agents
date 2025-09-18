@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { convertTypeScriptToJson } from '../../commands/pull';
+
+// Declare the mock function
+const convertTypeScriptToJson = vi.fn();
 
 // Mock the convertTypeScriptToJson function
 vi.mock('../../commands/pull.js', async () => {

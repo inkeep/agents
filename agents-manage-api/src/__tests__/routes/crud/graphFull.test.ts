@@ -14,6 +14,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     description: `Test agent description${suffix}`,
     prompt: `You are a helpful assistant${suffix}.`,
     canDelegateTo: [] as string[],
+    canTransferTo: [] as string[],
     tools: [] as any[],
     dataComponents: [] as string[],
     artifactComponents: [] as string[],

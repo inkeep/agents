@@ -410,7 +410,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Create multiple agents and data components
       const { agentId: agent1Id, graphId } = await createTestAgent({ tenantId, suffix: '1' });
-      const { agentId: agent2Id } = await createTestAgent({ tenantId, suffix: '2' });
+      const { agentId: agent2Id, graphId: graph2Id } = await createTestAgent({ tenantId, suffix: '2' });
 
       const { dataComponentId: dc1Id } = await createTestDataComponent({
         tenantId,
@@ -426,16 +426,19 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
         tenantId,
         agentId: agent1Id,
         dataComponentId: dc1Id,
+        graphId,
       });
       await createTestAgentDataComponentRelation({
         tenantId,
         agentId: agent1Id,
         dataComponentId: dc2Id,
+        graphId,
       });
       await createTestAgentDataComponentRelation({
         tenantId,
         agentId: agent2Id,
         dataComponentId: dc1Id,
+        graphId: graph2Id,
       });
 
       // Verify agent1 has 2 data components

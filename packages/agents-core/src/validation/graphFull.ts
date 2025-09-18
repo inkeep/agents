@@ -23,10 +23,19 @@ export function validateAndTypeGraphData(data: unknown): z.infer<typeof FullGrap
 
 /**
  * Validates that all tool IDs referenced in agents exist in the tools record
+ * Note: With scoped architecture, tool validation should be done at the project level
+ * This function is kept for backward compatibility but will need project-scoped tool data
  */
-export function validateToolReferences(graphData: FullGraphDefinition): void {
+export function validateToolReferences(
+  graphData: FullGraphDefinition,
+  availableToolIds?: Set<string>
+): void {
+  // If no tool IDs provided, skip validation (will be done at project level)
+  if (!availableToolIds) {
+    return;
+  }
+
   const errors: string[] = [];
-  const availableToolIds = new Set(Object.keys(graphData.tools || {}));
 
   for (const [agentId, agentData] of Object.entries(graphData.agents)) {
     // Only internal agents have tools
@@ -46,10 +55,18 @@ export function validateToolReferences(graphData: FullGraphDefinition): void {
 
 /**
  * Validates that all dataComponent IDs referenced in agents exist in the dataComponents record
+ * Note: With scoped architecture, dataComponent validation should be done at the project level
  */
-export function validateDataComponentReferences(graphData: FullGraphDefinition): void {
+export function validateDataComponentReferences(
+  graphData: FullGraphDefinition,
+  availableDataComponentIds?: Set<string>
+): void {
+  // If no dataComponent IDs provided, skip validation (will be done at project level)
+  if (!availableDataComponentIds) {
+    return;
+  }
+
   const errors: string[] = [];
-  const availableDataComponentIds = new Set(Object.keys(graphData.dataComponents || {}));
 
   for (const [agentId, agentData] of Object.entries(graphData.agents)) {
     // Only internal agents have dataComponents
@@ -71,19 +88,18 @@ export function validateDataComponentReferences(graphData: FullGraphDefinition):
 
 /**
  * Validates that all artifactComponent IDs referenced in agents exist in the artifactComponents record.
- * Ensures referential integrity between agents and their associated artifact components.
- *
- * @param graphData - The validated graph data containing agents and artifact components
- * @throws {Error} When agents reference non-existent artifact components
- * @example
- * ```typescript
- * const graphData = validateAndTypeGraphData(rawGraphData);
- * validateArtifactComponentReferences(graphData); // Throws if invalid references found
- * ```
+ * Note: With scoped architecture, artifactComponent validation should be done at the project level
  */
-export function validateArtifactComponentReferences(graphData: FullGraphDefinition): void {
+export function validateArtifactComponentReferences(
+  graphData: FullGraphDefinition,
+  availableArtifactComponentIds?: Set<string>
+): void {
+  // If no artifactComponent IDs provided, skip validation (will be done at project level)
+  if (!availableArtifactComponentIds) {
+    return;
+  }
+
   const errors: string[] = [];
-  const availableArtifactComponentIds = new Set(Object.keys(graphData.artifactComponents || {}));
 
   for (const [agentId, agentData] of Object.entries(graphData.agents)) {
     // Only internal agents have artifactComponents
@@ -144,20 +160,28 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
 
 /**
  * Validates the graph structure before creation/update
+ * Note: With scoped architecture, project-scoped resource validation should be done at project level
  */
-export function validateGraphStructure(graphData: FullGraphDefinition): void {
+export function validateGraphStructure(
+  graphData: FullGraphDefinition,
+  projectResources?: {
+    toolIds?: Set<string>;
+    dataComponentIds?: Set<string>;
+    artifactComponentIds?: Set<string>;
+  }
+): void {
   // Validate default agent exists (if specified)
   if (graphData.defaultAgentId && !graphData.agents[graphData.defaultAgentId]) {
     throw new Error(`Default agent '${graphData.defaultAgentId}' does not exist in agents`);
   }
 
-  // Validate tool references
-  validateToolReferences(graphData);
+  // Validate resource references if project resources are provided
+  if (projectResources) {
+    validateToolReferences(graphData, projectResources.toolIds);
+    validateDataComponentReferences(graphData, projectResources.dataComponentIds);
+    validateArtifactComponentReferences(graphData, projectResources.artifactComponentIds);
+  }
 
-  validateDataComponentReferences(graphData);
-
-  validateArtifactComponentReferences(graphData);
-
-  // Validate agent relationships
+  // Validate agent relationships (this is always graph-scoped)
   validateAgentRelationships(graphData);
 }

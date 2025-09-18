@@ -182,9 +182,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Verify all agents are unique across pages
       const allAgentIds = [
-        ...page1Body.data.map((a) => a.id),
-        ...page2Body.data.map((a) => a.id),
-        ...page3Body.data.map((a) => a.id),
+        ...page1Body.data.map((a: any) => a.id),
+        ...page2Body.data.map((a: any) => a.id),
+        ...page3Body.data.map((a: any) => a.id),
       ];
       expect(new Set(allAgentIds).size).toBe(5); // All should be unique
     });

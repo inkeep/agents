@@ -29,6 +29,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
     description: `Test agent description${suffix}`,
     prompt: `You are a helpful assistant${suffix}.`,
     canDelegateTo: [] as string[],
+    canTransferTo: [] as string[],
     dataComponents: [] as string[],
     artifactComponents: [] as string[],
     tools: [] as string[], // Array of tool IDs, not tool objects
@@ -148,9 +149,6 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       agents: {
         [agentId1]: agent1,
         [agentId2]: agent2,
-      },
-      tools: {
-        [toolId1]: tool1,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

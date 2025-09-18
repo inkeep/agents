@@ -144,7 +144,7 @@ describe('Push Command - TypeScript Loading', () => {
 
     process.env.TSX_RUNNING = '1';
 
-    await pushCommand('/test/path/graph.ts', {});
+    await pushCommand({});
 
     // Verify error handling
     expect(oraInstance.fail).toHaveBeenCalled();

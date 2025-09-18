@@ -163,9 +163,9 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify all data components are unique across pages
       const allDataComponentIds = [
-        ...page1Body.data.map((dc) => dc.id),
-        ...page2Body.data.map((dc) => dc.id),
-        ...page3Body.data.map((dc) => dc.id),
+        ...page1Body.data.map((dc: any) => dc.id),
+        ...page2Body.data.map((dc: any) => dc.id),
+        ...page3Body.data.map((dc: any) => dc.id),
       ];
       expect(new Set(allDataComponentIds).size).toBe(5); // All should be unique
     });

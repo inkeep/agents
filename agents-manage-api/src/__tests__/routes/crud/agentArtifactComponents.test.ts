@@ -219,6 +219,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('agent-artifact-components-create-validation');
       await ensureTestProject(tenantId, projectId);
+      const { graphId } = await createTestAgent({ tenantId });
       const res = await makeRequest(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components`,
         {
@@ -266,6 +267,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-artifact-components-create-agent-not-found');
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+      const { graphId } = await createTestAgent({ tenantId });
       const nonExistentAgentId = nanoid();
 
       const relationData = createAgentArtifactComponentData({
@@ -397,6 +399,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-artifact-components-get-agents-empty');
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+      const { graphId } = await createTestAgent({ tenantId });
 
       const res = await app.request(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components/component/${artifactComponentId}/agents`
@@ -457,7 +460,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components/component/${artifactComponentId}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graph1Id}/agent-artifact-components/component/${artifactComponentId}/agents`
       );
       expect(res.status).toBe(200);
 
@@ -570,6 +573,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-artifact-components-delete-agent-not-found');
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+      const { graphId } = await createTestAgent({ tenantId });
       const nonExistentAgentId = nanoid();
 
       const res = await app.request(
@@ -719,7 +723,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Agent 1 has 2 artifact components
       const agent1ArtifactComponentsRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components/agent/${agent1Id}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graph1Id}/agent-artifact-components/agent/${agent1Id}`
       );
       expect(agent1ArtifactComponentsRes.status).toBe(200);
       const agent1ArtifactComponentsBody = await agent1ArtifactComponentsRes.json();
@@ -727,7 +731,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Agent 2 has 1 artifact component
       const agent2ArtifactComponentsRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components/agent/${agent2Id}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graph2Id}/agent-artifact-components/agent/${agent2Id}`
       );
       expect(agent2ArtifactComponentsRes.status).toBe(200);
       const agent2ArtifactComponentsBody = await agent2ArtifactComponentsRes.json();
@@ -735,7 +739,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Artifact Component 1 has 2 agents
       const ac1AgentsRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components/component/${ac1Id}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graph1Id}/agent-artifact-components/component/${ac1Id}/agents`
       );
       expect(ac1AgentsRes.status).toBe(200);
       const ac1AgentsBody = await ac1AgentsRes.json();
@@ -743,7 +747,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Artifact Component 2 has 1 agent
       const ac2AgentsRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-artifact-components/component/${ac2Id}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graph1Id}/agent-artifact-components/component/${ac2Id}/agents`
       );
       expect(ac2AgentsRes.status).toBe(200);
       const ac2AgentsBody = await ac2AgentsRes.json();
@@ -775,7 +779,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Try to query from tenant 2 - should not see tenant 1's associations
       const res = await app.request(
-        `/tenants/${tenantId2}/crud/projects/${projectId}/graphs/${graphId2}/agent-artifact-components/agent/${agent2Id}`
+        `/tenants/${tenantId2}/crud/projects/${projectId}/graphs/${graph2Id}/agent-artifact-components/agent/${agent2Id}`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -783,7 +787,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Try to query artifact component from tenant 2 - should not see tenant 1's associations
       const acRes = await app.request(
-        `/tenants/${tenantId2}/crud/projects/${projectId}/graphs/${graphId2}/agent-artifact-components/component/${ac2Id}/agents`
+        `/tenants/${tenantId2}/crud/projects/${projectId}/graphs/${graph2Id}/agent-artifact-components/component/${ac2Id}/agents`
       );
       expect(acRes.status).toBe(200);
       const acBody = await acRes.json();

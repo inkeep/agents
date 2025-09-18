@@ -7,7 +7,7 @@ import { makeRequest } from '../utils/testRequest';
 vi.mock('nanoid', async (importOriginal) => {
   const actual = await importOriginal();
   return {
-    ...actual,
+    ...(actual as any),
     nanoid: vi.fn(),
   };
 });
@@ -23,14 +23,14 @@ vi.mock('fetch-to-node', () => ({
     res: {
       statusCode: 200,
       headers: {},
-      setHeader: vi.fn().mockImplementation(function (name: string, value: string) {
+      setHeader: vi.fn().mockImplementation(function (this: any, name: string, value: string) {
         this.headers[name] = value;
       }),
-      getHeaders: vi.fn().mockImplementation(function () {
+      getHeaders: vi.fn().mockImplementation(function (this: any) {
         return this.headers;
       }),
       writeHead: vi.fn().mockReturnThis(),
-      end: vi.fn().mockImplementation(function (data: any) {
+      end: vi.fn().mockImplementation(function (this: any, data: any) {
         this.body = data;
         return this;
       }),
@@ -387,21 +387,21 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 200,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             return this;
           }),
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -437,14 +437,14 @@ describe('MCP Routes', () => {
           headers: {}, // No session ID
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 400,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             this.statusCode = 400;
             return this;
@@ -452,7 +452,7 @@ describe('MCP Routes', () => {
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -480,14 +480,14 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 400,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             this.statusCode = 400;
             return this;
@@ -495,7 +495,7 @@ describe('MCP Routes', () => {
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -528,14 +528,14 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 404,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             this.statusCode = 404;
             return this;
@@ -543,7 +543,7 @@ describe('MCP Routes', () => {
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -591,14 +591,14 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 404,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             this.statusCode = 404;
             return this;
@@ -606,7 +606,7 @@ describe('MCP Routes', () => {
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -654,14 +654,14 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 404,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             this.statusCode = 404;
             return this;
@@ -669,7 +669,7 @@ describe('MCP Routes', () => {
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -763,7 +763,7 @@ describe('MCP Routes', () => {
               })
             );
           }),
-        })
+        } as any)
       );
 
       // Mock toReqRes with session header
@@ -775,21 +775,21 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 200,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             return this;
           }),
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -889,7 +889,7 @@ describe('MCP Routes', () => {
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(() => ({
         handleRequest: handleRequestMock,
-      }));
+      } as any));
 
       // Mock toReqRes with session header
       const fetchToNodeModule = await import('fetch-to-node');
@@ -900,21 +900,21 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 200,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             return this;
           }),
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {
@@ -971,7 +971,7 @@ describe('MCP Routes', () => {
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(() => ({
         handleRequest: handleRequestMock,
-      }));
+      } as any));
 
       // Mock toReqRes
       const fetchToNodeModule = await import('fetch-to-node');
@@ -982,21 +982,21 @@ describe('MCP Routes', () => {
           },
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
         res: {
           statusCode: 200,
           headers: {},
           setHeader: vi.fn(),
           getHeaders: vi.fn().mockReturnValue({}),
           writeHead: vi.fn().mockReturnThis(),
-          end: vi.fn().mockImplementation(function (data: any) {
+          end: vi.fn().mockImplementation(function (this: any, data: any) {
             this.body = data;
             return this;
           }),
           write: vi.fn(),
           on: vi.fn(),
           removeListener: vi.fn(),
-        },
+        } as any,
       }));
 
       const response = await makeRequest(`/v1/mcp`, {

@@ -168,9 +168,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Verify all agents are unique across pages
       const allAgentIds = [
-        ...page1Body.data.map((a) => a.id),
-        ...page2Body.data.map((a) => a.id),
-        ...page3Body.data.map((a) => a.id),
+        ...page1Body.data.map((a: any) => a.id),
+        ...page2Body.data.map((a: any) => a.id),
+        ...page3Body.data.map((a: any) => a.id),
       ];
       expect(new Set(allAgentIds).size).toBe(5); // All should be unique
     });
@@ -178,7 +178,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should return empty data for page beyond available data', async () => {
       const tenantId = createTestTenantId('agents-list-beyond-pages');
       await ensureTestProject(tenantId, 'default');
-      await createMultipleAgents({ tenantId, count: 3 });
+      const graphId = await createTestGraph(tenantId);
+      await createMultipleAgents({ tenantId, graphId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
       const res = await app.request(
@@ -199,7 +200,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should handle edge case with limit 1', async () => {
       const tenantId = createTestTenantId('agents-list-limit1');
       await ensureTestProject(tenantId, 'default');
-      const _agents = await createMultipleAgents({ tenantId, count: 3 });
+      const graphId = await createTestGraph(tenantId);
+      const _agents = await createMultipleAgents({ tenantId, graphId, count: 3 });
 
       // Test with limit 1 (each page should have exactly 1 item)
       const page1Res = await app.request(
@@ -250,7 +252,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should handle large page size (larger than total items)', async () => {
       const tenantId = createTestTenantId('agents-list-large-limit');
       await ensureTestProject(tenantId, 'default');
-      const _agents = await createMultipleAgents({ tenantId, count: 3 });
+      const graphId = await createTestGraph(tenantId);
+      const _agents = await createMultipleAgents({ tenantId, graphId, count: 3 });
 
       // Request with limit 10 (larger than total)
       const res = await app.request(

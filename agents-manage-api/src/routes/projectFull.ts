@@ -147,7 +147,6 @@ app.openapi(
         logger
       )({
         scopes: { tenantId, projectId },
-        projectId,
       });
 
       if (!project) {
@@ -236,7 +235,6 @@ app.openapi(
         logger
       )({
         scopes: { tenantId, projectId },
-        projectId,
       });
       const isCreate = !existingProject;
 
@@ -304,7 +302,6 @@ app.openapi(
         logger
       )({
         scopes: { tenantId, projectId },
-        projectId,
       });
 
       if (!deleted) {
