@@ -3,10 +3,37 @@ import type { ContextConfigSelect, FetchDefinition } from '../types/index';
 import type { ContextFetchDefinition } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
+import type { DotPaths } from './validation';
 
 const logger = getLogger('context-config');
 
 type ErrorResponse = { error?: string; message?: string; details?: unknown };
+
+export type builderFetchDefinition = Omit<ContextFetchDefinition, 'responseSchema'> & {
+  responseSchema: z.ZodTypeAny; // required in the builder
+};
+
+type builderContextVariables = Record<string, builderFetchDefinition>;
+
+type builderContextConfig = Omit<ContextConfigSelect, 'contextVariables'> & {
+  contextVariables: builderContextVariables;
+};
+
+type InferContextFromCV<CV extends Record<string, builderFetchDefinition>> = {
+  [K in keyof CV]: z.infer<CV[K]['responseSchema']>;
+};
+type MergeRequestContext<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
+  ? { requestContext: z.infer<R> }
+  : {};
+type FullContext<
+  R extends z.ZodTypeAny | undefined,
+  CV extends Record<string, builderFetchDefinition>,
+> = MergeRequestContext<R> & InferContextFromCV<CV>;
+
+type AllowedPaths<
+  R extends z.ZodTypeAny | undefined,
+  CV extends Record<string, builderFetchDefinition>,
+> = DotPaths<FullContext<R, CV>>;
 
 // Utility function for converting Zod schemas to JSON Schema
 export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
@@ -23,22 +50,32 @@ export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> 
   }
 }
 
-// Builder configuration interface
-export interface ContextConfigBuilderOptions {
+export interface ContextConfigBuilderOptions<
+  R extends z.ZodTypeAny | undefined = undefined,
+  CV extends Record<string, builderFetchDefinition> = Record<string, builderFetchDefinition>,
+> {
   id: string;
   name: string;
   description?: string;
-  requestContextSchema?: z.ZodSchema<any>; // Zod schema for request headers validation
-  contextVariables?: Record<string, ContextFetchDefinition>;
+  requestContextSchema?: R; // Zod (optional)
+  contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
   projectId?: string;
+  baseURL?: string;
 }
 
-export class ContextConfigBuilder {
-  private config: Partial<ContextConfigSelect>;
+export class ContextConfigBuilder<
+  R extends z.ZodTypeAny | undefined,
+  CV extends Record<string, builderFetchDefinition>,
+> {
+  private config: Partial<builderContextConfig>;
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
+
+  private requestContextZod?: R;
+  private builderContextVars: CV;
+
   constructor(options: ContextConfigBuilderOptions) {
     this.tenantId = options.tenantId || 'default';
     this.projectId = options.projectId || 'default';
@@ -64,7 +101,8 @@ export class ContextConfigBuilder {
           'Applied .loose() to ZodObject requestContextSchema for more permissive validation'
         );
       }
-
+      this.requestContextZod = options.requestContextSchema;
+      this.builderContextVars = (options.contextVariables || {}) as CV;
       // It's a regular Zod schema for headers validation
       requestContextSchema = convertZodToJsonSchema(schema);
     }
@@ -111,25 +149,8 @@ export class ContextConfigBuilder {
     return this.config.requestContextSchema || null;
   }
 
-  getContextVariables(): Record<string, ContextFetchDefinition> {
+  getContextVariables(): builderContextVariables {
     return this.config.contextVariables || {};
-  }
-
-  /**
-   * Convert the builder to a plain object for database operations
-   */
-  toObject(): ContextConfigSelect {
-    return {
-      id: this.getId(),
-      tenantId: this.tenantId,
-      projectId: this.projectId,
-      name: this.getName(),
-      description: this.getDescription(),
-      requestContextSchema: this.getRequestContextSchema(),
-      contextVariables: this.getContextVariables(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
   }
 
   // Builder methods for fluent API
@@ -138,17 +159,23 @@ export class ContextConfigBuilder {
     return this;
   }
 
-  withContextVariable(key: string, definition: ContextFetchDefinition): this {
+  withContextVariable(key: string, definition: builderFetchDefinition): this {
     this.config.contextVariables = this.config.contextVariables || {};
     this.config.contextVariables[key] = definition;
     return this;
   }
 
-  withContextVariables(variables: Record<string, ContextFetchDefinition>): this {
+  withContextVariables(variables: builderContextVariables): this {
     this.config.contextVariables = variables;
     return this;
   }
 
+  /** 4) The function you ship: path autocomplete + validation, returns {{path}} */
+  toTemplate<P extends AllowedPaths<typeof this.requestContextZod, typeof this.builderContextVars>>(
+    path: P
+  ): `{{${P}}}` {
+    return `{{${path}}}` as `{{${P}}}`;
+  }
   // Validation method
   validate(): { valid: boolean; errors: string[] } {
     try {
@@ -313,7 +340,7 @@ export function contextConfig(options: ContextConfigBuilderOptions): ContextConf
 }
 
 // Helper function to create fetch definitions
-export function fetchDefinition(options: FetchDefinition | any): ContextFetchDefinition {
+export function fetchDefinition(options: FetchDefinition | any): builderFetchDefinition {
   // Handle both the correct FetchDefinition format and the legacy direct format
   const fetchConfig = options.fetchConfig || {
     url: options.url,
@@ -336,9 +363,9 @@ export function fetchDefinition(options: FetchDefinition | any): ContextFetchDef
       transform: fetchConfig.transform,
       timeout: fetchConfig.timeout,
     },
-    responseSchema: options.responseSchema
-      ? convertZodToJsonSchema(options.responseSchema)
-      : undefined,
+    responseSchema: options.responseSchema,
+    // ? convertZodToJsonSchema(options.responseSchema)
+    // : undefined,
     defaultValue: options.defaultValue,
     credentialReferenceId: options.credential?.id,
   };

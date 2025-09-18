@@ -25,3 +25,4 @@ export type {
   TemplateRenderOptions,
 } from './TemplateEngine';
 export { TemplateEngine } from './TemplateEngine';
+export { AllowedPaths, createTemplateHelpers } from './validation';
