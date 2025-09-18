@@ -56,7 +56,7 @@ export const agentGraph = sqliteTable(
     id: text('id').notNull(),
     name: text('name').notNull(),
     description: text('description'),
-    defaultAgentId: text('default_agent_id').notNull(),
+    defaultAgentId: text('default_agent_id'),
 
     // Reference to shared context configuration for all agents in this graph
     contextConfigId: text('context_config_id'), // add fk relationship
@@ -810,7 +810,7 @@ export const agentGraphRelations = relations(agentGraph, ({ one }) => ({
     fields: [agentGraph.tenantId, agentGraph.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // An agent graph belongs to one default agent
+  // An agent graph may have one default agent (optional)
   defaultAgent: one(agents, {
     fields: [agentGraph.defaultAgentId],
     references: [agents.id],

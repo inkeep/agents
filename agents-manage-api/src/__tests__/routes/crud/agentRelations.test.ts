@@ -19,12 +19,14 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
   // Helper function to create an agent (needed for agent relations)
   const createTestAgent = async ({
     tenantId,
+    graphId,
     suffix = '',
   }: {
     tenantId: string;
+    graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix });
+    const agentData = { ...createAgentData({ suffix }), graphId };
     const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(agentData),
@@ -35,35 +37,6 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     return { agentData, agentId: createBody.data.id };
   };
 
-  // Helper function to create test agent graph data
-  const createAgentGraphData = ({ defaultAgentId }: { defaultAgentId: string }) => ({
-    id: nanoid(),
-    name: `Test Graph ${nanoid()}`,
-    defaultAgentId,
-    contextConfigId: null, // Set to null since it's optional and we don't need it for these tests
-  });
-
-  // Helper function to create an agent graph (needed for agent relations)
-  const createTestAgentGraph = async ({
-    tenantId,
-    defaultAgentId,
-  }: {
-    tenantId: string;
-    defaultAgentId: string;
-  }) => {
-    const agentGraphData = createAgentGraphData({ defaultAgentId });
-    const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`,
-      {
-        method: 'POST',
-        body: JSON.stringify(agentGraphData),
-      }
-    );
-    expect(createRes.status).toBe(201);
-
-    const createBody = await createRes.json();
-    return { agentGraphData, agentGraphId: createBody.data.id };
-  };
 
   // Helper function to create test agent relation data
   const createAgentRelationData = ({
@@ -121,12 +94,38 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
   // Setup function for tests
   const setupTestEnvironment = async (tenantId: string) => {
-    const { agentId: sourceAgentId } = await createTestAgent({ tenantId, suffix: ' Source' });
-    const { agentId: targetAgentId } = await createTestAgent({ tenantId, suffix: ' Target' });
-    const { agentGraphId } = await createTestAgentGraph({
-      tenantId,
-      defaultAgentId: sourceAgentId,
-    });
+    // Create a graph first (without defaultAgentId since agents don't exist yet)
+    const tempGraphData = {
+      id: nanoid(),
+      name: `Test Graph ${nanoid()}`,
+      defaultAgentId: null,
+      contextConfigId: null,
+    };
+    const graphRes = await makeRequest(
+      `/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`,
+      {
+        method: 'POST',
+        body: JSON.stringify(tempGraphData),
+      }
+    );
+    expect(graphRes.status).toBe(201);
+    const graphBody = await graphRes.json();
+    const agentGraphId = graphBody.data.id;
+
+    // Now create agents with the graphId
+    const { agentId: sourceAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId, suffix: ' Source' });
+    const { agentId: targetAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId, suffix: ' Target' });
+
+    // Update the graph with a defaultAgentId if needed
+    const updateRes = await makeRequest(
+      `/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs/${agentGraphId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ defaultAgentId: sourceAgentId }),
+      }
+    );
+    expect(updateRes.status).toBe(200);
+
     return { sourceAgentId, targetAgentId, agentGraphId };
   };
 
@@ -271,7 +270,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-relations-list-single');
       await ensureTestProject(tenantId, projectId);
       const { sourceAgentId, targetAgentId, agentGraphId } = await setupTestEnvironment(tenantId);
-      const _ = await createTestAgentRelation({
+      await createTestAgentRelation({
         tenantId,
         graphId: agentGraphId,
         sourceAgentId,
@@ -298,6 +297,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceAgentId, targetAgentId, agentGraphId } = await setupTestEnvironment(tenantId);
       const { agentId: otherSourceAgentId } = await createTestAgent({
         tenantId,
+        graphId: agentGraphId,
         suffix: ' Other Source',
       });
 
@@ -330,6 +330,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceAgentId, targetAgentId, agentGraphId } = await setupTestEnvironment(tenantId);
       const { agentId: otherTargetAgentId } = await createTestAgent({
         tenantId,
+        graphId: agentGraphId,
         suffix: ' Other Target',
       });
 
@@ -362,6 +363,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceAgentId, targetAgentId, agentGraphId } = await setupTestEnvironment(tenantId);
       const { agentId: otherTargetId } = await createTestAgent({
         tenantId,
+        graphId: agentGraphId,
         suffix: ' Other Target',
       });
 

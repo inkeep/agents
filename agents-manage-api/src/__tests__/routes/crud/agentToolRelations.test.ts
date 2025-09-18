@@ -76,7 +76,20 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix });
+    // First create a graph
+    const graphId = nanoid();
+    const graphData = {
+      id: graphId,
+      name: `Test Graph${suffix}`,
+      defaultAgentId: null,
+    };
+    const graphRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
+      method: 'POST',
+      body: JSON.stringify(graphData),
+    });
+    expect(graphRes.status).toBe(201);
+
+    const agentData = { ...createAgentData({ suffix }), graphId };
     const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(agentData),
@@ -84,7 +97,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id };
+    return { agentData, agentId: createBody.data.id, graphId };
   };
 
   // Helper function to create a tool
@@ -147,9 +160,9 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   // Setup function for tests
   const setupTestEnvironment = async (tenantId: string) => {
-    const { agentId } = await createTestAgent({ tenantId, suffix: ' Agent' });
+    const { agentId, graphId } = await createTestAgent({ tenantId, suffix: ' Agent' });
     const { toolId } = await createTestTool({ tenantId, suffix: ' Tool' });
-    return { agentId, toolId };
+    return { agentId, toolId, graphId };
   };
 
   describe('POST /', () => {

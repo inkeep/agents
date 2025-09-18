@@ -86,7 +86,8 @@ export class ArtifactParser {
     // Check each match from the end to find an incomplete artifact
     for (let i = matches.length - 1; i >= 0; i--) {
       const match = matches[i];
-      const startIdx = match.index!;
+      if (match.index === undefined) continue;
+      const startIdx = match.index;
       const textAfterMatch = text.slice(startIdx);
 
       // If the text after this match doesn't contain a closing '/>', it's incomplete
@@ -168,7 +169,8 @@ export class ArtifactParser {
 
     for (const match of matches) {
       const [fullMatch, artifactId, taskId] = match;
-      const matchStart = match.index!;
+      if (match.index === undefined) continue;
+      const matchStart = match.index;
 
       // Add text before artifact
       if (matchStart > lastIndex) {

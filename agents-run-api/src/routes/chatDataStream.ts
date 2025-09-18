@@ -119,6 +119,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const defaultAgentId = agentGraph.defaultAgentId;
     const graphName = agentGraph.name;
 
+    if (!defaultAgentId) {
+      return c.json({ error: 'Graph does not have a default agent configured' }, 400);
+    }
+
     const activeAgent = await getActiveAgentForConversation(dbClient)({
       scopes: { tenantId, projectId },
       conversationId,

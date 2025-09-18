@@ -148,7 +148,7 @@ app.openapi(
     const externalAgentData = {
       tenantId,
       projectId,
-      graphId: 'default', // Use default graphId for backward compatibility
+      graphId: 'default', // TODO: This should come from route params when we add graph scoping
       id: body.id ? String(body.id) : nanoid(),
       name: body.name,
       description: body.description,

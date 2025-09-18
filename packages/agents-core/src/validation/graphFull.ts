@@ -146,8 +146,8 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
  * Validates the graph structure before creation/update
  */
 export function validateGraphStructure(graphData: FullGraphDefinition): void {
-  // Validate default agent exists
-  if (!graphData.agents[graphData.defaultAgentId]) {
+  // Validate default agent exists (if specified)
+  if (graphData.defaultAgentId && !graphData.agents[graphData.defaultAgentId]) {
     throw new Error(`Default agent '${graphData.defaultAgentId}' does not exist in agents`);
   }
 

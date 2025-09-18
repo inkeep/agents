@@ -546,8 +546,12 @@ export class Agent {
     const credentialReferenceId = tool.credentialReferenceId;
 
     const toolsForAgent = await getToolsForAgent(dbClient)({
-      scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
-      agentId: this.config.id,
+      scopes: {
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        graphId: this.config.graphId,
+        agentId: this.config.id,
+      },
     });
 
     const selectedTools =

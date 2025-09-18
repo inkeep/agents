@@ -13,6 +13,7 @@ import {
   listAgentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectGraphParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
@@ -121,7 +122,7 @@ app.openapi(
     operationId: 'create-agent',
     tags: ['CRUD Agent'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -143,7 +144,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const body = c.req.valid('json');
     const agentId = body.id ? String(body.id) : nanoid();
     const agent = await createAgent(dbClient)({
@@ -151,7 +152,7 @@ app.openapi(
       id: agentId,
       tenantId,
       projectId,
-      graphId: body.graphId || 'default', // Use default graphId for backward compatibility
+      graphId,
     });
 
     // Add type field to the agent response

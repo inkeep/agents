@@ -20,6 +20,7 @@ import {
   type Pagination,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectGraphParamsSchema,
   TenantProjectParamsSchema,
   updateAgentRelation,
   validateExternalAgent,
@@ -158,7 +159,7 @@ app.openapi(
     operationId: 'create-agent-relation',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -180,7 +181,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const body = await c.req.valid('json');
 
     // Determine if this is an external agent relationship
@@ -190,8 +191,7 @@ app.openapi(
     if (isExternalAgent && body.externalAgentId) {
       // Check if external agent exists
       const externalAgentExists = await validateExternalAgent(dbClient)({
-        scopes: { tenantId, projectId },
-        agentId: body.externalAgentId,
+        scopes: { tenantId, projectId, graphId, agentId: body.externalAgentId },
       });
       if (!externalAgentExists) {
         throw createApiError({
@@ -204,8 +204,7 @@ app.openapi(
     if (!isExternalAgent && body.targetAgentId) {
       // Check if internal agent exists
       const internalAgentExists = await validateInternalAgent(dbClient)({
-        scopes: { tenantId, projectId },
-        agentId: body.targetAgentId,
+        scopes: { tenantId, projectId, graphId, agentId: body.targetAgentId },
       });
       if (!internalAgentExists) {
         throw createApiError({
@@ -217,12 +216,12 @@ app.openapi(
 
     // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentRelations(dbClient)({
-      scopes: { tenantId, projectId, graphId: body.graphId },
+      scopes: { tenantId, projectId, graphId: graphId },
       pagination: { page: 1, limit: 1000 },
     });
 
     const isDuplicate = existingRelations.data.some((relation) => {
-      if (relation.graphId !== body.graphId || relation.sourceAgentId !== body.sourceAgentId) {
+      if (relation.graphId !== graphId || relation.sourceAgentId !== body.sourceAgentId) {
         return false;
       }
 
@@ -243,7 +242,7 @@ app.openapi(
 
     // Create the relation with the correct data structure
     const relationData = {
-      graphId: body.graphId,
+      graphId: graphId,
       tenantId,
       id: nanoid(),
       projectId,

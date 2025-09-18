@@ -329,6 +329,17 @@ const getServer = async (
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
+        if (!agentGraph.defaultAgentId) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Graph does not have a default agent configured`,
+              },
+            ],
+            isError: true,
+          };
+        }
         const defaultAgentId = agentGraph.defaultAgentId;
 
         const agentInfo = await getAgentById(dbClient)({
@@ -465,6 +476,17 @@ const handleInitializationRequest = async (
         id: body.id || null,
       },
       { status: 404 }
+    );
+  }
+
+  if (!agentGraph.defaultAgentId) {
+    return c.json(
+      {
+        jsonrpc: '2.0',
+        error: { code: -32001, message: 'Graph does not have a default agent configured' },
+        id: body.id || null,
+      },
+      { status: 400 }
     );
   }
 

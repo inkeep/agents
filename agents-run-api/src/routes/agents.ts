@@ -193,6 +193,16 @@ app.post('/a2a', async (c: Context) => {
         404
       );
     }
+    if (!graph.defaultAgentId) {
+      return c.json(
+        {
+          jsonrpc: '2.0',
+          error: { code: -32004, message: 'Graph does not have a default agent configured' },
+          id: null,
+        },
+        400
+      );
+    }
     executionContext.agentId = graph.defaultAgentId;
     // fetch the default agent and use it as entry point for the graph
     const credentialStores = c.get('credentialStores');

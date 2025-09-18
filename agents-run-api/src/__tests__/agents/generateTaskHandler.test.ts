@@ -601,8 +601,9 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
+          graphId: 'test-graph',
+          agentId: 'test-agent',
         },
-        agentId: 'test-agent',
       });
 
       const dataInnerMock = getDataComponentsForAgentMock.mock.results[0]?.value;

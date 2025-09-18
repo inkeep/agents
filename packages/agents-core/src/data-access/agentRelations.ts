@@ -533,7 +533,7 @@ export const getAgentToolRelationByAgent =
 
 export const getAgentToolRelationByTool =
   (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -546,6 +546,7 @@ export const getAgentToolRelationByTool =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.toolId, params.toolId)
           )
         )
@@ -559,6 +560,7 @@ export const getAgentToolRelationByTool =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.toolId, params.toolId)
           )
         ),
@@ -668,6 +670,70 @@ export const getToolsForAgent =
             eq(agentToolRelations.projectId, params.scopes.projectId),
             eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.agentId, params.scopes.agentId)
+          )
+        ),
+    ]);
+
+    const total = totalResult[0]?.count || 0;
+    const pages = Math.ceil(total / limit);
+
+    return {
+      data,
+      pagination: { page, limit, total, pages },
+    };
+  };
+
+export const getAgentsForTool =
+  (db: DatabaseClient) =>
+  async (params: { scopes: GraphScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
+    const page = params.pagination?.page || 1;
+    const limit = Math.min(params.pagination?.limit || 10, 100);
+    const offset = (page - 1) * limit;
+
+    const [data, totalResult] = await Promise.all([
+      db
+        .select({
+          id: agentToolRelations.id,
+          tenantId: agentToolRelations.tenantId,
+          agentId: agentToolRelations.agentId,
+          toolId: agentToolRelations.toolId,
+          selectedTools: agentToolRelations.selectedTools,
+          createdAt: agentToolRelations.createdAt,
+          updatedAt: agentToolRelations.updatedAt,
+          agent: {
+            id: agents.id,
+            name: agents.name,
+            description: agents.description,
+            prompt: agents.prompt,
+            conversationHistoryConfig: agents.conversationHistoryConfig,
+            models: agents.models,
+            stopWhen: agents.stopWhen,
+            createdAt: agents.createdAt,
+            updatedAt: agents.updatedAt,
+          },
+        })
+        .from(agentToolRelations)
+        .innerJoin(agents, eq(agentToolRelations.agentId, agents.id))
+        .where(
+          and(
+            eq(agentToolRelations.tenantId, params.scopes.tenantId),
+            eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
+            eq(agentToolRelations.toolId, params.toolId)
+          )
+        )
+        .limit(limit)
+        .offset(offset)
+        .orderBy(desc(agentToolRelations.createdAt)),
+      db
+        .select({ count: count() })
+        .from(agentToolRelations)
+        .where(
+          and(
+            eq(agentToolRelations.tenantId, params.scopes.tenantId),
+            eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
+            eq(agentToolRelations.toolId, params.toolId)
           )
         ),
     ]);

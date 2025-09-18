@@ -72,7 +72,10 @@ export class ModelFactory {
     }
 
     const modelSettings = config;
-    const modelString = modelSettings.model!.trim();
+    if (!modelSettings.model) {
+      throw new Error('Model configuration is required');
+    }
+    const modelString = modelSettings.model.trim();
     const { provider, modelName } = ModelFactory.parseModelString(modelString);
 
     logger.debug(

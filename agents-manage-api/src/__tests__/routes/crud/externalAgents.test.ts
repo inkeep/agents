@@ -13,18 +13,40 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     suffix = '',
     tenantId = 'default-tenant',
     projectId = 'default',
+    graphId,
   }: {
     suffix?: string;
     tenantId?: string;
     projectId?: string;
-  } = {}) => ({
+    graphId: string;
+  }) => ({
     id: `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
     tenantId,
     projectId,
+    graphId,
     name: `Test Agent${suffix}`,
     description: `Test Description${suffix}`,
     baseUrl: 'http://agent.test.com',
   });
+
+  // Helper function to ensure default graph exists
+  const ensureDefaultGraph = async (tenantId: string) => {
+    const graphData = {
+      id: 'default',
+      name: 'Default Graph',
+      defaultAgentId: null,
+    };
+
+    // Try to create the graph, ignore if it already exists
+    const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
+      method: 'POST',
+      body: JSON.stringify(graphData),
+    });
+    // 201 = created, 409 = already exists
+    if (res.status !== 201 && res.status !== 409) {
+      throw new Error(`Failed to create default graph: ${res.status}`);
+    }
+  };
 
   // Helper function to create an agent and return its ID
   const createTestAgent = async ({
@@ -34,7 +56,10 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix, tenantId, projectId });
+    // Ensure default graph exists for external agents
+    await ensureDefaultGraph(tenantId);
+
+    const agentData = createAgentData({ suffix, tenantId, projectId, graphId: 'default' });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/crud/projects/${projectId}/external-agents`,
       {
@@ -45,7 +70,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id };
+    return { agentData, agentId: createBody.data.id, graphId: 'default' };
   };
 
   // Helper function to create multiple agents
@@ -329,7 +354,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should create a new agent', async () => {
       const tenantId = createTestTenantId('agents-create-success');
       await ensureTestProject(tenantId, projectId);
-      const agentData = createAgentData({ tenantId, projectId });
+      await ensureDefaultGraph(tenantId);
+
+      const agentData = createAgentData({ tenantId, projectId, graphId: 'default' });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/crud/projects/${projectId}/external-agents`,
@@ -355,7 +382,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should create a new agent with a provided id', async () => {
       const tenantId = createTestTenantId('agents-create-with-id');
       await ensureTestProject(tenantId, projectId);
-      const agentData = createAgentData({ tenantId, projectId });
+      await ensureDefaultGraph(tenantId);
+
+      const agentData = createAgentData({ tenantId, projectId, graphId: 'default' });
       const providedId = nanoid();
 
       const res = await makeRequest(

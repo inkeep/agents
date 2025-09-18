@@ -72,6 +72,7 @@ describe('Data Component Agent Associations', () => {
     it('should successfully associate a data component with an agent', async () => {
       const association = await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId,
         dataComponentId,
       });
@@ -99,6 +100,7 @@ describe('Data Component Agent Associations', () => {
       // Associate the component
       await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId,
         dataComponentId,
       });
@@ -137,6 +139,7 @@ describe('Data Component Agent Associations', () => {
       // Associate component with first agent only
       await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId,
         dataComponentId,
       });
@@ -162,6 +165,7 @@ describe('Data Component Agent Associations', () => {
       // Create association
       await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId,
         dataComponentId,
       });
@@ -223,11 +227,13 @@ describe('Data Component Agent Associations', () => {
       // Associate component with both agents
       await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId,
         dataComponentId,
       });
       await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId: agent2.id,
         dataComponentId,
       });
@@ -257,6 +263,7 @@ describe('Data Component Agent Associations', () => {
     it('should return true when component is associated with agent', async () => {
       await associateDataComponentWithAgent(dbClient)({
         scopes: { tenantId, projectId },
+        graphId,
         agentId,
         dataComponentId,
       });

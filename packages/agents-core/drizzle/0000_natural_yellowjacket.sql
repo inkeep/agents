@@ -30,7 +30,7 @@ CREATE TABLE `agent_graph` (
 	`id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
-	`default_agent_id` text NOT NULL,
+	`default_agent_id` text,
 	`context_config_id` text,
 	`models` text,
 	`status_updates` text,

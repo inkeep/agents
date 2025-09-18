@@ -23,27 +23,31 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
-    // First create a default graph if it doesn't exist
+    // First create a graph without defaultAgentId
+    const graphId = `test-graph-${tenantId}${suffix}`;
     const graphData = {
-      id: 'default',
-      name: 'Default Graph',
-      defaultAgentId: `test-agent${suffix}-${tenantId}`,
+      id: graphId,
+      name: 'Test Graph',
+      defaultAgentId: null,
     };
     // Try to create the graph, ignore if it already exists
-    await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
+    const graphRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
       method: 'POST',
       body: JSON.stringify(graphData),
     });
 
-    const agentData = createAgentData({ suffix, tenantId });
-    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
+    // Use the graphId from the created or existing graph
+    const effectiveGraphId = graphRes.status === 201 ? graphId : 'default';
+
+    const agentData = { ...createAgentData({ suffix, tenantId }) };
+    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${effectiveGraphId}/agents`, {
       method: 'POST',
       body: JSON.stringify(agentData),
     });
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id };
+    return { agentData, agentId: createBody.data.id, graphId: effectiveGraphId };
   };
 
   // Helper function to create test agent graph data
@@ -129,7 +133,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       dataComponentId,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components`,
+      `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
       {
         method: 'POST',
         body: JSON.stringify(relationData),
@@ -165,7 +169,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -185,7 +189,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-data-components-create-validation');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -207,7 +211,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Create first association
       const res1 = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -217,7 +221,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Try to create duplicate - should fail
       const res2 = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -241,7 +245,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}`
       );
       expect(res.status).toBe(200);
 
@@ -256,7 +260,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { agentId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}`
       );
       expect(res.status).toBe(200);
 
@@ -279,7 +283,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/component/${dataComponentId}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dataComponentId}/agents`
       );
       expect(res.status).toBe(200);
 
@@ -296,7 +300,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { dataComponentId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/component/${dataComponentId}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dataComponentId}/agents`
       );
       expect(res.status).toBe(200);
 
@@ -319,7 +323,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
       );
       expect(res.status).toBe(200);
 
@@ -333,7 +337,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
       );
       expect(res.status).toBe(200);
 
@@ -356,7 +360,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}/component/${dataComponentId}`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}`,
         {
           method: 'DELETE',
         }
@@ -369,7 +373,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify association is removed
       const checkRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
       );
       const checkBody = await checkRes.json();
       expect(checkBody.exists).toBe(false);
@@ -381,7 +385,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agentId}/component/${dataComponentId}`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}`,
         {
           method: 'DELETE',
         }

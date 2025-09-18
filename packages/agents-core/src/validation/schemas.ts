@@ -765,6 +765,41 @@ export const TenantProjectParamsSchema = z
   })
   .openapi('TenantProjectParams');
 
+export const TenantProjectGraphParamsSchema = z
+  .object({
+    tenantId: z.string().openapi({
+      description: 'Tenant identifier',
+      example: 'tenant_123',
+    }),
+    projectId: z.string().openapi({
+      description: 'Project identifier',
+      example: 'project_456',
+    }),
+    graphId: z.string().openapi({
+      description: 'Graph identifier',
+      example: 'graph_789',
+    }),
+  })
+  .openapi('TenantProjectGraphParams');
+
+export const TenantProjectGraphIdParamsSchema = z
+  .object({
+    tenantId: z.string().openapi({
+      description: 'Tenant identifier',
+      example: 'tenant_123',
+    }),
+    projectId: z.string().openapi({
+      description: 'Project identifier',
+      example: 'project_456',
+    }),
+    graphId: z.string().openapi({
+      description: 'Graph identifier',
+      example: 'graph_789',
+    }),
+    id: resourceIdSchema,
+  })
+  .openapi('TenantProjectGraphIdParams');
+
 export const TenantProjectIdParamsSchema = z
   .object({
     tenantId: z.string().openapi({

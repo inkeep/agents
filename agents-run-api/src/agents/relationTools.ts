@@ -168,6 +168,7 @@ export function createDelegateToAgentTool({
           scopes: {
             tenantId,
             projectId,
+            graphId,
           },
           agentId: delegateConfig.config.id,
         });

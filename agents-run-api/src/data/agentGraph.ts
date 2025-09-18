@@ -15,11 +15,17 @@ async function hydrateGraph({
   apiKey?: string;
 }): Promise<RegisteredAgent> {
   try {
+    // Check if defaultAgentId exists
+    if (!dbGraph.defaultAgentId) {
+      throw new Error(`Graph ${dbGraph.id} does not have a default agent configured`);
+    }
+
     // Get the default agent for this graph to create the task handler
     const defaultAgent = await getAgentById(dbClient)({
       scopes: {
         tenantId: dbGraph.tenantId,
         projectId: dbGraph.projectId,
+        graphId: dbGraph.id,
       },
       agentId: dbGraph.defaultAgentId,
     });
