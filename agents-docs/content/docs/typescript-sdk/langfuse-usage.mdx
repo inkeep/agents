@@ -121,6 +121,59 @@ Application → OTEL Collector → Jaeger → Jaeger UI (http://localhost:16686)
                              → Langfuse → Langfuse Dashboard
 ```
 
+## Dataset setup and execution
+
+Use the [Inkeep Agent Cookbook](https://github.com/inkeep/agents-cookbook) repository which provides ready-to-use scripts for creating and running Langfuse dataset evaluations programmatically.
+
+#### 1. Clone the Agent Cookbook Repository
+
+```bash
+git clone https://github.com/inkeep/agent-cookbook.git
+cd agent-cookbook/evals/langfuse-dataset-example
+```
+
+**Set up environment variables in a `.env` file:**
+```bash
+# Langfuse configuration (required for both scripts)
+LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
+LANGFUSE_SECRET_KEY=your_langfuse_secret_key
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+
+# Chat API configuration (for dataset runner)
+INKEEP_AGENTS_RUN_API_KEY=your_api_key
+INKEEP_AGENTS_RUN_API_URL=your_chat_api_base_url
+
+# Execution context (for dataset runner)
+INKEEP_TENANT_ID=your_tenant_id
+INKEEP_PROJECT_ID=your_project_id
+INKEEP_GRAPH_ID=your_graph_id
+```
+
+#### 4. Initialize Dataset with Sample Data
+
+Run the basic Langfuse example to initialize a dataset with sample user messages:
+
+```bash
+pnpm run langfuse-init-example
+```
+
+This script will:
+- Connect to your Langfuse project
+- Create a new dataset called "inkeep-weather-example-dataset" with sample dataset items
+
+#### 5. Run Dataset Items to Generate Traces
+
+Run dataset items to generate traces that can be evaluated:
+
+```bash
+pnpm run langfuse-run-dataset
+```
+
+This script will:
+- Read items from your Langfuse dataset
+- Execute each item against your weather graph
+- Generate the data needed for evaluation
+
 ## Running LLM Evaluations in Langfuse Dashboard
 
 Langfuse provides a powerful web interface for running LLM evaluations without writing code. You can create datasets, set up evaluators, and run evaluations directly in the dashboard.
@@ -156,12 +209,6 @@ Before creating evaluators, you need to configure a default LLM connection for e
    - **Advanced Settings**: Configure base URL, model parameters if needed
 4. **Click "Create connection"** to save
 
-**Important Notes:**
-
-- The default model is used by all managed evaluators
-- You can change it anytime - existing evaluators will use the new model
-- The model must support structured output
-
 #### Navigate to Evaluator Setup
 
 1. **Go to "Evaluations"** → **"Running Evaluators"**
@@ -172,9 +219,9 @@ Before creating evaluators, you need to configure a default LLM connection for e
 
 You have two main options:
 
-##### Option A: Langfuse Managed Evaluators (Recommended)
+## Option A: Langfuse Managed Evaluators
 
-Langfuse provides a comprehensive catalog of pre-built evaluators including **Quality & Accuracy Evaluators**, **RAG-Specific Evaluators**, and **Advanced Evaluators**
+Langfuse provides a comprehensive catalog of **pre-built evaluators**
 
 **To use a managed evaluator:**
 
@@ -182,73 +229,79 @@ Langfuse provides a comprehensive catalog of pre-built evaluators including **Qu
 2. **Click on the evaluator** to see its description and criteria
 3. **Click "Use Selected Evaluator"** button
 
-##### Option B: Create Custom Evaluator
+#### Customizing Managed Evaluators for Dataset Runs
 
-**Best for**: Specific evaluation needs not covered by managed evaluators
+Once you've selected a managed evaluator, you can **edit it to target your dataset runs**. This is particularly useful for evaluating agent performance against known test cases.
+
+### Example: Customizing a Helpfulness Evaluator
+
+1. **Select the "Helpfulness" evaluator** from the managed list
+2. Under **Target** select dataset runs
+3. **Configure variable mapping**
+   - **{`{{input}}`}** → **Object**: Trace, **Object Variable**: Input
+   - **{`{{generation}}`}** → **Object**: Trace, **Object Variable**: Output
+
+<img
+  src="/images/langfuse-helpfulness-setup.png"
+  width="100%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", maxWidth: "1600px", height: "auto", minHeight: "300px" }}
+/>
+
+
+
+## Option B: Create Custom Evaluator
+
+
 
 1. **Click "+ Create Custom Evaluator"** button
 2. **Fill in evaluator details**:
 
-   - **Name**: Choose a descriptive name (e.g., "agent-accuracy")
+   - **Name**: Choose a descriptive name (e.g., "weather_tool_used")
    - **Description**: Explain what this evaluator measures
-   - **Model**: Select evaluation model (GPT-4 recommended)
-   - **Temperature**: Set to low value (0.1) for consistent scoring
+   - **Model**: Select evaluation model
+   - **Prompt**: Configure a custom prompt
 
-3. **Create evaluation prompt** with variable placeholders:
-   - `{{input}}` - The original user input/question
-   - `{{output}}` - The AI agent's response
-   - `{{expected_output}}` - Expected or correct answer
-   - `{{context}}` - Additional context provided to the agent
 
-**Example Custom Evaluator Prompt:**
+### Example: Customizing a Weather Tool Evaluator
+
+1. **Prompt**
 
 ```
-You are an expert evaluator for an AI customer support agent.
+You are an expert evaluator for an AI agent system.
+Your task is to rate the correctness of tool usage on a scale from 0.0 to 1.0.
 
-Evaluate the helpfulness of this response on a scale of 0-1:
+Instructions:
 
-User Question: {{input}}
-Agent Response: {{output}}
-Expected Response: {{expected_output}}
+If the user’s question is not weather-related and the tool used is not get_weather_forecast, return 1.0.
 
-Consider:
-- Does it directly answer the question?
-- Is the information accurate and complete?
-- Is the tone appropriate for customer support?
-- Does it provide actionable next steps?
+If the user’s question is not weather-related and the tool is get_weather_forecast, return 0.0.
 
-Provide only a numeric score between 0.0 and 1.0.
+If the user’s question is weather-related, return 1.0 only if the tool used is get_weather_forecast; otherwise return 0.0.
+
+Input:
+User Question: {`{{input}}`}
+Tool Used: {`{{tool_used}}`}
 ```
-
-#### Configure Evaluation Scope
-
 <img
-  src="/images/langfuse-variable-mapping.png"
-  alt="Langfuse evaluator configuration screen showing target data selection, trace filtering, sampling settings, and delay configuration"
-  width="100%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+  src="/images/custom-eval.png"
+  width="80%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", maxWidth: "800px", height: "auto" }}
 />
 
-This screen shows the evaluation configuration interface where you can:
+2. **Configure variable mapping**:
+   - **{`{{input}}`}** → **Object**: Trace, **Object Variable**: Input
+   - **{`{{tool_used}}`}** → **Object**: Span, **Object Name**: weather-forecaster.ai.toolCall, **Object Variable**: Metadata, **JsonPath**: $.attributes["ai.toolCall.name"]
 
-**Generated Score Name:**
+<img
+  src="/images/custom-variable-mapping.png"
+  alt="Langfuse helpfulness evaluator setup screen showing evaluator configuration with variable mapping and trace targeting options"
+  width="100%"
+  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", maxWidth: "1200px", height: "auto", minHeight: "300px" }}
+/>
 
-- **Score Name**: `Conciseness` (automatically filled based on selected evaluator)
-- This will be the name of the score that appears in your traces
 
-**Evaluator Runs On:**
-
-- **New traces**: Automatically evaluate incoming traces
-- **Existing traces**: Backfill evaluation for historical data
-
-**Target Filter:**
-
-- **Add filter**: Create rules to target specific traces (by name, tags, user ID, etc.)
-- **Preview**: Shows sample traces that match your filters from the last 24 hours
-
-#### Enable and Monitor
+## Enable and Monitor
 
 1. **Click "Enable Evaluator"** to start automatic evaluation
 2. **Monitor evaluation progress** in the dashboard
 3. **View evaluation results** as they complete
-4. **Track evaluation costs** and adjust sampling if needed
