@@ -6,24 +6,29 @@ icon: "LuCirclePlus"
 
 ## Overview
 
-Context fetchers allow your agents to access real-time data from external APIs. Instead of hardcoding information in your agent prompt, context fetchers dynamically retrieve fresh data for each conversation.
+Context fetchers allow you to embed real-time data from external APIs into your agent prompts. Instead of hardcoding information in your agent prompt, context fetchers dynamically retrieve fresh data for each conversation.
 
 ## Key Features
 
 - **Dynamic data retrieval**: Fetch real-time data from APIs.
-- **Template interpolation**: Use context variables in agent prompts.
+- **Dynamic Prompting**: Use dynamic data in your agent prompts
 - **Request context integration**: Use request-specific parameters to customize data fetching.
 - **Data transformation**: Transform API responses into the exact format your agent needs.
 
-## When to Use Context Fetchers
 
-Context fetchers are perfect when your agents need:
-- **User data**: "Hello John, here are your recent orders..."
-- **Real-time info**: Current weather, stock prices, system status
-- **External APIs**: CRM data, inventory levels, user permissions
-- **Dynamic content**: Personalization based on request headers
+### Context Fetchers vs Tools
 
-Instead of hardcoding data, context fetchers fetch it fresh for each conversation.
+- **Context Fetchers**: Pre-populate agent prompts with dynamic data
+  - Run automatically before/during conversation startup
+  - Data becomes part of the agent's system prompt
+  - Perfect for: Personalized agent personas, dynamic agent guardrails
+  - Example Prompt: `You are an assistant for {{user.name}} and you work for {{user.organization}}`
+
+- **Tools**: Enable agents to take actions or fetch data during conversations
+  - Called by the agent when needed during the conversation
+  - Agent decides when and how to use them
+  - Example Tool Usage: Agent calls a "send_email" tool or "search_database" tool
+
 
 ## Basic Usage
 
