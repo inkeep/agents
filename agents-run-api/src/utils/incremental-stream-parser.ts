@@ -395,7 +395,7 @@ export class IncrementalStreamParser {
           .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
           .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
-        if (cleanedText) {
+        if (cleanedText.trim()) {
           await this.streamHelper.streamText(cleanedText, 50);
         }
         this.pendingTextBuffer = '';
@@ -410,7 +410,7 @@ export class IncrementalStreamParser {
           .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
           .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
-        if (cleanedText) {
+        if (cleanedText.trim()) {
           await this.streamHelper.streamText(cleanedText, 50);
         }
         this.pendingTextBuffer = '';
