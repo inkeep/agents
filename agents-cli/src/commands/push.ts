@@ -78,10 +78,6 @@ export async function pushCommand(options: PushOptions) {
     spinner.text = 'Loading project from index.ts...';
     const project = await loadProject(projectDir);
 
-    // const graphs = project.getGraphs();
-    // const agents = graphs.flatMap((graph) => graph.getAgents());
-    // const tools = graphs.flatMap((graph) => graph.getTools());
-
     spinner.succeed('Project loaded successfully');
 
     // Load inkeep.config.ts for configuration
@@ -201,20 +197,17 @@ export async function pushCommand(options: PushOptions) {
     console.log(chalk.gray(`  • Graphs: ${stats.graphCount}`));
     console.log(chalk.gray(`  • Tenant: ${stats.tenantId}`));
 
-    // TODO: support toolsCount in graph stats
     // Display graph details if any
-    // const graphs = project.getGraphs();
-    // if (graphs.length > 0) {
-    //   console.log(chalk.cyan('\n📊 Graph Details:'));
-    //   for (const graph of graphs) {
-    //     const graphStats = graph.getStats();
-    //     console.log(
-    //       chalk.gray(
-    //         `  • ${graph.getName()} (${graph.getId()}): ${graphStats.agentCount} agents, ${graphStats.toolCount} tools`
-    //       )
-    //     );
-    //   }
-    // }
+    const graphs = project.getGraphs();
+    if (graphs.length > 0) {
+      console.log(chalk.cyan('\n📊 Graph Details:'));
+      for (const graph of graphs) {
+        const graphStats = graph.getStats();
+        console.log(
+          chalk.gray(`  • ${graph.getName()} (${graph.getId()}): ${graphStats.agentCount} agents`)
+        );
+      }
+    }
 
     // Provide next steps
     console.log(chalk.green('\n✨ Next steps:'));
