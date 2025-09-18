@@ -16,6 +16,7 @@ import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
+import { ExternalLink } from '@/components/ui/external-link';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {
@@ -82,6 +83,7 @@ function EmptyTimeline({
                   The SIGNOZ_API_KEY environment variable is not configured. Please set this
                   environment variable to the enable activity timeline.
                 </p>
+                <ExternalLink href={`https://docs.inkeep.com/visual-builder/graphs`}>Learn more</ExternalLink>
               </div>
             ) : (
               error
