@@ -85,10 +85,10 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px]"
+        className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px] justify-start"
       >
         <span className="w-1 h-1 bg-gray-400 rounded-full" />
-        <span className="font-medium ml-3">{getLabel()}</span>
+        <span className="font-medium ml-3 text-left">{getLabel()}</span>
         <ChevronRight
           className={cn(
             'w-3 h-3 transition-transform duration-200',
