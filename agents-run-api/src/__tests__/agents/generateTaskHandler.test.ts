@@ -168,6 +168,8 @@ let lastAgentConstructorArgs: any = null;
 
 vi.mock('../../agents/Agent.js', () => ({
   Agent: class MockAgent {
+    config: any;
+
     constructor(config: any) {
       this.config = config;
       // Capture constructor arguments for testing
@@ -261,6 +263,7 @@ describe('generateTaskHandler', () => {
     projectId: 'test-project',
     graphId: 'test-graph',
     agentId: 'test-agent',
+    baseUrl: 'http://localhost:3000',
     agentSchema: {
       id: 'test-agent',
       name: 'Test Agent',
@@ -268,6 +271,7 @@ describe('generateTaskHandler', () => {
       prompt: 'You are a helpful test agent',
       models: null,
       conversationHistoryConfig: null,
+      stopWhen: null,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     },
@@ -499,9 +503,9 @@ describe('generateTaskHandler', () => {
 
       expect(result.status.state).toBe(TaskState.Completed);
       expect(result.status.message).toBe('Transfer requested to refund-agent');
-      expect(result.artifacts?.[0].parts[0].data.type).toBe('transfer');
-      expect(result.artifacts?.[0].parts[0].data.target).toBe('refund-agent');
-      expect(result.artifacts?.[0].parts[0].data.reason).toBe('Transferring to refund agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.type).toBe('transfer');
+      expect((result.artifacts?.[0].parts[0] as any).data.target).toBe('refund-agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.reason).toBe('Transferring to refund agent');
     });
 
     it('should extract contextId from task ID when missing', async () => {

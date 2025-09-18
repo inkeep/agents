@@ -386,8 +386,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Retrieve it
       const result = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: graphData.id,
+        scopes: { tenantId, projectId, graphId: graphData.id },
       });
 
       expect(result).toBeDefined();
@@ -406,8 +405,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       const nonExistentId = nanoid();
 
       const result = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: nonExistentId,
+        scopes: { tenantId, projectId, graphId: nonExistentId },
       });
 
       expect(result).toBeNull();
@@ -708,22 +706,19 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Verify it exists
       const beforeDelete = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: graphData.id,
+        scopes: { tenantId, projectId, graphId: graphData.id },
       });
       expect(beforeDelete).toBeDefined();
 
       // Delete it
       const deleteResult = await deleteFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: graphData.id,
+        scopes: { tenantId, projectId, graphId: graphData.id },
       });
       expect(deleteResult).toBe(true);
 
       // Verify it's deleted
       const afterDelete = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: graphData.id,
+        scopes: { tenantId, projectId, graphId: graphData.id },
       });
       expect(afterDelete).toBeNull();
     });
@@ -736,8 +731,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       const nonExistentId = nanoid();
 
       const result = await deleteFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: nonExistentId,
+        scopes: { tenantId, projectId, graphId: nonExistentId },
       });
 
       expect(result).toBe(false);
@@ -761,15 +755,13 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Delete it
       const deleteResult = await deleteFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: graphData.id,
+        scopes: { tenantId, projectId, graphId: graphData.id },
       });
       expect(deleteResult).toBe(true);
 
       // Verify deletion
       const afterDelete = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId: graphData.id,
+        scopes: { tenantId, projectId, graphId: graphData.id },
       });
       expect(afterDelete).toBeNull();
     });
@@ -821,8 +813,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Verify both exist
       const [get1, get2] = await Promise.all([
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId: graph1Data.id }),
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId: graph2Data.id }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graph1Data.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graph2Data.id } }),
       ]);
 
       expect(get1).toBeDefined();
@@ -843,9 +835,9 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Perform concurrent get operations
       const [get1, get2, get3] = await Promise.all([
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId: graphData.id }),
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId: graphData.id }),
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId: graphData.id }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graphData.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graphData.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graphData.id } }),
       ]);
 
       expect(get1).toBeDefined();

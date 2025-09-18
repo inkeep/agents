@@ -84,7 +84,7 @@ describe('TemplateEngine', () => {
       // Should be a valid ISO date string
       const dateMatch = result.match(/Generated at (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/);
       expect(dateMatch).toBeTruthy();
-      expect(new Date(dateMatch?.[1]).toString()).not.toBe('Invalid Date');
+      expect(new Date(dateMatch?.[1] || '').toString()).not.toBe('Invalid Date');
     });
 
     test('should render $timestamp as number string', () => {

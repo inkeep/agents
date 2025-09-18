@@ -59,6 +59,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         relationId,
       });
@@ -83,6 +84,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         relationId: 'non-existent',
       });
@@ -134,6 +136,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: {
           page: 1,
@@ -173,9 +176,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: 'agent-1',
         },
-        graphId: testGraphId,
-        agentId: 'agent-1',
       });
 
       expect(mockQuery.agentRelations.findMany).toHaveBeenCalled();
@@ -390,8 +393,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: 'agent-1',
         },
-        agentId: 'agent-1',
       });
 
       expect(mockSelect).toHaveBeenCalled();
@@ -683,6 +687,7 @@ describe('Agent Relations Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
         },
+        graphId: testGraphId,
         relationId: 'tool-relation-1',
         data: { agentId: 'agent-1', toolId: 'tool-1' },
       });
@@ -749,6 +754,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         relationId,
       });
@@ -777,8 +783,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: 'agent-1',
         },
-        agentId: 'agent-1',
       });
 
       expect(result).toBe(true);
@@ -802,8 +809,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: 'non-existent',
         },
-        agentId: 'non-existent',
       });
 
       expect(result).toBe(false);
@@ -829,8 +837,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: 'ext-agent-1',
         },
-        agentId: 'ext-agent-1',
       });
 
       expect(result).toBe(true);
@@ -854,8 +863,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: 'non-existent',
         },
-        agentId: 'non-existent',
       });
 
       expect(result).toBe(false);

@@ -37,6 +37,7 @@ describe('DataComponent Class', () => {
       const config = {
         name: 'Test Component With Spaces & Special!@# Characters',
         tenantId,
+        projectId,
         description: 'Test description',
         props: {},
       };
@@ -78,6 +79,7 @@ describe('DataComponent Class', () => {
       const config = {
         name: 'ComplexComponent',
         tenantId,
+        projectId,
         description: 'Complex data component',
         props: complexProps,
       };
@@ -86,10 +88,12 @@ describe('DataComponent Class', () => {
       expect(dataComponent.getProps()).toEqual(complexProps);
     });
 
-    it('should use default tenantId when not provided', () => {
+    it('should use provided tenantId', () => {
       const config = {
         name: 'DefaultTenantComponent',
-        description: 'Component without tenant ID',
+        tenantId: 'default',
+        projectId,
+        description: 'Component with default tenant ID',
         props: { type: 'object' },
       };
 
@@ -101,6 +105,7 @@ describe('DataComponent Class', () => {
       const config = {
         name: 'EmptyPropsComponent',
         tenantId,
+        projectId,
         description: 'Component with empty props',
         props: {},
       };

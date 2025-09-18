@@ -7,7 +7,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 // Mock AI SDK providers
 vi.mock('@ai-sdk/anthropic', () => {
-  const mockAnthropicModel = { type: 'anthropic', modelId: 'claude-sonnet-4' } as LanguageModel;
+  const mockAnthropicModel = { type: 'anthropic', modelId: 'claude-sonnet-4' } as unknown as LanguageModel;
   const mockAnthropicProvider = {
     languageModel: vi.fn().mockReturnValue(mockAnthropicModel),
   };
@@ -19,7 +19,7 @@ vi.mock('@ai-sdk/anthropic', () => {
 });
 
 vi.mock('@ai-sdk/openai', () => {
-  const mockOpenAIModel = { type: 'openai', modelId: 'gpt-4o' } as LanguageModel;
+  const mockOpenAIModel = { type: 'openai', modelId: 'gpt-4o' } as unknown as LanguageModel;
   const mockOpenAIProvider = {
     languageModel: vi.fn().mockReturnValue(mockOpenAIModel),
   };
@@ -31,7 +31,7 @@ vi.mock('@ai-sdk/openai', () => {
 });
 
 vi.mock('@ai-sdk/google', () => {
-  const mockGoogleModel = { type: 'google', modelId: 'gemini-2.5-flash' } as LanguageModel;
+  const mockGoogleModel = { type: 'google', modelId: 'gemini-2.5-flash' } as unknown as LanguageModel;
   const mockGoogleProvider = {
     languageModel: vi.fn().mockReturnValue(mockGoogleModel),
   };
@@ -61,13 +61,13 @@ describe('ModelFactory', () => {
   describe('createModel', () => {
     test('should throw error when no config provided', () => {
       expect(() => {
-        ModelFactory.createModel();
+        ModelFactory.createModel(undefined as any);
       }).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 
     test('should throw error when null config provided', () => {
       expect(() => {
-        ModelFactory.createModel(null);
+        ModelFactory.createModel(null as any);
       }).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 

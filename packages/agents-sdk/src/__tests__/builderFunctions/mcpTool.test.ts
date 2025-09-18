@@ -5,6 +5,7 @@ import { mcpTool } from '../../builderFunctions';
 describe('mcpTool builder function', () => {
   it('should create an MCP tool with basic config', () => {
     const config: MCPToolConfig = {
+      id: 'test-mcp-tool',
       name: 'Test MCP Tool',
       description: 'Test MCP tool',
       serverUrl: 'http://localhost:3000/mcp',
@@ -44,6 +45,7 @@ describe('mcpTool builder function', () => {
 
   it('should generate ID from name when not provided', () => {
     const config: MCPToolConfig = {
+      id: 'auto-generated-id-tool',
       name: 'Auto Generated ID Tool',
       description: 'Tool with auto-generated ID',
       serverUrl: 'http://localhost:3000/tools',
@@ -55,6 +57,7 @@ describe('mcpTool builder function', () => {
 
   it('should handle complex transport configurations', () => {
     const config: MCPToolConfig = {
+      id: 'complex-transport-tool',
       name: 'Complex Transport Tool',
       description: 'Tool with complex transport config',
       serverUrl: 'http://localhost:3000/complex-tool',
@@ -71,6 +74,7 @@ describe('mcpTool builder function', () => {
 
   it('should handle tools without optional fields', () => {
     const config: MCPToolConfig = {
+      id: 'simple-tool',
       name: 'Simple Tool',
       description: 'Tool without optional fields',
       serverUrl: 'http://localhost:3000/simple',

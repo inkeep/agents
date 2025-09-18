@@ -21,6 +21,7 @@ describe('Data Components Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
+  const testGraphId = 'graph-123';
   const testDataComponentId = 'component-789';
   const testAgentId = 'agent-123';
 
@@ -521,8 +522,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await getDataComponentsForAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
       });
 
       expect(result).toEqual(expectedComponents);
@@ -545,8 +545,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await getDataComponentsForAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
       });
 
       expect(result).toEqual([]);
@@ -577,8 +576,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await associateDataComponentWithAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
         dataComponentId: testDataComponentId,
       });
 
@@ -601,8 +599,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await removeDataComponentFromAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
         dataComponentId: testDataComponentId,
       });
 
@@ -623,8 +620,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await removeDataComponentFromAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
         dataComponentId: 'non-existent',
       });
 
@@ -705,8 +701,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await isDataComponentAssociatedWithAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
         dataComponentId: testDataComponentId,
       });
 
@@ -728,8 +723,7 @@ describe('Data Components Data Access', () => {
       } as any;
 
       const result = await isDataComponentAssociatedWithAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        agentId: testAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId, agentId: testAgentId },
         dataComponentId: testDataComponentId,
       });
 

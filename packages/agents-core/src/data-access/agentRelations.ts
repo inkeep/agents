@@ -58,7 +58,7 @@ export const listAgentRelations =
   };
 
 export const getAgentRelations =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.agentRelations.findMany({
       where: and(
         eq(agentRelations.tenantId, params.scopes.tenantId),

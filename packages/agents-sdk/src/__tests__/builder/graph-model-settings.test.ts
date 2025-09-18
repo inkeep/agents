@@ -247,6 +247,7 @@ describe('Graph Model Settings', () => {
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
+        description: 'Test Agent',
       }),
     });
 
@@ -263,6 +264,7 @@ describe('Graph Model Settings', () => {
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
+        description: 'Test Agent',
       }),
     });
 

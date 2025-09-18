@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StatusUpdateSettings } from '../../builder/types';
+import type { StatusUpdateSettings } from '@inkeep/agents-core';
 import { GraphSession, graphSessionManager } from '../../utils/graph-session';
 import type { StreamHelper } from '../../utils/stream-helpers';
 
@@ -229,10 +229,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 3,
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Add events to trigger status update
       session.recordEvent('tool_execution', 'agent-1', {
@@ -260,10 +259,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         timeInSeconds: 5,
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Time-based updates should not trigger immediately
       expect(mockStreamHelper.writeOperation).not.toHaveBeenCalled();
@@ -275,7 +273,7 @@ describe('GraphSession', () => {
         numEvents: 5,
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Add events
       session.recordEvent('tool_execution', 'agent-1', {
@@ -292,10 +290,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 1,
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Start text streaming
       session.setTextStreaming(true);
@@ -434,10 +431,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         timeInSeconds: 0.1, // Very short timer
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // End session immediately to create race condition
       session.cleanup();
@@ -712,7 +708,7 @@ describe('GraphSession', () => {
         prompt: customPrompt,
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify prompt is stored in session state
       const statusState = (session as any).statusUpdateState;
@@ -728,10 +724,9 @@ describe('GraphSession', () => {
         prompt: customPrompt,
         statusComponents: [
           {
-            id: 'progress_summary',
-            name: 'Progress Summary',
+            type: 'progress_summary',
             description: 'Brief progress update',
-            schema: {
+            detailsSchema: {
               type: 'object',
               properties: {
                 summary: { type: 'string', description: 'Progress summary' },
@@ -742,13 +737,13 @@ describe('GraphSession', () => {
         ],
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify both prompt and components are stored
       const statusState = (session as any).statusUpdateState;
       expect(statusState.config.prompt).toBe(customPrompt);
       expect(statusState.config.statusComponents).toHaveLength(1);
-      expect(statusState.config.statusComponents[0].id).toBe('progress_summary');
+      expect(statusState.config.statusComponents[0].type).toBe('progress_summary');
     });
 
     it('should work without custom prompt (backward compatibility)', () => {
@@ -760,7 +755,7 @@ describe('GraphSession', () => {
 
       // Should not throw error during initialization
       expect(() => {
-        session.initializeStatusUpdates(config, 'test-model');
+        session.initializeStatusUpdates(config, { model: 'test-model' });
       }).not.toThrow();
 
       // Verify config is stored without prompt
@@ -775,7 +770,7 @@ describe('GraphSession', () => {
         prompt: '', // Empty string
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify empty prompt is stored correctly
       const statusState = (session as any).statusUpdateState;
@@ -790,7 +785,7 @@ describe('GraphSession', () => {
         prompt: customPrompt,
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify exact content preservation including newlines and special characters
       const statusState = (session as any).statusUpdateState;
@@ -812,7 +807,7 @@ describe('GraphSession', () => {
       graphSessionManager.createSession(sessionId, 'test-graph', 'tenant-1', 'project-1');
 
       // Initialize status updates through manager
-      graphSessionManager.initializeStatusUpdates(sessionId, config, 'test-model');
+      graphSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });
 
       // Verify session was found and configured
       const retrievedSession = graphSessionManager.getSession(sessionId);
@@ -831,7 +826,7 @@ describe('GraphSession', () => {
 
       // Don't create session, try to initialize status updates
       expect(() => {
-        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, 'test-model');
+        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, { model: 'test-model' });
       }).not.toThrow();
     });
 
@@ -845,7 +840,7 @@ describe('GraphSession', () => {
       // This would fail at schema validation level, but we can test the config structure
       expect(longPrompt.length).toBe(2001);
       expect(() => {
-        session.initializeStatusUpdates(config, 'test-model');
+        session.initializeStatusUpdates(config, { model: 'test-model' });
       }).not.toThrow(); // GraphSession itself doesn't validate, schema does
     });
 
@@ -863,10 +858,9 @@ describe('GraphSession', () => {
           prompt: 'Full config with special chars: àáâãäå and newlines\nLine 2',
           statusComponents: [
             {
-              id: 'test',
-              name: 'Test Component',
+              type: 'test',
               description: 'Test description',
-              schema: {
+              detailsSchema: {
                 type: 'object',
                 properties: { value: { type: 'string' } },
                 required: ['value'],
@@ -878,7 +872,7 @@ describe('GraphSession', () => {
 
       configs.forEach((config, index) => {
         expect(() => {
-          session.initializeStatusUpdates(config, 'test-model');
+          session.initializeStatusUpdates(config, { model: 'test-model' });
           // Verify each config is stored correctly
           const statusState = (session as any).statusUpdateState;
           expect(statusState.config.numEvents).toBe(config.numEvents || 10); // Default value

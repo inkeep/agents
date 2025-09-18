@@ -567,8 +567,8 @@ describe('Agents Data Access - Integration Tests', () => {
       });
 
       expect(fetchedAgent?.models).toEqual(complexModelSettings);
-      expect(fetchedAgent?.models?.base?.providerOptions?.openai?.temperature).toBe(0.7);
-      expect(fetchedAgent?.models?.summarizer?.providerOptions?.anthropic?.maxTokens).toBe(1000);
+      expect((fetchedAgent?.models?.base?.providerOptions?.openai as any)?.temperature).toBe(0.7);
+      expect((fetchedAgent?.models?.summarizer?.providerOptions?.anthropic as any)?.maxTokens).toBe(1000);
     });
 
     it('should handle null model settingsuration updates', async () => {

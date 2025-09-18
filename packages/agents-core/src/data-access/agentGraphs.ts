@@ -263,7 +263,6 @@ export const getGraphAgentInfos =
     // For now, this works without graph-specific filtering until schema is properly updated
     const relations = await getAgentRelations(db)({
       scopes: { tenantId, projectId, graphId, agentId },
-      graphId,
     });
     const targetAgentIds = relations
       .map((relation) => relation.targetAgentId)

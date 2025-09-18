@@ -33,7 +33,7 @@ vi.mock('../../logger.js', () => ({
 vi.mock('nanoid', async (importOriginal) => {
   const actual = await importOriginal();
   return {
-    ...actual,
+    ...(actual as any),
     nanoid: vi.fn(() => 'test-artifact-id'),
   };
 });
@@ -108,7 +108,7 @@ describe('Artifact Tools', () => {
         },
       ]);
 
-      const result = await saveToolResultTool.execute({
+      const result = await (saveToolResultTool as any).execute({
         toolCallId: 'test-call-id',
         baseSelector: 'result.content[0].text.content[?title==`Web Sources`]',
         propSelectors: {
@@ -116,13 +116,13 @@ describe('Artifact Tools', () => {
           title: 'title',
           type: 'type',
         },
-        name: 'Web Sources Documentation',
-        description: 'Documentation about web sources',
       });
 
-      expect(result.saved).toBe(true);
-      expect(result.artifacts).toBeDefined();
-      expect(Object.keys(result.artifacts)).toHaveLength(1);
+      // Type assert result since it's not an AsyncIterable in tests
+      const syncResult = result as any;
+      expect(syncResult.saved).toBe(true);
+      expect(syncResult.artifacts).toBeDefined();
+      expect(Object.keys(syncResult.artifacts)).toHaveLength(1);
 
       // Verify JMESPath was called with parsed data
       expect(jmespath.search).toHaveBeenCalledWith(
@@ -164,16 +164,16 @@ describe('Artifact Tools', () => {
         throw new Error('Invalid JMESPath expression');
       });
 
-      const result = await saveToolResultTool.execute({
+      const result = await (saveToolResultTool as any).execute({
         toolCallId: 'invalid-call-id',
         baseSelector: 'result.invalid[expression',
         propSelectors: {},
-        name: 'Test Artifact',
-        description: 'Test description',
       });
 
-      expect(result.saved).toBe(false);
-      expect(result.error).toBe('[toolCallId: invalid-call-id] Invalid JMESPath expression');
+      // Type assert result since it's not an AsyncIterable in tests
+      const syncResult = result as any;
+      expect(syncResult.saved).toBe(false);
+      expect(syncResult.error).toBe('[toolCallId: invalid-call-id] Invalid JMESPath expression');
     });
 
     it.skip('should handle repeated field names in nested structures', async () => {
@@ -205,7 +205,7 @@ describe('Artifact Tools', () => {
       // Mock JMESPath to return filtered results
       vi.mocked(jmespath.search).mockReturnValue([{ id: 1, type: 'tutorial', title: 'Guide 1' }]);
 
-      const result = await saveToolResultTool.execute({
+      const result = await (saveToolResultTool as any).execute({
         toolCallId: 'complex-call-id',
         baseSelector: 'result.data.responses[0].data[?type==`tutorial`]',
         propSelectors: {
@@ -217,7 +217,9 @@ describe('Artifact Tools', () => {
         description: 'Tutorial documentation',
       });
 
-      expect(result.saved).toBe(true);
+      // Type assert result since it's not an AsyncIterable in tests
+      const syncResult = result as any;
+      expect(syncResult.saved).toBe(true);
       expect(jmespath.search).toHaveBeenCalledWith(
         expect.objectContaining({
           result: complexData,
@@ -229,16 +231,16 @@ describe('Artifact Tools', () => {
     it.skip('should handle missing tool results gracefully', async () => {
       const saveToolResultTool = createSaveToolResultTool(sessionId);
 
-      const result = await saveToolResultTool.execute({
+      const result = await (saveToolResultTool as any).execute({
         toolCallId: 'nonexistent-call-id',
         baseSelector: 'result.data[?type==`test`]',
         propSelectors: {},
-        name: 'Test Artifact',
-        description: 'Test description',
       });
 
-      expect(result.saved).toBe(false);
-      expect(result.error).toBe('[toolCallId: nonexistent-call-id] Tool result not found');
+      // Type assert result since it's not an AsyncIterable in tests
+      const syncResult = result as any;
+      expect(syncResult.saved).toBe(false);
+      expect(syncResult.error).toBe('[toolCallId: nonexistent-call-id] Tool result not found');
     });
 
     it.skip('should extract aiMetadata correctly', async () => {
@@ -274,7 +276,7 @@ describe('Artifact Tools', () => {
         return null;
       });
 
-      const result = await saveToolResultTool.execute({
+      const result = await (saveToolResultTool as any).execute({
         toolCallId: 'metadata-call-id',
         baseSelector: 'result.documents[?record_type==`api`]',
         propSelectors: {
@@ -282,16 +284,16 @@ describe('Artifact Tools', () => {
           document_title: 'title',
           content_type: 'record_type',
         },
-        name: 'API Documentation',
-        description: 'API reference documentation',
       });
 
-      expect(result.saved).toBe(true);
-      expect(result.artifacts).toBeDefined();
-      expect(result.artifacts).toHaveLength(1);
+      // Type assert result since it's not an AsyncIterable in tests
+      const syncResult = result as any;
+      expect(syncResult.saved).toBe(true);
+      expect(syncResult.artifacts).toBeDefined();
+      expect(syncResult.artifacts).toHaveLength(1);
 
       // Verify artifact was extracted correctly
-      const artifact = result.artifacts[0];
+      const artifact = syncResult.artifacts[0];
 
       // Note: In the new implementation, name and description are generated asynchronously
       // The immediate response only contains artifactId, taskId, and summaryData
@@ -350,11 +352,12 @@ describe('Artifact Tools', () => {
       };
 
       const parsed = parseEmbeddedJson(complexData);
+      const parsedData = typeof parsed === 'string' ? JSON.parse(parsed).data : parsed.data;
 
-      expect(parsed.data).toBeInstanceOf(Object);
-      expect(parsed.data.responses).toBeInstanceOf(Array);
-      expect(parsed.data.responses[0].data).toBeInstanceOf(Array);
-      expect(parsed.data.responses[0].data).toHaveLength(2);
+      expect(parsedData).toBeInstanceOf(Object);
+      expect(parsedData.responses).toBeInstanceOf(Array);
+      expect(parsedData.responses[0].data).toBeInstanceOf(Array);
+      expect(parsedData.responses[0].data).toHaveLength(2);
     });
 
     it('should preserve non-JSON strings unchanged', () => {
@@ -385,7 +388,7 @@ describe('Artifact Tools', () => {
         }),
       };
 
-      const parsed = parseEmbeddedJson(deepData);
+      const parsed = parseEmbeddedJson(deepData) as any;
 
       expect(parsed.level1.level2.level3).toBeInstanceOf(Array);
       expect(parsed.level1.level2.level3).toHaveLength(2);

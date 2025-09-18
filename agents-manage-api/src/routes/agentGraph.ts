@@ -95,8 +95,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const graph = await getAgentGraphById(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId: id,
+      scopes: { tenantId, projectId, graphId: id },
     });
 
     if (!graph) {
@@ -146,9 +145,7 @@ app.openapi(
     const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
 
     const relatedAgents = await getGraphAgentInfos(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
     });
 
     return c.json({
@@ -192,8 +189,7 @@ app.openapi(
     const { tenantId, projectId, graphId } = c.req.valid('param');
 
     const fullGraph = await getFullGraphDefinition(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     if (!fullGraph) {
@@ -289,8 +285,7 @@ app.openapi(
     const validatedBody = c.req.valid('json');
 
     const updatedGraph = await updateAgentGraph(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId: id,
+      scopes: { tenantId, projectId, graphId: id },
       data: {
         defaultAgentId: validatedBody.defaultAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
@@ -336,8 +331,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const deleted = await deleteAgentGraph(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId: id,
+      scopes: { tenantId, projectId, graphId: id },
     });
 
     if (!deleted) {

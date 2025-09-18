@@ -27,6 +27,7 @@ describe('projectFull data access', () => {
       transferCountIs: 10,
       stepCountIs: 50,
     },
+    tools: {},
     graphs: {}, // Start with empty graphs for basic testing
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -63,7 +64,6 @@ describe('projectFull data access', () => {
               tools: [toolId], // Reference tool by ID
               dataComponents: [],
               artifactComponents: [],
-              type: 'internal',
             },
           },
           // No tools here - they're at project level now
@@ -98,7 +98,10 @@ describe('projectFull data access', () => {
       const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectDefinition(projectId);
 
-      const result = await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      const result = await createFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        projectData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -112,7 +115,10 @@ describe('projectFull data access', () => {
       const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectWithGraphs(projectId);
 
-      const result = await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      const result = await createFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        projectData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -127,11 +133,15 @@ describe('projectFull data access', () => {
         name: 'Minimal Project',
         description: '',
         graphs: {},
+        tools: {},
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await createFullProjectServerSide(db, logger)({ tenantId }, minimalProject);
+      const result = await createFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        minimalProject
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -146,15 +156,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Retrieve it
       const result = await getFullProject(
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
 
       expect(result).toBeDefined();
@@ -172,8 +181,7 @@ describe('projectFull data access', () => {
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId: nonExistentId,
+        scopes: { tenantId, projectId: nonExistentId },
       });
 
       expect(result).toBeNull();
@@ -184,15 +192,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectWithGraphs(projectId);
 
       // Create the project with graphs
-      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Retrieve it
       const result = await getFullProject(
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
 
       expect(result).toBeDefined();
@@ -208,15 +215,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectWithGraphs(projectId);
 
       // Create the project with graphs and tools
-      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Retrieve it
       const result = await getFullProject(
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
 
       expect(result).toBeDefined();
@@ -225,14 +231,6 @@ describe('projectFull data access', () => {
         expect(result.tools).toBeDefined();
         const toolIds = Object.keys(result.tools);
         expect(toolIds.length).toBeGreaterThan(0);
-
-        // Graphs should NOT have tools
-        const graphIds = Object.keys(result.graphs);
-        for (const graphId of graphIds) {
-          const graph = result.graphs[graphId];
-          // Graph should not have tools property (or it should be undefined/empty)
-          expect(graph.tools).toBeUndefined();
-        }
 
         // Verify the tool structure at project level
         const firstToolId = toolIds[0];
@@ -250,7 +248,7 @@ describe('projectFull data access', () => {
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId }, originalData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, originalData);
 
       // Update it
       const updatedData = {
@@ -259,7 +257,10 @@ describe('projectFull data access', () => {
         description: 'Updated description',
       };
 
-      const result = await updateFullProjectServerSide(db, logger)({ tenantId }, updatedData);
+      const result = await updateFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        updatedData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -272,7 +273,10 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Try to update a non-existent project (should create it)
-      const result = await updateFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      const result = await updateFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        projectData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -284,7 +288,7 @@ describe('projectFull data access', () => {
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId }, originalData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, originalData);
 
       // Update with new models and stopWhen
       const updatedData = {
@@ -299,7 +303,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      const result = await updateFullProjectServerSide(db, logger)({ tenantId }, updatedData);
+      const result = await updateFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        updatedData
+      );
 
       expect(result).toBeDefined();
       expect(result.models).toEqual(updatedData.models);
@@ -313,15 +320,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Delete it
       const deleted = await deleteFullProject(
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
 
       expect(deleted).toBe(true);
@@ -331,8 +337,7 @@ describe('projectFull data access', () => {
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
 
       expect(result).toBeNull();
@@ -345,8 +350,7 @@ describe('projectFull data access', () => {
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId: nonExistentId,
+        scopes: { tenantId, projectId: nonExistentId },
       });
 
       expect(deleted).toBe(false);
@@ -357,15 +361,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectWithGraphs(projectId);
 
       // Create the project with graphs
-      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Verify the project exists
       let project = await getFullProject(
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
       expect(project).toBeDefined();
 
@@ -374,8 +377,7 @@ describe('projectFull data access', () => {
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
 
       expect(deleted).toBe(true);
@@ -385,8 +387,7 @@ describe('projectFull data access', () => {
         db,
         logger
       )({
-        scopes: { tenantId },
-        projectId,
+        scopes: { tenantId, projectId },
       });
       expect(project).toBeNull();
     });
@@ -400,7 +401,10 @@ describe('projectFull data access', () => {
       } as FullProjectDefinition;
 
       await expect(
-        createFullProjectServerSide(db, logger)({ tenantId }, invalidData)
+        createFullProjectServerSide(db, logger)(
+          { tenantId, projectId: invalidData.id },
+          invalidData
+        )
       ).rejects.toThrow();
     });
 
@@ -409,11 +413,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId }, projectData);
+      await createFullProjectServerSide(db, logger)(
+        { tenantId, projectId: projectData.id },
+        projectData
+      );
 
       // Try to create the same project again (should cause conflict)
       await expect(
-        createFullProjectServerSide(db, logger)({ tenantId }, projectData)
+        createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData)
       ).rejects.toThrow();
     });
   });

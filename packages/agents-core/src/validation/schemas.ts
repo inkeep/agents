@@ -656,7 +656,10 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
 });
 
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  agents: z.record(
+    z.string(),
+    z.discriminatedUnion('type', [FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
+  ),
   models: ModelSchema.optional(),
   stopWhen: GraphStopWhenSchema.optional(),
   graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),

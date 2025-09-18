@@ -96,7 +96,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, artifactComponentId } = c.req.valid('param');
+    const { tenantId, projectId, artifactComponentId } = c.req.valid('param');
 
     const agents = await getAgentsUsingArtifactComponent(dbClient)({
       scopes: { tenantId, projectId },

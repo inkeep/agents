@@ -18,6 +18,7 @@ describe('Tools Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
+  const testGraphId = 'test-graph';
   const testToolId = 'test-tool';
   const testAgentId = 'test-agent';
 
@@ -335,7 +336,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
         agentId: testAgentId,
         toolId: testToolId,
       });
@@ -368,7 +369,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
         agentId: testAgentId,
         toolId: testToolId,
         selectedTools,
@@ -403,7 +404,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
         agentId: testAgentId,
         toolId: testToolId,
         selectedTools,
@@ -436,7 +437,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await removeToolFromAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
         agentId: testAgentId,
         toolId: testToolId,
       });

@@ -37,7 +37,6 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     return { agentData, agentId: createBody.data.id };
   };
 
-
   // Helper function to create test agent relation data
   const createAgentRelationData = ({
     graphId,
@@ -78,7 +77,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       relationType,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
+      `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-relations`,
       {
         method: 'POST',
         body: JSON.stringify(agentRelationData),
@@ -113,8 +112,16 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     const agentGraphId = graphBody.data.id;
 
     // Now create agents with the graphId
-    const { agentId: sourceAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId, suffix: ' Source' });
-    const { agentId: targetAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId, suffix: ' Target' });
+    const { agentId: sourceAgentId } = await createTestAgent({
+      tenantId,
+      graphId: agentGraphId,
+      suffix: ' Source',
+    });
+    const { agentId: targetAgentId } = await createTestAgent({
+      tenantId,
+      graphId: agentGraphId,
+      suffix: ' Target',
+    });
 
     // Update the graph with a defaultAgentId if needed
     const updateRes = await makeRequest(
@@ -163,6 +170,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('agent-relations-create-validation');
       await ensureTestProject(tenantId, projectId);
+      const { agentGraphId } = await setupTestEnvironment(tenantId);
       const res = await makeRequest(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
         {
@@ -256,6 +264,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should list agent relations with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('agent-relations-list-empty');
       await ensureTestProject(tenantId, projectId);
+      const { agentGraphId } = await setupTestEnvironment(tenantId);
       const res = await app.request(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
       );

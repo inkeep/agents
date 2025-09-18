@@ -116,6 +116,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId,
       });
@@ -140,6 +141,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId: 'non-existent',
       });
@@ -170,6 +172,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
       });
 
@@ -218,6 +221,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: { page: 1, limit: 5 },
       });
@@ -269,6 +273,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: {},
       });
@@ -316,6 +321,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: { limit: 200 }, // Request more than max
       });
@@ -356,6 +362,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId,
         data: updateData,
@@ -392,6 +399,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId,
       });
@@ -407,6 +415,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentIds: [],
       });
@@ -436,6 +445,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentIds,
       });

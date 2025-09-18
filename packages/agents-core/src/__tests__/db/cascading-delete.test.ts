@@ -179,8 +179,12 @@ describe('Cascading Delete Tests', () => {
       config: {
         type: 'mcp' as const,
         mcp: {
-          serverUri: 'https://example.com',
-          transport: 'http' as const,
+          server: {
+            url: 'https://example.com',
+          },
+          transport: {
+            type: 'streamable_http' as const,
+          },
         },
       },
     };

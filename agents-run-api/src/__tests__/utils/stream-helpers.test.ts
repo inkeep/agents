@@ -20,7 +20,11 @@ import {
 } from '../../utils/stream-helpers';
 
 describe('VercelDataStreamHelper Memory Management', () => {
-  let mockWriter: VercelUIWriter;
+  let mockWriter: VercelUIWriter & {
+    write: ReturnType<typeof vi.fn>;
+    merge: ReturnType<typeof vi.fn>;
+    onError: ReturnType<typeof vi.fn>;
+  };
   let helper: VercelDataStreamHelper;
 
   beforeEach(() => {

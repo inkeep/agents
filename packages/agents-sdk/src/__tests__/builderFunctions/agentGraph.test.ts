@@ -13,8 +13,9 @@ describe('agentGraph builder function', () => {
     });
 
     const config: GraphConfig = {
+      id: 'test-graph',
       name: 'Test Graph',
-      agents: [agent],
+      agents: () => [agent],
     };
 
     const graph = agentGraph(config);
@@ -39,8 +40,9 @@ describe('agentGraph builder function', () => {
     });
 
     const config: GraphConfig = {
+      id: 'multi-agent-graph',
       name: 'Multi Agent Graph',
-      agents: [agent1, agent2],
+      agents: () => [agent1, agent2],
     };
 
     const graph = agentGraph(config);
@@ -60,9 +62,10 @@ describe('agentGraph builder function', () => {
     });
 
     const config: GraphConfig = {
+      id: 'configured-graph',
       name: 'Configured Graph',
       description: 'A graph with description',
-      agents: [agent],
+      agents: () => [agent],
       tenantId: 'test-tenant',
     };
 

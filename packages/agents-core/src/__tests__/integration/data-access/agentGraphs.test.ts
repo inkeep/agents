@@ -94,8 +94,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Retrieve the graph
       const fetchedGraph = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 
       expect(fetchedGraph).not.toBeNull();
@@ -108,15 +107,13 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       });
 
       await deleteAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
     });
 
     it('should return null when graph not found', async () => {
       const result = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: 'non-existent-graph',
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: 'non-existent-graph' },
       });
 
       expect(result).toBeNull();
@@ -145,8 +142,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       });
 
       await deleteAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 
       expect(graphWithAgent).not.toBeNull();
@@ -274,8 +270,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       const updatedGraph = await updateAgentGraph(db)({
         data: updateData,
-        graphId: graphData.id,
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 
       expect(updatedGraph).toMatchObject({
@@ -294,8 +289,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Update to clear model settings (set to null)
       const updatedGraph = await updateAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
         data: {
           models: null,
         },
@@ -311,8 +305,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Try to update from different tenant
       const result = await updateAgentGraph(db)({
-        scopes: { tenantId: 'tenant-2', projectId: testProjectId },
-        graphId: tenant1GraphData.id,
+        scopes: { tenantId: 'tenant-2', projectId: testProjectId, graphId: tenant1GraphData.id },
         data: {
           name: 'Hacked Name',
         },
@@ -322,8 +315,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Verify original is unchanged
       const original = await getAgentGraphById(db)({
-        scopes: { tenantId: 'tenant-1', projectId: testProjectId },
-        graphId: tenant1GraphData.id,
+        scopes: { tenantId: 'tenant-1', projectId: testProjectId, graphId: tenant1GraphData.id },
       });
 
       expect(original?.name).toBe('Test Agent Graph 9');
@@ -350,8 +342,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Verify graph exists
       const beforeDelete = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
       expect(beforeDelete).not.toBeNull();
 
@@ -363,16 +354,14 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Delete graph
       const deleteResult = await deleteAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 
       expect(deleteResult).toBe(true);
 
       // Verify deletion
       const afterDelete = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: graphData.id,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
       expect(afterDelete).toBeNull();
 
@@ -395,14 +384,12 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Try to delete from different tenant
       await deleteAgentGraph(db)({
-        scopes: { tenantId: 'tenant-2', projectId: testProjectId },
-        graphId: tenant1GraphData.id,
+        scopes: { tenantId: 'tenant-2', projectId: testProjectId, graphId: tenant1GraphData.id },
       });
 
       // Verify graph still exists
       const stillExists = await getAgentGraphById(db)({
-        scopes: { tenantId: 'tenant-1', projectId: testProjectId },
-        graphId: tenant1GraphData.id,
+        scopes: { tenantId: 'tenant-1', projectId: testProjectId, graphId: tenant1GraphData.id },
       });
 
       expect(stillExists).not.toBeNull();

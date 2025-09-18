@@ -36,9 +36,9 @@ describe('Schema Key Filtering - Headers Only', () => {
     });
 
     // Extra headers should be filtered out
-    expect(result.validatedContext?.['extra-header']).toBeUndefined();
-    expect(result.validatedContext?.['another-header']).toBeUndefined();
-    expect(result.validatedContext?.['content-type']).toBeUndefined();
+    expect((result.validatedContext as any)?.['extra-header']).toBeUndefined();
+    expect((result.validatedContext as any)?.['another-header']).toBeUndefined();
+    expect((result.validatedContext as any)?.['content-type']).toBeUndefined();
   });
 
   it('should handle schemas with no defined properties', async () => {

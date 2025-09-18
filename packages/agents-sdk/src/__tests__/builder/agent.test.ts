@@ -284,7 +284,10 @@ describe('Agent Builder', () => {
       const agentWithoutDesc = new Agent({
         id: 'no-desc-agent',
         name: 'No Description Agent',
+        description: '',
         prompt: 'No description provided',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const description = agentWithoutDesc.getDescription();
@@ -309,7 +312,8 @@ describe('Agent Builder', () => {
         prompt: 'Test instructions',
         description: 'Test description',
         tenantId: 'test-tenant',
-        tools: () => [testTool],
+        projectId: 'test-project',
+        canUse: () => [testTool],
         dataComponents: () => [
           {
             id: 'test-data-component',

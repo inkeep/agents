@@ -42,8 +42,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentGraphById(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
       });
 
       expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
@@ -63,8 +62,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentGraphById(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: 'non-existent',
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: 'non-existent' },
       });
 
       expect(result).toBeNull();
@@ -94,8 +92,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentGraphById(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
       });
 
       expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
@@ -126,8 +123,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentGraphWithDefaultAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
       });
 
       expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
@@ -309,8 +305,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await updateAgentGraph(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
         data: updateData,
       });
 
@@ -345,8 +340,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await updateAgentGraph(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
         data: updateData,
       });
 
@@ -378,8 +372,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await deleteAgentGraph(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
       });
 
       expect(mockDelete).toHaveBeenCalled();

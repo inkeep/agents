@@ -472,8 +472,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
       });
 
       expect(mockSelect).toHaveBeenCalled();
@@ -508,8 +509,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
         artifactComponentId: componentId,
       });
 
@@ -537,8 +539,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
         artifactComponentId: componentId,
       });
 
@@ -567,8 +570,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
         artifactComponentId: componentId,
       });
 
@@ -634,8 +638,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
         artifactComponentId: componentId,
       });
 
@@ -662,8 +667,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
         artifactComponentId: componentId,
       });
 
@@ -694,8 +700,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
-        graphId: testGraphId,
       });
 
       expect(result).toBe(true);
@@ -723,8 +729,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
-        graphId: testGraphId,
       });
 
       expect(result).toBe(false);
@@ -752,8 +758,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
-        graphId: testGraphId,
       });
 
       expect(result).toBe(true);
@@ -846,8 +852,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
       });
 
       expect(mockSelect).toHaveBeenCalled();
@@ -870,8 +877,9 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: testAgentId,
       });
 
       expect(result).toBe(0);

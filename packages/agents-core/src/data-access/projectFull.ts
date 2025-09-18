@@ -359,7 +359,6 @@ export const createFullProjectServerSide =
         logger
       )({
         scopes: { tenantId, projectId: typed.id },
-        projectId: typed.id,
       })) as FullProjectDefinition;
     } catch (error) {
       logger.error(
@@ -716,7 +715,6 @@ export const updateFullProjectServerSide =
         logger
       )({
         scopes: { tenantId, projectId: typed.id },
-        projectId: typed.id,
       })) as FullProjectDefinition;
     } catch (error) {
       logger.error(
@@ -736,12 +734,9 @@ export const updateFullProjectServerSide =
  */
 export const getFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    projectId: string;
-  }): Promise<FullProjectDefinition | null> => {
-    const { scopes, projectId } = params;
-    const { tenantId } = scopes;
+  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectDefinition | null> => {
+    const { scopes } = params;
+    const { tenantId, projectId } = scopes;
 
     logger.info({ tenantId, projectId }, 'Retrieving full project definition');
 
@@ -1004,9 +999,9 @@ export const getFullProject =
  */
 export const deleteFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ProjectScopeConfig; projectId: string }): Promise<boolean> => {
-    const { scopes, projectId } = params;
-    const { tenantId } = scopes;
+  async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
+    const { scopes } = params;
+    const { tenantId, projectId } = scopes;
 
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
@@ -1017,7 +1012,6 @@ export const deleteFullProject =
         logger
       )({
         scopes: { tenantId, projectId },
-        projectId,
       });
 
       if (!project) {

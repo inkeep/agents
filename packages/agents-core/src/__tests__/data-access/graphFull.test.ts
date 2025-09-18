@@ -32,8 +32,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result).toBeNull();
@@ -120,8 +119,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result).toBeDefined();
@@ -248,8 +246,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result).toBeDefined();
@@ -346,8 +343,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result?.tools).toHaveProperty('tool-1');
@@ -447,8 +443,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result?.models).toEqual(mockModelSettings);
@@ -543,8 +538,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       // Should use current date for invalid dates
@@ -654,8 +648,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       // Should only include the valid agent

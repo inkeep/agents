@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { Agent } from '../../agent';
+import type { AgentConfig } from '../../types';
 import { createTestTenantId } from '../utils/testTenant';
 
 describe('Agent with DataComponents Integration', () => {
   const tenantId = createTestTenantId('agent-datacomponents');
 
   it('should handle agents with data components configuration', () => {
-    const agentConfig = {
+    const agentConfig: AgentConfig = {
       id: 'test-agent-with-datacomponents',
       name: 'TestAgentWithDataComponents',
       tenantId,
       description: 'An agent that has data components',
       prompt: 'You are a helpful agent with UI components.',
-      dataComponents: [
+      dataComponents: () => [
         {
           id: 'orders-list-1',
           tenantId,
@@ -55,9 +56,9 @@ describe('Agent with DataComponents Integration', () => {
     expect(agent.config.description).toBe('An agent that has data components');
     expect(agent.getInstructions()).toBe('You are a helpful agent with UI components.');
     expect(agent.getId()).toBe('test-agent-with-datacomponents');
-    expect(agent.config.dataComponents).toHaveLength(2);
-    expect(agent.config.dataComponents?.[0].name).toBe('OrdersList');
-    expect(agent.config.dataComponents?.[1].name).toBe('SalesButton');
+    expect(agent.config.dataComponents?.()).toHaveLength(2);
+    expect(agent.config.dataComponents?.()?.[0]?.name).toBe('OrdersList');
+    expect(agent.config.dataComponents?.()?.[1]?.name).toBe('SalesButton');
   });
 
   it('should handle agents without data components', () => {
@@ -76,18 +77,18 @@ describe('Agent with DataComponents Integration', () => {
   });
 
   it('should handle agents with empty data components array', () => {
-    const agentConfig = {
+    const agentConfig: AgentConfig = {
       id: 'empty-datacomponents-agent',
       name: 'EmptyDataComponentsAgent',
       tenantId,
       description: 'Agent with empty data components',
       prompt: 'You are a helpful agent.',
-      dataComponents: [],
+      dataComponents: () => [],
     };
 
     const agent = new Agent(agentConfig);
 
     expect(agent.getName()).toBe('EmptyDataComponentsAgent');
-    expect(agent.config.dataComponents).toEqual([]);
+    expect(agent.config.dataComponents?.()).toEqual([]);
   });
 });

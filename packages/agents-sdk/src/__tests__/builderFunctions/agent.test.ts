@@ -48,24 +48,25 @@ describe('agent builder function', () => {
     expect(testAgent.config.projectId).toBe('test-project');
   });
 
-  it('should create an agent with tools function', () => {
-    const mockTool = {
-      id: 'test-tool',
-      name: 'Test Tool',
+  it('should create an agent with data components function', () => {
+    const mockDataComponent = {
+      id: 'test-component',
+      name: 'Test Component',
+      description: 'A test data component',
     };
 
     const config: AgentConfig = {
-      id: 'tool-agent',
-      name: 'Tool Agent',
-      description: 'Agent with tools',
-      prompt: 'Agent that uses tools',
-      tools: () => [mockTool],
+      id: 'component-agent',
+      name: 'Component Agent',
+      description: 'Agent with data components',
+      prompt: 'Agent that uses data components',
+      dataComponents: () => [mockDataComponent],
     };
 
     const testAgent = agent(config);
 
-    expect(testAgent.getName()).toBe('Tool Agent');
-    expect(typeof testAgent.config.tools).toBe('function');
+    expect(testAgent.getName()).toBe('Component Agent');
+    expect(typeof testAgent.config.dataComponents).toBe('function');
   });
 
   it('should create an agent with transfer relationships', () => {

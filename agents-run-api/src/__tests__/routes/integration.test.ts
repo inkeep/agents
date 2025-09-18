@@ -104,7 +104,7 @@ vi.mock('../../a2a/client.js', () => ({
     getAgentCard: vi.fn().mockResolvedValue({
       capabilities: { streaming: true },
     }),
-  })),
+  } as any)),
 }));
 
 vi.mock('../../a2a/transfer.js', () => ({
@@ -273,7 +273,7 @@ describe('Integration Tests', () => {
       vi.mocked(A2AClient).mockImplementation(() => ({
         sendMessage: mockSendMessage,
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       // Mock transfer detection
       const { isTransferResponse } = await import('../../a2a/transfer.js');
@@ -323,7 +323,7 @@ describe('Integration Tests', () => {
       vi.mocked(A2AClient).mockImplementation(() => ({
         sendMessage: mockSendMessage,
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -383,7 +383,7 @@ describe('Integration Tests', () => {
           },
         }),
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -414,7 +414,7 @@ describe('Integration Tests', () => {
       vi.mocked(A2AClient).mockImplementation(() => ({
         sendMessage: vi.fn().mockRejectedValue(new Error('Agent communication failed')),
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       const executionContext = await createTestExecutionContext();
       const params = {
