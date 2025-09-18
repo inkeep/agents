@@ -44,7 +44,7 @@ export class IncrementalStreamParser {
    */
   async processTextChunk(chunk: string): Promise<void> {
     // If this text follows a tool result and we haven't added any text yet, add spacing
-    if (this.lastChunkWasToolResult && this.buffer === '' && chunk.trim()) {
+    if (this.lastChunkWasToolResult && this.buffer === '' && chunk) {
       chunk = '\n\n' + chunk;
       this.lastChunkWasToolResult = false;
     }
@@ -62,7 +62,6 @@ export class IncrementalStreamParser {
     this.buffer = parseResult.remainingBuffer;
   }
 
-
   /**
    * Process object deltas directly from Vercel AI SDK's fullStream
    * Accumulates components and streams them when they're stable (unchanged between deltas)
@@ -72,18 +71,23 @@ export class IncrementalStreamParser {
       return;
     }
 
-
     // Deep merge delta into accumulator
     this.componentAccumulator = this.deepMerge(this.componentAccumulator, delta);
 
     // Check if we have dataComponents to process
-    if (this.componentAccumulator.dataComponents && Array.isArray(this.componentAccumulator.dataComponents)) {
+    if (
+      this.componentAccumulator.dataComponents &&
+      Array.isArray(this.componentAccumulator.dataComponents)
+    ) {
       const components = this.componentAccumulator.dataComponents;
-      const currentComponentIds = new Set(components.filter(c => c?.id).map(c => c.id));
-      
+      const currentComponentIds = new Set(components.filter((c) => c?.id).map((c) => c.id));
+
       // Check for new components - stream any previous components that are ready
       for (const [componentId, snapshot] of this.componentSnapshots.entries()) {
-        if (!currentComponentIds.has(componentId) && !this.lastStreamedComponents.has(componentId)) {
+        if (
+          !currentComponentIds.has(componentId) &&
+          !this.lastStreamedComponents.has(componentId)
+        ) {
           // This component is no longer in the current delta - stream it if complete
           try {
             const component = JSON.parse(snapshot);
@@ -95,29 +99,31 @@ export class IncrementalStreamParser {
           }
         }
       }
-      
+
       for (let i = 0; i < components.length; i++) {
         const component = components[i];
-        
+
         if (!component?.id) continue;
-        
+
         const componentKey = component.id;
         const hasBeenStreamed = this.lastStreamedComponents.has(componentKey);
-        
+
         if (hasBeenStreamed) continue;
-        
+
         // Create snapshot of current component
         const currentSnapshot = JSON.stringify(component);
         const previousSnapshot = this.componentSnapshots.get(componentKey);
-        
+
         // Update snapshot
         this.componentSnapshots.set(componentKey, currentSnapshot);
-        
+
         // Stream if component is complete AND props haven't changed (stable)
         if (this.isComponentComplete(component)) {
           const currentPropsSnapshot = JSON.stringify(component.props);
-          const previousPropsSnapshot = previousSnapshot ? JSON.stringify(JSON.parse(previousSnapshot).props) : null;
-          
+          const previousPropsSnapshot = previousSnapshot
+            ? JSON.stringify(JSON.parse(previousSnapshot).props)
+            : null;
+
           if (previousPropsSnapshot === currentPropsSnapshot) {
             await this.streamComponent(component);
           }
@@ -133,11 +139,11 @@ export class IncrementalStreamParser {
     const parts = await this.artifactParser.parseObject({
       dataComponents: [component],
     });
-    
+
     for (const part of parts) {
       await this.streamPart(part);
     }
-    
+
     // Mark as streamed
     this.lastStreamedComponents.set(component.id, true);
   }
@@ -157,9 +163,9 @@ export class IncrementalStreamParser {
     }
 
     // For artifacts, still require both required fields
-    const isArtifact = component.name === 'Artifact' || 
-                      (component.props.artifact_id && component.props.task_id);
-    
+    const isArtifact =
+      component.name === 'Artifact' || (component.props.artifact_id && component.props.task_id);
+
     if (isArtifact) {
       return Boolean(component.props.artifact_id && component.props.task_id);
     }
@@ -176,7 +182,7 @@ export class IncrementalStreamParser {
     if (!target) return source;
 
     const result = { ...target };
-    
+
     for (const key in source) {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.deepMerge(target[key], source[key]);
@@ -184,10 +190,9 @@ export class IncrementalStreamParser {
         result[key] = source[key];
       }
     }
-    
+
     return result;
   }
-
 
   /**
    * Legacy method for backward compatibility - defaults to text processing
@@ -201,50 +206,52 @@ export class IncrementalStreamParser {
    */
   async finalize(): Promise<void> {
     // Stream any remaining complete components that haven't been streamed yet
-    if (this.componentAccumulator.dataComponents && Array.isArray(this.componentAccumulator.dataComponents)) {
+    if (
+      this.componentAccumulator.dataComponents &&
+      Array.isArray(this.componentAccumulator.dataComponents)
+    ) {
       const components = this.componentAccumulator.dataComponents;
-      
+
       for (let i = 0; i < components.length; i++) {
         const component = components[i];
-        
+
         if (!component?.id) continue;
-        
+
         const componentKey = component.id;
         const hasBeenStreamed = this.lastStreamedComponents.has(componentKey);
-        
+
         // Stream any complete components that haven't been streamed yet
         if (!hasBeenStreamed && this.isComponentComplete(component)) {
           const parts = await this.artifactParser.parseObject({
             dataComponents: [component],
           });
-          
+
           for (const part of parts) {
             await this.streamPart(part);
           }
-          
+
           this.lastStreamedComponents.set(componentKey, true);
         }
       }
     }
 
-    if (this.buffer.trim()) {
+    if (this.buffer) {
       // Process remaining buffer as final text
       const part: StreamPart = {
         kind: 'text',
-        text: this.buffer.trim(),
+        text: this.buffer,
       };
       await this.streamPart(part);
     }
 
     // Flush any remaining buffered text
-    if (this.pendingTextBuffer.trim()) {
+    if (this.pendingTextBuffer) {
       // Clean up any artifact-related tags or remnants before final flush
       // Use safe, non-backtracking regex patterns to prevent ReDoS attacks
       const cleanedText = this.pendingTextBuffer
         .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
         .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
-        .replace(/<\/(?:\w+:)?artifact>/g, '') // Remove closing artifact tags safely
-        .trim();
+        .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
       if (cleanedText) {
         this.collectedParts.push({
@@ -320,7 +327,6 @@ export class IncrementalStreamParser {
     };
   }
 
-
   /**
    * Check if text might be the start of an artifact marker
    */
@@ -354,7 +360,7 @@ export class IncrementalStreamParser {
           .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
           .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
-        if (cleanedText.trim()) {
+        if (cleanedText) {
           await this.streamHelper.streamText(cleanedText, 50);
         }
         this.pendingTextBuffer = '';
@@ -369,7 +375,7 @@ export class IncrementalStreamParser {
           .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
           .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
-        if (cleanedText.trim()) {
+        if (cleanedText) {
           await this.streamHelper.streamText(cleanedText, 50);
         }
         this.pendingTextBuffer = '';

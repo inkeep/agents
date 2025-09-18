@@ -256,10 +256,6 @@ message.parts.forEach((part) => {
     // Handle optional structured details
     if (details) {
       // Unstructured summary text
-      if (details.summary) {
-        displayDetailedSummary(details.summary);
-      }
-      
       // Any structured data (progress, counts, etc.)
       displayStructuredDetails(details);
     }

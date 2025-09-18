@@ -60,7 +60,7 @@ const CitationBadge: FC<{
 // Shared inline event component
 const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const getLabel = () => {
     if (operation.type === 'data-summary') {
       // data-summary always has operation.label
@@ -72,13 +72,8 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
   };
 
   const getExpandedContent = () => {
-    if (operation.type === 'data-summary') {
-      // data-summary uses details
-      return operation.details || {};
-    } else {
-      // data-operation uses ctx
-      return operation.ctx || {};
-    }
+    // data-operation uses ctx
+    return operation.ctx || operation.details || {};
   };
 
   return (
@@ -173,7 +168,10 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
           currentTextChunk = '';
         }
         // Add the inline summary
-        processed.push({ type: 'inline-operation', operation: { type: 'data-summary', ...part.data } });
+        processed.push({
+          type: 'inline-operation',
+          operation: { type: 'data-summary', ...part.data },
+        });
       } else if (part.type === 'data-artifact') {
         // Add artifact as citation marker inline with current text (don't flush)
         const artifactData = part.data as any;
