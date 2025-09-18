@@ -183,7 +183,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
         </p>
       </div>
 
-      <Collapsible defaultOpen={true}>
+      <Collapsible defaultOpen={false}>
         <CollapsibleTrigger asChild>
           <Button
             type="button"
