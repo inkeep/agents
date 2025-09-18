@@ -733,8 +733,8 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
+          graphId: this.config.graphId,
         },
-        graphId: this.config.graphId,
       });
 
       return graphDefinition?.graphPrompt || undefined;
@@ -759,8 +759,8 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
+          graphId: this.config.graphId,
         },
-        graphId: this.config.graphId,
       });
 
       if (!graphDefinition) {
@@ -1033,8 +1033,8 @@ Key requirements:
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
+          graphId: this.config.graphId,
         },
-        graphId: this.config.graphId,
       });
     } catch (error) {
       logger.error(

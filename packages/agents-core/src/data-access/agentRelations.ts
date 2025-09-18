@@ -463,7 +463,7 @@ export const deleteAgentToolRelation =
   };
 
 export const deleteAgentToolRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(agentToolRelations)
       .where(
@@ -471,7 +471,7 @@ export const deleteAgentToolRelationByAgent =
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
           eq(agentToolRelations.projectId, params.scopes.projectId),
           eq(agentToolRelations.graphId, params.scopes.graphId),
-          eq(agentToolRelations.agentId, params.agentId)
+          eq(agentToolRelations.agentId, params.scopes.agentId)
         )
       );
     return (result.rowsAffected || 0) > 0;

@@ -14,8 +14,7 @@ async function resolveModelConfig(graphId: string, agent: AgentSelect): Promise<
   // If base model is not defined on the agent (or models is undefined/null)
   // Check graph model config first
   const graph = await getAgentGraphById(dbClient)({
-    scopes: { tenantId: agent.tenantId, projectId: agent.projectId },
-    graphId: graphId,
+    scopes: { tenantId: agent.tenantId, projectId: agent.projectId, graphId },
   });
 
   if (graph?.models?.base?.model) {

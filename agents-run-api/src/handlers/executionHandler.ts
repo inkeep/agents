@@ -1,7 +1,7 @@
 import {
-  type ExecutionContext,
   createMessage,
   createTask,
+  type ExecutionContext,
   getActiveAgentForConversation,
   getFullGraph,
   getTask,
@@ -9,17 +9,17 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { graphSessionManager } from '../utils/graph-session.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import dbClient from '../data/db/dbClient.js';
-import { nanoid } from 'nanoid';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -73,7 +73,7 @@ export class ExecutionHandler {
     // Initialize status updates if configured
     let graphConfig: any = null;
     try {
-      graphConfig = await getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId });
+      graphConfig = await getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId } });
 
       if (graphConfig?.statusUpdates && graphConfig.statusUpdates.enabled !== false) {
         graphSessionManager.initializeStatusUpdates(

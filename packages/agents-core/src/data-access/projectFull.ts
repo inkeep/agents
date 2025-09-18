@@ -927,8 +927,7 @@ export const getFullProject =
             );
 
             const fullGraph = await getFullGraph(db)({
-              scopes: { tenantId, projectId },
-              graphId: graph.id,
+              scopes: { tenantId, projectId, graphId: graph.id },
             });
 
             if (fullGraph) {
@@ -1045,8 +1044,7 @@ export const deleteFullProject =
               db,
               logger
             )({
-              scopes: { tenantId, projectId },
-              graphId,
+              scopes: { tenantId, projectId, graphId },
             });
 
             logger.info(

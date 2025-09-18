@@ -8,7 +8,7 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '../types/entities';
-import type { ProjectScopeConfig } from '../types/utility';
+import type { GraphScopeConfig, ProjectScopeConfig } from '../types/utility';
 import {
   isExternalAgent,
   isInternalAgent,
@@ -441,8 +441,7 @@ export const createFullGraphServerSide =
             'Updating graph with context config'
           );
           await updateAgentGraph(db)({
-            scopes: { tenantId, projectId },
-            graphId: finalGraphId,
+            scopes: { tenantId, projectId, graphId: finalGraphId },
             data: { contextConfigId },
           });
           logger.info({ graphId: finalGraphId }, 'Graph updated with context config');
@@ -503,9 +502,7 @@ export const createFullGraphServerSide =
                     'Processing agent-data component relation'
                   );
                   await upsertAgentDataComponentRelation(db)({
-                    scopes: { tenantId, projectId },
-                    graphId: finalGraphId,
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     dataComponentId,
                   });
                   logger.info(
@@ -542,9 +539,7 @@ export const createFullGraphServerSide =
                     'Processing agent-artifact component relation'
                   );
                   await upsertAgentArtifactComponentRelation(db)({
-                    scopes: { tenantId, projectId },
-                    graphId: finalGraphId,
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     artifactComponentId,
                   });
                   logger.info(
@@ -653,8 +648,7 @@ export const createFullGraphServerSide =
 
       // Retrieve and return the created graph
       const createdGraph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId: finalGraphId,
+        scopes: { tenantId, projectId, graphId: finalGraphId },
       });
 
       if (!createdGraph) {
@@ -713,8 +707,7 @@ export const updateFullGraphServerSide =
     try {
       // Verify graph exists and get existing models for cascade logic
       const existingGraph = await getAgentGraphById(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
       });
 
       if (!existingGraph) {
@@ -1057,8 +1050,7 @@ export const updateFullGraphServerSide =
 
       // Step 8: Update the graph metadata
       await updateAgentGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
         data: {
           name: typedGraphDefinition.name,
           defaultAgentId: typedGraphDefinition.defaultAgentId,
@@ -1078,7 +1070,6 @@ export const updateFullGraphServerSide =
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentToolRelationByAgent(db)({
           scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
-          agentId,
         });
       }
 
@@ -1123,8 +1114,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId },
-          agentId,
+          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
         });
       }
 
@@ -1138,9 +1128,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   await associateDataComponentWithAgent(db)({
-                    scopes: { tenantId, projectId },
-                    graphId: finalGraphId,
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     dataComponentId,
                   });
 
@@ -1168,8 +1156,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId },
-          agentId,
+          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
         });
       }
 
@@ -1183,9 +1170,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   await associateArtifactComponentWithAgent(db)({
-                    scopes: { tenantId, projectId },
-                    graphId: finalGraphId,
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     artifactComponentId,
                   });
 
@@ -1310,8 +1295,7 @@ export const updateFullGraphServerSide =
 
       // Retrieve and return the updated graph
       const updatedGraph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
       });
 
       if (!updatedGraph) {
@@ -1332,30 +1316,26 @@ export const updateFullGraphServerSide =
  */
 export const getFullGraph =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    graphId: string;
-  }): Promise<FullGraphDefinition | null> => {
-    const { scopes, graphId } = params;
+  async (params: { scopes: GraphScopeConfig }): Promise<FullGraphDefinition | null> => {
+    const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
-    logger.info({ tenantId, graphId }, 'Retrieving full graph definition');
+    logger.info({ tenantId, graphId: scopes.graphId }, 'Retrieving full graph definition');
 
     try {
       const graph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId: scopes.graphId },
       });
 
       if (!graph) {
-        logger.info({ tenantId, graphId }, 'Graph not found');
+        logger.info({ tenantId, graphId: scopes.graphId }, 'Graph not found');
         return null;
       }
 
       logger.info(
         {
           tenantId,
-          graphId,
+          graphId: scopes.graphId,
           agentCount: Object.keys(graph.agents).length,
         },
         'Full graph retrieved successfully'
@@ -1366,7 +1346,7 @@ export const getFullGraph =
       logger.error(
         {
           tenantId,
-          graphId,
+          graphId: scopes.graphId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to retrieve full graph'
@@ -1380,17 +1360,15 @@ export const getFullGraph =
  */
 export const deleteFullGraph =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: { scopes: ProjectScopeConfig; graphId: string }): Promise<boolean> => {
-    const { scopes, graphId } = params;
-    const { tenantId, projectId } = scopes;
+  async (params: { scopes: GraphScopeConfig }): Promise<boolean> => {
+    const { tenantId, projectId, graphId } = params.scopes;
 
     logger.info({ tenantId, graphId }, 'Deleting full graph and related entities');
 
     try {
       // Get the graph first to ensure it exists
       const graph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
 
       if (!graph) {
@@ -1412,7 +1390,6 @@ export const deleteFullGraph =
         for (const agentId of agentIds) {
           await deleteAgentToolRelationByAgent(db)({
             scopes: { tenantId, projectId, graphId, agentId },
-            agentId,
           });
         }
 
@@ -1424,8 +1401,7 @@ export const deleteFullGraph =
 
       // Step 3: Delete the graph metadata
       await deleteAgentGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
 
       logger.info({ tenantId, graphId }, 'Graph metadata deleted');

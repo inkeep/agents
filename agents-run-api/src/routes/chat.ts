@@ -194,8 +194,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
     // Get the graph from the full graph system first, fall back to legacy system
     const fullGraph = await getFullGraph(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     let agentGraph: any;

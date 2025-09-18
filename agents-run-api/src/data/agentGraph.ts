@@ -87,7 +87,7 @@ export async function getRegisteredGraph(
   executionContext: ExecutionContext
 ): Promise<RegisteredAgent | null> {
   const { tenantId, projectId, graphId, baseUrl, apiKey } = executionContext;
-  const dbGraph = await getAgentGraphById(dbClient)({ scopes: { tenantId, projectId }, graphId });
+  const dbGraph = await getAgentGraphById(dbClient)({ scopes: { tenantId, projectId, graphId } });
   if (!dbGraph) {
     return null;
   }

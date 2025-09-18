@@ -101,15 +101,17 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
         }),
         getArtifactComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
         }),
       ]);
 
@@ -456,8 +458,8 @@ export const createTaskHandlerConfig = async (params: {
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
+      graphId: params.graphId,
     },
-    graphId: params.graphId,
   });
 
   if (!agent) {

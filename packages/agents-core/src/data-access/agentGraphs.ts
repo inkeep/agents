@@ -20,12 +20,12 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 
 export const getAgentGraphById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
         eq(agentGraph.projectId, params.scopes.projectId),
-        eq(agentGraph.id, params.graphId)
+        eq(agentGraph.id, params.scopes.graphId)
       ),
     });
     return result ?? null;
@@ -124,8 +124,7 @@ export const createAgentGraph = (db: DatabaseClient) => async (data: AgentGraphI
 };
 
 export const updateAgentGraph =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; graphId: string; data: AgentGraphUpdate }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; data: AgentGraphUpdate }) => {
     const data = params.data;
 
     // Handle model settings clearing - if empty object or no model field, set to null
@@ -177,7 +176,7 @@ export const updateAgentGraph =
         and(
           eq(agentGraph.tenantId, params.scopes.tenantId),
           eq(agentGraph.projectId, params.scopes.projectId),
-          eq(agentGraph.id, params.graphId)
+          eq(agentGraph.id, params.scopes.graphId)
         )
       )
       .returning();
@@ -186,14 +185,14 @@ export const updateAgentGraph =
   };
 
 export const deleteAgentGraph =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db
       .delete(agentGraph)
       .where(
         and(
           eq(agentGraph.tenantId, params.scopes.tenantId),
           eq(agentGraph.projectId, params.scopes.projectId),
-          eq(agentGraph.id, params.graphId)
+          eq(agentGraph.id, params.scopes.graphId)
         )
       )
       .returning();
@@ -254,8 +253,7 @@ export const getGraphAgentInfos =
     const { tenantId, projectId } = scopes;
     // First, verify that the graph exists
     const graph = await getAgentGraphById(db)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
     if (!graph) {
       throw new Error(`Agent graph with ID ${graphId} not found for tenant ${tenantId}`);
@@ -298,16 +296,13 @@ export const getGraphAgentInfos =
 export const getFullGraphDefinition =
   (db: DatabaseClient) =>
   async ({
-    scopes: { tenantId, projectId },
-    graphId,
+    scopes: { tenantId, projectId, graphId },
   }: {
-    scopes: ProjectScopeConfig;
-    graphId: string;
+    scopes: GraphScopeConfig;
   }): Promise<FullGraphDefinition | null> => {
     // First, get the basic graph info
     const graph = await getAgentGraphById(db)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
     if (!graph) {
       return null;
@@ -705,19 +700,17 @@ export const getFullGraphDefinition =
 export const upsertAgentGraph =
   (db: DatabaseClient) =>
   async (params: { data: AgentGraphInsert }): Promise<any> => {
-    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
     const graphId = params.data.id || nanoid();
+    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId, graphId };
 
     const existing = await getAgentGraphById(db)({
       scopes,
-      graphId,
     });
 
     if (existing) {
       // Update existing agent graph
       return await updateAgentGraph(db)({
         scopes,
-        graphId,
         data: {
           name: params.data.name,
           defaultAgentId: params.data.defaultAgentId,

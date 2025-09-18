@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { agentDataComponents, dataComponents } from '../db/schema';
 import type {
+  AgentScopeConfig,
   DataComponentInsert,
   DataComponentSelect,
   DataComponentUpdate,
@@ -168,10 +169,7 @@ export const deleteDataComponent =
  */
 export const getDataComponentsForAgent =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    agentId: string;
-  }): Promise<DataComponentSelect[]> => {
+  async (params: { scopes: AgentScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select({
         id: dataComponents.id,
@@ -189,7 +187,8 @@ export const getDataComponentsForAgent =
         and(
           eq(dataComponents.tenantId, params.scopes.tenantId),
           eq(dataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.agentId, params.agentId)
+          eq(agentDataComponents.graphId, params.scopes.graphId),
+          eq(agentDataComponents.agentId, params.scopes.agentId)
         )
       )
       .orderBy(desc(dataComponents.createdAt));
@@ -199,21 +198,15 @@ export const getDataComponentsForAgent =
  * Associate a data component with an agent
  */
 export const associateDataComponentWithAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    graphId: string;
-    agentId: string;
-    dataComponentId: string;
-  }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; dataComponentId: string }) => {
     const association = await db
       .insert(agentDataComponents)
       .values({
         id: nanoid(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
-        graphId: params.graphId,
-        agentId: params.agentId,
+        graphId: params.scopes.graphId,
+        agentId: params.scopes.agentId,
         dataComponentId: params.dataComponentId,
       })
       .returning();
@@ -226,18 +219,15 @@ export const associateDataComponentWithAgent =
  */
 export const removeDataComponentFromAgent =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    agentId: string;
-    dataComponentId: string;
-  }): Promise<boolean> => {
+  async (params: { scopes: AgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .delete(agentDataComponents)
       .where(
         and(
           eq(agentDataComponents.tenantId, params.scopes.tenantId),
           eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.agentId, params.agentId),
+          eq(agentDataComponents.graphId, params.scopes.graphId),
+          eq(agentDataComponents.agentId, params.scopes.agentId),
           eq(agentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
@@ -247,13 +237,14 @@ export const removeDataComponentFromAgent =
   };
 
 export const deleteAgentDataComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(agentDataComponents)
       .where(
         and(
           eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.agentId, params.agentId)
+          eq(agentDataComponents.graphId, params.scopes.graphId),
+          eq(agentDataComponents.agentId, params.scopes.agentId)
         )
       );
     return (result.rowsAffected || 0) > 0;
@@ -286,11 +277,7 @@ export const getAgentsUsingDataComponent =
  */
 export const isDataComponentAssociatedWithAgent =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    agentId: string;
-    dataComponentId: string;
-  }): Promise<boolean> => {
+  async (params: { scopes: AgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .select({ id: agentDataComponents.id })
       .from(agentDataComponents)
@@ -298,7 +285,8 @@ export const isDataComponentAssociatedWithAgent =
         and(
           eq(agentDataComponents.tenantId, params.scopes.tenantId),
           eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.agentId, params.agentId),
+          eq(agentDataComponents.graphId, params.scopes.graphId),
+          eq(agentDataComponents.agentId, params.scopes.agentId),
           eq(agentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
@@ -311,13 +299,7 @@ export const isDataComponentAssociatedWithAgent =
  * Upsert agent-data component relation (create if it doesn't exist, no-op if it does)
  */
 export const upsertAgentDataComponentRelation =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    graphId: string;
-    agentId: string;
-    dataComponentId: string;
-  }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; dataComponentId: string }) => {
     // Check if relation already exists
     const exists = await isDataComponentAssociatedWithAgent(db)(params);
 

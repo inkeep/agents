@@ -123,14 +123,17 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     tenantId,
     agentId,
     dataComponentId,
+    graphId,
   }: {
     tenantId: string;
     agentId: string;
     dataComponentId: string;
+    graphId: string;
   }) => {
     const relationData = createAgentDataComponentData({
       agentId,
       dataComponentId,
+      graphId,
     });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
@@ -152,16 +155,16 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
   // Setup function for tests
   const setupTestEnvironment = async (tenantId: string) => {
-    const { agentId } = await createTestAgent({ tenantId });
+    const { agentId, graphId } = await createTestAgent({ tenantId });
     const { dataComponentId } = await createTestDataComponent({ tenantId });
-    return { agentId, dataComponentId };
+    return { agentId, dataComponentId, graphId };
   };
 
   describe('POST /', () => {
     it('should create a new agent data component association', async () => {
       const tenantId = createTestTenantId('agent-data-components-create-success');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const relationData = createAgentDataComponentData({
         agentId,
@@ -188,6 +191,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('agent-data-components-create-validation');
       await ensureTestProject(tenantId, projectId);
+      const graphId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components`,
         {
@@ -202,7 +206,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should reject duplicate associations', async () => {
       const tenantId = createTestTenantId('agent-data-components-create-duplicate');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const relationData = createAgentDataComponentData({
         agentId,
@@ -235,13 +239,14 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should get data components for an agent', async () => {
       const tenantId = createTestTenantId('agent-data-components-get-for-agent');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       // Create association
       await createTestAgentDataComponentRelation({
         tenantId,
         agentId,
         dataComponentId,
+        graphId,
       });
 
       const res = await app.request(
@@ -257,7 +262,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should return empty array when no data components associated', async () => {
       const tenantId = createTestTenantId('agent-data-components-get-empty');
       await ensureTestProject(tenantId, projectId);
-      const { agentId } = await setupTestEnvironment(tenantId);
+      const { agentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}`
@@ -273,13 +278,14 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should get agents using a data component', async () => {
       const tenantId = createTestTenantId('agent-data-components-get-agents');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       // Create association
       await createTestAgentDataComponentRelation({
         tenantId,
         agentId,
         dataComponentId,
+        graphId,
       });
 
       const res = await app.request(
@@ -297,7 +303,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should return empty array when no agents use the data component', async () => {
       const tenantId = createTestTenantId('agent-data-components-get-agents-empty');
       await ensureTestProject(tenantId, projectId);
-      const { dataComponentId } = await setupTestEnvironment(tenantId);
+      const { dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dataComponentId}/agents`
@@ -313,13 +319,14 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should return true when association exists', async () => {
       const tenantId = createTestTenantId('agent-data-components-check-exists-true');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       // Create association
       await createTestAgentDataComponentRelation({
         tenantId,
         agentId,
         dataComponentId,
+        graphId,
       });
 
       const res = await app.request(
@@ -334,7 +341,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should return false when association does not exist', async () => {
       const tenantId = createTestTenantId('agent-data-components-check-exists-false');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}/exists`
@@ -350,13 +357,14 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should remove an existing association', async () => {
       const tenantId = createTestTenantId('agent-data-components-delete-success');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       // Create association
       await createTestAgentDataComponentRelation({
         tenantId,
         agentId,
         dataComponentId,
+        graphId,
       });
 
       const res = await app.request(
@@ -382,7 +390,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     it('should return 404 when removing non-existent association', async () => {
       const tenantId = createTestTenantId('agent-data-components-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const { agentId, dataComponentId } = await setupTestEnvironment(tenantId);
+      const { agentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await app.request(
         `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agentId}/component/${dataComponentId}`,
@@ -401,7 +409,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create multiple agents and data components
-      const { agentId: agent1Id } = await createTestAgent({ tenantId, suffix: '1' });
+      const { agentId: agent1Id, graphId } = await createTestAgent({ tenantId, suffix: '1' });
       const { agentId: agent2Id } = await createTestAgent({ tenantId, suffix: '2' });
 
       const { dataComponentId: dc1Id } = await createTestDataComponent({
@@ -432,28 +440,28 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify agent1 has 2 data components
       const agent1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agent1Id}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agent1Id}`
       );
       const agent1Body = await agent1Res.json();
       expect(agent1Body.data).toHaveLength(2);
 
       // Verify agent2 has 1 data component
       const agent2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/agent/${agent2Id}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${agent2Id}`
       );
       const agent2Body = await agent2Res.json();
       expect(agent2Body.data).toHaveLength(1);
 
       // Verify dc1 is used by 2 agents
       const dc1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/component/${dc1Id}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dc1Id}/agents`
       );
       const dc1Body = await dc1Res.json();
       expect(dc1Body.data).toHaveLength(2);
 
       // Verify dc2 is used by 1 agent
       const dc2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agent-data-components/component/${dc2Id}/agents`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dc2Id}/agents`
       );
       const dc2Body = await dc2Res.json();
       expect(dc2Body.data).toHaveLength(1);
