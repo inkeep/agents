@@ -37,6 +37,7 @@ describe('IncrementalStreamParser', () => {
           data: { id: 'test', name: 'Test', props: {} },
         },
       ]),
+      hasIncompleteArtifact: vi.fn().mockReturnValue(false),
     } as any;
 
     (ArtifactParser as any).mockImplementation(() => mockArtifactParser);
@@ -261,6 +262,53 @@ describe('IncrementalStreamParser', () => {
       // Should complete within reasonable time (< 100ms)
       expect(duration).toBeLessThan(100);
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Text component handling', () => {
+    it('should stream Text components incrementally as text', async () => {
+      const delta1 = {
+        dataComponents: [
+          { id: 'text1', name: 'Text', props: { text: 'Hello' } },
+        ],
+      };
+
+      const delta2 = {
+        dataComponents: [
+          { id: 'text1', name: 'Text', props: { text: 'Hello world' } },
+        ],
+      };
+
+      await parser.processObjectDelta(delta1);
+      await parser.processObjectDelta(delta2);
+
+      // Text components should stream incrementally as text
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('Hello', 50);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' world', 50);
+    });
+
+    it('should handle mixed Text and data components in order', async () => {
+      const delta1 = {
+        dataComponents: [
+          { id: 'text1', name: 'Text', props: { text: 'Here is the weather:' } },
+          { id: 'weather1', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } },
+        ],
+      };
+
+      const delta2 = {
+        dataComponents: [
+          { id: 'text1', name: 'Text', props: { text: 'Here is the weather:' } }, // Text stable
+          { id: 'weather1', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } }, // Weather stable
+        ],
+      };
+
+      await parser.processObjectDelta(delta1);
+      await parser.processObjectDelta(delta2);
+
+      // Text should stream as text, weather as data component
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('Here is the weather:', 50);
+      expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1); // Only weather component
+      expect(mockStreamHelper.writeData).toHaveBeenCalledTimes(1);
     });
   });
 

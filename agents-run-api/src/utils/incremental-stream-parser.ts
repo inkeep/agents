@@ -117,7 +117,39 @@ export class IncrementalStreamParser {
         // Update snapshot
         this.componentSnapshots.set(componentKey, currentSnapshot);
 
-        // Stream if component is complete AND props haven't changed (stable)
+        // Special handling for Text components - stream the text content immediately
+        if (component.name === 'Text' && component.props?.text) {
+          // For Text components, stream the incremental text immediately
+          const previousTextContent = previousSnapshot
+            ? JSON.parse(previousSnapshot).props?.text || ''
+            : '';
+          const currentTextContent = component.props.text || '';
+
+          // Only stream the new text that was added
+          if (currentTextContent.length > previousTextContent.length) {
+            const newText = currentTextContent.slice(previousTextContent.length);
+
+            // Stream directly to avoid artifact parsing overhead and trimming
+            if (!this.hasStartedRole) {
+              await this.streamHelper.writeRole('assistant');
+              this.hasStartedRole = true;
+            }
+
+            // Stream text directly without going through streamPart
+            await this.streamHelper.streamText(newText, 50);
+
+            // Still collect for final response
+            this.collectedParts.push({
+              kind: 'text',
+              text: newText,
+            });
+          }
+
+          // Don't mark as streamed yet - let it keep streaming incrementally
+          continue;
+        }
+
+        // For non-Text components, use stability checking
         if (this.isComponentComplete(component)) {
           const currentPropsSnapshot = JSON.stringify(component.props);
           const previousPropsSnapshot = previousSnapshot
@@ -134,8 +166,10 @@ export class IncrementalStreamParser {
 
   /**
    * Stream a component and mark it as streamed
+   * Note: Text components are handled separately with incremental streaming
    */
   private async streamComponent(component: any): Promise<void> {
+    // Stream as regular data component (Text components handled elsewhere)
     const parts = await this.artifactParser.parseObject({
       dataComponents: [component],
     });
@@ -221,7 +255,8 @@ export class IncrementalStreamParser {
         const hasBeenStreamed = this.lastStreamedComponents.has(componentKey);
 
         // Stream any complete components that haven't been streamed yet
-        if (!hasBeenStreamed && this.isComponentComplete(component)) {
+        // Skip Text components as they've already been streamed incrementally
+        if (!hasBeenStreamed && this.isComponentComplete(component) && component.name !== 'Text') {
           const parts = await this.artifactParser.parseObject({
             dataComponents: [component],
           });

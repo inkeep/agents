@@ -422,42 +422,80 @@ export const IkpMessage: FC<IkpMessageProps> = ({
           )) && (
           <div>
             <div className="prose prose-sm max-w-none">
-              {/* Render the combined markdown with inline citations using StreamMarkdown */}
-              <StreamMarkdown parts={message.parts} />
+              {/* Render parts in their actual order - PROPERLY INTERLEAVED! */}
+              {(() => {
+                const groupedParts: any[] = [];
+                let currentTextGroup: any[] = [];
 
-              {/* Handle data-component parts that weren't processed in the hook */}
-              {message.parts
-                .filter((part) => part.type === 'data-component')
-                .map((part) => {
-                  const { type } = part.data;
-                  if (type === 'text') {
-                    return (
-                      <div key={`text-${part.id}`}>{renderMarkdown(part.data.text || '')}</div>
-                    );
+                // Group consecutive text parts together
+                for (let i = 0; i < message.parts.length; i++) {
+                  const part = message.parts[i];
+                  
+                  if (part.type === 'text' || (part.type === 'data-component' && part.data.type === 'text')) {
+                    currentTextGroup.push(part);
+                  } else {
+                    // Non-text part - flush current text group and add the non-text part
+                    if (currentTextGroup.length > 0) {
+                      groupedParts.push({ type: 'text-group', parts: currentTextGroup });
+                      currentTextGroup = [];
+                    }
+                    groupedParts.push(part);
+                  }
                   }
 
-                  // return <div key={key}>{renderComponent(part.data.name, part.data.props)}</div>;
+                // Don't forget the last text group
+                if (currentTextGroup.length > 0) {
+                  groupedParts.push({ type: 'text-group', parts: currentTextGroup });
+                }
+                
+                return groupedParts.map((group, index) => {
+                  if (group.type === 'text-group') {
+                    // Render all text parts in this group together
+                    return (
+                      <div key={`text-group-${index}`}>
+                        <StreamMarkdown parts={group.parts} />
+                      </div>
+                    );
+                  } else if (group.type === 'data-component') {
+                    // Regular data component - render as component box
                   return (
                     <div
-                      key={`component-${part.id}`}
+                        key={`component-${index}`}
                       className="my-2 rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card overflow-hidden"
                     >
                       <div className="bg-gray-50 dark:bg-muted px-3 py-1.5 border-b border-gray-200 dark:border-border flex items-center gap-2">
                         <div className="flex items-center gap-1.5">
                           <div className="w-2 h-2 rounded-full bg-blue-400" />
                           <span className="text-xs font-medium text-gray-700 dark:text-foreground">
-                            Component: {part.data.name || 'Unnamed'}
+                              Component: {group.data.name || 'Unnamed'}
                           </span>
                         </div>
                       </div>
                       <div className="p-3">
                         <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
-                          {JSON.stringify(part.data.props, null, 2)}
+                            {JSON.stringify(group.data.props, null, 2)}
                         </pre>
                       </div>
                     </div>
                   );
-                })}
+                  } else if (group.type === 'data-operation') {
+                    // Handle inline operations in order
+                    return (
+                      <div key={`operation-${index}`}>
+                        <StreamMarkdown parts={[group]} />
+                      </div>
+                    );
+                  } else if (group.type === 'data-artifact') {
+                    // Handle artifacts in order  
+                    return (
+                      <div key={`artifact-${index}`}>
+                        <StreamMarkdown parts={[group]} />
+                      </div>
+                    );
+                  }
+                  return null;
+                });
+              })()}
             </div>
 
             {/* Source badges */}
