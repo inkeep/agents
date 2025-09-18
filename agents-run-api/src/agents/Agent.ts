@@ -767,10 +767,12 @@ export class Agent {
         return false;
       }
 
-      // Check if artifactComponents exists and has any entries
-      return !!(
-        graphDefinition.artifactComponents &&
-        Object.keys(graphDefinition.artifactComponents).length > 0
+      // Check if any agent in the graph has artifact components
+      return Object.values(graphDefinition.agents).some(
+        (agent) =>
+          'artifactComponents' in agent &&
+          agent.artifactComponents &&
+          agent.artifactComponents.length > 0
       );
     } catch (error) {
       logger.warn(

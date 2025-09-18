@@ -927,14 +927,7 @@ export const getFullProject =
 
             if (fullGraph) {
               // Remove project-level resources from graph as they should be at project level
-              const {
-                tools: _tools,
-                dataComponents: _dataComponents,
-                artifactComponents: _artifactComponents,
-                contextConfig: _contextConfig,
-                credentialReferences: _credentialReferences,
-                ...graphWithoutProjectResources
-              } = fullGraph;
+              const { contextConfig: _contextConfig, ...graphWithoutProjectResources } = fullGraph;
               graphs[graph.id] = graphWithoutProjectResources;
               logger.info(
                 { tenantId, projectId, graphId: graph.id },

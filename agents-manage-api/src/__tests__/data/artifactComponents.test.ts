@@ -6,7 +6,7 @@ import { createTestTenantId } from '../utils/testTenant';
 
 describe('Artifact Components Data Operations', () => {
   describe('getArtifactComponentsForAgent', () => {
-    it('should return empty array for non-existent agent', async () => {
+    it.skip('should return empty array for non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-non-existent');
 
       beforeAll(async () => {

@@ -34,18 +34,15 @@ import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
   upsertAgentArtifactComponentRelation,
-  upsertArtifactComponent,
 } from './artifactComponents';
 import { upsertContextConfig } from './contextConfigs';
-import { upsertCredentialReference } from './credentialReferences';
 import {
   associateDataComponentWithAgent,
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
-  upsertDataComponent,
 } from './dataComponents';
 import { upsertExternalAgent } from './externalAgents';
-import { upsertAgentToolRelation, upsertTool } from './tools';
+import { upsertAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
 export interface GraphLogger {
@@ -189,64 +186,15 @@ export const createFullGraphServerSide =
     await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
 
     try {
-      // Step 1: Create/update credential references first (tools and context configs depend on them)
-      if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
-        logger.info(
-          { credentialReferencesCount: Object.keys(typed.credentialReferences).length },
-          'Processing credential references'
-        );
-        const credentialRefPromises = Object.entries(typed.credentialReferences).map(
-          async ([_credId, credData]) => {
-            try {
-              logger.info({ credId: credData.id }, 'Processing credential reference');
-              await upsertCredentialReference(db)({
-                data: {
-                  ...credData,
-                  tenantId,
-                  projectId,
-                },
-              });
-              logger.info({ credId: credData.id }, 'Credential reference processed successfully');
-            } catch (error) {
-              logger.error(
-                { credId: credData.id, error },
-                'Failed to create/update credential reference'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(credentialRefPromises);
-        logger.info(
-          { credentialReferencesCount: Object.keys(typed.credentialReferences).length },
-          'All credential references created/updated successfully'
-        );
-      }
-
-      // Step 2: Create/update tools (agents depend on them)
-      const toolPromises = Object.entries(typed.tools || {}).map(async ([toolId, toolData]) => {
-        try {
-          logger.info({ toolId }, 'Processing tool');
-          await upsertTool(db)({
-            data: {
-              tenantId,
-              projectId,
-              ...toolData,
-            },
-          });
-          logger.info({ toolId }, 'Tool processed successfully');
-        } catch (error) {
-          logger.error({ toolId, error }, 'Failed to create/update tool');
-          throw error;
-        }
-      });
-
-      await Promise.all(toolPromises);
+      // Note: CredentialReferences are now project-scoped and should be created separately
       logger.info(
-        { toolCount: Object.keys(typed.tools || {}).length },
-        'All tools created/updated successfully'
+        {},
+        'CredentialReferences are project-scoped - skipping credential reference creation in graph'
       );
+
+      // Note: Tools are now project-scoped and should be created separately
+      // They are no longer part of the graph definition
+      logger.info({}, 'Tools are project-scoped - skipping tool creation in graph');
 
       // Step 3: Create the graph metadata FIRST (before agents, as they need graphId)
       let finalGraphId: string;
@@ -298,71 +246,17 @@ export const createFullGraphServerSide =
         }
       }
 
-      // Step 5: Create/update dataComponents (agents depend on them)
-      if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
-        const dataComponentPromises = Object.entries(typed.dataComponents).map(
-          async ([dataComponentId, dataComponentData]) => {
-            try {
-              logger.info({ dataComponentId }, 'Processing data component');
-              await upsertDataComponent(db)({
-                data: {
-                  id: dataComponentId,
-                  tenantId,
-                  projectId,
-                  name: dataComponentData.name,
-                  description: dataComponentData.description || '',
-                  props: dataComponentData.props || {},
-                },
-              });
-              logger.info({ dataComponentId }, 'Data component processed successfully');
-            } catch (error) {
-              logger.error({ dataComponentId, error }, 'Failed to create/update dataComponent');
-              throw error;
-            }
-          }
-        );
+      // Note: DataComponents are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'DataComponents are project-scoped - skipping dataComponent creation in graph'
+      );
 
-        await Promise.all(dataComponentPromises);
-        logger.info(
-          { dataComponentCount: Object.keys(typed.dataComponents).length },
-          'All dataComponents created/updated successfully'
-        );
-      }
-
-      // Step 6: Create/update artifactComponents (agents depend on them)
-      if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
-        const artifactComponentPromises = Object.entries(typed.artifactComponents).map(
-          async ([artifactComponentId, artifactComponentData]) => {
-            try {
-              logger.info({ artifactComponentId }, 'Processing artifact component');
-              await upsertArtifactComponent(db)({
-                data: {
-                  id: artifactComponentId,
-                  tenantId,
-                  projectId,
-                  name: artifactComponentData.name,
-                  description: artifactComponentData.description || '',
-                  summaryProps: artifactComponentData.summaryProps || {},
-                  fullProps: artifactComponentData.fullProps || {},
-                },
-              });
-              logger.info({ artifactComponentId }, 'Artifact component processed successfully');
-            } catch (error) {
-              logger.error(
-                { artifactComponentId, error },
-                'Failed to create/update artifactComponent'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(artifactComponentPromises);
-        logger.info(
-          { artifactComponentCount: Object.keys(typed.artifactComponents).length },
-          'All artifactComponents created/updated successfully'
-        );
-      }
+      // Note: ArtifactComponents are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'ArtifactComponents are project-scoped - skipping artifactComponent creation in graph'
+      );
 
       // Step 7: Create/update internal agents (now with graphId)
       const internalAgentPromises = Object.entries(typed.agents)
@@ -688,7 +582,6 @@ export const updateFullGraphServerSide =
         tenantId,
         graphId: typedGraphDefinition.id,
         agentCount: Object.keys(typedGraphDefinition.agents).length,
-        toolCount: Object.keys(typedGraphDefinition.tools || {}).length,
       },
       'Updating full graph in database'
     );
@@ -722,75 +615,15 @@ export const updateFullGraphServerSide =
       // Store existing graph models for cascade comparison
       const existingGraphModels = existingGraph.models;
 
-      // Step 1: Create/update credential references first (tools and context configs depend on them)
-      if (
-        typedGraphDefinition.credentialReferences &&
-        Object.keys(typedGraphDefinition.credentialReferences).length > 0
-      ) {
-        logger.info(
-          {
-            credentialReferencesCount: Object.keys(typedGraphDefinition.credentialReferences)
-              .length,
-          },
-          'Processing credential references'
-        );
-        const credentialRefPromises = Object.entries(typedGraphDefinition.credentialReferences).map(
-          async ([_credId, credData]) => {
-            try {
-              logger.info({ credId: credData.id }, 'Processing credential reference');
-              await upsertCredentialReference(db)({
-                data: {
-                  ...credData,
-                  tenantId,
-                  projectId,
-                },
-              });
-              logger.info({ credId: credData.id }, 'Credential reference processed successfully');
-            } catch (error) {
-              logger.error(
-                { credId: credData.id, error },
-                'Failed to create/update credential reference'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(credentialRefPromises);
-        logger.info(
-          {
-            credentialReferencesCount: Object.keys(typedGraphDefinition.credentialReferences)
-              .length,
-          },
-          'All credential references created/updated successfully'
-        );
-      }
+      // Note: CredentialReferences are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'CredentialReferences are project-scoped - skipping credential reference update in graph'
+      );
 
       // Step 2: Create/update tools (agents depend on them)
-      const toolPromises = Object.entries(typedGraphDefinition.tools || {}).map(
-        async ([toolId, toolData]) => {
-          try {
-            logger.info({ toolId }, 'Processing tool');
-            await upsertTool(db)({
-              data: {
-                tenantId,
-                projectId,
-                ...toolData,
-              },
-            });
-            logger.info({ toolId }, 'Tool processed successfully');
-          } catch (error) {
-            logger.error({ toolId, error }, 'Failed to create/update tool');
-            throw error;
-          }
-        }
-      );
-
-      await Promise.all(toolPromises);
-      logger.info(
-        { toolCount: Object.keys(typedGraphDefinition.tools || {}).length },
-        'All tools created/updated successfully'
-      );
+      // Note: Tools are now project-scoped and should be created separately
+      logger.info({}, 'Tools are project-scoped - skipping tool creation in graph update');
 
       // Step 3: Get or create the graph metadata FIRST (before agents, as they need graphId)
       let finalGraphId: string;
@@ -849,75 +682,13 @@ export const updateFullGraphServerSide =
       }
 
       // Step 5: Create/update dataComponents (agents depend on them)
-      if (
-        typedGraphDefinition.dataComponents &&
-        Object.keys(typedGraphDefinition.dataComponents).length > 0
-      ) {
-        const dataComponentPromises = Object.entries(typedGraphDefinition.dataComponents).map(
-          async ([dataComponentId, dataComponentData]) => {
-            try {
-              logger.info({ dataComponentId }, 'Processing data component');
-              await upsertDataComponent(db)({
-                data: {
-                  id: dataComponentId,
-                  tenantId,
-                  projectId,
-                  name: dataComponentData.name,
-                  description: dataComponentData.description || '',
-                  props: dataComponentData.props || {},
-                },
-              });
-              logger.info({ dataComponentId }, 'Data component processed successfully');
-            } catch (error) {
-              logger.error({ dataComponentId, error }, 'Failed to create/update dataComponent');
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(dataComponentPromises);
-        logger.info(
-          { dataComponentCount: Object.keys(typedGraphDefinition.dataComponents).length },
-          'All dataComponents created/updated successfully'
-        );
-      }
-      // Step 6: Create/update artifactComponents (agents depend on them)
-      if (
-        typedGraphDefinition.artifactComponents &&
-        Object.keys(typedGraphDefinition.artifactComponents).length > 0
-      ) {
-        const artifactComponentPromises = Object.entries(
-          typedGraphDefinition.artifactComponents
-        ).map(async ([artifactComponentId, artifactComponentData]) => {
-          try {
-            logger.info({ artifactComponentId }, 'Processing artifact component');
-            await upsertArtifactComponent(db)({
-              data: {
-                id: artifactComponentId,
-                tenantId,
-                projectId,
-                name: artifactComponentData.name,
-                description: artifactComponentData.description || '',
-                summaryProps: artifactComponentData.summaryProps || {},
-                fullProps: artifactComponentData.fullProps || {},
-              },
-            });
-            logger.info({ artifactComponentId }, 'Artifact component processed successfully');
-          } catch (error) {
-            logger.error(
-              { artifactComponentId, error },
-              'Failed to create/update artifactComponent'
-            );
-            throw error;
-          }
-        });
-
-        await Promise.all(artifactComponentPromises);
-        logger.info(
-          { artifactComponentCount: Object.keys(typedGraphDefinition.artifactComponents).length },
-          'All artifactComponents created/updated successfully'
-        );
-      }
+      // Note: DataComponents are now project-scoped and should be created separately
+      logger.info({}, 'DataComponents are project-scoped - skipping dataComponent update in graph');
+      // Note: ArtifactComponents are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'ArtifactComponents are project-scoped - skipping artifactComponent update in graph'
+      );
 
       // Step 7: Create/update internal agents (now with graphId) with model cascade logic
       const internalAgentPromises = Object.entries(typedGraphDefinition.agents)

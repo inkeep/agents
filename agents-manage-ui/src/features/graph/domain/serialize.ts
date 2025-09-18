@@ -29,7 +29,15 @@ export type ExtendedAgent =
     })
   | ExternalAgent;
 
-type Tool = FullGraphDefinition['tools'][string];
+// Note: Tools are now project-scoped, not part of FullGraphDefinition
+// This type represents a generic tool structure for backward compatibility
+type Tool = {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  config: Record<string, unknown>;
+};
 
 /**
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
@@ -86,7 +94,7 @@ export function serializeGraphData(
   artifactComponentLookup?: Record<string, ArtifactComponent>
 ): FullGraphDefinition {
   const agents: Record<string, ExtendedAgent> = {};
-  const tools: Record<string, Tool> = {};
+  // Note: Tools are now project-scoped and not included in graph serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
   let defaultAgentId = '';
@@ -147,18 +155,9 @@ export function serializeGraphData(
 
       agents[agentId] = agent;
     } else if (node.type === NodeType.MCP) {
-      const { ...toolData } = node.data as any;
-      const tool: Tool = {
-        id: (toolData.id as string) || node.id,
-        type: 'mcp',
-        name: toolData.name as string,
-        config: toolData.config as Tool['config'],
-      };
-      // Include imageUrl if it exists
-      if (toolData.imageUrl) {
-        (tool as any).imageUrl = toolData.imageUrl;
-      }
-      tools[(toolData.id as string) || node.id] = tool;
+      // Note: Tools are now project-scoped and not processed during graph serialization
+      // Tool nodes in the UI are handled separately at the project level
+      console.log('Skipping MCP tool node during graph serialization (tools are project-scoped)');
     }
   }
 
@@ -287,9 +286,9 @@ export function serializeGraphData(
     description: metadata?.description || undefined,
     defaultAgentId,
     agents,
-    tools,
-    ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
-    ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
+    // Note: Tools are now project-scoped and not included in FullGraphDefinition
+    // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
+    // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
   };
 
   // Add new graph-level fields
@@ -358,9 +357,13 @@ export function validateSerializedData(data: FullGraphDefinition): string[] {
   for (const [agentId, agent] of Object.entries(data.agents)) {
     // Only validate tools for internal agents (external agents don't have tools)
     if ('tools' in agent && agent.tools) {
-      for (const toolId of agent.tools) {
-        if (!data.tools[toolId]) {
-          errors.push(`Tool '${toolId}' referenced by agent '${agentId}' not found in tools`);
+      // Skip tool validation if tools data is not available (project-scoped)
+      const toolsData = (data as any).tools;
+      if (toolsData) {
+        for (const toolId of agent.tools) {
+          if (!toolsData[toolId]) {
+            errors.push(`Tool '${toolId}' referenced by agent '${agentId}' not found in tools`);
+          }
         }
       }
     }

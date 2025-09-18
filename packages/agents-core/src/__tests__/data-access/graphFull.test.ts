@@ -346,20 +346,6 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
-      expect(result?.tools).toHaveProperty('tool-1');
-      expect(result?.tools?.['tool-1']).toEqual({
-        id: 'tool-1',
-        name: 'Test Tool',
-        config: { type: 'test' },
-        imageUrl: 'https://example.com/tool.png',
-        status: 'active',
-        capabilities: ['read', 'write'],
-        lastHealthCheck: '2024-01-01T00:00:00.000Z',
-        lastError: undefined,
-        availableTools: ['tool1', 'tool2'],
-        activeTools: undefined,
-        lastToolsSync: '2024-01-01T00:00:00.000Z',
-      });
       expect((result?.agents['agent-1'] as any).tools).toEqual(['tool-1']);
     });
 
@@ -544,10 +530,6 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       // Should use current date for invalid dates
       expect(result?.createdAt).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
       expect(result?.updatedAt).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
-
-      // Tool dates should be undefined for invalid dates
-      expect(result?.tools?.['tool-1']?.lastHealthCheck).toBeUndefined();
-      expect(result?.tools?.['tool-1']?.lastToolsSync).toBeUndefined();
     });
 
     it('should filter out null agent responses gracefully', async () => {

@@ -126,35 +126,69 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
     nodes.push(agentNode);
   }
 
+  // Note: Tools are now project-scoped and not included in graph data
+  // Tool visualization will need to be handled at the project level
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
     // Check if agent has tools property (internal agents)
     if ('tools' in agent && agent.tools && agent.tools.length > 0) {
-      for (const toolId of agent.tools) {
-        const tool = data.tools[toolId];
-        if (!tool) {
-          // eslint-disable-next-line no-console
-          console.warn(`Tool with ID ${toolId} not found in tools object`);
-          continue;
-        }
-        const toolNodeId = nanoid();
-        const toolNode: Node = {
-          id: toolNodeId,
-          type: NodeType.MCP,
-          position: { x: 0, y: 0 },
-          data: { id: tool.id, ...tool },
-        };
-        nodes.push(toolNode);
+      // Only create tool nodes if tools data is available in graph (backward compatibility)
+      const toolsData = (data as any).tools;
+      if (toolsData) {
+        for (const toolId of agent.tools) {
+          const tool = toolsData[toolId];
+          if (!tool) {
+            // eslint-disable-next-line no-console
+            console.warn(`Tool with ID ${toolId} not found in tools object`);
+            continue;
+          }
+          const toolNodeId = nanoid();
+          const toolNode: Node = {
+            id: toolNodeId,
+            type: NodeType.MCP,
+            position: { x: 0, y: 0 },
+            data: { id: tool.id, ...tool },
+          };
+          nodes.push(toolNode);
 
-        const agentToToolEdge: Edge = {
-          id: `edge-${toolNodeId}-${agentId}`,
-          type: EdgeType.Default,
-          source: agentId,
-          sourceHandle: agentNodeSourceHandleId,
-          target: toolNodeId,
-          targetHandle: mcpNodeHandleId,
-        };
-        edges.push(agentToToolEdge);
+          const agentToToolEdge: Edge = {
+            id: `edge-${toolNodeId}-${agentId}`,
+            type: EdgeType.Default,
+            source: agentId,
+            sourceHandle: agentNodeSourceHandleId,
+            target: toolNodeId,
+            targetHandle: mcpNodeHandleId,
+          };
+          edges.push(agentToToolEdge);
+        }
+      } else {
+        // Tools are project-scoped, create placeholder nodes with tool IDs
+        for (const toolId of agent.tools) {
+          const toolNodeId = nanoid();
+          const toolNode: Node = {
+            id: toolNodeId,
+            type: NodeType.MCP,
+            position: { x: 0, y: 0 },
+            data: {
+              id: toolId,
+              name: toolId,
+              description: 'Project-scoped tool',
+              type: 'project-scoped',
+              config: {}
+            },
+          };
+          nodes.push(toolNode);
+
+          const agentToToolEdge: Edge = {
+            id: `edge-${toolNodeId}-${agentId}`,
+            type: EdgeType.Default,
+            source: agentId,
+            sourceHandle: agentNodeSourceHandleId,
+            target: toolNodeId,
+            targetHandle: mcpNodeHandleId,
+          };
+          edges.push(agentToToolEdge);
+        }
       }
     }
   }

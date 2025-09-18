@@ -204,7 +204,7 @@ export const AgentGraphUpdateSchema = AgentGraphInsertSchema.partial();
 
 export const AgentGraphApiSelectSchema = createApiSchema(AgentGraphSelectSchema);
 export const AgentGraphApiInsertSchema = createApiInsertSchema(AgentGraphInsertSchema).extend({
-  id: resourceIdSchema.optional(),
+  id: resourceIdSchema,
 });
 export const AgentGraphApiUpdateSchema = createApiUpdateSchema(AgentGraphUpdateSchema);
 
