@@ -1,6 +1,6 @@
 import { ExternalLink } from '@/components/ui/external-link';
 
-export const DOCS_BASE_URL = process.env.NEXT_PUBLIC_DOCS_BASE_URL || 'https://docs.inkeep.com';
+export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 
 export const artifactDescription = (
   <>
@@ -45,6 +45,6 @@ export const emptyStateProjectDescription = (
   <>
     {projectDescription} Create your first project to get started.
     {'\n'}
-    <ExternalLink href={`${DOCS_BASE_URL}/docs/`}>Check out the docs.</ExternalLink>
+    <ExternalLink href={`${DOCS_BASE_URL}/`}>Check out the docs.</ExternalLink>
   </>
 );

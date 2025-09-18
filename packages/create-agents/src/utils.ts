@@ -130,9 +130,9 @@ export const createAgents = async (
     const providerChoice = await p.select({
       message: 'Which AI provider(s) would you like to use?',
       options: [
-        { value: 'anthropic', label: 'Anthropic only' },
-        { value: 'openai', label: 'OpenAI only' },
-        { value: 'google', label: 'Google only' },
+        { value: 'anthropic', label: 'Anthropic' },
+        { value: 'openai', label: 'OpenAI' },
+        { value: 'google', label: 'Google' },
       ],
     });
 
@@ -245,6 +245,7 @@ export const createAgents = async (
       projectId,
       openAiKey,
       anthropicKey,
+      googleKey,
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
@@ -272,10 +273,6 @@ export const createAgents = async (
     // create or overwrite inkeep.config.ts
     s.message('Creating inkeep.config.ts...');
     await createInkeepConfig(config);
-
-    // Create service files
-    s.message('Creating service files...');
-    await createServiceFiles(config);
 
     // Install dependencies
     s.message('Installing dependencies (this may take a while)...');
@@ -333,58 +330,28 @@ async function createEnvironmentFiles(config: FileConfig) {
 ENVIRONMENT=development
 
 # Database
-DB_FILE_NAME=file:./local.db
+DB_FILE_NAME=file:${process.cwd()}/local.db
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
+
+# Inkeep API URLs
+INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
+INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+
+# SigNoz
+SIGNOZ_URL=your-signoz-url-here
+SIGNOZ_API_KEY=your-signoz-api-key-here
+
+# Nango
+NANGO_HOST=your-nango-host-here
+NANGO_CONNECT_BASE_URL=your-nango-connect-base-url-here
+NANGO_SECRET_KEY=
 `;
 
   await fs.writeFile('.env', envContent);
-
-  // Create .env.example
-  const envExample = envContent.replace(/=.+$/gm, '=');
-  await fs.writeFile('.env.example', envExample);
-
-  // Create .env files for each API service
-  const runApiEnvContent = `# Environment
-ENVIRONMENT=development
-
-# Database (relative path from API directory)
-DB_FILE_NAME=file:../../local.db
-
-# AI Provider Keys  
-ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
-OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
-GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
-
-AGENTS_RUN_API_URL=http://localhost:${config.runApiPort}
-`;
-
-  const manageApiEnvContent = `# Environment
-ENVIRONMENT=development
-
-# Database (relative path from API directory)
-DB_FILE_NAME=file:../../local.db
-
-AGENTS_MANAGE_API_URL=http://localhost:${config.manageApiPort}
-`;
-
-  await fs.writeFile('apps/manage-api/.env', manageApiEnvContent);
-  await fs.writeFile('apps/run-api/.env', runApiEnvContent);
-}
-
-async function createServiceFiles(config: FileConfig) {
-  // Create .env file for the project directory (for inkeep CLI commands)
-  const projectEnvContent = `# Environment
-ENVIRONMENT=development
-
-# Database (relative path from project directory)
-DB_FILE_NAME=file:../../local.db
-`;
-
-  await fs.writeFile(`src/${config.projectId}/.env`, projectEnvContent);
 }
 
 async function createInkeepConfig(config: FileConfig) {

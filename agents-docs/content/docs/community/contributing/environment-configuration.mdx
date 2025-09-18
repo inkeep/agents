@@ -1,0 +1,69 @@
+---
+title: Environment Configuration
+description: How to configure the environment variables for the Inkeep Agent Framework
+icon: "LuSettings"
+---
+
+# Environment Configuration
+
+## Overview
+
+The Inkeep Agents framework uses a **centralized environment configuration**. This approach provides a single source of truth for all environment variables across the monorepo, eliminating duplication and simplifying configuration management.
+
+## Configuration Structure
+
+### Single Root Configuration
+
+All packages in the monorepo reference a **single `.env` file** at the repository root. This is different from the typical approach of having separate `.env` files per package.
+
+```
+agents-4/
+├── .env                    # Main configuration (gitignored)
+├── .env.example            # Template with all variables
+└── packages/
+    └── agents-core/
+        └── src/env.ts      # Centralized env loader
+```
+
+### Loading Priority
+
+Environment variables are loaded in the following order (highest priority first):
+1. **`/package-name/.env`** Package specific configuration
+2. **`.env`** - Main configuration file
+3. **`~/.inkeep/config`** - User-global settings (shared across all repo copies)
+4. **`.env.example`** - Default values
+
+This hierarchy allows for flexible configuration management across different scenarios. If you have .env or .env.local in a package directory, they will override the root .env or .env.local for that package.
+
+## Use Cases
+
+### 1. Basic Local Development
+
+For simple local development with a single repository copy:
+
+```bash
+# Copy the template
+cp .env.example .env
+
+# Edit .env with your configuration
+vim .env
+
+# Start development
+pnpm dev
+```
+
+## Troubleshooting
+
+### Environment variables not loading
+
+1. Check loading order - later sources override earlier ones
+2. Verify file paths are correct
+3. Ensure `packages/agents-core` is built: `pnpm --filter @inkeep/agents-core build`
+
+### Missing variables in production
+
+Ensure all required variables are set in your deployment environment. The application will fail fast if critical variables are missing.
+
+### Database connection issues
+
+- For SQLite: Make sure youu are using an absolute path to the db file

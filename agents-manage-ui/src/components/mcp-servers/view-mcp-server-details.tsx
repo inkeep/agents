@@ -2,8 +2,9 @@
 
 import { Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
-import { ExternalLink } from '@/components/ui/external-link';
 import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from '@/components/ui/external-link';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import type { MCPTool } from '@/lib/api/tools';
 import { cn } from '@/lib/utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
@@ -22,6 +23,7 @@ export function ViewMCPServerDetails({
   tenantId: string;
   projectId: string;
 }) {
+  const { INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -71,7 +73,12 @@ export function ViewMCPServerDetails({
   const handleOAuthLogin = (toolId: string) => {
     try {
       // Get the OAuth URL and open in popup window
-      const oauthUrl = getOAuthLoginUrl({ tenantId, projectId, id: toolId });
+      const oauthUrl = getOAuthLoginUrl({
+        INKEEP_AGENTS_MANAGE_API_URL,
+        tenantId,
+        projectId,
+        id: toolId,
+      });
       const popup = window.open(
         oauthUrl,
         'oauth-popup',

@@ -1,12 +1,13 @@
-import { redirectToProject } from '../lib/utils/project-redirect';
+import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
+import { redirectToProject } from '@/lib/utils/project-redirect';
 
-const DEFAULT_TENANT_ID = 'default';
+export const dynamic = 'force-dynamic';
 
 async function Home() {
-  if (!process.env.NEXT_PUBLIC_TENANT_ID) {
-    console.warn(`NEXT_PUBLIC_TENANT_ID is not set, using default tenantId: ${DEFAULT_TENANT_ID}`);
+  if (!process.env.TENANT_ID) {
+    console.warn(`TENANT_ID is not set, using default tenantId: ${DEFAULT_TENANT_ID}`);
   }
-  const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || DEFAULT_TENANT_ID;
+  const tenantId = process.env.TENANT_ID || DEFAULT_TENANT_ID;
   await redirectToProject(tenantId, 'graphs');
 }
 

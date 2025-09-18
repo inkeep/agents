@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.2.2
+
+### Patch Changes
+
+- d445559: Global env configuration
+
 ## 0.2.1
 
 ## 0.2.0

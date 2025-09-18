@@ -6,6 +6,16 @@ import { FooterLink } from './footer-link';
 
 const footerLinks = [
   {
+    href: 'https://github.com/inkeep/agents',
+    iconName: 'LuGithub',
+    label: 'GitHub',
+  },
+  {
+    href: 'https://inkeep-ai.slack.com/ssb/redirect',
+    iconName: 'LuSlack',
+    label: 'Slack',
+  },
+  {
     href: 'https://www.linkedin.com/company/inkeep/',
     iconName: 'LuLinkedin',
     label: 'LinkedIn',

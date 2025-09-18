@@ -26,7 +26,7 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import { generateObject, generateText, streamText, type Tool, type ToolSet, tool } from 'ai';
+import { generateObject, generateText, streamObject, streamText, type Tool, type ToolSet, tool } from 'ai';
 import { z } from 'zod';
 import {
   createDefaultConversationHistoryConfig,
@@ -1462,37 +1462,109 @@ ${output}`;
               ? structuredModelSettings.maxDuration * 1000
               : CONSTANTS.PHASE_2_TIMEOUT_MS;
 
-            const structuredResponse = await generateObject({
-              ...structuredModelSettings,
-              messages: [
-                { role: 'user', content: userMessage },
-                ...reasoningFlow,
-                {
-                  role: 'user',
-                  content: await this.buildPhase2SystemPrompt(),
-                },
-              ],
-              schema: z.object({
-                dataComponents: z.array(dataComponentsSchema),
-              }),
-              experimental_telemetry: {
-                isEnabled: true,
-                functionId: this.config.id,
-                recordInputs: true,
-                recordOutputs: true,
-                metadata: {
-                  phase: 'structured_generation',
-                },
-              },
-              abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-            });
+            // Check if we should stream Phase 2 structured output
+            const shouldStreamPhase2 = this.getStreamingHelper();
 
-            // Merge structured output into response
-            response = {
-              ...response,
-              object: structuredResponse.object,
-            };
-            textResponse = JSON.stringify(structuredResponse.object, null, 2);
+            if (shouldStreamPhase2) {
+              // Streaming Phase 2: Stream structured output with incremental parser
+              const streamResult = streamObject({
+                ...structuredModelSettings,
+                messages: [
+                  { role: 'user', content: userMessage },
+                  ...reasoningFlow,
+                  {
+                    role: 'user',
+                    content: await this.buildPhase2SystemPrompt(),
+                  },
+                ],
+                schema: z.object({
+                  dataComponents: z.array(dataComponentsSchema),
+                }),
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: this.config.id,
+                  recordInputs: true,
+                  recordOutputs: true,
+                  metadata: {
+                    phase: 'structured_generation',
+                  },
+                },
+                abortSignal: AbortSignal.timeout(phase2TimeoutMs),
+              });
+
+              // Create incremental parser for object streaming
+              const streamHelper = this.getStreamingHelper();
+              if (!streamHelper) {
+                throw new Error('Stream helper is unexpectedly undefined in streaming context');
+              }
+              const parser = new IncrementalStreamParser(streamHelper, this.config.tenantId, contextId);
+
+              // Process the object stream with better delta handling
+              for await (const delta of streamResult.partialObjectStream) {
+                if (delta) {
+                  // Process object deltas directly
+                  await parser.processObjectDelta(delta);
+                }
+              }
+
+              // Finalize the stream
+              await parser.finalize();
+
+              // Get the complete structured response
+              const structuredResponse = await streamResult;
+
+              // Build formattedContent from collected parts
+              const collectedParts = parser.getCollectedParts();
+              if (collectedParts.length > 0) {
+                response.formattedContent = {
+                  parts: collectedParts.map((part) => ({
+                    kind: part.kind,
+                    ...(part.kind === 'text' && { text: part.text }),
+                    ...(part.kind === 'data' && { data: part.data }),
+                  })),
+                };
+              }
+
+              // Merge structured output into response
+              response = {
+                ...response,
+                object: structuredResponse.object,
+              };
+              textResponse = JSON.stringify(structuredResponse.object, null, 2);
+            } else {
+              // Non-streaming Phase 2: Use generateObject as fallback
+              const structuredResponse = await generateObject({
+                ...structuredModelSettings,
+                messages: [
+                  { role: 'user', content: userMessage },
+                  ...reasoningFlow,
+                  {
+                    role: 'user',
+                    content: await this.buildPhase2SystemPrompt(),
+                  },
+                ],
+                schema: z.object({
+                  dataComponents: z.array(dataComponentsSchema),
+                }),
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: this.config.id,
+                  recordInputs: true,
+                  recordOutputs: true,
+                  metadata: {
+                    phase: 'structured_generation',
+                  },
+                },
+                abortSignal: AbortSignal.timeout(phase2TimeoutMs),
+              });
+
+              // Merge structured output into response
+              response = {
+                ...response,
+                object: structuredResponse.object,
+              };
+              textResponse = JSON.stringify(structuredResponse.object, null, 2);
+            }
           } else {
             textResponse = response.text || '';
           }

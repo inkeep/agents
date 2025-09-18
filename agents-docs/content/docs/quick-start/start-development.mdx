@@ -1,0 +1,31 @@
+---
+title: Start Development
+description: Start developing your agents with the Inkeep Agent Framework
+icon: "LuRocket"    
+---
+
+### Prerequisites
+
+- Node.js 22+
+- pnpm 10+ (installation instructions [here](https://pnpm.io/installation))
+
+### Step 1: Create a new agents project
+
+```bash
+npx @inkeep/create-agents
+cd my-agent-directory
+```
+
+### Step 2: Launch the development environment
+
+```bash
+pnpm dev
+```
+
+The Visual Builder will open automatically at http://localhost:3000.
+
+### Step 3: Chat with your agent
+
+Navigate to the weather graph project that was automatically created, click into the weather graph, and then click the "Try It" button to start chatting with the agent.
+
+Next, we recommend setting up observability to see live traces of your agent. See [Observability](/quick-start/observability) for more information.

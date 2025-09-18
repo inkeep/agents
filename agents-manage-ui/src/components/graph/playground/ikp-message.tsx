@@ -454,7 +454,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                       </div>
                       <div className="p-3">
                         <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
-                          {JSON.stringify(part.data, null, 2)}
+                          {JSON.stringify(part.data.props, null, 2)}
                         </pre>
                       </div>
                     </div>

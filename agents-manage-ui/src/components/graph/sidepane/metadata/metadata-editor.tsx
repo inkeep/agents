@@ -7,25 +7,25 @@ import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
+import { ExternalLink } from '@/components/ui/external-link';
 import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
-import { INKEEP_AGENTS_RUN_API_URL } from '@/lib/api/api-config';
 import { ExpandableTextArea } from '../nodes/expandable-text-area';
 import { InputField, TextareaField } from '../nodes/form-fields';
 import { ModelSelector } from '../nodes/model-selector';
 import { ContextConfigForm } from './context-config';
-import { ExternalLink } from '@/components/ui/external-link';
 
 function MetadataEditor() {
   const params = useParams();
@@ -33,6 +33,7 @@ function MetadataEditor() {
   const { graphId, tenantId, projectId } = params;
   const { id, name, description, contextConfig, models, stopWhen, graphPrompt, statusUpdates } =
     metadata;
+  const { INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
   const graphUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
 
   // Fetch project data for inheritance indicators
