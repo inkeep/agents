@@ -929,7 +929,7 @@ Rules:
 - Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
 - Labels MUST be short 3-5 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
-- Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required")
+- Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required"). ALWAYS capitalize the first word of the label.
 - DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
 - Include specific details, numbers, requirements, or insights discovered
 - Examples: "Admin permissions required", "Three OAuth steps found", "Token expires daily"
