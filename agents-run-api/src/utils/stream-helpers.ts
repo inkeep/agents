@@ -463,8 +463,8 @@ export class VercelDataStreamHelper implements StreamHelper {
       });
     } else {
       this.writer.write({
-        type: 'error',
         ...error,
+        type: 'error',
       });
     }
   }

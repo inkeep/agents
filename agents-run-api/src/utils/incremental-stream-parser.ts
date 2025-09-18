@@ -84,7 +84,7 @@ export class IncrementalStreamParser {
       Array.isArray(this.componentAccumulator.dataComponents)
     ) {
       const components = this.componentAccumulator.dataComponents;
-      const currentComponentIds = new Set(components.filter((c) => c?.id).map((c) => c.id));
+      const currentComponentIds = new Set(components.filter((c: any) => c?.id).map((c: any) => c.id));
 
       // Check for new components - stream any previous components that are ready
       for (const [componentId, snapshot] of this.componentSnapshots.entries()) {

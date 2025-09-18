@@ -12,7 +12,6 @@ import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { statusUpdateOp } from './agent-operations';
 import { getStreamHelper } from './stream-registry';
 import { setSpanWithError, tracer } from './tracer';
 

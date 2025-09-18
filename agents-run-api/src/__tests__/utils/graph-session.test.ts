@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StatusUpdateSettings } from '@inkeep/agents-core';
+import type { StatusUpdateSettings, ModelSettings, StatusComponent } from '@inkeep/agents-core';
 import { GraphSession, graphSessionManager } from '../../utils/graph-session';
 import type { StreamHelper } from '../../utils/stream-helpers';
 
@@ -324,10 +324,13 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 2,
+      };
+
+      const summarizerModel: ModelSettings = {
         model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, summarizerModel);
 
       // Mock the generateAndSendUpdate method to call writeSummary
       const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
@@ -367,28 +370,32 @@ describe('GraphSession', () => {
     });
 
     it('should call writeSummary for structured status components', async () => {
+      const statusComponents: StatusComponent[] = [
+        {
+          type: 'progress_summary',
+          description: 'Current progress status',
+          detailsSchema: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              progress: { type: 'number' }
+            },
+            required: ['label']
+          }
+        }
+      ];
+
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 1,
-        model: 'claude-3-5-haiku-20241022',
-        statusComponents: [
-          {
-            id: 'progress_summary',
-            name: 'Progress Summary',
-            description: 'Current progress status',
-            schema: {
-              type: 'object',
-              properties: {
-                label: { type: 'string' },
-                progress: { type: 'number' }
-              },
-              required: ['label']
-            }
-          }
-        ]
+        statusComponents,
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      const summarizerModel: ModelSettings = {
+        model: 'claude-3-5-haiku-20241022',
+      };
+
+      session.initializeStatusUpdates(config, summarizerModel);
 
       // Mock the structured summary generation
       const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
@@ -622,7 +629,7 @@ describe('GraphSession', () => {
       expect(() => {
         expect(minimalSummary.type).toBe('update');
         expect(minimalSummary.label).toBe('Status update');
-        expect(minimalSummary.details).toBeUndefined();
+        expect((minimalSummary as any).details).toBeUndefined();
       }).not.toThrow();
     });
 
@@ -652,10 +659,13 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 1,
+      };
+
+      const summarizerModel: ModelSettings = {
         model: 'claude-3-5-haiku-20241022',
       };
-      
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+
+      session.initializeStatusUpdates(config, summarizerModel);
       
       // Mock the internal method to simulate actual summary generation
       const originalGenerateUpdate = (session as any).generateAndSendUpdate;
