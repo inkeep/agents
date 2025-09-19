@@ -31,10 +31,12 @@ export class ModelFactory {
       case 'google':
         return createGoogleGenerativeAI(config);
       case 'openrouter':
-        // Use official OpenRouter provider, but it has this weird type error
-        return createOpenRouter(config);
+        // Use official OpenRouter provider, cast to handle type mismatch
+        return createOpenRouter(config) as unknown as Provider;
       case 'gateway':
         return createGateway(config);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
