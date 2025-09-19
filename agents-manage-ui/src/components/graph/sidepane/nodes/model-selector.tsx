@@ -2,7 +2,7 @@
 
 import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { modelOptions, isCustomModelValue } from '@/components/graph/configuration/model-options';
+import { modelOptions } from '@/components/graph/configuration/model-options';
 import { Button } from '@/components/ui/button';
 import {
   Command,

@@ -66,13 +66,3 @@ export const modelOptions = {
     },
   ],
 };
-
-// Helper function to check if a model value is custom (not in predefined options)
-export const isCustomModelValue = (value: string): boolean => {
-  for (const [_provider, models] of Object.entries(modelOptions)) {
-    if (models.some(m => m.value === value)) {
-      return false;
-    }
-  }
-  return Boolean(value) && value.includes('/');
-};
