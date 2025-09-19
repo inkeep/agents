@@ -4,7 +4,13 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
 
 // Mock dependencies
-vi.mock('node:fs');
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+  };
+});
 vi.mock('@inkeep/agents-core');
 vi.mock('../../utils/project-directory.js', () => ({
   findProjectDirectory: vi.fn(),

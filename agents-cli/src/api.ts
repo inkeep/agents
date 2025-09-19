@@ -1,9 +1,10 @@
 import {
-  getAgentsRunApiUrl,
   getAgentsManageApiUrl,
+  getAgentsRunApiUrl,
   getProjectId,
   getTenantId,
 } from './utils/config';
+import { env } from './env';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -62,8 +63,8 @@ export class ManagementApiClient extends BaseApiClient {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
           }),
         },
       }
@@ -107,8 +108,8 @@ export class ManagementApiClient extends BaseApiClient {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
           }),
         },
         body: JSON.stringify(graphDefinition),
@@ -152,8 +153,8 @@ export class ExecutionApiClient extends BaseApiClient {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-        ...(process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
-          Authorization: `Bearer ${process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+        ...(env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
+          Authorization: `Bearer ${env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
         }),
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,

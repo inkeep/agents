@@ -1,11 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { ProjectModels } from '@inkeep/agents-core';
-import dotenv from 'dotenv';
 import { importWithTypeScriptSupport } from './tsx-loader';
-
-// Load .env file from current directory if it exists
-dotenv.config({ quiet: true });
 
 export interface InkeepConfig {
   tenantId?: string;
@@ -112,6 +108,7 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
   }
 
   // Override with environment variables if present
+  // Note: We check process.env directly here for dynamic runtime configuration
   if (process.env.INKEEP_AGENTS_MANAGE_API_URL) {
     config.agentsManageApiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL;
   }

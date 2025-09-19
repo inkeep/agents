@@ -19,9 +19,13 @@ vi.mock('../utils/tsx-loader.js', () => ({
 }));
 
 // Mock the file system to control when config files are found
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => false),
-}));
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(() => false),
+  };
+});
 
 describe('Configuration Validation', () => {
   beforeEach(() => {

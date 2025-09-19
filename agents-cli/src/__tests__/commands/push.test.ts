@@ -6,7 +6,13 @@ import { pushCommand } from '../../commands/push';
 import { importWithTypeScriptSupport } from '../../utils/tsx-loader';
 
 // Mock all external dependencies
-vi.mock('node:fs');
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+  };
+});
 vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),
 }));
