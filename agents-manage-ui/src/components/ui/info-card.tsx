@@ -42,7 +42,7 @@ export function CollapsibleInfoCard({
       <CollapsibleTrigger asChild>
         <Button
           variant="ghost"
-          className="text-xs flex items-center justify-between h-auto gap-2 py-3 px-3 tex-left w-full font-medium text-foreground font-mono uppercase group/info-card"
+          className="text-xs flex items-center justify-between h-auto gap-2 py-3 px-3 w-full font-medium text-foreground font-mono uppercase group/info-card"
         >
           <div className="flex items-center gap-2">
             {Icon && <Icon size={12} className="!w-3 !h-3 text-muted-foreground" />}
