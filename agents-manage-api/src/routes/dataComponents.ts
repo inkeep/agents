@@ -27,7 +27,7 @@ app.openapi(
     path: '/',
     summary: 'List Data Components',
     operationId: 'list-data-components',
-    tags: ['CRUD Data Component'],
+    tags: ['Data Component'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -63,7 +63,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Data Component',
     operationId: 'get-data-component-by-id',
-    tags: ['CRUD Data Component'],
+    tags: ['Data Component'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },
@@ -103,7 +103,7 @@ app.openapi(
     path: '/',
     summary: 'Create Data Component',
     operationId: 'create-data-component',
-    tags: ['CRUD Data Component'],
+    tags: ['Data Component'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -148,7 +148,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Data Component',
     operationId: 'update-data-component',
-    tags: ['CRUD Data Component'],
+    tags: ['Data Component'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
       body: {
@@ -198,7 +198,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Data Component',
     operationId: 'delete-data-component',
-    tags: ['CRUD Data Component'],
+    tags: ['Data Component'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },

@@ -45,7 +45,7 @@ export async function fetchMCPTools(
   }
 
   const response = await makeManagementApiRequest<ListResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools?${params}`
+    `tenants/${tenantId}/projects/${projectId}/tools?${params}`
   );
 
   return response.data;
@@ -63,7 +63,7 @@ export async function fetchMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}`
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}`
   );
 
   return response.data;
@@ -81,7 +81,7 @@ export async function createMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools`,
+    `tenants/${tenantId}/projects/${projectId}/tools`,
     {
       method: 'POST',
       body: JSON.stringify(data),
@@ -104,7 +104,7 @@ export async function updateMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}`,
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
     {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -126,7 +126,7 @@ export async function deleteMCPTool(
   validateProjectId(projectId);
 
   await makeManagementApiRequest<void>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}`,
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
     {
       method: 'DELETE',
     }
@@ -158,7 +158,7 @@ export async function checkMCPToolHealth(
         error?: string;
       };
     }>
-  >(`tenants/${tenantId}/crud/projects/${projectId}/tools/${id}/health-check`, {
+  >(`tenants/${tenantId}/projects/${projectId}/tools/${id}/health-check`, {
     method: 'POST',
   });
 
@@ -194,7 +194,7 @@ export async function getMCPToolAvailableTools(
       lastSync?: string;
       status: McpTool['status'];
     }>
-  >(`tenants/${tenantId}/crud/projects/${projectId}/tools/${id}/available-tools`);
+  >(`tenants/${tenantId}/projects/${projectId}/tools/${id}/available-tools`);
 
   return response.data;
 }
@@ -211,7 +211,7 @@ export async function syncMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}/sync`,
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}/sync`,
     {
       method: 'POST',
     }

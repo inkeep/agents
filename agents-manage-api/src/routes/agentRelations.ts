@@ -38,7 +38,7 @@ app.openapi(
     path: '/',
     summary: 'List Agent Relations',
     operationId: 'list-agent-relations',
-    tags: ['CRUD Agent Relations'],
+    tags: ['Agent Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema.merge(AgentRelationQuerySchema),
@@ -116,7 +116,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Agent Relation',
     operationId: 'get-agent-relation-by-id',
-    tags: ['CRUD Agent Relations'],
+    tags: ['Agent Relations'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
     },
@@ -157,7 +157,7 @@ app.openapi(
     path: '/',
     summary: 'Create Agent Relation',
     operationId: 'create-agent-relation',
-    tags: ['CRUD Agent Relations'],
+    tags: ['Agent Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
@@ -267,7 +267,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Agent Relation',
     operationId: 'update-agent-relation',
-    tags: ['CRUD Agent Relations'],
+    tags: ['Agent Relations'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
       body: {
@@ -318,7 +318,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Agent Relation',
     operationId: 'delete-agent-relation',
-    tags: ['CRUD Agent Relations'],
+    tags: ['Agent Relations'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
     },

@@ -58,7 +58,7 @@ describe('ApiClient', () => {
       const result = await apiClient.listGraphs();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/crud/projects/test-project-id/agent-graphs',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agent-graphs',
         {
           method: 'GET',
           headers: {
@@ -153,7 +153,7 @@ describe('ApiClient', () => {
       const result = await apiClient.pushGraph(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/crud/projects/test-project-id/graph/test-graph',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/graph/test-graph',
         {
           method: 'PUT',
           headers: {

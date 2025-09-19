@@ -45,7 +45,7 @@ app.openapi(
     path: '/',
     summary: 'Create Full Graph',
     operationId: 'create-full-graph',
-    tags: ['CRUD Full Graph'],
+    tags: ['Full Graph'],
     description:
       'Create a complete agent graph with all agents, tools, and relationships from JSON definition',
     request: {
@@ -102,7 +102,7 @@ app.openapi(
     path: '/{graphId}',
     summary: 'Get Full Graph',
     operationId: 'get-full-graph',
-    tags: ['CRUD Full Graph'],
+    tags: ['Full Graph'],
     description:
       'Retrieve a complete agent graph definition with all agents, tools, and relationships',
     request: {
@@ -162,7 +162,7 @@ app.openapi(
     path: '/{graphId}',
     summary: 'Update Full Graph',
     operationId: 'update-full-graph',
-    tags: ['CRUD Full Graph'],
+    tags: ['Full Graph'],
     description:
       'Update or create a complete agent graph with all agents, tools, and relationships from JSON definition',
     request: {
@@ -262,7 +262,7 @@ app.openapi(
     path: '/{graphId}',
     summary: 'Delete Full Graph',
     operationId: 'delete-full-graph',
-    tags: ['CRUD Full Graph'],
+    tags: ['Full Graph'],
     description:
       'Delete a complete agent graph and cascade to all related entities (relationships, not agents/tools)',
     request: {

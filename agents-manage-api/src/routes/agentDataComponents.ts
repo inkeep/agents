@@ -30,7 +30,7 @@ app.openapi(
     path: '/agent/:agentId',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
-    tags: ['CRUD Agent Data Component Relations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
@@ -68,7 +68,7 @@ app.openapi(
     path: '/component/:dataComponentId/agents',
     summary: 'Get Agents Using Data Component',
     operationId: 'get-agents-using-data-component',
-    tags: ['CRUD Agent Data Component Relations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         dataComponentId: z.string(),
@@ -112,7 +112,7 @@ app.openapi(
     path: '/',
     summary: 'Associate Data Component with Agent',
     operationId: 'associate-data-component-with-agent',
-    tags: ['CRUD Agent Data Component Relations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
@@ -195,7 +195,7 @@ app.openapi(
     path: '/agent/:agentId/component/:dataComponentId',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
-    tags: ['CRUD Agent Data Component Relations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
@@ -243,7 +243,7 @@ app.openapi(
     path: '/agent/:agentId/component/:dataComponentId/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
-    tags: ['CRUD Agent Data Component Relations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),

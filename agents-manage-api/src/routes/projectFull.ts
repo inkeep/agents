@@ -50,7 +50,7 @@ app.openapi(
     path: '/project-full',
     summary: 'Create Full Project',
     operationId: 'create-full-project',
-    tags: ['CRUD Full Project'],
+    tags: ['Full Project'],
     description:
       'Create a complete project with all graphs, agents, tools, and relationships from JSON definition',
     request: {
@@ -120,7 +120,7 @@ app.openapi(
     path: '/project-full/{projectId}',
     summary: 'Get Full Project',
     operationId: 'get-full-project',
-    tags: ['CRUD Full Project'],
+    tags: ['Full Project'],
     description:
       'Retrieve a complete project definition with all graphs, agents, tools, and relationships',
     request: {
@@ -180,7 +180,7 @@ app.openapi(
     path: '/project-full/{projectId}',
     summary: 'Update Full Project',
     operationId: 'update-full-project',
-    tags: ['CRUD Full Project'],
+    tags: ['Full Project'],
     description:
       'Update or create a complete project with all graphs, agents, tools, and relationships from JSON definition',
     request: {
@@ -280,7 +280,7 @@ app.openapi(
     path: '/project-full/{projectId}',
     summary: 'Delete Full Project',
     operationId: 'delete-full-project',
-    tags: ['CRUD Full Project'],
+    tags: ['Full Project'],
     description:
       'Delete a complete project and cascade to all related entities (graphs, agents, tools, relationships)',
     request: {

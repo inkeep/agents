@@ -28,7 +28,7 @@ app.openapi(
     path: '/',
     summary: 'List Context Configurations',
     operationId: 'list-context-configs',
-    tags: ['CRUD Context Config'],
+    tags: ['Context Config'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -64,7 +64,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Context Configuration',
     operationId: 'get-context-config-by-id',
-    tags: ['CRUD Context Config'],
+    tags: ['Context Config'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },
@@ -104,7 +104,7 @@ app.openapi(
     path: '/',
     summary: 'Create Context Configuration',
     operationId: 'create-context-config',
-    tags: ['CRUD Context Config'],
+    tags: ['Context Config'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -148,7 +148,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Context Configuration',
     operationId: 'update-context-config',
-    tags: ['CRUD Context Config'],
+    tags: ['Context Config'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
       body: {
@@ -198,7 +198,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Context Configuration',
     operationId: 'delete-context-config',
-    tags: ['CRUD Context Config'],
+    tags: ['Context Config'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },

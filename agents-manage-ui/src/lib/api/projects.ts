@@ -10,7 +10,7 @@ export async function fetchProjects(tenantId: string): Promise<ListResponse<Proj
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<ListResponse<any>>(
-    `tenants/${tenantId}/crud/projects`
+    `tenants/${tenantId}/projects`
   );
 
   // Map backend 'id' field to 'projectId' for frontend consistency
@@ -31,7 +31,7 @@ export async function fetchProject(
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<SingleResponse<any>>(
-    `tenants/${tenantId}/crud/projects/${projectId}`
+    `tenants/${tenantId}/projects/${projectId}`
   );
 
   // Map backend 'id' field to 'projectId' for frontend consistency
@@ -52,7 +52,7 @@ export async function createProject(
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<SingleResponse<any>>(
-    `tenants/${tenantId}/crud/projects`,
+    `tenants/${tenantId}/projects`,
     {
       method: 'POST',
       body: JSON.stringify(project),
@@ -78,7 +78,7 @@ export async function updateProject(
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<SingleResponse<any>>(
-    `tenants/${tenantId}/crud/projects/${projectId}`,
+    `tenants/${tenantId}/projects/${projectId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(project),
@@ -98,7 +98,7 @@ export async function updateProject(
 export async function deleteProject(tenantId: string, projectId: string): Promise<void> {
   validateTenantId(tenantId);
 
-  await makeManagementApiRequest<void>(`tenants/${tenantId}/crud/projects/${projectId}`, {
+  await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}`, {
     method: 'DELETE',
   });
 }

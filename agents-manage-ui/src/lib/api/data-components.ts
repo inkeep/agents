@@ -34,7 +34,7 @@ export async function fetchDataComponents(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/data-components`
+    `tenants/${tenantId}/projects/${projectId}/data-components`
   );
 
   // Transform the response to ensure props is non-nullable
@@ -59,7 +59,7 @@ export async function fetchDataComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponentId}`
+    `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
   );
 
   // Transform the response to ensure props is non-nullable
@@ -81,7 +81,7 @@ export async function createDataComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/data-components`,
+    `tenants/${tenantId}/projects/${projectId}/data-components`,
     {
       method: 'POST',
       body: JSON.stringify(dataComponent),
@@ -107,7 +107,7 @@ export async function updateDataComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponent.id}`,
+    `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponent.id}`,
     {
       method: 'PUT',
       body: JSON.stringify(dataComponent),
@@ -133,7 +133,7 @@ export async function deleteDataComponent(
   validateProjectId(projectId);
 
   await makeManagementApiRequest(
-    `tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponentId}`,
+    `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
     {
       method: 'DELETE',
     }

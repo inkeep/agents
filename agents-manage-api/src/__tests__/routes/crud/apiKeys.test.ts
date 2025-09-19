@@ -71,7 +71,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     };
 
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/api-keys`,
+      `/tenants/${tenantId}/projects/${projectId}/api-keys`,
       {
         method: 'POST',
         body: JSON.stringify(createData),
@@ -93,7 +93,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -119,7 +119,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const _apiKey2 = await createTestApiKey({ tenantId, projectId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -156,7 +156,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       await createTestApiKey({ tenantId, projectId, graphId: graph2 });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys?graphId=${graph1}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?graphId=${graph1}`
       );
       expect(res.status).toBe(200);
 
@@ -176,7 +176,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       }
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys?page=1&limit=3`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?page=1&limit=3`
       );
       expect(res.status).toBe(200);
 
@@ -199,7 +199,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`
       );
       expect(res.status).toBe(200);
 
@@ -217,7 +217,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const nonExistentId = `non-existent-${nanoid()}`;
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${nonExistentId}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${nonExistentId}`
       );
       expect(res.status).toBe(404);
 
@@ -236,7 +236,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Try to access from different tenant
       const res = await makeRequest(
-        `/tenants/${tenantId2}/projects/${projectId}/crud/api-keys/${apiKey.id}`
+        `/tenants/${tenantId2}/projects/${projectId}/api-keys/${apiKey.id}`
       );
       expect(res.status).toBe(404);
     });
@@ -252,7 +252,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         graphId,
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/api-keys`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
         method: 'POST',
         body: JSON.stringify(createData),
       });
@@ -301,7 +301,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         expiresAt,
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/api-keys`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
         method: 'POST',
         body: JSON.stringify(createData),
       });
@@ -322,7 +322,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         graphId: invalidGraphId,
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/api-keys`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
         method: 'POST',
         body: JSON.stringify(createData),
         expectError: true,
@@ -345,7 +345,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -375,7 +375,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -399,7 +399,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${nonExistentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -424,7 +424,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Try to update from different tenant
       const res = await makeRequest(
-        `/tenants/${tenantId2}/projects/${projectId}/crud/api-keys/${apiKey.id}`,
+        `/tenants/${tenantId2}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -443,7 +443,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
           method: 'DELETE',
         }
@@ -453,7 +453,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Verify API key is deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -465,7 +465,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const nonExistentId = `non-existent-${nanoid()}`;
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${nonExistentId}`,
         {
           method: 'DELETE',
         }
@@ -485,7 +485,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Try to delete from different tenant
       const res = await makeRequest(
-        `/tenants/${tenantId2}/projects/${projectId}/crud/api-keys/${apiKey.id}`,
+        `/tenants/${tenantId2}/projects/${projectId}/api-keys/${apiKey.id}`,
         {
           method: 'DELETE',
         }
@@ -504,8 +504,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Test all endpoints
       const endpoints = [
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys`,
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
       ];
 
       for (const endpoint of endpoints) {
@@ -533,7 +533,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Create API key
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys`,
+        `/tenants/${tenantId}/projects/${projectId}/api-keys`,
         {
           method: 'POST',
           body: JSON.stringify({ graphId }),
@@ -549,7 +549,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Verify full key is NOT returned in subsequent operations
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKey.id}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`
       );
       const getBody = await getRes.json();
 

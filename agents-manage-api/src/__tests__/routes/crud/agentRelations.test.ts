@@ -28,7 +28,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
   }) => {
     const agentData = createAgentData({ suffix });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -80,7 +80,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       relationType,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agent-relations`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-relations`,
       {
         method: 'POST',
         body: JSON.stringify(agentRelationData),
@@ -104,7 +104,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       contextConfigId: null,
     };
     const graphRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`,
+      `/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
       {
         method: 'POST',
         body: JSON.stringify(tempGraphData),
@@ -128,7 +128,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
     // Update the graph with a defaultAgentId if needed
     const updateRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs/${agentGraphId}`,
+      `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`,
       {
         method: 'PUT',
         body: JSON.stringify({ defaultAgentId: sourceAgentId }),
@@ -152,7 +152,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify(agentRelationData),
@@ -175,7 +175,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { agentGraphId } = await setupTestEnvironment(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -199,7 +199,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify(invalidRelationData),
@@ -225,7 +225,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -250,7 +250,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -269,7 +269,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { agentGraphId } = await setupTestEnvironment(tenantId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
       );
       expect(res.status).toBe(200);
 
@@ -290,7 +290,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
       );
       expect(res.status).toBe(200);
 
@@ -327,7 +327,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations?sourceAgentId=${sourceAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations?sourceAgentId=${sourceAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -360,7 +360,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations?targetAgentId=${targetAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations?targetAgentId=${targetAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -397,7 +397,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
       // Filter for transfer relations only
       const transferRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations?sourceAgentId=${sourceAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations?sourceAgentId=${sourceAgentId}`
       );
       expect(transferRes.status).toBe(200);
 
@@ -424,7 +424,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`
       );
       expect(res.status).toBe(200);
 
@@ -441,7 +441,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-relations-get-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/default/agent-relations/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/default/agent-relations/non-existent-id`
       );
       expect(res.status).toBe(404);
     });
@@ -465,7 +465,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -487,7 +487,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const updateData = { relationType: 'delegate' as const };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/default/agent-relations/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/default/agent-relations/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -513,7 +513,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
         {
           method: 'PUT',
           body: JSON.stringify(invalidUpdateData),
@@ -540,7 +540,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
         {
           method: 'DELETE',
         }
@@ -549,7 +549,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(204);
 
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -558,7 +558,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-relations-delete-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/default/agent-relations/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/default/agent-relations/non-existent-id`,
         {
           method: 'DELETE',
         }

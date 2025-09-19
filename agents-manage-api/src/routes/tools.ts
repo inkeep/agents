@@ -49,7 +49,7 @@ app.openapi(
     path: '/',
     summary: 'List Tools',
     operationId: 'list-tools',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -95,7 +95,7 @@ app.openapi(
         },
       };
     } else {
-      // Use paginated results from crud operations
+      // Use paginated results from operations
       const dbResult = await listTools(dbClient)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
@@ -117,7 +117,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Tool',
     operationId: 'get-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -157,7 +157,7 @@ app.openapi(
     path: '/',
     summary: 'Create Tool',
     operationId: 'create-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -215,7 +215,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Tool',
     operationId: 'update-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
       body: {
@@ -282,7 +282,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Tool',
     operationId: 'delete-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -322,7 +322,7 @@ app.openapi(
     path: '/{id}/health-check',
     summary: 'Check Tool Health',
     operationId: 'check-tool-health',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -384,7 +384,7 @@ app.openapi(
     path: '/health-check-all',
     summary: 'Check All Tools Health',
     operationId: 'check-all-tools-health',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -454,7 +454,7 @@ app.openapi(
     path: '/{id}/sync',
     summary: 'Sync Tool Definitions',
     operationId: 'sync-tool-definitions',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -504,7 +504,7 @@ app.openapi(
     path: '/{id}/available-tools',
     summary: 'Get Available Tools',
     operationId: 'get-available-tools',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -560,7 +560,7 @@ app.openapi(
     path: '/{id}/status',
     summary: 'Update Tool Status',
     operationId: 'update-tool-status',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
       body: {

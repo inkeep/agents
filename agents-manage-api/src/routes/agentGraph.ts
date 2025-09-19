@@ -34,7 +34,7 @@ app.openapi(
     path: '/',
     summary: 'List Agent Graphs',
     operationId: 'list-agent-graphs',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -76,7 +76,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Agent Graph',
     operationId: 'get-agent-graph',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },
@@ -116,7 +116,7 @@ app.openapi(
     path: '/{graphId}/agents/{agentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.extend({
         graphId: z.string(),
@@ -169,7 +169,7 @@ app.openapi(
     path: '/{graphId}/full',
     summary: 'Get Full Graph Definition',
     operationId: 'get-full-graph-definition',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.extend({
         graphId: z.string(),
@@ -212,7 +212,7 @@ app.openapi(
     path: '/',
     summary: 'Create Agent Graph',
     operationId: 'create-agent-graph',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -259,7 +259,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Agent Graph',
     operationId: 'update-agent-graph',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
       body: {
@@ -312,7 +312,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Agent Graph',
     operationId: 'delete-agent-graph',
-    tags: ['CRUD Agent Graph'],
+    tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },

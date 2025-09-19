@@ -53,7 +53,7 @@ export function getOAuthLoginUrl({
   }
 
   // Build URL with proper encoding
-  const url = `${INKEEP_AGENTS_MANAGE_API_URL}/tenants/${encodeURIComponent(tenantId)}/crud/projects/${encodeURIComponent(projectId)}/tools/${encodeURIComponent(id)}/oauth-login`;
+  const url = `${INKEEP_AGENTS_MANAGE_API_URL}/tenants/${encodeURIComponent(tenantId)}/projects/${encodeURIComponent(projectId)}/tools/${encodeURIComponent(id)}/oauth-login`;
 
   // Verify the final URL starts with our expected base
   if (!url.startsWith(INKEEP_AGENTS_MANAGE_API_URL)) {

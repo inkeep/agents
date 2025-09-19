@@ -4,7 +4,7 @@ import agentArtifactComponentsRoutes from './agentArtifactComponents';
 import agentDataComponentsRoutes from './agentDataComponents';
 import agentGraphRoutes from './agentGraph';
 import agentRelationsRoutes from './agentRelations';
-// Import existing CRUD route modules (others can be added as they're created)
+// Import existing route modules (others can be added as they're created)
 import agentsRoutes from './agents';
 import agentToolRelationsRoutes from './agentToolRelations';
 import apiKeysRoutes from './apiKeys';
@@ -22,7 +22,7 @@ const app = new OpenAPIHono();
 // Mount projects route first (no projectId in path)
 app.route('/projects', projectsRoutes);
 
-// Mount existing CRUD routes under project scope
+// Mount existing routes under project scope
 app.route('/projects/:projectId/graphs/:graphId/agents', agentsRoutes);
 app.route('/projects/:projectId/graphs/:graphId/agent-relations', agentRelationsRoutes);
 app.route('/projects/:projectId/agent-graphs', agentGraphRoutes);
@@ -37,7 +37,7 @@ app.route('/projects/:projectId/graphs/:graphId/external-agents', externalAgents
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 
-// Mount new full graph CRUD routes
+// Mount new full graph routes
 app.route('/projects/:projectId/graph', graphFullRoutes);
 
 export default app;
