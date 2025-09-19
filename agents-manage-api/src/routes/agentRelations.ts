@@ -295,7 +295,7 @@ app.openapi(
     const body = await c.req.valid('json');
 
     const updatedAgentRelation = await updateAgentRelation(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId },
       relationId: id,
       data: body,
     });
@@ -340,7 +340,7 @@ app.openapi(
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
     const deleted = await deleteAgentRelation(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId },
       relationId: id,
     });
 

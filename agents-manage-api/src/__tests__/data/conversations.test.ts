@@ -41,10 +41,10 @@ vi.mock('../../logger.js', () => ({
 import dbClient from '../../data/db/dbClient';
 
 // Get references to the mocked functions
-const mockInsert = vi.mocked(dbClient.insert);
-const mockSelect = vi.mocked(dbClient.select);
-const mockUpdate = vi.mocked(dbClient.update);
-const mockQuery = vi.mocked(dbClient.query);
+const mockInsert = vi.mocked(dbClient.insert) as any;
+const mockSelect = vi.mocked(dbClient.select) as any;
+const mockUpdate = vi.mocked(dbClient.update) as any;
+const mockQuery = vi.mocked(dbClient.query) as any;
 
 describe.skip('Conversations', () => {
   // TODO: Fix mock hoisting issue
