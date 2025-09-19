@@ -128,7 +128,7 @@ export const createAgents = async (
   // If keys aren't provided via CLI args, prompt for provider selection and keys
   if (!anthropicKey && !openAiKey) {
     const providerChoice = await p.select({
-      message: 'Which AI provider(s) would you like to use?',
+      message: 'Which AI provider would you like to use?',
       options: [
         { value: 'anthropic', label: 'Anthropic' },
         { value: 'openai', label: 'OpenAI' },
