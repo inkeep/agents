@@ -1,5 +1,16 @@
 # @inkeep/agents-run-api
 
+## 0.3.0
+
+### Minor Changes
+
+- a7a5ca5: Proper assignment of agent framework resources to the correct project, graph, or agents scope
+
+### Patch Changes
+
+- Updated dependencies [a7a5ca5]
+  - @inkeep/agents-core@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes
