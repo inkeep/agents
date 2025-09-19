@@ -6,7 +6,7 @@ import type {
   SummaryEvent,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { generateObject, generateText } from 'ai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
@@ -14,6 +14,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { getStreamHelper } from './stream-registry';
 import { setSpanWithError, tracer } from './tracer';
+import { defaultStatusSchemas } from '@inkeep/agents-sdk';
 
 const logger = getLogger('GraphSession');
 
@@ -515,107 +516,71 @@ export class GraphSession {
       const now = Date.now();
       const elapsedTime = now - statusUpdateState.startTime;
 
-      // Generate status update - either structured or text summary
-      let summaryToSend: any;
+      // Use default status schemas if no custom ones are configured
+      const statusComponents = statusUpdateState.config.statusComponents && statusUpdateState.config.statusComponents.length > 0
+        ? statusUpdateState.config.statusComponents
+        : defaultStatusSchemas;
 
-      if (
-        statusUpdateState.config.statusComponents &&
-        statusUpdateState.config.statusComponents.length > 0
-      ) {
-        // Use generateObject to intelligently select relevant data components
-        const result = await this.generateStructuredStatusUpdate(
-          this.events.slice(statusUpdateState.lastEventCount),
-          elapsedTime,
-          statusUpdateState.config.statusComponents,
-          statusUpdateState.summarizerModel,
-          this.previousSummaries
-        );
+      // Generate structured status update using configured or default schemas
+      const result = await this.generateStructuredStatusUpdate(
+        this.events.slice(statusUpdateState.lastEventCount),
+        elapsedTime,
+        statusComponents,
+        statusUpdateState.summarizerModel,
+        this.previousSummaries
+      );
 
-        if (result.summaries && result.summaries.length > 0) {
-          // Send each operation separately using writeData for dynamic types
-          for (const summary of result.summaries) {
-            // Guard against empty/invalid operations
-            if (
-              !summary ||
-              !summary.type ||
-              !summary.data ||
-              !summary.data.label ||
-              Object.keys(summary.data).length === 0
-            ) {
-              logger.warn(
-                {
-                  sessionId: this.sessionId,
-                  summary: summary,
-                },
-                'Skipping empty or invalid structured operation'
-              );
-              continue;
-            }
-
-            const summaryToSend = {
-              type: summary.data.type || summary.type, // Preserve the actual custom type from LLM
-              label: summary.data.label,
-              details: Object.fromEntries(
-                Object.entries(summary.data).filter(([key]) => !['label', 'type'].includes(key))
-              ),
-            };
-
-            await streamHelper.writeSummary(summaryToSend as SummaryEvent);
+      if (result.summaries && result.summaries.length > 0) {
+        // Send each operation separately using writeData for dynamic types
+        for (const summary of result.summaries) {
+          // Guard against empty/invalid operations
+          if (
+            !summary ||
+            !summary.type ||
+            !summary.data ||
+            !summary.data.label ||
+            Object.keys(summary.data).length === 0
+          ) {
+            logger.warn(
+              {
+                sessionId: this.sessionId,
+                summary: summary,
+              },
+              'Skipping empty or invalid structured operation'
+            );
+            continue;
           }
 
-          // Store summaries for next time - use full JSON for better comparison
-          const summaryTexts = result.summaries.map((summary) =>
-            JSON.stringify({ type: summary.type, data: summary.data })
-          );
-          this.previousSummaries.push(...summaryTexts);
+          const summaryToSend = {
+            type: summary.data.type || summary.type, // Preserve the actual custom type from LLM
+            label: summary.data.label,
+            details: Object.fromEntries(
+              Object.entries(summary.data).filter(([key]) => !['label', 'type'].includes(key))
+            ),
+          };
 
-          // Update state after sending all operations
-          if (this.statusUpdateState) {
-            this.statusUpdateState.lastUpdateTime = now;
-            this.statusUpdateState.lastEventCount = this.events.length;
-          }
-
-          return;
-        } else {
-          // Fall through to regular text summary if no structured updates
+          await streamHelper.writeSummary(summaryToSend as SummaryEvent);
         }
-      } else {
-        // Use regular text generation for simple summaries
-        const summary = await this.generateProgressSummary(
-          this.events.slice(statusUpdateState.lastEventCount),
-          elapsedTime,
-          statusUpdateState.summarizerModel,
-          this.previousSummaries
+
+        // Store summaries for next time - use full JSON for better comparison
+        const summaryTexts = result.summaries.map((summary) =>
+          JSON.stringify({ type: summary.type, data: summary.data })
         );
+        this.previousSummaries.push(...summaryTexts);
 
-        // Store this summary for next time
-        this.previousSummaries.push(summary);
+        // Update state after sending all operations
+        if (this.statusUpdateState) {
+          this.statusUpdateState.lastUpdateTime = now;
+          this.statusUpdateState.lastEventCount = this.events.length;
+        }
 
-        // Create standard status update operation
-        const summaryToSend = {
-          type: 'update', // Simple text summaries get 'update' type
-          label: summary,
-        };
+        return;
       }
 
       // Keep only last 3 summaries to avoid context getting too large
       if (this.previousSummaries.length > 3) {
         this.previousSummaries.shift();
       }
-
-      // Guard against sending empty/undefined operations that break streams
-      if (!summaryToSend || !summaryToSend.label) {
-        logger.warn(
-          {
-            sessionId: this.sessionId,
-            summaryToSend,
-          },
-          'Skipping empty or invalid status update operation'
-        );
-        return;
-      }
-
-      await streamHelper.writeSummary(summaryToSend);
 
       // Update state - check if still exists (could be cleaned up during async operation)
       if (this.statusUpdateState) {
@@ -724,120 +689,6 @@ export class GraphSession {
     }
   }
 
-  /**
-   * Generate user-focused progress summary hiding internal operations
-   */
-  private async generateProgressSummary(
-    newEvents: GraphSessionEvent[],
-    elapsedTime: number,
-    summarizerModel?: ModelSettings,
-    previousSummaries: string[] = []
-  ): Promise<string> {
-    return tracer.startActiveSpan(
-      'graph_session.generate_progress_summary',
-      {
-        attributes: {
-          'graph_session.id': this.sessionId,
-          'events.count': newEvents.length,
-          'elapsed_time.seconds': Math.round(elapsedTime / 1000),
-          'llm.model': summarizerModel?.model,
-          'previous_summaries.count': previousSummaries.length,
-        },
-      },
-      async (span) => {
-        try {
-          // Extract user-visible activities (hide internal agent operations)
-          const userVisibleActivities = this.extractUserVisibleActivities(newEvents);
-
-          // Get conversation history to understand user's context and question
-          let conversationContext = '';
-          if (this.tenantId && this.projectId) {
-            try {
-              const conversationHistory = await getFormattedConversationHistory({
-                tenantId: this.tenantId,
-                projectId: this.projectId,
-                conversationId: this.sessionId,
-                options: {
-                  limit: 10, // Get recent conversation context
-                  maxOutputTokens: 2000,
-                },
-                filters: {},
-              });
-              conversationContext = conversationHistory.trim()
-                ? `\nUser's Question/Context:\n${conversationHistory}\n`
-                : '';
-            } catch (error) {
-              logger.warn(
-                { sessionId: this.sessionId, error },
-                'Failed to fetch conversation history for status update'
-              );
-            }
-          }
-
-          const previousSummaryContext =
-            previousSummaries.length > 0
-              ? `\nPrevious updates provided to user:\n${previousSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
-              : '';
-
-          // Use custom prompt if provided, otherwise use default
-          const basePrompt = `Generate a meaningful status update that tells the user what specific information or result was just found/achieved.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
-
-Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
-
-Create a short 3-5 word label describing the ACTUAL finding. Use sentence case (only capitalize the first word and proper nouns). Examples: "Found admin permissions needed", "Identified three channel types", "OAuth token required".
-
-${this.statusUpdateState?.config.prompt?.trim() || ''}`;
-
-          const prompt = basePrompt;
-
-          // Use summarizer model if available, otherwise fall back to base model
-          let modelToUse = summarizerModel;
-          if (!summarizerModel?.model?.trim()) {
-            if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              throw new Error(
-                'Either summarizer or base model is required for progress summary generation. Please configure models at the project level.'
-              );
-            }
-            modelToUse = this.statusUpdateState.baseModel;
-          }
-
-          if (!modelToUse) {
-            throw new Error('No model configuration available');
-          }
-          const model = ModelFactory.createModel(modelToUse);
-
-          const { text } = await generateText({
-            model,
-            prompt,
-            experimental_telemetry: {
-              isEnabled: true,
-              functionId: `status_update_${this.sessionId}`,
-              recordInputs: true,
-              recordOutputs: true,
-              metadata: {
-                operation: 'progress_summary_generation',
-                sessionId: this.sessionId,
-              },
-            },
-          });
-
-          span.setAttributes({
-            'summary.length': text.trim().length,
-            'user_activities.count': userVisibleActivities.length,
-          });
-          span.setStatus({ code: SpanStatusCode.OK });
-
-          return text.trim();
-        } catch (error) {
-          setSpanWithError(span, error);
-          logger.error({ error }, 'Failed to generate summary, using fallback');
-          return this.generateFallbackSummary(newEvents, elapsedTime);
-        } finally {
-          span.end();
-        }
-      }
-    );
-  }
 
   /**
    * Generate structured status update using configured data components
