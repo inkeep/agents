@@ -237,7 +237,7 @@ describe('ModelFactory', () => {
         model: 'unsupported/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow('Unknown provider: unsupported. For custom providers, please provide providerOptions with baseURL and other configuration.');
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
     });
 
     test('should handle AI Gateway configuration', () => {
@@ -265,7 +265,7 @@ describe('ModelFactory', () => {
         model: 'unknown-provider/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow('Unknown provider: unknown-provider. For custom providers, please provide providerOptions with baseURL and other configuration.');
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unknown-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
     });
 
     test('should handle fallback when creation fails', () => {
@@ -730,11 +730,8 @@ describe('ModelFactory', () => {
 
     describe('provider validation', () => {
       test('should throw error for unsupported provider', () => {
-        const result = ModelFactory.parseModelString('unsupported-provider/some-model');
-        expect(result).toEqual({
-          provider: 'unsupported-provider',
-          modelName: 'some-model',
-        });
+        expect(() => ModelFactory.parseModelString('unsupported-provider/some-model'))
+          .toThrow('Unsupported provider: unsupported-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
       });
 
       test('should support anthropic provider', () => {
@@ -832,8 +829,8 @@ describe('ModelFactory', () => {
         const config: ModelSettings = { model: modelString };
         const model = ModelFactory.createModel(config);
         expect(model).toBeDefined();
-        // Gateway returns the model name as a string for Vercel AI SDK to resolve
-        expect(model).toBe(modelString.replace('gateway/', ''));
+        // Gateway returns a LanguageModel object, not a string
+        expect(model).toHaveProperty('modelId', modelString.replace('gateway/', ''));
       }
     });
 
@@ -871,7 +868,7 @@ describe('ModelFactory', () => {
         expect(openrouterModel).toBeDefined();
         expect(openrouterModel.constructor.name).toBe('OpenRouterChatLanguageModel');
         expect(gatewayModel).toBeDefined();
-        expect(gatewayModel).toBe(baseModel);
+        expect(gatewayModel).toHaveProperty('modelId', baseModel);
       }
     });
 

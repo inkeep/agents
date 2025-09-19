@@ -116,9 +116,11 @@ export class ModelFactory {
       case 'gateway':
         return gateway(modelName);
       default:
-        // For unknown providers, require explicit configuration
+        // Unknown provider not supported
         throw new Error(
-          `Unknown provider: ${provider}. For custom providers, please provide providerOptions with baseURL and other configuration.`
+          `Unsupported provider: ${provider}. ` +
+          `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+          `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
         );
     }
   }
