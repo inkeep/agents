@@ -85,8 +85,8 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
           },
-          graphId: config.graphId,
           agentId: config.agentId,
         }),
         getToolsForAgent(dbClient)({
@@ -134,8 +134,7 @@ export const createTaskHandler = (
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
               const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
-                scopes: { tenantId: config.tenantId, projectId: config.projectId },
-                graphId: config.graphId,
+                scopes: { tenantId: config.tenantId, projectId: config.projectId, graphId: config.graphId },
                 agentId: relation.id,
               });
 

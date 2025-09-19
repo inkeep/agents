@@ -348,7 +348,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Delete relation first (due to foreign key constraints)
       await deleteAgentRelation(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
         relationId: createdRelation.id,
       });
 

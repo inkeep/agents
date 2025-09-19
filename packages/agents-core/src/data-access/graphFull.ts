@@ -855,8 +855,7 @@ export const updateFullGraphServerSide =
                 try {
                   const selectedTools = agentData.selectedTools?.[toolId];
                   await createAgentToolRelation(db)({
-                    scopes: { tenantId, projectId },
-                    graphId: finalGraphId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId },
                     data: {
                       agentId,
                       toolId,
@@ -971,8 +970,7 @@ export const updateFullGraphServerSide =
       // Step 12: Clear and recreate agent relationships
       // First, delete existing relationships for this graph
       await deleteAgentRelationsByGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
       });
       // Then create new relationships
       const agentRelationPromises: Promise<void>[] = [];
@@ -1149,8 +1147,7 @@ export const deleteFullGraph =
 
       // Step 1: Delete all agent relations for this graph
       await deleteAgentRelationsByGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
       logger.info({ tenantId, graphId }, 'Agent relations deleted');
 

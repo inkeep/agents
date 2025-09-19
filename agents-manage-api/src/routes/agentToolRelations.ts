@@ -286,8 +286,7 @@ app.openapi(
 
     try {
       const agentToolRelation = await createAgentToolRelation(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
         data: body,
       });
       return c.json({ data: agentToolRelation }, 201);
@@ -320,7 +319,7 @@ app.openapi(
     operationId: 'update-agent-tool-relation',
     tags: ['CRUD Agent Tool Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
       body: {
         content: {
           'application/json': {
@@ -342,7 +341,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     console.log('id', id);
     const body = await c.req.valid('json');
 
@@ -355,7 +354,7 @@ app.openapi(
     }
 
     const updatedAgentToolRelation = await updateAgentToolRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
       data: body,
     });

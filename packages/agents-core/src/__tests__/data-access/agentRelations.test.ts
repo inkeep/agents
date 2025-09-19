@@ -228,6 +228,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         sourceAgentId: 'agent-1',
       });
@@ -285,6 +286,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         targetAgentId: 'agent-2',
       });
@@ -339,8 +341,8 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
-        graphId: testGraphId,
         agentId: 'agent-1',
       });
 
@@ -581,6 +583,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         externalAgentId: 'ext-1',
       });
@@ -625,6 +628,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         relationId,
         data: updateData,
@@ -652,6 +656,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         relationId,
       });
@@ -686,8 +691,8 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
-        graphId: testGraphId,
         relationId: 'tool-relation-1',
         data: { agentId: 'agent-1', toolId: 'tool-1' },
       });
@@ -727,6 +732,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         relationId,
         data: updateData,

@@ -72,21 +72,21 @@ app.openapi(
 
       if (sourceAgentId) {
         const rawResult = await getAgentRelationsBySource(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           sourceAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else if (targetAgentId) {
         const rawResult = await getAgentRelationsByTarget(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           targetAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else if (externalAgentId) {
         const rawResult = await getExternalAgentRelations(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           externalAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
@@ -295,7 +295,7 @@ app.openapi(
     const body = await c.req.valid('json');
 
     const updatedAgentRelation = await updateAgentRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
       data: body,
     });
@@ -340,7 +340,7 @@ app.openapi(
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
     const deleted = await deleteAgentRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
     });
 

@@ -8,12 +8,7 @@ import type {
   AgentToolRelationUpdate,
   ExternalAgentRelationInsert,
 } from '../types/entities';
-import type {
-  AgentScopeConfig,
-  GraphScopeConfig,
-  PaginationConfig,
-  ProjectScopeConfig,
-} from '../types/utility';
+import type { AgentScopeConfig, GraphScopeConfig, PaginationConfig } from '../types/utility';
 
 export const getAgentRelationById =
   (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
@@ -83,7 +78,7 @@ export const getAgentRelationsByGraph =
 export const getAgentRelationsBySource =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
+    scopes: GraphScopeConfig;
     sourceAgentId: string;
     pagination?: PaginationConfig;
   }) => {
@@ -94,6 +89,7 @@ export const getAgentRelationsBySource =
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.sourceAgentId, params.sourceAgentId)
     );
 
@@ -120,7 +116,7 @@ export const getAgentRelationsBySource =
 export const getAgentRelationsByTarget =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
+    scopes: GraphScopeConfig;
     targetAgentId: string;
     pagination?: PaginationConfig;
   }) => {
@@ -131,6 +127,7 @@ export const getAgentRelationsByTarget =
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.targetAgentId, params.targetAgentId)
     );
 
@@ -157,7 +154,7 @@ export const getAgentRelationsByTarget =
 export const getExternalAgentRelations =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
+    scopes: GraphScopeConfig;
     externalAgentId: string;
     pagination?: PaginationConfig;
   }) => {
@@ -168,6 +165,7 @@ export const getExternalAgentRelations =
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.externalAgentId, params.externalAgentId)
     );
 
@@ -193,8 +191,7 @@ export const getExternalAgentRelations =
 
 // Get all related agents (both internal and external) for a given agent
 export const getRelatedAgentsForGraph =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; graphId: string; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentId: string }) => {
     // Get internal agent relations
     const internalRelations = await db
       .select({
@@ -209,11 +206,12 @@ export const getRelatedAgentsForGraph =
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
-          eq(agentRelations.graphId, params.graphId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
           isNotNull(agentRelations.targetAgentId),
           eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId)
+          eq(agents.projectId, params.scopes.projectId),
+          eq(agents.graphId, params.scopes.graphId)
         )
       );
 
@@ -235,11 +233,12 @@ export const getRelatedAgentsForGraph =
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
-          eq(agentRelations.graphId, params.graphId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
           isNotNull(agentRelations.externalAgentId),
           eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId)
+          eq(externalAgents.projectId, params.scopes.projectId),
+          eq(externalAgents.graphId, params.scopes.graphId)
         )
       );
 
@@ -279,8 +278,7 @@ export const createAgentRelation = (db: DatabaseClient) => async (params: AgentR
 export const getAgentRelationByParams =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
-    graphId: string;
+    scopes: GraphScopeConfig;
     sourceAgentId: string;
     targetAgentId?: string;
     externalAgentId?: string;
@@ -289,7 +287,7 @@ export const getAgentRelationByParams =
     const whereConditions = [
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
-      eq(agentRelations.graphId, params.graphId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.sourceAgentId, params.sourceAgentId),
       eq(agentRelations.relationType, params.relationType),
     ];
@@ -313,8 +311,7 @@ export const getAgentRelationByParams =
 export const upsertAgentRelation = (db: DatabaseClient) => async (params: AgentRelationInsert) => {
   // Check if relation already exists
   const existing = await getAgentRelationByParams(db)({
-    scopes: { tenantId: params.tenantId, projectId: params.projectId },
-    graphId: params.graphId,
+    scopes: { tenantId: params.tenantId, projectId: params.projectId, graphId: params.graphId },
     sourceAgentId: params.sourceAgentId,
     targetAgentId: params.targetAgentId,
     externalAgentId: params.externalAgentId,
@@ -341,7 +338,7 @@ export const createExternalAgentRelation =
 
 export const updateAgentRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; relationId: string; data: AgentRelationUpdate }) => {
+  async (params: { scopes: GraphScopeConfig; relationId: string; data: AgentRelationUpdate }) => {
     const updateData = {
       ...params.data,
       updatedAt: new Date().toISOString(),
@@ -354,6 +351,7 @@ export const updateAgentRelation =
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.id, params.relationId)
         )
       )
@@ -363,13 +361,14 @@ export const updateAgentRelation =
   };
 
 export const deleteAgentRelation =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     const result = await db
       .delete(agentRelations)
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.id, params.relationId)
         )
       );
@@ -378,13 +377,13 @@ export const deleteAgentRelation =
   };
 
 export const deleteAgentRelationsByGraph =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db
       .delete(agentRelations)
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
-          eq(agentRelations.graphId, params.graphId)
+          eq(agentRelations.graphId, params.scopes.graphId)
         )
       );
     return (result.rowsAffected || 0) > 0;
@@ -394,8 +393,7 @@ export const deleteAgentRelationsByGraph =
 export const createAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
-    graphId: string;
+    scopes: GraphScopeConfig;
     relationId?: string;
     data: { agentId: string; toolId: string; selectedTools?: string[] | null };
   }) => {
@@ -407,7 +405,7 @@ export const createAgentToolRelation =
         id: finalRelationId,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
-        graphId: params.graphId,
+        graphId: params.scopes.graphId,
         agentId: params.data.agentId,
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
@@ -421,7 +419,7 @@ export const createAgentToolRelation =
 export const updateAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ProjectScopeConfig;
+    scopes: GraphScopeConfig;
     relationId: string;
     data: AgentToolRelationUpdate;
   }) => {
@@ -437,6 +435,7 @@ export const updateAgentToolRelation =
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
           eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
           eq(agentToolRelations.id, params.relationId)
         )
       )
