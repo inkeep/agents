@@ -96,8 +96,8 @@ export const createAgents = async (
     templateName = template;
   } else {
     // No template or custom project ID provided - use defaults
-    projectId = 'weather-graph';
-    templateName = 'weather-graph';
+    projectId = 'weather-project';
+    templateName = 'weather-project';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -212,7 +212,7 @@ export const createAgents = async (
     const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
 
     const projectTemplateRepo = templateName
-      ? `https://github.com/inkeep/agents-cookbook/templates/${templateName}`
+      ? `https://github.com/inkeep/agents-cookbook/template-projects/${templateName}`
       : null;
 
     const directoryPath = path.resolve(process.cwd(), dirName);

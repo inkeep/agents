@@ -1,6 +1,5 @@
-import fs from 'fs-extra';
 import degit from 'degit';
-import * as p from '@clack/prompts';
+import fs from 'fs-extra';
 
 //Duplicating function here so we dont have to add a dependency on the agents-cli package
 export async function cloneTemplate(templatePath: string, targetPath: string) {
@@ -9,21 +8,18 @@ export async function cloneTemplate(templatePath: string, targetPath: string) {
   const templatePathSuffix = templatePath.replace('https://github.com/', '');
   const emitter = degit(templatePathSuffix);
   try {
-      await emitter.clone(targetPath);
-    } catch (error) {
-      process.exit(1);
-    }
+    await emitter.clone(targetPath);
+  } catch (error) {
+    process.exit(1);
+  }
 }
-
 
 export async function getAvailableTemplates(): Promise<string[]> {
   // Fetch the list of templates from your repo
   const response = await fetch(
-    'https://api.github.com/repos/inkeep/agents-cookbook/contents/templates'
+    'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
   );
   const contents = await response.json();
-  
-  return contents
-    .filter((item: any) => item.type === 'dir')
-    .map((item: any) => item.name);
+
+  return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
 }
