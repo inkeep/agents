@@ -82,7 +82,7 @@ docker compose up -d nango-server
 docker compose down
 
 # Remove Nango data (caution: this deletes all configurations and connections)
-docker volume rm agent-framework_nango_data
+docker volume rm docker_nango_data
 
 # Restart
 docker compose up -d
