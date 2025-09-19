@@ -22,7 +22,7 @@ First, create a Langfuse account and get your API keys:
 
 ### 2. Configure OpenTelemetry Collector
 
-Add Langfuse as an exporter to your OTEL collector configuration:
+Add Langfuse as an exporter to your OTEL collector configuration in the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) repository:
 
 ```yaml
 # otel-collector-config.yaml
@@ -63,50 +63,39 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
-processors:
+processors:  
   batch:
-    timeout: 100ms
     send_batch_size: 1
-    send_batch_max_size: 10
-
-  attributes:
-    actions:
-      - key: http.request.header.authorization
-        value: "[REDACTED]"
-        action: update
 
 exporters:
+  # Export to SigNoz OTEL Collector
+  otlp/signoz:
+    endpoint: host.docker.internal:4317
+    tls:
+      insecure: true
   # Export to Jaeger
   otlp/jaeger:
-    endpoint: jaeger:4317
+    endpoint: host.docker.internal:24317
     tls:
       insecure: true
-
-  # Export to SigNoz OTEL collector
-  otlp/signoz:
-    endpoint: signoz-otel-collector:4317
-    tls:
-      insecure: true
-
   # Export to Langfuse
-  otlphttp/langfuse:
+  otlp/langfuse:
     endpoint: "https://us.cloud.langfuse.com/api/public/otel"
     headers:
-      Authorization: "Basic XXX"
+      Authorization: "Bearer ${LANGFUSE_CREDENTIAL}"
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [attributes, batch]
-      exporters: [otlp/jaeger, otlp/signoz, otlphttp/langfuse]
+      processors: [batch]
+      exporters: [otlp/signoz, otlp/jaeger, otlp/langfuse]
 ```
 
 ### 5. Start the Services
 
 ```bash
-# From the root directory of the agent framework
-cd deploy/docker
+# From the root directory of the agents-optional-local-dev
 docker compose up -d
 
 ```
