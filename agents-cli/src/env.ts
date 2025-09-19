@@ -12,7 +12,6 @@ const envSchema = z.object({
     .default('development'),
   DEBUG: z.string().optional(),
   TSX_RUNNING: z.string().optional(),
-  DB_FILE_NAME: z.string().optional(),
   INKEEP_ENV: z.string().optional(),
   INKEEP_API_URL: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_URL: z.string().optional(),

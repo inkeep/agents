@@ -1,10 +1,10 @@
+import { env } from './env';
 import {
   getAgentsManageApiUrl,
   getAgentsRunApiUrl,
   getProjectId,
   getTenantId,
 } from './utils/config';
-import { env } from './env';
 
 abstract class BaseApiClient {
   protected apiUrl: string;

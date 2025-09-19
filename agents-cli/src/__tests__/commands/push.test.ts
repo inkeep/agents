@@ -1,6 +1,4 @@
 import { existsSync } from 'node:fs';
-import chalk from 'chalk';
-import inquirer from 'inquirer';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
 import { importWithTypeScriptSupport } from '../../utils/tsx-loader';
@@ -74,7 +72,6 @@ describe('Push Command - Project Validation', () => {
   afterEach(() => {
     delete process.env.TSX_RUNNING;
     delete process.env.INKEEP_ENV;
-    delete process.env.DB_FILE_NAME;
   });
 
   it('should load and push project successfully', async () => {

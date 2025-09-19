@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import * as core from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
 
@@ -57,9 +56,6 @@ vi.mock('../../utils/tsx-loader.js', () => ({
 
 describe('Push Command - TypeScript Loading', () => {
   let mockExit: Mock;
-  let mockDbClient: any;
-  let mockGetProject: Mock;
-  let mockCreateProject: Mock;
   let mockImportWithTypeScriptSupport: Mock;
 
   beforeEach(async () => {
@@ -82,21 +78,9 @@ describe('Push Command - TypeScript Loading', () => {
     vi.spyOn(console, 'log').mockImplementation(vi.fn());
     vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
-    // Setup database client mock
-    mockDbClient = {};
-    mockGetProject = vi.fn();
-    mockCreateProject = vi.fn();
-
-    (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
-    (core.getProject as Mock).mockReturnValue(mockGetProject);
-    (core.createProject as Mock).mockReturnValue(mockCreateProject);
-
     // Get the mocked tsx-loader import function
     const tsxLoader = await import('../../utils/tsx-loader.js');
     mockImportWithTypeScriptSupport = tsxLoader.importWithTypeScriptSupport as Mock;
-
-    // Set DB_FILE_NAME to prevent database errors
-    process.env.DB_FILE_NAME = 'test.db';
   });
 
   it('should load TypeScript files using importWithTypeScriptSupport', async () => {

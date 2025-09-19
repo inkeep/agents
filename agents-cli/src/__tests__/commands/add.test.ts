@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import ora from 'ora';
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type AddOptions, addCommand } from '../../commands/add';
 import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
@@ -22,7 +22,7 @@ describe('Add Command', () => {
       succeed: vi.fn().mockReturnThis(),
       stop: vi.fn().mockReturnThis(),
     };
-    vi.mocked(ora).mockImplementation((message) => mockSpinner);
+    vi.mocked(ora).mockImplementation((_message) => mockSpinner);
 
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

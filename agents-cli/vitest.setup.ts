@@ -1,7 +1,6 @@
 // Set up environment variables before any imports
 process.env.ENVIRONMENT = process.env.ENVIRONMENT || 'test';
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
-process.env.DB_FILE_NAME = process.env.DB_FILE_NAME || 'test.db';
 
 // Set default API URLs if not already set
 process.env.INKEEP_AGENTS_MANAGE_API_URL =

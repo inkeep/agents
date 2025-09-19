@@ -1,6 +1,6 @@
 import degit from 'degit';
 import fs from 'fs-extra';
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
 // Mock external dependencies
