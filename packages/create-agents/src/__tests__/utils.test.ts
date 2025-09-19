@@ -91,7 +91,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         anthropicKey: 'test-anthropic-key',
       });
 
-      // Should clone base template and weather-graph template
+      // Should clone base template and weather-project template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/create-agents-template',
