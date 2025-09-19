@@ -42,12 +42,12 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './target-path'
       );
 
       expect(fs.mkdir).toHaveBeenCalledWith('./target-path', { recursive: true });
-      expect(degit).toHaveBeenCalledWith('inkeep/agents-cookbook/templates/weather');
+      expect(degit).toHaveBeenCalledWith('inkeep/agents-cookbook/template-projects/weather');
       expect(mockEmitter.clone).toHaveBeenCalledWith('./target-path');
     });
 
@@ -64,7 +64,7 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './deep/nested/path'
       );
 
@@ -75,7 +75,10 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockRejectedValue(new Error('Repository not found'));
 
       await expect(
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/nonexistent', './target')
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/nonexistent',
+          './target'
+        )
       ).rejects.toThrow('process.exit called');
 
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -86,7 +89,7 @@ describe('Template Utils', () => {
 
       await expect(
         cloneTemplate(
-          'https://github.com/inkeep/agents-cookbook/templates/weather',
+          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
           './restricted-path'
         )
       ).rejects.toThrow('Permission denied');
@@ -122,7 +125,10 @@ describe('Template Utils', () => {
         mockEmitter.clone.mockRejectedValueOnce(error);
 
         await expect(
-          cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/test', './target')
+          cloneTemplate(
+            'https://github.com/inkeep/agents-cookbook/template-projects/test',
+            './target'
+          )
         ).rejects.toThrow('process.exit called');
 
         expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -204,7 +210,7 @@ describe('Template Utils', () => {
       expect(templates).toContain('weather');
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './weather-project'
       );
 
@@ -217,9 +223,18 @@ describe('Template Utils', () => {
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
 
       const clonePromises = [
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/weather', './weather1'),
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/chatbot', './chatbot1'),
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/weather', './weather2'),
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+          './weather1'
+        ),
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
+          './chatbot1'
+        ),
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+          './weather2'
+        ),
       ];
 
       await Promise.all(clonePromises);
