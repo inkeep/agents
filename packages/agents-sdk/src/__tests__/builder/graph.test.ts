@@ -541,7 +541,7 @@ describe('AgentGraph', () => {
 
       // Error should be thrown when trying to consume the async generator
       const iterator = result.textStream?.[Symbol.asyncIterator]();
-      await expect(iterator.next()).rejects.toThrow('HTTP 500: Internal Server Error');
+      await expect(iterator?.next()).rejects.toThrow('HTTP 500: Internal Server Error');
     });
   });
 
