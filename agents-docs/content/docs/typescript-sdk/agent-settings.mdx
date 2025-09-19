@@ -141,13 +141,13 @@ The framework currently supports models from:
 
 For accessing models not directly supported, you can use:
 
-- **OpenRouter**: Access any model via `openrouter/model-id` format (e.g., `openrouter/anthropic/claude-3.5-sonnet`, `openrouter/meta-llama/llama-3.1-405b`)
-- **Vercel AI SDK Gateway**: Access models through your gateway via `gateway/model-id` format (e.g., `gateway/anthropic/claude-3.5-sonnet`)
+- **OpenRouter**: Access any model via `openrouter/model-id` format (e.g., `openrouter/anthropic/claude-sonnet-4`, `openrouter/meta-llama/llama-3.1-405b`)
+- **Vercel AI SDK Gateway**: Access models through your gateway via `gateway/model-id` format (e.g., `gateway/anthropic/claude-sonnet-4`)
 
 ```typescript
 models: {
   base: {
-    model: "openrouter/anthropic/claude-3.5-sonnet",
+    model: "openrouter/anthropic/claude-sonnet-4",
     providerOptions: {
       temperature: 0.7
     }

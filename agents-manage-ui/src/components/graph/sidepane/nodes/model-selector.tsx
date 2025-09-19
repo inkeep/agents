@@ -141,7 +141,7 @@ export function ModelSelector({
                     className="flex items-center justify-between cursor-pointer text-foreground"
                     value="__custom__"
                     onSelect={() => {
-                      const customModel = prompt('Enter custom model (format: provider/model-name):\n\nExamples:\n- openrouter/anthropic/claude-3.5-sonnet\n- openrouter/meta-llama/llama-3.1-405b\n- gateway/anthropic/claude-3.5-sonnet\n- gateway/openai/gpt-4.1-mini\n\nFor OpenRouter: openrouter/<model-id>\nFor Vercel AI SDK Gateway: gateway/<model-id>');
+                      const customModel = prompt('Enter custom model (format: provider/model-name):\n\nExamples:\n- openrouter/anthropic/claude-sonnet-4\n- openrouter/meta-llama/llama-3.1-405b\n- gateway/anthropic/claude-sonnet-4\n- gateway/openai/gpt-4.1-mini\n\nFor OpenRouter: openrouter/<model-id>\nFor Vercel AI SDK Gateway: gateway/<model-id>');
                       if (customModel && customModel.includes('/')) {
                         onValueChange?.(customModel);
                       }
