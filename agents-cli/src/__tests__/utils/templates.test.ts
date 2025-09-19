@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import fs from 'fs-extra';
 import degit from 'degit';
+import fs from 'fs-extra';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
 // Mock external dependencies
@@ -54,10 +54,7 @@ describe('Template Utils', () => {
     it('should handle GitHub URL transformation correctly', async () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
-      await cloneTemplate(
-        'https://github.com/user/repo/path/to/template',
-        './my-template'
-      );
+      await cloneTemplate('https://github.com/user/repo/path/to/template', './my-template');
 
       expect(degit).toHaveBeenCalledWith('user/repo/path/to/template');
       expect(mockEmitter.clone).toHaveBeenCalledWith('./my-template');
@@ -78,10 +75,7 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockRejectedValue(new Error('Repository not found'));
 
       await expect(
-        cloneTemplate(
-          'https://github.com/inkeep/agents-cookbook/templates/nonexistent',
-          './target'
-        )
+        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/nonexistent', './target')
       ).rejects.toThrow('process.exit called');
 
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -128,10 +122,7 @@ describe('Template Utils', () => {
         mockEmitter.clone.mockRejectedValueOnce(error);
 
         await expect(
-          cloneTemplate(
-            'https://github.com/inkeep/agents-cookbook/templates/test',
-            './target'
-          )
+          cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/test', './target')
         ).rejects.toThrow('process.exit called');
 
         expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -162,7 +153,7 @@ describe('Template Utils', () => {
       const templates = await getAvailableTemplates();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/inkeep/agents-cookbook/contents/templates'
+        'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
       );
       expect(templates).toEqual(['weather', 'chatbot', 'data-analysis']);
     });
