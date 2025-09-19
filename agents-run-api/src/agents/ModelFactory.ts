@@ -146,11 +146,12 @@ export class ModelFactory {
       const [provider, ...modelParts] = modelString.split('/');
       const normalizedProvider = provider.toLowerCase();
 
-      // Log info for custom providers (not an error)
+      // Validate provider is supported
       if (!ModelFactory.BUILT_IN_PROVIDERS.includes(normalizedProvider as any)) {
-        logger.info(
-          { provider: normalizedProvider, modelName: modelParts.join('/') },
-          'Using custom provider - ensure providerOptions includes baseURL and configuration'
+        throw new Error(
+          `Unsupported provider: ${normalizedProvider}. ` +
+          `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+          `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
         );
       }
 
