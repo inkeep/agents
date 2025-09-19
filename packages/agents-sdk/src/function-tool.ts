@@ -1,6 +1,7 @@
 import { getLogger } from '@inkeep/agents-core';
 import type { FunctionToolConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
+import { getFunctionToolDeps } from './utils/getFunctionToolDeps';
 
 const logger = getLogger('function-tool');
 
@@ -22,6 +23,10 @@ export class FunctionTool implements FunctionToolInterface {
   constructor(config: FunctionToolConfig) {
     this.config = config;
     this.id = generateIdFromName(config.name);
+
+    if (!config.dependencies) {
+      this.config.dependencies = getFunctionToolDeps(config.name, config.execute.toString());
+    }
 
     logger.info(
       {

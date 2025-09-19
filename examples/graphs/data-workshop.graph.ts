@@ -78,6 +78,7 @@ const fetchRandomJoke = functionTool({
     properties: {},
     required: [],
   },
+  // Only needed if you want to use a particualr version of a package, otherwise it will scan your local version
   dependencies: { axios: '^1.6.0' },
   execute: async () => {
     const axios = require('axios');
@@ -257,7 +258,6 @@ const convertCurrency = functionTool({
     },
     required: ['amount', 'from', 'to'],
   },
-  dependencies: { axios: '^1.6.0' },
   execute: async (params: { amount: number; from: string; to: string }) => {
     const axios = require('axios');
     const response = await axios.get(
