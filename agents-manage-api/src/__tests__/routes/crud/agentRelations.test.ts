@@ -26,11 +26,14 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = { ...createAgentData({ suffix }), graphId };
-    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
+    const agentData = createAgentData({ suffix });
+    const createRes = await makeRequest(
+      `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      }
+    );
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();

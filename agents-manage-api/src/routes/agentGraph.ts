@@ -145,7 +145,9 @@ app.openapi(
     const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
 
     const relatedAgents = await getGraphAgentInfos(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId },
+      graphId,
+      agentId,
     });
 
     return c.json({

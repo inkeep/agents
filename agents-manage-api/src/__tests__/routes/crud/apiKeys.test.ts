@@ -14,6 +14,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     description: `Test Description${suffix}`,
     prompt: `Test Instructions${suffix}`,
     tools: [], // Required for internal agents
+    type: 'internal' as const,
   });
 
   // Helper function to create full graph data with optional enhanced features
@@ -30,7 +31,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       agents: {
         [agent.id]: agent, // Agents should be an object keyed by ID
       },
-      tools: {},
+      // Note: tools are now project-scoped and not part of the graph definition
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

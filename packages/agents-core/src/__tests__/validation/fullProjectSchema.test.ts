@@ -26,7 +26,6 @@ describe('FullProjectDefinitionSchema', () => {
             type: 'internal',
           },
         },
-        tools: {},
       },
     },
     tools: {},
@@ -113,7 +112,6 @@ describe('FullProjectDefinitionSchema', () => {
           name: 'Invalid Graph',
           // Missing description
           agents: 'not-an-object', // Should be object
-          tools: {},
         },
       },
     };

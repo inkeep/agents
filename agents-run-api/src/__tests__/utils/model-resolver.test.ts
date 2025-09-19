@@ -131,8 +131,11 @@ describe('resolveModelConfig', () => {
 
       expect(mockGetAgentGraphById).toHaveBeenCalledWith('mock-db-client');
       expect(mockGraphFn).toHaveBeenCalledWith({
-        scopes: { tenantId: 'tenant-123', projectId: 'project-123' },
-        graphId: 'graph-123',
+        scopes: {
+          tenantId: 'tenant-123',
+          projectId: 'project-123',
+          graphId: 'graph-123',
+        },
       });
     });
 

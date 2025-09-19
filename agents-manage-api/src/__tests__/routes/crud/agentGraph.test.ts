@@ -9,12 +9,13 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
   // Helper function to create test agent data (needed for creating default agents)
-  const createAgentData = ({ suffix = '', graphId }: { suffix?: string; graphId: string }) => ({
+  const createAgentData = ({ suffix = '' }: { suffix?: string }) => ({
     id: nanoid(),
     name: `Test Agent${suffix}`,
     description: `Test Description${suffix}`,
     prompt: `Test Instructions${suffix}`,
-    graphId,
+    type: 'internal' as const,
+    tools: [],
   });
 
   // Helper function to create test agent graph data
@@ -38,7 +39,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix, graphId });
+    const agentData = createAgentData({ suffix });
     const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`, {
       method: 'POST',
       body: JSON.stringify(agentData),

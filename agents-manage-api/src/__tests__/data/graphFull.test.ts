@@ -190,6 +190,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
             description: 'Test agent description',
             prompt: 'You are a helpful assistant.',
             tools: [], // Empty tools array - no tools needed for basic test
+            type: 'internal' as const,
           },
           'agent-2': {
             id: 'agent-2',
@@ -198,6 +199,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
             prompt: 'You are a helpful assistant.',
             tools: [],
             canTransferTo: ['agent-1'],
+            type: 'internal' as const,
           },
         },
         createdAt: new Date().toISOString(),

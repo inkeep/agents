@@ -60,6 +60,7 @@ describe('projectFull data access', () => {
               name: 'Test Agent',
               description: 'A test agent',
               prompt: 'You are a helpful assistant.',
+              type: 'internal', // Add type field for discriminated union
               canDelegateTo: [],
               tools: [toolId], // Reference tool by ID
               dataComponents: [],

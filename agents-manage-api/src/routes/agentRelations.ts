@@ -21,7 +21,7 @@ import {
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectGraphParamsSchema,
-  TenantProjectParamsSchema,
+  TenantProjectGraphIdParamsSchema,
   updateAgentRelation,
   validateExternalAgent,
   validateInternalAgent,
@@ -40,7 +40,7 @@ app.openapi(
     operationId: 'list-agent-relations',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema.merge(AgentRelationQuerySchema),
     },
     responses: {
@@ -56,7 +56,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const {
       page = 1,
       limit = 10,
@@ -93,7 +93,7 @@ app.openapi(
         result = { ...rawResult, data: rawResult.data };
       } else {
         const rawResult = await listAgentRelations(dbClient)({
-          scopes: { tenantId, projectId, graphId: 'default' },
+          scopes: { tenantId, projectId, graphId },
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
@@ -118,7 +118,7 @@ app.openapi(
     operationId: 'get-agent-relation-by-id',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
@@ -133,9 +133,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const agentRelation = (await getAgentRelationById(dbClient)({
-      scopes: { tenantId, projectId, graphId: 'default' },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
     })) as AgentRelationApiSelect | null;
 
@@ -269,7 +269,7 @@ app.openapi(
     operationId: 'update-agent-relation',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -291,11 +291,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const body = await c.req.valid('json');
 
     const updatedAgentRelation = await updateAgentRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
       data: body,
     });
@@ -320,7 +320,7 @@ app.openapi(
     operationId: 'delete-agent-relation',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {
@@ -337,10 +337,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
     const deleted = await deleteAgentRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
     });
 

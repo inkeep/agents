@@ -14,8 +14,7 @@ import {
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectGraphParamsSchema,
-  TenantProjectIdParamsSchema,
-  TenantProjectParamsSchema,
+  TenantProjectGraphIdParamsSchema,
   updateAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -31,7 +30,7 @@ app.openapi(
     operationId: 'list-agents',
     tags: ['CRUD Agent'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -47,12 +46,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     const result = await listAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId, graphId: 'default' },
+      scopes: { tenantId, projectId, graphId },
       pagination: { page, limit },
     });
     // Add type field to all agents in the response
@@ -76,7 +75,7 @@ app.openapi(
     operationId: 'get-agent-by-id',
     tags: ['CRUD Agent'],
     request: {
-      params: TenantProjectIdParamsSchema,
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
@@ -91,9 +90,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const agent = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId, graphId: 'default' },
+      scopes: { tenantId, projectId, graphId },
       agentId: id,
     });
 
@@ -173,7 +172,7 @@ app.openapi(
     operationId: 'update-agent',
     tags: ['CRUD Agent'],
     request: {
-      params: TenantProjectIdParamsSchema,
+      params: TenantProjectGraphIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -195,11 +194,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const updatedAgent = await updateAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId: 'default' },
+      scopes: { tenantId, projectId, graphId },
       agentId: id,
       data: body,
     });
@@ -229,7 +228,7 @@ app.openapi(
     operationId: 'delete-agent',
     tags: ['CRUD Agent'],
     request: {
-      params: TenantProjectIdParamsSchema,
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {
@@ -246,10 +245,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
     const deleted = await deleteAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId: 'default' },
+      scopes: { tenantId, projectId, graphId },
       agentId: id,
     });
 

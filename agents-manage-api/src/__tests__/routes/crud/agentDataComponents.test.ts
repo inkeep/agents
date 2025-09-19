@@ -13,31 +13,37 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     name: `Test Agent${suffix}`,
     description: `Test Description${suffix}`,
     prompt: `Test Instructions${suffix}`,
+    type: 'internal' as const,
+    tools: [],
   });
 
   // Helper function to create an agent (needed for agent data component relations)
   const createTestAgent = async ({
     tenantId,
     suffix = '',
+    graphId = undefined,
   }: {
     tenantId: string;
     suffix?: string;
+    graphId?: string;
   }) => {
-    // First create a graph without defaultAgentId
-    const graphId = `test-graph-${tenantId}${suffix}`;
-    const graphData = {
-      id: graphId,
-      name: 'Test Graph',
-      defaultAgentId: null,
-    };
-    // Try to create the graph, ignore if it already exists
-    const graphRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
-      method: 'POST',
-      body: JSON.stringify(graphData),
-    });
-
-    // Use the graphId from the created or existing graph
-    const effectiveGraphId = graphRes.status === 201 ? graphId : 'default';
+    // Create a graph if not provided
+    let effectiveGraphId = graphId;
+    if (!effectiveGraphId) {
+      effectiveGraphId = `test-graph-${tenantId}${suffix}`;
+      const graphData = {
+        id: effectiveGraphId,
+        name: 'Test Graph',
+        defaultAgentId: null,
+      };
+      // Try to create the graph, ignore if it already exists
+      const graphRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`, {
+        method: 'POST',
+        body: JSON.stringify(graphData),
+      });
+      // Use the graphId from the created or existing graph
+      effectiveGraphId = graphRes.status === 201 ? effectiveGraphId : 'default';
+    }
 
     const agentData = { ...createAgentData({ suffix, tenantId }) };
     const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${effectiveGraphId}/agents`, {
@@ -408,9 +414,9 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-data-components-multiple');
       await ensureTestProject(tenantId, projectId);
 
-      // Create multiple agents and data components
+      // Create multiple agents in the same graph
       const { agentId: agent1Id, graphId } = await createTestAgent({ tenantId, suffix: '1' });
-      const { agentId: agent2Id, graphId: graph2Id } = await createTestAgent({ tenantId, suffix: '2' });
+      const { agentId: agent2Id } = await createTestAgent({ tenantId, suffix: '2', graphId });
 
       const { dataComponentId: dc1Id } = await createTestDataComponent({
         tenantId,
@@ -438,7 +444,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
         tenantId,
         agentId: agent2Id,
         dataComponentId: dc1Id,
-        graphId: graph2Id,
+        graphId,
       });
 
       // Verify agent1 has 2 data components

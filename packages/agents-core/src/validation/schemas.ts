@@ -634,6 +634,7 @@ export const StatusUpdateSchema = z.object({
 });
 
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
+  type: z.literal('internal'),
   tools: z.array(z.string()),
   selectedTools: z.record(z.string(), z.array(z.string())).optional(),
   dataComponents: z.array(z.string()).optional(),
@@ -657,7 +658,10 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(
     z.string(),
-    z.discriminatedUnion('type', [FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
+    z.discriminatedUnion('type', [
+      FullGraphAgentInsertSchema,
+      ExternalAgentApiInsertSchema.extend({ type: z.literal('external') })
+    ])
   ),
   models: ModelSchema.optional(),
   stopWhen: GraphStopWhenSchema.optional(),

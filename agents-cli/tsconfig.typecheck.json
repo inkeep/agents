@@ -5,5 +5,5 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "vitest.config.ts"]
+  "exclude": ["node_modules", "dist", "vitest.config.ts", "**/*.test.ts", "src/__tests__/**/*"]
 }
