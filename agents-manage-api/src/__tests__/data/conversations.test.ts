@@ -6,7 +6,6 @@ import {
   updateConversation,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import dbClient from '../../data/db/dbClient';
 
 // Mock nanoid to return predictable IDs
 vi.mock('nanoid', async () => {
@@ -15,33 +14,37 @@ vi.mock('nanoid', async () => {
   };
 });
 
-// Mock the database client
-const mockInsert = vi.fn();
-const mockSelect = vi.fn();
-const mockUpdate = vi.fn();
-const mockQuery = {
-  conversations: {
-    findFirst: vi.fn(),
-  },
-};
-
+// Mock the database client - must be done without external references
 vi.mock('../../data/db/dbClient.js', () => ({
   default: {
-    insert: mockInsert,
-    select: mockSelect,
-    update: mockUpdate,
-    query: mockQuery,
+    insert: vi.fn(),
+    select: vi.fn(),
+    update: vi.fn(),
+    query: {
+      conversations: {
+        findFirst: vi.fn(),
+      },
+    },
   },
 }));
 
 vi.mock('../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
+  getLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
   }),
 }));
+
+// Import dbClient after mocking
+import dbClient from '../../data/db/dbClient';
+
+// Get references to the mocked functions
+const mockInsert = vi.mocked(dbClient.insert);
+const mockSelect = vi.mocked(dbClient.select);
+const mockUpdate = vi.mocked(dbClient.update);
+const mockQuery = vi.mocked(dbClient.query);
 
 describe.skip('Conversations', () => {
   // TODO: Fix mock hoisting issue
