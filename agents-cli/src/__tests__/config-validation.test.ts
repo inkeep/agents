@@ -31,7 +31,6 @@ describe('Configuration Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
-    delete process.env.INKEEP_API_URL;
     delete process.env.INKEEP_AGENTS_MANAGE_API_URL;
     delete process.env.INKEEP_AGENTS_RUN_API_URL;
   });

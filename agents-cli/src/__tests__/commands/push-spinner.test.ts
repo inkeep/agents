@@ -64,8 +64,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Reset ora instance
     oraInstance = null;
 
-    // Ensure TSX_RUNNING is not set
-    delete process.env.TSX_RUNNING;
+    // Environment setup
 
     // Mock file exists
     (existsSync as Mock).mockReturnValue(true);
@@ -113,8 +112,6 @@ describe('Push Command - TypeScript Loading', () => {
       .mockResolvedValueOnce({ default: mockProject })
       .mockResolvedValueOnce({ default: mockConfig });
 
-    process.env.TSX_RUNNING = '1';
-
     await pushCommand({ project: '/test/path' });
 
     // Verify TypeScript loader was used
@@ -131,8 +128,6 @@ describe('Push Command - TypeScript Loading', () => {
   it('should handle TypeScript import errors gracefully', async () => {
     // Mock import failure
     mockImportWithTypeScriptSupport.mockRejectedValue(new Error('Failed to load TypeScript file'));
-
-    process.env.TSX_RUNNING = '1';
 
     await pushCommand({});
 
@@ -174,8 +169,6 @@ describe('Push Command - TypeScript Loading', () => {
     mockImportWithTypeScriptSupport
       .mockResolvedValueOnce({ default: mockProject })
       .mockResolvedValueOnce({ default: mockConfig });
-
-    process.env.TSX_RUNNING = '1';
 
     await pushCommand({ project: '/test/path' });
 

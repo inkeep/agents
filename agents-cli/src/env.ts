@@ -5,20 +5,11 @@ import { z } from 'zod';
 loadEnvironmentFiles();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
-  ENVIRONMENT: z
-    .enum(['development', 'production', 'pentest', 'test'])
-    .optional()
-    .default('development'),
   DEBUG: z.string().optional(),
-  TSX_RUNNING: z.string().optional(),
-  INKEEP_ENV: z.string().optional(),
-  INKEEP_API_URL: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_URL: z.string().optional(),
   INKEEP_AGENTS_RUN_API_URL: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('info'),
 });
 
 const parseEnv = () => {
