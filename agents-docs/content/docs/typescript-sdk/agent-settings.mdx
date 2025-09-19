@@ -181,9 +181,105 @@ The framework currently supports models from:
 - **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
 - **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
 
-### Custom Models
+## Provider Options
 
-For accessing models not directly supported, you can use:
+All models support `providerOptions` to customize their behavior. These include both generic parameters that work across all providers and provider-specific features like reasoning.
+
+### Generic Parameters
+
+These parameters work with all supported providers and go directly in `providerOptions`:
+
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-20250514",
+    providerOptions: {
+      maxOutputTokens: 4096,        // Maximum tokens to generate (AI SDK v5)
+      temperature: 0.7,             // Controls randomness (0.0-1.0)
+      topP: 0.95,                   // Nucleus sampling (0.0-1.0)
+      topK: 40,                     // Top-k sampling (integer)
+      frequencyPenalty: 0.0,        // Reduce repetition (-2.0 to 2.0)
+      presencePenalty: 0.0,         // Encourage new topics (-2.0 to 2.0)
+      stopSequences: ["\n\n"],     // Stop generation at sequences
+      seed: 12345,                  // For deterministic output
+      maxDuration: 30,              // Timeout in seconds (not milliseconds)
+      maxRetries: 2,                // Maximum retry attempts
+    }
+  }
+}
+```
+
+### Provider-Specific Features
+
+Advanced features like reasoning require provider-specific configuration wrapped in the provider name:
+
+#### OpenAI Reasoning
+```typescript
+models: {
+  base: {
+    model: "openai/o3-mini",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      openai: {
+        reasoningEffort: 'medium'  // 'low' | 'medium' | 'high'
+      }
+    }
+  }
+}
+```
+
+#### Anthropic Thinking
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-3-7-sonnet-20250219",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      anthropic: {
+        thinking: { 
+          type: 'enabled', 
+          budgetTokens: 8000  // Tokens allocated for reasoning
+        }
+      }
+    }
+  }
+}
+```
+
+#### Google Gemini Thinking
+```typescript
+models: {
+  base: {
+    model: "google/gemini-2-5-flash",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 8192,     // 0 disables thinking
+          includeThoughts: true     // Return thought summary
+        }
+      }
+    }
+  }
+}
+```
+
+## Model Providers
+
+### Built-in Providers
+
+The framework supports these providers directly:
+
+- **Anthropic**: `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, etc.
+- **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
+- **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
+
+### Accessing Other Models
+
+For models not directly supported, use these proxy providers:
 
 - **OpenRouter**: Access any model via `openrouter/model-id` format (e.g., `openrouter/anthropic/claude-sonnet-4`, `openrouter/meta-llama/llama-3.1-405b`)
 - **Vercel AI SDK Gateway**: Access models through your gateway via `gateway/model-id` format (e.g., `gateway/anthropic/claude-sonnet-4`)
@@ -206,60 +302,15 @@ models: {
 }
 ```
 
-**API Keys**: You need the appropriate API key for the provider you choose to use:
+### Required API Keys
+
+You need the appropriate API key for your chosen provider:
 
 - `ANTHROPIC_API_KEY` for Anthropic models
 - `OPENAI_API_KEY` for OpenAI models  
 - `GOOGLE_GENERATIVE_AI_API_KEY` for Google models
 - `OPENROUTER_API_KEY` for OpenRouter models
 - `AI_GATEWAY_API_KEY` for Vercel AI SDK Gateway models
-
-### Provider Options (Vercel AI SDK v5)
-
-Each model settings can include `providerOptions` with both generic and provider-specific parameters:
-
-#### Generic Parameters (All Providers)
-These parameters work across all providers and go directly in `providerOptions`:
-
-- `maxOutputTokens`: Maximum number of tokens to generate (**Note:** AI SDK v5 uses `maxOutputTokens`, not `maxTokens`)
-- `temperature`: Controls randomness of output (0.0-1.0, lower is more deterministic)
-- `topP`: Nucleus sampling - consider tokens with top cumulative probability (0.0-1.0)
-- `topK`: Limits token sampling to top K options (integer)
-- `frequencyPenalty`: Reduces repetition of words used frequently (-2.0 to 2.0)
-- `presencePenalty`: Encourages model to explore new topics (-2.0 to 2.0)
-- `stopSequences`: Array of sequences that stop generation (e.g., `["\n\n", "END"]`)
-- `seed`: Random seed for deterministic output (integer)
-- `maxDuration`: Request timeout in seconds (**Note:** seconds not milliseconds, e.g., `30` for 30 seconds)
-- `maxRetries`: Maximum retry attempts on failure (default: 2)
-
-#### Provider-Specific Parameters
-These parameters must be wrapped in a provider-specific object (e.g., `anthropic: {}`, `openai: {}`, `google: {}`):
-
-##### Combined Example
-```typescript
-models: {
-  base: {
-    model: "anthropic/claude-3-7-sonnet-20250219",
-    providerOptions: {
-      // Generic parameters (all providers)
-      maxOutputTokens: 4096,
-      temperature: 0.7,
-      topP: 0.95,
-      stopSequences: ["\n\n"],
-      
-      // Provider-specific parameters (wrapped)
-      anthropic: {
-        thinking: {
-          type: 'enabled',
-          budgetTokens: 8000
-        }
-      }
-    }
-  }
-}
-```
-
-### Reasoning Models Examples
 
 Different providers offer reasoning capabilities that must be wrapped in provider-specific objects:
 
