@@ -1,28 +1,10 @@
 'use client';
 
-import {
-  ArrowRightLeft,
-  Filter,
-  Plus,
-  RefreshCw,
-  SparklesIcon,
-  Users,
-  Wrench,
-  X,
-} from 'lucide-react';
+import { ArrowRightLeft, RefreshCw, SparklesIcon, Users, Wrench } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
@@ -31,6 +13,7 @@ import { StatCard } from './charts/stat-card';
 import { ConversationStatsCard } from './conversation-stats/conversation-stats-card';
 import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 import { GraphFilter } from './filters/graph-filter';
+import { SpanFilters } from './filters/span-filters';
 
 // Time range options
 const TIME_RANGES = {
@@ -58,11 +41,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     setCustomDateRange,
     setSpanFilter,
   } = useTracesQueryState();
-
-  // Track local state for show/hide span filters
-  const [showSpanFilters, setShowSpanFilters] = useState(
-    () => !!(spanName || (Array.isArray(attributes) && attributes.length > 0))
-  );
 
   const [selectedGraph, setSelectedGraph] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -316,11 +294,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return !Number.isNaN(Number(value)) && value.trim() !== '';
   };
 
-  const clearSpanFilters = () => {
-    setSpanFilter('', []);
-    setShowSpanFilters(false);
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -350,294 +323,21 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-4 max-w-3xl">
-        <div className="flex flex-col md:flex-row gap-2 md:gap-0">
-          {/* Filter Stats - Inline with filters */}
-          {!loading && (
-            <div className="flex flex-col justify-end space-y-1 text-sm text-muted-foreground min-w-fit">
-              {(spanName || attributes.length > 0) && (
-                <div className="flex items-center gap-1 text-xs">
-                  <Filter className="h-3 w-3" />
-                  Span filters active:
-                  {spanName && <span className="text-muted-foreground">name={spanName}</span>}
-                  {attributes.length > 0 && (
-                    <span className="text-muted-foreground">
-                      {attributes
-                        .map((attr) => {
-                          const operatorSymbol = (() => {
-                            switch (attr.operator) {
-                              case '!=':
-                                return '!=';
-                              case '<':
-                                return '<';
-                              case '>':
-                                return '>';
-                              case '<=':
-                                return '≤';
-                              case '>=':
-                                return '≥';
-                              case 'in':
-                                return ' in ';
-                              case 'nin':
-                                return ' not in ';
-                              case 'contains':
-                                return ' contains ';
-                              case 'ncontains':
-                                return ' not contains ';
-                              case 'regex':
-                                return ' matches ';
-                              case 'nregex':
-                                return ' not matches ';
-                              case 'like':
-                                return ' like ';
-                              case 'nlike':
-                                return ' not like ';
-                              case 'exists':
-                                return ' exists';
-                              case 'nexists':
-                                return ' not exists';
-                              default:
-                                return '=';
-                            }
-                          })();
-                          const valueDisplay =
-                            attr.operator === 'exists' || attr.operator === 'nexists'
-                              ? ''
-                              : attr.value;
-                          return `${attr.key}${operatorSymbol}${valueDisplay}`;
-                        })
-                        .join(', ')}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Second Row: Span Filters */}
-        <div className="flex flex-col md:flex-row gap-2 md:gap-0">
-          {/* Span Filter Toggle */}
-          <div className="space-y-1">
-            <Label className="text-sm flex items-center gap-1">
-              <Filter className="h-3 w-3" />
-              Span Filters
-            </Label>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={
-                  showSpanFilters || spanName || attributes.length > 0 ? 'default' : 'outline'
-                }
-                size="sm"
-                onClick={() => setShowSpanFilters(!showSpanFilters)}
-                className="flex-1 justify-start"
-              >
-                <Filter className="h-4 w-4" />
-                {spanName || attributes.length > 0 ? 'Filters Active' : 'Add Filters'}
-              </Button>
-              {(spanName || attributes.length > 0) && (
-                <Button variant="ghost" size="sm" onClick={clearSpanFilters} className="p-1 h-auto">
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-4">
+        {/* Span Filter Toggle */}
+        <SpanFilters
+          availableSpanNames={availableSpanNames}
+          spanName={spanName}
+          setSpanFilter={setSpanFilter}
+          attributes={attributes}
+          addAttribute={addAttribute}
+          removeAttribute={removeAttribute}
+          updateAttribute={updateAttribute}
+          isNumeric={isNumeric}
+          spanNamesLoading={spanNamesLoading}
+          selectedGraph={selectedGraph}
+        />
       </div>
-
-      {/* Span Filter Configuration - Only show when toggled */}
-      {showSpanFilters && (
-        <div className="mt-4 p-4 border border-border rounded-lg bg-muted/50">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium">Span Filters</h4>
-              <p className="text-xs text-muted-foreground">
-                Filter conversations by span name and attributes
-              </p>
-            </div>
-
-            {/* Span Name Filter */}
-            <div className="space-y-1">
-              <Label htmlFor="span-name" className="text-sm">
-                Span Name
-              </Label>
-              {availableSpanNames.length > 0 ? (
-                <Select
-                  value={spanName || 'none'}
-                  onValueChange={(value) =>
-                    setSpanFilter(value === 'none' ? '' : value, attributes)
-                  }
-                >
-                  <SelectTrigger id="span-name">
-                    <SelectValue placeholder="Select span name (e.g. ai.toolCall)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No filter</SelectItem>
-                    {spanNamesLoading ? (
-                      <SelectItem value="loading" disabled>
-                        Loading span names...
-                      </SelectItem>
-                    ) : (
-                      availableSpanNames.map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id="span-name"
-                  placeholder="Enter span name (e.g. ai.toolCall, ai.generateText)"
-                  value={spanName}
-                  onChange={(e) => setSpanFilter(e.target.value, attributes)}
-                  className="bg-background"
-                />
-              )}
-              {spanNamesLoading && (
-                <p className="text-xs text-muted-foreground italic">
-                  Loading available span names...
-                </p>
-              )}
-              {!spanNamesLoading && availableSpanNames.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">
-                  No span names found in {selectedGraph ? `graph "${selectedGraph}"` : 'any graph'}.
-                  You can type a custom span name above.
-                </p>
-              )}
-              {!spanNamesLoading && availableSpanNames.length > 0 && selectedGraph && (
-                <p className="text-xs text-muted-foreground italic">
-                  Showing span names from graph "{selectedGraph}" only
-                </p>
-              )}
-            </div>
-
-            {/* Attributes Filter */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">Span Attributes</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addAttribute}
-                  className="text-xs"
-                >
-                  <Plus className="h-3 w-3" />
-                  Add Attribute
-                </Button>
-              </div>
-
-              {attributes.map((attr, index) => (
-                <div key={index} className="flex gap-2 items-center">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Attribute key (e.g. ai.agentName)"
-                      value={attr.key}
-                      onChange={(e) => updateAttribute(index, 'key', e.target.value)}
-                      className="bg-background"
-                    />
-                  </div>
-
-                  {/* Operator selection - now available for all attribute types */}
-                  <div className="w-32">
-                    <Select
-                      value={attr.operator || '='}
-                      onValueChange={(
-                        value:
-                          | '='
-                          | '!='
-                          | '<'
-                          | '>'
-                          | '<='
-                          | '>='
-                          | 'in'
-                          | 'nin'
-                          | 'contains'
-                          | 'ncontains'
-                          | 'regex'
-                          | 'nregex'
-                          | 'like'
-                          | 'nlike'
-                          | 'exists'
-                          | 'nexists'
-                      ) => updateAttribute(index, 'operator', value)}
-                    >
-                      <SelectTrigger className="bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="=">=</SelectItem>
-                        <SelectItem value="!=">!=</SelectItem>
-                        <SelectItem value="<">&lt;</SelectItem>
-                        <SelectItem value=">">&gt;</SelectItem>
-                        <SelectItem value="<=">≤</SelectItem>
-                        <SelectItem value=">=">≥</SelectItem>
-                        <SelectItem value="in">in</SelectItem>
-                        <SelectItem value="nin">not in</SelectItem>
-                        <SelectItem value="contains">contains</SelectItem>
-                        <SelectItem value="ncontains">not contains</SelectItem>
-                        <SelectItem value="regex">regex</SelectItem>
-                        <SelectItem value="nregex">not regex</SelectItem>
-                        <SelectItem value="like">like</SelectItem>
-                        <SelectItem value="nlike">not like</SelectItem>
-                        <SelectItem value="exists">exists</SelectItem>
-                        <SelectItem value="nexists">not exists</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex-1">
-                    <Input
-                      placeholder={(() => {
-                        const op = attr.operator || '=';
-                        if (op === 'exists' || op === 'nexists') return 'No value needed';
-                        if (op === 'in' || op === 'nin')
-                          return 'Comma-separated values (e.g. val1,val2,val3)';
-                        if (op === 'regex' || op === 'nregex') return 'Regular expression pattern';
-                        if (op === 'like' || op === 'nlike')
-                          return 'Pattern with % wildcards (e.g. %value%)';
-                        if (op === '<' || op === '>' || op === '<=' || op === '>=')
-                          return 'Numeric value';
-                        return 'Attribute value (e.g. qa)';
-                      })()}
-                      value={attr.value}
-                      onChange={(e) => updateAttribute(index, 'value', e.target.value)}
-                      className="bg-background"
-                      disabled={attr.operator === 'exists' || attr.operator === 'nexists'}
-                      type={
-                        (attr.operator === '<' ||
-                          attr.operator === '>' ||
-                          attr.operator === '<=' ||
-                          attr.operator === '>=') &&
-                        isNumeric(attr.value)
-                          ? 'number'
-                          : 'text'
-                      }
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeAttribute(index)}
-                    className="px-2"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-
-              {attributes.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">
-                  No attribute filters added. Click "Add Attribute" to filter by span attributes.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Chart and Stats in 12-column grid */}
       <div className="grid grid-cols-12 gap-4">
