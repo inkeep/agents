@@ -34,7 +34,7 @@ describe('mcpServer builder function', () => {
       description: 'MCP server with all options',
       serverUrl: 'https://api.example.com/mcp',
       tenantId: 'test-tenant',
-      transport: 'sse',
+      transport: 'streamableHttp',
       activeTools: ['tool1', 'tool2', 'tool3'],
       headers: {
         Authorization: 'Bearer token123',
@@ -49,7 +49,7 @@ describe('mcpServer builder function', () => {
     expect(server.getId()).toBe('custom-mcp-server-id');
     expect(server.getServerUrl()).toBe('https://api.example.com/mcp');
     expect(server.config.tenantId).toBe('test-tenant');
-    expect(server.config.transport).toEqual({ type: 'websocket' });
+    expect(server.config.transport).toEqual({ type: 'streamableHttp' });
     expect(server.config.activeTools).toEqual(['tool1', 'tool2', 'tool3']);
     expect(server.config.headers).toEqual({
       Authorization: 'Bearer token123',
@@ -93,7 +93,7 @@ describe('mcpServer builder function', () => {
       name: 'HTTP Server',
       description: 'HTTP transport server',
       serverUrl: 'http://localhost:3000/mcp',
-      transport: 'sse',
+      transport: 'streamableHttp',
     };
 
     const wsConfig: MCPServerConfig = {
@@ -106,7 +106,7 @@ describe('mcpServer builder function', () => {
     const httpServer = mcpServer(httpConfig);
     const wsServer = mcpServer(wsConfig);
 
-    expect(httpServer.config.transport).toEqual({ type: 'http' });
+    expect(httpServer.config.transport).toEqual({ type: 'streamableHttp' });
     expect(wsServer.config.transport).toEqual({ type: 'sse' });
   });
 });

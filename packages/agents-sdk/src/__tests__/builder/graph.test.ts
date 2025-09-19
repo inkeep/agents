@@ -364,7 +364,6 @@ describe('AgentGraph', () => {
               name: 'Support Agent',
             }),
           }),
-          tools: expect.any(Object),
         })
       );
     });
@@ -578,7 +577,6 @@ describe('AgentGraph', () => {
             type: 'internal',
           },
         },
-        tools: expect.any(Object),
       });
     });
   });

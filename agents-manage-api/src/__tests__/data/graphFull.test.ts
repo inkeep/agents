@@ -219,9 +219,9 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       // expect(agent2.canTransferTo).toContain('agent-1');
     });
 
-    it.skip('should create a complete graph with all entities', async () => {
-      // TODO: Update this test to work with new scoped architecture
-      // Tools, dataComponents, artifactComponents are now project-scoped
+    it('should create a complete graph with all entities', async () => {
+      // In new architecture: tools, dataComponents, artifactComponents are project-scoped
+      // Graph only contains agents and their relationships
       const tenantId = createTestTenantId('service-create');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -246,14 +246,15 @@ describe('Graph Full Service Layer - Unit Tests', () => {
         if ('canDelegateTo' in defaultAgent) {
           expect(defaultAgent.canDelegateTo).toContain(Object.keys(graphData.agents)[1]);
         }
+        // Verify tool IDs are preserved (but actual tools are project-scoped)
+        if ('tools' in defaultAgent) {
+          expect(defaultAgent.tools).toBeDefined();
+          expect(Array.isArray(defaultAgent.tools)).toBe(true);
+        }
       }
-
-      // Verify tools were created and linked
-      // Note: tools are now project-scoped and not part of the graph definition
-      // The agent.tools array contains tool IDs, but the actual tool objects are at the project level
     });
 
-    it.skip('should handle graph with single agent and no relationships', async () => {
+    it('should handle graph with single agent and no relationships', async () => {
       const tenantId = createTestTenantId('service-single-agent');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -296,7 +297,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       }
     });
 
-    it.skip('should handle upsert behavior for existing graph', async () => {
+    it('should handle upsert behavior for existing graph', async () => {
       const tenantId = createTestTenantId('service-upsert');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -325,7 +326,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       expect(secondResult.name).toBe('Updated Graph Name');
     });
 
-    it.skip('should create a graph with dataComponents', async () => {
+    it('should create a graph with dataComponent references', async () => {
       const tenantId = createTestTenantId('service-create-datacomponents');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -336,21 +337,21 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBe(graphData.id);
-      // Note: dataComponents are now project-scoped and not part of the graph definition
-      // The agent.dataComponents array contains dataComponent IDs, but the actual dataComponent objects are at the project level
 
-      // Verify agent has dataComponent relationship
+      // Verify agent has dataComponent IDs (actual components are project-scoped)
       if (graphData.defaultAgentId) {
         const defaultAgent = result.agents[graphData.defaultAgentId];
         expect(defaultAgent).toBeDefined();
         if ('dataComponents' in defaultAgent) {
           expect(defaultAgent.dataComponents).toBeDefined();
           expect(defaultAgent.dataComponents).toHaveLength(1);
+          // These are just IDs, not the actual dataComponent objects
+          expect(typeof defaultAgent.dataComponents[0]).toBe('string');
         }
       }
     });
 
-    it.skip('should create a graph with external agents', async () => {
+    it('should create a graph with external agents', async () => {
       const tenantId = createTestTenantId('service-create-external');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -378,7 +379,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       }
     });
 
-    it.skip('should create a graph with context config', async () => {
+    it('should create a graph with context config', async () => {
       const tenantId = createTestTenantId('service-create-context');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -392,7 +393,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       expect(result.contextConfig).toBeDefined();
     });
 
-    it.skip('should create a graph with all components (comprehensive test)', async () => {
+    it('should create a graph with all components (comprehensive test)', async () => {
       const tenantId = createTestTenantId('service-create-comprehensive');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -408,25 +409,27 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(graphData.id);
 
-      // Verify all components exist
+      // Verify all agents exist
       expect(Object.keys(result.agents)).toHaveLength(3); // 2 internal + 1 external
-      // Note: tools and dataComponents are now project-scoped and not part of the graph definition
       expect(result.contextConfig).toBeDefined();
 
-      // Verify agent relationships
+      // Verify agent relationships and references
       if (graphData.defaultAgentId) {
         const defaultAgent = result.agents[graphData.defaultAgentId];
+        // Tools and dataComponents are just ID references
         if ('tools' in defaultAgent) {
           expect(defaultAgent.tools).toHaveLength(1);
+          expect(typeof defaultAgent.tools[0]).toBe('string');
         }
         if ('dataComponents' in defaultAgent) {
           expect(defaultAgent.dataComponents).toHaveLength(1);
+          expect(typeof defaultAgent.dataComponents[0]).toBe('string');
         }
         if ('canTransferTo' in defaultAgent) {
-          expect(defaultAgent.canTransferTo).toHaveLength(1); // internal
+          expect(defaultAgent.canTransferTo).toHaveLength(1);
         }
         if ('canDelegateTo' in defaultAgent) {
-          expect(defaultAgent.canDelegateTo).toHaveLength(2); // internal + external
+          expect(defaultAgent.canDelegateTo).toHaveLength(2);
         }
       }
 
