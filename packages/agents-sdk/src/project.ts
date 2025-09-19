@@ -469,12 +469,142 @@ export class Project implements ProjectInterface {
    */
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
     const graphsObject: Record<string, any> = {};
+    const toolsObject: Record<string, any> = {};
+    const dataComponentsObject: Record<string, any> = {};
+    const artifactComponentsObject: Record<string, any> = {};
 
-    // Convert all graphs to FullGraphDefinition format
+    // Convert all graphs to FullGraphDefinition format and collect components
     for (const graph of this.graphs) {
       // Get the graph's full definition
       const graphDefinition = await (graph as any).toFullGraphDefinition();
       graphsObject[graph.getId()] = graphDefinition;
+
+      // Collect tools from all agents in this graph
+      for (const agent of (graph as any).agents) {
+        if (!(agent as any).getTools) {
+          continue; // Skip external agents
+        }
+
+        const agentTools = (agent as any).getTools();
+        for (const [toolName, toolInstance] of Object.entries(agentTools)) {
+          if (toolInstance && typeof toolInstance === 'object') {
+            let actualTool: any;
+            let toolId: string;
+
+            // Check if this is an AgentMcpConfig
+            if ('server' in toolInstance && 'selectedTools' in toolInstance) {
+              const mcpConfig = toolInstance as any;
+              actualTool = mcpConfig.server;
+              toolId = actualTool.getId();
+            } else {
+              // Regular tool instance
+              actualTool = toolInstance;
+              toolId = actualTool.getId?.() || actualTool.id || toolName;
+            }
+
+            // Only add if not already added (avoid duplicates across graphs)
+            if (!toolsObject[toolId]) {
+              let toolConfig: any;
+
+              // Check if it's an IPCTool with MCP server configuration
+              if (actualTool.config?.serverUrl) {
+                toolConfig = {
+                  type: 'mcp',
+                  mcp: {
+                    server: {
+                      url: actualTool.config.serverUrl,
+                    },
+                  },
+                };
+              } else if (actualTool.config?.type === 'mcp') {
+                // Already has proper MCP config
+                toolConfig = actualTool.config;
+              } else {
+                // Fallback for function tools or uninitialized tools
+                toolConfig = {
+                  type: 'function',
+                  parameters: actualTool.parameters || {},
+                };
+              }
+
+              const toolData: any = {
+                id: toolId,
+                name: actualTool.config?.name || actualTool.name || toolName,
+                config: toolConfig,
+                status: actualTool.getStatus?.() || actualTool.status || 'unknown',
+              };
+
+              // Add additional fields if available
+              if (actualTool.config?.imageUrl) {
+                toolData.imageUrl = actualTool.config.imageUrl;
+              }
+              if (actualTool.config?.headers) {
+                toolData.headers = actualTool.config.headers;
+              }
+              if (actualTool.capabilities) {
+                toolData.capabilities = actualTool.capabilities;
+              }
+              if (actualTool.lastHealthCheck) {
+                toolData.lastHealthCheck = actualTool.lastHealthCheck;
+              }
+              if (actualTool.availableTools) {
+                toolData.availableTools = actualTool.availableTools;
+              }
+              if (actualTool.lastError) {
+                toolData.lastError = actualTool.lastError;
+              }
+              if (actualTool.lastToolsSync) {
+                toolData.lastToolsSync = actualTool.lastToolsSync;
+              }
+              // Add credential reference ID if available
+              if (actualTool.getCredentialReferenceId?.()) {
+                toolData.credentialReferenceId = actualTool.getCredentialReferenceId();
+              }
+
+              toolsObject[toolId] = toolData;
+            }
+          }
+        }
+
+        // Collect data components from this agent
+        const agentDataComponents = (agent as any).getDataComponents?.();
+        if (agentDataComponents) {
+          for (const dataComponent of agentDataComponents) {
+            const dataComponentId =
+              dataComponent.id || dataComponent.name.toLowerCase().replace(/\s+/g, '-');
+
+            // Only add if not already added (avoid duplicates)
+            if (!dataComponentsObject[dataComponentId]) {
+              dataComponentsObject[dataComponentId] = {
+                id: dataComponentId,
+                name: dataComponent.name,
+                description: dataComponent.description || '',
+                props: dataComponent.props || {},
+              };
+            }
+          }
+        }
+
+        // Collect artifact components from this agent
+        const agentArtifactComponents = (agent as any).getArtifactComponents?.();
+        if (agentArtifactComponents) {
+          for (const artifactComponent of agentArtifactComponents) {
+            const artifactComponentId =
+              artifactComponent.id || artifactComponent.name.toLowerCase().replace(/\s+/g, '-');
+
+            // Only add if not already added (avoid duplicates)
+            if (!artifactComponentsObject[artifactComponentId]) {
+              artifactComponentsObject[artifactComponentId] = {
+                id: artifactComponentId,
+                name: artifactComponent.name,
+                description: artifactComponent.description || '',
+                summaryProps: artifactComponent.summaryProps || {},
+                fullProps: artifactComponent.fullProps || {},
+              };
+            }
+          }
+        }
+      }
     }
 
     return {
@@ -484,7 +614,9 @@ export class Project implements ProjectInterface {
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
       graphs: graphsObject,
-      tools: {}, // Empty tools object as SDK doesn't manage tools directly yet
+      tools: toolsObject,
+      dataComponents: Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
+      artifactComponents: Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
       credentialReferences: undefined, // Projects don't directly hold credentials yet
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
