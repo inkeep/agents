@@ -31,8 +31,16 @@ export class ModelFactory {
       case 'google':
         return createGoogleGenerativeAI(config);
       case 'openrouter':
-        // Use official OpenRouter provider, cast to handle type mismatch
-        return createOpenRouter(config) as unknown as Provider;
+        // Use official OpenRouter provider, error if text embeddings or image generation are used (https://github.com/OpenRouterTeam/ai-sdk-provider/issues/62)
+        return {
+          ...createOpenRouter(config),
+          textEmbeddingModel: () => {
+            throw new Error('OpenRouter does not support text embeddings');
+          },
+          imageModel: () => {
+            throw new Error('OpenRouter does not support image generation');
+          },
+        };
       case 'gateway':
         return createGateway(config);
       default:
@@ -121,8 +129,8 @@ export class ModelFactory {
         // Unknown provider not supported
         throw new Error(
           `Unsupported provider: ${provider}. ` +
-          `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-          `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
+            `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+            `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
         );
     }
   }
@@ -154,8 +162,8 @@ export class ModelFactory {
       if (!ModelFactory.BUILT_IN_PROVIDERS.includes(normalizedProvider as any)) {
         throw new Error(
           `Unsupported provider: ${normalizedProvider}. ` +
-          `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-          `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
+            `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+            `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
         );
       }
 
