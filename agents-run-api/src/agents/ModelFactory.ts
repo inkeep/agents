@@ -1,5 +1,5 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
@@ -120,7 +120,7 @@ export class ModelFactory {
       case 'openrouter':
         return openrouter(modelName);
       case 'gateway':
-        return modelName;
+        return gateway(modelName);
       default:
         // For unknown providers, require explicit configuration
         throw new Error(
