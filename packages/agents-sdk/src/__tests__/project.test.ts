@@ -470,29 +470,27 @@ describe('Project', () => {
   });
 
   describe('API format conversion', () => {
-    it('should convert project configuration to API format', () => {
+    it('should include project configuration in full definition', async () => {
       const project = new Project(projectConfig);
 
-      // Access private method through type assertion for testing
-      const apiFormat = (project as any).toApiFormat();
+      // Test through the public toFullProjectDefinition method
+      const fullDef = await (project as any).toFullProjectDefinition();
 
-      expect(apiFormat).toEqual({
-        id: 'test-project',
-        name: 'Test Project',
-        description: 'A test project',
-        models: projectConfig.models,
-        stopWhen: projectConfig.stopWhen,
-      });
+      expect(fullDef.id).toBe('test-project');
+      expect(fullDef.name).toBe('Test Project');
+      expect(fullDef.description).toBe('A test project');
+      expect(fullDef.models).toEqual(projectConfig.models);
+      expect(fullDef.stopWhen).toEqual(projectConfig.stopWhen);
     });
 
-    it('should handle missing description in API format', () => {
+    it('should handle missing description in full definition', async () => {
       const configWithoutDescription = { ...projectConfig };
       delete configWithoutDescription.description;
 
       const project = new Project(configWithoutDescription);
-      const apiFormat = (project as any).toApiFormat();
+      const fullDef = await (project as any).toFullProjectDefinition();
 
-      expect(apiFormat.description).toBe('');
+      expect(fullDef.description).toBe('');
     });
   });
 
