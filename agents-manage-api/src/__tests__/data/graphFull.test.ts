@@ -1,4 +1,4 @@
-// @ts-nocheck - TODO: Update tests for new scoped architecture where relationship properties are not returned in agent objects
+// @ts-nocheck - TODO: Update tests for new scoped architecture where tools and dataComponents are not returned in agent objects
 import {
   createFullGraphServerSide,
   deleteFullGraph,
@@ -344,9 +344,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
         expect(defaultAgent).toBeDefined();
         if ('dataComponents' in defaultAgent) {
           expect(defaultAgent.dataComponents).toBeDefined();
-          expect(defaultAgent.dataComponents).toHaveLength(1);
-          // These are just IDs, not the actual dataComponent objects
-          expect(typeof defaultAgent.dataComponents[0]).toBe('string');
+          // Note: In the new scoped architecture, dataComponents are not returned in agent objects
+          expect(defaultAgent.dataComponents).toHaveLength(0);
         }
       }
     });
@@ -416,14 +415,13 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       // Verify agent relationships and references
       if (graphData.defaultAgentId) {
         const defaultAgent = result.agents[graphData.defaultAgentId];
-        // Tools and dataComponents are just ID references
+        // Note: In the new scoped architecture, tools and dataComponents are not returned in agent objects
+        // but relationship properties (canTransferTo, canDelegateTo) are still returned
         if ('tools' in defaultAgent) {
-          expect(defaultAgent.tools).toHaveLength(1);
-          expect(typeof defaultAgent.tools[0]).toBe('string');
+          expect(defaultAgent.tools).toHaveLength(0);
         }
         if ('dataComponents' in defaultAgent) {
-          expect(defaultAgent.dataComponents).toHaveLength(1);
-          expect(typeof defaultAgent.dataComponents[0]).toBe('string');
+          expect(defaultAgent.dataComponents).toHaveLength(0);
         }
         if ('canTransferTo' in defaultAgent) {
           expect(defaultAgent.canTransferTo).toHaveLength(1);
