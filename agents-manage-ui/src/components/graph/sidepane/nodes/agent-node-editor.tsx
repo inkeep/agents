@@ -1,12 +1,15 @@
 import type { Node } from '@xyflow/react';
+import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { CollapsibleInfoCard } from '@/components/ui/info-card';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-graph-errors';
@@ -15,6 +18,7 @@ import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { AgentNodeData } from '../../configuration/node-types';
+import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
 import { ExpandableTextArea } from './expandable-text-area';
 import { InputField, TextareaField } from './form-fields';
@@ -132,19 +136,16 @@ export function AgentNodeEditor({
         projectModels={project?.models}
         graphModels={metadata?.models}
       />
-
+      <Separator />
       {/* Agent Execution Limits */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Execution Limits</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Configure agent-level execution limits for steps within this agent.
-          </p>
-        </div>
-
+      <div className="space-y-8 ">
+        <SectionHeader
+          title="Execution limits"
+          description="Configure agent-level execution limits for steps within this agent."
+        />
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Label htmlFor="step-count">Max Steps</Label>
+            <Label htmlFor="step-count">Max steps</Label>
             <InheritanceIndicator
               {...getExecutionLimitInheritanceStatus(
                 'agent',
@@ -174,30 +175,28 @@ export function AgentNodeEditor({
             Maximum number of execution steps for this agent (defaults to 50 if not set)
           </p>
         </div>
-
-        <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-            How execution limit inheritance works:
-          </p>
-          <ul className="space-y-1 text-blue-800 dark:text-blue-200">
+        <CollapsibleInfoCard title="How execution limit inheritance works:" Icon={Info}>
+          <ul className="space-y-1.5 list-disc list-outside pl-4">
             <li>
-              • <strong>stepCountIs</strong>: Project → Agent only (agent-level execution limit)
+              <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
+              execution limit)
             </li>
             <li>
-              • <strong>Explicit settings</strong> always take precedence over inherited values
+              <span className="font-medium">Explicit settings</span> always take precedence over
+              inherited values
             </li>
             <li>
-              • <strong>Agent scope</strong>: This limit applies only to this specific agent's
-              execution steps
+              <span className="font-medium">Agent scope</span>: This limit applies only to this
+              specific agent's execution steps
             </li>
             <li>
-              • <strong>Independent from transfers</strong>: Steps are counted per agent, transfers
-              are counted per conversation
+              <span className="font-medium">Independent from transfers</span>: Steps are counted per
+              agent, transfers are counted per conversation
             </li>
           </ul>
-        </div>
+        </CollapsibleInfoCard>
       </div>
-
+      <Separator />
       <ComponentSelector
         label="Data components"
         componentLookup={dataComponentLookup}

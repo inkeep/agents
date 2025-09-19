@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { ContextConfig, GraphMetadata } from '../../configuration/graph-types';
+import { SectionHeader } from '../section';
 
 export function ContextConfigForm({
   contextConfig,
@@ -23,10 +24,10 @@ export function ContextConfigForm({
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-sm font-semibold">Context configuration</h2>
-        <p className="text-sm text-muted-foreground">Configure dynamic context for this graph.</p>
-      </div>
+      <SectionHeader
+        title="Context configuration"
+        description="Configure dynamic context for this graph."
+      />
       <div className="flex flex-col space-y-8">
         <div className="space-y-2">
           <Label htmlFor="id">Id</Label>
@@ -36,7 +37,7 @@ export function ContextConfigForm({
             onChange={(e) => updateContextConfig('id', e.target.value)}
             placeholder="my-context"
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Choose a unique identifier for this configuration. Using an existing id will replace
             that configuration.
           </p>

@@ -4,10 +4,13 @@ import { ChevronRight, Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
+import { CollapsibleInfoCard } from '@/components/ui/info-card';
 import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
@@ -25,6 +28,7 @@ import { useProjectData } from '@/hooks/use-project-data';
 import { ExpandableTextArea } from '../nodes/expandable-text-area';
 import { InputField, TextareaField } from '../nodes/form-fields';
 import { ModelSelector } from '../nodes/model-selector';
+import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
 
 function MetadataEditor() {
@@ -124,7 +128,7 @@ function MetadataEditor() {
         <ExpandableTextArea
           id="graph-prompt"
           name="graph-prompt"
-          label="Graph Prompt"
+          label="Graph prompt"
           value={graphPrompt || ''}
           onChange={(e) => updateMetadata('graphPrompt', e.target.value)}
           placeholder="System-level instructions for this graph..."
@@ -138,15 +142,11 @@ function MetadataEditor() {
       <Separator />
 
       {/* Graph Model Settings */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Default Models</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Set default models that will be inherited by agents that don't have their own models
-            configured.
-          </p>
-        </div>
-
+      <div className="space-y-8">
+        <SectionHeader
+          title="Default models"
+          description="Set default models that will be inherited by agents that don't have their own models configured."
+        />
         <div className="relative">
           <ModelSelector
             value={models?.base?.model || ''}
@@ -165,7 +165,7 @@ function MetadataEditor() {
             }}
             label={
               <div className="flex items-center gap-2">
-                Base Model
+                Base model
                 <InheritanceIndicator
                   {...getModelInheritanceStatus(
                     'graph',
@@ -191,7 +191,7 @@ function MetadataEditor() {
               className="flex items-center justify-start gap-1.5 p-0 h-auto font-normal text-xs text-foreground/80 dark:text-foreground/90 hover:text-foreground hover:!bg-transparent transition-colors group w-full py-2 px-4"
             >
               <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-              Advanced Model Options
+              Advanced model options
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-8 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
@@ -270,34 +270,15 @@ function MetadataEditor() {
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-            How model inheritance works:
-          </p>
-          <ul className="space-y-1 text-blue-800 dark:text-blue-200">
-            <li>
-              • <strong>Models</strong>: Project → Graph → Agent (partial inheritance - missing
-              models only)
-            </li>
-            <li>
-              • <strong>Individual model types</strong> inherit independently (base,
-              structuredOutput, summarizer)
-            </li>
-            <li>
-              • <strong>Explicit settings</strong> always take precedence over inherited values
-            </li>
-            <li>
-              • <strong>Provider options</strong> are inherited along with the model if not
-              explicitly set
-            </li>
-          </ul>
-        </div>
+        <CollapsibleInfoCard title="How model inheritance works:" Icon={Info}>
+          <ModelInheritanceInfo />
+        </CollapsibleInfoCard>
 
         {/* Base Model Provider Options */}
         {models?.base?.model && (
           <ExpandableJsonEditor
             name="base-provider-options"
-            label="Base Model Provider Options"
+            label="Base model provider options"
             onChange={(value) => {
               updateMetadata('models', {
                 ...(models || {}),
@@ -319,7 +300,7 @@ function MetadataEditor() {
         {models?.structuredOutput?.model && (
           <ExpandableJsonEditor
             name="structured-provider-options"
-            label="Structured Output Model Provider Options"
+            label="Structured output model provider options"
             onChange={(value) => {
               updateMetadata('models', {
                 ...(models || {}),
@@ -341,7 +322,7 @@ function MetadataEditor() {
         {models?.summarizer?.model && (
           <ExpandableJsonEditor
             name="summarizer-provider-options"
-            label="Summarizer Model Provider Options"
+            label="Summarizer model provider options"
             onChange={(value) => {
               updateMetadata('models', {
                 ...(models || {}),
@@ -363,17 +344,15 @@ function MetadataEditor() {
       <Separator />
 
       {/* Graph Execution Limits */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Execution Limits</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Configure graph-level execution limits for transfers between agents.
-          </p>
-        </div>
+      <div className="space-y-8">
+        <SectionHeader
+          title="Execution limits"
+          description="Configure graph-level execution limits for transfers between agents."
+        />
 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Label htmlFor="transfer-count">Max Transfers</Label>
+            <Label htmlFor="transfer-count">Max transfers</Label>
             <InheritanceIndicator
               {...getExecutionLimitInheritanceStatus(
                 'graph',
@@ -403,66 +382,60 @@ function MetadataEditor() {
             Maximum number of agent transfers per conversation (defaults to 10 if not set)
           </p>
         </div>
-
-        <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-          <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-            How execution limit inheritance works:
-          </p>
-          <ul className="space-y-1 text-blue-800 dark:text-blue-200">
+        <CollapsibleInfoCard title="How execution limit inheritance works:" Icon={Info}>
+          <ul className="space-y-1.5 list-disc list-outside pl-4">
             <li>
-              • <strong>transferCountIs</strong>: Project → Graph only (controls transfers between
-              agents)
+              <span className="font-medium">transferCountIs</span>: Project → Graph only (controls
+              transfers between agents)
             </li>
             <li>
-              • <strong>Explicit settings</strong> always take precedence over inherited values
+              <span className="font-medium">Explicit settings</span> always take precedence over
+              inherited values
             </li>
             <li>
-              • <strong>Default fallback</strong>: transferCountIs = 10 if no value is set anywhere
+              <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no
+              value is set anywhere
             </li>
             <li>
-              • <strong>Graph scope</strong>: This limit applies to all agents within this graph
+              <span className="font-medium">Graph scope</span>: This limit applies to all agents
+              within this graph
             </li>
           </ul>
-        </div>
+        </CollapsibleInfoCard>
       </div>
 
       <Separator />
 
       {/* Structured Updates Configuration */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Status Updates</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Configure structured status updates for conversation progress tracking.
-          </p>
-        </div>
-
-        <div className="space-y-4">
+      <div className="space-y-8">
+        <SectionHeader
+          title="Status updates"
+          description="Configure structured status updates for conversation progress tracking."
+        />
+        <div className="space-y-8">
           <div className="space-y-2">
-            <Label htmlFor="status-updates-enabled">Enable Status Updates</Label>
             <div className="flex items-center space-x-2">
-              <input
+              <Checkbox
                 id="status-updates-enabled"
-                type="checkbox"
                 checked={statusUpdates?.enabled ?? true}
-                onChange={(e) => {
+                onCheckedChange={(checked) => {
                   updateMetadata('statusUpdates', {
                     ...(statusUpdates || {}),
-                    enabled: e.target.checked,
+                    enabled: checked === true,
                   });
                 }}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm text-muted-foreground">
-                Send structured status updates during conversation execution
-              </span>
+              <Label htmlFor="status-updates-enabled">Enable status updates</Label>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Send structured status updates during conversation execution
+            </p>
           </div>
 
           {(statusUpdates?.enabled ?? true) && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="status-updates-prompt">Status Updates Prompt</Label>
+                <Label htmlFor="status-updates-prompt">Status updates prompt</Label>
                 <Textarea
                   id="status-updates-prompt"
                   value={statusUpdates?.prompt || ''}
@@ -480,16 +453,16 @@ function MetadataEditor() {
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Update Frequency Type</Label>
-                  <div className="flex space-x-4">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <Label>Update frequency type</Label>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="event-based-updates"
                         checked={!!statusUpdates?.numEvents}
-                        onChange={(e) => {
-                          if (e.target.checked) {
+                        onCheckedChange={(checked) => {
+                          if (checked) {
                             updateMetadata('statusUpdates', {
                               ...(statusUpdates || {}),
                               numEvents: statusUpdates?.numEvents || 10,
@@ -500,16 +473,16 @@ function MetadataEditor() {
                             updateMetadata('statusUpdates', newConfig);
                           }
                         }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm">Event-based updates</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
+                      <Label htmlFor="event-based-updates">Event-based updates</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="time-based-updates"
                         checked={!!statusUpdates?.timeInSeconds}
-                        onChange={(e) => {
-                          if (e.target.checked) {
+                        onCheckedChange={(checked) => {
+                          if (checked) {
                             updateMetadata('statusUpdates', {
                               ...(statusUpdates || {}),
                               timeInSeconds: statusUpdates?.timeInSeconds || 30,
@@ -520,16 +493,15 @@ function MetadataEditor() {
                             updateMetadata('statusUpdates', newConfig);
                           }
                         }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm">Time-based updates</span>
-                    </label>
+                      <Label htmlFor="time-based-updates">Time-based updates</Label>
+                    </div>
                   </div>
                 </div>
 
                 {statusUpdates?.numEvents && (
                   <div className="space-y-2">
-                    <Label htmlFor="num-events">Number of Events</Label>
+                    <Label htmlFor="num-events">Number of events</Label>
                     <Input
                       id="num-events"
                       type="number"
@@ -553,7 +525,7 @@ function MetadataEditor() {
 
                 {statusUpdates?.timeInSeconds && (
                   <div className="space-y-2">
-                    <Label htmlFor="time-in-seconds">Time Interval (seconds)</Label>
+                    <Label htmlFor="time-in-seconds">Time interval (seconds)</Label>
                     <Input
                       id="time-in-seconds"
                       type="number"
@@ -577,10 +549,9 @@ function MetadataEditor() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status-components">Status Components</Label>
                 <ExpandableJsonEditor
                   name="status-components"
-                  label="Status Components Configuration"
+                  label="Status components configuration"
                   onChange={(value) => {
                     updateMetadata('statusUpdates', {
                       ...(statusUpdates || {}),
