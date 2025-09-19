@@ -1,8 +1,10 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Info } from 'lucide-react';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import type { AgentNodeData } from '@/components/graph/configuration/node-types';
+import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CollapsibleInfoCard } from '@/components/ui/info-card';
 import {
   getModelInheritanceStatus,
   InheritanceIndicator,
@@ -26,7 +28,7 @@ export function ModelSection({
   const _hasAnyModel = models?.base || models?.structuredOutput || models?.summarizer;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <div className="relative">
         <ModelSelector
           value={models?.base?.model || ''}
@@ -36,7 +38,7 @@ export function ModelSection({
           inheritedValue={graphModels?.base?.model || projectModels?.base?.model}
           label={
             <div className="flex items-center gap-2">
-              Base Model
+              Base model
               <InheritanceIndicator
                 {...getModelInheritanceStatus(
                   'agent',
@@ -134,7 +136,7 @@ export function ModelSection({
       {models?.base?.model && (
         <ExpandableJsonEditor
           name="base-provider-options"
-          label="Base Model Provider Options"
+          label="Base model provider options"
           onChange={(value) => {
             updatePath('models.base.providerOptions', value);
           }}
@@ -150,7 +152,7 @@ export function ModelSection({
       {models?.structuredOutput?.model && (
         <ExpandableJsonEditor
           name="structured-provider-options"
-          label="Structured Output Model Provider Options"
+          label="Structured output model provider options"
           onChange={(value) => {
             updatePath('models.structuredOutput.providerOptions', value);
           }}
@@ -166,7 +168,7 @@ export function ModelSection({
       {models?.summarizer?.model && (
         <ExpandableJsonEditor
           name="summarizer-provider-options"
-          label="Summarizer Model Provider Options"
+          label="Summarizer model provider options"
           onChange={(value) => {
             updatePath('models.summarizer.providerOptions', value);
           }}
@@ -177,29 +179,9 @@ export function ModelSection({
 }`}
         />
       )}
-
-      <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-        <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-          How model inheritance works:
-        </p>
-        <ul className="space-y-1 text-blue-800 dark:text-blue-200">
-          <li>
-            • <strong>Models</strong>: Project → Graph → Agent (partial inheritance - missing models
-            only)
-          </li>
-          <li>
-            • <strong>Individual model types</strong> inherit independently (base, structuredOutput,
-            summarizer)
-          </li>
-          <li>
-            • <strong>Explicit settings</strong> always take precedence over inherited values
-          </li>
-          <li>
-            • <strong>Provider options</strong> are inherited along with the model if not explicitly
-            set
-          </li>
-        </ul>
-      </div>
+      <CollapsibleInfoCard title="How model inheritance works:" Icon={Info}>
+        <ModelInheritanceInfo />
+      </CollapsibleInfoCard>
     </div>
   );
 }

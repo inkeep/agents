@@ -341,13 +341,15 @@ GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
 
-# SigNoz
+# SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
 SIGNOZ_API_KEY=your-signoz-api-key-here
 
-# Nango
-NANGO_HOST=your-nango-host-here
-NANGO_CONNECT_BASE_URL=your-nango-connect-base-url-here
+# OTEL Configuration
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
+OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
+
+# Nango Configuration
 NANGO_SECRET_KEY=
 `;
 
