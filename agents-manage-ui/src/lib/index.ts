@@ -14,11 +14,7 @@ export {
   updateFullGraphAction,
   validateGraphData,
 } from './actions/graph-full';
-// API Configuration exports
-export {
-  INKEEP_AGENTS_RUN_API_URL,
-  INKEEP_AGENTS_MANAGE_API_URL,
-} from './api/api-config';
+
 // API Client exports (for advanced use cases)
 export {
   ApiError,

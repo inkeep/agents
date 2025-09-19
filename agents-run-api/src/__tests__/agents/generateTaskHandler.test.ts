@@ -139,6 +139,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getToolsForAgent: getToolsForAgentMock,
   getAgentById: getAgentByIdMock,
   getAgentGraph: getAgentGraphMock,
+  getAgentGraphById: getAgentGraphMock, // Add missing mock
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
   getProject: getProjectMock,
@@ -167,6 +168,8 @@ let lastAgentConstructorArgs: any = null;
 
 vi.mock('../../agents/Agent.js', () => ({
   Agent: class MockAgent {
+    config: any;
+
     constructor(config: any) {
       this.config = config;
       // Capture constructor arguments for testing
@@ -260,6 +263,7 @@ describe('generateTaskHandler', () => {
     projectId: 'test-project',
     graphId: 'test-graph',
     agentId: 'test-agent',
+    baseUrl: 'http://localhost:3000',
     agentSchema: {
       id: 'test-agent',
       name: 'Test Agent',
@@ -267,6 +271,7 @@ describe('generateTaskHandler', () => {
       prompt: 'You are a helpful test agent',
       models: null,
       conversationHistoryConfig: null,
+      stopWhen: null,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     },
@@ -352,7 +357,7 @@ describe('generateTaskHandler', () => {
           ...mockConfig.agentSchema,
           models: {
             base: {
-              model: 'anthropic/claude-4-sonnet-20250514',
+              model: 'anthropic/claude-sonnet-4-20250514',
               providerOptions: {
                 anthropic: {
                   temperature: 0.7,
@@ -379,7 +384,7 @@ describe('generateTaskHandler', () => {
       expect(lastAgentConstructorArgs).toBeDefined();
       expect(lastAgentConstructorArgs.models).toEqual({
         base: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.7,
@@ -498,9 +503,9 @@ describe('generateTaskHandler', () => {
 
       expect(result.status.state).toBe(TaskState.Completed);
       expect(result.status.message).toBe('Transfer requested to refund-agent');
-      expect(result.artifacts?.[0].parts[0].data.type).toBe('transfer');
-      expect(result.artifacts?.[0].parts[0].data.target).toBe('refund-agent');
-      expect(result.artifacts?.[0].parts[0].data.reason).toBe('Transferring to refund agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.type).toBe('transfer');
+      expect((result.artifacts?.[0].parts[0] as any).data.target).toBe('refund-agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.reason).toBe('Transferring to refund agent');
     });
 
     it('should extract contextId from task ID when missing', async () => {
@@ -590,8 +595,8 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
+          graphId: 'test-graph',
         },
-        graphId: 'test-graph',
         agentId: 'test-agent',
       });
 
@@ -600,8 +605,9 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
+          graphId: 'test-graph',
+          agentId: 'test-agent',
         },
-        agentId: 'test-agent',
       });
 
       const dataInnerMock = getDataComponentsForAgentMock.mock.results[0]?.value;
@@ -609,8 +615,9 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
+          graphId: 'test-graph',
+          agentId: 'test-agent',
         },
-        agentId: 'test-agent',
       });
     });
   });
@@ -691,7 +698,7 @@ describe('generateTaskHandler', () => {
           prompt: 'You are a helpful test agent',
           models: {
             base: {
-              model: 'anthropic/claude-4-sonnet-20250514',
+              model: 'anthropic/claude-sonnet-4-20250514',
               providerOptions: {
                 anthropic: {
                   temperature: 0.8,
@@ -719,7 +726,7 @@ describe('generateTaskHandler', () => {
 
       expect(config.agentSchema.models).toEqual({
         base: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -728,7 +735,7 @@ describe('generateTaskHandler', () => {
           },
         },
         structuredOutput: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -737,7 +744,7 @@ describe('generateTaskHandler', () => {
           },
         },
         summarizer: {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.8,

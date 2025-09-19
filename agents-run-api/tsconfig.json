@@ -16,5 +16,5 @@
     "noEmit": false
   },
   "include": ["src/**/*", "src/types/**/*", "examples/**/*.graph.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "../sdk/src"]
+  "exclude": ["node_modules", "dist", "../sdk/src"]
 }

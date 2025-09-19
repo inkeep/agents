@@ -3,6 +3,7 @@ import type {
   ModelSettings,
   StatusComponent,
   StatusUpdateSettings,
+  SummaryEvent,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject, generateText } from 'ai';
@@ -11,9 +12,8 @@ import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { tracer, setSpanWithError } from './tracer';
-import { statusUpdateOp } from './agent-operations';
 import { getStreamHelper } from './stream-registry';
+import { setSpanWithError, tracer } from './tracer';
 
 const logger = getLogger('GraphSession');
 
@@ -516,7 +516,7 @@ export class GraphSession {
       const elapsedTime = now - statusUpdateState.startTime;
 
       // Generate status update - either structured or text summary
-      let operation: any;
+      let summaryToSend: any;
 
       if (
         statusUpdateState.config.statusComponents &&
@@ -531,38 +531,41 @@ export class GraphSession {
           this.previousSummaries
         );
 
-        if (result.operations && result.operations.length > 0) {
+        if (result.summaries && result.summaries.length > 0) {
           // Send each operation separately using writeData for dynamic types
-          for (const op of result.operations) {
+          for (const summary of result.summaries) {
             // Guard against empty/invalid operations
-            if (!op || !op.type || !op.data || Object.keys(op.data).length === 0) {
+            if (
+              !summary ||
+              !summary.type ||
+              !summary.data ||
+              !summary.data.label ||
+              Object.keys(summary.data).length === 0
+            ) {
               logger.warn(
                 {
                   sessionId: this.sessionId,
-                  operation: op,
+                  summary: summary,
                 },
                 'Skipping empty or invalid structured operation'
               );
               continue;
             }
 
-            const operationToSend = {
-              type: 'status_update' as const,
-              ctx: {
-                operationType: op.type,
-                label: op.data.label,
-                data: Object.fromEntries(
-                  Object.entries(op.data).filter(([key]) => !['label', 'type'].includes(key))
-                ),
-              },
+            const summaryToSend = {
+              type: summary.data.type || summary.type, // Preserve the actual custom type from LLM
+              label: summary.data.label,
+              details: Object.fromEntries(
+                Object.entries(summary.data).filter(([key]) => !['label', 'type'].includes(key))
+              ),
             };
 
-            await streamHelper.writeOperation(operationToSend);
+            await streamHelper.writeSummary(summaryToSend as SummaryEvent);
           }
 
           // Store summaries for next time - use full JSON for better comparison
-          const summaryTexts = result.operations.map((op) =>
-            JSON.stringify({ type: op.type, data: op.data })
+          const summaryTexts = result.summaries.map((summary) =>
+            JSON.stringify({ type: summary.type, data: summary.data })
           );
           this.previousSummaries.push(...summaryTexts);
 
@@ -589,15 +592,10 @@ export class GraphSession {
         this.previousSummaries.push(summary);
 
         // Create standard status update operation
-        operation = statusUpdateOp({
-          summary,
-          eventCount: this.events.length,
-          elapsedTime,
-          currentPhase: 'processing',
-          activeAgent: 'system',
-          graphId,
-          sessionId: this.sessionId,
-        });
+        const summaryToSend = {
+          type: 'update', // Simple text summaries get 'update' type
+          label: summary,
+        };
       }
 
       // Keep only last 3 summaries to avoid context getting too large
@@ -606,18 +604,18 @@ export class GraphSession {
       }
 
       // Guard against sending empty/undefined operations that break streams
-      if (!operation || !operation.type || !operation.ctx) {
+      if (!summaryToSend || !summaryToSend.label) {
         logger.warn(
           {
             sessionId: this.sessionId,
-            operation,
+            summaryToSend,
           },
           'Skipping empty or invalid status update operation'
         );
         return;
       }
 
-      await streamHelper.writeOperation(operation);
+      await streamHelper.writeSummary(summaryToSend);
 
       // Update state - check if still exists (could be cleaned up during async operation)
       if (this.statusUpdateState) {
@@ -786,7 +784,7 @@ export class GraphSession {
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
 
-Describe the ACTUAL finding, result, or specific information discovered (e.g., "Found Slack bot requires admin permissions", "Identified 3 channel types for ingestion", "Configuration requires OAuth token").
+Create a short 3-5 word label describing the ACTUAL finding. Use sentence case (only capitalize the first word and proper nouns). Examples: "Found admin permissions needed", "Identified three channel types", "OAuth token required".
 
 ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
@@ -802,7 +800,11 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
             }
             modelToUse = this.statusUpdateState.baseModel;
           }
-          const model = ModelFactory.createModel(modelToUse!);
+
+          if (!modelToUse) {
+            throw new Error('No model configuration available');
+          }
+          const model = ModelFactory.createModel(modelToUse);
 
           const { text } = await generateText({
             model,
@@ -846,7 +848,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     statusComponents: StatusComponent[],
     summarizerModel?: ModelSettings,
     previousSummaries: string[] = []
-  ): Promise<{ operations: Array<{ type: string; data: Record<string, any> }> }> {
+  ): Promise<{ summaries: Array<{ type: string; data: Record<string, any> }> }> {
     return tracer.startActiveSpan(
       'graph_session.generate_structured_update',
       {
@@ -930,14 +932,16 @@ Rules:
 - Fill in data for relevant components only
 - Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
-- Labels MUST contain the ACTUAL information discovered ("Found X", "Learned Y", "Discovered Z requires A")
+- Labels MUST be short 3-5 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
+- Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required"). ALWAYS capitalize the first word of the label.
 - DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
 - Include specific details, numbers, requirements, or insights discovered
+- Examples: "Admin permissions required", "Three OAuth steps found", "Token expires daily"
 - You are ONE unified AI system - NEVER mention agents, transfers, delegations, or routing
-- CRITICAL: NEVER use the words "transfer", "delegation", "agent", "routing", or any internal system terminology in labels
+- CRITICAL: NEVER use the words "transfer", "delegation", "agent", "routing", "artifact", or any internal system terminology in labels or any names of agents, tools, or systems.
 - Present all operations as seamless actions by a single system
 - Anonymize all internal operations so that the information appears descriptive and USER FRIENDLY. HIDE ALL INTERNAL OPERATIONS!
-- Bad examples: "Transferring to search agent", "Delegating task", "Routing request", "Processing request", or not using the no_relevant_updates
+- Bad examples: "Transferring to search agent", "continuing transfer to qa agent", "Delegating task", "Routing request", "Processing request", "Artifact found", "Artifact saved", or not using the no_relevant_updates
 - Good examples: "Slack bot needs admin privileges", "Found 3-step OAuth flow required", "Channel limit is 500 per workspace", or use the no_relevant_updates component if nothing new to report.
 
 REMEMBER YOU CAN ONLY USE 'no_relevant_updates' ALONE! IT CANNOT BE CONCATENATED WITH OTHER STATUS UPDATES!
@@ -956,7 +960,11 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
             }
             modelToUse = this.statusUpdateState.baseModel;
           }
-          const model = ModelFactory.createModel(modelToUse!);
+
+          if (!modelToUse) {
+            throw new Error('No model configuration available');
+          }
+          const model = ModelFactory.createModel(modelToUse);
 
           const { object } = await generateObject({
             model,
@@ -977,7 +985,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const result = object as any;
 
           // Extract components that have data (skip no_relevant_updates and empty components)
-          const operations = [];
+          const summaries = [];
           for (const [componentId, data] of Object.entries(result)) {
             // Skip no_relevant_updates - we don't send any operation for this
             if (componentId === 'no_relevant_updates') {
@@ -986,7 +994,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
             // Only include components that have actual data
             if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-              operations.push({
+              summaries.push({
                 type: componentId,
                 data: data,
               });
@@ -994,17 +1002,17 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
 
           span.setAttributes({
-            'operations.count': operations.length,
+            'summaries.count': summaries.length,
             'user_activities.count': userVisibleActivities.length,
             'result_keys.count': Object.keys(result).length,
           });
           span.setStatus({ code: SpanStatusCode.OK });
 
-          return { operations };
+          return { summaries };
         } catch (error) {
           setSpanWithError(span, error);
           logger.error({ error }, 'Failed to generate structured update, using fallback');
-          return { operations: [] };
+          return { summaries: [] };
         } finally {
           span.end();
         }
@@ -1316,7 +1324,11 @@ Make it specific and relevant.`;
             }
             modelToUse = this.statusUpdateState.baseModel;
           }
-          const model = ModelFactory.createModel(modelToUse!);
+
+          if (!modelToUse) {
+            throw new Error('No model configuration available');
+          }
+          const model = ModelFactory.createModel(modelToUse);
 
           const schema = z.object({
             name: z.string().max(50).describe('Concise, descriptive name for the artifact'),

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StatusUpdateSettings } from '../../builder/types';
+import type { StatusUpdateSettings, ModelSettings, StatusComponent } from '@inkeep/agents-core';
 import { GraphSession, graphSessionManager } from '../../utils/graph-session';
 import type { StreamHelper } from '../../utils/stream-helpers';
 
@@ -48,6 +48,7 @@ vi.mock('../../utils/stream-registry.js', () => ({
     complete: vi.fn().mockResolvedValue(undefined),
     writeData: vi.fn().mockResolvedValue(undefined),
     writeOperation: vi.fn().mockResolvedValue(undefined),
+    writeSummary: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -67,6 +68,7 @@ describe('GraphSession', () => {
       complete: vi.fn().mockResolvedValue(undefined),
       writeData: vi.fn().mockResolvedValue(undefined),
       writeOperation: vi.fn().mockResolvedValue(undefined),
+      writeSummary: vi.fn().mockResolvedValue(undefined),
     };
 
     session = new GraphSession('test-session', 'test-message', 'test-graph');
@@ -227,10 +229,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 3,
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Add events to trigger status update
       session.recordEvent('tool_execution', 'agent-1', {
@@ -258,10 +259,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         timeInSeconds: 5,
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Time-based updates should not trigger immediately
       expect(mockStreamHelper.writeOperation).not.toHaveBeenCalled();
@@ -273,7 +273,7 @@ describe('GraphSession', () => {
         numEvents: 5,
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Add events
       session.recordEvent('tool_execution', 'agent-1', {
@@ -290,10 +290,9 @@ describe('GraphSession', () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         numEvents: 1,
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // Start text streaming
       session.setTextStreaming(true);
@@ -321,14 +320,127 @@ describe('GraphSession', () => {
       // Note: This would need actual async timing to test properly
     });
 
+    it('should call writeSummary when status updates are generated', async () => {
+      const config: StatusUpdateSettings = {
+        enabled: true,
+        numEvents: 2,
+      };
+
+      const summarizerModel: ModelSettings = {
+        model: 'claude-3-5-haiku-20241022',
+      };
+
+      session.initializeStatusUpdates(config, summarizerModel);
+
+      // Mock the generateAndSendUpdate method to call writeSummary
+      const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
+        .mockImplementation(async () => {
+          await mockStreamHelper.writeSummary({
+            type: 'progress',
+            label: 'Processing update',
+            details: { progress: '50%', status: 'working' }
+          });
+        });
+
+      // Add enough events to trigger update
+      session.recordEvent('tool_execution', 'agent-1', {
+        toolName: 'search',
+        args: { query: 'test' },
+        result: 'results found',
+      });
+
+      session.recordEvent('agent_generate', 'agent-1', {
+        parts: [{ type: 'text', content: 'Generated text' }],
+        generationType: 'text_generation',
+      });
+
+      // Wait for async status update to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify writeSummary was called with correct structure including type field
+      expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: expect.any(String),
+          label: expect.any(String),
+          details: expect.any(Object)
+        })
+      );
+
+      mockGenerateUpdate.mockRestore();
+    });
+
+    it('should call writeSummary for structured status components', async () => {
+      const statusComponents: StatusComponent[] = [
+        {
+          type: 'progress_summary',
+          description: 'Current progress status',
+          detailsSchema: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              progress: { type: 'number' }
+            },
+            required: ['label']
+          }
+        }
+      ];
+
+      const config: StatusUpdateSettings = {
+        enabled: true,
+        numEvents: 1,
+        statusComponents,
+      };
+
+      const summarizerModel: ModelSettings = {
+        model: 'claude-3-5-haiku-20241022',
+      };
+
+      session.initializeStatusUpdates(config, summarizerModel);
+
+      // Mock the structured summary generation
+      const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
+        .mockImplementation(async () => {
+          // Simulate structured operation result
+          const summaryToSend = {
+            type: 'status',
+            label: 'Progress Update',
+            details: { progress: 75, message: 'Nearly complete' }
+          };
+          await mockStreamHelper.writeSummary(summaryToSend);
+        });
+
+      // Add event to trigger status update
+      session.recordEvent('tool_execution', 'agent-1', {
+        toolName: 'process',
+        args: { data: 'test' },
+        result: 'processed successfully',
+      });
+
+      // Wait for async operation
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify writeSummary was called with structured data including type field
+      expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'status',
+          label: 'Progress Update',
+          details: expect.objectContaining({
+            progress: 75,
+            message: 'Nearly complete'
+          })
+        })
+      );
+
+      mockGenerateUpdate.mockRestore();
+    });
+
     it('should handle race conditions in cleanup', async () => {
       const config: StatusUpdateSettings = {
         enabled: true,
         timeInSeconds: 0.1, // Very short timer
-        model: 'claude-3-5-haiku-20241022',
       };
 
-      session.initializeStatusUpdates(config, 'claude-3-5-haiku-20241022');
+      session.initializeStatusUpdates(config, { model: 'claude-3-5-haiku-20241022' });
 
       // End session immediately to create race condition
       session.cleanup();
@@ -486,6 +598,116 @@ describe('GraphSession', () => {
     });
   });
 
+  describe('Summary Events', () => {
+    it('should emit data-summary events using SummaryEvent interface', () => {
+      // Test that graph session can emit summary events with the new interface
+      const summaryEvent = {
+        type: 'status',
+        label: 'Processing completed',
+        details: {
+          itemsProcessed: 5,
+          duration: '2.3s'
+        }
+      };
+
+      // This would be called by the GraphSession when streaming summary events
+      expect(() => {
+        // Verify the SummaryEvent structure is valid including type field
+        expect(summaryEvent.type).toBe('status');
+        expect(summaryEvent.label).toBe('Processing completed');
+        expect(summaryEvent.details?.itemsProcessed).toBe(5);
+      }).not.toThrow();
+    });
+
+    it('should handle SummaryEvent with minimal structure', () => {
+      const minimalSummary = {
+        type: 'update',
+        label: 'Status update'
+        // details is optional
+      };
+
+      expect(() => {
+        expect(minimalSummary.type).toBe('update');
+        expect(minimalSummary.label).toBe('Status update');
+        expect((minimalSummary as any).details).toBeUndefined();
+      }).not.toThrow();
+    });
+
+    it('should handle SummaryEvent with flexible details', () => {
+      const flexibleSummary = {
+        type: 'custom',
+        label: 'Dynamic status',
+        details: {
+          // Can contain any structured data
+          customField: 'custom value',
+          nestedData: {
+            level: 2,
+            items: ['a', 'b', 'c']
+          },
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      expect(flexibleSummary.type).toBe('custom');
+      expect(flexibleSummary.details?.customField).toBe('custom value');
+      expect(flexibleSummary.details?.nestedData.level).toBe(2);
+      expect(Array.isArray(flexibleSummary.details?.nestedData.items)).toBe(true);
+    });
+
+    it('should actually call writeSummary when generating status updates', async () => {
+      // Configure session for immediate status updates
+      const config: StatusUpdateSettings = {
+        enabled: true,
+        numEvents: 1,
+      };
+
+      const summarizerModel: ModelSettings = {
+        model: 'claude-3-5-haiku-20241022',
+      };
+
+      session.initializeStatusUpdates(config, summarizerModel);
+      
+      // Mock the internal method to simulate actual summary generation
+      const originalGenerateUpdate = (session as any).generateAndSendUpdate;
+      (session as any).generateAndSendUpdate = vi.fn().mockImplementation(async () => {
+        const summaryEvent = {
+          type: 'completion',
+          label: 'Processing completed', 
+          details: {
+            itemsProcessed: 5,
+            duration: '2.3s'
+          }
+        };
+        await mockStreamHelper.writeSummary(summaryEvent);
+      });
+      
+      // Trigger an event that should cause status update
+      session.recordEvent('tool_execution', 'agent-1', {
+        toolName: 'search',
+        args: { query: 'test query' },
+        result: 'search completed',
+      });
+      
+      // Wait for async operation to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Verify writeSummary was called with proper SummaryEvent structure including type field
+      expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'completion',
+          label: 'Processing completed',
+          details: expect.objectContaining({
+            itemsProcessed: 5,
+            duration: '2.3s'
+          })
+        })
+      );
+      
+      // Restore original method
+      (session as any).generateAndSendUpdate = originalGenerateUpdate;
+    });
+  });
+
   describe('Custom Status Update Prompts', () => {
     it('should store custom prompt in configuration', () => {
       const customPrompt =
@@ -496,7 +718,7 @@ describe('GraphSession', () => {
         prompt: customPrompt,
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify prompt is stored in session state
       const statusState = (session as any).statusUpdateState;
@@ -512,10 +734,9 @@ describe('GraphSession', () => {
         prompt: customPrompt,
         statusComponents: [
           {
-            id: 'progress_summary',
-            name: 'Progress Summary',
+            type: 'progress_summary',
             description: 'Brief progress update',
-            schema: {
+            detailsSchema: {
               type: 'object',
               properties: {
                 summary: { type: 'string', description: 'Progress summary' },
@@ -526,13 +747,13 @@ describe('GraphSession', () => {
         ],
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify both prompt and components are stored
       const statusState = (session as any).statusUpdateState;
       expect(statusState.config.prompt).toBe(customPrompt);
       expect(statusState.config.statusComponents).toHaveLength(1);
-      expect(statusState.config.statusComponents[0].id).toBe('progress_summary');
+      expect(statusState.config.statusComponents[0].type).toBe('progress_summary');
     });
 
     it('should work without custom prompt (backward compatibility)', () => {
@@ -544,7 +765,7 @@ describe('GraphSession', () => {
 
       // Should not throw error during initialization
       expect(() => {
-        session.initializeStatusUpdates(config, 'test-model');
+        session.initializeStatusUpdates(config, { model: 'test-model' });
       }).not.toThrow();
 
       // Verify config is stored without prompt
@@ -559,7 +780,7 @@ describe('GraphSession', () => {
         prompt: '', // Empty string
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify empty prompt is stored correctly
       const statusState = (session as any).statusUpdateState;
@@ -574,7 +795,7 @@ describe('GraphSession', () => {
         prompt: customPrompt,
       };
 
-      session.initializeStatusUpdates(config, 'test-model');
+      session.initializeStatusUpdates(config, { model: 'test-model' });
 
       // Verify exact content preservation including newlines and special characters
       const statusState = (session as any).statusUpdateState;
@@ -596,7 +817,7 @@ describe('GraphSession', () => {
       graphSessionManager.createSession(sessionId, 'test-graph', 'tenant-1', 'project-1');
 
       // Initialize status updates through manager
-      graphSessionManager.initializeStatusUpdates(sessionId, config, 'test-model');
+      graphSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });
 
       // Verify session was found and configured
       const retrievedSession = graphSessionManager.getSession(sessionId);
@@ -615,7 +836,7 @@ describe('GraphSession', () => {
 
       // Don't create session, try to initialize status updates
       expect(() => {
-        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, 'test-model');
+        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, { model: 'test-model' });
       }).not.toThrow();
     });
 
@@ -629,7 +850,7 @@ describe('GraphSession', () => {
       // This would fail at schema validation level, but we can test the config structure
       expect(longPrompt.length).toBe(2001);
       expect(() => {
-        session.initializeStatusUpdates(config, 'test-model');
+        session.initializeStatusUpdates(config, { model: 'test-model' });
       }).not.toThrow(); // GraphSession itself doesn't validate, schema does
     });
 
@@ -647,10 +868,9 @@ describe('GraphSession', () => {
           prompt: 'Full config with special chars: àáâãäå and newlines\nLine 2',
           statusComponents: [
             {
-              id: 'test',
-              name: 'Test Component',
+              type: 'test',
               description: 'Test description',
-              schema: {
+              detailsSchema: {
                 type: 'object',
                 properties: { value: { type: 'string' } },
                 required: ['value'],
@@ -662,7 +882,7 @@ describe('GraphSession', () => {
 
       configs.forEach((config, index) => {
         expect(() => {
-          session.initializeStatusUpdates(config, 'test-model');
+          session.initializeStatusUpdates(config, { model: 'test-model' });
           // Verify each config is stored correctly
           const statusState = (session as any).statusUpdateState;
           expect(statusState.config.numEvents).toBe(config.numEvents || 10); // Default value

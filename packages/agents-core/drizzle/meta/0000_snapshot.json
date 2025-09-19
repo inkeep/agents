@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c17f7b8c-dde5-46ea-b2df-a3a577ec1f85",
+  "id": "66e37a24-8c6f-409f-b212-ec204fffab73",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -21,8 +21,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "graph_id": {
+          "name": "graph_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -30,6 +30,13 @@
         },
         "agent_id": {
           "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -53,21 +60,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agent_artifact_components_project_fk": {
-          "name": "agent_artifact_components_project_fk",
-          "tableFrom": "agent_artifact_components",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "agent_artifact_components_agent_fk": {
           "name": "agent_artifact_components_agent_fk",
           "tableFrom": "agent_artifact_components",
@@ -75,11 +67,13 @@
           "columnsFrom": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -104,13 +98,15 @@
         }
       },
       "compositePrimaryKeys": {
-        "agent_artifact_components_tenant_id_project_id_id_pk": {
+        "agent_artifact_components_tenant_id_project_id_graph_id_agent_id_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
+            "graph_id",
+            "agent_id",
             "id"
           ],
-          "name": "agent_artifact_components_tenant_id_project_id_id_pk"
+          "name": "agent_artifact_components_tenant_id_project_id_graph_id_agent_id_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -133,8 +129,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "graph_id": {
+          "name": "graph_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -142,6 +138,13 @@
         },
         "agent_id": {
           "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -165,21 +168,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agent_data_components_project_fk": {
-          "name": "agent_data_components_project_fk",
-          "tableFrom": "agent_data_components",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "agent_data_components_agent_fk": {
           "name": "agent_data_components_agent_fk",
           "tableFrom": "agent_data_components",
@@ -187,11 +175,13 @@
           "columnsFrom": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -270,7 +260,7 @@
           "name": "default_agent_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "context_config_id": {
@@ -373,15 +363,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "graph_id": {
+          "name": "graph_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "graph_id": {
-          "name": "graph_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -434,16 +424,18 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agent_relations_project_fk": {
-          "name": "agent_relations_project_fk",
+        "agent_relations_graph_fk": {
+          "name": "agent_relations_graph_fk",
           "tableFrom": "agent_relations",
-          "tableTo": "projects",
+          "tableTo": "agent_graph",
           "columnsFrom": [
             "tenant_id",
-            "project_id"
+            "project_id",
+            "graph_id"
           ],
           "columnsTo": [
             "tenant_id",
+            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -451,13 +443,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "agent_relations_tenant_id_project_id_id_pk": {
+        "agent_relations_tenant_id_project_id_graph_id_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
-          "name": "agent_relations_tenant_id_project_id_id_pk"
+          "name": "agent_relations_tenant_id_project_id_graph_id_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -480,8 +473,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "graph_id": {
+          "name": "graph_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -489,6 +482,13 @@
         },
         "agent_id": {
           "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -527,21 +527,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agent_tool_relations_project_fk": {
-          "name": "agent_tool_relations_project_fk",
-          "tableFrom": "agent_tool_relations",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "agent_tool_relations_agent_fk": {
           "name": "agent_tool_relations_agent_fk",
           "tableFrom": "agent_tool_relations",
@@ -549,11 +534,13 @@
           "columnsFrom": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -578,13 +565,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "agent_tool_relations_tenant_id_project_id_id_pk": {
+        "agent_tool_relations_tenant_id_project_id_graph_id_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
-          "name": "agent_tool_relations_tenant_id_project_id_id_pk"
+          "name": "agent_tool_relations_tenant_id_project_id_graph_id_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -602,6 +590,13 @@
         },
         "project_id": {
           "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "graph_id": {
+          "name": "graph_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -675,16 +670,18 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "agents_project_fk": {
-          "name": "agents_project_fk",
+        "agents_graph_fk": {
+          "name": "agents_graph_fk",
           "tableFrom": "agents",
-          "tableTo": "projects",
+          "tableTo": "agent_graph",
           "columnsFrom": [
             "tenant_id",
-            "project_id"
+            "project_id",
+            "graph_id"
           ],
           "columnsTo": [
             "tenant_id",
+            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -692,13 +689,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "agents_tenant_id_project_id_id_pk": {
+        "agents_tenant_id_project_id_graph_id_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
-          "name": "agents_tenant_id_project_id_id_pk"
+          "name": "agents_tenant_id_project_id_graph_id_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -1504,6 +1502,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "graph_id": {
+          "name": "graph_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "id": {
           "name": "id",
           "type": "text",
@@ -1565,16 +1570,18 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "external_agents_project_fk": {
-          "name": "external_agents_project_fk",
+        "external_agents_graph_fk": {
+          "name": "external_agents_graph_fk",
           "tableFrom": "external_agents",
-          "tableTo": "projects",
+          "tableTo": "agent_graph",
           "columnsFrom": [
             "tenant_id",
-            "project_id"
+            "project_id",
+            "graph_id"
           ],
           "columnsTo": [
             "tenant_id",
+            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -1599,13 +1606,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "external_agents_tenant_id_project_id_id_pk": {
+        "external_agents_tenant_id_project_id_graph_id_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
+            "graph_id",
             "id"
           ],
-          "name": "external_agents_tenant_id_project_id_id_pk"
+          "name": "external_agents_tenant_id_project_id_graph_id_id_pk"
         }
       },
       "uniqueConstraints": {},

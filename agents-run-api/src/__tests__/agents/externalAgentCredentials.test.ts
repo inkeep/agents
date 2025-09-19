@@ -162,7 +162,7 @@ describe('External Agent Credential Handling', () => {
       });
 
       // Execute the delegation
-      await delegateTool.execute({ message: 'Test delegation' });
+      await (delegateTool as any).execute({ message: 'Test delegation' }, undefined);
 
       // The important thing is that the correct headers were passed to A2AClient
       expect(capturedHeaders).toEqual(mockHeaders);
@@ -250,7 +250,7 @@ describe('External Agent Credential Handling', () => {
       });
 
       // Execute the delegation
-      await delegateTool.execute({ message: 'Test delegation' });
+      await (delegateTool as any).execute({ message: 'Test delegation' }, undefined);
 
       // Verify resolved headers were passed to A2AClient
       expect(capturedHeaders).toEqual(resolvedHeaders);
@@ -322,7 +322,7 @@ describe('External Agent Credential Handling', () => {
       });
 
       // Execute the delegation
-      await delegateTool.execute({ message: 'Test delegation' });
+      await (delegateTool as any).execute({ message: 'Test delegation' }, undefined);
 
       // Verify combined headers were passed to A2AClient
       expect(capturedHeaders).toEqual(resolvedHeaders);
@@ -381,7 +381,7 @@ describe('External Agent Credential Handling', () => {
       });
 
       // Execute the delegation
-      await delegateTool.execute({ message: 'Test delegation' });
+      await (delegateTool as any).execute({ message: 'Test delegation' }, undefined);
 
       // Verify no headers were passed to A2AClient
       expect(capturedHeaders).toEqual({});

@@ -1,7 +1,7 @@
 import {
-  type ExecutionContext,
   createMessage,
   createTask,
+  type ExecutionContext,
   getActiveAgentForConversation,
   getFullGraph,
   getTask,
@@ -9,17 +9,17 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { graphSessionManager } from '../utils/graph-session.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import dbClient from '../data/db/dbClient.js';
-import { nanoid } from 'nanoid';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -73,7 +73,7 @@ export class ExecutionHandler {
     // Initialize status updates if configured
     let graphConfig: any = null;
     try {
-      graphConfig = await getFullGraph(dbClient)({ scopes: { tenantId, projectId }, graphId });
+      graphConfig = await getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId } });
 
       if (graphConfig?.statusUpdates && graphConfig.statusUpdates.enabled !== false) {
         graphSessionManager.initializeStatusUpdates(
@@ -273,7 +273,6 @@ export class ExecutionHandler {
             const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
             logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
 
-            await sseHelper.writeError(errorMessage);
             await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
             if (task) {
@@ -465,7 +464,6 @@ export class ExecutionHandler {
           const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
           logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
 
-          await sseHelper.writeError(errorMessage);
           await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
           if (task) {
@@ -491,10 +489,6 @@ export class ExecutionHandler {
       // Max transfers reached
       const errorMessage = `Maximum transfer limit (${maxTransfers}) reached without completion`;
       logger.error({ maxTransfers, iterations }, errorMessage);
-
-      // Stream error operation
-      // Error operation (data operations removed)
-      await sseHelper.writeError(errorMessage);
 
       // Send error operation for max iterations reached
       await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
@@ -522,11 +516,8 @@ export class ExecutionHandler {
       const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
 
       // Stream error operation
-      // Error operation (data operations removed)
-      await sseHelper.writeError(`Execution error: ${errorMessage}`);
-
       // Send error operation for execution exception
-      await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
+      await sseHelper.writeOperation(errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system'));
 
       // Mark task as failed
       if (task) {

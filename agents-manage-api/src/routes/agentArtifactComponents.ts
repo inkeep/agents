@@ -16,7 +16,7 @@ import {
   RemovedResponseSchema,
   removeArtifactComponentFromAgent,
   SingleResponseSchema,
-  TenantProjectParamsSchema,
+  TenantProjectGraphParamsSchema,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
@@ -32,7 +32,7 @@ app.openapi(
     operationId: 'get-artifact-components-for-agent',
     tags: ['CRUD Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectParamsSchema.extend({
+      params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
       }),
     },
@@ -51,11 +51,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
 
     const artifactComponents = await getArtifactComponentsForAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
     });
 
     return c.json({
@@ -73,7 +72,7 @@ app.openapi(
     operationId: 'get-agents-using-artifact-component',
     tags: ['CRUD Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectParamsSchema.extend({
+      params: TenantProjectGraphParamsSchema.extend({
         artifactComponentId: z.string(),
       }),
     },
@@ -117,7 +116,7 @@ app.openapi(
     operationId: 'associate-artifact-component-with-agent',
     tags: ['CRUD Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -147,11 +146,14 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const { agentId, artifactComponentId } = c.req.valid('json');
 
     // Validate that both agent and artifact component exist before creating association
-    const agent = await getAgentById(dbClient)({ scopes: { tenantId, projectId }, agentId });
+    const agent = await getAgentById(dbClient)({
+      scopes: { tenantId, projectId, graphId },
+      agentId,
+    });
     const artifactComponent = await getArtifactComponentById(dbClient)({
       scopes: { tenantId, projectId },
       id: artifactComponentId,
@@ -173,8 +175,7 @@ app.openapi(
 
     // Check if association already exists
     const exists = await isArtifactComponentAssociatedWithAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
       artifactComponentId,
     });
 
@@ -186,8 +187,7 @@ app.openapi(
     }
 
     const association = await associateArtifactComponentWithAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
       artifactComponentId,
     });
 
@@ -204,7 +204,7 @@ app.openapi(
     operationId: 'remove-artifact-component-from-agent',
     tags: ['CRUD Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectParamsSchema.extend({
+      params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
         artifactComponentId: z.string(),
       }),
@@ -222,11 +222,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, artifactComponentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, agentId, artifactComponentId } = c.req.valid('param');
 
     const removed = await removeArtifactComponentFromAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
       artifactComponentId,
     });
 
@@ -253,7 +252,7 @@ app.openapi(
     operationId: 'check-artifact-component-agent-association',
     tags: ['CRUD Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectParamsSchema.extend({
+      params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
         artifactComponentId: z.string(),
       }),
@@ -271,11 +270,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, artifactComponentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, agentId, artifactComponentId } = c.req.valid('param');
 
     const exists = await isArtifactComponentAssociatedWithAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
       artifactComponentId,
     });
 

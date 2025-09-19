@@ -75,7 +75,7 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
           disabled={disabled}
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
     );
   }

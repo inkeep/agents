@@ -8,14 +8,15 @@ import type {
   AgentToolRelationUpdate,
   ExternalAgentRelationInsert,
 } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { AgentScopeConfig, GraphScopeConfig, PaginationConfig } from '../types/utility';
 
 export const getAgentRelationById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     return db.query.agentRelations.findFirst({
       where: and(
         eq(agentRelations.tenantId, params.scopes.tenantId),
         eq(agentRelations.projectId, params.scopes.projectId),
+        eq(agentRelations.graphId, params.scopes.graphId),
         eq(agentRelations.id, params.relationId)
       ),
     });
@@ -23,14 +24,15 @@ export const getAgentRelationById =
 
 export const listAgentRelations =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
-      eq(agentRelations.projectId, params.scopes.projectId)
+      eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId)
     );
 
     const [data, totalResult] = await Promise.all([
@@ -51,32 +53,35 @@ export const listAgentRelations =
   };
 
 export const getAgentRelations =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId: string; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.agentRelations.findMany({
       where: and(
         eq(agentRelations.tenantId, params.scopes.tenantId),
         eq(agentRelations.projectId, params.scopes.projectId),
-        eq(agentRelations.graphId, params.graphId),
-        eq(agentRelations.sourceAgentId, params.agentId)
+        eq(agentRelations.graphId, params.scopes.graphId),
+        eq(agentRelations.sourceAgentId, params.scopes.agentId)
       ),
     });
   };
 
 export const getAgentRelationsByGraph =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     return await db.query.agentRelations.findMany({
       where: and(
         eq(agentRelations.tenantId, params.scopes.tenantId),
         eq(agentRelations.projectId, params.scopes.projectId),
-        eq(agentRelations.graphId, params.graphId)
+        eq(agentRelations.graphId, params.scopes.graphId)
       ),
     });
   };
 
 export const getAgentRelationsBySource =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; sourceAgentId: string; pagination?: PaginationConfig }) => {
+  async (params: {
+    scopes: GraphScopeConfig;
+    sourceAgentId: string;
+    pagination?: PaginationConfig;
+  }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -84,6 +89,7 @@ export const getAgentRelationsBySource =
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.sourceAgentId, params.sourceAgentId)
     );
 
@@ -109,7 +115,11 @@ export const getAgentRelationsBySource =
 
 export const getAgentRelationsByTarget =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; targetAgentId: string; pagination?: PaginationConfig }) => {
+  async (params: {
+    scopes: GraphScopeConfig;
+    targetAgentId: string;
+    pagination?: PaginationConfig;
+  }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -117,6 +127,7 @@ export const getAgentRelationsByTarget =
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.targetAgentId, params.targetAgentId)
     );
 
@@ -143,7 +154,7 @@ export const getAgentRelationsByTarget =
 export const getExternalAgentRelations =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: GraphScopeConfig;
     externalAgentId: string;
     pagination?: PaginationConfig;
   }) => {
@@ -154,6 +165,7 @@ export const getExternalAgentRelations =
     const whereClause = and(
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.externalAgentId, params.externalAgentId)
     );
 
@@ -179,8 +191,7 @@ export const getExternalAgentRelations =
 
 // Get all related agents (both internal and external) for a given agent
 export const getRelatedAgentsForGraph =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId: string; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentId: string }) => {
     // Get internal agent relations
     const internalRelations = await db
       .select({
@@ -195,11 +206,12 @@ export const getRelatedAgentsForGraph =
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
-          eq(agentRelations.graphId, params.graphId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
           isNotNull(agentRelations.targetAgentId),
           eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId)
+          eq(agents.projectId, params.scopes.projectId),
+          eq(agents.graphId, params.scopes.graphId)
         )
       );
 
@@ -221,11 +233,12 @@ export const getRelatedAgentsForGraph =
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
-          eq(agentRelations.graphId, params.graphId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
           isNotNull(agentRelations.externalAgentId),
           eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId)
+          eq(externalAgents.projectId, params.scopes.projectId),
+          eq(externalAgents.graphId, params.scopes.graphId)
         )
       );
 
@@ -265,8 +278,7 @@ export const createAgentRelation = (db: DatabaseClient) => async (params: AgentR
 export const getAgentRelationByParams =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
-    graphId: string;
+    scopes: GraphScopeConfig;
     sourceAgentId: string;
     targetAgentId?: string;
     externalAgentId?: string;
@@ -275,7 +287,7 @@ export const getAgentRelationByParams =
     const whereConditions = [
       eq(agentRelations.tenantId, params.scopes.tenantId),
       eq(agentRelations.projectId, params.scopes.projectId),
-      eq(agentRelations.graphId, params.graphId),
+      eq(agentRelations.graphId, params.scopes.graphId),
       eq(agentRelations.sourceAgentId, params.sourceAgentId),
       eq(agentRelations.relationType, params.relationType),
     ];
@@ -299,8 +311,7 @@ export const getAgentRelationByParams =
 export const upsertAgentRelation = (db: DatabaseClient) => async (params: AgentRelationInsert) => {
   // Check if relation already exists
   const existing = await getAgentRelationByParams(db)({
-    scopes: { tenantId: params.tenantId, projectId: params.projectId },
-    graphId: params.graphId,
+    scopes: { tenantId: params.tenantId, projectId: params.projectId, graphId: params.graphId },
     sourceAgentId: params.sourceAgentId,
     targetAgentId: params.targetAgentId,
     externalAgentId: params.externalAgentId,
@@ -327,7 +338,7 @@ export const createExternalAgentRelation =
 
 export const updateAgentRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; relationId: string; data: AgentRelationUpdate }) => {
+  async (params: { scopes: GraphScopeConfig; relationId: string; data: AgentRelationUpdate }) => {
     const updateData = {
       ...params.data,
       updatedAt: new Date().toISOString(),
@@ -340,6 +351,7 @@ export const updateAgentRelation =
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.id, params.relationId)
         )
       )
@@ -349,13 +361,14 @@ export const updateAgentRelation =
   };
 
 export const deleteAgentRelation =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     const result = await db
       .delete(agentRelations)
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
+          eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.id, params.relationId)
         )
       );
@@ -364,13 +377,13 @@ export const deleteAgentRelation =
   };
 
 export const deleteAgentRelationsByGraph =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db
       .delete(agentRelations)
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
-          eq(agentRelations.graphId, params.graphId)
+          eq(agentRelations.graphId, params.scopes.graphId)
         )
       );
     return (result.rowsAffected || 0) > 0;
@@ -380,7 +393,7 @@ export const deleteAgentRelationsByGraph =
 export const createAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: GraphScopeConfig;
     relationId?: string;
     data: { agentId: string; toolId: string; selectedTools?: string[] | null };
   }) => {
@@ -392,6 +405,7 @@ export const createAgentToolRelation =
         id: finalRelationId,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
+        graphId: params.scopes.graphId,
         agentId: params.data.agentId,
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
@@ -404,7 +418,11 @@ export const createAgentToolRelation =
 // Update agent tool relation
 export const updateAgentToolRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; relationId: string; data: AgentToolRelationUpdate }) => {
+  async (params: {
+    scopes: GraphScopeConfig;
+    relationId: string;
+    data: AgentToolRelationUpdate;
+  }) => {
     const updateData = {
       ...params.data,
       updatedAt: new Date().toISOString(),
@@ -417,6 +435,7 @@ export const updateAgentToolRelation =
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
           eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
           eq(agentToolRelations.id, params.relationId)
         )
       )
@@ -427,13 +446,14 @@ export const updateAgentToolRelation =
 
 // Delete agent tool relation
 export const deleteAgentToolRelation =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     const result = await db
       .delete(agentToolRelations)
       .where(
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
           eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
           eq(agentToolRelations.id, params.relationId)
         )
       );
@@ -442,24 +462,27 @@ export const deleteAgentToolRelation =
   };
 
 export const deleteAgentToolRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(agentToolRelations)
       .where(
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
-          eq(agentToolRelations.agentId, params.agentId)
+          eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
+          eq(agentToolRelations.agentId, params.scopes.agentId)
         )
       );
     return (result.rowsAffected || 0) > 0;
   };
 
 export const getAgentToolRelationById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; relationId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     return await db.query.agentToolRelations.findFirst({
       where: and(
         eq(agentToolRelations.tenantId, params.scopes.tenantId),
         eq(agentToolRelations.projectId, params.scopes.projectId),
+        eq(agentToolRelations.graphId, params.scopes.graphId),
         eq(agentToolRelations.id, params.relationId)
       ),
     });
@@ -467,7 +490,7 @@ export const getAgentToolRelationById =
 
 export const getAgentToolRelationByAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; pagination?: PaginationConfig }) => {
+  async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -480,7 +503,7 @@ export const getAgentToolRelationByAgent =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
-            eq(agentToolRelations.agentId, params.agentId)
+            eq(agentToolRelations.agentId, params.scopes.agentId)
           )
         )
         .limit(limit)
@@ -493,7 +516,7 @@ export const getAgentToolRelationByAgent =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
-            eq(agentToolRelations.agentId, params.agentId)
+            eq(agentToolRelations.agentId, params.scopes.agentId)
           )
         ),
     ]);
@@ -509,7 +532,7 @@ export const getAgentToolRelationByAgent =
 
 export const getAgentToolRelationByTool =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -522,6 +545,7 @@ export const getAgentToolRelationByTool =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.toolId, params.toolId)
           )
         )
@@ -535,6 +559,7 @@ export const getAgentToolRelationByTool =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.toolId, params.toolId)
           )
         ),
@@ -551,7 +576,7 @@ export const getAgentToolRelationByTool =
 
 export const listAgentToolRelations =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -562,7 +587,8 @@ export const listAgentToolRelations =
         .where(
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
-            eq(agentToolRelations.projectId, params.scopes.projectId)
+            eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId)
           )
         )
         .limit(limit)
@@ -574,43 +600,10 @@ export const listAgentToolRelations =
         .where(
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
-            eq(agentToolRelations.projectId, params.scopes.projectId)
+            eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId)
           )
         ),
-    ]);
-
-    const total = totalResult[0]?.count || 0;
-    const pages = Math.ceil(total / limit);
-
-    return {
-      data,
-      pagination: { page, limit, total, pages },
-    };
-  };
-
-// Get agent tool relations by agent with pagination
-export const listAgentToolRelationsByAgent =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; pagination?: PaginationConfig }) => {
-    const page = params.pagination?.page || 1;
-    const limit = Math.min(params.pagination?.limit || 10, 100);
-    const offset = (page - 1) * limit;
-
-    const whereClause = and(
-      eq(agentToolRelations.tenantId, params.scopes.tenantId),
-      eq(agentToolRelations.projectId, params.scopes.projectId),
-      eq(agentToolRelations.agentId, params.agentId)
-    );
-
-    const [data, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(agentToolRelations)
-        .where(whereClause)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(desc(agentToolRelations.createdAt)),
-      db.select({ count: count() }).from(agentToolRelations).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;
@@ -625,7 +618,7 @@ export const listAgentToolRelationsByAgent =
 // Get tools for a specific agent
 export const getToolsForAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; pagination?: PaginationConfig }) => {
+  async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -660,7 +653,8 @@ export const getToolsForAgent =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
-            eq(agentToolRelations.agentId, params.agentId)
+            eq(agentToolRelations.graphId, params.scopes.graphId),
+            eq(agentToolRelations.agentId, params.scopes.agentId)
           )
         )
         .limit(limit)
@@ -673,7 +667,8 @@ export const getToolsForAgent =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
-            eq(agentToolRelations.agentId, params.agentId)
+            eq(agentToolRelations.graphId, params.scopes.graphId),
+            eq(agentToolRelations.agentId, params.scopes.agentId)
           )
         ),
     ]);
@@ -689,7 +684,7 @@ export const getToolsForAgent =
 
 export const getAgentsForTool =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
+  async (params: { scopes: GraphScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -709,6 +704,9 @@ export const getAgentsForTool =
             name: agents.name,
             description: agents.description,
             prompt: agents.prompt,
+            conversationHistoryConfig: agents.conversationHistoryConfig,
+            models: agents.models,
+            stopWhen: agents.stopWhen,
             createdAt: agents.createdAt,
             updatedAt: agents.updatedAt,
           },
@@ -719,6 +717,7 @@ export const getAgentsForTool =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.toolId, params.toolId)
           )
         )
@@ -732,6 +731,7 @@ export const getAgentsForTool =
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
             eq(agentToolRelations.projectId, params.scopes.projectId),
+            eq(agentToolRelations.graphId, params.scopes.graphId),
             eq(agentToolRelations.toolId, params.toolId)
           )
         ),
@@ -747,7 +747,7 @@ export const getAgentsForTool =
   };
 
 export const validateInternalAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .select({ id: agents.id })
       .from(agents)
@@ -755,7 +755,8 @@ export const validateInternalAgent =
         and(
           eq(agents.tenantId, params.scopes.tenantId),
           eq(agents.projectId, params.scopes.projectId),
-          eq(agents.id, params.agentId)
+          eq(agents.graphId, params.scopes.graphId),
+          eq(agents.id, params.scopes.agentId)
         )
       )
       .limit(1);
@@ -764,7 +765,7 @@ export const validateInternalAgent =
   };
 
 export const validateExternalAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .select({ id: externalAgents.id })
       .from(externalAgents)
@@ -772,7 +773,8 @@ export const validateExternalAgent =
         and(
           eq(externalAgents.tenantId, params.scopes.tenantId),
           eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.id, params.agentId)
+          eq(externalAgents.graphId, params.scopes.graphId),
+          eq(externalAgents.id, params.scopes.agentId)
         )
       )
       .limit(1);

@@ -186,9 +186,9 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Verify all context configs are unique across pages
       const allContextConfigIds = [
-        ...page1Body.data.map((c) => c.id),
-        ...page2Body.data.map((c) => c.id),
-        ...page3Body.data.map((c) => c.id),
+        ...page1Body.data.map((c: any) => c.id),
+        ...page2Body.data.map((c: any) => c.id),
+        ...page3Body.data.map((c: any) => c.id),
       ];
       expect(new Set(allContextConfigIds).size).toBe(5); // All should be unique
     });

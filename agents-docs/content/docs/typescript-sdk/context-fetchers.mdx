@@ -6,23 +6,28 @@ icon: "LuCirclePlus"
 
 ## Overview
 
-Context fetchers allow your agents to access real-time data from external sources like APIs, databases, and services. Instead of hardcoding information in your agent prompt, context fetchers dynamically retrieve fresh data for each conversation.
+Context fetchers allow you to embed real-time data from external APIs into your agent prompts. Instead of hardcoding information in your agent prompt, context fetchers dynamically retrieve fresh data for each conversation.
 
 ## Key Features
 
-- **Dynamic data retrieval**: Fetch real-time data from APIs, databases, or other sources
-- **Request context integration**: Use request-specific parameters to customize data fetching
-- **Data transformation**: Transform API responses into the exact format your agent needs
-- **Template interpolation**: Use request context variables in URLs, headers, and request bodies
-- **Built-in Caching**: Automatic caching of fetched data based on trigger settings
+- **Dynamic data retrieval**: Fetch real-time data from APIs.
+- **Dynamic Prompting**: Use dynamic data in your agent prompts
+- **Request context integration**: Use request-specific parameters to customize data fetching.
+- **Data transformation**: Transform API responses into the exact format your agent needs.
 
-## How Context Fetchers Work
+## Context Fetchers vs Tools
 
-- Request Arrives → HTTP request
-- Validation → Validate headers against request context schema
-- Context Resolution → Resolve context variables using templates
-- Caching → Check cache, fetch if needed, store results
-- Agent Execution → Provide resolved context to agent prompt
+- **Context Fetchers**: Pre-populate agent prompts with dynamic data
+  - Run automatically before/during conversation startup
+  - Data becomes part of the agent's system prompt
+  - Perfect for: Personalized agent personas, dynamic agent guardrails
+  - Example Prompt: `You are an assistant for {{user.name}} and you work for {{user.organization}}`
+
+- **Tools**: Enable agents to take actions or fetch data during conversations
+  - Called by the agent when needed during the conversation
+  - Agent decides when and how to use them
+  - Example Tool Usage: Agent calls a "send_email" tool or "search_database" tool
+
 
 ## Basic Usage
 
@@ -30,14 +35,11 @@ Let's create a simple context fetcher that retrieves user information:
 
 ```typescript
 import { z } from "zod";
-import {
-  agent,
-  agentGraph,
-  contextConfig,
-  fetchDefinition,
-} from "@inkeep/agents-manage-api/builders";
+import { agent, agentGraph } from "@inkeep/agents-manage-api/builders";
+import { contextConfig, fetchDefinition } from "@inkeep/agents-core";
 
 // 1. Define request schema for headers validation. All header keys are converted to lowercase.
+// In this example all incoming headers will be validated to make sure they include user_id and api_key.
 const requestSchema = z.object({
   user_id: z.string(),
   api_key: z.string(),
@@ -47,16 +49,16 @@ const requestSchema = z.object({
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
-  trigger: "initialization", // Fetch when graph initializes. When set to "invocation", the fetch will be executed every time the graph is invoked.
+  trigger: "initialization", // Fetch only once when a conversation is started with the graph. When set to "invocation", the fetch will be executed every time a request is made to the graph.
   fetchConfig: {
     url: "https://api.example.com/users/{{requestContext.user_id}}",
     method: "GET",
     headers: {
       Authorization: "Bearer {{requestContext.api_key}}",
     },
-    transform: "name", // Extract user's name from response, for example if the response is { "name": "John Doe" }, the transform will return "John Doe"
+    transform: "name", // Extract user's name from response, for example if the response is { "name": "John Doe", "email": "john.doe@example.com" }, the transform will return "John Doe"
   },
-  responseSchema: z.string(),
+  responseSchema: z.string(), // Used to validate the result of the transformed api response.
   defaultValue: "Unable to fetch user information",
 });
 
@@ -77,51 +79,49 @@ const personalAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
-  prompt: `Hello {{userName}}! I'm your personal assistant.`,
+  prompt: "Hello {{userName}}! I'm your personal assistant.",
 });
-```
 
-### Using the Context Fetcher
-
-```typescript
 // Initialize the graph
-const graph = agentGraph({
+export const graph = agentGraph({
   id: "personal-graph",
   name: "Personal Assistant Graph",
   defaultAgent: personalAgent,
   agents: () => [personalAgent],
   contextConfig: userContext,
 });
-
-await graph.init();
-
-// Make a request with context
-const result = await graph.generate("What can you help me with?", {
-  requestContext: {
-    user_id: "123",
-    api_key: process.env.API_KEY,
-  },
-});
 ```
 
-## Template interpolation
+## Using Context Variables
 
-Use double curly braces `{{}}` to reference request context variables in your fetcher configuration:
+Use double curly braces `{{}}` to reference context variables. 
+You can embed fetched data in agent prompts using the key defined in `contextVariables`:
 
 ```typescript
-const fetchDef = fetchDefinition({
-  // ... other properties
-  url: "https://api.example.com/users/{{requestContext.user_id}}",
-  headers: {
-    Authorization: "Bearer {{requestContext.auth_token}}",
-    "X-Org-Alias": "{{requestContext.org_alias}}",
+const userContext = contextConfig({
+  tenantId: "your-tenant",
+  id: "user-context",
+  name: "User Context",
+  description: "Fetches user information for personalization",
+  requestContextSchema: requestSchema,
+  contextVariables: {
+    user: fetchDef,
   },
 });
+
+const personalAgent = agent({
+  id: "personal-agent",
+  name: "Personal Assistant",
+  description: "A personalized AI assistant",
+  prompt: "Hello {{user.name}}! I'm your personal assistant. I can see that you work for {{requestContext.org_alias}}",
+});
 ```
+
+Context variables are resolved using [JSONPath notation](https://jsonpath.com).
 
 ## Data transformation
 
-The `transform` property lets you extract exactly what you need from API responses using dot notation:
+The `transform` property on fetch definitions lets you extract exactly what you need from API responses using JSONPath notation:
 
 ```typescript
 // API returns: { "user": { "profile": { "displayName": "John Doe" } } }
@@ -129,50 +129,6 @@ transform: "user.profile.displayName"; // Result: "John Doe"
 
 // API returns: { "items": [{ "name": "First Item" }, { "name": "Second Item" }] }
 transform: "items[0].name"; // Result: "First Item"
-```
-
-## GraphQL support
-
-GraphQL queries are fully supported through the `body` property. This allows you to make precise queries and leverage GraphQL's type safety and efficiency.
-
-### Basic GraphQL query
-
-```typescript
-const userFetcher = fetchDefinition({
-  id: "user-graphql",
-  name: "User GraphQL Fetcher",
-  trigger: "initialization",
-  url: "https://api.example.com/graphql",
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: "Bearer {{requestContext.auth_token}}",
-  },
-  body: {
-    query: `query($id: ID!) { 
-      user(id: $id) { 
-        name 
-        email 
-        profile {
-          displayName
-          department
-        }
-      } 
-    }`,
-    variables: {
-      id: "{{requestContext.user_id}}",
-    },
-  },
-  transform: "data.user", // Extract the user object from GraphQL response
-  responseSchema: z.object({
-    name: z.string(),
-    email: z.string(),
-    profile: z.object({
-      displayName: z.string(),
-      department: z.string(),
-    }),
-  }),
-});
 ```
 
 ## Best Practices
@@ -187,13 +143,6 @@ const userFetcher = fetchDefinition({
    - Always provide a `defaultValue`
    - Use appropriate response schemas
 
-3. **Optimize Performance**
+## Related documentation
 
-   - Keep transforms simple and specific
-   - Use GraphQL to minimize data transfer
-   - Leverage caching when possible
-
-4. **Security Considerations**
-   - Never expose sensitive credentials in templates
-   - Validate and sanitize all input data
-   - Use appropriate authentication headers
+- [Request Context](/typescript-sdk/request-context) - Learn how to pass dynamic context to your agents via HTTP headers

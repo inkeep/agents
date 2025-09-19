@@ -34,7 +34,7 @@ describe('mcpServer builder function', () => {
       description: 'MCP server with all options',
       serverUrl: 'https://api.example.com/mcp',
       tenantId: 'test-tenant',
-      transport: 'websocket',
+      transport: 'streamableHttp',
       activeTools: ['tool1', 'tool2', 'tool3'],
       headers: {
         Authorization: 'Bearer token123',
@@ -49,7 +49,7 @@ describe('mcpServer builder function', () => {
     expect(server.getId()).toBe('custom-mcp-server-id');
     expect(server.getServerUrl()).toBe('https://api.example.com/mcp');
     expect(server.config.tenantId).toBe('test-tenant');
-    expect(server.config.transport).toEqual({ type: 'websocket' });
+    expect(server.config.transport).toEqual({ type: 'streamableHttp' });
     expect(server.config.activeTools).toEqual(['tool1', 'tool2', 'tool3']);
     expect(server.config.headers).toEqual({
       Authorization: 'Bearer token123',
@@ -72,7 +72,8 @@ describe('mcpServer builder function', () => {
   it('should handle credentials in config', () => {
     const testCredential = {
       id: 'test-credential',
-      type: 'bearer',
+      credentialStoreId: 'test-store',
+      type: 'memory' as const,
       value: 'token123',
     };
 
@@ -92,20 +93,20 @@ describe('mcpServer builder function', () => {
       name: 'HTTP Server',
       description: 'HTTP transport server',
       serverUrl: 'http://localhost:3000/mcp',
-      transport: 'http',
+      transport: 'streamableHttp',
     };
 
     const wsConfig: MCPServerConfig = {
       name: 'WebSocket Server',
       description: 'WebSocket transport server',
       serverUrl: 'ws://localhost:3001/mcp',
-      transport: 'websocket',
+      transport: 'sse',
     };
 
     const httpServer = mcpServer(httpConfig);
     const wsServer = mcpServer(wsConfig);
 
-    expect(httpServer.config.transport).toEqual({ type: 'http' });
-    expect(wsServer.config.transport).toEqual({ type: 'websocket' });
+    expect(httpServer.config.transport).toEqual({ type: 'streamableHttp' });
+    expect(wsServer.config.transport).toEqual({ type: 'sse' });
   });
 });

@@ -171,8 +171,9 @@ export async function getRegisteredAgent(
   if (!agentId) {
     throw new Error('Agent ID is required');
   }
+
   const dbAgent = await getAgentById(dbClient)({
-    scopes: { tenantId, projectId },
+    scopes: { tenantId, projectId, graphId: graphId },
     agentId,
   });
   if (!dbAgent) {

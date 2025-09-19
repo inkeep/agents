@@ -8,7 +8,7 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '../types/entities';
-import type { ScopeConfig } from '../types/utility';
+import type { GraphScopeConfig, ProjectScopeConfig } from '../types/utility';
 import {
   isExternalAgent,
   isInternalAgent,
@@ -34,18 +34,15 @@ import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
   upsertAgentArtifactComponentRelation,
-  upsertArtifactComponent,
 } from './artifactComponents';
 import { upsertContextConfig } from './contextConfigs';
-import { upsertCredentialReference } from './credentialReferences';
 import {
   associateDataComponentWithAgent,
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
-  upsertDataComponent,
 } from './dataComponents';
 import { upsertExternalAgent } from './externalAgents';
-import { upsertAgentToolRelation, upsertTool } from './tools';
+import { upsertAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
 export interface GraphLogger {
@@ -65,7 +62,7 @@ const defaultLogger: GraphLogger = {
 async function applyExecutionLimitsInheritance(
   db: DatabaseClient,
   logger: GraphLogger,
-  scopes: ScopeConfig,
+  scopes: ProjectScopeConfig,
   graphData: FullGraphDefinition
 ): Promise<void> {
   const { tenantId, projectId } = scopes;
@@ -174,7 +171,10 @@ async function applyExecutionLimitsInheritance(
  */
 export const createFullGraphServerSide =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (scopes: ScopeConfig, graphData: FullGraphDefinition): Promise<FullGraphDefinition> => {
+  async (
+    scopes: ProjectScopeConfig,
+    graphData: FullGraphDefinition
+  ): Promise<FullGraphDefinition> => {
     const { tenantId, projectId } = scopes;
 
     const typed = validateAndTypeGraphData(graphData);
@@ -186,66 +186,44 @@ export const createFullGraphServerSide =
     await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
 
     try {
-      // Step 1: Create/update credential references first (tools and context configs depend on them)
-      if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
-        logger.info(
-          { credentialReferencesCount: Object.keys(typed.credentialReferences).length },
-          'Processing credential references'
-        );
-        const credentialRefPromises = Object.entries(typed.credentialReferences).map(
-          async ([_credId, credData]) => {
-            try {
-              logger.info({ credId: credData.id }, 'Processing credential reference');
-              await upsertCredentialReference(db)({
-                data: {
-                  ...credData,
-                  tenantId,
-                  projectId,
-                },
-              });
-              logger.info({ credId: credData.id }, 'Credential reference processed successfully');
-            } catch (error) {
-              logger.error(
-                { credId: credData.id, error },
-                'Failed to create/update credential reference'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(credentialRefPromises);
-        logger.info(
-          { credentialReferencesCount: Object.keys(typed.credentialReferences).length },
-          'All credential references created/updated successfully'
-        );
-      }
-
-      // Step 2: Create/update tools (agents depend on them)
-      const toolPromises = Object.entries(typed.tools || {}).map(async ([toolId, toolData]) => {
-        try {
-          logger.info({ toolId }, 'Processing tool');
-          await upsertTool(db)({
-            data: {
-              tenantId,
-              projectId,
-              ...toolData,
-            },
-          });
-          logger.info({ toolId }, 'Tool processed successfully');
-        } catch (error) {
-          logger.error({ toolId, error }, 'Failed to create/update tool');
-          throw error;
-        }
-      });
-
-      await Promise.all(toolPromises);
+      // Note: CredentialReferences are now project-scoped and should be created separately
       logger.info(
-        { toolCount: Object.keys(typed.tools || {}).length },
-        'All tools created/updated successfully'
+        {},
+        'CredentialReferences are project-scoped - skipping credential reference creation in graph'
       );
 
-      // Step 3: create/update context config
+      // Note: Tools are now project-scoped and should be created separately
+      // They are no longer part of the graph definition
+      logger.info({}, 'Tools are project-scoped - skipping tool creation in graph');
+
+      // Step 3: Create the graph metadata FIRST (before agents, as they need graphId)
+      let finalGraphId: string;
+      try {
+        const graphId = typed.id || nanoid();
+        logger.info({ graphId }, 'Creating agent graph metadata');
+        const agentGraph = await upsertAgentGraph(db)({
+          data: {
+            id: graphId,
+            tenantId,
+            projectId,
+            name: typed.name,
+            defaultAgentId: typed.defaultAgentId,
+            description: typed.description,
+            contextConfigId: undefined, // Will be updated later if context config exists
+            models: typed.models,
+            statusUpdates: typed.statusUpdates,
+            graphPrompt: typed.graphPrompt,
+            stopWhen: typed.stopWhen,
+          },
+        });
+        finalGraphId = agentGraph.id;
+        logger.info({ graphId: finalGraphId }, 'Agent graph metadata created successfully');
+      } catch (error) {
+        logger.error({ graphId: typed.id, error }, 'Failed to create/update graph metadata');
+        throw error;
+      }
+
+      // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typed.contextConfig) {
         try {
@@ -268,73 +246,19 @@ export const createFullGraphServerSide =
         }
       }
 
-      // Step 4: Create/update dataComponents (agents depend on them)
-      if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
-        const dataComponentPromises = Object.entries(typed.dataComponents).map(
-          async ([dataComponentId, dataComponentData]) => {
-            try {
-              logger.info({ dataComponentId }, 'Processing data component');
-              await upsertDataComponent(db)({
-                data: {
-                  id: dataComponentId,
-                  tenantId,
-                  projectId,
-                  name: dataComponentData.name,
-                  description: dataComponentData.description || '',
-                  props: dataComponentData.props || {},
-                },
-              });
-              logger.info({ dataComponentId }, 'Data component processed successfully');
-            } catch (error) {
-              logger.error({ dataComponentId, error }, 'Failed to create/update dataComponent');
-              throw error;
-            }
-          }
-        );
+      // Note: DataComponents are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'DataComponents are project-scoped - skipping dataComponent creation in graph'
+      );
 
-        await Promise.all(dataComponentPromises);
-        logger.info(
-          { dataComponentCount: Object.keys(typed.dataComponents).length },
-          'All dataComponents created/updated successfully'
-        );
-      }
+      // Note: ArtifactComponents are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'ArtifactComponents are project-scoped - skipping artifactComponent creation in graph'
+      );
 
-      // Step 5: Create/update artifactComponents (agents depend on them)
-      if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
-        const artifactComponentPromises = Object.entries(typed.artifactComponents).map(
-          async ([artifactComponentId, artifactComponentData]) => {
-            try {
-              logger.info({ artifactComponentId }, 'Processing artifact component');
-              await upsertArtifactComponent(db)({
-                data: {
-                  id: artifactComponentId,
-                  tenantId,
-                  projectId,
-                  name: artifactComponentData.name,
-                  description: artifactComponentData.description || '',
-                  summaryProps: artifactComponentData.summaryProps || {},
-                  fullProps: artifactComponentData.fullProps || {},
-                },
-              });
-              logger.info({ artifactComponentId }, 'Artifact component processed successfully');
-            } catch (error) {
-              logger.error(
-                { artifactComponentId, error },
-                'Failed to create/update artifactComponent'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(artifactComponentPromises);
-        logger.info(
-          { artifactComponentCount: Object.keys(typed.artifactComponents).length },
-          'All artifactComponents created/updated successfully'
-        );
-      }
-
-      // Step 6: Create/update internal agents
+      // Step 7: Create/update internal agents (now with graphId)
       const internalAgentPromises = Object.entries(typed.agents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([agentId, agentData]) => {
@@ -347,6 +271,7 @@ export const createFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: internalAgent.name || '',
                 description: internalAgent.description || '',
                 prompt: internalAgent.prompt || '',
@@ -368,7 +293,7 @@ export const createFullGraphServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      // Step 7: Create/update external agents
+      // Step 8: Create/update external agents (now with graphId)
       const externalAgentPromises = Object.entries(typed.agents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([agentId, agentData]) => {
@@ -381,6 +306,7 @@ export const createFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: externalAgent.name,
                 description: externalAgent.description || '',
                 baseUrl: externalAgent.baseUrl,
@@ -401,33 +327,28 @@ export const createFullGraphServerSide =
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
-      // Step 8: Create the graph metadata (or update if exists for upsert behavior)
-      let finalGraphId: string;
-      try {
-        logger.info({ graphId: typed.id }, 'Processing agent graph metadata');
-        const agentGraph = await upsertAgentGraph(db)({
-          data: {
-            id: typed.id || nanoid(),
-            tenantId,
-            projectId,
-            name: typed.name,
-            defaultAgentId: typed.defaultAgentId,
-            description: typed.description,
-            contextConfigId,
-            models: typed.models,
-            statusUpdates: typed.statusUpdates,
-            graphPrompt: typed.graphPrompt,
-            stopWhen: typed.stopWhen,
-          },
-        });
-        finalGraphId = agentGraph.id;
-        logger.info({ graphId: finalGraphId }, 'Agent graph metadata processed successfully');
-      } catch (error) {
-        logger.error({ graphId: typed.id, error }, 'Failed to create/update graph metadata');
-        throw error;
+      // Step 9: Update the graph with contextConfigId if it was created
+      if (contextConfigId) {
+        try {
+          logger.info(
+            { graphId: finalGraphId, contextConfigId },
+            'Updating graph with context config'
+          );
+          await updateAgentGraph(db)({
+            scopes: { tenantId, projectId, graphId: finalGraphId },
+            data: { contextConfigId },
+          });
+          logger.info({ graphId: finalGraphId }, 'Graph updated with context config');
+        } catch (error) {
+          logger.error(
+            { graphId: finalGraphId, error },
+            'Failed to update graph with context config'
+          );
+          throw error;
+        }
       }
 
-      // Step 9: Create agent-tool relationships
+      // Step 10: Create agent-tool relationships
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [agentId, agentData] of Object.entries(typed.agents)) {
@@ -439,7 +360,7 @@ export const createFullGraphServerSide =
                   const selectedTools = agentData.selectedTools?.[toolId];
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
-                    scopes: { tenantId, projectId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId },
                     agentId,
                     toolId,
                     selectedTools,
@@ -475,8 +396,7 @@ export const createFullGraphServerSide =
                     'Processing agent-data component relation'
                   );
                   await upsertAgentDataComponentRelation(db)({
-                    scopes: { tenantId, projectId },
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     dataComponentId,
                   });
                   logger.info(
@@ -513,8 +433,7 @@ export const createFullGraphServerSide =
                     'Processing agent-artifact component relation'
                   );
                   await upsertAgentArtifactComponentRelation(db)({
-                    scopes: { tenantId, projectId },
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     artifactComponentId,
                   });
                   logger.info(
@@ -623,8 +542,7 @@ export const createFullGraphServerSide =
 
       // Retrieve and return the created graph
       const createdGraph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId: finalGraphId,
+        scopes: { tenantId, projectId, graphId: finalGraphId },
       });
 
       if (!createdGraph) {
@@ -647,7 +565,10 @@ export const createFullGraphServerSide =
  */
 export const updateFullGraphServerSide =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (scopes: ScopeConfig, graphData: FullGraphDefinition): Promise<FullGraphDefinition> => {
+  async (
+    scopes: ProjectScopeConfig,
+    graphData: FullGraphDefinition
+  ): Promise<FullGraphDefinition> => {
     const { tenantId, projectId } = scopes;
 
     const typedGraphDefinition = validateAndTypeGraphData(graphData);
@@ -661,7 +582,6 @@ export const updateFullGraphServerSide =
         tenantId,
         graphId: typedGraphDefinition.id,
         agentCount: Object.keys(typedGraphDefinition.agents).length,
-        toolCount: Object.keys(typedGraphDefinition.tools || {}).length,
       },
       'Updating full graph in database'
     );
@@ -680,8 +600,7 @@ export const updateFullGraphServerSide =
     try {
       // Verify graph exists and get existing models for cascade logic
       const existingGraph = await getAgentGraphById(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
       });
 
       if (!existingGraph) {
@@ -696,77 +615,47 @@ export const updateFullGraphServerSide =
       // Store existing graph models for cascade comparison
       const existingGraphModels = existingGraph.models;
 
-      // Step 1: Create/update credential references first (tools and context configs depend on them)
-      if (
-        typedGraphDefinition.credentialReferences &&
-        Object.keys(typedGraphDefinition.credentialReferences).length > 0
-      ) {
-        logger.info(
-          {
-            credentialReferencesCount: Object.keys(typedGraphDefinition.credentialReferences)
-              .length,
-          },
-          'Processing credential references'
-        );
-        const credentialRefPromises = Object.entries(typedGraphDefinition.credentialReferences).map(
-          async ([_credId, credData]) => {
-            try {
-              logger.info({ credId: credData.id }, 'Processing credential reference');
-              await upsertCredentialReference(db)({
-                data: {
-                  ...credData,
-                  tenantId,
-                  projectId,
-                },
-              });
-              logger.info({ credId: credData.id }, 'Credential reference processed successfully');
-            } catch (error) {
-              logger.error(
-                { credId: credData.id, error },
-                'Failed to create/update credential reference'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(credentialRefPromises);
-        logger.info(
-          {
-            credentialReferencesCount: Object.keys(typedGraphDefinition.credentialReferences)
-              .length,
-          },
-          'All credential references created/updated successfully'
-        );
-      }
+      // Note: CredentialReferences are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'CredentialReferences are project-scoped - skipping credential reference update in graph'
+      );
 
       // Step 2: Create/update tools (agents depend on them)
-      const toolPromises = Object.entries(typedGraphDefinition.tools || {}).map(
-        async ([toolId, toolData]) => {
-          try {
-            logger.info({ toolId }, 'Processing tool');
-            await upsertTool(db)({
-              data: {
-                tenantId,
-                projectId,
-                ...toolData,
-              },
-            });
-            logger.info({ toolId }, 'Tool processed successfully');
-          } catch (error) {
-            logger.error({ toolId, error }, 'Failed to create/update tool');
-            throw error;
-          }
-        }
-      );
+      // Note: Tools are now project-scoped and should be created separately
+      logger.info({}, 'Tools are project-scoped - skipping tool creation in graph update');
 
-      await Promise.all(toolPromises);
-      logger.info(
-        { toolCount: Object.keys(typedGraphDefinition.tools || {}).length },
-        'All tools created/updated successfully'
-      );
+      // Step 3: Get or create the graph metadata FIRST (before agents, as they need graphId)
+      let finalGraphId: string;
+      try {
+        const graphId = typedGraphDefinition.id || nanoid();
+        logger.info({ graphId }, 'Getting/creating agent graph metadata');
+        const agentGraph = await upsertAgentGraph(db)({
+          data: {
+            id: graphId,
+            tenantId,
+            projectId,
+            name: typedGraphDefinition.name,
+            defaultAgentId: typedGraphDefinition.defaultAgentId,
+            description: typedGraphDefinition.description,
+            contextConfigId: undefined, // Will be updated later if context config exists
+            models: typedGraphDefinition.models,
+            statusUpdates: typedGraphDefinition.statusUpdates,
+            graphPrompt: typedGraphDefinition.graphPrompt,
+            stopWhen: typedGraphDefinition.stopWhen,
+          },
+        });
+        finalGraphId = agentGraph.id;
+        logger.info({ graphId: finalGraphId }, 'Agent graph metadata ready');
+      } catch (error) {
+        logger.error(
+          { graphId: typedGraphDefinition.id, error },
+          'Failed to get/update graph metadata'
+        );
+        throw error;
+      }
 
-      // Step 3: create/update context config
+      // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typedGraphDefinition.contextConfig) {
         try {
@@ -792,78 +681,16 @@ export const updateFullGraphServerSide =
         }
       }
 
-      // Step 4: Create/update dataComponents (agents depend on them)
-      if (
-        typedGraphDefinition.dataComponents &&
-        Object.keys(typedGraphDefinition.dataComponents).length > 0
-      ) {
-        const dataComponentPromises = Object.entries(typedGraphDefinition.dataComponents).map(
-          async ([dataComponentId, dataComponentData]) => {
-            try {
-              logger.info({ dataComponentId }, 'Processing data component');
-              await upsertDataComponent(db)({
-                data: {
-                  id: dataComponentId,
-                  tenantId,
-                  projectId,
-                  name: dataComponentData.name,
-                  description: dataComponentData.description || '',
-                  props: dataComponentData.props || {},
-                },
-              });
-              logger.info({ dataComponentId }, 'Data component processed successfully');
-            } catch (error) {
-              logger.error({ dataComponentId, error }, 'Failed to create/update dataComponent');
-              throw error;
-            }
-          }
-        );
+      // Step 5: Create/update dataComponents (agents depend on them)
+      // Note: DataComponents are now project-scoped and should be created separately
+      logger.info({}, 'DataComponents are project-scoped - skipping dataComponent update in graph');
+      // Note: ArtifactComponents are now project-scoped and should be created separately
+      logger.info(
+        {},
+        'ArtifactComponents are project-scoped - skipping artifactComponent update in graph'
+      );
 
-        await Promise.all(dataComponentPromises);
-        logger.info(
-          { dataComponentCount: Object.keys(typedGraphDefinition.dataComponents).length },
-          'All dataComponents created/updated successfully'
-        );
-      }
-      // Step 5: Create/update artifactComponents (agents depend on them)
-      if (
-        typedGraphDefinition.artifactComponents &&
-        Object.keys(typedGraphDefinition.artifactComponents).length > 0
-      ) {
-        const artifactComponentPromises = Object.entries(
-          typedGraphDefinition.artifactComponents
-        ).map(async ([artifactComponentId, artifactComponentData]) => {
-          try {
-            logger.info({ artifactComponentId }, 'Processing artifact component');
-            await upsertArtifactComponent(db)({
-              data: {
-                id: artifactComponentId,
-                tenantId,
-                projectId,
-                name: artifactComponentData.name,
-                description: artifactComponentData.description || '',
-                summaryProps: artifactComponentData.summaryProps || {},
-                fullProps: artifactComponentData.fullProps || {},
-              },
-            });
-            logger.info({ artifactComponentId }, 'Artifact component processed successfully');
-          } catch (error) {
-            logger.error(
-              { artifactComponentId, error },
-              'Failed to create/update artifactComponent'
-            );
-            throw error;
-          }
-        });
-
-        await Promise.all(artifactComponentPromises);
-        logger.info(
-          { artifactComponentCount: Object.keys(typedGraphDefinition.artifactComponents).length },
-          'All artifactComponents created/updated successfully'
-        );
-      }
-
-      // Step 6: Create/update internal agents with model cascade logic
+      // Step 7: Create/update internal agents (now with graphId) with model cascade logic
       const internalAgentPromises = Object.entries(typedGraphDefinition.agents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([agentId, agentData]) => {
@@ -936,6 +763,7 @@ export const updateFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: internalAgent.name || '',
                 description: internalAgent.description || '',
                 prompt: internalAgent.prompt || '',
@@ -957,7 +785,7 @@ export const updateFullGraphServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      // Step 7: Create/update external agents
+      // Step 8: Create/update external agents (now with graphId)
       const externalAgentPromises = Object.entries(typedGraphDefinition.agents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([agentId, agentData]) => {
@@ -970,6 +798,7 @@ export const updateFullGraphServerSide =
                 id: agentId,
                 tenantId,
                 projectId,
+                graphId: finalGraphId,
                 name: externalAgent.name,
                 description: externalAgent.description || '',
                 baseUrl: externalAgent.baseUrl,
@@ -992,8 +821,7 @@ export const updateFullGraphServerSide =
 
       // Step 8: Update the graph metadata
       await updateAgentGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
         data: {
           name: typedGraphDefinition.name,
           defaultAgentId: typedGraphDefinition.defaultAgentId,
@@ -1012,8 +840,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentToolRelationByAgent(db)({
-          scopes: { tenantId, projectId },
-          agentId,
+          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
         });
       }
 
@@ -1028,7 +855,7 @@ export const updateFullGraphServerSide =
                 try {
                   const selectedTools = agentData.selectedTools?.[toolId];
                   await createAgentToolRelation(db)({
-                    scopes: { tenantId, projectId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId },
                     data: {
                       agentId,
                       toolId,
@@ -1057,8 +884,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId },
-          agentId,
+          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
         });
       }
 
@@ -1072,8 +898,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   await associateDataComponentWithAgent(db)({
-                    scopes: { tenantId, projectId },
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     dataComponentId,
                   });
 
@@ -1101,8 +926,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId },
-          agentId,
+          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
         });
       }
 
@@ -1116,8 +940,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   await associateArtifactComponentWithAgent(db)({
-                    scopes: { tenantId, projectId },
-                    agentId,
+                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
                     artifactComponentId,
                   });
 
@@ -1147,8 +970,7 @@ export const updateFullGraphServerSide =
       // Step 12: Clear and recreate agent relationships
       // First, delete existing relationships for this graph
       await deleteAgentRelationsByGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
       });
       // Then create new relationships
       const agentRelationPromises: Promise<void>[] = [];
@@ -1242,8 +1064,7 @@ export const updateFullGraphServerSide =
 
       // Retrieve and return the updated graph
       const updatedGraph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId: typedGraphDefinition.id,
+        scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
       });
 
       if (!updatedGraph) {
@@ -1264,27 +1085,26 @@ export const updateFullGraphServerSide =
  */
 export const getFullGraph =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: { scopes: ScopeConfig; graphId: string }): Promise<FullGraphDefinition | null> => {
-    const { scopes, graphId } = params;
+  async (params: { scopes: GraphScopeConfig }): Promise<FullGraphDefinition | null> => {
+    const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
-    logger.info({ tenantId, graphId }, 'Retrieving full graph definition');
+    logger.info({ tenantId, graphId: scopes.graphId }, 'Retrieving full graph definition');
 
     try {
       const graph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId: scopes.graphId },
       });
 
       if (!graph) {
-        logger.info({ tenantId, graphId }, 'Graph not found');
+        logger.info({ tenantId, graphId: scopes.graphId }, 'Graph not found');
         return null;
       }
 
       logger.info(
         {
           tenantId,
-          graphId,
+          graphId: scopes.graphId,
           agentCount: Object.keys(graph.agents).length,
         },
         'Full graph retrieved successfully'
@@ -1295,7 +1115,7 @@ export const getFullGraph =
       logger.error(
         {
           tenantId,
-          graphId,
+          graphId: scopes.graphId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to retrieve full graph'
@@ -1309,17 +1129,15 @@ export const getFullGraph =
  */
 export const deleteFullGraph =
   (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: { scopes: ScopeConfig; graphId: string }): Promise<boolean> => {
-    const { scopes, graphId } = params;
-    const { tenantId, projectId } = scopes;
+  async (params: { scopes: GraphScopeConfig }): Promise<boolean> => {
+    const { tenantId, projectId, graphId } = params.scopes;
 
     logger.info({ tenantId, graphId }, 'Deleting full graph and related entities');
 
     try {
       // Get the graph first to ensure it exists
       const graph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
 
       if (!graph) {
@@ -1329,8 +1147,7 @@ export const deleteFullGraph =
 
       // Step 1: Delete all agent relations for this graph
       await deleteAgentRelationsByGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
       logger.info({ tenantId, graphId }, 'Agent relations deleted');
 
@@ -1340,8 +1157,7 @@ export const deleteFullGraph =
         // Delete agent-tool relations for all agents in this graph
         for (const agentId of agentIds) {
           await deleteAgentToolRelationByAgent(db)({
-            scopes: { tenantId, projectId },
-            agentId,
+            scopes: { tenantId, projectId, graphId, agentId },
           });
         }
 
@@ -1353,8 +1169,7 @@ export const deleteFullGraph =
 
       // Step 3: Delete the graph metadata
       await deleteAgentGraph(db)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
 
       logger.info({ tenantId, graphId }, 'Graph metadata deleted');

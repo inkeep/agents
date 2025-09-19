@@ -81,7 +81,6 @@ export function renderPanelContent({
 
   switch (selected.type) {
     case 'ai_generation':
-      console.log('A is', a);
       return (
         <>
           <Section>

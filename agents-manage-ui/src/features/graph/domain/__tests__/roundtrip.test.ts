@@ -147,7 +147,8 @@ describe('graph serialize/deserialize', () => {
     });
     expect(serialized.id).toBe('g1');
     expect(serialized.agents.a1).toBeDefined();
-    expect(serialized.tools.t1).toBeDefined();
+    // Note: Tools are now project-scoped and not included in graph serialization
+    // expect(serialized.tools.t1).toBeDefined();
     const a1 = serialized.agents.a1;
     if ('tools' in a1) {
       expect(a1.tools).toContain('t1');

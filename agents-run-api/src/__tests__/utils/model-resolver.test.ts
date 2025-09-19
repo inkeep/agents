@@ -1,5 +1,5 @@
+import type { AgentGraphSelect, AgentSelect, ProjectSelect } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentSelect, AgentGraphSelect, ProjectSelect } from '@inkeep/agents-core';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
 // Mock the database client
@@ -9,12 +9,13 @@ vi.mock('../../data/db/dbClient', () => ({
 
 // Mock the agents-core functions
 vi.mock('@inkeep/agents-core', () => ({
-  getAgentGraph: vi.fn(),
+  getAgentGraphById: vi.fn(),
   getProject: vi.fn(),
+  agentGraph: {},  // Add the agentGraph export for other tests
 }));
 
 // Import mocked functions
-const mockGetAgentGraph = vi.mocked(await import('@inkeep/agents-core')).getAgentGraph;
+const mockGetAgentGraphById = vi.mocked(await import('@inkeep/agents-core')).getAgentGraphById;
 const mockGetProject = vi.mocked(await import('@inkeep/agents-core')).getProject;
 
 describe('resolveModelConfig', () => {
@@ -30,7 +31,7 @@ describe('resolveModelConfig', () => {
     vi.clearAllMocks();
 
     // Setup default mock implementations that return functions
-    mockGetAgentGraph.mockReturnValue(vi.fn());
+    mockGetAgentGraphById.mockReturnValue(vi.fn());
     mockGetProject.mockReturnValue(vi.fn());
   });
 
@@ -56,7 +57,7 @@ describe('resolveModelConfig', () => {
       });
 
       // Should not call graph or project functions
-      expect(mockGetAgentGraph).not.toHaveBeenCalled();
+      expect(mockGetAgentGraphById).not.toHaveBeenCalled();
       expect(mockGetProject).not.toHaveBeenCalled();
     });
 
@@ -85,7 +86,7 @@ describe('resolveModelConfig', () => {
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as AgentSelect;
 
@@ -94,7 +95,7 @@ describe('resolveModelConfig', () => {
       expect(result).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4-turbo' },
-        summarizer: { model: 'claude-3-haiku' },
+        summarizer: { model: 'claude-3.5-haiku' },
       });
     });
   });
@@ -112,26 +113,29 @@ describe('resolveModelConfig', () => {
         projectId: 'project-123',
         models: {
           base: { model: 'claude-3-sonnet' },
-          structuredOutput: { model: 'claude-3-haiku' },
+          structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: undefined,
         },
       } as AgentGraphSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
       });
 
-      expect(mockGetAgentGraph).toHaveBeenCalledWith('mock-db-client');
+      expect(mockGetAgentGraphById).toHaveBeenCalledWith('mock-db-client');
       expect(mockGraphFn).toHaveBeenCalledWith({
-        scopes: { tenantId: 'tenant-123', projectId: 'project-123' },
-        graphId: 'graph-123',
+        scopes: {
+          tenantId: 'tenant-123',
+          projectId: 'project-123',
+          graphId: 'graph-123',
+        },
       });
     });
 
@@ -151,13 +155,13 @@ describe('resolveModelConfig', () => {
         projectId: 'project-123',
         models: {
           base: { model: 'claude-3-sonnet' },
-          structuredOutput: { model: 'claude-3-haiku' },
+          structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: { model: 'claude-3-opus' },
         },
       } as AgentGraphSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -192,7 +196,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
@@ -215,7 +219,7 @@ describe('resolveModelConfig', () => {
         models: {
           base: undefined,
           structuredOutput: undefined,
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as AgentSelect;
 
@@ -237,7 +241,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
@@ -245,7 +249,7 @@ describe('resolveModelConfig', () => {
       expect(result).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Falls back to project
-        summarizer: { model: 'claude-3-haiku' }, // Agent-specific takes precedence
+        summarizer: { model: 'claude-3.5-haiku' }, // Agent-specific takes precedence
       });
     });
   });
@@ -270,7 +274,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
@@ -294,14 +298,14 @@ describe('resolveModelConfig', () => {
         models: {
           base: undefined,
           structuredOutput: { model: 'gpt-4' },
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as unknown as ProjectSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
@@ -328,7 +332,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
@@ -349,7 +353,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(null);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
@@ -374,19 +378,19 @@ describe('resolveModelConfig', () => {
         models: {
           base: { model: 'claude-3-sonnet' },
           structuredOutput: undefined,
-          summarizer: { model: 'claude-3-haiku' },
+          summarizer: { model: 'claude-3.5-haiku' },
         },
       } as AgentGraphSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
-        summarizer: { model: 'claude-3-haiku' }, // Falls back to graph
+        summarizer: { model: 'claude-3.5-haiku' }, // Falls back to graph
       });
     });
 
@@ -413,7 +417,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraph.mockReturnValue(mockGraphFn);
+      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);

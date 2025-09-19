@@ -13,6 +13,7 @@ import {
   contextCache,
   contextConfigs,
   conversations,
+  credentialReferences,
   dataComponents,
   externalAgents,
   ledgerArtifacts,
@@ -92,6 +93,18 @@ const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
 
+// Specific helper for graph-scoped entities that also need graphId omitted
+const createGraphScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+
+const createGraphScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+
+const createGraphScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema
+    .omit({ tenantId: true, projectId: true, graphId: true })
+    .partial() satisfies z.ZodObject<any>;
+
 // === Agent Schemas ===
 export const AgentSelectSchema = createSelectSchema(agents);
 
@@ -102,9 +115,9 @@ export const AgentInsertSchema = createInsertSchema(agents).extend({
 
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
-export const AgentApiSelectSchema = createApiSchema(AgentSelectSchema);
-export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema);
-export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema);
+export const AgentApiSelectSchema = createGraphScopedApiSchema(AgentSelectSchema);
+export const AgentApiInsertSchema = createGraphScopedApiInsertSchema(AgentInsertSchema);
+export const AgentApiUpdateSchema = createGraphScopedApiUpdateSchema(AgentUpdateSchema);
 
 // === Agent Relations Schemas ===
 export const AgentRelationSelectSchema = createSelectSchema(agentRelations);
@@ -117,8 +130,10 @@ export const AgentRelationInsertSchema = createInsertSchema(agentRelations).exte
 });
 export const AgentRelationUpdateSchema = AgentRelationInsertSchema.partial();
 
-export const AgentRelationApiSelectSchema = createApiSchema(AgentRelationSelectSchema);
-export const AgentRelationApiInsertSchema = createApiInsertSchema(AgentRelationInsertSchema)
+export const AgentRelationApiSelectSchema = createGraphScopedApiSchema(AgentRelationSelectSchema);
+export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
+  AgentRelationInsertSchema
+)
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES),
   })
@@ -135,7 +150,9 @@ export const AgentRelationApiInsertSchema = createApiInsertSchema(AgentRelationI
     }
   );
 
-export const AgentRelationApiUpdateSchema = createApiUpdateSchema(AgentRelationUpdateSchema)
+export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
+  AgentRelationUpdateSchema
+)
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES).optional(),
   })
@@ -187,7 +204,7 @@ export const AgentGraphUpdateSchema = AgentGraphInsertSchema.partial();
 
 export const AgentGraphApiSelectSchema = createApiSchema(AgentGraphSelectSchema);
 export const AgentGraphApiInsertSchema = createApiInsertSchema(AgentGraphInsertSchema).extend({
-  id: resourceIdSchema.optional(),
+  id: resourceIdSchema,
 });
 export const AgentGraphApiUpdateSchema = createApiUpdateSchema(AgentGraphUpdateSchema);
 
@@ -325,11 +342,16 @@ export const AgentDataComponentSelectSchema = createSelectSchema(agentDataCompon
 export const AgentDataComponentInsertSchema = createInsertSchema(agentDataComponents);
 export const AgentDataComponentUpdateSchema = AgentDataComponentInsertSchema.partial();
 
-export const AgentDataComponentApiSelectSchema = createApiSchema(AgentDataComponentSelectSchema);
-export const AgentDataComponentApiInsertSchema = createApiInsertSchema(
-  AgentDataComponentInsertSchema
+export const AgentDataComponentApiSelectSchema = createGraphScopedApiSchema(
+  AgentDataComponentSelectSchema
 );
-export const AgentDataComponentApiUpdateSchema = createApiUpdateSchema(
+export const AgentDataComponentApiInsertSchema = AgentDataComponentInsertSchema.omit({
+  tenantId: true,
+  projectId: true,
+  id: true,
+  createdAt: true,
+});
+export const AgentDataComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentDataComponentUpdateSchema
 );
 
@@ -365,7 +387,7 @@ export const AgentArtifactComponentInsertSchema = createInsertSchema(
 });
 export const AgentArtifactComponentUpdateSchema = AgentArtifactComponentInsertSchema.partial();
 
-export const AgentArtifactComponentApiSelectSchema = createApiSchema(
+export const AgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
   AgentArtifactComponentSelectSchema
 );
 export const AgentArtifactComponentApiInsertSchema = AgentArtifactComponentInsertSchema.omit({
@@ -374,7 +396,7 @@ export const AgentArtifactComponentApiInsertSchema = AgentArtifactComponentInser
   id: true,
   createdAt: true,
 });
-export const AgentArtifactComponentApiUpdateSchema = createApiUpdateSchema(
+export const AgentArtifactComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentArtifactComponentUpdateSchema
 );
 
@@ -388,9 +410,11 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
-export const ExternalAgentApiSelectSchema = createApiSchema(ExternalAgentSelectSchema);
-export const ExternalAgentApiInsertSchema = createApiInsertSchema(ExternalAgentInsertSchema);
-export const ExternalAgentApiUpdateSchema = createApiUpdateSchema(ExternalAgentUpdateSchema);
+export const ExternalAgentApiSelectSchema = createGraphScopedApiSchema(ExternalAgentSelectSchema);
+export const ExternalAgentApiInsertSchema =
+  createGraphScopedApiInsertSchema(ExternalAgentInsertSchema);
+export const ExternalAgentApiUpdateSchema =
+  createGraphScopedApiUpdateSchema(ExternalAgentUpdateSchema);
 
 // Discriminated union for all agent types
 export const AllAgentSchema = z.discriminatedUnion('type', [
@@ -454,10 +478,8 @@ export const CredentialReferenceSelectSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const CredentialReferenceInsertSchema = z.object({
+export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
   id: resourceIdSchema,
-  tenantId: z.string(),
-  projectId: z.string(),
   type: z.string(),
   credentialStoreId: resourceIdSchema,
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
@@ -590,11 +612,13 @@ export const AgentToolRelationInsertSchema = createInsertSchema(agentToolRelatio
 
 export const AgentToolRelationUpdateSchema = AgentToolRelationInsertSchema.partial();
 
-export const AgentToolRelationApiSelectSchema = createApiSchema(AgentToolRelationSelectSchema);
-export const AgentToolRelationApiInsertSchema = createApiInsertSchema(
+export const AgentToolRelationApiSelectSchema = createGraphScopedApiSchema(
+  AgentToolRelationSelectSchema
+);
+export const AgentToolRelationApiInsertSchema = createGraphScopedApiInsertSchema(
   AgentToolRelationInsertSchema
 );
-export const AgentToolRelationApiUpdateSchema = createApiUpdateSchema(
+export const AgentToolRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
   AgentToolRelationUpdateSchema
 );
 
@@ -629,6 +653,7 @@ export const StatusUpdateSchema = z.object({
 });
 
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
+  type: z.literal('internal'),
   tools: z.array(z.string()),
   selectedTools: z.record(z.string(), z.array(z.string())).optional(),
   dataComponents: z.array(z.string()).optional(),
@@ -639,10 +664,9 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
 
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(),
-  credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
-  dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
-  artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
+  // Removed project-scoped resources - these are now managed at project level:
+  // tools, credentialReferences, dataComponents, artifactComponents
+  // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -651,7 +675,13 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
 });
 
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  agents: z.record(
+    z.string(),
+    z.discriminatedUnion('type', [
+      FullGraphAgentInsertSchema,
+      ExternalAgentApiInsertSchema.extend({ type: z.literal('external') })
+    ])
+  ),
   models: ModelSchema.optional(),
   stopWhen: GraphStopWhenSchema.optional(),
   graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
@@ -759,6 +789,41 @@ export const TenantProjectParamsSchema = z
     }),
   })
   .openapi('TenantProjectParams');
+
+export const TenantProjectGraphParamsSchema = z
+  .object({
+    tenantId: z.string().openapi({
+      description: 'Tenant identifier',
+      example: 'tenant_123',
+    }),
+    projectId: z.string().openapi({
+      description: 'Project identifier',
+      example: 'project_456',
+    }),
+    graphId: z.string().openapi({
+      description: 'Graph identifier',
+      example: 'graph_789',
+    }),
+  })
+  .openapi('TenantProjectGraphParams');
+
+export const TenantProjectGraphIdParamsSchema = z
+  .object({
+    tenantId: z.string().openapi({
+      description: 'Tenant identifier',
+      example: 'tenant_123',
+    }),
+    projectId: z.string().openapi({
+      description: 'Project identifier',
+      example: 'project_456',
+    }),
+    graphId: z.string().openapi({
+      description: 'Graph identifier',
+      example: 'graph_789',
+    }),
+    id: resourceIdSchema,
+  })
+  .openapi('TenantProjectGraphIdParams');
 
 export const TenantProjectIdParamsSchema = z
   .object({

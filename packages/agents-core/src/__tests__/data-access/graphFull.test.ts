@@ -32,8 +32,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result).toBeNull();
@@ -74,6 +73,20 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             createdAt: '2024-01-01T00:00:00.000Z',
             updatedAt: '2024-01-01T00:00:00.000Z',
           }),
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: 'default-agent-1',
+              name: 'Default Agent',
+              description: 'Default agent description',
+              prompt: 'Default prompt',
+              models: null,
+              tenantId: testTenantId,
+              projectId: testProjectId,
+              graphId: testGraphId,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ]),
         },
         agentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -106,8 +119,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result).toBeDefined();
@@ -196,6 +208,12 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             .fn()
             .mockResolvedValueOnce(mockAgents[0]) // First call for agent-1
             .mockResolvedValueOnce(mockAgents[1]), // Second call for agent-2
+          findMany: vi.fn().mockResolvedValue(
+            mockAgents.map((agent) => ({
+              ...agent,
+              graphId: testGraphId,
+            }))
+          ),
         },
         agentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -228,8 +246,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result).toBeDefined();
@@ -288,6 +305,12 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         },
         agents: {
           findFirst: vi.fn().mockResolvedValue(mockAgent),
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockAgent,
+              graphId: testGraphId,
+            },
+          ]),
         },
         agentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -320,24 +343,9 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
-      expect(result?.tools).toHaveProperty('tool-1');
-      expect(result?.tools['tool-1']).toEqual({
-        id: 'tool-1',
-        name: 'Test Tool',
-        config: { type: 'test' },
-        imageUrl: 'https://example.com/tool.png',
-        status: 'active',
-        capabilities: ['read', 'write'],
-        lastHealthCheck: '2024-01-01T00:00:00.000Z',
-        lastError: undefined,
-        availableTools: ['tool1', 'tool2'],
-        activeTools: undefined,
-        lastToolsSync: '2024-01-01T00:00:00.000Z',
-      });
       expect((result?.agents['agent-1'] as any).tools).toEqual(['tool-1']);
     });
 
@@ -383,6 +391,12 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         },
         agents: {
           findFirst: vi.fn().mockResolvedValue(mockAgent),
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockAgent,
+              graphId: testGraphId,
+            },
+          ]),
         },
         agentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -415,8 +429,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       expect(result?.models).toEqual(mockModelSettings);
@@ -473,6 +486,12 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         },
         agents: {
           findFirst: vi.fn().mockResolvedValue(mockAgent),
+          findMany: vi.fn().mockResolvedValue([
+            {
+              ...mockAgent,
+              graphId: testGraphId,
+            },
+          ]),
         },
         agentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -505,17 +524,12 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       // Should use current date for invalid dates
       expect(result?.createdAt).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
       expect(result?.updatedAt).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
-
-      // Tool dates should be undefined for invalid dates
-      expect(result?.tools['tool-1'].lastHealthCheck).toBeUndefined();
-      expect(result?.tools['tool-1'].lastToolsSync).toBeUndefined();
     });
 
     it('should filter out null agent responses gracefully', async () => {
@@ -570,6 +584,20 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
               updatedAt: '2024-01-01T00:00:00.000Z',
             })
             .mockResolvedValueOnce(undefined), // Non-existent agent returns undefined
+          findMany: vi.fn().mockResolvedValue([
+            {
+              id: 'agent-1',
+              name: 'Agent 1',
+              description: 'First agent',
+              prompt: 'Instructions 1',
+              models: null,
+              tenantId: testTenantId,
+              projectId: testProjectId,
+              graphId: testGraphId,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z',
+            },
+          ]),
         },
         agentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
@@ -602,8 +630,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        graphId: testGraphId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
       // Should only include the valid agent

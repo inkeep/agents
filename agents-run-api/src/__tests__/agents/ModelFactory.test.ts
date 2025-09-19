@@ -2,10 +2,15 @@ import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { ModelFactory, type ModelSettings } from '../../agents/ModelFactory';
 
+// Import the mocked functions for testing
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
 // Mock AI SDK providers
 vi.mock('@ai-sdk/anthropic', () => {
-  const mockAnthropicModel = { type: 'anthropic', modelId: 'claude-4-sonnet' } as LanguageModel;
-  const mockAnthropicProvider = vi.fn().mockReturnValue(mockAnthropicModel);
+  const mockAnthropicModel = { type: 'anthropic', modelId: 'claude-sonnet-4' } as unknown as LanguageModel;
+  const mockAnthropicProvider = {
+    languageModel: vi.fn().mockReturnValue(mockAnthropicModel),
+  };
 
   return {
     anthropic: vi.fn().mockReturnValue(mockAnthropicModel),
@@ -14,12 +19,27 @@ vi.mock('@ai-sdk/anthropic', () => {
 });
 
 vi.mock('@ai-sdk/openai', () => {
-  const mockOpenAIModel = { type: 'openai', modelId: 'gpt-4o' } as LanguageModel;
-  const mockOpenAIProvider = vi.fn().mockReturnValue(mockOpenAIModel);
+  const mockOpenAIModel = { type: 'openai', modelId: 'gpt-4o' } as unknown as LanguageModel;
+  const mockOpenAIProvider = {
+    languageModel: vi.fn().mockReturnValue(mockOpenAIModel),
+  };
 
   return {
     openai: vi.fn().mockReturnValue(mockOpenAIModel),
     createOpenAI: vi.fn().mockReturnValue(mockOpenAIProvider),
+  };
+});
+
+vi.mock('@ai-sdk/google', () => {
+  const mockGoogleModel = { type: 'google', modelId: 'gemini-2.5-flash' } as unknown as LanguageModel;
+  const mockGoogleProvider = {
+    languageModel: vi.fn().mockReturnValue(mockGoogleModel),
+  };
+  const mockCreateGoogleGenerativeAI = vi.fn().mockReturnValue(mockGoogleProvider);
+
+  return {
+    google: vi.fn().mockReturnValue(mockGoogleModel),
+    createGoogleGenerativeAI: mockCreateGoogleGenerativeAI,
   };
 });
 
@@ -41,13 +61,13 @@ describe('ModelFactory', () => {
   describe('createModel', () => {
     test('should throw error when no config provided', () => {
       expect(() => {
-        ModelFactory.createModel();
+        ModelFactory.createModel(undefined as any);
       }).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 
     test('should throw error when null config provided', () => {
       expect(() => {
-        ModelFactory.createModel(null);
+        ModelFactory.createModel(null as any);
       }).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 
@@ -65,7 +85,7 @@ describe('ModelFactory', () => {
 
     test('should create Anthropic model with explicit config', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
       };
 
       const model = ModelFactory.createModel(config);
@@ -85,9 +105,9 @@ describe('ModelFactory', () => {
       expect(model).toHaveProperty('type', 'openai');
     });
 
-    test('should handle model string without provider prefix (defaults to anthropic)', () => {
+    test('should create Anthropic model with proper provider prefix', () => {
       const config: ModelSettings = {
-        model: 'claude-3-5-haiku-20241022',
+        model: 'anthropic/claude-3-5-haiku-20241022',
       };
 
       const model = ModelFactory.createModel(config);
@@ -98,7 +118,7 @@ describe('ModelFactory', () => {
 
     test('should create Anthropic model with custom provider options', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             baseURL: 'https://custom-endpoint.com',
@@ -131,9 +151,98 @@ describe('ModelFactory', () => {
       expect(model).toHaveProperty('type', 'openai');
     });
 
+    // Google/Gemini specific tests
+    test('should create Google Gemini model with explicit config', () => {
+      const config: ModelSettings = {
+        model: 'google/gemini-2.5-flash',
+      };
+
+      const model = ModelFactory.createModel(config);
+
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('type', 'google');
+      expect(model).toHaveProperty('modelId', 'gemini-2.5-flash');
+    });
+
+    test('should create Google Gemini Pro model', () => {
+      const config: ModelSettings = {
+        model: 'google/gemini-2.5-pro',
+      };
+
+      const model = ModelFactory.createModel(config);
+
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('type', 'google');
+    });
+
+    test('should create Google Gemini Flash Lite model', () => {
+      const config: ModelSettings = {
+        model: 'google/gemini-2.5-flash-lite',
+      };
+
+      const model = ModelFactory.createModel(config);
+
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('type', 'google');
+    });
+
+    test('should create Google model with custom provider options', () => {
+      const config: ModelSettings = {
+        model: 'google/gemini-2.5-flash',
+        providerOptions: {
+          baseURL: 'https://custom-google-endpoint.com',
+          temperature: 0.5,
+          maxTokens: 1024,
+        },
+      };
+
+      const model = ModelFactory.createModel(config);
+
+      // Verify createGoogleGenerativeAI was called with custom config
+      expect(vi.mocked(createGoogleGenerativeAI)).toHaveBeenCalledWith({
+        baseURL: 'https://custom-google-endpoint.com',
+      });
+
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('type', 'google');
+    });
+
+    test('should handle Google model with gateway configuration', () => {
+      const config: ModelSettings = {
+        model: 'google/gemini-2.5-flash',
+        providerOptions: {
+          gateway: {
+            headers: {
+              'X-Gateway-Key': 'test-key',
+            },
+          },
+        },
+      };
+
+      const model = ModelFactory.createModel(config);
+
+      // Verify gateway config was passed through
+      expect(vi.mocked(createGoogleGenerativeAI)).toHaveBeenCalledWith({
+        headers: {
+          'X-Gateway-Key': 'test-key',
+        },
+      });
+
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('type', 'google');
+    });
+
+    test('should throw error for unsupported provider', () => {
+      const config: ModelSettings = {
+        model: 'unsupported/some-model',
+      };
+
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported');
+    });
+
     test('should handle AI Gateway configuration', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             temperature: 0.7,
@@ -151,22 +260,19 @@ describe('ModelFactory', () => {
       expect(model).toHaveProperty('type', 'anthropic');
     });
 
-    test('should fall back to default model for unknown provider', () => {
+    test('should throw error for unknown provider', () => {
       const config: ModelSettings = {
         model: 'unknown-provider/some-model',
       };
 
-      const model = ModelFactory.createModel(config);
-
-      expect(model).toBeDefined();
-      expect(model).toHaveProperty('type', 'anthropic');
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unknown-provider. Please provide a model in the format of provider/model-name.');
     });
 
     test('should handle fallback when creation fails', () => {
       // This test verifies the fallback behavior exists
       // The actual error handling is tested through the validation method
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
       };
 
       const model = ModelFactory.createModel(config);
@@ -279,7 +385,7 @@ describe('ModelFactory', () => {
   describe('validateConfig', () => {
     test('should pass validation for valid config', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             temperature: 0.7,
@@ -302,7 +408,7 @@ describe('ModelFactory', () => {
 
     test('should pass validation for any parameter values (AI SDK handles validation)', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             temperature: 3.0, // AI SDK will validate
@@ -319,7 +425,7 @@ describe('ModelFactory', () => {
 
     test('should validate basic config structure', () => {
       const config = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           temperature: 0.7,
           maxTokens: 1000,
@@ -350,7 +456,7 @@ describe('ModelFactory', () => {
   describe('prepareGenerationConfig', () => {
     test('should return model and generation params ready for generateText', () => {
       const modelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           temperature: 0.8,
           maxTokens: 2048,
@@ -368,12 +474,8 @@ describe('ModelFactory', () => {
       expect(config).not.toHaveProperty('apiKey'); // Should be filtered out
     });
 
-    test('should use default model when none specified', () => {
-      const config = ModelFactory.prepareGenerationConfig();
-
-      expect(config).toHaveProperty('model');
-      expect(config.model).toBeDefined();
-      expect(config.model).toHaveProperty('type', 'anthropic');
+    test('should require model to be specified', () => {
+      expect(() => ModelFactory.prepareGenerationConfig()).toThrow('Model configuration is required. Please configure models at the project level.');
     });
 
     test('should handle OpenAI model settingsuration', () => {
@@ -410,7 +512,7 @@ describe('ModelFactory', () => {
 
     test('should be ready to spread into generateText call', () => {
       const modelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           temperature: 0.7,
           maxTokens: 4096,
@@ -432,21 +534,42 @@ describe('ModelFactory', () => {
       expect(generateTextConfig).toHaveProperty('messages');
       expect(generateTextConfig).toHaveProperty('tools');
     });
+
+    test('should handle Google model configuration in prepareGenerationConfig', () => {
+      const modelSettings = {
+        model: 'google/gemini-2.5-flash',
+        providerOptions: {
+          temperature: 0.5,
+          maxTokens: 1024,
+          topP: 0.9,
+          baseURL: 'should-not-be-included',
+        },
+      };
+
+      const config = ModelFactory.prepareGenerationConfig(modelSettings);
+
+      expect(config).toHaveProperty('model');
+      expect(config.model).toHaveProperty('type', 'google');
+      expect(config).toHaveProperty('temperature', 0.5);
+      expect(config).toHaveProperty('maxTokens', 1024);
+      expect(config).toHaveProperty('topP', 0.9);
+      expect(config).not.toHaveProperty('baseURL'); // Should be filtered out
+    });
   });
 
   describe('model string parsing', () => {
     test('should parse provider/model format correctly via parseModelString', () => {
-      const result = ModelFactory.parseModelString('anthropic/claude-4-sonnet-20250514');
+      const result = ModelFactory.parseModelString('anthropic/claude-sonnet-4-20250514');
 
       expect(result).toEqual({
         provider: 'anthropic',
-        modelName: 'claude-4-sonnet-20250514',
+        modelName: 'claude-sonnet-4-20250514',
       });
     });
 
     test('should parse provider/model format correctly', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
       };
 
       const model = ModelFactory.createModel(config);
@@ -466,22 +589,21 @@ describe('ModelFactory', () => {
       expect(model).toHaveProperty('type', 'openai');
     });
 
-    test('should default to anthropic when no provider specified', () => {
+    test('should require provider prefix in model string', () => {
       const config: ModelSettings = {
         model: 'claude-3-5-haiku-20241022',
       };
 
-      const model = ModelFactory.createModel(config);
-
-      expect(model).toBeDefined();
-      expect(model).toHaveProperty('type', 'anthropic');
+      expect(() => ModelFactory.createModel(config)).toThrow(
+        'Invalid model provided: claude-3-5-haiku-20241022. Please provide a model in the format of provider/model-name.'
+      );
     });
   });
 
   describe('provider configuration handling', () => {
     test('should handle provider configuration with baseURL', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             baseURL: 'https://test.com',
@@ -513,7 +635,7 @@ describe('ModelFactory', () => {
 
     test('should handle both baseUrl and baseURL variants', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             baseUrl: 'https://test-baseurl.com',
@@ -529,7 +651,7 @@ describe('ModelFactory', () => {
 
     test('should handle provider configuration with only generation params', () => {
       const config: ModelSettings = {
-        model: 'anthropic/claude-4-sonnet-20250514',
+        model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           anthropic: {
             temperature: 0.7, // Only generation params, no provider config
@@ -548,7 +670,7 @@ describe('ModelFactory', () => {
     describe('validateConfig', () => {
       test('should pass validation for valid config without API keys', () => {
         const config: ModelSettings = {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             anthropic: {
               temperature: 0.7,
@@ -564,7 +686,7 @@ describe('ModelFactory', () => {
 
       test('should reject config with API keys in provider options', () => {
         const config: ModelSettings = {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             apiKey: 'test-key',
             temperature: 0.7,
@@ -594,7 +716,7 @@ describe('ModelFactory', () => {
 
       test('should allow valid configs without API keys', () => {
         const config: ModelSettings = {
-          model: 'anthropic/claude-4-sonnet-20250514',
+          model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             temperature: 0.7,
             maxTokens: 1000,
@@ -607,19 +729,15 @@ describe('ModelFactory', () => {
     });
 
     describe('provider validation', () => {
-      test('should fall back to anthropic for unsupported provider', () => {
-        const result = ModelFactory.parseModelString('unsupported-provider/some-model');
-        expect(result).toEqual({
-          provider: 'anthropic',
-          modelName: 'some-model',
-        });
+      test('should throw error for unsupported provider', () => {
+        expect(() => ModelFactory.parseModelString('unsupported-provider/some-model')).toThrow('Unsupported provider: unsupported-provider. Please provide a model in the format of provider/model-name.');
       });
 
       test('should support anthropic provider', () => {
-        const result = ModelFactory.parseModelString('anthropic/claude-4-sonnet');
+        const result = ModelFactory.parseModelString('anthropic/claude-sonnet-4');
         expect(result).toEqual({
           provider: 'anthropic',
-          modelName: 'claude-4-sonnet',
+          modelName: 'claude-sonnet-4',
         });
       });
 
@@ -631,11 +749,33 @@ describe('ModelFactory', () => {
         });
       });
 
+      test('should support google provider', () => {
+        const result = ModelFactory.parseModelString('google/gemini-2.5-flash');
+        expect(result).toEqual({
+          provider: 'google',
+          modelName: 'gemini-2.5-flash',
+        });
+      });
+
+      test('should support google provider with different models', () => {
+        const result1 = ModelFactory.parseModelString('google/gemini-2.5-pro');
+        expect(result1).toEqual({
+          provider: 'google',
+          modelName: 'gemini-2.5-pro',
+        });
+
+        const result2 = ModelFactory.parseModelString('google/gemini-2.5-flash-lite');
+        expect(result2).toEqual({
+          provider: 'google',
+          modelName: 'gemini-2.5-flash-lite',
+        });
+      });
+
       test('should handle case insensitive providers', () => {
-        const result = ModelFactory.parseModelString('ANTHROPIC/claude-4-sonnet');
+        const result = ModelFactory.parseModelString('ANTHROPIC/claude-sonnet-4');
         expect(result).toEqual({
           provider: 'anthropic',
-          modelName: 'claude-4-sonnet',
+          modelName: 'claude-sonnet-4',
         });
       });
     });

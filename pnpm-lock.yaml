@@ -72,6 +72,9 @@ importers:
       commander:
         specifier: ^14.0.0
         version: 14.0.1
+      degit:
+        specifier: ^2.8.4
+        version: 2.8.4
       dotenv:
         specifier: ^17.2.1
         version: 17.2.2
@@ -112,6 +115,9 @@ importers:
       '@inkeep/agents-sdk':
         specifier: workspace:^
         version: link:../packages/agents-sdk
+      '@types/degit':
+        specifier: ^2.8.6
+        version: 2.8.6
       '@types/fs-extra':
         specifier: ^11.0.4
         version: 11.0.4
@@ -565,6 +571,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: 2.0.2
         version: 2.0.2(zod@4.1.8)
+      '@ai-sdk/google':
+        specifier: ^2.0.14
+        version: 2.0.14(zod@4.1.8)
       '@ai-sdk/openai':
         specifier: 2.0.11
         version: 2.0.11(zod@4.1.8)
@@ -838,6 +847,9 @@ importers:
       dotenv:
         specifier: ^17.2.1
         version: 17.2.2
+      dotenv-expand:
+        specifier: ^12.0.3
+        version: 12.0.3
       drizzle-orm:
         specifier: ^0.44.4
         version: 0.44.5(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)
@@ -847,6 +859,9 @@ importers:
       exit-hook:
         specifier: ^4.0.0
         version: 4.0.0
+      find-up:
+        specifier: ^7.0.0
+        version: 7.0.0
       hono:
         specifier: ^4.9.7
         version: 4.9.7
@@ -919,7 +934,7 @@ importers:
         specifier: ^20.11.24
         version: 20.19.14
       '@types/yarnpkg__lockfile':
-        specifier: ^1.1.9
+        specifier: ^1.1.0
         version: 1.1.9
       '@vitest/coverage-v8':
         specifier: ^2.0.0
@@ -945,6 +960,9 @@ importers:
       commander:
         specifier: ^12.0.0
         version: 12.1.0
+      degit:
+        specifier: ^2.8.4
+        version: 2.8.4
       fs-extra:
         specifier: ^11.0.0
         version: 11.3.1
@@ -952,6 +970,9 @@ importers:
         specifier: ^1.0.0
         version: 1.1.1
     devDependencies:
+      '@types/degit':
+        specifier: ^2.8.6
+        version: 2.8.6
       '@types/fs-extra':
         specifier: ^11.0.0
         version: 11.0.4
@@ -991,6 +1012,12 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4
 
+  '@ai-sdk/google@2.0.14':
+    resolution: {integrity: sha512-OCBBkEUq1RNLkbJuD+ejqGsWDD0M5nRyuFWDchwylxy0J4HSsAiGNhutNYVTdnqmNw+r9LyZlkyZ1P4YfAfLdg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
   '@ai-sdk/openai@2.0.11':
     resolution: {integrity: sha512-t4i+vS825EC0Gc2DdTsC5UkXIu1ScOi363noTD8DuFZp6WFPHRnW6HCyEQKxEm6cNjv3BW89rdXWqq932IFJhA==}
     engines: {node: '>=18'}
@@ -1017,6 +1044,12 @@ packages:
 
   '@ai-sdk/provider-utils@3.0.2':
     resolution: {integrity: sha512-0a5a6VafkV6+0irdpqnub8WE6qzG2VMsDBpXb9NQIz8c4TG8fI+GSTFIL9sqrLEwXrHdiRj7fwJsrir4jClL0w==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
+  '@ai-sdk/provider-utils@3.0.9':
+    resolution: {integrity: sha512-Pm571x5efqaI4hf9yW4KsVlDBDme8++UepZRnq+kqVBWWjgvGhQlzU8glaFq0YJEB9kkxZHbRRyVeHoV2sRYaQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -4680,6 +4713,9 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
+  '@types/degit@2.8.6':
+    resolution: {integrity: sha512-y0M7sqzsnHB6cvAeTCBPrCQNQiZe8U4qdzf8uBVmOWYap5MMTN/gB2iEqrIqFiYcsyvP74GnGD5tgsHttielFw==}
+
   '@types/estree-jsx@1.0.5':
     resolution: {integrity: sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==}
 
@@ -5791,6 +5827,11 @@ packages:
   defu@6.1.4:
     resolution: {integrity: sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg==}
 
+  degit@2.8.4:
+    resolution: {integrity: sha512-vqYuzmSA5I50J882jd+AbAhQtgK6bdKUJIex1JNfEUPENCgYsxugzKVZlFyMwV4i06MmnV47/Iqi5Io86zf3Ng==}
+    engines: {node: '>=8.0.0'}
+    hasBin: true
+
   delaunator@5.0.1:
     resolution: {integrity: sha512-8nvh+XBe96aCESrGOqMp/84b13H9cdKbG5P2ejQCh4d4sK9RL4371qou9drQjMhvnPmhWl5hnmqbEE0fXr9Xnw==}
 
@@ -5850,6 +5891,14 @@ packages:
   dot-prop@6.0.1:
     resolution: {integrity: sha512-tE7ztYzXHIeyvc7N+hR3oi7FIbf/NIjVP9hmAt3yMXzrQ072/fpjGLx2GxNxGxUl5V73MEqYzioOMoVhGMJ5cA==}
     engines: {node: '>=10'}
+
+  dotenv-expand@12.0.3:
+    resolution: {integrity: sha512-uc47g4b+4k/M/SeaW1y4OApx+mtLWl92l5LMPP0GNXctZqELk+YGgOPIIC5elYmUH4OuoK3JLhuRUYegeySiFA==}
+    engines: {node: '>=12'}
+
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
 
   dotenv@17.2.2:
     resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
@@ -7123,7 +7172,6 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
-    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
@@ -9886,6 +9934,12 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.2(zod@4.1.8)
       zod: 4.1.8
 
+  '@ai-sdk/google@2.0.14(zod@4.1.8)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
+      zod: 4.1.8
+
   '@ai-sdk/openai@2.0.11(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -9920,6 +9974,13 @@ snapshots:
       eventsource-parser: 3.0.6
       zod: 4.1.8
       zod-to-json-schema: 3.24.6(zod@4.1.8)
+
+  '@ai-sdk/provider-utils@3.0.9(zod@4.1.8)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.6
+      zod: 4.1.8
 
   '@ai-sdk/provider@1.1.3':
     dependencies:
@@ -13986,6 +14047,8 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
+  '@types/degit@2.8.6': {}
+
   '@types/estree-jsx@1.0.5':
     dependencies:
       '@types/estree': 1.0.8
@@ -15260,6 +15323,8 @@ snapshots:
 
   defu@6.1.4: {}
 
+  degit@2.8.4: {}
+
   delaunator@5.0.1:
     dependencies:
       robust-predicates: 3.0.2
@@ -15306,6 +15371,12 @@ snapshots:
   dot-prop@6.0.1:
     dependencies:
       is-obj: 2.0.0
+
+  dotenv-expand@12.0.3:
+    dependencies:
+      dotenv: 16.6.1
+
+  dotenv@16.6.1: {}
 
   dotenv@17.2.2: {}
 

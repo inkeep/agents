@@ -6,6 +6,13 @@ import { AppSidebar } from '@/components/sidebar-nav/sidebar-nav';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
+import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
+import {
+  DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
+  DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+  DEFAULT_SIGNOZ_URL,
+} from '@/lib/runtime-config/defaults';
+import type { RuntimeConfig } from '@/lib/runtime-config/types';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -29,6 +36,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const runtimeConfig: RuntimeConfig = {
+    INKEEP_AGENTS_MANAGE_API_URL:
+      process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
+    INKEEP_AGENTS_RUN_API_URL:
+      process.env.INKEEP_AGENTS_RUN_API_URL || DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+    INKEEP_AGENTS_RUN_API_BYPASS_SECRET: process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
+    SIGNOZ_URL: process.env.SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
+    NANGO_HOST: process.env.NANGO_HOST,
+    NANGO_CONNECT_BASE_URL: process.env.NANGO_CONNECT_BASE_URL,
+  };
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetBrainsMono.variable} antialiased`}>
@@ -39,18 +56,20 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NuqsAdapter>
-            <SidebarProvider
-              style={
-                {
-                  '--sidebar-width': 'calc(var(--spacing) * 62)',
-                  '--header-height': 'calc(var(--spacing) * 12)',
-                } as React.CSSProperties
-              }
-            >
-              <AppSidebar variant="inset" />
-              <SidebarInset>{children}</SidebarInset>
-            </SidebarProvider>
-            <Toaster />
+            <RuntimeConfigProvider value={runtimeConfig}>
+              <SidebarProvider
+                style={
+                  {
+                    '--sidebar-width': 'calc(var(--spacing) * 62)',
+                    '--header-height': 'calc(var(--spacing) * 12)',
+                  } as React.CSSProperties
+                }
+              >
+                <AppSidebar variant="inset" />
+                <SidebarInset>{children}</SidebarInset>
+              </SidebarProvider>
+              <Toaster />
+            </RuntimeConfigProvider>
           </NuqsAdapter>
         </ThemeProvider>
       </body>

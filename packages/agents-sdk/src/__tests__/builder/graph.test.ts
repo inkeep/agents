@@ -175,10 +175,9 @@ describe('AgentGraph', () => {
 
     // Create test tool
     testTool = new Tool({
+      id: 'test-tool',
       name: 'Test Tool',
       description: 'A test tool for graph testing',
-      type: 'mcp',
-      command: ['test-command'],
       serverUrl: 'http://localhost:3000',
       tenantId: 'test-tenant',
     });
@@ -187,16 +186,20 @@ describe('AgentGraph', () => {
     defaultAgent = new Agent({
       id: 'default-agent',
       name: 'Default Agent',
+      description: 'Default agent for graph testing',
       prompt: 'You are a helpful default agent',
       tenantId: 'test-tenant',
-      tools: () => [testTool],
+      projectId: 'test-project',
+      canUse: () => [testTool],
     });
 
     supportAgent = new Agent({
       id: 'support-agent',
       name: 'Support Agent',
+      description: 'Support agent for graph testing',
       prompt: 'You provide customer support',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
     });
 
     externalAgent = new ExternalAgent({
@@ -207,8 +210,8 @@ describe('AgentGraph', () => {
     });
 
     // Mock the generate method for all agents
-    defaultAgent.generate = mockGenerate;
-    supportAgent.generate = mockGenerate;
+    (defaultAgent as any).generate = mockGenerate;
+    (supportAgent as any).generate = mockGenerate;
 
     // Add relationships
     defaultAgent.addTransfer(supportAgent);
@@ -361,7 +364,6 @@ describe('AgentGraph', () => {
               name: 'Support Agent',
             }),
           }),
-          tools: expect.any(Object),
         })
       );
     });
@@ -404,9 +406,7 @@ describe('AgentGraph', () => {
     });
 
     it('should generate message using default agent', async () => {
-      const messageInput: MessageInput = {
-        text: 'Hello, how can you help?',
-      };
+      const messageInput: MessageInput = 'Hello, how can you help?';
 
       const result = await graph.generate(messageInput);
 
@@ -427,10 +427,7 @@ describe('AgentGraph', () => {
     it('should generate message with specific agent', async () => {
       graph.addAgent(supportAgent);
 
-      const messageInput: MessageInput = {
-        text: 'I need support',
-        agentName: 'Support Agent',
-      };
+      const messageInput: MessageInput = 'I need support';
 
       const result = await graph.generate(messageInput);
 
@@ -452,10 +449,7 @@ describe('AgentGraph', () => {
         statusText: 'Not Found',
       } as Response);
 
-      const messageInput: MessageInput = {
-        text: 'Hello',
-        agentName: 'Non-existent Agent',
-      };
+      const messageInput: MessageInput = 'Hello';
 
       await expect(graph.generate(messageInput)).rejects.toThrow('HTTP 404: Not Found');
     });
@@ -468,9 +462,7 @@ describe('AgentGraph', () => {
       });
       await graphWithoutDefault.init();
 
-      const messageInput: MessageInput = {
-        text: 'Hello',
-      };
+      const messageInput: MessageInput = 'Hello';
 
       await expect(graphWithoutDefault.generate(messageInput)).rejects.toThrow(
         'No default agent configured for this graph'
@@ -478,13 +470,10 @@ describe('AgentGraph', () => {
     });
 
     it('should pass generate options correctly', async () => {
-      const messageInput: MessageInput = {
-        text: 'Hello',
-      };
+      const messageInput: MessageInput = 'Hello';
 
       const options: GenerateOptions = {
-        contextId: 'custom-context',
-        metadata: { custom: 'data' },
+        customBodyParams: { custom: 'data' },
       };
 
       const result = await graph.generate(messageInput, options);
@@ -514,9 +503,7 @@ describe('AgentGraph', () => {
     });
 
     it('should handle streaming generation', async () => {
-      const messageInput: MessageInput = {
-        text: 'Stream this message',
-      };
+      const messageInput: MessageInput = 'Stream this message';
 
       const result = await graph.generateStream(messageInput);
 
@@ -526,7 +513,7 @@ describe('AgentGraph', () => {
 
       // Test streaming - consume the async generator
       const chunks = [];
-      for await (const chunk of result.textStream) {
+      for await (const chunk of result.textStream!) {
         chunks.push(chunk);
       }
       expect(chunks.length).toBeGreaterThan(0);
@@ -543,9 +530,7 @@ describe('AgentGraph', () => {
         statusText: 'Internal Server Error',
       } as Response);
 
-      const messageInput: MessageInput = {
-        text: 'Stream this',
-      };
+      const messageInput: MessageInput = 'Stream this';
 
       const result = await graph.generateStream(messageInput);
 
@@ -553,7 +538,7 @@ describe('AgentGraph', () => {
       expect(result).toHaveProperty('textStream');
 
       // Error should be thrown when trying to consume the async generator
-      const iterator = result.textStream[Symbol.asyncIterator]();
+      const iterator = result.textStream![Symbol.asyncIterator]();
       await expect(iterator.next()).rejects.toThrow('HTTP 500: Internal Server Error');
     });
   });
@@ -592,7 +577,6 @@ describe('AgentGraph', () => {
             type: 'internal',
           },
         },
-        tools: expect.any(Object),
       });
     });
   });
@@ -613,9 +597,7 @@ describe('AgentGraph', () => {
       });
       await graph.init();
 
-      const messageInput: MessageInput = {
-        text: 'This will fail',
-      };
+      const messageInput: MessageInput = 'This will fail';
 
       await expect(graph.generate(messageInput)).rejects.toThrow('HTTP 500: Generation failed');
     });
@@ -633,6 +615,10 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
+          tenantId: 'test-tenant',
+          id: 'test-project',
+          name: 'Test Project',
+          description: 'Test project for graph testing',
           models: {
             base: { model: 'gpt-4o' },
             structuredOutput: { model: 'gpt-4o-mini' },
@@ -642,12 +628,15 @@ describe('AgentGraph', () => {
             transferCountIs: 15,
             stepCountIs: 25,
           },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         })
       );
 
       agent1 = new Agent({
         id: 'agent1',
         name: 'Agent 1',
+        description: 'Test agent 1 for init',
         prompt: 'Test agent 1',
         tenantId: 'test-tenant',
       });
@@ -655,6 +644,7 @@ describe('AgentGraph', () => {
       agent2 = new Agent({
         id: 'agent2',
         name: 'Agent 2',
+        description: 'Test agent 2 for init',
         prompt: 'Test agent 2',
         tenantId: 'test-tenant',
       });
@@ -663,9 +653,8 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         defaultAgent: agent1,
-        agents: [agent2],
+        agents: () => [agent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       // Mock successful API responses for graph operations
@@ -700,7 +689,7 @@ describe('AgentGraph', () => {
     it('should not override existing graph models but inherit missing ones', async () => {
       const graphModels = {
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
       };
 
       graph.setModels(graphModels);
@@ -711,7 +700,7 @@ describe('AgentGraph', () => {
       // Should keep existing graph models and inherit missing summarizer from project
       const expectedModels = {
         base: { model: 'claude-3-sonnet' }, // kept from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // kept from graph
+        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from graph
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       };
       expect(graph.getModels()).toEqual(expectedModels);
@@ -749,7 +738,7 @@ describe('AgentGraph', () => {
 
       const agent1Models = {
         base: { model: 'claude-3-opus' },
-        summarizer: { model: 'claude-3-haiku' },
+        summarizer: { model: 'claude-3.5-haiku' },
       };
 
       graph.setModels(graphModels);
@@ -760,7 +749,7 @@ describe('AgentGraph', () => {
       // Agent1 should keep its existing models and inherit missing structuredOutput from graph
       const expectedAgent1Models = {
         base: { model: 'claude-3-opus' }, // kept from agent
-        summarizer: { model: 'claude-3-haiku' }, // kept from agent
+        summarizer: { model: 'claude-3.5-haiku' }, // kept from agent
         structuredOutput: { model: 'gpt-4o-mini' }, // inherited from graph
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -778,7 +767,7 @@ describe('AgentGraph', () => {
 
       // Agent1 has partial models (missing base)
       const agent1PartialModels = {
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
         // no base - should inherit from graph
       };
@@ -791,7 +780,7 @@ describe('AgentGraph', () => {
       // Agent1 should inherit missing base from graph, keep existing models
       const expectedAgent1Models = {
         base: { model: 'gpt-4o' }, // inherited from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // kept from agent
+        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from agent
         summarizer: { model: 'claude-3-sonnet' }, // kept from agent
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -823,8 +812,14 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValueOnce(() =>
         Promise.resolve({
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
-          // no models field
+          description: 'Test project',
+          models: null,
+          stopWhen: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         })
       );
 
@@ -842,7 +837,7 @@ describe('AgentGraph', () => {
       // Set partial graph models (missing summarizer)
       const partialGraphModels = {
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3-haiku' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
         // no summarizer - should inherit from project
       };
 
@@ -854,7 +849,7 @@ describe('AgentGraph', () => {
       const finalModels = graph.getModels();
       expect(finalModels).toEqual({
         base: { model: 'claude-3-sonnet' }, // kept from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // kept from graph
+        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from graph
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       });
     });
@@ -897,7 +892,7 @@ describe('AgentGraph', () => {
 
       // Agent1 has partial models (missing base)
       const agent1PartialModels = {
-        structuredOutput: { model: 'claude-3-haiku' }, // overrides graph
+        structuredOutput: { model: 'claude-3.5-haiku' }, // overrides graph
         // no base or summarizer - should inherit from graph/project
       };
 
@@ -919,7 +914,7 @@ describe('AgentGraph', () => {
       // Agent1 should inherit missing models from graph
       const expectedAgent1Models = {
         base: { model: 'claude-3-opus' }, // inherited from graph
-        structuredOutput: { model: 'claude-3-haiku' }, // explicit in agent
+        structuredOutput: { model: 'claude-3.5-haiku' }, // explicit in agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from graph (which got it from project)
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -941,15 +936,16 @@ describe('AgentGraph', () => {
         defaultAgent: agent1,
         models: graphModels,
         tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       // Create a new agent after graph construction
       const newAgent = new Agent({
         id: 'new-agent',
         name: 'New Agent',
+        description: 'Dynamically added agent',
         prompt: 'New agent added later',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       // Agent should have no models initially
@@ -975,6 +971,10 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
+          tenantId: 'test-tenant',
+          id: 'test-project',
+          name: 'Test Project',
+          description: 'Test project for graph testing',
           models: {
             base: { model: 'gpt-4o' },
             structuredOutput: { model: 'gpt-4o-mini' },
@@ -984,12 +984,15 @@ describe('AgentGraph', () => {
             transferCountIs: 15,
             stepCountIs: 25,
           },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         })
       );
 
       agent1 = new Agent({
         id: 'agent1',
         name: 'Agent 1',
+        description: 'Test agent 1 for init',
         prompt: 'Test agent 1',
         tenantId: 'test-tenant',
       });
@@ -997,6 +1000,7 @@ describe('AgentGraph', () => {
       agent2 = new Agent({
         id: 'agent2',
         name: 'Agent 2',
+        description: 'Test agent 2 for init',
         prompt: 'Test agent 2',
         tenantId: 'test-tenant',
       });
@@ -1005,9 +1009,8 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         defaultAgent: agent1,
-        agents: [agent2],
+        agents: () => [agent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       // Mock successful API responses for graph operations
@@ -1054,9 +1057,8 @@ describe('AgentGraph', () => {
         id: 'test-graph-explicit',
         name: 'Test Graph Explicit',
         defaultAgent: agent1,
-        agents: [agent2],
+        agents: () => [agent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
         stopWhen: {
           transferCountIs: 20, // explicit value
         },
@@ -1100,24 +1102,27 @@ describe('AgentGraph', () => {
       const testAgent1 = new Agent({
         id: 'test-agent1',
         name: 'Test Agent 1',
+        description: 'First test agent',
         prompt: 'Test agent 1',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testAgent2 = new Agent({
         id: 'test-agent2',
         name: 'Test Agent 2',
+        description: 'Second test agent',
         prompt: 'Test agent 2',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testGraph = new AgentGraph({
         id: 'test-graph-no-stopwhen',
         name: 'Test Graph No StopWhen',
         defaultAgent: testAgent1,
-        agents: [testAgent2],
+        agents: () => [testAgent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       const initialStopWhen = testGraph.getStopWhen();
@@ -1130,11 +1135,16 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
+            description: 'Test project',
             models: {
               base: { model: 'gpt-4o' },
             },
-            // no stopWhen field
+            stopWhen: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           })
       );
 
@@ -1153,24 +1163,27 @@ describe('AgentGraph', () => {
       const testAgent1 = new Agent({
         id: 'test-agent1-error',
         name: 'Test Agent 1 Error',
+        description: 'Error test agent 1',
         prompt: 'Test agent 1',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testAgent2 = new Agent({
         id: 'test-agent2-error',
         name: 'Test Agent 2 Error',
+        description: 'Error test agent 2',
         prompt: 'Test agent 2',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testGraph = new AgentGraph({
         id: 'test-graph-error',
         name: 'Test Graph Error',
         defaultAgent: testAgent1,
-        agents: [testAgent2],
+        agents: () => [testAgent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       const initialStopWhen = testGraph.getStopWhen();
@@ -1199,24 +1212,27 @@ describe('AgentGraph', () => {
       const testAgent1 = new Agent({
         id: 'test-agent1-partial',
         name: 'Test Agent 1 Partial',
+        description: 'Partial test agent 1',
         prompt: 'Test agent 1',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testAgent2 = new Agent({
         id: 'test-agent2-partial',
         name: 'Test Agent 2 Partial',
+        description: 'Partial test agent 2',
         prompt: 'Test agent 2',
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testGraph = new AgentGraph({
         id: 'test-graph-partial',
         name: 'Test Graph Partial',
         defaultAgent: testAgent1,
-        agents: [testAgent2],
+        agents: () => [testAgent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       // Clear and set specific mock for this test (after beforeEach)
@@ -1226,6 +1242,10 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
+            tenantId: 'test-tenant',
+            id: 'test-project',
+            name: 'Test Project',
+            description: 'Test project',
             models: {
               base: { model: 'gpt-4o' },
             },
@@ -1233,6 +1253,8 @@ describe('AgentGraph', () => {
               transferCountIs: 12,
               // no stepCountIs
             },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           })
       );
 
@@ -1290,9 +1312,8 @@ describe('AgentGraph', () => {
         id: 'mixed-graph',
         name: 'Mixed Graph',
         defaultAgent: agent1,
-        agents: [agent2],
+        agents: () => [agent2],
         tenantId: 'test-tenant',
-        projectId: 'test-project',
         stopWhen: {
           transferCountIs: 18, // graph explicit
           // no stepCountIs - will be inherited from project
@@ -1390,10 +1411,12 @@ describe('AgentGraph', () => {
       const agent = new Agent({
         id: 'test-agent',
         name: 'Test Agent',
+        description: 'Agent with components',
         prompt: 'Test instructions',
         dataComponents: () => [dataComponent],
         artifactComponents: () => [artifactComponent],
         tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       expect(agent.getDataComponents()).toEqual([dataComponent]);

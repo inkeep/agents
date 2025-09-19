@@ -1,6 +1,6 @@
 import type { Message } from '@inkeep/cxkit-react-oss/types';
 import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
-import { type FC, useEffect, useState, useRef } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -57,29 +57,23 @@ const CitationBadge: FC<{
   );
 };
 
-// Inline Data Operation Component
-const InlineDataOperation: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
+// Shared inline event component
+const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { type, ctx } = operation;
 
-  const getOperationLabel = () => {
-    // Use LLM-generated label if available (for status updates and other operations)
-    if (operation.label) {
+  const getLabel = () => {
+    if (operation.type === 'data-summary') {
+      // data-summary always has operation.label
       return operation.label;
+    } else {
+      // data-operation might need fallback
+      return getOperationLabel(operation);
     }
+  };
 
-    switch (type) {
-      case 'agent_initializing':
-        return 'Agent initializing';
-      case 'agent_ready':
-        return 'Agent ready';
-      case 'completion':
-        return 'Completion';
-      case 'status_update':
-        return 'Status update';
-      default:
-        return type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-    }
+  const getExpandedContent = () => {
+    // data-operation uses ctx
+    return operation.ctx || operation.details || {};
   };
 
   return (
@@ -91,10 +85,10 @@ const InlineDataOperation: FC<{ operation: any; isLast: boolean }> = ({ operatio
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px]"
+        className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px] justify-start"
       >
         <span className="w-1 h-1 bg-gray-400 rounded-full" />
-        <span className="font-medium ml-3">{getOperationLabel()}</span>
+        <span className="font-medium ml-3 text-left">{getLabel()}</span>
         <ChevronRight
           className={cn(
             'w-3 h-3 transition-transform duration-200',
@@ -106,12 +100,32 @@ const InlineDataOperation: FC<{ operation: any; isLast: boolean }> = ({ operatio
       {isExpanded && (
         <div className=" ml-6 pb-2 mt-2 rounded text-xs">
           <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
-            {JSON.stringify(ctx, null, 2)}
+            {JSON.stringify(getExpandedContent(), null, 2)}
           </pre>
         </div>
       )}
     </div>
   );
+};
+
+// Helper function for data-operation labels
+const getOperationLabel = (operation: any) => {
+  // Use LLM-generated label if available for data-operations
+  if (operation.label) {
+    return operation.label;
+  }
+
+  const { type } = operation;
+  switch (type) {
+    case 'agent_initializing':
+      return 'Agent initializing';
+    case 'agent_ready':
+      return 'Agent ready';
+    case 'completion':
+      return 'Completion';
+    default:
+      return type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+  }
 };
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -124,28 +138,9 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
     let currentTextChunk = '';
 
     for (const part of parts) {
+      // Combine all text and artifact parts into continuous chunks
       if (part.type === 'text') {
         currentTextChunk += part.text || '';
-      } else if (part.type === 'data-operation') {
-        const { type } = part.data as any;
-
-        // Only add inline operations for non-top-level operations
-        const isTopLevelOperation = [
-          'agent_initializing',
-          'agent_ready',
-          'completion',
-          'error',
-        ].includes(type);
-
-        if (!isTopLevelOperation) {
-          // If we have accumulated text, add it first
-          if (currentTextChunk.trim()) {
-            processed.push({ type: 'text', content: currentTextChunk });
-            currentTextChunk = '';
-          }
-          // Add the inline operation
-          processed.push({ type: 'inline-operation', operation: part.data });
-        }
       } else if (part.type === 'data-artifact') {
         // Add artifact as citation marker inline with current text (don't flush)
         const artifactData = part.data as any;
@@ -155,11 +150,41 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
           url: undefined,
         };
         currentTextChunk += ` ^${artifactSummary?.title || artifactData.name}^`;
+      } else {
+        // For ANY other part type, flush the current text chunk first
+        if (currentTextChunk) {
+          processed.push({ type: 'text', content: currentTextChunk });
+          currentTextChunk = '';
+        }
+
+        if (part.type === 'data-operation') {
+          const { type } = part.data as any;
+
+          // Only add inline operations for non-top-level operations
+          const isTopLevelOperation = [
+            'agent_initializing',
+            'agent_ready',
+            'completion',
+            'error',
+          ].includes(type);
+
+          if (!isTopLevelOperation) {
+            // Add the inline operation
+            processed.push({ type: 'inline-operation', operation: part.data });
+          }
+        } else if (part.type === 'data-summary') {
+          // Handle data-summary events as inline operations
+          // Add the inline summary
+          processed.push({
+            type: 'inline-operation',
+            operation: { type: 'data-summary', ...part.data },
+          });
+        }
       }
     }
 
     // Add any remaining text
-    if (currentTextChunk.trim()) {
+    if (currentTextChunk) {
       processed.push({ type: 'text', content: currentTextChunk });
     }
 
@@ -220,7 +245,7 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
         } else if (part.type === 'inline-operation') {
           const isLast = inlineOpIndex === inlineOperations.length - 1;
           inlineOpIndex++;
-          return <InlineDataOperation key={index} operation={part.operation} isLast={isLast} />;
+          return <InlineEvent key={index} operation={part.operation} isLast={isLast} />;
         }
         return null;
       })}
@@ -396,42 +421,77 @@ export const IkpMessage: FC<IkpMessageProps> = ({
           )) && (
           <div>
             <div className="prose prose-sm max-w-none">
-              {/* Render the combined markdown with inline citations using StreamMarkdown */}
-              <StreamMarkdown parts={message.parts} />
+              {/* Render parts in their actual order - PROPERLY INTERLEAVED! */}
+              {(() => {
+                const groupedParts: any[] = [];
+                let currentTextGroup: any[] = [];
 
-              {/* Handle data-component parts that weren't processed in the hook */}
-              {message.parts
-                .filter((part) => part.type === 'data-component')
-                .map((part) => {
-                  const { type } = part.data;
-                  if (type === 'text') {
-                    return (
-                      <div key={`text-${part.id}`}>{renderMarkdown(part.data.text || '')}</div>
-                    );
+                // Group consecutive text parts AND artifacts together
+                for (let i = 0; i < message.parts.length; i++) {
+                  const part = message.parts[i];
+
+                  if (
+                    part.type === 'text' ||
+                    part.type === 'data-artifact' ||  // Include artifacts in text groups!
+                    (part.type === 'data-component' && part.data.type === 'text')
+                  ) {
+                    currentTextGroup.push(part);
+                  } else {
+                    // Non-text part - flush current text group and add the non-text part
+                    if (currentTextGroup.length > 0) {
+                      groupedParts.push({ type: 'text-group', parts: currentTextGroup });
+                      currentTextGroup = [];
+                    }
+                    groupedParts.push(part);
                   }
+                }
 
-                  // return <div key={key}>{renderComponent(part.data.name, part.data.props)}</div>;
-                  return (
-                    <div
-                      key={`component-${part.id}`}
-                      className="my-2 rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card overflow-hidden"
-                    >
-                      <div className="bg-gray-50 dark:bg-muted px-3 py-1.5 border-b border-gray-200 dark:border-border flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-blue-400" />
-                          <span className="text-xs font-medium text-gray-700 dark:text-foreground">
-                            Component: {part.data.name || 'Unnamed'}
-                          </span>
+                // Don't forget the last text group
+                if (currentTextGroup.length > 0) {
+                  groupedParts.push({ type: 'text-group', parts: currentTextGroup });
+                }
+
+                return groupedParts.map((group, index) => {
+                  if (group.type === 'text-group') {
+                    // Render all text parts in this group together
+                    return (
+                      <div key={`text-group-${index}`}>
+                        <StreamMarkdown parts={group.parts} />
+                      </div>
+                    );
+                  } else if (group.type === 'data-component') {
+                    // Regular data component - render as component box
+                    return (
+                      <div
+                        key={`component-${index}`}
+                        className="my-2 rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card overflow-hidden"
+                      >
+                        <div className="bg-gray-50 dark:bg-muted px-3 py-1.5 border-b border-gray-200 dark:border-border flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-blue-400" />
+                            <span className="text-xs font-medium text-gray-700 dark:text-foreground">
+                              Component: {group.data.name || 'Unnamed'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
+                            {JSON.stringify(group.data.props, null, 2)}
+                          </pre>
                         </div>
                       </div>
-                      <div className="p-3">
-                        <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
-                          {JSON.stringify(part.data, null, 2)}
-                        </pre>
+                    );
+                  } else if (group.type === 'data-operation') {
+                    // Handle inline operations in order
+                    return (
+                      <div key={`operation-${index}`}>
+                        <StreamMarkdown parts={[group]} />
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                  return null;
+                });
+              })()}
             </div>
 
             {/* Source badges */}

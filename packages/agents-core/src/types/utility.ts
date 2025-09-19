@@ -35,11 +35,18 @@ export type PaginationResult = {
   pages: number;
 };
 
-export type ScopeConfig = {
+export type ProjectScopeConfig = {
   tenantId: string;
   projectId: string;
 };
 
+export type GraphScopeConfig = ProjectScopeConfig & {
+  graphId: string;
+};
+
+export type AgentScopeConfig = GraphScopeConfig & {
+  agentId: string;
+};
 export interface ConversationScopeOptions {
   taskId?: string;
   agentId?: string;

@@ -22,6 +22,7 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import type { ContentItem, Message } from '../types/chat';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { errorOp } from '../utils/agent-operations';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -193,8 +194,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
     // Get the graph from the full graph system first, fall back to legacy system
     const fullGraph = await getFullGraph(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     let agentGraph: any;
@@ -215,8 +215,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     } else {
       // Fall back to legacy system
       agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {
         return c.json({ error: 'Agent graph not found' }, 404);
@@ -251,7 +250,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const agentId = activeAgent?.activeAgentId || defaultAgentId;
 
     const agentInfo = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       agentId: agentId as string,
     });
 
@@ -264,19 +263,20 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const credentialStores = c.get('credentialStores');
 
     // Context resolution with intelligent conversation state detection
-    await handleContextResolution(
+    await handleContextResolution({
       tenantId,
       projectId,
-      conversationId,
       graphId,
-      validatedContext,
+      conversationId,
+      requestContext: validatedContext,
       dbClient,
-      credentialStores
-    );
+      credentialStores,
+    });
 
     logger.info(
       {
         tenantId,
+        projectId,
         graphId,
         conversationId,
         defaultAgentId,
@@ -354,8 +354,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       if (!result.success) {
         // If execution failed and no error was already streamed, send a default error
-        await sseHelper.writeError(
-          'Sorry, I was unable to process your request at this time. Please try again.'
+        await sseHelper.writeOperation(
+          errorOp('Sorry, I was unable to process your request at this time. Please try again.', 'system')
         );
       }
 

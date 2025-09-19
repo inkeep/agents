@@ -5,8 +5,8 @@ import type {
   ExternalAgentInsert,
   ExternalAgentSelect,
   ExternalAgentUpdate,
+  GraphScopeConfig,
   PaginationConfig,
-  ScopeConfig,
 } from '../types/index';
 
 /**
@@ -25,10 +25,15 @@ export const createExternalAgent =
  */
 export const getExternalAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string }): Promise<ExternalAgentSelect | null> => {
+  async (params: {
+    scopes: GraphScopeConfig;
+    agentId: string;
+  }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
+        eq(externalAgents.projectId, params.scopes.projectId),
+        eq(externalAgents.graphId, params.scopes.graphId),
         eq(externalAgents.id, params.agentId)
       ),
     });
@@ -41,10 +46,15 @@ export const getExternalAgent =
  */
 export const getExternalAgentByUrl =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; baseUrl: string }): Promise<ExternalAgentSelect | null> => {
+  async (params: {
+    scopes: GraphScopeConfig;
+    baseUrl: string;
+  }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
+        eq(externalAgents.projectId, params.scopes.projectId),
+        eq(externalAgents.graphId, params.scopes.graphId),
         eq(externalAgents.baseUrl, params.baseUrl)
       ),
     });
@@ -57,9 +67,13 @@ export const getExternalAgentByUrl =
  */
 export const listExternalAgents =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<ExternalAgentSelect[]> => {
+  async (params: { scopes: GraphScopeConfig }): Promise<ExternalAgentSelect[]> => {
     return await db.query.externalAgents.findMany({
-      where: eq(externalAgents.tenantId, params.scopes.tenantId),
+      where: and(
+        eq(externalAgents.tenantId, params.scopes.tenantId),
+        eq(externalAgents.projectId, params.scopes.projectId),
+        eq(externalAgents.graphId, params.scopes.graphId)
+      ),
       orderBy: [asc(externalAgents.name)],
     });
   };
@@ -70,7 +84,7 @@ export const listExternalAgents =
 export const listExternalAgentsPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: GraphScopeConfig;
     pagination?: PaginationConfig;
   }): Promise<{
     data: ExternalAgentSelect[];
@@ -84,14 +98,26 @@ export const listExternalAgentsPaginated =
       db
         .select()
         .from(externalAgents)
-        .where(eq(externalAgents.tenantId, params.scopes.tenantId))
+        .where(
+          and(
+            eq(externalAgents.tenantId, params.scopes.tenantId),
+            eq(externalAgents.projectId, params.scopes.projectId),
+            eq(externalAgents.graphId, params.scopes.graphId)
+          )
+        )
         .limit(limit)
         .offset(offset)
         .orderBy(desc(externalAgents.createdAt)),
       db
         .select({ count: count() })
         .from(externalAgents)
-        .where(eq(externalAgents.tenantId, params.scopes.tenantId)),
+        .where(
+          and(
+            eq(externalAgents.tenantId, params.scopes.tenantId),
+            eq(externalAgents.projectId, params.scopes.projectId),
+            eq(externalAgents.graphId, params.scopes.graphId)
+          )
+        ),
     ]);
 
     const total =
@@ -112,7 +138,7 @@ export const listExternalAgentsPaginated =
 export const updateExternalAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: GraphScopeConfig;
     agentId: string;
     data: Partial<ExternalAgentUpdate>;
   }): Promise<ExternalAgentSelect | null> => {
@@ -143,6 +169,8 @@ export const updateExternalAgent =
       .where(
         and(
           eq(externalAgents.tenantId, params.scopes.tenantId),
+          eq(externalAgents.projectId, params.scopes.projectId),
+          eq(externalAgents.graphId, params.scopes.graphId),
           eq(externalAgents.id, params.agentId)
         )
       )
@@ -157,7 +185,11 @@ export const updateExternalAgent =
 export const upsertExternalAgent =
   (db: DatabaseClient) =>
   async (params: { data: ExternalAgentInsert }): Promise<ExternalAgentSelect> => {
-    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
+    const scopes = {
+      tenantId: params.data.tenantId,
+      projectId: params.data.projectId,
+      graphId: params.data.graphId,
+    };
 
     const existing = await getExternalAgent(db)({
       scopes,
@@ -192,13 +224,15 @@ export const upsertExternalAgent =
  */
 export const deleteExternalAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string }): Promise<boolean> => {
+  async (params: { scopes: GraphScopeConfig; agentId: string }): Promise<boolean> => {
     try {
       const result = await db
         .delete(externalAgents)
         .where(
           and(
             eq(externalAgents.tenantId, params.scopes.tenantId),
+            eq(externalAgents.projectId, params.scopes.projectId),
+            eq(externalAgents.graphId, params.scopes.graphId),
             eq(externalAgents.id, params.agentId)
           )
         )
@@ -216,7 +250,7 @@ export const deleteExternalAgent =
  */
 export const externalAgentExists =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string }): Promise<boolean> => {
+  async (params: { scopes: GraphScopeConfig; agentId: string }): Promise<boolean> => {
     const agent = await getExternalAgent(db)(params);
     return agent !== null;
   };
@@ -226,7 +260,7 @@ export const externalAgentExists =
  */
 export const externalAgentUrlExists =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; baseUrl: string }): Promise<boolean> => {
+  async (params: { scopes: GraphScopeConfig; baseUrl: string }): Promise<boolean> => {
     const agent = await getExternalAgentByUrl(db)(params);
     return agent !== null;
   };
@@ -236,11 +270,17 @@ export const externalAgentUrlExists =
  */
 export const countExternalAgents =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<number> => {
+  async (params: { scopes: GraphScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(externalAgents)
-      .where(eq(externalAgents.tenantId, params.scopes.tenantId));
+      .where(
+        and(
+          eq(externalAgents.tenantId, params.scopes.tenantId),
+          eq(externalAgents.projectId, params.scopes.projectId),
+          eq(externalAgents.graphId, params.scopes.graphId)
+        )
+      );
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;

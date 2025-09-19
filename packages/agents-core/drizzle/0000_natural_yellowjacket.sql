@@ -1,26 +1,26 @@
 CREATE TABLE `agent_artifact_components` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
-	`id` text NOT NULL,
+	`graph_id` text NOT NULL,
 	`agent_id` text NOT NULL,
+	`id` text NOT NULL,
 	`artifact_component_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`tenant_id`,`project_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
+	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `agent_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`graph_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`artifact_component_id`) REFERENCES `artifact_components`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agent_data_components` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
-	`id` text NOT NULL,
+	`graph_id` text NOT NULL,
 	`agent_id` text NOT NULL,
+	`id` text NOT NULL,
 	`data_component_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`tenant_id`,`project_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`graph_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`data_component_id`) REFERENCES `data_components`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -30,7 +30,7 @@ CREATE TABLE `agent_graph` (
 	`id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
-	`default_agent_id` text NOT NULL,
+	`default_agent_id` text,
 	`context_config_id` text,
 	`models` text,
 	`status_updates` text,
@@ -45,36 +45,37 @@ CREATE TABLE `agent_graph` (
 CREATE TABLE `agent_relations` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
-	`id` text NOT NULL,
 	`graph_id` text NOT NULL,
+	`id` text NOT NULL,
 	`source_agent_id` text NOT NULL,
 	`target_agent_id` text,
 	`external_agent_id` text,
 	`relation_type` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
+	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`) REFERENCES `agent_graph`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agent_tool_relations` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
-	`id` text NOT NULL,
+	`graph_id` text NOT NULL,
 	`agent_id` text NOT NULL,
+	`id` text NOT NULL,
 	`tool_id` text NOT NULL,
 	`selected_tools` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`tenant_id`,`project_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
+	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`graph_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`tool_id`) REFERENCES `tools`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `agents` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
+	`graph_id` text NOT NULL,
 	`id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
@@ -84,8 +85,8 @@ CREATE TABLE `agents` (
 	`stop_when` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
+	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`) REFERENCES `agent_graph`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `api_keys` (
@@ -199,6 +200,7 @@ CREATE TABLE `data_components` (
 CREATE TABLE `external_agents` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
+	`graph_id` text NOT NULL,
 	`id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
@@ -207,8 +209,8 @@ CREATE TABLE `external_agents` (
 	`headers` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
+	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `id`),
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`) REFERENCES `agent_graph`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`credential_reference_id`) REFERENCES `credential_references`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint

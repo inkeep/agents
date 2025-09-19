@@ -133,7 +133,7 @@ describe('API Key Authentication Middleware', () => {
 
       app.use('*', apiKeyAuth());
       app.get('/', (c) => {
-        const executionContext = c.get('executionContext');
+        const executionContext = (c as any).get('executionContext');
         return c.json(executionContext);
       });
 
@@ -193,7 +193,7 @@ describe('API Key Authentication Middleware', () => {
     it('should accept requests with valid bypass secret', async () => {
       app.use('*', apiKeyAuth());
       app.get('/', (c) => {
-        const executionContext = c.get('executionContext');
+        const executionContext = (c as any).get('executionContext');
         return c.json(executionContext);
       });
 
@@ -237,7 +237,7 @@ describe('API Key Authentication Middleware', () => {
 
       app.use('*', apiKeyAuth());
       app.get('/', (c) => {
-        const executionContext = c.get('executionContext');
+        const executionContext = (c as any).get('executionContext');
         return c.json(executionContext);
       });
 
@@ -304,7 +304,7 @@ describe('API Key Authentication Middleware', () => {
     it('should continue without auth when no header is present', async () => {
       app.use('*', optionalAuth());
       app.get('/', (c) => {
-        const executionContext = c.get('executionContext');
+        const executionContext = (c as any).get('executionContext');
         return c.json({ hasAuth: !!executionContext });
       });
 
@@ -335,7 +335,7 @@ describe('API Key Authentication Middleware', () => {
 
       app.use('*', optionalAuth());
       app.get('/', (c) => {
-        const executionContext = c.get('executionContext');
+        const executionContext = (c as any).get('executionContext');
         return c.json({
           hasAuth: !!executionContext,
           context: executionContext,

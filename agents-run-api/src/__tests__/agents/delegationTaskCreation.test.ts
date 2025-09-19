@@ -13,12 +13,28 @@ describe('Delegation Task Creation Fixes', () => {
     // Ensure project exists for this tenant
     await ensureTestProject(tenantId, projectId);
 
-    // Create test agents once since test environment uses in-memory database
+    // Import necessary modules
+    const { agentGraph } = await import('@inkeep/agents-core');
+
+    // Create a test graph first
+    const graphId = 'test-graph';
+    await dbClient.insert(agentGraph).values({
+      id: graphId,
+      tenantId: tenantId,
+      projectId: projectId,
+      name: 'Test Graph',
+      defaultAgentId: 'math-supervisor',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Create test agents with graphId
     await dbClient.insert(agents).values([
       {
         id: 'math-supervisor',
         tenantId: tenantId,
         projectId: projectId,
+        graphId: graphId,
         name: 'Math Supervisor',
         description: 'Supervises math operations',
         prompt: 'Handle math supervision tasks',
@@ -29,6 +45,7 @@ describe('Delegation Task Creation Fixes', () => {
         id: 'number-producer-a',
         tenantId: tenantId,
         projectId: projectId,
+        graphId: graphId,
         name: 'Number Producer A',
         description: 'Produces numbers for math operations',
         prompt: 'Generate numbers as needed',

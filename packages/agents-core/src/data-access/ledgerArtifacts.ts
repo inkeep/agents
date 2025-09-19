@@ -2,7 +2,7 @@ import { and, count, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { ledgerArtifacts } from '../db/schema';
-import type { Artifact, LedgerArtifactSelect, Part, ScopeConfig } from '../types/index';
+import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
 
 /**
  * Save one or more artifacts to the ledger
@@ -10,7 +10,7 @@ import type { Artifact, LedgerArtifactSelect, Part, ScopeConfig } from '../types
 export const addLedgerArtifacts =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     contextId: string;
     taskId?: string | null;
     artifacts: Artifact[];
@@ -56,7 +56,7 @@ export const addLedgerArtifacts =
 export const getLedgerArtifacts =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     taskId?: string;
     artifactId?: string;
   }): Promise<Artifact[]> => {
@@ -105,7 +105,10 @@ export const getLedgerArtifacts =
  */
 export const getLedgerArtifactsByContext =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; contextId: string }): Promise<LedgerArtifactSelect[]> => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    contextId: string;
+  }): Promise<LedgerArtifactSelect[]> => {
     return await db
       .select()
       .from(ledgerArtifacts)
@@ -123,7 +126,7 @@ export const getLedgerArtifactsByContext =
  */
 export const deleteLedgerArtifactsByTask =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; taskId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; taskId: string }): Promise<boolean> => {
     const result = await db
       .delete(ledgerArtifacts)
       .where(
@@ -143,7 +146,7 @@ export const deleteLedgerArtifactsByTask =
  */
 export const deleteLedgerArtifactsByContext =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; contextId: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; contextId: string }): Promise<boolean> => {
     const result = await db
       .delete(ledgerArtifacts)
       .where(
@@ -163,7 +166,7 @@ export const deleteLedgerArtifactsByContext =
  */
 export const countLedgerArtifactsByTask =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; taskId: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; taskId: string }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(ledgerArtifacts)

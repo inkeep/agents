@@ -23,17 +23,17 @@ const app = new OpenAPIHono();
 app.route('/projects', projectsRoutes);
 
 // Mount existing CRUD routes under project scope
-app.route('/projects/:projectId/agents', agentsRoutes);
-app.route('/projects/:projectId/agent-relations', agentRelationsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/agents', agentsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/agent-relations', agentRelationsRoutes);
 app.route('/projects/:projectId/agent-graphs', agentGraphRoutes);
-app.route('/projects/:projectId/agent-tool-relations', agentToolRelationsRoutes);
-app.route('/projects/:projectId/agent-artifact-components', agentArtifactComponentsRoutes);
-app.route('/projects/:projectId/agent-data-components', agentDataComponentsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/agent-tool-relations', agentToolRelationsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/agent-artifact-components', agentArtifactComponentsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/agent-data-components', agentDataComponentsRoutes);
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
-app.route('/projects/:projectId/external-agents', externalAgentsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/external-agents', externalAgentsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 

@@ -3,6 +3,7 @@ import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getLogger } from '@/lib/logger';
+import { DEFAULT_SIGNOZ_URL } from '@/lib/runtime-config/defaults';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -10,7 +11,7 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
-const SIGNOZ_URL = process.env.NEXT_PUBLIC_SIGNOZ_URL || 'http://localhost:3080';
+const SIGNOZ_URL = process.env.SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
 const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // Validation schema for the request body

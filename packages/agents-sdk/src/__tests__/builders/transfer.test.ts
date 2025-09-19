@@ -54,8 +54,8 @@ describe('transfer builder function', () => {
     const alwaysConfig = transfer(targetAgent, 'Always transfer', alwaysTransfer);
     const neverConfig = transfer(targetAgent, 'Never transfer', neverTransfer);
 
-    expect(alwaysConfig.condition?.()).toBe(true);
-    expect(neverConfig.condition?.()).toBe(false);
+    expect(alwaysConfig.condition?.({})).toBe(true);
+    expect(neverConfig.condition?.({})).toBe(false);
   });
 
   it('should handle context-based conditions', () => {

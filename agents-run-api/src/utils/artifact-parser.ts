@@ -16,7 +16,7 @@ export interface ArtifactData {
   taskId: string;
   name: string;
   description: string;
-  artifactType?: string;
+  type?: string; // Artifact type for consistency with summary events
   artifactSummary: any;
 }
 
@@ -86,7 +86,8 @@ export class ArtifactParser {
     // Check each match from the end to find an incomplete artifact
     for (let i = matches.length - 1; i >= 0; i--) {
       const match = matches[i];
-      const startIdx = match.index!;
+      if (match.index === undefined) continue;
+      const startIdx = match.index;
       const textAfterMatch = text.slice(startIdx);
 
       // If the text after this match doesn't contain a closing '/>', it's incomplete
@@ -147,7 +148,7 @@ export class ArtifactParser {
       taskId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
-      artifactType: artifact.metadata?.artifactType,
+      type: artifact.metadata?.artifactType || artifact.artifactType, // Map artifactType to type for consistency
       artifactSummary: artifact.parts?.[0]?.data?.summary || {},
     };
   }
@@ -168,12 +169,13 @@ export class ArtifactParser {
 
     for (const match of matches) {
       const [fullMatch, artifactId, taskId] = match;
-      const matchStart = match.index!;
+      if (match.index === undefined) continue;
+      const matchStart = match.index;
 
       // Add text before artifact
       if (matchStart > lastIndex) {
         const textBefore = text.slice(lastIndex, matchStart);
-        if (textBefore.trim()) {
+        if (textBefore) {
           parts.push({ kind: 'text', text: textBefore });
         }
       }
@@ -191,7 +193,7 @@ export class ArtifactParser {
     // Add remaining text
     if (lastIndex < text.length) {
       const remainingText = text.slice(lastIndex);
-      if (remainingText.trim()) {
+      if (remainingText) {
         parts.push({ kind: 'text', text: remainingText });
       }
     }

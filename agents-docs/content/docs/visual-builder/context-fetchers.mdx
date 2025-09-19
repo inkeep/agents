@@ -1,0 +1,105 @@
+---
+title: Context Fetchers
+sidebarTitle: Context Fetchers
+description: Learn how to use context fetchers to fetch data from external sources and make it available to your agents
+icon: "LuCirclePlus"
+---
+
+## Overview
+
+Context fetchers allow you to embed real-time data from external APIs into your agent prompts. Instead of hardcoding information in your agent prompt, context fetchers dynamically retrieve fresh data for each conversation.
+
+## Key Features
+
+- **Dynamic data retrieval**: Fetch real-time data from APIs.
+- **Dynamic Prompting**: Use dynamic data in your agent prompts
+- **Request context integration**: Use request-specific parameters to customize data fetching.
+- **Data transformation**: Transform API responses into the exact format your agent needs.
+
+## Context Fetchers vs Tools
+
+- **Context Fetchers**: Pre-populate agent prompts with dynamic data
+  - Run automatically before/during conversation startup
+  - Data becomes part of the agent's system prompt
+  - Perfect for: Personalized agent personas, dynamic agent guardrails
+  - Example Prompt: `You are an assistant for {{user.name}} and you work for {{user.organization}}`
+
+- **Tools**: Enable agents to take actions or fetch data during conversations
+  - Called by the agent when needed during the conversation
+  - Agent decides when and how to use them
+  - Example Tool Usage: Agent calls a "send_email" tool or "search_database" tool
+
+## Basic Usage
+
+1. Go to the Graphs tab in the left sidebar. Then click on the graph you want to configure.
+2. On the right pane scroll down to the "Context Variables" section.
+3. Add your context variables in JSON format.
+4. Click on the "Save" button.
+
+## Defining Context Variables
+
+The keys that you define in the Context Variables JSON object are used to reference fetched data in your agent prompts.
+Each key in the JSON should map to a fetch definition with the following properties:
+
+- **`id`** (required): Unique identifier for the fetch definition
+- **`name`** (optional): Human-readable name for the fetch definition
+- **`trigger`** (required): When to execute the fetch:
+  - `"initialization"`: Fetch only once when a conversation is started with the graph
+  - `"invocation"`: Fetch every time a request is made to the graph
+- **`fetchConfig`** (required): HTTP request configuration:
+  - **`url`** (required): The API endpoint URL (supports template variables)
+  - **`method`** (optional): HTTP method - `GET`, `POST`, `PUT`, `DELETE`, or `PATCH` (defaults to `GET`)
+  - **`headers`** (optional): Object with string key-value pairs for HTTP headers
+  - **`body`** (optional): Request body for POST/PUT/PATCH requests
+  - **`transform`** (optional): JSONPath expression or JavaScript transform function to extract specific data from the response
+  - **`timeout`** (optional): Request timeout in milliseconds (defaults to 10000)
+- **`responseSchema`** (optional): Valid JSON Schema object to validate the API response structure.
+- **`defaultValue`** (optional): Default value to use if the fetch fails or returns no data
+- **`credential`** (optional): Reference to stored credentials for authentication
+
+Here is an example of a valid Context Variables JSON object:
+```json
+{
+  "userInfo": {
+    "id": "user-info",
+    "name": "User Information",
+    "trigger": "initialization",
+    "fetchConfig": {
+      "url": "https://api.example.com/users/{{requestContext.user_id}}",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{requestContext.api_key}}"
+      },
+      "transform": "user"
+    },
+    "responseSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+    },
+    "defaultValue": "Unable to fetch user information"
+  }
+}
+```
+
+## Using Context Variables
+Once you have defined your context variables, you can use them in your agent prompts.
+1. Click on the agent you want to modify.
+2. In the "Prompt" section, you can embed fetched data in the prompt using the key defined in the "Context Variables" section. Reference them using double curly braces `{{}}`.
+
+Here is an example of an agent prompt using the context variable defined above:
+
+```
+You are a helpful assistant for {{userInfo.name}}.
+```
+
+# Related documentation
+
+- [Request Context](/visual-builder/request-context) - Learn how to pass dynamic context to your agents via HTTP headers

@@ -314,6 +314,26 @@ inkeep config list
 
 - `--config-file-path <path>` - Path to configuration file
 
+### `inkeep add`
+
+Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/templates).
+
+```bash
+inkeep add [template-name]
+```
+
+**Options:**
+
+- Pass no template name to list all available templates
+- `--target-path <path>` - Target path to add the template to
+
+**Examples:**
+
+```bash
+inkeep add weather-graph
+inkeep add weather-graph --target-path ./my-project-directory
+```
+
 ## Configuration File
 
 The CLI uses a configuration file (typically `inkeep.config.ts`) to store settings:

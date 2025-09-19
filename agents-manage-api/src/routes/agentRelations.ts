@@ -20,7 +20,8 @@ import {
   type Pagination,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectParamsSchema,
+  TenantProjectGraphParamsSchema,
+  TenantProjectGraphIdParamsSchema,
   updateAgentRelation,
   validateExternalAgent,
   validateInternalAgent,
@@ -39,7 +40,7 @@ app.openapi(
     operationId: 'list-agent-relations',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema.merge(AgentRelationQuerySchema),
     },
     responses: {
@@ -55,7 +56,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const {
       page = 1,
       limit = 10,
@@ -71,28 +72,28 @@ app.openapi(
 
       if (sourceAgentId) {
         const rawResult = await getAgentRelationsBySource(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           sourceAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else if (targetAgentId) {
         const rawResult = await getAgentRelationsByTarget(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           targetAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else if (externalAgentId) {
         const rawResult = await getExternalAgentRelations(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           externalAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else {
         const rawResult = await listAgentRelations(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
@@ -117,7 +118,7 @@ app.openapi(
     operationId: 'get-agent-relation-by-id',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
@@ -132,9 +133,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const agentRelation = (await getAgentRelationById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
     })) as AgentRelationApiSelect | null;
 
@@ -158,7 +159,7 @@ app.openapi(
     operationId: 'create-agent-relation',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectGraphParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -180,7 +181,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
+    const { tenantId, projectId, graphId } = c.req.valid('param');
     const body = await c.req.valid('json');
 
     // Determine if this is an external agent relationship
@@ -190,8 +191,7 @@ app.openapi(
     if (isExternalAgent && body.externalAgentId) {
       // Check if external agent exists
       const externalAgentExists = await validateExternalAgent(dbClient)({
-        scopes: { tenantId, projectId },
-        agentId: body.externalAgentId,
+        scopes: { tenantId, projectId, graphId, agentId: body.externalAgentId },
       });
       if (!externalAgentExists) {
         throw createApiError({
@@ -204,8 +204,7 @@ app.openapi(
     if (!isExternalAgent && body.targetAgentId) {
       // Check if internal agent exists
       const internalAgentExists = await validateInternalAgent(dbClient)({
-        scopes: { tenantId, projectId },
-        agentId: body.targetAgentId,
+        scopes: { tenantId, projectId, graphId, agentId: body.targetAgentId },
       });
       if (!internalAgentExists) {
         throw createApiError({
@@ -217,12 +216,12 @@ app.openapi(
 
     // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentRelations(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId: graphId },
       pagination: { page: 1, limit: 1000 },
     });
 
     const isDuplicate = existingRelations.data.some((relation) => {
-      if (relation.graphId !== body.graphId || relation.sourceAgentId !== body.sourceAgentId) {
+      if (relation.graphId !== graphId || relation.sourceAgentId !== body.sourceAgentId) {
         return false;
       }
 
@@ -243,7 +242,7 @@ app.openapi(
 
     // Create the relation with the correct data structure
     const relationData = {
-      graphId: body.graphId,
+      graphId: graphId,
       tenantId,
       id: nanoid(),
       projectId,
@@ -270,7 +269,7 @@ app.openapi(
     operationId: 'update-agent-relation',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -292,11 +291,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const body = await c.req.valid('json');
 
     const updatedAgentRelation = await updateAgentRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
       data: body,
     });
@@ -321,7 +320,7 @@ app.openapi(
     operationId: 'delete-agent-relation',
     tags: ['CRUD Agent Relations'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {
@@ -338,10 +337,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
+    const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
     const deleted = await deleteAgentRelation(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       relationId: id,
     });
 

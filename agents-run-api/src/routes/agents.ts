@@ -72,6 +72,7 @@ app.openapi(
     const executionContext = getRequestExecutionContext(c);
     const { tenantId, projectId, graphId, agentId } = executionContext;
 
+    console.dir('executionContext', executionContext);
     // If agentId is defined in execution context, run agent-level logic
     if (agentId) {
       logger.info(
@@ -179,8 +180,7 @@ app.post('/a2a', async (c: Context) => {
 
     // fetch the graph and the default agent
     const graph = await getAgentGraphWithDefaultAgent(dbClient)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
     if (!graph) {
@@ -191,6 +191,16 @@ app.post('/a2a', async (c: Context) => {
           id: null,
         },
         404
+      );
+    }
+    if (!graph.defaultAgentId) {
+      return c.json(
+        {
+          jsonrpc: '2.0',
+          error: { code: -32004, message: 'Graph does not have a default agent configured' },
+          id: null,
+        },
+        400
       );
     }
     executionContext.agentId = graph.defaultAgentId;

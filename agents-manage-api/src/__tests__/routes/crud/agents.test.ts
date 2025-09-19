@@ -8,24 +8,46 @@ import { createTestTenantId } from '../../utils/testTenant';
 describe('Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
+  // Helper function to create a test graph
+  const createTestGraph = async (tenantId: string) => {
+    const graphData = {
+      id: nanoid(),
+      name: `Test Graph ${nanoid()}`,
+      defaultAgentId: null,
+    };
+    const res = await makeRequest(
+      `/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`,
+      {
+        method: 'POST',
+        body: JSON.stringify(graphData),
+      }
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    return body.data.id;
+  };
+
   // Helper function to create test agent data
-  const createAgentData = ({ suffix = '' } = {}) => ({
+  const createAgentData = ({ suffix = '', graphId }: { suffix?: string; graphId: string }) => ({
     id: `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
     name: `Test Agent${suffix}`,
     description: `Test Description${suffix}`,
     prompt: `Test Instructions${suffix}`,
+    graphId,
   });
 
   // Helper function to create an agent and return its ID
   const createTestAgent = async ({
     tenantId,
+    graphId,
     suffix = '',
   }: {
     tenantId: string;
+    graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix });
-    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
+    const agentData = createAgentData({ suffix, graphId });
+    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`, {
       method: 'POST',
       body: JSON.stringify(agentData),
     });
@@ -36,10 +58,10 @@ describe('Agent CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create multiple agents
-  const createMultipleAgents = async ({ tenantId, count }: { tenantId: string; count: number }) => {
+  const createMultipleAgents = async ({ tenantId, graphId, count }: { tenantId: string; graphId: string; count: number }) => {
     const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
     for (let i = 1; i <= count; i++) {
-      const agent = await createTestAgent({ tenantId, suffix: ` ${i}` });
+      const agent = await createTestAgent({ tenantId, graphId, suffix: ` ${i}` });
       agents.push(agent);
     }
     return agents;
@@ -49,8 +71,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should list agents with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('agents-list-empty');
       await ensureTestProject(tenantId, 'default');
+      const graphId = await createTestGraph(tenantId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=1&limit=10`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -69,10 +92,11 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should list agents with pagination (single item)', async () => {
       const tenantId = createTestTenantId('agents-list-single');
       await ensureTestProject(tenantId, 'default');
-      const { agentData } = await createTestAgent({ tenantId });
+      const graphId = await createTestGraph(tenantId);
+      const { agentData } = await createTestAgent({ tenantId, graphId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=1&limit=10`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -95,11 +119,12 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should handle pagination with multiple pages (small page size)', async () => {
       const tenantId = createTestTenantId('agents-list-multipages');
       await ensureTestProject(tenantId, 'default');
-      const _agents = await createMultipleAgents({ tenantId, count: 5 });
+      const graphId = await createTestGraph(tenantId);
+      const _agents = await createMultipleAgents({ tenantId, graphId, count: 5 });
 
       // Test first page with limit 2
       const page1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=1&limit=2`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -114,7 +139,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=2&limit=2`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -129,7 +154,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Test third page (partial)
       const page3Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=3&limit=2`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
 
@@ -144,9 +169,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Verify all agents are unique across pages
       const allAgentIds = [
-        ...page1Body.data.map((a) => a.id),
-        ...page2Body.data.map((a) => a.id),
-        ...page3Body.data.map((a) => a.id),
+        ...page1Body.data.map((a: any) => a.id),
+        ...page2Body.data.map((a: any) => a.id),
+        ...page3Body.data.map((a: any) => a.id),
       ];
       expect(new Set(allAgentIds).size).toBe(5); // All should be unique
     });
@@ -154,11 +179,12 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should return empty data for page beyond available data', async () => {
       const tenantId = createTestTenantId('agents-list-beyond-pages');
       await ensureTestProject(tenantId, 'default');
-      await createMultipleAgents({ tenantId, count: 3 });
+      const graphId = await createTestGraph(tenantId);
+      await createMultipleAgents({ tenantId, graphId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=5&limit=2`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=5&limit=2`
       );
       expect(res.status).toBe(200);
 
@@ -175,11 +201,12 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should handle edge case with limit 1', async () => {
       const tenantId = createTestTenantId('agents-list-limit1');
       await ensureTestProject(tenantId, 'default');
-      const _agents = await createMultipleAgents({ tenantId, count: 3 });
+      const graphId = await createTestGraph(tenantId);
+      const _agents = await createMultipleAgents({ tenantId, graphId, count: 3 });
 
       // Test with limit 1 (each page should have exactly 1 item)
       const page1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=1&limit=1`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=1&limit=1`
       );
       expect(page1Res.status).toBe(200);
 
@@ -194,7 +221,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Test middle page
       const page2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=2&limit=1`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=2&limit=1`
       );
       expect(page2Res.status).toBe(200);
 
@@ -209,7 +236,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Test last page
       const page3Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=3&limit=1`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=3&limit=1`
       );
       expect(page3Res.status).toBe(200);
 
@@ -226,11 +253,12 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should handle large page size (larger than total items)', async () => {
       const tenantId = createTestTenantId('agents-list-large-limit');
       await ensureTestProject(tenantId, 'default');
-      const _agents = await createMultipleAgents({ tenantId, count: 3 });
+      const graphId = await createTestGraph(tenantId);
+      const _agents = await createMultipleAgents({ tenantId, graphId, count: 3 });
 
       // Request with limit 10 (larger than total)
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents?page=1&limit=10`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -249,10 +277,11 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should get an agent by id', async () => {
       const tenantId = createTestTenantId('agents-get-by-id');
       await ensureTestProject(tenantId, 'default');
-      const { agentData, agentId } = await createTestAgent({ tenantId });
+      const graphId = await createTestGraph(tenantId);
+      const { agentData, agentId } = await createTestAgent({ tenantId, graphId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/${agentId}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/${agentId}`
       );
       expect(res.status).toBe(200);
 
@@ -271,8 +300,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should return 404 when agent not found', async () => {
       const tenantId = createTestTenantId('agents-get-not-found');
       await ensureTestProject(tenantId, 'default');
+      const graphId = await createTestGraph(tenantId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/non-existent-id`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/non-existent-id`
       );
       expect(res.status).toBe(404);
 
@@ -292,8 +322,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
       const tenantId = createTestTenantId('agents-problem-details-404');
       await ensureTestProject(tenantId, 'default');
+      const graphId = await createTestGraph(tenantId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/non-existent-id`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/non-existent-id`
       );
       expect(res.status).toBe(404);
       expect(res.headers.get('content-type')).toMatch(/application\/problem\+json/);
@@ -316,9 +347,10 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should create a new agent', async () => {
       const tenantId = createTestTenantId('agents-create-success');
       await ensureTestProject(tenantId, 'default');
-      const agentData = createAgentData();
+      const graphId = await createTestGraph(tenantId);
+      const agentData = createAgentData({ graphId });
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
+      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`, {
         method: 'POST',
         body: JSON.stringify(agentData),
       });
@@ -339,10 +371,11 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should create a new agent with a provided id', async () => {
       const tenantId = createTestTenantId('agents-create-with-id');
       await ensureTestProject(tenantId, 'default');
-      const agentData = createAgentData();
+      const graphId = await createTestGraph(tenantId);
+      const agentData = createAgentData({ graphId });
       const providedId = nanoid();
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
+      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`, {
         method: 'POST',
         body: JSON.stringify({ ...agentData, id: providedId }),
       });
@@ -360,7 +393,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent can be fetched with the provided ID
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/${providedId}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/${providedId}`
       );
       expect(getRes.status).toBe(200);
       const getBody = await getRes.json();
@@ -370,7 +403,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('agents-create-validation');
       await ensureTestProject(tenantId, 'default');
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/agents`, {
+      const graphId = await createTestGraph(tenantId);
+      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents`, {
         method: 'POST',
         body: JSON.stringify({}),
       });
@@ -383,7 +417,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should update an existing agent', async () => {
       const tenantId = createTestTenantId('agents-update-success');
       await ensureTestProject(tenantId, 'default');
-      const { agentId } = await createTestAgent({ tenantId });
+      const graphId = await createTestGraph(tenantId);
+      const { agentId } = await createTestAgent({ tenantId, graphId });
 
       const updateData = {
         name: 'Updated Agent',
@@ -392,7 +427,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/${agentId}`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/${agentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -414,6 +449,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should return 404 when updating non-existent agent', async () => {
       const tenantId = createTestTenantId('agents-update-not-found');
       await ensureTestProject(tenantId, 'default');
+      const graphId = await createTestGraph(tenantId);
       const updateData = {
         name: 'Updated Agent',
         description: 'Updated Description',
@@ -421,7 +457,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/non-existent-id`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -436,10 +472,11 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should delete an existing agent', async () => {
       const tenantId = createTestTenantId('agents-delete-success');
       await ensureTestProject(tenantId, 'default');
-      const { agentId } = await createTestAgent({ tenantId });
+      const graphId = await createTestGraph(tenantId);
+      const { agentId } = await createTestAgent({ tenantId, graphId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/${agentId}`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/${agentId}`,
         {
           method: 'DELETE',
         }
@@ -449,7 +486,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent is deleted
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/${agentId}`
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/${agentId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -457,8 +494,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     it('should return 204 when deleting non-existent agent', async () => {
       const tenantId = createTestTenantId('agents-delete-not-found');
       await ensureTestProject(tenantId, 'default');
+      const graphId = await createTestGraph(tenantId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/agents/non-existent-id`,
+        `/tenants/${tenantId}/crud/projects/${projectId}/graphs/${graphId}/agents/non-existent-id`,
         {
           method: 'DELETE',
         }

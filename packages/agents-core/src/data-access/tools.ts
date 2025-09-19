@@ -3,10 +3,12 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { agentToolRelations, tools } from '../db/schema';
 import type {
+  AgentScopeConfig,
+  GraphScopeConfig,
   McpTool,
   McpToolStatus,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
   ToolInsert,
   ToolSelect,
   ToolUpdate,
@@ -45,7 +47,7 @@ export const dbResultToMcpTool = (dbResult: ToolSelect): McpTool => {
 };
 
 export const getToolById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; toolId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -58,7 +60,7 @@ export const getToolById =
 
 export const listTools =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -89,7 +91,7 @@ export const listTools =
   };
 
 export const getToolsByStatus =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; status: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; status: string }) => {
     return db
       .select()
       .from(tools)
@@ -103,7 +105,7 @@ export const getToolsByStatus =
   };
 
 export const listToolsByStatus =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; status: McpToolStatus }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; status: McpToolStatus }) => {
     const toolsList = await db.query.tools.findMany({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -132,7 +134,7 @@ export const createTool = (db: DatabaseClient) => async (params: ToolInsert) => 
 
 export const updateTool =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; toolId: string; data: ToolUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; toolId: string; data: ToolUpdate }) => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -154,7 +156,7 @@ export const updateTool =
   };
 
 export const deleteTool =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; toolId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
       .where(
@@ -172,7 +174,7 @@ export const deleteTool =
 export const addToolToAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: GraphScopeConfig;
     agentId: string;
     toolId: string;
     selectedTools?: string[] | null;
@@ -186,6 +188,7 @@ export const addToolToAgent =
         id,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
+        graphId: params.scopes.graphId,
         agentId: params.agentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
@@ -199,13 +202,14 @@ export const addToolToAgent =
 
 export const removeToolFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; agentId: string; toolId: string }) => {
+  async (params: { scopes: GraphScopeConfig; agentId: string; toolId: string }) => {
     const [deleted] = await db
       .delete(agentToolRelations)
       .where(
         and(
           eq(agentToolRelations.tenantId, params.scopes.tenantId),
           eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
           eq(agentToolRelations.agentId, params.agentId),
           eq(agentToolRelations.toolId, params.toolId)
         )
@@ -221,7 +225,7 @@ export const removeToolFromAgent =
 export const upsertAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: GraphScopeConfig;
     agentId: string;
     toolId: string;
     selectedTools?: string[] | null;
@@ -231,6 +235,7 @@ export const upsertAgentToolRelation =
       where: and(
         eq(agentToolRelations.tenantId, params.scopes.tenantId),
         eq(agentToolRelations.projectId, params.scopes.projectId),
+        eq(agentToolRelations.graphId, params.scopes.graphId),
         eq(agentToolRelations.agentId, params.agentId),
         eq(agentToolRelations.toolId, params.toolId)
       ),
@@ -255,7 +260,7 @@ export const upsertAgentToolRelation =
 export const updateToolStatus =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     toolId: string;
     status: string;
     lastHealthCheck?: string;
@@ -304,7 +309,7 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
 
 // Get healthy tools for agent execution
 export const getHealthyToolsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const healthyTools = await db
       .select({
         tool: tools,
@@ -313,12 +318,16 @@ export const getHealthyToolsForAgent =
       .innerJoin(
         agentToolRelations,
         and(
-          eq(tools.id, agentToolRelations.toolId),
-          eq(agentToolRelations.agentId, params.agentId),
-          eq(agentToolRelations.tenantId, params.scopes.tenantId)
+          eq(tools.tenantId, params.scopes.tenantId),
+          eq(tools.projectId, params.scopes.projectId),
+          eq(agentToolRelations.tenantId, params.scopes.tenantId),
+          eq(agentToolRelations.projectId, params.scopes.projectId),
+          eq(agentToolRelations.graphId, params.scopes.graphId),
+          eq(agentToolRelations.agentId, params.scopes.agentId),
+          eq(tools.id, agentToolRelations.toolId)
         )
       )
-      .where(and(eq(tools.tenantId, params.scopes.tenantId), eq(tools.status, 'healthy')));
+      .where(eq(tools.status, 'healthy'));
 
     return healthyTools.map((row) => row.tool);
   };

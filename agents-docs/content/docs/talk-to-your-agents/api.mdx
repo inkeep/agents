@@ -71,13 +71,16 @@ The response is an SSE stream of JSON events compatible with the Vercel AI SDK U
 
 ### Event Types
 
+#### Text Streaming Events
 - **`text-start`** — Indicates a new text segment is starting
-- **`text-delta`** — Carries the text content delta for the current segment
+- **`text-delta`** — Carries the text content delta for the current segment  
 - **`text-end`** — Marks the end of the current text segment
+
+#### Data Events
 - **`data-component`** — Structured UI data emitted by the agent (for rich UIs)
-- **`data-artifact`** — Artifact data emitted by tools/agents
-- **`data-operation`** — Operational events (status updates, completion, errors)
-- **`error`** — Error message emitted by the server/agent
+- **`data-artifact`** — Artifact data emitted by tools/agents (documents, files, saved results)
+- **`data-operation`** — Low-level operational events (agent lifecycle, completion, errors)
+- **`data-summary`** — AI-generated status updates with user-friendly labels and contextual details
 
 ### Example Stream (abbreviated)
 
@@ -88,25 +91,56 @@ data: {"type":"text-start","id":"1726247200-abc123"}
 
 data: {"type":"text-delta","id":"1726247200-abc123","delta":"Hello! I can help with..."}
 
+data: {"type":"data-summary","data":{"label":"Searching documentation","details":{"summary":"Looking for relevant information","progress":"25%"}}}
+
+data: {"type":"text-delta","id":"1726247200-abc123","delta":" analyzing your query..."}
+
 data: {"type":"text-end","id":"1726247200-abc123"}
 
-data: {"type":"data-operation","data":{"type":"status_update","ctx":{"summary":"Searched docs"}}}
+data: {"type":"data-operation","data":{"type":"completion","ctx":{"agent":"search-agent","iteration":1}}}
 
 data: {"type":"data-component","id":"1726247200-abc123-0","data":{"type":"customer-info","name":"Ada","email":"ada@example.com"}}
 
-data: {"type":"data-artifact","data":{"artifact_id":"art_abc","task_id":"task_xyz","summary":{}}}
+data: {"type":"data-artifact","data":{"artifact_id":"art_abc","task_id":"task_xyz","summary":{"title":"Search Results"}}}
 ```
 
-### Operation Events
+### Data Event Details
 
-`data-operation` events conform to an internal schema. Common types include:
+#### `data-operation` Events
+Low-level operational events with technical context. Common types include:
 
 - **`agent_initializing`** — The agent runtime is starting
-- **`agent_ready`** — Agent is ready
-- **`agent_thinking`** — Agent is processing
-- **`status_update`** — Progress update; may include `label` and structured `ctx` data
-- **`completion`** — The agent completed the task
+- **`agent_ready`** — Agent is ready and processing
+- **`completion`** — The agent completed the task (includes agent ID and iteration count)
 - **`error`** — Error information (also emitted as a top-level `error` event)
+
+```json
+{"type":"data-operation","data":{"type":"completion","ctx":{"agent":"search-agent","iteration":1}}}
+```
+
+#### `data-summary` Events  
+AI-generated status updates designed for end-user consumption. Structure:
+
+- **`label`** — User-friendly description (required)
+- **`details`** — Optional structured/unstructured context data
+
+```json
+{"type":"data-summary","data":{"label":"Processing search results","details":{"summary":"Found 12 relevant documents","itemsProcessed":12,"status":"analyzing"}}}
+```
+
+#### `data-artifact` Events
+Saved documents, files, or structured results from tool executions:
+
+```json
+{"type":"data-artifact","data":{"artifact_id":"art_123","task_id":"task_456","summary":{"title":"Weather Report","type":"document"}}}
+```
+
+#### `data-component` Events
+Structured UI data for rich interface components:
+
+```json
+{"type":"data-component","id":"comp_123","data":{"type":"chart","title":"Sales Data","chartData":[1,2,3]}}
+```
 
 ### Text Streaming Behavior
 
@@ -117,8 +151,20 @@ data: {"type":"data-artifact","data":{"artifact_id":"art_abc","task_id":"task_xy
 ## Error Responses
 
 ### Streamed Errors
+Errors are now delivered as `data-operation` events with unified structure:
+
 ```json
-{ "type": "error", "errorText": "<message>" }
+{
+  "type": "data-operation",
+  "data": {
+    "type": "error",
+    "message": "Error description",
+    "agent": "agent-id",
+    "severity": "error",
+    "code": "optional-error-code",
+    "timestamp": 1640995200000
+  }
+}
 ```
 
 ### Non-Streaming Errors

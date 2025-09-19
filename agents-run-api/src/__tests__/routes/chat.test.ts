@@ -108,6 +108,7 @@ vi.mock('../../utils/stream-helpers.js', () => ({
     writeError: vi.fn().mockResolvedValue(undefined),
     writeData: vi.fn().mockResolvedValue(undefined),
     writeOperation: vi.fn().mockResolvedValue(undefined),
+    writeSummary: vi.fn().mockResolvedValue(undefined),
     streamText: vi.fn().mockResolvedValue(undefined),
     streamData: vi.fn().mockResolvedValue(undefined),
   }),
@@ -150,14 +151,17 @@ describe('Chat Routes', () => {
     // Don't use clearAllMocks as it clears the initial vi.mock() setup
     // Instead, just reset the specific mocks we need
     const { getAgentGraphWithDefaultAgent } = await import('@inkeep/agents-core');
-    vi.mocked(getAgentGraphWithDefaultAgent).mockResolvedValue({
+    (vi.mocked(getAgentGraphWithDefaultAgent) as any).mockImplementation(async (params: any) => ({
       id: 'test-graph',
       name: 'Test Graph',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       description: 'Test graph description',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       contextConfigId: null,
+      models: null,
+      agents: null,
       defaultAgentId: 'default-agent',
       defaultAgent: {
         tenantId: 'test-tenant',
@@ -176,7 +180,7 @@ describe('Chat Routes', () => {
           includeInternal: false,
         },
       },
-    });
+    }));
 
     // Mock ExecutionHandler.prototype.execute like the working dataChat test
     vi.spyOn(execModule.ExecutionHandler.prototype, 'execute').mockImplementation(

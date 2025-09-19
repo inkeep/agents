@@ -1,7 +1,7 @@
 import {
-  DEFAULT_BASE_MODEL,
-  DEFAULT_STRUCTURED_OUTPUT_MODEL,
-  DEFAULT_SUMMARIZER_MODEL,
+  DEFAULT_ANTHROPIC_BASE_MODEL,
+  DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
+  DEFAULT_ANTHROPIC_SUMMARIZER_MODEL,
 } from '@/components/graph/configuration/model-options';
 import type { ProjectFormData } from './validation';
 
@@ -11,15 +11,15 @@ export const defaultValues: ProjectFormData = {
   description: '',
   models: {
     base: {
-      model: DEFAULT_BASE_MODEL,
+      model: DEFAULT_ANTHROPIC_BASE_MODEL,
       providerOptions: {},
     },
     structuredOutput: {
-      model: DEFAULT_STRUCTURED_OUTPUT_MODEL,
+      model: DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
       providerOptions: undefined,
     },
     summarizer: {
-      model: DEFAULT_SUMMARIZER_MODEL,
+      model: DEFAULT_ANTHROPIC_SUMMARIZER_MODEL,
       providerOptions: undefined,
     },
   },

@@ -3,7 +3,7 @@ import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   getAgentById,
-  getAgentGraph,
+  getAgentGraphById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getRelatedAgentsForGraph,
@@ -19,8 +19,8 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { Agent } from './Agent';
 import { resolveModelConfig } from '../utils/model-resolver';
+import { Agent } from './Agent';
 
 /** Turn any string value that is valid JSON into an object/array (in place). */
 export function parseEmbeddedJson<T>(data: T): T {
@@ -85,30 +85,33 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
           },
-          graphId: config.graphId,
           agentId: config.agentId,
         }),
         getToolsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
         }),
         getDataComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
         }),
         getArtifactComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
+            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
         }),
       ]);
 
@@ -121,14 +124,17 @@ export const createTaskHandler = (
         internalRelations.map(async (relation) => {
           try {
             const relatedAgent = await getAgentById(dbClient)({
-              scopes: { tenantId: config.tenantId, projectId: config.projectId },
+              scopes: {
+                tenantId: config.tenantId,
+                projectId: config.projectId,
+                graphId: config.graphId,
+              },
               agentId: relation.id,
             });
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
               const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
-                scopes: { tenantId: config.tenantId, projectId: config.projectId },
-                graphId: config.graphId,
+                scopes: { tenantId: config.tenantId, projectId: config.projectId, graphId: config.graphId },
                 agentId: relation.id,
               });
 
@@ -442,16 +448,17 @@ export const createTaskHandlerConfig = async (params: {
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
+      graphId: params.graphId,
     },
     agentId: params.agentId,
   });
 
-  const agentGraph = await getAgentGraph(dbClient)({
+  const agentGraph = await getAgentGraphById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
+      graphId: params.graphId,
     },
-    graphId: params.graphId,
   });
 
   if (!agent) {

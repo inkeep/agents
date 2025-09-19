@@ -82,7 +82,7 @@ docker compose up -d nango-server
 docker compose down
 
 # Remove Nango data (caution: this deletes all configurations and connections)
-docker volume rm agent-framework_nango_data
+docker volume rm docker_nango_data
 
 # Restart
 docker compose up -d
@@ -112,7 +112,7 @@ NANGO_SECRET_KEY="123abc..."
 ```bash
 # Nango Cloud configuration (server-side calls)
 NANGO_SECRET_KEY="123abc..."
-# Leave NEXT_PUBLIC_NANGO_HOST and NEXT_PUBLIC_NANGO_CONNECT_BASE_URL unset
+# Leave NANGO_HOST and NANGO_CONNECT_BASE_URL unset
 ```
 
 **Note:** When using Nango Cloud, omit the `NANGO_HOST` environment variables to automatically use the cloud endpoints.

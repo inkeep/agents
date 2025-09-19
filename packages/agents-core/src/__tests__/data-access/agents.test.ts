@@ -3,7 +3,6 @@ import {
   createAgent,
   deleteAgent,
   getAgentById,
-  getAgentInGraphContext,
   getAgentsByIds,
   listAgents,
   listAgentsPaginated,
@@ -16,6 +15,7 @@ describe('Agent Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
+  const testGraphId = 'test-graph';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -27,6 +27,7 @@ describe('Agent Data Access', () => {
         id: 'agent-1',
         tenantId: testTenantId,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Test Agent',
         description: 'A test agent',
         prompt: 'Test prompt',
@@ -62,6 +63,7 @@ describe('Agent Data Access', () => {
         id: customId,
         tenantId: testTenantId,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Custom Agent',
         description: 'Custom agent description',
         prompt: 'Custom prompt',
@@ -93,6 +95,7 @@ describe('Agent Data Access', () => {
         id: agentId,
         tenantId: testTenantId,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Test Agent',
         description: 'Test description',
         prompt: 'Test prompt',
@@ -113,6 +116,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId,
       });
@@ -137,6 +141,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId: 'non-existent',
       });
@@ -167,6 +172,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
       });
 
@@ -215,6 +221,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: { page: 1, limit: 5 },
       });
@@ -266,6 +273,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: {},
       });
@@ -313,6 +321,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         pagination: { limit: 200 }, // Request more than max
       });
@@ -353,6 +362,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId,
         data: updateData,
@@ -389,6 +399,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentId,
       });
@@ -404,6 +415,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentIds: [],
       });
@@ -433,81 +445,13 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         agentIds,
       });
 
       expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
-    });
-  });
-
-  describe('getAgentInGraphContext', () => {
-    it('should retrieve agent in graph context', async () => {
-      const agentId = 'agent-1';
-      const graphId = 'graph-1';
-      const expectedResult = [
-        {
-          id: agentId,
-          name: 'Test Agent',
-          description: 'Test description',
-          prompt: 'Test prompt',
-          tenantId: testTenantId,
-          graphId,
-          sourceAgentId: agentId,
-        },
-      ];
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          innerJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(expectedResult),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await getAgentInGraphContext(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-        },
-        graphId,
-        agentId,
-      });
-
-      expect(mockSelect).toHaveBeenCalled();
-      expect(result).toEqual(expectedResult);
-    });
-
-    it('should return empty array if agent not found in graph context', async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          innerJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await getAgentInGraphContext(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-        },
-        graphId: 'graph-1',
-        agentId: 'non-existent',
-      });
-
-      expect(result).toEqual([]);
     });
   });
 });

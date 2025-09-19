@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, like } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import {
@@ -13,42 +13,31 @@ import {
   tools,
 } from '../db/schema';
 import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities';
-import type { PaginationConfig, ScopeConfig } from '../types/utility';
+import type { GraphScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
 import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
 import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 
-export const getAgentGraph =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
-    return await db.query.agentGraph.findFirst({
-      where: and(
-        eq(agentGraph.tenantId, params.scopes.tenantId),
-        eq(agentGraph.projectId, params.scopes.projectId),
-        eq(agentGraph.id, params.graphId)
-      ),
-    });
-  };
-
 export const getAgentGraphById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
         eq(agentGraph.projectId, params.scopes.projectId),
-        eq(agentGraph.id, params.graphId)
+        eq(agentGraph.id, params.scopes.graphId)
       ),
     });
     return result ?? null;
   };
 
 export const getAgentGraphWithDefaultAgent =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
         eq(agentGraph.tenantId, params.scopes.tenantId),
         eq(agentGraph.projectId, params.scopes.projectId),
-        eq(agentGraph.id, params.graphId)
+        eq(agentGraph.id, params.scopes.graphId)
       ),
       with: {
         defaultAgent: true,
@@ -57,18 +46,19 @@ export const getAgentGraphWithDefaultAgent =
     return result ?? null;
   };
 
-export const listAgentGraphs = (db: DatabaseClient) => async (params: { scopes: ScopeConfig }) => {
-  return await db.query.agentGraph.findMany({
-    where: and(
-      eq(agentGraph.tenantId, params.scopes.tenantId),
-      eq(agentGraph.projectId, params.scopes.projectId)
-    ),
-  });
-};
+export const listAgentGraphs =
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
+    return await db.query.agentGraph.findMany({
+      where: and(
+        eq(agentGraph.tenantId, params.scopes.tenantId),
+        eq(agentGraph.projectId, params.scopes.projectId)
+      ),
+    });
+  };
 
 export const listAgentGraphsPaginated =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -134,8 +124,7 @@ export const createAgentGraph = (db: DatabaseClient) => async (data: AgentGraphI
 };
 
 export const updateAgentGraph =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId: string; data: AgentGraphUpdate }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; data: AgentGraphUpdate }) => {
     const data = params.data;
 
     // Handle model settings clearing - if empty object or no model field, set to null
@@ -187,7 +176,7 @@ export const updateAgentGraph =
         and(
           eq(agentGraph.tenantId, params.scopes.tenantId),
           eq(agentGraph.projectId, params.scopes.projectId),
-          eq(agentGraph.id, params.graphId)
+          eq(agentGraph.id, params.scopes.graphId)
         )
       )
       .returning();
@@ -196,14 +185,14 @@ export const updateAgentGraph =
   };
 
 export const deleteAgentGraph =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db
       .delete(agentGraph)
       .where(
         and(
           eq(agentGraph.tenantId, params.scopes.tenantId),
           eq(agentGraph.projectId, params.scopes.projectId),
-          eq(agentGraph.id, params.graphId)
+          eq(agentGraph.id, params.scopes.graphId)
         )
       )
       .returning();
@@ -217,7 +206,7 @@ export const deleteAgentGraph =
 export const fetchComponentRelationships =
   (db: DatabaseClient) =>
   async <T extends Record<string, any>>(
-    scopes: ScopeConfig,
+    scopes: ProjectScopeConfig,
     agentIds: string[],
     config: {
       relationTable: any;
@@ -257,15 +246,14 @@ export const getGraphAgentInfos =
     graphId,
     agentId,
   }: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     graphId: string;
     agentId: string;
   }) => {
     const { tenantId, projectId } = scopes;
     // First, verify that the graph exists
-    const graph = await getAgentGraph(db)({
-      scopes: { tenantId, projectId },
-      graphId,
+    const graph = await getAgentGraphById(db)({
+      scopes: { tenantId, projectId, graphId },
     });
     if (!graph) {
       throw new Error(`Agent graph with ID ${graphId} not found for tenant ${tenantId}`);
@@ -274,9 +262,7 @@ export const getGraphAgentInfos =
     // Get all relations for the agent within the tenant
     // For now, this works without graph-specific filtering until schema is properly updated
     const relations = await getAgentRelations(db)({
-      scopes: { tenantId, projectId },
-      graphId,
-      agentId,
+      scopes: { tenantId, projectId, graphId, agentId },
     });
     const targetAgentIds = relations
       .map((relation) => relation.targetAgentId)
@@ -291,7 +277,7 @@ export const getGraphAgentInfos =
     const agentInfos = await Promise.all(
       targetAgentIds.map(async (targetAgentId) => {
         const agent = await getAgentById(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           agentId: targetAgentId,
         });
         if (agent !== undefined) {
@@ -309,16 +295,13 @@ export const getGraphAgentInfos =
 export const getFullGraphDefinition =
   (db: DatabaseClient) =>
   async ({
-    scopes: { tenantId, projectId },
-    graphId,
+    scopes: { tenantId, projectId, graphId },
   }: {
-    scopes: ScopeConfig;
-    graphId: string;
+    scopes: GraphScopeConfig;
   }): Promise<FullGraphDefinition | null> => {
     // First, get the basic graph info
     const graph = await getAgentGraphById(db)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
     if (!graph) {
       return null;
@@ -327,64 +310,36 @@ export const getFullGraphDefinition =
     // Get all agents that are part of this graph through relations
     // First get all unique agent IDs in this graph (both source and target agents)
     const graphRelations = await getAgentRelationsByGraph(db)({
-      scopes: { tenantId, projectId },
-      graphId,
+      scopes: { tenantId, projectId, graphId },
     });
 
-    // Get unique agent IDs from multiple sources:
-    // 1. Default agent (always included)
-    // 2. Agents with relationships in this graph
-    // 3. Agents that have tools assigned to this graph
-    const internalAgentIds = new Set<string>();
-    const externalAgentIds = new Set<string>();
-    internalAgentIds.add(graph.defaultAgentId);
+    // Instead of collecting agent IDs from relationships and tools,
+    // we should directly query for agents that belong to this graph
+    // Agents are scoped to graphs via their graphId field
+    const graphAgents = await db.query.agents.findMany({
+      where: and(
+        eq(agents.tenantId, tenantId),
+        eq(agents.projectId, projectId),
+        eq(agents.graphId, graphId)
+      ),
+    });
 
-    // Add agents from relationships
+    // Get external agents referenced in relationships
+    const externalAgentIds = new Set<string>();
     for (const relation of graphRelations) {
-      // Add both source and target agents to the set
-      if (relation.sourceAgentId) {
-        internalAgentIds.add(relation.sourceAgentId);
-      }
-      if (relation.targetAgentId) {
-        internalAgentIds.add(relation.targetAgentId);
-      }
       if (relation.externalAgentId) {
         externalAgentIds.add(relation.externalAgentId);
       }
     }
 
-    // Add agents that have tools associated with this graph
-    // This is crucial for graphs where agents don't have relationships but do have tools
-    const agentsWithTools = await db
-      .selectDistinct({ agentId: agentToolRelations.agentId })
-      .from(agentToolRelations)
-      .innerJoin(tools, eq(agentToolRelations.toolId, tools.id))
-      .where(
-        and(
-          eq(agentToolRelations.tenantId, tenantId),
-          eq(agentToolRelations.projectId, projectId),
-          // We need to find tools that belong to this graph
-          // Tools created as part of a graph have IDs that include the graph ID
-          like(tools.id, `%${graphId}%`)
-        )
-      );
-
-    for (const agentTool of agentsWithTools) {
-      internalAgentIds.add(agentTool.agentId);
-    }
-
-    // Get full agent details for all agents in the graph
-    const graphAgents = await Promise.all(
-      Array.from(internalAgentIds).map(async (agentId) => {
-        const agent = await getAgentById(db)({
-          scopes: { tenantId, projectId },
-          agentId,
-        });
+    // Process internal agents from the graph
+    const processedAgents = await Promise.all(
+      graphAgents.map(async (agent) => {
         if (!agent) return null;
 
         // Get relationships for this agent
         const agentRelationsList = graphRelations.filter(
-          (relation) => relation.sourceAgentId === agentId
+          (relation) => relation.sourceAgentId === agent.id
         );
 
         // Group relationships by type
@@ -416,14 +371,14 @@ export const getFullGraphDefinition =
           .from(agentToolRelations)
           .innerJoin(tools, eq(agentToolRelations.toolId, tools.id))
           .where(
-            and(eq(agentToolRelations.tenantId, tenantId), eq(agentToolRelations.agentId, agentId))
+            and(eq(agentToolRelations.tenantId, tenantId), eq(agentToolRelations.agentId, agent.id))
           );
 
         // Get dataComponents for this agent
         const agentDataComponentRelations = await db.query.agentDataComponents.findMany({
           where: and(
             eq(agentDataComponents.tenantId, tenantId),
-            eq(agentDataComponents.agentId, agentId)
+            eq(agentDataComponents.agentId, agent.id)
           ),
         });
         const agentDataComponentIds = agentDataComponentRelations.map((rel) => rel.dataComponentId);
@@ -432,7 +387,7 @@ export const getFullGraphDefinition =
         const agentArtifactComponentRelations = await db.query.agentArtifactComponents.findMany({
           where: and(
             eq(agentArtifactComponents.tenantId, tenantId),
-            eq(agentArtifactComponents.agentId, agentId)
+            eq(agentArtifactComponents.agentId, agent.id)
           ),
         });
         const agentArtifactComponentIds = agentArtifactComponentRelations.map(
@@ -485,7 +440,7 @@ export const getFullGraphDefinition =
     const externalAgents = await Promise.all(
       Array.from(externalAgentIds).map(async (agentId) => {
         const agent = await getExternalAgent(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           agentId,
         });
         if (!agent) return null;
@@ -501,7 +456,7 @@ export const getFullGraphDefinition =
     );
 
     // Filter out null results
-    const validAgents = [...graphAgents, ...externalAgents].filter(
+    const validAgents = [...processedAgents, ...externalAgents].filter(
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
 
@@ -560,6 +515,8 @@ export const getFullGraphDefinition =
     // Get dataComponents for all agents in this graph
     let dataComponentsObject: Record<string, any> = {};
     try {
+      // Collect all internal agent IDs from the graph
+      const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
       dataComponentsObject = await fetchComponentRelationships(db)(
@@ -586,6 +543,8 @@ export const getFullGraphDefinition =
     // Get artifactComponents for all agents in this graph
     let artifactComponentsObject: Record<string, any> = {};
     try {
+      // Collect all internal agent IDs from the graph
+      const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
       artifactComponentsObject = await fetchComponentRelationships(db)(
@@ -740,19 +699,17 @@ export const getFullGraphDefinition =
 export const upsertAgentGraph =
   (db: DatabaseClient) =>
   async (params: { data: AgentGraphInsert }): Promise<any> => {
-    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
     const graphId = params.data.id || nanoid();
+    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId, graphId };
 
     const existing = await getAgentGraphById(db)({
       scopes,
-      graphId,
     });
 
     if (existing) {
       // Update existing agent graph
       return await updateAgentGraph(db)({
         scopes,
-        graphId,
         data: {
           name: params.data.name,
           defaultAgentId: params.data.defaultAgentId,

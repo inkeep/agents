@@ -1,5 +1,24 @@
 # @inkeep/agents-manage-ui
 
+## 0.2.2
+
+### Patch Changes
+
+- f939754: Update env variables
+- Updated dependencies [d445559]
+  - @inkeep/agents-core@0.2.2
+  - @inkeep/agents-manage-api@0.2.2
+  - @inkeep/agents-run-api@0.2.2
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [eb2c5f0]
+  - @inkeep/agents-run-api@0.2.1
+  - @inkeep/agents-manage-api@0.2.1
+  - @inkeep/agents-core@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes

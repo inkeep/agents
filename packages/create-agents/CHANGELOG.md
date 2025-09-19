@@ -1,5 +1,17 @@
 # @inkeep/create-agents
 
+## 0.2.2
+
+### Patch Changes
+
+- f939754: Update env variables
+
+## 0.2.1
+
+### Patch Changes
+
+- 56bb5ec: Inkeep add command
+
 ## 0.2.0
 
 ### Minor Changes

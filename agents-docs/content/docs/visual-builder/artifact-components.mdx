@@ -41,9 +41,9 @@ const researchAgent = agent({
   name: "Research Agent",
   prompt: "You are a research agent that can generate artifact names and descriptions",
   models: {
-    base: { model: "claude-4-sonnet" },
+    base: { model: "claude-sonnet-4" },
     summarizer: {
-      model: "gpt-4o-mini", // This model generates artifact names/descriptions
+      model: "gpt-4.1-mini", // This model generates artifact names/descriptions
       providerOptions: {
         temperature: 0.2, // Lower temperature for consistent naming
         maxTokens: 512,
@@ -64,5 +64,5 @@ Artifact generation follows the same model inheritance rules:
 ### Best Practices
 
 - **Consistent Models**: Use the same summarizer model across related agents for consistent artifact naming
-- **Appropriate Models**: Choose models good at summarization (GPT-4o-mini, Claude-3-Haiku work well)
+- **Appropriate Models**: Choose models good at summarization (GPT-4o-mini, claude-3.5-haiku work well)
 - **Temperature Settings**: Lower temperatures (0.1-0.3) provide more consistent naming patterns

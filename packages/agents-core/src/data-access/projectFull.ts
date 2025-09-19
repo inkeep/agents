@@ -6,7 +6,7 @@
 
 import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect } from '../types/entities';
-import type { ScopeConfig } from '../types/utility';
+import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
@@ -26,11 +26,6 @@ const defaultLogger = getLogger('projectFull');
 
 export type ProjectLogger = ReturnType<typeof getLogger>;
 
-export interface ProjectScopeConfig {
-  tenantId: string;
-  projectId?: string;
-}
-
 /**
  * Validate and type the project data
  */
@@ -46,7 +41,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
 export const createFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (
-    scopes: ScopeConfig,
+    scopes: ProjectScopeConfig,
     projectData: FullProjectDefinition
   ): Promise<FullProjectDefinition> => {
     const { tenantId } = scopes;
@@ -364,7 +359,6 @@ export const createFullProjectServerSide =
         logger
       )({
         scopes: { tenantId, projectId: typed.id },
-        projectId: typed.id,
       })) as FullProjectDefinition;
     } catch (error) {
       logger.error(
@@ -386,7 +380,7 @@ export const createFullProjectServerSide =
 export const updateFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (
-    scopes: ScopeConfig,
+    scopes: ProjectScopeConfig,
     projectData: FullProjectDefinition
   ): Promise<FullProjectDefinition> => {
     const { tenantId } = scopes;
@@ -721,7 +715,6 @@ export const updateFullProjectServerSide =
         logger
       )({
         scopes: { tenantId, projectId: typed.id },
-        projectId: typed.id,
       })) as FullProjectDefinition;
     } catch (error) {
       logger.error(
@@ -741,12 +734,9 @@ export const updateFullProjectServerSide =
  */
 export const getFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: {
-    scopes: ScopeConfig;
-    projectId: string;
-  }): Promise<FullProjectDefinition | null> => {
-    const { scopes, projectId } = params;
-    const { tenantId } = scopes;
+  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectDefinition | null> => {
+    const { scopes } = params;
+    const { tenantId, projectId } = scopes;
 
     logger.info({ tenantId, projectId }, 'Retrieving full project definition');
 
@@ -932,20 +922,12 @@ export const getFullProject =
             );
 
             const fullGraph = await getFullGraph(db)({
-              scopes: { tenantId, projectId },
-              graphId: graph.id,
+              scopes: { tenantId, projectId, graphId: graph.id },
             });
 
             if (fullGraph) {
               // Remove project-level resources from graph as they should be at project level
-              const {
-                tools: _tools,
-                dataComponents: _dataComponents,
-                artifactComponents: _artifactComponents,
-                contextConfig: _contextConfig,
-                credentialReferences: _credentialReferences,
-                ...graphWithoutProjectResources
-              } = fullGraph;
+              const { contextConfig: _contextConfig, ...graphWithoutProjectResources } = fullGraph;
               graphs[graph.id] = graphWithoutProjectResources;
               logger.info(
                 { tenantId, projectId, graphId: graph.id },
@@ -1010,9 +992,9 @@ export const getFullProject =
  */
 export const deleteFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ScopeConfig; projectId: string }): Promise<boolean> => {
-    const { scopes, projectId } = params;
-    const { tenantId } = scopes;
+  async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
+    const { scopes } = params;
+    const { tenantId, projectId } = scopes;
 
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
@@ -1023,7 +1005,6 @@ export const deleteFullProject =
         logger
       )({
         scopes: { tenantId, projectId },
-        projectId,
       });
 
       if (!project) {
@@ -1050,8 +1031,7 @@ export const deleteFullProject =
               db,
               logger
             )({
-              scopes: { tenantId, projectId },
-              graphId,
+              scopes: { tenantId, projectId, graphId },
             });
 
             logger.info(

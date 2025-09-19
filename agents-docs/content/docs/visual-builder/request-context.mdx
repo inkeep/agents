@@ -1,0 +1,61 @@
+---
+title: Request Context
+sidebarTitle: Request Context
+description: Pass dynamic context to your agents via HTTP headers for personalized interactions
+icon: LuBoxes
+keywords: request context, headers, context fetchers, prompt variables, personalization
+---
+
+
+## Overview
+
+Request context allows you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent graph at runtime via HTTP headers. These values are validated and made available throughout your agent system for:
+
+- **Context Fetchers**: Dynamic data retrieval based on request values
+- **External Tools**: Authentication and personalization for API calls
+- **Agent Prompts**: Personalized responses using context variables
+
+## Configuring Request Context
+
+1. Go to the Graphs tab in the left sidebar. Then click on the graph you want to configure.
+2. On the right pane scroll down to the "Request context schema" section.
+3. Enter the schema in JSON Schema format.
+4. Click on the "Save" button.
+
+Here is an example of a valid request context schema:
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "userId"
+  ],
+  "additionalProperties": {}
+}
+```
+
+You can generate custom schemas using this [JSON Schema generator](https://transform.tools/json-to-json-schema).
+
+## Sending Custom Headers
+
+1. On your graph page, click on the "Try it" button in the top right corner.
+2. Click on the "Custom headers" button in the top right corner.
+3. Enter the custom headers in JSON format.
+4. Click on the "Apply" button.
+
+## Using Request Context in Your Agent Prompts
+
+1. Go to the Graphs tab in the left sidebar. Then click on the graph you want to configure.
+2. Either add a new agent or edit an existing agent by clicking on the agent you want to edit.
+3. On the right pane scroll down to the "Prompt" section.
+4. Use the double curly braces `{{}}` to reference the request context variables.
+
+Here is an example of a valid prompt:
+```text
+You are a helpful assistant for {{requestContext.userId}}!.
+```

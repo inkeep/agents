@@ -242,22 +242,22 @@ statusUpdates: {
 
 ## Frontend Integration
 
-Status updates arrive as `data-operation` parts with `type: 'status_update'`:
+Status updates arrive as `data-summary` events with AI-generated labels and contextual details:
 
 ```typescript
 // In your message processing
 message.parts.forEach((part) => {
-  if (part.type === "data-operation" && part.data.type === "status_update") {
-    const { summary, components } = part.data.ctx;
+  if (part.type === "data-summary") {
+    const { label, details } = part.data;
 
-    // Display the status update
-    displayStatusUpdate(summary);
+    // Display the user-friendly status label
+    displayStatusUpdate(label);
 
-    // Handle structured components if present
-    if (components) {
-      components.forEach((component) => {
-        displayStructuredStatus(component);
-      });
+    // Handle optional structured details
+    if (details) {
+      // Unstructured summary text
+      // Any structured data (progress, counts, etc.)
+      displayStructuredDetails(details);
     }
   }
 });

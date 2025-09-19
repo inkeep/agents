@@ -61,7 +61,7 @@ Define default models at the project level that all graphs and agents will inher
   name: "My AI Project",
   models: {
     base: {
-      model: "anthropic/claude-4-sonnet-20250514",
+      model: "anthropic/claude-sonnet-4-20250514",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 4096
@@ -117,27 +117,27 @@ Each model type (`base`, `structuredOutput`, `summarizer`) cascades independentl
 // Project Level - Sets defaults for all graphs
 Project: {
   models: {
-    base: { model: "claude-4-sonnet" },
-    structuredOutput: { model: "gpt-4o-mini" },
-    summarizer: { model: "gpt-4o-mini" }
+    base: { model: "claude-sonnet-4" },
+    structuredOutput: { model: "gpt-4.1-mini" },
+    summarizer: { model: "gpt-4.1-mini" }
   }
 }
 
 // Graph Level - Partially overrides project defaults
 Graph: {
   models: {
-    base: { model: "gpt-4o" }  // Override: use different base model
-    // structuredOutput: INHERITED from project (gpt-4o-mini)
-    // summarizer: INHERITED from project (gpt-4o-mini)
+    base: { model: "gpt-4.1" }  // Override: use different base model
+    // structuredOutput: INHERITED from project (gpt-4.1-mini)
+    // summarizer: INHERITED from project (gpt-4.1-mini)
   }
 }
 
 // Agent Level - Can override any inherited model
 Agent: {
   models: {
-    summarizer: { model: "claude-3-haiku" }  // Override: use faster summarizer
-    // base: INHERITED from graph (gpt-4o)
-    // structuredOutput: INHERITED from project (gpt-4o-mini)
+    summarizer: { model: "claude-3.5-haiku" }  // Override: use faster summarizer
+    // base: INHERITED from graph (gpt-4.1)
+    // structuredOutput: INHERITED from project (gpt-4.1-mini)
   }
 }
 ```
@@ -146,9 +146,9 @@ Agent: {
 
 In the above example, the agent ends up with:
 
-- **base**: `gpt-4o` (from graph)
-- **structuredOutput**: `gpt-4o-mini` (from project)
-- **summarizer**: `claude-3-haiku` (from agent)
+- **base**: `gpt-4.1` (from graph)
+- **structuredOutput**: `gpt-4.1-mini` (from project)
+- **summarizer**: `claude-3.5-haiku` (from agent)
 
 #### Provider Options Override
 
@@ -159,7 +159,7 @@ When a model is overridden at any level, the entire configuration (including pro
 Project: {
   models: {
     base: {
-      model: "claude-4-sonnet",
+      model: "claude-sonnet-4",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 4096
@@ -172,7 +172,7 @@ Project: {
 Agent: {
   models: {
     base: {
-      model: "claude-4-sonnet", // Same model
+      model: "claude-sonnet-4", // Same model
       providerOptions: {
         temperature: 0.3,  // New temperature
         maxTokens: 2048    // New maxTokens - project maxTokens is NOT inherited
@@ -188,16 +188,13 @@ Agent: {
 
 #### System Defaults
 
-When no model settings are configured at any level (project, graph, or agent), the system uses these defaults:
+**Supported Providers**: The framework supports Anthropic, OpenAI, and Google models.
 
-- **Default base model**: `anthropic/claude-4-sonnet-20250514`
-- **Default structured output model**: `openai/gpt-4.1-mini-2025-04-14`
-- **Default summarizer model**: `openai/gpt-4.1-nano-2025-04-14`
+**API Keys**: You need the appropriate API key for the provider you choose to use:
 
-**Required API Keys**: For the system defaults to work properly, you need both:
-
-- `ANTHROPIC_API_KEY` (for the base model)
-- `OPENAI_API_KEY` (for structured output and summarizer models)
+- `ANTHROPIC_API_KEY` for Anthropic models
+- `OPENAI_API_KEY` for OpenAI models  
+- `GOOGLE_GENERATIVE_AI_API_KEY` for Google models
 
 ```typescript
 // No higher-level defaults - fallback to base occurs
@@ -212,7 +209,7 @@ Graph: {
 Agent: {
   models: {
     base: {
-      model: "gpt-4o",
+      model: "gpt-4.1-2025-04-14",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 2048
@@ -225,9 +222,9 @@ Agent: {
 
 **Final Resolution with Fallback:**
 
-- **base**: `gpt-4o` with specified provider options (from agent)
-- **structuredOutput**: `gpt-4o` with same provider options (falls back to agent's base)
-- **summarizer**: `gpt-4o` with same provider options (falls back to agent's base)
+- **base**: `gpt-4.1-2025-04-14` with specified provider options (from agent)
+- **structuredOutput**: `gpt-4.1-2025-04-14` with same provider options (falls back to agent's base)
+- **summarizer**: `gpt-4.1-2025-04-14` with same provider options (falls back to agent's base)
 
 **Contrast with Inheritance:**
 
@@ -236,7 +233,7 @@ Agent: {
 Project: {
   models: {
     summarizer: {
-      model: "gpt-4o-mini";
+      model: "gpt-4.1-mini-2025-04-14";
     }
   }
 }
@@ -244,7 +241,7 @@ Project: {
 Agent: {
   models: {
     base: {
-      model: "gpt-4o";
+      model: "gpt-4.1-2025-04-14";
     }
   }
 }
@@ -252,9 +249,9 @@ Agent: {
 
 **Final Resolution with Inheritance:**
 
-- **base**: `gpt-4o` (from agent)
-- **summarizer**: `gpt-4o-mini` (inherited from project - NO fallback to agent's base)
-- **structuredOutput**: Falls back to agent's base `gpt-4o` (no inheritance available, so fallback occurs)
+- **base**: `gpt-4.1-2025-04-14` (from agent)
+- **summarizer**: `gpt-4.1-mini-2025-04-14` (inherited from project - NO fallback to agent's base)
+- **structuredOutput**: Falls back to agent's base `gpt-4.1-2025-04-14` (no inheritance available, so fallback occurs)
 
 ### StopWhen Inheritance
 

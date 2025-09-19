@@ -222,10 +222,9 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
       }),
     ])
   ),
-  tools: z.record(z.string(), ToolApiInsertSchema),
-  credentialReferences: z.array(CredentialReferenceApiInsertSchema).optional(),
-  dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
-  artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
+  // Removed project-scoped resources - these are now managed at project level:
+  // tools, credentialReferences, dataComponents, artifactComponents
+  // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({

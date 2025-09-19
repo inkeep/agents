@@ -104,7 +104,7 @@ vi.mock('../../a2a/client.js', () => ({
     getAgentCard: vi.fn().mockResolvedValue({
       capabilities: { streaming: true },
     }),
-  })),
+  } as any)),
 }));
 
 vi.mock('../../a2a/transfer.js', () => ({
@@ -194,6 +194,7 @@ describe('Integration Tests', () => {
       // Create mock StreamHelper
       mockStreamHelper = {
         writeOperation: vi.fn().mockResolvedValue(undefined),
+        writeSummary: vi.fn().mockResolvedValue(undefined),
         writeData: vi.fn().mockResolvedValue(undefined),
         streamText: vi.fn().mockResolvedValue(undefined),
         writeError: vi.fn().mockResolvedValue(undefined),
@@ -272,7 +273,7 @@ describe('Integration Tests', () => {
       vi.mocked(A2AClient).mockImplementation(() => ({
         sendMessage: mockSendMessage,
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       // Mock transfer detection
       const { isTransferResponse } = await import('../../a2a/transfer.js');
@@ -322,7 +323,7 @@ describe('Integration Tests', () => {
       vi.mocked(A2AClient).mockImplementation(() => ({
         sendMessage: mockSendMessage,
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -382,7 +383,7 @@ describe('Integration Tests', () => {
           },
         }),
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -413,7 +414,7 @@ describe('Integration Tests', () => {
       vi.mocked(A2AClient).mockImplementation(() => ({
         sendMessage: vi.fn().mockRejectedValue(new Error('Agent communication failed')),
         getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      }));
+      } as any));
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -431,9 +432,12 @@ describe('Integration Tests', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Agent communication failed');
 
-      // Verify error was streamed to client
-      expect(mockStreamHelper.writeError).toHaveBeenCalledWith(
-        expect.stringContaining('Agent communication failed')
+      // Verify error was streamed to client via operation event
+      expect(mockStreamHelper.writeOperation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'error',
+          message: expect.stringContaining('Agent communication failed')
+        })
       );
 
       // Verify task was marked as failed

@@ -6,7 +6,7 @@ import type {
   CredentialReferenceSelect,
   CredentialReferenceUpdate,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
   ToolSelect,
 } from '../types/index';
 
@@ -18,7 +18,7 @@ export type CredentialReferenceWithTools = CredentialReferenceSelect & { tools: 
 export const getCredentialReference =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     id: string;
   }): Promise<CredentialReferenceSelect | undefined> => {
     return await db.query.credentialReferences.findFirst({
@@ -36,7 +36,7 @@ export const getCredentialReference =
 export const getCredentialReferenceWithTools =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     id: string;
   }): Promise<CredentialReferenceWithTools | undefined> => {
     const [credential, relatedTools] = await Promise.all([
@@ -74,7 +74,7 @@ export const getCredentialReferenceWithTools =
  */
 export const listCredentialReferences =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<CredentialReferenceSelect[]> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
     return await db.query.credentialReferences.findMany({
       where: and(
         eq(credentialReferences.tenantId, params.scopes.tenantId),
@@ -90,7 +90,7 @@ export const listCredentialReferences =
 export const listCredentialReferencesPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
   }): Promise<{
     data: CredentialReferenceSelect[];
@@ -151,7 +151,7 @@ export const createCredentialReference =
 export const updateCredentialReference =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     id: string;
     data: Partial<CredentialReferenceUpdate>;
   }): Promise<CredentialReferenceWithTools | undefined> => {
@@ -182,7 +182,7 @@ export const updateCredentialReference =
  */
 export const deleteCredentialReference =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     // First check if the credential reference exists
     const existingCredential = await getCredentialReference(db)({
       scopes: params.scopes,
@@ -218,7 +218,7 @@ export const deleteCredentialReference =
  */
 export const hasCredentialReference =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const credential = await getCredentialReference(db)(params);
     return credential !== null;
   };
@@ -229,7 +229,7 @@ export const hasCredentialReference =
 export const getCredentialReferenceById =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     id: string;
   }): Promise<CredentialReferenceSelect | null> => {
     const result = await db.query.credentialReferences.findFirst({
@@ -248,7 +248,7 @@ export const getCredentialReferenceById =
  */
 export const countCredentialReferences =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(credentialReferences)

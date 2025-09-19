@@ -305,8 +305,7 @@ const getServer = async (
   setupTracing(conversationId, tenantId, graphId);
 
   const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-    scopes: { tenantId, projectId },
-    graphId: graphId,
+    scopes: { tenantId, projectId, graphId },
   });
 
   if (!agentGraph) {
@@ -330,10 +329,21 @@ const getServer = async (
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
+        if (!agentGraph.defaultAgentId) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Graph does not have a default agent configured`,
+              },
+            ],
+            isError: true,
+          };
+        }
         const defaultAgentId = agentGraph.defaultAgentId;
 
         const agentInfo = await getAgentById(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           agentId: defaultAgentId,
         });
         if (!agentInfo) {
@@ -348,19 +358,20 @@ const getServer = async (
           };
         }
 
-        const resolvedContext = await handleContextResolution(
+        const resolvedContext = await handleContextResolution({
           tenantId,
           projectId,
-          conversationId,
           graphId,
+          conversationId,
           requestContext,
           dbClient,
-          credentialStores
-        );
+          credentialStores,
+        });
 
         logger.info(
           {
             tenantId,
+            projectId,
             graphId,
             conversationId,
             hasContextConfig: !!agentGraph.contextConfigId,
@@ -455,8 +466,7 @@ const handleInitializationRequest = async (
 
   // Get the default agent for the graph
   const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-    scopes: { tenantId, projectId },
-    graphId,
+    scopes: { tenantId, projectId, graphId },
   });
   if (!agentGraph) {
     return c.json(
@@ -466,6 +476,17 @@ const handleInitializationRequest = async (
         id: body.id || null,
       },
       { status: 404 }
+    );
+  }
+
+  if (!agentGraph.defaultAgentId) {
+    return c.json(
+      {
+        jsonrpc: '2.0',
+        error: { code: -32001, message: 'Graph does not have a default agent configured' },
+        id: body.id || null,
+      },
+      { status: 400 }
     );
   }
 

@@ -6,12 +6,12 @@ import type {
   ApiKeyCreateResult,
   CreateApiKeyParams,
   PaginationConfig,
-  ScopeConfig,
+  ProjectScopeConfig,
 } from '../types/utility';
 import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../utils/apiKeys';
 
 export const getApiKeyById =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; id: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.apiKeys.findFirst({
       where: and(
         eq(apiKeys.tenantId, params.scopes.tenantId),
@@ -28,7 +28,7 @@ export const getApiKeyByPublicId = (db: DatabaseClient) => async (publicId: stri
 };
 
 export const listApiKeys =
-  (db: DatabaseClient) => async (params: { scopes: ScopeConfig; graphId?: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId?: string }) => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
@@ -47,7 +47,7 @@ export const listApiKeys =
 export const listApiKeysPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: ScopeConfig;
+    scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
     graphId?: string;
   }): Promise<{
@@ -113,7 +113,7 @@ export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert)
 
 export const updateApiKey =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string; data: ApiKeyUpdate }) => {
+  async (params: { scopes: ProjectScopeConfig; id: string; data: ApiKeyUpdate }) => {
     const now = new Date().toISOString();
 
     const [updatedKey] = await db
@@ -136,7 +136,7 @@ export const updateApiKey =
 
 export const deleteApiKey =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
       // Check if the API key exists
       const existingKey = await getApiKeyById(db)({
@@ -167,7 +167,7 @@ export const deleteApiKey =
 
 export const hasApiKey =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; id: string }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const apiKey = await getApiKeyById(db)(params);
     return apiKey !== null;
   };
@@ -183,7 +183,7 @@ export const updateApiKeyLastUsed =
 
 export const countApiKeys =
   (db: DatabaseClient) =>
-  async (params: { scopes: ScopeConfig; graphId?: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; graphId?: string }): Promise<number> => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),

@@ -128,8 +128,7 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
 
       if (!graph) {
@@ -217,8 +216,7 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
       const isCreate = !existingGraph;
 
@@ -285,8 +283,7 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId, projectId },
-        graphId,
+        scopes: { tenantId, projectId, graphId },
       });
 
       if (!deleted) {

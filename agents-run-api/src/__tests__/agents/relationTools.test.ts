@@ -97,7 +97,7 @@ vi.mock('../../env.js', () => ({
 
 // Mock nanoid
 vi.mock('nanoid', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as any;
   return {
     ...actual,
     nanoid: () => 'test-nanoid-123',
@@ -217,7 +217,9 @@ describe('Relationship Tools', () => {
     mockAgentConfig = {
       id: 'target-agent',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       graphId: 'test-graph',
+      baseUrl: 'http://localhost:3000',
       name: 'Target Agent',
       description: 'A target agent for testing',
       agentPrompt: 'You are a target agent.',
@@ -400,8 +402,11 @@ describe('Relationship Tools', () => {
         mockToolCallOptions
       );
 
-      expect(result.result).toBe('external success');
-      expect(result.toolCallId).toBe('test-tool-call-id');
+      // Assert that result is not an AsyncIterable
+      const syncResult = result as { toolCallId: any; result: any };
+
+      expect(syncResult.result).toBe('external success');
+      expect(syncResult.toolCallId).toBe('test-tool-call-id');
 
       // Verify A2A client was called with correct message structure
       expect(mockSendMessage).toHaveBeenCalledWith({
@@ -520,8 +525,11 @@ describe('Relationship Tools', () => {
         mockToolCallOptions
       );
 
-      expect(result.result).toBe('internal success');
-      expect(result.toolCallId).toBe('test-tool-call-id');
+      // Assert that result is not an AsyncIterable
+      const syncResult = result as { toolCallId: any; result: any };
+
+      expect(syncResult.result).toBe('internal success');
+      expect(syncResult.toolCallId).toBe('test-tool-call-id');
 
       // Verify A2A client was called with correct internal agent URL
       expect(mockSendMessage).toHaveBeenCalledWith({
@@ -610,6 +618,9 @@ describe('Relationship Tools', () => {
       const tool2 = createTransferToAgentTool({
         transferConfig: agent2,
         callingAgentId: 'test-agent',
+        agent: {
+          getStreamingHelper: vi.fn().mockReturnValue(undefined),
+        },
       });
 
       expect(tool1.description).toContain('agent-1');

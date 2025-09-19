@@ -38,14 +38,16 @@ export interface CompletionEvent {
 }
 
 /**
- * Error operation event
+ * Unified error event structure
+ * Can be used for both operational errors (with agent context) and general stream errors
  */
 export interface ErrorEvent {
   type: 'error';
-  ctx: {
-    error: string;
-    agent?: string;
-  };
+  message: string;
+  agent?: string;
+  severity?: 'error' | 'warning' | 'info';
+  code?: string;
+  timestamp?: number;
 }
 
 /**
@@ -59,18 +61,6 @@ export interface AgentThinkingEvent {
 }
 
 /**
- * Status update operation event with flexible structured/unstructured data
- */
-export interface StatusUpdateEvent {
-  type: 'status_update';
-  label?: string; // LLM-generated label for the UI
-  ctx: {
-    summary?: string; // Unstructured summary text
-    [key: string]: any; // Structured data from graph session
-  };
-}
-
-/**
  * Discriminated union of all operation events
  */
 export type OperationEvent =
@@ -78,8 +68,7 @@ export type OperationEvent =
   | AgentReadyEvent
   | AgentThinkingEvent
   | CompletionEvent
-  | ErrorEvent
-  | StatusUpdateEvent;
+  | ErrorEvent;
 
 // =============================================================================
 // OPERATION FUNCTIONS
@@ -137,15 +126,25 @@ export function completionOp(agentId: string, iterations: number): CompletionEve
 }
 
 /**
- * Creates an error operation
+ * Creates a unified error event
+ * @param message - Error message
+ * @param agentId - Optional agent ID for context
+ * @param severity - Error severity level
+ * @param code - Optional error code
  */
-export function errorOp(error: string, agentId?: string): ErrorEvent {
+export function errorOp(
+  message: string, 
+  agentId?: string, 
+  severity: 'error' | 'warning' | 'info' = 'error',
+  code?: string
+): ErrorEvent {
   return {
     type: 'error',
-    ctx: {
-      error,
-      agent: agentId,
-    },
+    message,
+    agent: agentId,
+    severity,
+    code,
+    timestamp: Date.now(),
   };
 }
 
@@ -156,12 +155,3 @@ export function generateToolId(): string {
   return `tool_${nanoid(8)}`;
 }
 
-/**
- * Creates a status update operation with flexible data
- */
-export function statusUpdateOp(ctx: Record<string, any>): StatusUpdateEvent {
-  return {
-    type: 'status_update',
-    ctx,
-  };
-}

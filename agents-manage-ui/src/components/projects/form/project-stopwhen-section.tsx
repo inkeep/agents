@@ -1,11 +1,12 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Info } from 'lucide-react';
 import type { Control } from 'react-hook-form';
 import { useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
 import type { ProjectFormData } from './validation';
 
@@ -27,19 +28,19 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
         </p>
       </div>
 
-      <Collapsible defaultOpen={hasConfiguredStopWhen}>
+      <Collapsible defaultOpen={hasConfiguredStopWhen} className="border rounded-md bg-background">
         <CollapsibleTrigger asChild>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="flex items-center justify-start gap-2 w-full group"
+            className="flex items-center justify-start gap-2 w-full group p-0 h-auto  hover:!bg-transparent transition-colors py-2 px-4"
           >
             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
             Configure Execution Limits
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6 mt-4 border rounded-md p-4 bg-muted/30">
+        <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Transfer Count Limit */}
             <div className="space-y-2">
@@ -67,29 +68,30 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
               />
             </div>
           </div>
-
-          <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-            <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-              How inheritance works:
-            </p>
-            <ul className="space-y-1 text-blue-800 dark:text-blue-200">
+          <InfoCard title="How inheritance works:" Icon={Info}>
+            <ul className="space-y-1.5 list-disc list-outside pl-4">
               <li>
-                • <strong>transferCountIs</strong>: Project → Graph only (graph-level limit)
+                <span className="font-medium">transferCountIs</span>: Project → Graph only
+                (graph-level limit)
               </li>
               <li>
-                • <strong>stepCountIs</strong>: Project → Agent only (agent-level limit)
+                <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
+                limit)
               </li>
               <li>
-                • <strong>Explicit settings</strong> always take precedence over inherited values
+                <span className="font-medium">Explicit settings</span> always take precedence over
+                inherited values
               </li>
               <li>
-                • <strong>Default fallback</strong>: transferCountIs = 10 if no value is set
+                <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no
+                value is set
               </li>
               <li>
-                • <strong>Error limit</strong> is hardcoded to 3 errors across all levels
+                <span className="font-medium">Error limit</span> is hardcoded to 3 errors across all
+                levels
               </li>
             </ul>
-          </div>
+          </InfoCard>
         </CollapsibleContent>
       </Collapsible>
     </div>

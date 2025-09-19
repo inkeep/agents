@@ -430,27 +430,11 @@ export class AgentGraph implements GraphInterface {
       description: this.graphDescription,
       defaultAgentId: this.defaultAgent?.getId() || '',
       agents: agentsObject,
-      tools: toolsObject,
       contextConfig: this.contextConfig?.toObject(),
-      credentialReferences: this.credentials?.reduce(
-        (acc, credentialReference) => {
-          acc[credentialReference.id] = {
-            type: credentialReference.type,
-            id: credentialReference.id,
-            credentialStoreId: credentialReference.credentialStoreId,
-            retrievalParams: credentialReference.retrievalParams || {},
-          };
-          return acc;
-        },
-        {} as Record<string, any>
-      ),
+
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
       graphPrompt: this.graphPrompt,
-      dataComponents:
-        Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
-      artifactComponents:
-        Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
