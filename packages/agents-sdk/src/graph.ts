@@ -1289,7 +1289,7 @@ export class AgentGraph implements GraphInterface {
   private async saveToDatabase(): Promise<void> {
     try {
       // Check if graph already exists
-      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/agent-graphs/${this.graphId}`;
+      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
 
       try {
         const getResponse = await fetch(getUrl, {
@@ -1316,7 +1316,7 @@ export class AgentGraph implements GraphInterface {
       // Graph doesn't exist, create it
       logger.info({ graphId: this.graphId }, 'Creating graph in backend');
 
-      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/agent-graphs`;
+      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs`;
       const createResponse = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -1350,7 +1350,7 @@ export class AgentGraph implements GraphInterface {
   private async saveRelations(): Promise<void> {
     if (this.defaultAgent) {
       try {
-        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/agent-graphs/${this.graphId}`;
+        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
         const updateResponse = await fetch(updateUrl, {
           method: 'PUT',
           headers: {
@@ -1463,7 +1463,7 @@ export class AgentGraph implements GraphInterface {
   ): Promise<void> {
     try {
       const response = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/agent-relations`,
+        `${this.baseURL}/tenants/${this.tenantId}/agent-relations`,
         {
           method: 'POST',
           headers: {
@@ -1530,7 +1530,7 @@ export class AgentGraph implements GraphInterface {
   ): Promise<void> {
     try {
       const response = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/agent-relations`,
+        `${this.baseURL}/tenants/${this.tenantId}/agent-relations`,
         {
           method: 'POST',
           headers: {

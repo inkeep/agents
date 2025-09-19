@@ -35,7 +35,7 @@ export async function fetchArtifactComponents(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components`
+    `tenants/${tenantId}/projects/${projectId}/artifact-components`
   );
 
   // Transform the response to ensure props are non-nullable
@@ -61,7 +61,7 @@ export async function fetchArtifactComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components/${artifactComponentId}`
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
 
   // Transform the response to ensure props are non-nullable
@@ -84,7 +84,7 @@ export async function createArtifactComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components`,
+    `tenants/${tenantId}/projects/${projectId}/artifact-components`,
     {
       method: 'POST',
       body: JSON.stringify(artifactComponent),
@@ -111,7 +111,7 @@ export async function updateArtifactComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components/${artifactComponent.id}`,
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponent.id}`,
     {
       method: 'PUT',
       body: JSON.stringify(artifactComponent),
@@ -138,7 +138,7 @@ export async function deleteArtifactComponent(
   validateProjectId(projectId);
 
   await makeManagementApiRequest(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components/${artifactComponentId}`,
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
     {
       method: 'DELETE',
     }

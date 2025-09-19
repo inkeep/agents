@@ -173,10 +173,10 @@ function createManagementHono(
   // API Key authentication middleware for protected routes
   app.use('/tenants/*', apiKeyAuth());
 
-  // Mount CRUD routes for all entities
-  app.route('/tenants/:tenantId/crud', crudRoutes);
+  // Mount routes for all entities
+  app.route('/tenants/:tenantId', crudRoutes);
 
-  // Mount full project routes directly under tenant (not under /crud)
+  // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint

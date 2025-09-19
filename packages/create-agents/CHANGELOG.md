@@ -1,5 +1,16 @@
 # @inkeep/create-agents
 
+## 0.3.0
+
+### Minor Changes
+
+- a7a5ca5: Proper assignment of agent framework resources to the correct project, graph, or agents scope
+
+### Patch Changes
+
+- 43054e7: Env updates
+- 024668f: Update templates folder
+
 ## 0.2.2
 
 ### Patch Changes

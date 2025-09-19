@@ -207,7 +207,7 @@ export class Agent implements AgentInterface {
 
     // First try to update (in case agent exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/crud/agents/${this.getId()}`,
+      `${this.baseURL}/tenants/${this.tenantId}/agents/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -236,7 +236,7 @@ export class Agent implements AgentInterface {
         'Agent not found, creating new agent'
       );
 
-      const createResponse = await fetch(`${this.baseURL}/tenants/${this.tenantId}/crud/agents`, {
+      const createResponse = await fetch(`${this.baseURL}/tenants/${this.tenantId}/agents`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -611,7 +611,7 @@ export class Agent implements AgentInterface {
 
   private async createAgentDataComponentRelation(dataComponentId: string): Promise<void> {
     const relationResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/crud/agent-data-components`,
+      `${this.baseURL}/tenants/${this.tenantId}/agent-data-components`,
       {
         method: 'POST',
         headers: {
@@ -643,7 +643,7 @@ export class Agent implements AgentInterface {
 
   private async createAgentArtifactComponentRelation(artifactComponentId: string): Promise<void> {
     const relationResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/crud/agent-artifact-components`,
+      `${this.baseURL}/tenants/${this.tenantId}/agent-artifact-components`,
       {
         method: 'POST',
         headers: {
@@ -695,7 +695,7 @@ export class Agent implements AgentInterface {
     }
 
     const relationResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/agent-tool-relations`,
+      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent-tool-relations`,
       {
         method: 'POST',
         headers: {

@@ -65,7 +65,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     suffix?: string;
   }) => {
     const toolData = createToolData({ suffix });
-    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/tools`, {
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
       method: 'POST',
       body: JSON.stringify(toolData),
     });
@@ -79,7 +79,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-list-empty');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/tools?page=1&limit=10`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -93,7 +93,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await createTestTool({ tenantId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools?status=unknown`
+        `/tenants/${tenantId}/projects/${projectId}/tools?status=unknown`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -109,7 +109,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const { toolData, toolId } = await createTestTool({ tenantId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -122,7 +122,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-get-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`
       );
       expect(res.status).toEqual(404);
     });
@@ -134,7 +134,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const toolData = createToolData();
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/tools`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
         method: 'POST',
         body: JSON.stringify(toolData),
       });
@@ -152,7 +152,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const invalidToolData = {
         description: 'Missing name',
       };
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/tools`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
         method: 'POST',
         body: JSON.stringify(invalidToolData),
       });
@@ -173,7 +173,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -192,7 +192,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-update-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify({ name: 'Updated' }),
@@ -208,7 +208,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'DELETE',
         }
@@ -216,7 +216,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(204);
 
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -225,7 +225,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-delete-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
         {
           method: 'DELETE',
         }
@@ -240,7 +240,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/health-check`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/health-check`,
         {
           method: 'POST',
         }
@@ -256,7 +256,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-health-check-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/non-existent-id/health-check`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id/health-check`,
         { method: 'POST' }
       );
       expect(res.status).toBe(404);
@@ -271,7 +271,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await createTestTool({ tenantId, suffix: ' 2' });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/health-check-all`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/health-check-all`,
         {
           method: 'POST',
         }
@@ -287,7 +287,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-health-check-all-empty');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/health-check-all`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/health-check-all`,
         {
           method: 'POST',
         }
@@ -304,7 +304,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/status`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/status`,
         {
           method: 'PATCH',
           body: JSON.stringify({ status: 'disabled' }),
@@ -321,7 +321,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/status`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/status`,
         {
           method: 'PATCH',
           body: JSON.stringify({ status: 'invalid-status' }),
@@ -337,7 +337,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/sync`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/sync`,
         {
           method: 'POST',
         }
@@ -353,7 +353,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-sync-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/non-existent-id/sync`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id/sync`,
         {
           method: 'POST',
         }
@@ -368,7 +368,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/available-tools`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/available-tools`
       );
 
       expect(res.status).toBe(200);
@@ -380,7 +380,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-get-available-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/non-existent-id/available-tools`
+        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id/available-tools`
       );
       expect(res.status).toBe(404);
     });
@@ -395,13 +395,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       // 2. Get tool
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(getRes.status).toBe(200);
 
       // 3. Update tool
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'PUT',
           body: JSON.stringify({ name: 'Updated Tool' }),
@@ -411,14 +411,14 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       // 4. Health check
       const healthRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/health-check`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/health-check`,
         { method: 'POST' }
       );
       expect(healthRes.status).toBe(200);
 
       // 5. Sync definitions
       const syncRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/sync`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/sync`,
         {
           method: 'POST',
         }
@@ -427,7 +427,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       // 6. Update status
       const statusRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}/status`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/status`,
         {
           method: 'PATCH',
           body: JSON.stringify({ status: 'healthy' }),
@@ -436,14 +436,14 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(statusRes.status).toBe(200);
 
       // 7. List tools (should include our tool)
-      const listRes = await app.request(`/tenants/${tenantId}/crud/projects/${projectId}/tools`);
+      const listRes = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools`);
       expect(listRes.status).toBe(200);
       const listBody = await listRes.json();
       expect(listBody.data).toHaveLength(1);
 
       // 8. Delete tool
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'DELETE',
         }
@@ -452,7 +452,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
       // 9. Verify deletion
       const finalGetRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(finalGetRes.status).toBe(404);
     });

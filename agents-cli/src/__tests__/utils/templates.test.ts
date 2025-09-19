@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import fs from 'fs-extra';
 import degit from 'degit';
+import fs from 'fs-extra';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
 // Mock external dependencies
@@ -42,22 +42,19 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './target-path'
       );
 
       expect(fs.mkdir).toHaveBeenCalledWith('./target-path', { recursive: true });
-      expect(degit).toHaveBeenCalledWith('inkeep/agents-cookbook/templates/weather');
+      expect(degit).toHaveBeenCalledWith('inkeep/agents-cookbook/template-projects/weather');
       expect(mockEmitter.clone).toHaveBeenCalledWith('./target-path');
     });
 
     it('should handle GitHub URL transformation correctly', async () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
-      await cloneTemplate(
-        'https://github.com/user/repo/path/to/template',
-        './my-template'
-      );
+      await cloneTemplate('https://github.com/user/repo/path/to/template', './my-template');
 
       expect(degit).toHaveBeenCalledWith('user/repo/path/to/template');
       expect(mockEmitter.clone).toHaveBeenCalledWith('./my-template');
@@ -67,7 +64,7 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './deep/nested/path'
       );
 
@@ -79,7 +76,7 @@ describe('Template Utils', () => {
 
       await expect(
         cloneTemplate(
-          'https://github.com/inkeep/agents-cookbook/templates/nonexistent',
+          'https://github.com/inkeep/agents-cookbook/template-projects/nonexistent',
           './target'
         )
       ).rejects.toThrow('process.exit called');
@@ -92,7 +89,7 @@ describe('Template Utils', () => {
 
       await expect(
         cloneTemplate(
-          'https://github.com/inkeep/agents-cookbook/templates/weather',
+          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
           './restricted-path'
         )
       ).rejects.toThrow('Permission denied');
@@ -129,7 +126,7 @@ describe('Template Utils', () => {
 
         await expect(
           cloneTemplate(
-            'https://github.com/inkeep/agents-cookbook/templates/test',
+            'https://github.com/inkeep/agents-cookbook/template-projects/test',
             './target'
           )
         ).rejects.toThrow('process.exit called');
@@ -162,7 +159,7 @@ describe('Template Utils', () => {
       const templates = await getAvailableTemplates();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/inkeep/agents-cookbook/contents/templates'
+        'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
       );
       expect(templates).toEqual(['weather', 'chatbot', 'data-analysis']);
     });
@@ -213,7 +210,7 @@ describe('Template Utils', () => {
       expect(templates).toContain('weather');
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './weather-project'
       );
 
@@ -226,9 +223,18 @@ describe('Template Utils', () => {
       vi.mocked(fs.mkdir).mockResolvedValue(undefined);
 
       const clonePromises = [
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/weather', './weather1'),
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/chatbot', './chatbot1'),
-        cloneTemplate('https://github.com/inkeep/agents-cookbook/templates/weather', './weather2'),
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+          './weather1'
+        ),
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
+          './chatbot1'
+        ),
+        cloneTemplate(
+          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+          './weather2'
+        ),
       ];
 
       await Promise.all(clonePromises);

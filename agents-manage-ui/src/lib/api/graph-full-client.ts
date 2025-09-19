@@ -25,7 +25,7 @@ export async function fetchGraphs(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<Graph>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`
+    `tenants/${tenantId}/projects/${projectId}/agent-graphs`
   );
 }
 
@@ -41,7 +41,7 @@ export async function createFullGraph(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<CreateGraphResponse>(
-    `tenants/${tenantId}/crud/projects/${projectId}/graph`,
+    `tenants/${tenantId}/projects/${projectId}/graph`,
     {
       method: 'POST',
       body: JSON.stringify(graphData),
@@ -61,7 +61,7 @@ export async function getFullGraph(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<GetGraphResponse>(
-    `tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+    `tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
     {
       method: 'GET',
     }
@@ -81,7 +81,7 @@ export async function updateFullGraph(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<UpdateGraphResponse>(
-    `tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+    `tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
     {
       method: 'PUT',
       body: JSON.stringify(graphData),
@@ -101,7 +101,7 @@ export async function deleteFullGraph(
   validateProjectId(projectId);
 
   await makeManagementApiRequest(
-    `tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+    `tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
     {
       method: 'DELETE',
     }

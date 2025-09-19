@@ -36,7 +36,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
   }) => {
     const dataComponentData = createDataComponentData({ suffix });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/data-components`,
+      `/tenants/${tenantId}/projects/${projectId}/data-components`,
       {
         method: 'POST',
         body: JSON.stringify(dataComponentData),
@@ -69,7 +69,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-list-empty');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -91,7 +91,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const { dataComponentData } = await createTestDataComponent({ tenantId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -118,7 +118,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Test first page with limit 2
       const page1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -133,7 +133,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -148,7 +148,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Test third page (partial)
       const page3Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=3&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
 
@@ -177,7 +177,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Request page 5 with limit 2 (should be empty)
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=5&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=5&limit=2`
       );
       expect(res.status).toBe(200);
 
@@ -198,7 +198,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Test with limit 1 (each page should have exactly 1 item)
       const page1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=1&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=1`
       );
       expect(page1Res.status).toBe(200);
 
@@ -213,7 +213,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Test middle page
       const page2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=2&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=2&limit=1`
       );
       expect(page2Res.status).toBe(200);
 
@@ -228,7 +228,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Test last page
       const page3Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=3&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=3&limit=1`
       );
       expect(page3Res.status).toBe(200);
 
@@ -249,7 +249,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Request with limit 10 (larger than total)
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -273,7 +273,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponentId}`
+        `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
       );
       expect(res.status).toBe(200);
 
@@ -293,7 +293,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-get-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`
       );
       expect(res.status).toBe(404);
 
@@ -314,7 +314,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-problem-details-404');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`
       );
       expect(res.status).toBe(404);
       expect(res.headers.get('content-type')).toMatch(/application\/problem\+json/);
@@ -340,7 +340,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const dataComponentData = createDataComponentData();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components`,
         {
           method: 'POST',
           body: JSON.stringify(dataComponentData),
@@ -367,7 +367,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const providedId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components`,
         {
           method: 'POST',
           body: JSON.stringify({ ...dataComponentData, id: providedId }),
@@ -387,7 +387,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify the data component can be fetched with the provided ID
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/${providedId}`
+        `/tenants/${tenantId}/projects/${projectId}/data-components/${providedId}`
       );
       expect(getRes.status).toBe(200);
       const getBody = await getRes.json();
@@ -398,7 +398,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-create-validation');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -449,7 +449,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components`,
         {
           method: 'POST',
           body: JSON.stringify(complexDataComponentData),
@@ -491,7 +491,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -529,7 +529,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -547,7 +547,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const { dataComponentId } = await createTestDataComponent({ tenantId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
           method: 'DELETE',
         }
@@ -557,7 +557,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify the data component is deleted
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/${dataComponentId}`
+        `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -566,7 +566,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-delete-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/data-components/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {
           method: 'DELETE',
         }

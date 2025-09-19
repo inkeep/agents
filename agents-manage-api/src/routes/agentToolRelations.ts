@@ -35,7 +35,7 @@ app.openapi(
     path: '/',
     summary: 'List Agent Tool Relations',
     operationId: 'list-agent-tool-relations',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -115,7 +115,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Agent Tool Relation',
     operationId: 'get-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
     },
@@ -156,7 +156,7 @@ app.openapi(
     path: '/agent/{agentId}/tools',
     summary: 'Get Tools for Agent',
     operationId: 'get-tools-for-agent',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
@@ -200,7 +200,7 @@ app.openapi(
     path: '/tool/{toolId}/agents',
     summary: 'Get Agents for Tool',
     operationId: 'get-agents-for-tool',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         toolId: z.string(),
@@ -240,7 +240,7 @@ app.openapi(
     path: '/',
     summary: 'Create Agent Tool Relation',
     operationId: 'create-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
@@ -317,7 +317,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Agent Tool Relation',
     operationId: 'update-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
       body: {
@@ -377,7 +377,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Agent Tool Relation',
     operationId: 'delete-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
     },

@@ -57,7 +57,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
     // Mock templates
     vi.mocked(getAvailableTemplates).mockResolvedValue([
-      'weather-graph',
+      'weather-project',
       'chatbot',
       'data-analysis',
     ]);
@@ -84,29 +84,29 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Default behavior (no template or customProjectId)', () => {
-    it('should use weather-graph as default template and project ID', async () => {
+    it('should use weather-project as default template and project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
         anthropicKey: 'test-anthropic-key',
       });
 
-      // Should clone base template and weather-graph template
+      // Should clone base template and weather-project template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/create-agents-template',
         expect.any(String)
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/weather-graph',
-        'src/weather-graph'
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather-project',
+        'src/weather-project'
       );
 
       // Should not call getAvailableTemplates since no template validation needed
       expect(getAvailableTemplates).not.toHaveBeenCalled();
     });
 
-    it('should create project with weather-graph as project ID', async () => {
+    it('should create project with weather-project as project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
@@ -115,8 +115,8 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       // Check that inkeep.config.ts is created with correct project ID
       expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/weather-graph/inkeep.config.ts',
-        expect.stringContaining('projectId: "weather-graph"')
+        'src/weather-project/inkeep.config.ts',
+        expect.stringContaining('projectId: "weather-project"')
       );
     });
   });
@@ -140,7 +140,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         expect.any(String)
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/chatbot',
+        'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
         'src/chatbot'
       );
 
@@ -151,7 +151,7 @@ describe('createAgents - Template and Project ID Logic', () => {
     });
 
     it('should exit with error when template does not exist', async () => {
-      vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-graph', 'chatbot']);
+      vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-project', 'chatbot']);
 
       await expect(
         createAgents({
@@ -169,7 +169,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
     it('should show available templates when invalid template is provided', async () => {
       vi.mocked(getAvailableTemplates).mockResolvedValue([
-        'weather-graph',
+        'weather-project',
         'chatbot',
         'data-analysis',
       ]);
@@ -183,7 +183,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       ).rejects.toThrow('process.exit called');
 
       const cancelCall = vi.mocked(p.cancel).mock.calls[0][0];
-      expect(cancelCall).toContain('weather-graph');
+      expect(cancelCall).toContain('weather-project');
       expect(cancelCall).toContain('chatbot');
       expect(cancelCall).toContain('data-analysis');
     });
@@ -259,7 +259,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/my-complex-template',
+        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
         'src/my-complex-template'
       );
     });
@@ -324,6 +324,10 @@ function setupDefaultMocks() {
   vi.mocked(fs.pathExists).mockResolvedValue(false as any);
   vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-  vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-graph', 'chatbot', 'data-analysis']);
+  vi.mocked(getAvailableTemplates).mockResolvedValue([
+    'weather-project',
+    'chatbot',
+    'data-analysis',
+  ]);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
 }

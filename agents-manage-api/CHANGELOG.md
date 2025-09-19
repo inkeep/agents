@@ -1,5 +1,36 @@
 # @inkeep/agents-manage-api
 
+## 0.3.0
+
+### Minor Changes
+
+- 28a2a20: Remove 'crud' from all API endpoint paths
+
+  **BREAKING CHANGE**: API endpoints no longer include `/crud/` in their paths.
+
+  ## Migration Guide
+
+  Update all API calls by removing `/crud/` from endpoint paths:
+
+  - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
+  - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
+
+  ## Changes
+
+  - Removed `/crud/` segment from all manage-api route definitions
+  - Updated all API client code in manage-ui, cli, and SDK packages
+  - Cleaned up OpenAPI tags to remove "CRUD" prefix
+  - All internal references and tests updated
+
+  This change simplifies API paths and makes them more RESTful.
+
+- a7a5ca5: Proper assignment of agent framework resources to the correct project, graph, or agents scope
+
+### Patch Changes
+
+- Updated dependencies [a7a5ca5]
+  - @inkeep/agents-core@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes

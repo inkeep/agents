@@ -57,7 +57,7 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
     const response = await fetch(
-      `${this.apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
       {
         method: 'GET',
         headers: {
@@ -102,7 +102,7 @@ export class ManagementApiClient extends BaseApiClient {
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await fetch(
-      `${this.apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
       {
         method: 'PUT',
         headers: {

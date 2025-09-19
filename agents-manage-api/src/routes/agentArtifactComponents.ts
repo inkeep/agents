@@ -30,7 +30,7 @@ app.openapi(
     path: '/agent/:agentId',
     summary: 'Get Artifact Components for Agent',
     operationId: 'get-artifact-components-for-agent',
-    tags: ['CRUD Agent Artifact Component Relations'],
+    tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
@@ -70,7 +70,7 @@ app.openapi(
     path: '/component/:artifactComponentId/agents',
     summary: 'Get Agents Using Artifact Component',
     operationId: 'get-agents-using-artifact-component',
-    tags: ['CRUD Agent Artifact Component Relations'],
+    tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         artifactComponentId: z.string(),
@@ -114,7 +114,7 @@ app.openapi(
     path: '/',
     summary: 'Associate Artifact Component with Agent',
     operationId: 'associate-artifact-component-with-agent',
-    tags: ['CRUD Agent Artifact Component Relations'],
+    tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
@@ -202,7 +202,7 @@ app.openapi(
     path: '/agent/:agentId/component/:artifactComponentId',
     summary: 'Remove Artifact Component from Agent',
     operationId: 'remove-artifact-component-from-agent',
-    tags: ['CRUD Agent Artifact Component Relations'],
+    tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),
@@ -250,7 +250,7 @@ app.openapi(
     path: '/agent/:agentId/component/:artifactComponentId/exists',
     summary: 'Check if Artifact Component is Associated with Agent',
     operationId: 'check-artifact-component-agent-association',
-    tags: ['CRUD Agent Artifact Component Relations'],
+    tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         agentId: z.string(),

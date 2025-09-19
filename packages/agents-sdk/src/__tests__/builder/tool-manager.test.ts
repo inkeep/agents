@@ -113,7 +113,7 @@ describe.skip('Tool Manager', () => {
       await tool.init();
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/tenants/test-tenant/crud/tools/test-tool'),
+        expect.stringContaining('/tenants/test-tenant/tools/test-tool'),
         expect.objectContaining({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

@@ -37,7 +37,7 @@ export async function fetchApiKeys(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<ApiKeyApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/api-keys`
+    `tenants/${tenantId}/projects/${projectId}/api-keys`
   );
 
   // Transform the response to convert nulls to undefined
@@ -63,7 +63,7 @@ export async function createApiKey(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiCreationResponse>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/api-keys`,
+    `tenants/${tenantId}/projects/${projectId}/api-keys`,
     {
       method: 'POST',
       body: JSON.stringify(apiKeyData),
@@ -112,7 +112,7 @@ export async function deleteApiKey(
   validateProjectId(projectId);
 
   await makeManagementApiRequest(
-    `tenants/${tenantId}/crud/projects/${projectId}/api-keys/${apiKeyId}`,
+    `tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyId}`,
     {
       method: 'DELETE',
     }

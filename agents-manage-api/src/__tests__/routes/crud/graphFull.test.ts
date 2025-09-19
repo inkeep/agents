@@ -248,7 +248,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     graphData?: ReturnType<typeof createFullGraphData>
   ) => {
     const testGraphData = graphData || createFullGraphData();
-    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
       method: 'POST',
       body: JSON.stringify(testGraphData),
     });
@@ -264,7 +264,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('graph-create');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -323,7 +323,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -347,7 +347,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         agents: {},
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(invalidGraphData),
       });
@@ -393,7 +393,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -411,7 +411,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Also verify via GET endpoint
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
         {
           method: 'GET',
         }
@@ -477,7 +477,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -496,7 +496,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Also verify via GET endpoint
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
         {
           method: 'GET',
         }
@@ -521,7 +521,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const { graphData } = await createTestGraph(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -548,7 +548,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const nonExistentId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${nonExistentId}`,
         {
           method: 'GET',
         }
@@ -572,7 +572,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedGraphData),
@@ -592,7 +592,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graphData = createFullGraphData();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(graphData),
@@ -616,7 +616,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const differentId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${differentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${differentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(graphData),
@@ -645,7 +645,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       updatedGraphData.agents[graphData.defaultAgentId].canTransferTo.push(newAgentId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedGraphData),
@@ -668,7 +668,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const { graphData } = await createTestGraph(tenantId);
 
       const deleteRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'DELETE',
         }
@@ -678,7 +678,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Verify graph is deleted by trying to get it
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -693,7 +693,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const nonExistentId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${nonExistentId}`,
         {
           method: 'DELETE',
         }
@@ -737,7 +737,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -784,7 +784,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -828,7 +828,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -856,11 +856,11 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Create graphs concurrently
       const [res1, res2] = await Promise.all([
-        makeRequest(`/tenants/${tenant1}/crud/projects/${projectId}/graph`, {
+        makeRequest(`/tenants/${tenant1}/projects/${projectId}/graph`, {
           method: 'POST',
           body: JSON.stringify(graph1Data),
         }),
-        makeRequest(`/tenants/${tenant2}/crud/projects/${projectId}/graph`, {
+        makeRequest(`/tenants/${tenant2}/projects/${projectId}/graph`, {
           method: 'POST',
           body: JSON.stringify(graph2Data),
         }),
@@ -884,7 +884,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(undefined, { includeDataComponents: true });
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -924,7 +924,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(undefined, { includeArtifactComponents: true });
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -973,7 +973,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1017,7 +1017,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1060,7 +1060,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1099,7 +1099,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Create initial graph with basic features
       const initialGraphData = createFullGraphData();
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(initialGraphData),
       });
@@ -1119,7 +1119,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${initialGraphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${initialGraphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedGraphData),
@@ -1146,7 +1146,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1186,7 +1186,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1203,7 +1203,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -1226,7 +1226,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1242,7 +1242,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -1265,7 +1265,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1282,7 +1282,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -1310,7 +1310,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         graphData.contextConfig.contextVariables = {};
       }
 
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1331,7 +1331,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1347,14 +1347,14 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`, {
         method: 'PUT',
         body: JSON.stringify(updateData),
       });
 
       // Retrieve and verify null values
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -1381,7 +1381,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
 
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1474,7 +1474,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1561,7 +1561,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       // Create the graph
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1598,7 +1598,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graphData = createFullGraphData();
 
       // Create the graph
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1607,7 +1607,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Retrieve the graph
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -1691,7 +1691,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1763,7 +1763,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1818,7 +1818,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1838,7 +1838,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graphData = createFullGraphData();
 
       // Create the graph
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1851,7 +1851,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedData),
@@ -1908,7 +1908,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1956,7 +1956,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });

@@ -328,7 +328,7 @@ describe('Agent Builder', () => {
       await agent.init();
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/tenants/test-tenant/crud/agents/test-agent'),
+        expect.stringContaining('/tenants/test-tenant/agents/test-agent'),
         expect.objectContaining({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

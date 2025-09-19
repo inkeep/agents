@@ -27,7 +27,7 @@ export async function createFullGraphViaAPI(
     'Creating full graph via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/graph`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -95,7 +95,7 @@ export async function updateFullGraphViaAPI(
     'Updating full graph via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`;
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -162,7 +162,7 @@ export async function getFullGraphViaAPI(
     'Getting full graph via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -238,7 +238,7 @@ export async function deleteFullGraphViaAPI(
     'Deleting full graph via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`;
   const response = await fetch(url, {
     method: 'DELETE',
     headers: {
