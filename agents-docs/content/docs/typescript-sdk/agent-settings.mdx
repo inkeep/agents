@@ -8,15 +8,14 @@ Agents are the core building blocks of our framework, designed to be both powerf
 
 ## Creating an Agent
 
-Every agent needs a unique identifier, and clear prompt that define its behavior:
+Every agent needs an id, name, and clear prompt that define its behavior:
 
 ```typescript
-import { agent } from "./builder/index";
+import { agent } from "@inkeep/agents-sdk";
 
 const supportAgent = agent({
   id: "customer-support",
   name: "Customer Support Agent",
-  description: "Handles customer inquiries and support tickets",
   prompt: `You are a customer support specialist. Always be helpful, professional, and empathetic.`,
 });
 ```
@@ -28,39 +27,45 @@ The framework supports rich agent configuration. Here are the options you can c
 ```typescript
 const agent = agent({
   // Required
-  id: "my-agent-id", // Stable agent identifier (required for consistency)
-  name: "My Agent", // Human-readable agent name
-  description: "Agent description", // Brief description of the agent's purpose
-  prompt: "Detailed behavior guidelines", // System prompt
+  id: "my-agent-id", // Stable agent identifier
+  name: "My Agent", // // Human-readable agent name provided to other agents which have a relationship with this agent
+  prompt: "Detailed behavior guidelines", // System prompt. Not given to other agents which have a relationship with this agent
+
+  // Optional - Agent Description
+  description: "Agent description", // Brief description of the agent's purpose provided to other agents which have a relationship with this agent
+
+  // Optional - Tools Integration
+  canUse: () => [searchTool, mcpTool],
+
+  // Optional - Agent Relationships (for multi-agent systems)
+  canTransferTo: () => [agent1], // Agents this can hand off to
+  canDelegateTo: () => [agent2], // Agents this can delegate to
 
   // Optional - AI Model Settings
   models: {
     base: {
       model: "anthropic/claude-sonnet-4-20250514",
       providerOptions: {
-        temperature: 0.7,
-        maxTokens: 2048,
-        timeout: 30000,
+        temperature: 0.7, // Response creativity (0.0-1.0)
+        maxTokens: 2048, // Maximum response length
+        timeout: 30000, // Request timeout in milliseconds (e.g., `30000` for 30 seconds)
       },
     },
     structuredOutput: {
       model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output
       providerOptions: {
-        temperature: 0.1,
-        maxTokens: 1024,
+        temperature: 0.1, // Response creativity (0.0-1.0)
+        maxTokens: 1024, // Maximum response length
       },
     },
     summarizer: {
       model: "openai/gpt-4.1-nano-2025-04-14", // For summaries
       providerOptions: {
-        temperature: 0.5,
-        maxTokens: 1000,
+        temperature: 0.5, // Response creativity (0.0-1.0)
+        maxTokens: 1000, // Maximum response length
       },
     },
   },
-
-  // Optional - Tools Integration
-  canUse: () => [searchTool, mcpTool],
 
   // Optional - Data Components (Structured Outputs)
   dataComponents: [
@@ -105,10 +110,6 @@ const agent = agent({
       },
     },
   ],
-
-  // Optional - Agent Relationships (for multi-agent systems)
-  canTransferTo: () => [agent1], // Agents this can hand off to
-  canDelegateTo: () => [agent2], // Agents this can delegate to
 });
 ```
 
@@ -118,50 +119,17 @@ const agent = agent({
 | `name`               | string   | Yes      | Human-readable name for the agent                                                                                                                                       |
 | `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the agent                                                                                                            |
 | `description`        | string   | No      | Brief description of the agent's purpose and capabilities                                                                                                               |
-| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models                                                                              |
+| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.                                                                              |
+| `models.base`        | object   | No       | Primary model for conversational text generation and reasoning                                                                                                          |
+| `models.structuredOutput` | object | No       | Model used for structured JSON output only (falls back to base if not configured)                                                                                    |
+| `models.summarizer`  | object   | No       | Model used for summaries and status updates (falls back to base if not configured)                                                                                     |
 | `canUse`              | object   | No       | MCP tools that the agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details                                                                  |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/data-components) for details                                        |
 | `artifactComponents` | array    | No       | Components for handling tool or agent outputs. See [Artifact Components](/typescript-sdk/artifact-components) for details                                               |
 | `canTransferTo`      | function | No       | Function returning array of agents this agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details     |
 | `canDelegateTo`      | function | No       | Function returning array of agents this agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) for details |
 
-## Model Settings
-
-The `models` object allows you to configure different models for different tasks, each with their own provider options:
-
-```typescript
-models: {
-  base: {
-    model: "anthropic/claude-sonnet-4-20250514", // Primary model for text generation
-    providerOptions: {
-      temperature: 0.7,
-      maxTokens: 2048
-    }
-  },
-  structuredOutput: {
-    model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output only
-    providerOptions: {
-      temperature: 0.1,
-      maxTokens: 1024
-    }
-  },
-  summarizer: {
-    model: "anthropic/claude-3-5-haiku-20241022", // For summaries and status updates
-    providerOptions: {
-      temperature: 0.5,
-      maxTokens: 1000
-    }
-  }
-}
-```
-
-### Model Types
-
-- **`base`**: Primary model used for conversational text generation and reasoning
-- **`structuredOutput`**: Model used for structured JSON output only (falls back to base if not configured and nothing to inherit)
-- **`summarizer`**: Model used for summaries and status updates (falls back to base if not configured and nothing to inherit)
-
-### Supported Providers
+## Supported Providers
 
 The framework currently supports models from:
 
@@ -169,37 +137,4 @@ The framework currently supports models from:
 - **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
 - **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
 
-**API Keys**: You need the appropriate API key for the provider you choose to use:
-
-- `ANTHROPIC_API_KEY` for Anthropic models
-- `OPENAI_API_KEY` for OpenAI models  
-- `GOOGLE_GENERATIVE_AI_API_KEY` for Google models
-
-### Provider Options
-
-Each model settings can include `providerOptions` with provider-specific settings:
-
-- `temperature`: Response creativity (0.0-1.0)
-- `maxTokens`: Maximum response length
-- `timeout`: Request timeout in milliseconds (e.g., `30000` for 30 seconds)
-- Provider-specific options vary by provider
-
-### Inheritance
-
-If no `models` settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.
-
-## Graph Prompt Integration
-
-Agents automatically receive any graph-level prompt configuration in addition to their individual prompt:
-
-```typescript
-// Graph-level prompt that gets added to all agents
-const graph = agentGraph({
-  id: "support-graph",
-  graphPrompt: `You work for Acme Corp. Always be professional and helpful. 
-Follow company policies and escalate complex issues appropriately.`,
-  agents: () => [supportAgent, escalationAgent],
-});
-```
-
-The `graphPrompt` is injected into each agent's system prompt, providing consistent context and behavior guidelines across all agents in the graph.
+<Note>`openai/gpt-5-2025-08-07` and `openai/gpt-4.1-mini-2025-04-14` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
