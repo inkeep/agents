@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   contextValidationMiddleware,
+  createApiError,
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
@@ -21,8 +22,8 @@ import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import type { ContentItem, Message } from '../types/chat';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { errorOp } from '../utils/agent-operations';
+import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -218,13 +219,19 @@ app.openapi(chatCompletionsRoute, async (c) => {
         scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {
-        return c.json({ error: 'Agent graph not found' }, 404);
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent graph not found',
+        });
       }
       defaultAgentId = agentGraph.defaultAgentId || '';
     }
 
     if (!defaultAgentId) {
-      return c.json({ error: 'No default agent found in graph' }, 404);
+      throw createApiError({
+        code: 'not_found',
+        message: 'No default agent found in graph',
+      });
     }
 
     // Get or create conversation with the default agent
@@ -255,7 +262,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
     });
 
     if (!agentInfo) {
-      return c.json({ error: 'Agent not found' }, 404);
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
+      });
     }
 
     // Get validated context from middleware (falls back to body.context if no validation)
@@ -355,7 +365,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
       if (!result.success) {
         // If execution failed and no error was already streamed, send a default error
         await sseHelper.writeOperation(
-          errorOp('Sorry, I was unable to process your request at this time. Please try again.', 'system')
+          errorOp(
+            'Sorry, I was unable to process your request at this time. Please try again.',
+            'system'
+          )
         );
       }
 
@@ -368,13 +381,16 @@ app.openapi(chatCompletionsRoute, async (c) => {
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    return c.json(
-      {
-        error: 'Failed to process chat completion',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      500
-    );
+    // Re-throw if already an API error
+    if (error && typeof error === 'object' && 'status' in error) {
+      throw error;
+    }
+
+    // Convert other errors to API errors
+    throw createApiError({
+      code: 'internal_server_error',
+      message: error instanceof Error ? error.message : 'Failed to process chat completion',
+    });
   }
 });
 

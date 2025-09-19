@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
+  createApiError,
   getAgentGraphWithDefaultAgent,
   getRequestExecutionContext,
   HeadersScopeSchema,
@@ -90,7 +91,10 @@ app.openapi(
       const agent = await getRegisteredAgent(executionContext, credentialStores);
       logger.info({ agent }, 'agent registered: well-known agent.json');
       if (!agent) {
-        return c.json({ error: 'Agent not found' }, 404);
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
       }
 
       return c.json(agent.agentCard);
@@ -108,7 +112,10 @@ app.openapi(
 
       const graph = await getRegisteredGraph(executionContext);
       if (!graph) {
-        return c.json({ error: 'Graph not found' }, 404);
+        throw createApiError({
+          code: 'not_found',
+          message: 'Graph not found',
+        });
       }
 
       return c.json(graph.agentCard);

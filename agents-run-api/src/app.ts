@@ -1,4 +1,4 @@
-import { batchProcessor } from './instrumentation';
+import { otel } from '@hono/otel';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -12,6 +12,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
+import { batchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -19,7 +20,6 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
-import { otel } from '@hono/otel';
 
 const logger = getLogger('agents-run-api');
 

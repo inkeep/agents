@@ -6,6 +6,7 @@ import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect } from '../types/entities';
+import { createApiError } from '../utils/error';
 import { getRequestExecutionContext } from '../utils/execution';
 import { getLogger } from '../utils/logger';
 
@@ -445,14 +446,11 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
           },
           'Request context validation failed'
         );
-
-        return c.json(
-          {
-            error: 'Invalid request context',
-            details: validationResult.errors,
-          },
-          400
-        );
+        const errorMessage = `Invalid request context: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
+        throw createApiError({
+          code: 'bad_request',
+          message: errorMessage,
+        });
       }
 
       // Store validated context for use in the main handler
@@ -475,14 +473,10 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
         },
         'Context validation middleware error'
       );
-
-      return c.json(
-        {
-          error: 'Context validation failed',
-          message: 'Internal validation error',
-        },
-        500
-      );
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Context validation failed',
+      });
     }
   };
 }
