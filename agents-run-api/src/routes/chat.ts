@@ -338,48 +338,76 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
     // Use Hono's streamSSE helper for proper SSE formatting
     return streamSSE(c, async (stream) => {
-      // Create SSE stream helper
-      const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+      try {
+        // Create SSE stream helper
+        const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
 
-      // Start with the role
-      await sseHelper.writeRole();
+        // Start with the role
+        await sseHelper.writeRole();
 
-      logger.info({ agentId }, 'Starting execution');
+        logger.info({ agentId }, 'Starting execution');
 
-      // Use the execution handler
-      const executionHandler = new ExecutionHandler();
-      const result = await executionHandler.execute({
-        executionContext,
-        conversationId,
-        userMessage,
-        initialAgentId: agentId,
-        requestId,
-        sseHelper,
-      });
+        // Use the execution handler
+        const executionHandler = new ExecutionHandler();
+        const result = await executionHandler.execute({
+          executionContext,
+          conversationId,
+          userMessage,
+          initialAgentId: agentId,
+          requestId,
+          sseHelper,
+        });
 
-      logger.info(
-        { result },
-        `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
-      );
-
-      if (!result.success) {
-        // If execution failed and no error was already streamed, send a default error
-        await sseHelper.writeOperation(
-          errorOp(
-            'Sorry, I was unable to process your request at this time. Please try again.',
-            'system'
-          )
+        logger.info(
+          { result },
+          `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
         );
-      }
 
-      // Complete the stream
-      await sseHelper.complete();
+        if (!result.success) {
+          // If execution failed and no error was already streamed, send a default error
+          await sseHelper.writeOperation(
+            errorOp(
+              'Sorry, I was unable to process your request at this time. Please try again.',
+              'system'
+            )
+          );
+        }
+
+        // Complete the stream
+        await sseHelper.complete();
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error.message : error,
+            stack: error instanceof Error ? error.stack : undefined,
+          },
+          'Error during streaming execution'
+        );
+
+        try {
+          // Try to send error as stream content if possible
+          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+          await sseHelper.writeOperation(
+            errorOp(
+              'Sorry, I was unable to process your request at this time. Please try again.',
+              'system'
+            )
+          );
+          await sseHelper.complete();
+        } catch (streamError) {
+          // If we can't write to stream, just log it
+          logger.error({ streamError }, 'Failed to write error to stream');
+        }
+      }
     });
   } catch (error) {
-    console.error('❌ Error in chat completions endpoint:', {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      'Error in chat completions endpoint before streaming'
+    );
 
     // Re-throw if already an API error
     if (error && typeof error === 'object' && 'status' in error) {
