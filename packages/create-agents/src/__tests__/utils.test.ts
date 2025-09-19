@@ -65,11 +65,11 @@ describe('createAgents - Template and Project ID Logic', () => {
 
     // Mock util.promisify to return a mock exec function
     const mockExecAsync = vi.fn().mockResolvedValue({ stdout: '', stderr: '' });
-    const util = require('util');
+    const util = require('node:util');
     util.promisify = vi.fn(() => mockExecAsync);
 
     // Mock child_process.spawn
-    const childProcess = require('child_process');
+    const childProcess = require('node:child_process');
     childProcess.spawn = vi.fn(() => ({
       pid: 12345,
       stdio: ['pipe', 'pipe', 'pipe'],

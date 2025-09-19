@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Tool } from '../../tool';
-import type { ToolConfig } from '../../types';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', () => ({
@@ -289,8 +288,8 @@ describe.skip('Tool Manager', () => {
 
     it('should restart tool', async () => {
       // Tool doesn't have stop/start/restart methods - simulate the behavior
-      const stopResult = { status: 'stopped' };
-      const startResult = { status: 'started' };
+      const _stopResult = { status: 'stopped' };
+      const _startResult = { status: 'started' };
       const result = { status: 'restarted' };
 
       expect(result).toEqual({ status: 'restarted' });

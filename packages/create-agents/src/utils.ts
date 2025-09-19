@@ -1,9 +1,9 @@
 import * as p from '@clack/prompts';
-import { exec } from 'child_process';
+import { exec } from 'node:child_process';
 import fs from 'fs-extra';
-import path from 'path';
+import path from 'node:path';
 import color from 'picocolors';
-import { promisify } from 'util';
+import { promisify } from 'node:util';
 import { cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
@@ -249,7 +249,7 @@ export const createAgents = async (
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
-      customProject: customProjectId ? true : false,
+      customProject: !!customProjectId,
     };
 
     // Create workspace structure for project-specific files
@@ -389,7 +389,7 @@ async function installDependencies() {
 
 async function setupProjectInDatabase(config: FileConfig) {
   // Start development servers in background
-  const { spawn } = await import('child_process');
+  const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
     stdio: ['pipe', 'pipe', 'pipe'],
     detached: true, // Detach so we can kill the process group
@@ -402,10 +402,10 @@ async function setupProjectInDatabase(config: FileConfig) {
   // Run inkeep push
   try {
     // Suppress all output
-    const { stdout, stderr } = await execAsync(
+    await execAsync(
       `pnpm inkeep push --project src/${config.projectId}`
     );
-  } catch (error) {
+  } catch (_error) {
     //Continue despite error - user can setup project manually
   } finally {
     // Kill the dev servers and their child processes
@@ -423,7 +423,7 @@ async function setupProjectInDatabase(config: FileConfig) {
         } catch {
           // Process already terminated
         }
-      } catch (error) {
+      } catch (_error) {
         // Process might already be dead, that's fine
         console.log('Note: Dev servers may still be running in background');
       }

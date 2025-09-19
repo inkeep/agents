@@ -513,8 +513,10 @@ describe('AgentGraph', () => {
 
       // Test streaming - consume the async generator
       const chunks = [];
-      for await (const chunk of result.textStream!) {
-        chunks.push(chunk);
+      if (result.textStream) {
+        for await (const chunk of result.textStream) {
+          chunks.push(chunk);
+        }
       }
       expect(chunks.length).toBeGreaterThan(0);
 
@@ -538,7 +540,7 @@ describe('AgentGraph', () => {
       expect(result).toHaveProperty('textStream');
 
       // Error should be thrown when trying to consume the async generator
-      const iterator = result.textStream![Symbol.asyncIterator]();
+      const iterator = result.textStream?.[Symbol.asyncIterator]();
       await expect(iterator.next()).rejects.toThrow('HTTP 500: Internal Server Error');
     });
   });

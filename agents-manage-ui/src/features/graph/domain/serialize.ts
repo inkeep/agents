@@ -30,14 +30,6 @@ export type ExtendedAgent =
   | ExternalAgent;
 
 // Note: Tools are now project-scoped, not part of FullGraphDefinition
-// This type represents a generic tool structure for backward compatibility
-type Tool = {
-  id: string;
-  name: string;
-  description?: string;
-  type: string;
-  config: Record<string, unknown>;
-};
 
 /**
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy

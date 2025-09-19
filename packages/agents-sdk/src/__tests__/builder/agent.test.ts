@@ -249,8 +249,8 @@ describe('Agent Builder', () => {
 
   describe('Description Methods', () => {
     let sourceAgent: Agent;
-    let transferAgent: Agent;
-    let delegateAgent: Agent;
+    let _transferAgent: Agent;
+    let _delegateAgent: Agent;
 
     beforeEach(() => {
       sourceAgent = new Agent({
@@ -260,14 +260,14 @@ describe('Agent Builder', () => {
         prompt: 'You are the main agent',
       });
 
-      transferAgent = new Agent({
+      _transferAgent = new Agent({
         id: 'transfer-agent',
         name: 'Transfer Agent',
         description: 'Specialized agent for transfers',
         prompt: 'You handle transfers',
       });
 
-      delegateAgent = new Agent({
+      _delegateAgent = new Agent({
         id: 'delegate-agent',
         name: 'Delegate Agent',
         description: 'Specialized agent for delegations',

@@ -1,7 +1,6 @@
 import type {
   CredentialReferenceApiInsert,
   FullProjectDefinition,
-  ProjectApiInsert,
   ProjectModels,
   StopWhen,
 } from '@inkeep/agents-core';
@@ -620,19 +619,6 @@ export class Project implements ProjectInterface {
       credentialReferences: undefined, // Projects don't directly hold credentials yet
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Convert project configuration to API format
-   */
-  private toApiFormat(): ProjectApiInsert {
-    return {
-      id: this.projectId,
-      name: this.projectName,
-      description: this.projectDescription || '',
-      models: this.models as ProjectModels,
-      stopWhen: this.stopWhen,
     };
   }
 }

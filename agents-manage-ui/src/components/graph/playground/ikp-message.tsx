@@ -366,7 +366,7 @@ function useProcessedOperations(parts: Message['parts']) {
 export const IkpMessage: FC<IkpMessageProps> = ({
   message,
   isStreaming = false,
-  renderMarkdown,
+  renderMarkdown: _renderMarkdown,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
 
