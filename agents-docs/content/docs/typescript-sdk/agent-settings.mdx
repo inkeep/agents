@@ -41,28 +41,35 @@ const agent = agent({
   canTransferTo: () => [agent1], // Agents this can hand off to
   canDelegateTo: () => [agent2], // Agents this can delegate to
 
-  // Optional - AI Model Settings
+  // Optional - AI Model Settings (Vercel AI SDK v5)
   models: {
     base: {
       model: "anthropic/claude-sonnet-4-20250514",
       providerOptions: {
-        temperature: 0.7, // Response creativity (0.0-1.0)
-        maxTokens: 2048, // Maximum response length
-        timeout: 30000, // Request timeout in milliseconds (e.g., `30000` for 30 seconds)
+        temperature: 0.7,
+        maxOutputTokens: 2048,   // Maximum tokens to generate
+        maxDuration: 30,          // Timeout in seconds
+        topP: 0.95,               // Nucleus sampling
+        topK: 40,                 // Top-k sampling
+        frequencyPenalty: 0.0,    // Reduce repetition
+        presencePenalty: 0.0,     // Encourage new topics
+        stopSequences: ["\n\n"], // Stop generation at sequences
+        seed: 12345,              // For deterministic output
       },
     },
     structuredOutput: {
       model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output
       providerOptions: {
-        temperature: 0.1, // Response creativity (0.0-1.0)
-        maxTokens: 1024, // Maximum response length
+        temperature: 0.1,
+        maxOutputTokens: 1024,
+        experimental_reasoning: true,  // Enable reasoning mode (if supported)
       },
     },
     summarizer: {
       model: "openai/gpt-4.1-nano-2025-04-14", // For summaries
       providerOptions: {
-        temperature: 0.5, // Response creativity (0.0-1.0)
-        maxTokens: 1000, // Maximum response length
+        temperature: 0.5,
+        maxOutputTokens: 1000,
       },
     },
   },
@@ -129,7 +136,44 @@ const agent = agent({
 | `canTransferTo`      | function | No       | Function returning array of agents this agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details     |
 | `canDelegateTo`      | function | No       | Function returning array of agents this agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) for details |
 
-## Supported Providers
+## Model Settings
+
+The `models` object allows you to configure different models for different tasks, each with their own provider options:
+
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-20250514", // Primary model for text generation
+    providerOptions: {
+      temperature: 0.7,
+      maxOutputTokens: 2048  // AI SDK v5 uses maxOutputTokens
+    }
+  },
+  structuredOutput: {
+    model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output only
+    providerOptions: {
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+      experimental_reasoning: true  // Enable reasoning for better structured outputs
+    }
+  },
+  summarizer: {
+    model: "anthropic/claude-3-5-haiku-20241022", // For summaries and status updates
+    providerOptions: {
+      temperature: 0.5,
+      maxOutputTokens: 1000
+    }
+  }
+}
+```
+
+### Model Types
+
+- **`base`**: Primary model used for conversational text generation and reasoning
+- **`structuredOutput`**: Model used for structured JSON output only (falls back to base if not configured and nothing to inherit)
+- **`summarizer`**: Model used for summaries and status updates (falls back to base if not configured and nothing to inherit)
+
+### Supported Providers
 
 The framework currently supports models from:
 
@@ -149,11 +193,15 @@ models: {
   base: {
     model: "openrouter/anthropic/claude-sonnet-4",
     providerOptions: {
-      temperature: 0.7
+      temperature: 0.7,
+      maxOutputTokens: 2048
     }
   },
   structuredOutput: {
-    model: "gateway/openai/gpt-4.1-mini"
+    model: "gateway/openai/gpt-4.1-mini",
+    providerOptions: {
+      maxOutputTokens: 1024
+    }
   }
 }
 ```
@@ -166,14 +214,119 @@ models: {
 - `OPENROUTER_API_KEY` for OpenRouter models
 - `AI_GATEWAY_API_KEY` for Vercel AI SDK Gateway models
 
-### Provider Options
+### Provider Options (Vercel AI SDK v5)
 
-Each model settings can include `providerOptions` with provider-specific settings:
+Each model settings can include `providerOptions` with both generic and provider-specific parameters:
 
-- `temperature`: Response creativity (0.0-1.0)
-- `maxTokens`: Maximum response length
-- `timeout`: Request timeout in milliseconds (e.g., `30000` for 30 seconds)
-- Provider-specific options vary by provider
+#### Generic Parameters (All Providers)
+These parameters work across all providers and go directly in `providerOptions`:
+
+- `maxOutputTokens`: Maximum number of tokens to generate (**Note:** AI SDK v5 uses `maxOutputTokens`, not `maxTokens`)
+- `temperature`: Controls randomness of output (0.0-1.0, lower is more deterministic)
+- `topP`: Nucleus sampling - consider tokens with top cumulative probability (0.0-1.0)
+- `topK`: Limits token sampling to top K options (integer)
+- `frequencyPenalty`: Reduces repetition of words used frequently (-2.0 to 2.0)
+- `presencePenalty`: Encourages model to explore new topics (-2.0 to 2.0)
+- `stopSequences`: Array of sequences that stop generation (e.g., `["\n\n", "END"]`)
+- `seed`: Random seed for deterministic output (integer)
+- `maxDuration`: Request timeout in seconds (**Note:** seconds not milliseconds, e.g., `30` for 30 seconds)
+- `maxRetries`: Maximum retry attempts on failure (default: 2)
+
+#### Provider-Specific Parameters
+These parameters must be wrapped in a provider-specific object (e.g., `anthropic: {}`, `openai: {}`, `google: {}`):
+
+##### Combined Example
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-3-7-sonnet-20250219",
+    providerOptions: {
+      // Generic parameters (all providers)
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      topP: 0.95,
+      stopSequences: ["\n\n"],
+      
+      // Provider-specific parameters (wrapped)
+      anthropic: {
+        thinking: {
+          type: 'enabled',
+          budgetTokens: 8000
+        }
+      }
+    }
+  }
+}
+```
+
+### Reasoning Models Examples
+
+Different providers offer reasoning capabilities that must be wrapped in provider-specific objects:
+
+#### OpenAI (o3-mini with reasoning)
+```typescript
+models: {
+  base: {
+    model: "openai/o3-mini",
+    providerOptions: {
+      // Generic parameters
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      
+      // OpenAI-specific reasoning
+      openai: {
+        reasoningEffort: 'medium'  // 'low' | 'medium' | 'high'
+      }
+    }
+  }
+}
+```
+
+#### Anthropic (Claude with thinking)
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-3-7-sonnet-20250219",
+    providerOptions: {
+      // Generic parameters
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      topP: 0.95,
+      
+      // Anthropic-specific thinking
+      anthropic: {
+        thinking: { 
+          type: 'enabled', 
+          budgetTokens: 8000  // Tokens for reasoning
+        }
+      }
+    }
+  }
+}
+```
+
+#### Google (Gemini with thinking)
+```typescript
+models: {
+  base: {
+    model: "google/gemini-2-5-flash",
+    providerOptions: {
+      // Generic parameters
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      seed: 12345,  // For deterministic output
+      
+      // Google-specific thinking
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 8192,   // 0 disables thinking
+          includeThoughts: true   // Return thought summary
+        }
+      }
+    }
+  }
+}
+```
 
 ### Inheritance
 

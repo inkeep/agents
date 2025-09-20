@@ -32,15 +32,9 @@ export class ModelFactory {
         return createGoogleGenerativeAI(config);
       case 'openrouter':
         // Use official OpenRouter provider, but it has this weird type error
-        return createOpenRouter({
-          apiKey: process.env.OPENROUTER_API_KEY,
-          ...config,
-        });
+        return createOpenRouter(config);
       case 'gateway':
-        return createGateway({
-          apiKey: process.env.AI_GATEWAY_API_KEY,
-          ...config,
-        });
+        return createGateway(config);
     }
   }
 
