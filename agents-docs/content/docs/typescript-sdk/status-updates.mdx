@@ -175,15 +175,41 @@ statusUpdates: {
 // Results in: "Discovering relevant documentation...", "Analyzing search results for best matches"
 ```
 
-## Advanced: Structured Status Updates
+## Default vs Structured Status Updates
 
-For more control over status format, use structured status components:
+Status updates can be generated in two ways:
 
-<Callout type="info">
-  **Schema Update**: The status components schema has been simplified. Use
-  `type` instead of `id` and `name`, and `detailsSchema` instead of `schema`.
-  The `detailsSchema` is now optional.
-</Callout>
+### Default Status Components (Recommended)
+
+When no `statusComponents` are configured, the system uses built-in default status components that generate structured labels with contextual details:
+
+- **`label`**: AI-generated user-friendly description (e.g., "Searching documentation for API examples")
+- **`details`**: Optional structured data with context about the operation
+
+The default status components are defined in [`packages/agents-sdk/src/default-status-schemas.ts`](https://github.com/inkeep/agents/blob/main/packages/agents-sdk/src/default-status-schemas.ts):
+
+```typescript source="../../packages/agents-sdk/src/default-status-schemas.ts"
+
+```
+
+This provides the best balance of user experience and implementation simplicity.
+
+### Plain Text Mode (Legacy)
+
+To use simple text-only status updates (legacy behavior), explicitly configure an empty `statusComponents` array:
+
+```typescript
+statusUpdates: {
+  numEvents: 3,
+  timeInSeconds: 15,
+  statusComponents: [], // Forces plain text mode
+}
+```
+
+### Custom Structured Components
+
+For complete control over status format, define custom structured status components:
+
 
 ```typescript
 statusUpdates: {
@@ -248,19 +274,58 @@ Status updates arrive as `data-summary` events with AI-generated labels and cont
 // In your message processing
 message.parts.forEach((part) => {
   if (part.type === "data-summary") {
-    const { label, details } = part.data;
+    const { type, label, details } = part.data;
 
     // Display the user-friendly status label
     displayStatusUpdate(label);
 
     // Handle optional structured details
     if (details) {
-      // Unstructured summary text
-      // Any structured data (progress, counts, etc.)
+      // For default status components: contextual operation details
+      // For custom components: your defined schema structure
       displayStructuredDetails(details);
     }
+
+    // The 'type' field indicates the summary category
+    console.log(`Status update type: ${type}`);
   }
 });
+```
+
+### Data Structure Examples
+
+**Default Status Components:**
+```json
+{
+  "type": "progress",
+  "label": "Searching knowledge base for relevant documentation",
+  "details": {
+    "operations_completed": 3,
+    "current_focus": "API authentication methods",
+    "tools_used": ["knowledge_search", "document_analyzer"]
+  }
+}
+```
+
+**Custom Status Components:**
+```json
+{
+  "type": "tool_summary",
+  "label": "Search completed successfully",
+  "details": {
+    "tool_name": "search_knowledge_base",
+    "purpose": "Find API authentication documentation",
+    "outcome": "Found 5 relevant articles with code examples"
+  }
+}
+```
+
+**Plain Text Mode (Legacy):**
+```json
+{
+  "type": "status",
+  "label": "Searching through documentation to find API authentication methods..."
+}
 ```
 
 ## Best Practices
