@@ -13,20 +13,34 @@ You can set up SigNoz in two ways:
 1.  **Cloud Setup**: Use SigNoz Cloud
 2. **Local Setup**: Run SigNoz locally using Docker
 
-## Option 1: SigNoz Cloud Setup
+## Option 1: SigNoz cloud setup
 
-### Step 1: Create SigNoz Cloud Account
+### Step 1: Create a SigNoz cloud project
 
-1. Sign up at [SigNoz Cloud](https://signoz.io/teams/)
+1. Sign up at [SigNoz](https://signoz.io/teams/)
 2. Create a new project or use an existing one
-3. Note your ingestion endpoint and API key from the project settings
 
-### Step 2: Configure Root Environment
+### Step 2: Save your SigNoz API key, ingestion key, and SigNoz URL
 
-In your **root project directory**, update your `.env` file:
+You'll need to collect three pieces of information from your SigNoz dashboard:
 
-```bash
-# SigNoz Cloud Configuration
+1. **API Key**: 
+   - Navigate to Settings → Workspace Settings → API Keys → New Key
+   - Set expiration to "No Expiry" when creating the key
+   - Copy the generated API key
+
+2. **Ingestion Key**:
+   - Navigate to Settings → Workspace Settings → Ingestion
+   - Copy the ingestion key
+
+3. **SigNoz URL**:
+   - Copy the URL from your browser's address bar
+   - It will look like: `https://<your-organization>.signoz.cloud`
+
+### Step 3: Configure your root `.env` file
+
+```
+# SigNoz
 SIGNOZ_URL=https://<your-organization>.signoz.cloud
 SIGNOZ_API_KEY=<your-api-key>
 
@@ -34,25 +48,24 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
 OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 ```
 
+### Step 4: Verify cloud setup
 
-### Step 4: Verify Cloud Setup
-
-1. Start your Inkeep agents:
+1. Restart your development environment:
    ```bash
    pnpm dev
    ```
 
 2. Generate some traces by interacting with your agents
 
-3. Open your SigNoz Cloud dashboard and navigate to "Traces" to see your agent traces
+3. Open your SigNoz canloud dashboard and navigate to "Traces" to see your agent traces
 
-## Option 2: Local SigNoz Setup
+## Option 2: Local SigNoz setup
 
 ### Prerequisites
 
 - Docker installed on your machine
 
-### Step 1: Clone the Optional Services Repository
+### Step 1: Clone the optional services repository
 
 Clone the Inkeep optional local development services repository:
 
