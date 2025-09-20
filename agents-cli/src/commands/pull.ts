@@ -1,13 +1,21 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
+import prompts from 'prompts';
 import { env } from '../env';
-import { categorizeTypeScriptFiles, findAllTypeScriptFiles } from '../utils/file-finder';
 import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
-import { generateTypeScriptFileWithLLM } from './pull.llm-generate';
+import {
+  generateArtifactComponentFile,
+  generateDataComponentFile,
+  generateEnvironmentFiles,
+  generateGraphFile,
+  generateIndexFile,
+  generateInkeepConfigFile,
+  generateToolFile,
+} from './pull.llm-generate';
 
 export interface PullOptions {
   project?: string;
@@ -73,95 +81,155 @@ async function fetchProjectData(tenantId: string, projectId: string, apiUrl: str
 }
 
 /**
- * Find all TypeScript files in the project that need updating
- * Excludes files in the environments directory
+ * Ensure directory exists, creating it if necessary
  */
-function findProjectFiles(projectDir: string): {
-  indexFile: string | null;
-  graphFiles: string[];
-  agentFiles: string[];
-  toolFiles: string[];
-  otherFiles: string[];
-} {
-  // Find all TypeScript files excluding environments directory
-  const allTsFiles = findAllTypeScriptFiles(projectDir, ['environments', 'node_modules']);
+function ensureDirectoryExists(dirPath: string): void {
+  if (!existsSync(dirPath)) {
+    mkdirSync(dirPath, { recursive: true });
+  }
+}
 
-  // Categorize the files
-  const categorized = categorizeTypeScriptFiles(allTsFiles, projectDir);
+/**
+ * Create the project directory structure
+ */
+function createProjectStructure(
+  projectDir: string,
+  projectId: string
+): {
+  projectRoot: string;
+  graphsDir: string;
+  toolsDir: string;
+  dataComponentsDir: string;
+  artifactComponentsDir: string;
+  environmentsDir: string;
+} {
+  const projectRoot = join(projectDir, projectId);
+  const graphsDir = join(projectRoot, 'graphs');
+  const toolsDir = join(projectRoot, 'tools');
+  const dataComponentsDir = join(projectRoot, 'data-components');
+  const artifactComponentsDir = join(projectRoot, 'artifact-components');
+  const environmentsDir = join(projectRoot, 'environments');
+
+  // Create all directories
+  ensureDirectoryExists(projectRoot);
+  ensureDirectoryExists(graphsDir);
+  ensureDirectoryExists(toolsDir);
+  ensureDirectoryExists(dataComponentsDir);
+  ensureDirectoryExists(artifactComponentsDir);
+  ensureDirectoryExists(environmentsDir);
 
   return {
-    indexFile: categorized.indexFile,
-    graphFiles: categorized.graphFiles,
-    agentFiles: categorized.agentFiles,
-    toolFiles: categorized.toolFiles,
-    otherFiles: categorized.otherFiles,
+    projectRoot,
+    graphsDir,
+    toolsDir,
+    dataComponentsDir,
+    artifactComponentsDir,
+    environmentsDir,
   };
 }
 
 /**
- * Update project files using LLM based on backend data
+ * Generate project files using LLM based on backend data
  */
-async function updateProjectFilesWithLLM(
-  projectDir: string,
+async function generateProjectFiles(
+  dirs: {
+    projectRoot: string;
+    graphsDir: string;
+    toolsDir: string;
+    dataComponentsDir: string;
+    artifactComponentsDir: string;
+    environmentsDir: string;
+  },
   projectData: any,
+  projectId: string,
   modelSettings: ModelSettings
 ): Promise<void> {
-  const { graphs, tools } = projectData;
-  const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } = findProjectFiles(projectDir);
+  const { graphs, tools, dataComponents, artifactComponents } = projectData;
 
-  // Update index.ts
-  if (indexFile && existsSync(indexFile)) {
-    console.log(chalk.gray('  • Updating index.ts...'));
-    await generateTypeScriptFileWithLLM(projectData, 'project', indexFile, modelSettings);
-  }
+  // Prepare all generation tasks
+  const generationTasks: Promise<void>[] = [];
+  const fileInfo: { type: string; name: string }[] = [];
 
-  // Update graph files
-  for (const graphFilePath of graphFiles) {
-    const fileName = graphFilePath.split('/').pop()?.replace('.ts', '').replace('.graph', '');
-    if (fileName && graphs[fileName]) {
-      console.log(chalk.gray(`  • Updating graph: ${fileName}`));
-      await generateTypeScriptFileWithLLM(graphs[fileName], fileName, graphFilePath, modelSettings);
+  // Add index.ts generation task
+  const indexPath = join(dirs.projectRoot, 'index.ts');
+  generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
+  fileInfo.push({ type: 'config', name: 'index.ts' });
+
+  // Add inkeep.config.ts generation task
+  const configPath = join(dirs.projectRoot, 'inkeep.config.ts');
+  generationTasks.push(generateInkeepConfigFile(projectData, projectId, configPath, modelSettings));
+  fileInfo.push({ type: 'config', name: 'inkeep.config.ts' });
+
+  // Add graph generation tasks
+  if (graphs && Object.keys(graphs).length > 0) {
+    for (const [graphId, graphData] of Object.entries(graphs)) {
+      const graphPath = join(dirs.graphsDir, `${graphId}.ts`);
+      generationTasks.push(generateGraphFile(graphData, graphId, graphPath, modelSettings));
+      fileInfo.push({ type: 'graph', name: `${graphId}.ts` });
     }
   }
 
-  // Update agent files
-  for (const agentFilePath of agentFiles) {
-    const fileName = agentFilePath.split('/').pop()?.replace('.ts', '');
-    if (fileName) {
-      // Find the agent in any graph
-      let agentData = null;
-      for (const graph of Object.values(graphs)) {
-        const graphData = graph as any;
-        if (graphData.agents?.[fileName]) {
-          agentData = graphData.agents[fileName];
-          break;
-        }
-      }
-      if (agentData) {
-        console.log(chalk.gray(`  • Updating agent: ${fileName}`));
-        await generateTypeScriptFileWithLLM(agentData, fileName, agentFilePath, modelSettings);
-      }
+  // Add tool generation tasks
+  if (tools && Object.keys(tools).length > 0) {
+    for (const [toolId, toolData] of Object.entries(tools)) {
+      const toolPath = join(dirs.toolsDir, `${toolId}.ts`);
+      generationTasks.push(generateToolFile(toolData, toolId, toolPath, modelSettings));
+      fileInfo.push({ type: 'tool', name: `${toolId}.ts` });
     }
   }
 
-  // Update tool files
-  for (const toolFilePath of toolFiles) {
-    const fileName = toolFilePath.split('/').pop()?.replace('.ts', '');
-    if (fileName && tools[fileName]) {
-      console.log(chalk.gray(`  • Updating tool: ${fileName}`));
-      await generateTypeScriptFileWithLLM(tools[fileName], fileName, toolFilePath, modelSettings);
+  // Add data component generation tasks
+  if (dataComponents && Object.keys(dataComponents).length > 0) {
+    for (const [componentId, componentData] of Object.entries(dataComponents)) {
+      const componentPath = join(dirs.dataComponentsDir, `${componentId}.ts`);
+      generationTasks.push(generateDataComponentFile(componentData, componentId, componentPath, modelSettings));
+      fileInfo.push({ type: 'dataComponent', name: `${componentId}.ts` });
     }
   }
 
-  // Update other TypeScript files with project context
-  for (const otherFilePath of otherFiles) {
-    const fileName = otherFilePath.split('/').pop()?.replace('.ts', '');
-    if (fileName) {
-      console.log(chalk.gray(`  • Updating file: ${fileName}.ts`));
-      // Use the entire project data as context for other files
-      await generateTypeScriptFileWithLLM(projectData, fileName, otherFilePath, modelSettings);
+  // Add artifact component generation tasks
+  if (artifactComponents && Object.keys(artifactComponents).length > 0) {
+    for (const [componentId, componentData] of Object.entries(artifactComponents)) {
+      const componentPath = join(dirs.artifactComponentsDir, `${componentId}.ts`);
+      generationTasks.push(generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings));
+      fileInfo.push({ type: 'artifactComponent', name: `${componentId}.ts` });
     }
   }
+
+  // Add environment files generation (non-LLM, so fast)
+  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, projectData));
+  fileInfo.push({ type: 'env', name: 'environment templates' });
+
+  // Display what we're generating
+  console.log(chalk.cyan('  📝 Generating files in parallel:'));
+  const filesByType = fileInfo.reduce((acc, file) => {
+    if (!acc[file.type]) acc[file.type] = [];
+    acc[file.type].push(file.name);
+    return acc;
+  }, {} as Record<string, string[]>);
+
+  if (filesByType.config) {
+    console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
+  }
+  if (filesByType.graph) {
+    console.log(chalk.gray(`     • Graphs: ${filesByType.graph.join(', ')}`));
+  }
+  if (filesByType.tool) {
+    console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
+  }
+  if (filesByType.dataComponent) {
+    console.log(chalk.gray(`     • Data components: ${filesByType.dataComponent.join(', ')}`));
+  }
+  if (filesByType.artifactComponent) {
+    console.log(chalk.gray(`     • Artifact components: ${filesByType.artifactComponent.join(', ')}`));
+  }
+  if (filesByType.env) {
+    console.log(chalk.gray(`     • Environment: ${filesByType.env.join(', ')}`));
+  }
+
+  // Execute all tasks in parallel
+  console.log(chalk.yellow(`  ⚡ Processing ${generationTasks.length} files in parallel...`));
+  await Promise.all(generationTasks);
 }
 
 /**
@@ -182,31 +250,71 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
   const spinner = ora('Finding project...').start();
 
   try {
-    // Find project directory
-    const projectDir = await findProjectDirectory(options.project);
-    if (!projectDir) {
-      spinner.fail('Project not found');
-      console.error(chalk.red('Error: No project found.'));
-      console.error(
-        chalk.gray(
-          'Either run this command from within a project directory or specify --project <project-id>'
-        )
-      );
-      process.exit(1);
+    // Find the src directory or current directory
+    let baseDir: string;
+    if (options.project) {
+      // If project path is specified, use it
+      baseDir = options.project;
+    } else {
+      // Find the src directory by looking for package.json
+      const projectRoot = await findProjectDirectory();
+      if (projectRoot) {
+        // Check if there's a src directory
+        const srcPath = join(projectRoot, 'src');
+        baseDir = existsSync(srcPath) ? srcPath : projectRoot;
+      } else {
+        // Use current directory as fallback
+        baseDir = process.cwd();
+      }
     }
 
-    spinner.succeed(`Project found: ${projectDir}`);
+    spinner.succeed(`Base directory: ${baseDir}`);
 
-    // Load configuration
+    // Load configuration from parent directory if it exists
     spinner.start('Loading configuration...');
-    const config = await loadProjectConfig(projectDir);
+    let config: any = {
+      tenantId: 'default',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    // Try to load config from parent directory
+    const parentConfigPath = join(baseDir, '..', 'inkeep.config.ts');
+    if (existsSync(parentConfigPath)) {
+      try {
+        config = await loadProjectConfig(join(baseDir, '..'));
+      } catch (error) {
+        console.warn(chalk.yellow('Warning: Could not load configuration from parent directory'));
+      }
+    }
 
     // Override with CLI options
     const finalConfig = {
-      tenantId: options.agentsManageApiUrl ? options.env || config.tenantId : config.tenantId,
-      projectId: config.projectId,
+      tenantId: options.env || config.tenantId,
+      projectId: '', // Will be determined from API response or user input
       agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
     };
+
+    // Prompt for project ID if not provided
+    if (!options.project) {
+      spinner.stop();
+      const response = await prompts({
+        type: 'text',
+        name: 'projectId',
+        message: 'Enter the project ID to pull:',
+        validate: (value: string) => (value ? true : 'Project ID is required'),
+      });
+
+      if (!response.projectId) {
+        console.error(chalk.red('Project ID is required'));
+        process.exit(1);
+      }
+      finalConfig.projectId = response.projectId;
+      spinner.start('Configuration loaded');
+    } else {
+      // Extract project ID from path if it's a directory name
+      const projectIdFromPath = options.project.split('/').pop() || options.project;
+      finalConfig.projectId = projectIdFromPath;
+    }
 
     spinner.succeed('Configuration loaded');
     console.log(chalk.gray('Configuration:'));
@@ -240,43 +348,72 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.gray(`  • Tools: ${toolCount}`));
     console.log(chalk.gray(`  • Agents: ${agentCount}`));
 
+    // Create project directory structure
+    spinner.start('Creating project structure...');
+    const dirs = createProjectStructure(baseDir, finalConfig.projectId);
+    spinner.succeed('Project structure created');
+
     if (options.json) {
       // Save as JSON file
-      const jsonFilePath = join(projectDir, `${finalConfig.projectId}.json`);
+      const jsonFilePath = join(dirs.projectRoot, `${finalConfig.projectId}.json`);
       writeFileSync(jsonFilePath, JSON.stringify(projectData, null, 2));
 
       spinner.succeed(`Project data saved to ${jsonFilePath}`);
       console.log(chalk.green(`✅ JSON file created: ${jsonFilePath}`));
-    } else {
-      // Update project files using LLM
-      spinner.start('Updating project files with LLM...');
-
-      // Get model settings from config or use default
-      const modelSettings: ModelSettings = {
-        model: 'anthropic/claude-sonnet-4-20250514',
-      };
-
-      // Get file counts for summary
-      const { indexFile, graphFiles, agentFiles, toolFiles, otherFiles } =
-        findProjectFiles(projectDir);
-      const totalFiles =
-        [indexFile].filter(Boolean).length +
-        graphFiles.length +
-        agentFiles.length +
-        toolFiles.length +
-        otherFiles.length;
-
-      await updateProjectFilesWithLLM(projectDir, projectData, modelSettings);
-      spinner.succeed(`Project files updated (${totalFiles} files processed)`);
-
-      console.log(chalk.green('\n✨ Project pulled successfully!'));
-      console.log(chalk.cyan('\n📝 Next steps:'));
-      console.log(chalk.gray('  • Review the updated files'));
-      console.log(chalk.gray('  • Test locally: npx inkeep push'));
-      console.log(
-        chalk.gray('  • Commit changes: git add . && git commit -m "Pull project updates"')
-      );
     }
+
+    // Generate project files using LLM
+    spinner.start('Generating project files with LLM...');
+
+    // Get model settings from config or use default
+    const modelSettings: ModelSettings = {
+      model: 'anthropic/claude-sonnet-4-20250514',
+    };
+
+    await generateProjectFiles(dirs, projectData, finalConfig.projectId, modelSettings);
+
+    // Count generated files for summary
+    const fileCount = {
+      graphs: Object.keys(projectData.graphs || {}).length,
+      tools: Object.keys(projectData.tools || {}).length,
+      dataComponents: Object.keys(projectData.dataComponents || {}).length,
+      artifactComponents: Object.keys(projectData.artifactComponents || {}).length,
+    };
+    const totalFiles =
+      fileCount.graphs +
+      fileCount.tools +
+      fileCount.dataComponents +
+      fileCount.artifactComponents +
+      3; // +3 for index.ts, inkeep.config.ts, and environment files
+
+    spinner.succeed(`Project files generated (${totalFiles} files created)`);
+
+    console.log(chalk.green('\n✨ Project pulled successfully!'));
+    console.log(chalk.cyan('\n📁 Generated structure:'));
+    console.log(chalk.gray(`  ${dirs.projectRoot}/`));
+    console.log(chalk.gray(`  ├── index.ts`));
+    console.log(chalk.gray(`  ├── inkeep.config.ts`));
+    if (fileCount.graphs > 0) {
+      console.log(chalk.gray(`  ├── graphs/ (${fileCount.graphs} files)`));
+    }
+    if (fileCount.tools > 0) {
+      console.log(chalk.gray(`  ├── tools/ (${fileCount.tools} files)`));
+    }
+    if (fileCount.dataComponents > 0) {
+      console.log(chalk.gray(`  ├── data-components/ (${fileCount.dataComponents} files)`));
+    }
+    if (fileCount.artifactComponents > 0) {
+      console.log(chalk.gray(`  ├── artifact-components/ (${fileCount.artifactComponents} files)`));
+    }
+    console.log(chalk.gray(`  └── environments/`));
+
+    console.log(chalk.cyan('\n📝 Next steps:'));
+    console.log(chalk.gray(`  • cd ${dirs.projectRoot}`));
+    console.log(chalk.gray('  • Review the generated files'));
+    console.log(chalk.gray('  • Test locally: inkeep push'));
+    console.log(
+      chalk.gray('  • Commit changes: git add . && git commit -m "Add project from pull"')
+    );
   } catch (error: any) {
     spinner.fail('Failed to pull project');
     console.error(chalk.red('Error:'), error.message);

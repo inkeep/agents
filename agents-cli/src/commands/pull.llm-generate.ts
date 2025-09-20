@@ -2,7 +2,8 @@ import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { ModelSettings } from '@inkeep/agents-core';
 import { generateText } from 'ai';
-import type { FullGraphDefinition } from '../types/graph';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * Create a language model instance from configuration
@@ -39,6 +40,15 @@ function createModel(config: ModelSettings) {
 }
 
 /**
+ * Clean generated text by removing markdown code fences
+ */
+function cleanGeneratedCode(text: string): string {
+  // Remove opening and closing markdown code fences
+  // Handles ```typescript, ```ts, or just ```
+  return text.replace(/^```(?:typescript|ts)?\n?/, '').replace(/\n?```$/, '').trim();
+}
+
+/**
  * Parse model string to extract provider and model name
  */
 function parseModelString(modelString: string): { provider: string; modelName: string } {
@@ -58,10 +68,430 @@ function parseModelString(modelString: string): { provider: string; modelName: s
 }
 
 /**
+ * Generate index.ts file with complete project definition
+ */
+export async function generateIndexFile(
+  projectData: any,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const prompt = `Generate a TypeScript index.ts file for an Inkeep project with the following data:
+
+PROJECT DATA:
+${JSON.stringify(projectData, null, 2)}
+
+REQUIREMENTS:
+1. Import the project function from '@inkeep/agents-sdk'
+2. Import all graphs from the graphs directory (e.g., import { graphName } from './graphs/graphName')
+3. Import all tools from the tools directory if any exist
+4. Import all data components from the data-components directory if any exist
+5. Import all artifact components from the artifact-components directory if any exist
+6. CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
+7. Export a const named after the project ID using the project() function
+8. The project object should include:
+   - id: project ID
+   - name: project name
+   - description: project description (if provided)
+   - models: model configuration (if provided)
+   - stopWhen: stop configuration (if provided)
+   - graphs: arrow function returning array of imported graphs
+   - tools: arrow function returning array of imported tools (if any)
+   - dataComponents: arrow function returning array of imported data components (if any)
+   - artifactComponents: arrow function returning array of imported artifact components (if any)
+
+EXAMPLE:
+import { project } from '@inkeep/agents-sdk';
+import { weatherGraph } from './graphs/weather-graph';
+import { searchTool } from './tools/search-tool';
+
+export const weatherProject = project({
+  id: 'weather-project',
+  name: 'Weather Project',
+  description: 'A weather information system',
+  models: {
+    base: { model: 'gpt-4o-mini' }
+  },
+  graphs: () => [weatherGraph],
+  tools: () => [searchTool]
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const { text } = await generateText({
+    model,
+    prompt,
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate inkeep.config.ts file with projectId
+ */
+export async function generateInkeepConfigFile(
+  projectData: any,
+  projectId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  // Create the config file directly without LLM since it's a simple template
+  const modelConfig = projectData.models || {};
+
+  const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
+
+const config = defineConfig({
+  projectId: '${projectId}',
+  tenantId: "default",
+  agentsManageApiUrl: 'http://localhost:3002',
+  agentsRunApiUrl: 'http://localhost:3003',
+  modelSettings: ${JSON.stringify({
+    base: modelConfig.base || { model: 'anthropic/claude-sonnet-4-20250514' },
+    structuredOutput: modelConfig.structuredOutput || { model: 'anthropic/claude-3-5-haiku-20241022' },
+    summarizer: modelConfig.summarizer || { model: 'anthropic/claude-3-5-haiku-20241022' }
+  }, null, 4).split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n')}
+});
+
+export default config;
+`;
+
+  // Write the config file directly
+  writeFileSync(outputPath, configContent);
+}
+
+/**
+ * Generate a graph TypeScript file
+ */
+export async function generateGraphFile(
+  graphData: any,
+  graphId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const prompt = `Generate a TypeScript file for an Inkeep agent graph.
+
+GRAPH DATA:
+${JSON.stringify(graphData, null, 2)}
+
+GRAPH ID: ${graphId}
+
+REQUIREMENTS:
+1. Import functions from '@inkeep/agents-sdk' - ALWAYS sort named imports alphabetically (e.g., import { agent, agentGraph } not { agentGraph, agent })
+2. Import any necessary tool functions - sort all import paths alphabetically
+3. Define each agent using the agent() function with their configurations
+4. Create the graph using agentGraph() with:
+   - id: graph ID
+   - name: graph name
+   - description: graph description (use undefined, not null, if no description)
+   - defaultAgent: the default agent
+   - agents: arrow function returning array of all agents: agents: () => [agent1, agent2]
+5. Export the graph as a named export
+6. For agent relationships, use canTransferTo and canDelegateTo as arrow functions
+7. CRITICAL: For agent properties that accept arrays:
+   - canUse: Use arrow function syntax: canUse: () => [tool1, tool2]
+   - dataComponents: Use arrow function syntax: dataComponents: () => [component1]
+   - artifactComponents: Use arrow function syntax: artifactComponents: () => [component1]
+   - canTransferTo: Use arrow function syntax: canTransferTo: () => [agent1, agent2]
+   - canDelegateTo: Use arrow function syntax: canDelegateTo: () => [agent1, agent2]
+8. Use proper TypeScript syntax
+9. CRITICAL: Ensure all imports are sorted alphabetically to comply with Biome linting rules
+
+EXAMPLE:
+import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
+
+const searchTool = mcpTool({ id: 'search', name: 'Search', serverUrl: 'https://example.com/mcp' });
+
+const routerAgent = agent({
+  id: 'router',
+  name: 'Router Agent',
+  prompt: 'Route requests to appropriate agents',
+  canTransferTo: () => [qaAgent, orderAgent]
+});
+
+const qaAgent = agent({
+  id: 'qa',
+  name: 'QA Agent',
+  prompt: 'Answer questions',
+  canUse: () => [searchTool]  // MUST be arrow function
+});
+
+export const supportGraph = agentGraph({
+  id: 'support-graph',
+  name: 'Customer Support',
+  description: 'Multi-agent customer support system',
+  defaultAgent: routerAgent,
+  agents: () => [routerAgent, qaAgent]  // MUST be arrow function
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const { text } = await generateText({
+    model,
+    prompt,
+    temperature: 0.1,
+    maxOutputTokens: 16000,
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate a tool TypeScript file
+ */
+export async function generateToolFile(
+  toolData: any,
+  toolId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const prompt = `Generate a TypeScript file for an Inkeep tool.
+
+TOOL DATA:
+${JSON.stringify(toolData, null, 2)}
+
+TOOL ID: ${toolId}
+
+REQUIREMENTS:
+1. Import mcpTool from '@inkeep/agents-sdk' - ensure imports are alphabetically sorted
+2. Use mcpTool() with serverUrl property (not nested server object)
+3. Include id, name, and serverUrl as the main properties
+4. Export the tool as a named export
+5. Include all configuration from the tool data
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+
+IMPORTANT: The exported const MUST be named exactly after the tool ID (camelCased) since the ID is unique and will be imported by that name.
+
+EXAMPLE FOR MCP TOOL:
+import { mcpTool } from '@inkeep/agents-sdk';
+
+// If tool ID is 'search-tool', export name is 'searchTool'
+export const searchTool = mcpTool({
+  id: 'search-tool',
+  name: 'Search Tool',
+  serverUrl: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-brave-search']
+});
+
+EXAMPLE FOR MCP TOOL WITH RANDOM ID:
+import { mcpTool } from '@inkeep/agents-sdk';
+
+// If tool ID is 'fUI2riwrBVJ6MepT8rjx0', export name is 'fUI2riwrBVJ6MepT8rjx0'
+export const fUI2riwrBVJ6MepT8rjx0 = mcpTool({
+  id: 'fUI2riwrBVJ6MepT8rjx0',
+  name: 'Weather Forecast',
+  serverUrl: 'https://weather-forecast-mcp.vercel.app/mcp'
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const { text } = await generateText({
+    model,
+    prompt,
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate a data component TypeScript file
+ */
+export async function generateDataComponentFile(
+  componentData: any,
+  componentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const prompt = `Generate a TypeScript file for an Inkeep data component.
+
+DATA COMPONENT DATA:
+${JSON.stringify(componentData, null, 2)}
+
+COMPONENT ID: ${componentId}
+
+REQUIREMENTS:
+1. Import dataComponent from '@inkeep/agents-sdk'
+2. Create the data component using dataComponent()
+3. Include all properties from the component data
+4. Export as a named export
+5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+
+IMPORTANT: The exported const MUST be named exactly after the component ID (camelCased) since the ID is unique and will be imported by that name.
+
+EXAMPLE:
+import { dataComponent } from '@inkeep/agents-sdk';
+
+// If component ID is 'user-profile', export name is 'userProfile'
+export const userProfile = dataComponent({
+  name: 'User Profile',
+  description: 'User profile information',
+  props: {
+    userId: { type: 'string', required: true },
+    email: { type: 'string', required: true },
+    preferences: { type: 'object' }
+  }
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const { text } = await generateText({
+    model,
+    prompt,
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate an artifact component TypeScript file
+ */
+export async function generateArtifactComponentFile(
+  componentData: any,
+  componentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const prompt = `Generate a TypeScript file for an Inkeep artifact component.
+
+ARTIFACT COMPONENT DATA:
+${JSON.stringify(componentData, null, 2)}
+
+COMPONENT ID: ${componentId}
+
+REQUIREMENTS:
+1. Import artifactComponent from '@inkeep/agents-sdk'
+2. Create the artifact component using artifactComponent()
+3. Include summaryProps and fullProps from the component data
+4. Export as a named export
+5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+
+IMPORTANT: The exported const MUST be named exactly after the component ID (camelCased) since the ID is unique and will be imported by that name.
+
+EXAMPLE:
+import { artifactComponent } from '@inkeep/agents-sdk';
+
+// If component ID is 'order-summary', export name is 'orderSummary'
+export const orderSummary = artifactComponent({
+  name: 'Order Summary',
+  description: 'Summary of customer order',
+  summaryProps: {
+    orderId: { type: 'string', required: true },
+    total: { type: 'number', required: true }
+  },
+  fullProps: {
+    orderId: { type: 'string', required: true },
+    items: { type: 'array', required: true },
+    total: { type: 'number', required: true },
+    tax: { type: 'number' }
+  }
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const { text } = await generateText({
+    model,
+    prompt,
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate environment template files
+ */
+export async function generateEnvironmentFiles(
+  environmentsDir: string,
+  projectData: any
+): Promise<void> {
+  // Generate production.env.ts template
+  const prodEnvContent = `// Production environment configuration
+import { credential } from '@inkeep/agents-sdk';
+
+export const production = {
+  // Add your production credential references here
+  // Example:
+  // apiKey: credential({
+  //   id: 'prod-api-key',
+  //   name: 'Production API Key',
+  //   type: 'string'
+  // })
+};
+`;
+
+  // Generate staging.env.ts template
+  const stagingEnvContent = `// Staging environment configuration
+import { credential } from '@inkeep/agents-sdk';
+
+export const staging = {
+  // Add your staging credential references here
+  // Example:
+  // apiKey: credential({
+  //   id: 'staging-api-key',
+  //   name: 'Staging API Key',
+  //   type: 'string'
+  // })
+};
+`;
+
+  // Generate development.env.ts template
+  const devEnvContent = `// Development environment configuration
+import { credential } from '@inkeep/agents-sdk';
+
+export const development = {
+  // Add your development credential references here
+  // Example:
+  // apiKey: credential({
+  //   id: 'dev-api-key',
+  //   name: 'Development API Key',
+  //   type: 'string'
+  // })
+};
+`;
+
+  // Generate .env.validation.ts template
+  const validationContent = `// Environment validation schema
+import { z } from 'zod';
+
+// Define your environment validation schema
+export const envSchema = z.object({
+  // Add validation rules for your credentials
+  // Example:
+  // apiKey: z.string().min(1, 'API Key is required')
+});
+
+// Type for validated environment
+export type ValidatedEnv = z.infer<typeof envSchema>;
+`;
+
+  // Write all environment files
+  writeFileSync(join(environmentsDir, 'production.env.ts'), prodEnvContent);
+  writeFileSync(join(environmentsDir, 'staging.env.ts'), stagingEnvContent);
+  writeFileSync(join(environmentsDir, 'development.env.ts'), devEnvContent);
+  writeFileSync(join(environmentsDir, '.env.validation.ts'), validationContent);
+}
+
+/**
+ * Legacy function for backward compatibility
  * Generate TypeScript code using LLM to intelligently merge graph data
  */
 export async function generateTypeScriptFileWithLLM(
-  graphData: FullGraphDefinition,
+  graphData: any,
   graphId: string,
   outputFilePath: string,
   modelSettings: ModelSettings,
@@ -100,8 +530,8 @@ export async function generateTypeScriptFileWithLLM(
       maxOutputTokens: 16000, // Increased to handle large TypeScript files
     });
 
-    // Write the generated code to the file
-    fs.writeFileSync(outputFilePath, text, 'utf-8');
+    // Write the generated code to the file (clean it first)
+    fs.writeFileSync(outputFilePath, cleanGeneratedCode(text), 'utf-8');
 
     console.log(`✅ Successfully generated TypeScript file: ${outputFilePath}`);
   } catch (error) {
@@ -114,7 +544,7 @@ export async function generateTypeScriptFileWithLLM(
  * Create a comprehensive prompt for the LLM to generate/update TypeScript code
  */
 function createPrompt(
-  graphData: FullGraphDefinition,
+  graphData: any,
   graphId: string,
   existingContent: string,
   fileExists: boolean,
@@ -163,7 +593,7 @@ REQUIREMENTS:
 3. For agents, use the \`agent()\` function with proper configuration
 4. For MCP tools, use the \`mcpTool()\` function with proper configuration
 5. For context configs, use the \`contextConfig()\` function
-6. For credential references, use the \`credentialReference()\` function
+6. For credential references, use the \`credential()\` function
 7. Use proper TypeScript syntax with correct imports
 8. Handle multi-line strings with template literals (backticks) when needed
 9. Preserve the exact structure and relationships from the graph data
@@ -172,6 +602,10 @@ REQUIREMENTS:
 12. Preserve all configuration details exactly as provided in the graph data
 
 IMPORTANT:
+- Agents use \`canUse\` for tools, not \`tools\`
+- Graph's \`agents\` property should be an arrow function: agents: () => [...]
+- DataComponents don't have \`id\` field in their config
+- Use \`undefined\` instead of \`null\` for missing optional values
 - If tools array contains numeric indices, use the actual tool IDs instead
 - Preserve all configuration details exactly as provided
 - Use proper TypeScript formatting and indentation
