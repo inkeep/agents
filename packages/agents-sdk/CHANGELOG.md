@@ -1,5 +1,18 @@
 # @inkeep/agents-sdk
 
+## 0.4.0
+
+### Minor Changes
+
+- a379dec: Added env var loader to agents-cli package
+
+### Patch Changes
+
+- Updated dependencies [0a8352f]
+- Updated dependencies [0a8352f]
+- Updated dependencies [a379dec]
+  - @inkeep/agents-core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
