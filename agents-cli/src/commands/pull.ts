@@ -146,59 +146,90 @@ async function generateProjectFiles(
 ): Promise<void> {
   const { graphs, tools, dataComponents, artifactComponents } = projectData;
 
-  // Generate index.ts file
-  console.log(chalk.gray('  • Generating index.ts...'));
+  // Prepare all generation tasks
+  const generationTasks: Promise<void>[] = [];
+  const fileInfo: { type: string; name: string }[] = [];
+
+  // Add index.ts generation task
   const indexPath = join(dirs.projectRoot, 'index.ts');
-  await generateIndexFile(projectData, indexPath, modelSettings);
+  generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
+  fileInfo.push({ type: 'config', name: 'index.ts' });
 
-  // Generate inkeep.config.ts file (with projectId)
-  console.log(chalk.gray('  • Generating inkeep.config.ts...'));
+  // Add inkeep.config.ts generation task
   const configPath = join(dirs.projectRoot, 'inkeep.config.ts');
-  await generateInkeepConfigFile(projectData, projectId, configPath, modelSettings);
+  generationTasks.push(generateInkeepConfigFile(projectData, projectId, configPath, modelSettings));
+  fileInfo.push({ type: 'config', name: 'inkeep.config.ts' });
 
-  // Generate graph files
+  // Add graph generation tasks
   if (graphs && Object.keys(graphs).length > 0) {
-    console.log(chalk.cyan('  📊 Generating graphs:'));
     for (const [graphId, graphData] of Object.entries(graphs)) {
-      console.log(chalk.gray(`     • ${graphId}.ts`));
       const graphPath = join(dirs.graphsDir, `${graphId}.ts`);
-      await generateGraphFile(graphData, graphId, graphPath, modelSettings);
+      generationTasks.push(generateGraphFile(graphData, graphId, graphPath, modelSettings));
+      fileInfo.push({ type: 'graph', name: `${graphId}.ts` });
     }
   }
 
-  // Generate tool files
+  // Add tool generation tasks
   if (tools && Object.keys(tools).length > 0) {
-    console.log(chalk.cyan('  🔧 Generating tools:'));
     for (const [toolId, toolData] of Object.entries(tools)) {
-      console.log(chalk.gray(`     • ${toolId}.ts`));
       const toolPath = join(dirs.toolsDir, `${toolId}.ts`);
-      await generateToolFile(toolData, toolId, toolPath, modelSettings);
+      generationTasks.push(generateToolFile(toolData, toolId, toolPath, modelSettings));
+      fileInfo.push({ type: 'tool', name: `${toolId}.ts` });
     }
   }
 
-  // Generate data component files
+  // Add data component generation tasks
   if (dataComponents && Object.keys(dataComponents).length > 0) {
-    console.log(chalk.cyan('  📦 Generating data components:'));
     for (const [componentId, componentData] of Object.entries(dataComponents)) {
-      console.log(chalk.gray(`     • ${componentId}.ts`));
       const componentPath = join(dirs.dataComponentsDir, `${componentId}.ts`);
-      await generateDataComponentFile(componentData, componentId, componentPath, modelSettings);
+      generationTasks.push(generateDataComponentFile(componentData, componentId, componentPath, modelSettings));
+      fileInfo.push({ type: 'dataComponent', name: `${componentId}.ts` });
     }
   }
 
-  // Generate artifact component files
+  // Add artifact component generation tasks
   if (artifactComponents && Object.keys(artifactComponents).length > 0) {
-    console.log(chalk.cyan('  🎨 Generating artifact components:'));
     for (const [componentId, componentData] of Object.entries(artifactComponents)) {
-      console.log(chalk.gray(`     • ${componentId}.ts`));
       const componentPath = join(dirs.artifactComponentsDir, `${componentId}.ts`);
-      await generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings);
+      generationTasks.push(generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings));
+      fileInfo.push({ type: 'artifactComponent', name: `${componentId}.ts` });
     }
   }
 
-  // Generate environment files
-  console.log(chalk.cyan('  🔐 Generating environment templates:'));
-  await generateEnvironmentFiles(dirs.environmentsDir, projectData);
+  // Add environment files generation (non-LLM, so fast)
+  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, projectData));
+  fileInfo.push({ type: 'env', name: 'environment templates' });
+
+  // Display what we're generating
+  console.log(chalk.cyan('  📝 Generating files in parallel:'));
+  const filesByType = fileInfo.reduce((acc, file) => {
+    if (!acc[file.type]) acc[file.type] = [];
+    acc[file.type].push(file.name);
+    return acc;
+  }, {} as Record<string, string[]>);
+
+  if (filesByType.config) {
+    console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
+  }
+  if (filesByType.graph) {
+    console.log(chalk.gray(`     • Graphs: ${filesByType.graph.join(', ')}`));
+  }
+  if (filesByType.tool) {
+    console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
+  }
+  if (filesByType.dataComponent) {
+    console.log(chalk.gray(`     • Data components: ${filesByType.dataComponent.join(', ')}`));
+  }
+  if (filesByType.artifactComponent) {
+    console.log(chalk.gray(`     • Artifact components: ${filesByType.artifactComponent.join(', ')}`));
+  }
+  if (filesByType.env) {
+    console.log(chalk.gray(`     • Environment: ${filesByType.env.join(', ')}`));
+  }
+
+  // Execute all tasks in parallel
+  console.log(chalk.yellow(`  ⚡ Processing ${generationTasks.length} files in parallel...`));
+  await Promise.all(generationTasks);
 }
 
 /**
