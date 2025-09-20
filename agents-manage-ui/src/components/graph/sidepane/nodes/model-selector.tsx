@@ -102,7 +102,7 @@ export function ModelSelector({
             >
               {selectedModel ? (
                 <div className="truncate">
-                  {selectedModel.prefix && (
+                  {'prefix' in selectedModel && selectedModel.prefix && (
                     <span className="text-gray-400">{selectedModel.prefix}</span>
                   )}
                   {selectedModel.label}
