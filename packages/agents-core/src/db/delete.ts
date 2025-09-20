@@ -15,10 +15,10 @@ export async function deleteDatabase() {
   try {
     // Extract the actual file path from the DB_FILE_NAME
     // Remove 'file:' prefix if present
-    let dbFilePath = env.DB_FILE_NAME;
-    if (dbFilePath.startsWith('file:')) {
-      dbFilePath = dbFilePath.replace('file:', '');
-    }
+    const initialDbPath = env.DB_FILE_NAME ?? 'local.db';
+    const dbFilePath = initialDbPath.startsWith('file:')
+      ? initialDbPath.replace('file:', '')
+      : initialDbPath;
 
     // Normalize relative paths to always point to project root
     // This ensures consistent behavior regardless of where the command is run from
