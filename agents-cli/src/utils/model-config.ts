@@ -26,21 +26,10 @@ export const defaultGeminiModelConfigurations = {
   },
 };
 
-export const defaultOpenRouterModelConfigurations = {
-  base: {
-    model: 'openrouter/anthropic/claude-sonnet-4',
-  },
-  structuredOutput: {
-    model: 'openrouter/openai/gpt-4.1-mini',
-  },
-  summarizer: {
-    model: 'openrouter/openai/gpt-4.1-nano',
-  },
-};
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: 'openai/gpt-5-2025-08-07',
+    model: 'openai/gpt-4.1-2025-04-14',
   },
   structuredOutput: {
     model: 'openai/gpt-4.1-mini-2025-04-14',
@@ -77,8 +66,6 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
         { name: 'Anthropic (Claude)', value: 'anthropic' },
         { name: 'OpenAI (GPT)', value: 'openai' },
         { name: 'Google (Gemini)', value: 'google' },
-        { name: 'OpenRouter (Any model)', value: 'openrouter' },
-        { name: 'Custom Provider', value: 'custom' },
       ],
       validate: (input: string[]) => {
         if (input.length === 0) {
@@ -97,12 +84,12 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   ];
 
   const openaiModels = [
-    { name: 'GPT-5', value: 'openai/gpt-5-2025-08-07' },
-    { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini-2025-08-07' },
-    { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano-2025-08-07' },
     { name: 'GPT-4.1', value: 'openai/gpt-4.1-2025-04-14' },
     { name: 'GPT-4.1 Mini', value: 'openai/gpt-4.1-mini-2025-04-14' },
     { name: 'GPT-4.1 Nano', value: 'openai/gpt-4.1-nano-2025-04-14' },
+    { name: 'GPT-5', value: 'openai/gpt-5-2025-08-07' },
+    { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini-2025-08-07' },
+    { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano-2025-08-07' },
   ];
 
   const googleModels = [
@@ -110,44 +97,6 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     { name: 'Gemini 2.5 Flash', value: 'google/gemini-2.5-flash' },
     { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite' },
   ];
-
-  // For OpenRouter, allow custom model input
-  const getOpenRouterModels = async () => {
-    const { useCustom } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'useCustom',
-        message: 'Would you like to enter custom OpenRouter model names? (Otherwise use popular defaults)',
-        default: false,
-      },
-    ]);
-
-    if (useCustom) {
-      const { customModels } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'customModels',
-          message: 'Enter OpenRouter model names (comma-separated, e.g., anthropic/claude-sonnet-4,openai/gpt-4.1-mini):',
-          validate: (input: string) => {
-            if (!input.trim()) return 'At least one model is required';
-            return true;
-          },
-        },
-      ]);
-      
-      return customModels.split(',').map((model: string) => ({
-        name: `${model.trim()} (OpenRouter)`,
-        value: `openrouter/${model.trim()}`,
-      }));
-    }
-
-    // Popular OpenRouter models
-    return [
-      { name: 'Claude Sonnet 4 (OpenRouter)', value: 'openrouter/anthropic/claude-sonnet-4' },
-      { name: 'GPT-4.1 Mini (OpenRouter)', value: 'openrouter/openai/gpt-4.1-mini' },
-      { name: 'GPT-4.1 Nano (OpenRouter)', value: 'openrouter/openai/gpt-4.1-nano' },
-    ];
-  };
 
   // Collect all available models based on selected providers
   const availableModels = [];
@@ -159,25 +108,6 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   }
   if (providers.includes('google')) {
     availableModels.push(...googleModels);
-  }
-  if (providers.includes('openrouter')) {
-    const openrouterModels = await getOpenRouterModels();
-    availableModels.push(...openrouterModels);
-  }
-  if (providers.includes('custom')) {
-    const { customModel } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'customModel',
-        message: 'Enter your custom model string (format: provider/model-name):',
-        validate: (input: string) => {
-          if (!input.trim()) return 'Model string is required';
-          if (!input.includes('/')) return 'Format: provider/model-name';
-          return true;
-        },
-      },
-    ]);
-    availableModels.push({ name: `Custom: ${customModel}`, value: customModel });
   }
 
   // Model selection for different use cases

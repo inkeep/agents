@@ -118,6 +118,8 @@ export function ModelSelector({
                     <div className="text-muted-foreground text-sm mb-2">No model found in predefined options.</div>
                     <div className="text-xs text-muted-foreground mb-2">
                       You can enter any model in format: provider/model-name
+                      <br />
+                      Examples: openrouter/model-id, gateway/model-id
                     </div>
                     <button
                       className="text-xs bg-muted hover:bg-muted/80 px-2 py-1 rounded"
@@ -139,7 +141,7 @@ export function ModelSelector({
                     className="flex items-center justify-between cursor-pointer text-foreground"
                     value="__custom__"
                     onSelect={() => {
-                      const customModel = prompt('Enter custom model (format: provider/model-name):\n\nExamples:\n- openrouter/anthropic/claude-3.5-sonnet\n- openrouter/meta-llama/llama-3.1-405b\n- together/meta-llama/Llama-3-70b-chat');
+                      const customModel = prompt('Enter custom model (format: provider/model-name):\n\nExamples:\n- openrouter/anthropic/claude-3.5-sonnet\n- openrouter/meta-llama/llama-3.1-405b\n- gateway/anthropic/claude-3.5-sonnet\n- gateway/openai/gpt-4.1-mini\n\nFor OpenRouter: openrouter/<model-id>\nFor Vercel AI SDK Gateway: gateway/<model-id>');
                       if (customModel && customModel.includes('/')) {
                         onValueChange?.(customModel);
                       }
