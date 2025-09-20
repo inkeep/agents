@@ -15,10 +15,6 @@ By default, status updates use built-in **default status components** that provi
 
 These are generated automatically by your graph's summarizer model and provide richer information than plain text summaries.
 
-### Legacy Plain Text Mode
-
-For simple text-only status updates (legacy behavior), you can explicitly configure an empty `statusComponents` array in your graph settings. However, the default status components are recommended as they provide better user experience and more contextual information.
-
 ## Custom Status Components
 
 Status components allow you to define structured data formats for your status updates instead of generic text. This enables richer, more interactive status displays in your UI.
@@ -85,7 +81,6 @@ Status updates are generated using your graph's configured **summarizer model**,
 
 - **Default Status Components**: Built-in structured format with `label` and `details` fields (recommended)
 - **Custom Status Components**: Your defined schemas for specific data structures
-- **Plain Text Mode**: Simple text summaries (legacy mode, enabled by setting empty `statusComponents` array)
 
 ### Summarizer Model Settings
 
