@@ -13,15 +13,6 @@
 #
 # For more information, see CONTRIBUTING.md
 
-# Get current branch name
-BRANCH_NAME=$(git symbolic-ref --short HEAD)
-
-# Only run hooks on main branch
-if [ "$BRANCH_NAME" != "main" ]; then
-  echo "⚡ Skipping pre-push hooks (not on main branch)"
-  exit 0
-fi
-
 echo "🚀 Running pre-push checks (matching CI pipeline)..."
 echo "   Using 'pnpm check' - builds once, then runs lint, typecheck, and test in parallel"
 
