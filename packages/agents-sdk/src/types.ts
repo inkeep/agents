@@ -12,6 +12,7 @@ import type {
 import { z } from 'zod';
 import type { AgentMcpConfig } from './builders';
 import type { ExternalAgentConfig } from './externalAgent';
+import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
 
 // Core message types following OpenAI pattern
@@ -58,7 +59,7 @@ export interface ToolResult {
 }
 export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
 
-export type AgentCanUseType = Tool | AgentMcpConfig;
+export type AgentCanUseType = Tool | AgentMcpConfig | FunctionTool;
 
 // Agent configuration types
 export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
@@ -135,6 +136,21 @@ export interface FetchDefinitionConfig {
   defaultValue?: unknown;
   timeout?: number;
   credential?: CredentialReferenceApiInsert;
+}
+
+// Function tool configuration
+export interface FunctionToolConfig {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  dependencies?: Record<string, string>; // npm package versions
+  execute: (params: any) => Promise<any>;
+  sandboxConfig?: {
+    provider: 'vercel' | 'daytona' | 'local';
+    runtime: 'node22' | 'typescript';
+    timeout?: number;
+    vcpus?: number;
+  };
 }
 
 export interface RequestSchemaDefinition {

@@ -7,6 +7,7 @@ export {
   artifactComponent,
   credential,
   dataComponent,
+  functionTool,
   mcpServer,
   mcpTool,
   project,
@@ -22,6 +23,7 @@ export {
   externalAgent,
   externalAgents,
 } from './externalAgent';
+export { FunctionTool } from './function-tool';
 export { Project } from './project';
 export {
   createFullProjectViaAPI,

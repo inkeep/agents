@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import type { Project } from '@inkeep/agents-sdk';
 import chalk from 'chalk';
 import ora from 'ora';
 import { env } from '../env';
@@ -32,7 +33,7 @@ async function loadProject(projectDir: string) {
   for (const exportKey of exports) {
     const value = module[exportKey];
     if (value && typeof value === 'object' && value.__type === 'project') {
-      return value;
+      return value as Project;
     }
   }
 
@@ -205,9 +206,7 @@ export async function pushCommand(options: PushOptions) {
       for (const graph of graphs) {
         const graphStats = graph.getStats();
         console.log(
-          chalk.gray(
-            `  • ${graph.getName()} (${graph.getId()}): ${graphStats.agentCount} agents, ${graphStats.toolCount} tools`
-          )
+          chalk.gray(`  • ${graph.getName()} (${graph.getId()}): ${graphStats.agentCount} agents`)
         );
       }
     }

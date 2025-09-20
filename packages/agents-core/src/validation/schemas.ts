@@ -537,6 +537,25 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   credential: CredentialReferenceApiInsertSchema.optional(),
 });
 
+// Function Tool Config Schema
+export const FunctionToolConfigSchema = z.object({
+  type: z.literal('function'),
+  function: z.object({
+    description: z.string(),
+    inputSchema: z.record(z.string(), z.unknown()),
+    executeCode: z.string(),
+    dependencies: z.record(z.string(), z.string()).optional(),
+    sandboxConfig: z
+      .object({
+        provider: z.enum(['vercel', 'daytona', 'local']).optional(),
+        runtime: z.enum(['node22', 'typescript']).optional(),
+        timeout: z.number().optional(),
+        vcpus: z.number().optional(),
+      })
+      .optional(),
+  }),
+});
+
 export const ToolUpdateSchema = ToolInsertSchema.partial();
 
 export const ToolApiSelectSchema = createApiSchema(ToolSelectSchema);

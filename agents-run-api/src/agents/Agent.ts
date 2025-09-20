@@ -451,8 +451,14 @@ export class Agent {
   }
 
   async getMcpTools(sessionId?: string, streamRequestId?: string) {
-    const tools =
-      (await Promise.all(this.config.tools?.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    // Filter out function tools - only process MCP tools
+    const mcpTools =
+      this.config.tools?.filter((tool) => {
+        // Only process tools that have MCP configuration
+        return tool.config?.type === 'mcp' || tool.config?.mcp;
+      }) || [];
+
+    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
 
     // If no sessionId, return tools as-is (for system prompt building)
     if (!sessionId) {
@@ -532,12 +538,12 @@ export class Agent {
       id: tool.id,
       name: tool.name,
       description: tool.name, // Use name as description fallback
-      serverUrl: tool.config.mcp.server.url,
-      activeTools: tool.config.mcp.activeTools,
-      mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
+      serverUrl: tool.config.mcp?.server?.url || '',
+      activeTools: tool.config.mcp?.activeTools,
+      mcpType: tool.config.mcp?.server?.url?.includes('api.nango.dev')
         ? MCPServerType.nango
         : MCPServerType.generic,
-      transport: tool.config.mcp.transport,
+      transport: tool.config.mcp?.transport,
       headers: tool.headers,
     };
   }
@@ -605,9 +611,9 @@ export class Agent {
     } else {
       // No credentials - build basic config
       serverConfig = {
-        type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
-        url: tool.config.mcp.server.url,
-        activeTools: tool.config.mcp.activeTools,
+        type: tool.config.mcp?.transport?.type || MCPTransportType.streamableHttp,
+        url: tool.config.mcp?.server?.url || '',
+        activeTools: tool.config.mcp?.activeTools,
         selectedTools,
       };
     }
@@ -632,25 +638,89 @@ export class Agent {
     return client.tools();
   }
 
-  getFunctionTools(streamRequestId?: string) {
-    if (!this.config.functionTools) return {};
-
+  async getFunctionTools(sessionId?: string, streamRequestId?: string) {
     const functionTools: ToolSet = {};
 
-    for (const funcTool of this.config.functionTools) {
-      // Convert function tool to AI SDK format and wrap with streaming
-      const aiTool = tool({
-        description: funcTool.description,
-        inputSchema: funcTool.schema || z.object({}),
-        execute: funcTool.execute,
+    try {
+      // Get function tools from database
+      const toolsForAgent = await getToolsForAgent(dbClient)({
+        scopes: {
+          tenantId: this.config.tenantId || 'default',
+          projectId: this.config.projectId || 'default',
+        },
+        agentId: this.config.id,
       });
 
-      functionTools[funcTool.name] = this.wrapToolWithStreaming(
-        funcTool.name,
-        aiTool,
-        streamRequestId,
-        'tool'
-      );
+      // Extract the data array from the response
+      const toolsData = toolsForAgent.data || [];
+
+      // Filter for function tools
+      const functionToolDefs = toolsData.filter((tool) => tool.tool.config.type === 'function');
+
+      if (functionToolDefs.length === 0) {
+        return functionTools;
+      }
+
+      // Import LocalSandboxExecutor dynamically to avoid circular dependencies
+      const { LocalSandboxExecutor } = await import('../tools/LocalSandboxExecutor');
+      const sandboxExecutor = LocalSandboxExecutor.getInstance();
+
+      for (const toolDef of functionToolDefs) {
+        if (toolDef.tool.config?.type === 'function') {
+          const functionTool = toolDef.tool.config.function;
+          if (!functionTool) {
+            continue;
+          }
+          // Convert JSON schema to Zod schema
+          const zodSchema = jsonSchemaToZod(functionTool.inputSchema);
+
+          const aiTool = tool({
+            description: functionTool.description,
+            inputSchema: zodSchema,
+            execute: async (args, { toolCallId }) => {
+              logger.debug(
+                { toolName: toolDef.tool.name, toolCallId, args },
+                'Function Tool Called'
+              );
+
+              try {
+                const result = await sandboxExecutor.executeFunctionTool(
+                  toolDef.tool.id,
+                  args,
+                  functionTool
+                );
+
+                // Record the result
+                toolSessionManager.recordToolResult(sessionId || '', {
+                  toolCallId,
+                  toolName: toolDef.tool.name,
+                  args,
+                  result,
+                  timestamp: Date.now(),
+                });
+
+                return { result, toolCallId };
+              } catch (error) {
+                logger.error(
+                  { toolName: toolDef.tool.name, toolCallId, error },
+                  'Function tool execution failed'
+                );
+                throw error;
+              }
+            },
+          });
+
+          functionTools[toolDef.tool.name] = this.wrapToolWithStreaming(
+            toolDef.tool.name,
+            aiTool,
+            streamRequestId || '',
+            'tool'
+          );
+        }
+      }
+    } catch (error) {
+      logger.error({ error }, 'Failed to load function tools from database');
+      // Don't throw - continue without function tools
     }
 
     return functionTools;
@@ -876,11 +946,27 @@ Key requirements:
     // Get MCP tools, function tools, and relational tools
     const streamRequestId = runtimeContext?.metadata?.streamRequestId;
     const mcpTools = await this.getMcpTools(undefined, streamRequestId);
-    const functionTools = this.getFunctionTools(streamRequestId);
+    const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
 
     // Convert ToolSet objects to ToolData array format for system prompt
     const allTools = { ...mcpTools, ...functionTools, ...relationTools };
+
+    logger.info(
+      {
+        mcpTools: Object.keys(mcpTools),
+        functionTools: Object.keys(functionTools),
+        relationTools: Object.keys(relationTools),
+        allTools: Object.keys(allTools),
+        functionToolsDetails: Object.entries(functionTools).map(([name, tool]) => ({
+          name,
+          hasExecute: typeof (tool as any).execute === 'function',
+          hasDescription: !!(tool as any).description,
+          hasInputSchema: !!(tool as any).inputSchema,
+        })),
+      },
+      'Tools loaded for agent'
+    );
 
     const toolDefinitions = Object.entries(allTools).map(([name, tool]) => ({
       name,
@@ -1106,7 +1192,7 @@ Key requirements:
                 this.getMcpTools(sessionId, streamRequestId),
                 this.buildSystemPrompt(runtimeContext, false), // Normal prompt with data components
                 this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
-                Promise.resolve(this.getFunctionTools(streamRequestId)),
+                this.getFunctionTools(sessionId, streamRequestId),
                 Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
                 this.getDefaultTools(sessionId, streamRequestId),
               ]);

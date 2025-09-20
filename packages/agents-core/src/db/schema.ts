@@ -420,11 +420,23 @@ export const tools = sqliteTable(
     id: text('id').notNull(),
     name: text('name').notNull(),
 
-    // Enhanced MCP configuration
+    // Enhanced tool configuration - supports both MCP and function tools
     config: blob('config', { mode: 'json' })
       .$type<{
-        type: 'mcp';
-        mcp: ToolMcpConfig;
+        type: 'mcp' | 'function';
+        mcp?: ToolMcpConfig;
+        function?: {
+          description: string;
+          inputSchema: Record<string, unknown>;
+          executeCode: string; // Serialized function code
+          dependencies: Record<string, string>; // npm package versions
+          sandboxConfig?: {
+            provider: 'vercel' | 'daytona' | 'local';
+            runtime: 'node22' | 'typescript';
+            timeout?: number;
+            vcpus?: number;
+          };
+        };
       }>()
       .notNull(),
 
