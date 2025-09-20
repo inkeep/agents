@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { modelOptions } from '@/components/graph/configuration/model-options';
 import { Button } from '@/components/ui/button';
 import {
@@ -143,7 +143,7 @@ export function ModelSelector({
                           className="flex items-center justify-between cursor-pointer text-foreground"
                           value={searchValue}
                           onSelect={() => {
-                            let modelValue = searchValue.trim();
+                            const modelValue = searchValue.trim();
                             
                             // Auto-add prefixes if they look like they belong to these services
                             if (modelValue.includes('/') && !modelValue.startsWith('openrouter/') && !modelValue.startsWith('gateway/')) {
@@ -248,7 +248,6 @@ export function ModelSelector({
                       setCustomModelInput('');
                     }
                   }}
-                  autoFocus
                 />
                 <Button
                   size="sm"
