@@ -10,6 +10,7 @@ const envSchema = z.object({
   INKEEP_AGENTS_RUN_API_URL: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 const parseEnv = () => {
