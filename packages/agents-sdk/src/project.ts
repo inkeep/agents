@@ -8,9 +8,10 @@ import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
 
+import type { ArtifactComponentConfig, DataComponentConfig } from './builders';
 import type { AgentGraph } from './graph';
 import { updateFullProjectViaAPI } from './projectFullClient';
-import type { ModelSettings } from './types';
+import type { ModelSettings, ToolConfig } from './types';
 
 /**
  * Project configuration interface for the SDK
@@ -27,6 +28,9 @@ export interface ProjectConfig {
   };
   stopWhen?: StopWhen;
   graphs?: () => AgentGraph[];
+  tools?: () => ToolConfig[];
+  dataComponents?: () => DataComponentConfig[];
+  artifactComponents?: () => ArtifactComponentConfig[];
 }
 
 /**
@@ -614,8 +618,10 @@ export class Project implements ProjectInterface {
       stopWhen: this.stopWhen,
       graphs: graphsObject,
       tools: toolsObject,
-      dataComponents: Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
-      artifactComponents: Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
+      dataComponents:
+        Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
+      artifactComponents:
+        Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
       credentialReferences: undefined, // Projects don't directly hold credentials yet
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

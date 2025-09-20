@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { normalizeBaseUrl, buildGraphViewUrl } from '../url';
+import { describe, expect, it } from 'vitest';
+import { buildGraphViewUrl, normalizeBaseUrl } from '../url';
 
 describe('normalizeBaseUrl', () => {
   it('should remove trailing slashes', () => {

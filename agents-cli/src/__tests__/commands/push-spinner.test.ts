@@ -1,10 +1,15 @@
 import { existsSync } from 'node:fs';
-import * as core from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
 
 // Mock dependencies
-vi.mock('node:fs');
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+  };
+});
 vi.mock('@inkeep/agents-core');
 vi.mock('../../utils/project-directory.js', () => ({
   findProjectDirectory: vi.fn(),
@@ -51,9 +56,6 @@ vi.mock('../../utils/tsx-loader.js', () => ({
 
 describe('Push Command - TypeScript Loading', () => {
   let mockExit: Mock;
-  let mockDbClient: any;
-  let mockGetProject: Mock;
-  let mockCreateProject: Mock;
   let mockImportWithTypeScriptSupport: Mock;
 
   beforeEach(async () => {
@@ -62,8 +64,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Reset ora instance
     oraInstance = null;
 
-    // Ensure TSX_RUNNING is not set
-    delete process.env.TSX_RUNNING;
+    // Environment setup
 
     // Mock file exists
     (existsSync as Mock).mockReturnValue(true);
@@ -76,21 +77,9 @@ describe('Push Command - TypeScript Loading', () => {
     vi.spyOn(console, 'log').mockImplementation(vi.fn());
     vi.spyOn(console, 'error').mockImplementation(vi.fn());
 
-    // Setup database client mock
-    mockDbClient = {};
-    mockGetProject = vi.fn();
-    mockCreateProject = vi.fn();
-
-    (core.createDatabaseClient as Mock).mockReturnValue(mockDbClient);
-    (core.getProject as Mock).mockReturnValue(mockGetProject);
-    (core.createProject as Mock).mockReturnValue(mockCreateProject);
-
     // Get the mocked tsx-loader import function
     const tsxLoader = await import('../../utils/tsx-loader.js');
     mockImportWithTypeScriptSupport = tsxLoader.importWithTypeScriptSupport as Mock;
-
-    // Set DB_FILE_NAME to prevent database errors
-    process.env.DB_FILE_NAME = 'test.db';
   });
 
   it('should load TypeScript files using importWithTypeScriptSupport', async () => {
@@ -123,8 +112,6 @@ describe('Push Command - TypeScript Loading', () => {
       .mockResolvedValueOnce({ default: mockProject })
       .mockResolvedValueOnce({ default: mockConfig });
 
-    process.env.TSX_RUNNING = '1';
-
     await pushCommand({ project: '/test/path' });
 
     // Verify TypeScript loader was used
@@ -141,8 +128,6 @@ describe('Push Command - TypeScript Loading', () => {
   it('should handle TypeScript import errors gracefully', async () => {
     // Mock import failure
     mockImportWithTypeScriptSupport.mockRejectedValue(new Error('Failed to load TypeScript file'));
-
-    process.env.TSX_RUNNING = '1';
 
     await pushCommand({});
 
@@ -184,8 +169,6 @@ describe('Push Command - TypeScript Loading', () => {
     mockImportWithTypeScriptSupport
       .mockResolvedValueOnce({ default: mockProject })
       .mockResolvedValueOnce({ default: mockConfig });
-
-    process.env.TSX_RUNNING = '1';
 
     await pushCommand({ project: '/test/path' });
 

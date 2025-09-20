@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
+import { env } from '../env';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
@@ -69,6 +70,7 @@ export async function pushCommand(options: PushOptions) {
 
     // Set environment if provided
     if (options.env) {
+      // Note: Setting process.env directly here because it needs to be available for child processes
       process.env.INKEEP_ENV = options.env;
       spinner.text = `Setting environment to '${options.env}'...`;
     }
@@ -221,7 +223,7 @@ export async function pushCommand(options: PushOptions) {
     spinner.fail('Failed to push project');
     console.error(chalk.red('Error:'), error.message);
 
-    if (error.stack && process.env.DEBUG) {
+    if (error.stack && env.DEBUG) {
       console.error(chalk.gray(error.stack));
     }
 
