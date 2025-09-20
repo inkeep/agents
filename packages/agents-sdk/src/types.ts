@@ -214,7 +214,7 @@ export interface RunResult {
 export interface StatusComponent {
   type: string;
   description?: string;
-  schema?: {
+  detailsSchema?: {
     type: 'object';
     properties: Record<string, any>;
     required?: string[];

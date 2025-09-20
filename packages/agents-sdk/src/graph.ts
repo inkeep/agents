@@ -1522,7 +1522,6 @@ export class AgentGraph implements GraphInterface {
     }
   }
 
-  // enableComponentMode removed – feature deprecated
   private async createExternalAgentRelation(
     sourceAgent: AgentInterface,
     externalAgent: ExternalAgentInterface,

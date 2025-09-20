@@ -5,6 +5,7 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
 } from '@inkeep/agents-core';
+import { defaultStatusSchemas } from '@inkeep/agents-sdk';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -14,7 +15,6 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { getStreamHelper } from './stream-registry';
 import { setSpanWithError, tracer } from './tracer';
-import { defaultStatusSchemas } from '@inkeep/agents-sdk';
 
 const logger = getLogger('GraphSession');
 
@@ -517,9 +517,11 @@ export class GraphSession {
       const elapsedTime = now - statusUpdateState.startTime;
 
       // Use default status schemas if no custom ones are configured
-      const statusComponents = statusUpdateState.config.statusComponents && statusUpdateState.config.statusComponents.length > 0
-        ? statusUpdateState.config.statusComponents
-        : defaultStatusSchemas;
+      const statusComponents =
+        statusUpdateState.config.statusComponents &&
+        statusUpdateState.config.statusComponents.length > 0
+          ? statusUpdateState.config.statusComponents
+          : defaultStatusSchemas;
 
       // Generate structured status update using configured or default schemas
       const result = await this.generateStructuredStatusUpdate(
@@ -688,7 +690,6 @@ export class GraphSession {
       this.statusUpdateState.updateLock = false;
     }
   }
-
 
   /**
    * Generate structured status update using configured data components
