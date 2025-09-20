@@ -8,10 +8,12 @@ import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
 
-import type { ArtifactComponentConfig, DataComponentConfig } from './builders';
+import type { ArtifactComponent } from './artifact-component';
+import type { DataComponent } from './data-component';
 import type { AgentGraph } from './graph';
 import { updateFullProjectViaAPI } from './projectFullClient';
-import type { ModelSettings, ToolConfig } from './types';
+import type { Tool } from './tool';
+import type { ModelSettings } from './types';
 
 /**
  * Project configuration interface for the SDK
@@ -28,9 +30,9 @@ export interface ProjectConfig {
   };
   stopWhen?: StopWhen;
   graphs?: () => AgentGraph[];
-  tools?: () => ToolConfig[];
-  dataComponents?: () => DataComponentConfig[];
-  artifactComponents?: () => ArtifactComponentConfig[];
+  tools?: () => Tool[];
+  dataComponents?: () => DataComponent[];
+  artifactComponents?: () => ArtifactComponent[];
 }
 
 /**
