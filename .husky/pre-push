@@ -1,10 +1,11 @@
 #!/bin/sh
 # Pre-push hook for Agent Framework
-# 
+#
 # This hook runs before each push to ensure code quality.
-# It runs a single optimized turbo command that:
+# It runs a single optimized turbo command (pnpm check) that:
 #   - Builds once (cached and reused by all tasks)
-#   - Runs lint, typecheck, and test in optimal order
+#   - Runs lint, typecheck, and test in parallel after build
+#   - Matches the exact CI pipeline behavior
 #
 # Usage:
 #   Normal push:                      git push
@@ -12,21 +13,13 @@
 #
 # For more information, see CONTRIBUTING.md
 
-# Get current branch name
-BRANCH_NAME=$(git symbolic-ref --short HEAD)
+echo "🚀 Running pre-push checks (matching CI pipeline)..."
+echo "   Using 'pnpm check' - builds once, then runs lint, typecheck, and test in parallel"
 
-# Only run hooks on main branch
-if [ "$BRANCH_NAME" != "main" ]; then
-  echo "⚡ Skipping pre-push hooks (not on main branch)"
-  exit 0
-fi
-
-echo "🚀 Running pre-push checks with optimized caching..."
-echo "   This runs build once and shares it across lint, typecheck, and test"
-
-# Run the unified check command that handles all validations efficiently
+# Run the unified check command that matches CI pipeline exactly
 if ! pnpm check; then
   echo "❌ Pre-push checks failed. Fix the issues above before pushing."
+  echo "   Run 'pnpm check' locally to reproduce the CI checks."
   exit 1
 fi
 
