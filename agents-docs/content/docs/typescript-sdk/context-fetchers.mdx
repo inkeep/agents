@@ -21,7 +21,7 @@ Context fetchers allow you to embed real-time data from external APIs into your 
   - Run automatically before/during conversation startup
   - Data becomes part of the agent's system prompt
   - Perfect for: Personalized agent personas, dynamic agent guardrails
-  - Example Prompt: `You are an assistant for {{user.name}} and you work for {{user.organization}}`
+  - Example Prompt: `You are an assistant for ${userContext.toTemplate('user.name')} and you work for ${userContext.toTemplate('user.organization')}`
 
 - **Tools**: Enable agents to take actions or fetch data during conversations
   - Called by the agent when needed during the conversation
@@ -36,25 +36,27 @@ Let's create a simple context fetcher that retrieves user information:
 ```typescript
 import { z } from "zod";
 import { agent, agentGraph } from "@inkeep/agents-manage-api/builders";
-import { contextConfig, fetchDefinition } from "@inkeep/agents-core";
+import { contextConfig, fetchDefinition, requestContextSchema } from "@inkeep/agents-core";
 
 // 1. Define request schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.
-const requestSchema = z.object({
-  user_id: z.string(),
-  api_key: z.string(),
+const requestContext = requestContextSchema({
+  schema: z.object({
+    user_id: z.string(),
+    api_key: z.string(),
+  })
 });
 
-// 2. Create the fetcher
+// 2. Create the fetcher with type-safe templating
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
   trigger: "initialization", // Fetch only once when a conversation is started with the graph. When set to "invocation", the fetch will be executed every time a request is made to the graph.
   fetchConfig: {
-    url: "https://api.example.com/users/{{requestContext.user_id}}",
+    url: `https://api.example.com/users/${requestContext.toTemplate('user_id')}`,
     method: "GET",
     headers: {
-      Authorization: "Bearer {{requestContext.api_key}}",
+      Authorization: `Bearer ${requestContext.toTemplate('api_key')}`,
     },
     transform: "name", // Extract user's name from response, for example if the response is { "name": "John Doe", "email": "john.doe@example.com" }, the transform will return "John Doe"
   },
@@ -68,7 +70,7 @@ const userContext = contextConfig({
   id: "user-context",
   name: "User Context",
   description: "Fetches user information for personalization",
-  requestContextSchema: requestSchema,
+  requestContextSchema: requestContext,
   contextVariables: {
     userName: userFetcher,
   },
@@ -79,7 +81,7 @@ const personalAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
-  prompt: "Hello {{userName}}! I'm your personal assistant.",
+  prompt: `Hello ${userContext.toTemplate('userName')}! I'm your personal assistant.`,
 });
 
 // Initialize the graph
@@ -94,18 +96,39 @@ export const graph = agentGraph({
 
 ## Using Context Variables
 
-Use double curly braces `{{}}` to reference context variables. 
+Use the context config's `toTemplate()` method for type-safe templating with autocomplete and validation.
 You can embed fetched data in agent prompts using the key defined in `contextVariables`:
 
 ```typescript
+// Create request context schema
+const requestContext = requestContextSchema({
+  schema: z.object({
+    user_id: z.string(),
+    org_alias: z.string()
+  })
+});
+
+// Create fetcher that returns user object
+const userFetcher = fetchDefinition({
+  id: "user-info",
+  fetchConfig: {
+    url: `https://api.example.com/users/${requestContext.toTemplate('user_id')}`,
+    method: "GET"
+  },
+  responseSchema: z.object({
+    name: z.string(),
+    department: z.string()
+  })
+});
+
 const userContext = contextConfig({
   tenantId: "your-tenant",
   id: "user-context",
   name: "User Context",
   description: "Fetches user information for personalization",
-  requestContextSchema: requestSchema,
+  requestContextSchema: requestContext,
   contextVariables: {
-    user: fetchDef,
+    user: userFetcher,
   },
 });
 
@@ -113,7 +136,7 @@ const personalAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
-  prompt: "Hello {{user.name}}! I'm your personal assistant. I can see that you work for {{requestContext.org_alias}}",
+  prompt: `Hello ${userContext.toTemplate('user.name')}! I'm your personal assistant. I can see that you work for ${userContext.toTemplate('requestContext.org_alias')}.`,
 });
 ```
 
