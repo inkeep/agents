@@ -105,5 +105,13 @@
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "peerDependencies": {
+    "@sentry/nextjs": "^10.13.0"
+  },
+  "peerDependenciesMeta": {
+    "@sentry/nextjs": {
+      "optional": true
+    }
   }
 }
