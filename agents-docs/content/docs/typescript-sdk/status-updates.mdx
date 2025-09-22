@@ -179,7 +179,7 @@ statusUpdates: {
 
 Status updates can be generated in two ways:
 
-### Default Status Components (Recommended)
+### Default Status Components
 
 When no `statusComponents` are configured, the system uses built-in default status components that generate structured labels with contextual details:
 
@@ -193,18 +193,6 @@ The default status components are defined in [`packages/agents-sdk/src/default-s
 ```
 
 This provides the best balance of user experience and implementation simplicity.
-
-### Plain Text Mode (Legacy)
-
-To use simple text-only status updates (legacy behavior), explicitly configure an empty `statusComponents` array:
-
-```typescript
-statusUpdates: {
-  numEvents: 3,
-  timeInSeconds: 15,
-  statusComponents: [], // Forces plain text mode
-}
-```
 
 ### Custom Structured Components
 
@@ -240,28 +228,6 @@ statusUpdates: {
         required: ['tool_name', 'purpose', 'outcome'],
       },
     },
-    {
-      type: 'progress_update',
-      description: 'Current progress and next steps',
-      detailsSchema: {
-        type: 'object',
-        properties: {
-          current_task: {
-            type: 'string',
-            description: 'What is currently being worked on'
-          },
-          completion_percentage: {
-            type: 'number',
-            description: 'Estimated completion percentage (0-100)'
-          },
-          next_steps: {
-            type: 'string',
-            description: 'What will happen next'
-          },
-        },
-        required: ['current_task'],
-      },
-    },
   ],
 }
 ```
@@ -294,19 +260,6 @@ message.parts.forEach((part) => {
 
 ### Data Structure Examples
 
-**Default Status Components:**
-```json
-{
-  "type": "progress",
-  "label": "Searching knowledge base for relevant documentation",
-  "details": {
-    "operations_completed": 3,
-    "current_focus": "API authentication methods",
-    "tools_used": ["knowledge_search", "document_analyzer"]
-  }
-}
-```
-
 **Custom Status Components:**
 ```json
 {
@@ -317,14 +270,6 @@ message.parts.forEach((part) => {
     "purpose": "Find API authentication documentation",
     "outcome": "Found 5 relevant articles with code examples"
   }
-}
-```
-
-**Plain Text Mode (Legacy):**
-```json
-{
-  "type": "status",
-  "label": "Searching through documentation to find API authentication methods..."
 }
 ```
 
@@ -398,10 +343,3 @@ statusUpdates: {
 - Status updates use additional model calls - consider costs for high-volume applications
 - Updates are generated asynchronously and won't block main agent operations
 - The system automatically prevents duplicate updates during concurrent operations
-
-## Examples
-
-See working examples in the repository:
-
-- [`examples/status-updates-example.graph.ts`](https://github.com/inkeep/agents/tree/main/examples) - Basic configuration
-- [`examples/agent-configurations/basic_fact_agent/`](https://github.com/inkeep/agents/tree/main/examples/agent-configurations) - Structured status updates
