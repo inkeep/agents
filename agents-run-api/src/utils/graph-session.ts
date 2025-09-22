@@ -784,17 +784,45 @@ Rules:
 - Fill in data for relevant components only
 - Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
-- Labels MUST be short 3-5 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
+- Labels MUST be short 3-7 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
 - Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required"). ALWAYS capitalize the first word of the label.
 - DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
 - Include specific details, numbers, requirements, or insights discovered
 - Examples: "Admin permissions required", "Three OAuth steps found", "Token expires daily"
-- You are ONE unified AI system - NEVER mention agents, transfers, delegations, or routing
-- CRITICAL: NEVER use the words "transfer", "delegation", "agent", "routing", "artifact", or any internal system terminology in labels or any names of agents, tools, or systems.
-- Present all operations as seamless actions by a single system
-- Anonymize all internal operations so that the information appears descriptive and USER FRIENDLY. HIDE ALL INTERNAL OPERATIONS!
-- Bad examples: "Transferring to search agent", "continuing transfer to qa agent", "Delegating task", "Routing request", "Processing request", "Artifact found", "Artifact saved", or not using the no_relevant_updates
-- Good examples: "Slack bot needs admin privileges", "Found 3-step OAuth flow required", "Channel limit is 500 per workspace", or use the no_relevant_updates component if nothing new to report.
+
+CRITICAL - HIDE ALL INTERNAL SYSTEM OPERATIONS:
+- You are ONE unified AI system presenting results to the user
+- ABSOLUTELY FORBIDDEN WORDS/PHRASES: "transfer", "transferring", "delegation", "delegating", "delegate", "agent", "routing", "route", "artifact", "saving artifact", "stored artifact", "artifact saved", "continuing", "passing to", "handing off", "switching to"
+- NEVER reveal internal architecture: No mentions of different agents, components, systems, or modules working together
+- NEVER mention artifact operations: Users don't need to know about data being saved, stored, or organized internally
+- NEVER describe handoffs or transitions: Present everything as one seamless operation
+- If you see "transfer", "delegation_sent", "delegation_returned", or "artifact_saved" events - IGNORE THEM or translate to user-facing information only
+- Focus ONLY on actual discoveries, findings, and results that matter to the user
+
+- Bad examples: 
+  * "Transferring to search agent"
+  * "Delegating research task" 
+  * "Routing to QA specialist"
+  * "Artifact saved successfully"
+  * "Storing results for later"
+  * "Passing request to tool handler"
+  * "Continuing with analysis"
+  * "Handing off to processor"
+- Good examples:
+  * "Slack bot needs admin privileges"
+  * "Found 3-step OAuth flow required"  
+  * "Channel limit is 500 per workspace"
+  * Use no_relevant_updates if nothing new to report
+
+CRITICAL ANTI-HALLUCINATION RULES:
+- NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION. EVERY SINGLE UPDATE MUST BE BACKED UP WITH ACTUAL INFORMATION.
+- DO NOT MAKE UP PEOPLE, NAMES, PLACES, THINGS, ORGANIZATIONS, OR INFORMATION. IT IS OBVIOUS WHEN A PERSON/ENTITY DOES NOT EXIST.
+- Only report facts that are EXPLICITLY mentioned in the activities or tool results
+- If you don't have concrete information about something, DO NOT mention it
+- Never invent names like "John Doe", "Alice", "Bob", or any other placeholder names
+- Never create fictional companies, products, or services
+- If a tool returned no results or an error, DO NOT pretend it found something
+- Every detail in your status update must be traceable back to the actual activities provided
 
 REMEMBER YOU CAN ONLY USE 'no_relevant_updates' ALONE! IT CANNOT BE CONCATENATED WITH OTHER STATUS UPDATES!
 
@@ -886,7 +914,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
       label: z
         .string()
         .describe(
-          'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The ACTUAL finding or result, not the action. What specific information was discovered? (e.g., "Slack requires OAuth 2.0 setup", "Found 5 integration methods", "API rate limit is 100/minute"). Include the actual detail or insight, not just that you searched or processed.'
+          'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The ACTUAL finding or result, not the action. What specific information was discovered? (e.g., "Slack requires OAuth 2.0 setup", "Found 5 integration methods", "API rate limit is 100/minute"). Include the actual detail or insight, not just that you searched or processed. CRITICAL: Only use facts explicitly found in the activities - NEVER invent names, people, organizations, or details that are not present in the actual tool results.'
         ),
     });
   }
@@ -905,7 +933,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     properties['label'] = z
       .string()
       .describe(
-        'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known?'
+        'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known? CRITICAL: Only use facts explicitly found in the activities - NEVER invent names, people, organizations, or details that are not present in the actual tool results.'
       );
 
     for (const [key, value] of Object.entries(jsonSchema.properties)) {
@@ -1001,50 +1029,18 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           break;
         }
 
-        case 'transfer': {
-          const data = event.data as TransferData;
-          // Hide internal transfer operations - present as seamless continuation
-          activities.push(
-            `🔄 **Continuing**: ${data.reason || 'Processing request'}\n` +
-              `   ${data.context ? `Context: ${JSON.stringify(data.context, null, 2)}` : ''}`
-          );
+        // INTERNAL OPERATIONS - DO NOT EXPOSE TO STATUS UPDATES
+        case 'transfer': 
+        case 'delegation_sent':
+        case 'delegation_returned':
+        case 'artifact_saved':
+          // These are internal system operations that should never be visible in status updates
+          // Skip them entirely - they don't produce user-facing activities
           break;
-        }
-
-        case 'delegation_sent': {
-          const data = event.data as DelegationSentData;
-          // Hide delegation as task processing
-          activities.push(
-            `📤 **Processing**: ${data.taskDescription}\n` +
-              `   ${data.context ? `Context: ${JSON.stringify(data.context, null, 2)}` : ''}`
-          );
-          break;
-        }
-
-        case 'delegation_returned': {
-          const data = event.data as DelegationReturnedData;
-          // Hide delegation return as task completion
-          activities.push(
-            `📥 **Completed subtask**\n` + `   Result: ${JSON.stringify(data.result, null, 2)}`
-          );
-          break;
-        }
-
-        case 'artifact_saved': {
-          const data = event.data as ArtifactSavedData;
-          activities.push(
-            `💾 **Artifact Saved**: ${data.artifactType}\n` +
-              `   ID: ${data.artifactId}\n` +
-              `   Task: ${data.taskId}\n` +
-              `   ${data.summaryData ? `Summary: ${data.summaryData}` : ''}\n` +
-              `   ${data.fullData ? `Full Data: ${data.fullData}` : ''}`
-          );
-          break;
-        }
 
         case 'agent_reasoning': {
           const data = event.data as AgentReasoningData;
-          // Hide internal reasoning as analysis
+          // Present as analysis without mentioning agents
           activities.push(
             `⚙️ **Analyzing request**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
@@ -1053,7 +1049,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
         case 'agent_generate': {
           const data = event.data as AgentGenerateData;
-          // Hide generation type - just show we're working
+          // Present as response preparation without mentioning agents
           activities.push(
             `⚙️ **Preparing response**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
@@ -1068,23 +1064,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     }
 
     return activities;
-  }
-
-  /**
-   * Generate fallback summary when LLM fails
-   */
-  private generateFallbackSummary(events: GraphSessionEvent[], elapsedTime: number): string {
-    const timeStr = Math.round(elapsedTime / 1000);
-    const toolCalls = events.filter((e) => e.eventType === 'tool_execution').length;
-    const artifacts = events.filter((e) => e.eventType === 'artifact_saved').length;
-
-    if (artifacts > 0) {
-      return `Generated ${artifacts} result${artifacts > 1 ? 's' : ''} so far (${timeStr}s elapsed)`;
-    } else if (toolCalls > 0) {
-      return `Used ${toolCalls} tool${toolCalls > 1 ? 's' : ''} to gather information (${timeStr}s elapsed)`;
-    } else {
-      return `Processing your request... (${timeStr}s elapsed)`;
-    }
   }
 
   /**
