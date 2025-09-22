@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import chalk from 'chalk';
+import fs from 'fs-extra';
 import ora from 'ora';
 
 const require = createRequire(import.meta.url);
@@ -10,6 +11,8 @@ const require = createRequire(import.meta.url);
 export interface DevOptions {
   port?: number;
   host?: string;
+  build?: boolean;
+  outputDir?: string;
 }
 
 function resolveWebRuntime() {
@@ -25,25 +28,21 @@ function resolveWebRuntime() {
 }
 
 function startWebApp({ port = 3000, host = 'localhost' }: DevOptions) {
+  console.log('');
   const spinner = ora('Starting dashboard server...').start();
 
   try {
     const rt = resolveWebRuntime();
     const entry = join(rt, 'server.js');
-    console.log(entry);
     // Check if the standalone build exists
     if (!existsSync(entry)) {
       spinner.fail('Dashboard server not found');
-      console.error(
-        chalk.red('The dashboard server has not been built yet. Please run the following commands:')
-      );
-      console.error(chalk.yellow('  cd agents-manage-ui'));
-      console.error(chalk.yellow('  pnpm build'));
-      console.error(chalk.yellow('  pnpm start'));
+      console.error(chalk.red('The dashboard server has not been built yet.'));
       process.exit(1);
     }
 
     spinner.succeed('Starting dashboard server...');
+    console.log('');
 
     const child = fork(entry, [], {
       cwd: rt,
@@ -57,10 +56,13 @@ function startWebApp({ port = 3000, host = 'localhost' }: DevOptions) {
     });
 
     console.log(chalk.green(`🚀 Dashboard server started at http://${host}:${port}`));
+    console.log('');
     console.log(chalk.gray('Press Ctrl+C to stop the server'));
+    console.log('');
 
     // Handle process termination
     process.on('SIGINT', () => {
+      console.log('');
       console.log(chalk.yellow('\n🛑 Stopping dashboard server...'));
       child.kill('SIGINT');
       process.exit(0);
@@ -79,12 +81,121 @@ function startWebApp({ port = 3000, host = 'localhost' }: DevOptions) {
   }
 }
 
-export async function devCommand(options: DevOptions) {
-  const { port = 3000, host = 'localhost' } = options;
+async function buildForVercel({ outputDir = './vercel-build' }: { outputDir: string }) {
+  const spinner = ora('Creating Vercel-ready build...').start();
 
-  console.log(chalk.blue('Inkeep Dashboard Server'));
-  console.log(chalk.gray(`Starting server on ${host}:${port}`));
-  console.log('');
+  try {
+    // 1. Find the standalone package (same logic as dev command)
+    const pkg = require.resolve('@inkeep/agents-manage-ui/package.json');
+    const root = dirname(pkg);
+    const standalonePath = join(root, '.next/standalone/agents-manage-ui');
+
+    // Check if the standalone build exists
+    if (!existsSync(standalonePath)) {
+      spinner.fail('Standalone build not found');
+      console.error(chalk.red('The standalone build has not been created yet.'));
+      process.exit(1);
+    }
+
+    // 2. Remove existing output directory if it exists
+    if (existsSync(outputDir)) {
+      await fs.remove(outputDir);
+    }
+
+    // 3. Create output directory
+    await fs.ensureDir(outputDir);
+
+    // 4. Copy the entire standalone package
+    await fs.copy(standalonePath, outputDir);
+
+    // 5. Create a simple package.json with the correct start script
+    const packageJson = {
+      name: 'inkeep-dashboard',
+      version: '1.0.0',
+      scripts: {
+        start: 'node server.js',
+      },
+      dependencies: {
+        '@inkeep/agents-manage-ui': 'latest',
+      },
+    };
+
+    await fs.writeJson(join(outputDir, 'package.json'), packageJson, { spaces: 2 });
+
+    // 6. Create vercel.json
+    const vercelConfig = {
+      version: 2,
+      builds: [
+        {
+          src: 'server.js',
+          use: '@vercel/node',
+        },
+      ],
+      routes: [
+        {
+          src: '/(.*)',
+          dest: 'server.js',
+        },
+      ],
+    };
+
+    await fs.writeJson(join(outputDir, 'vercel.json'), vercelConfig, { spaces: 2 });
+
+    // 7. Create setup instructions
+    const instructions = `# Inkeep Dashboard - Vercel Deployment
+
+## Quick Deploy
+
+1. Go to https://vercel.com/dashboard
+2. Click "New Project" 
+3. Upload this folder or connect to GitHub
+4. Set environment variables:
+   - INKEEP_API_URL=your-api-url
+   - INKEEP_TENANT_ID=your-tenant-id
+   - NODE_ENV=production
+5. Deploy!
+
+## Using Vercel CLI
+
+\`\`\`bash
+cd ${outputDir}
+vercel --prod
+\`\`\`
+
+## Environment Variables
+
+Make sure to set these in your Vercel project settings:
+- INKEEP_API_URL
+- INKEEP_TENANT_ID
+- Any other variables from your .env file
+`;
+
+    await fs.writeFile(join(outputDir, 'README-VERCEL.md'), instructions);
+
+    spinner.succeed(`Vercel-ready build created at ${outputDir}/`);
+
+    console.log('');
+    console.log(chalk.blue('🚀 Start script:'), 'node server.js');
+
+    console.log('');
+    console.log(chalk.yellow('📖 See README-VERCEL.md for deployment instructions'));
+  } catch (error) {
+    spinner.fail('Failed to create Vercel build');
+    console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
+    throw error;
+  }
+}
+
+export async function devCommand(options: DevOptions) {
+  const { port = 3000, host = 'localhost', build = false, outputDir = './vercel-build' } = options;
+
+  if (build) {
+    await buildForVercel({ outputDir });
+
+    console.log('');
+    console.log(chalk.blue('Next steps: Deploy the build folder to Vercel'));
+    return;
+  }
 
   startWebApp({ port, host });
 }
