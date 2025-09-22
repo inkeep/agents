@@ -1,10 +1,58 @@
 import { z } from 'zod';
-import type { ContextConfigSelect, CredentialReferenceApiInsert } from '../types/index';
+import type {
+  ContextConfigSelect,
+  ContextFetchDefinition,
+  CredentialReferenceApiInsert,
+} from '../types/index';
 import { getLogger } from '../utils/logger';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 import type { DotPaths } from './validation-helpers';
 
 const logger = getLogger('context-config');
+
+type ErrorResponse = { error?: string; message?: string; details?: unknown };
+
+// Extract Zod schemas from contextVariables
+export type ExtractSchemasFromCV<CV> = {
+  [K in keyof CV]: CV[K] extends builderFetchDefinition<infer S> ? S : never;
+};
+
+export type InferContextFromSchemas<CZ> = {
+  [K in keyof CZ]: CZ[K] extends z.ZodTypeAny ? z.infer<CZ[K]> : never;
+};
+export type MergeRequestContext<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
+  ? { requestContext: z.infer<R> }
+  : {};
+type FullContext<R extends z.ZodTypeAny | undefined, CV> = MergeRequestContext<R> &
+  InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
+
+export type AllowedPaths<R extends z.ZodTypeAny | undefined, CV> = DotPaths<FullContext<R, CV>>;
+
+// Request Context Schema Builder
+export interface RequestContextSchemaBuilderOptions<R extends z.ZodTypeAny> {
+  schema: R;
+}
+
+export class RequestContextSchemaBuilder<R extends z.ZodTypeAny> {
+  private schema: R;
+
+  constructor(options: RequestContextSchemaBuilderOptions<R>) {
+    this.schema = options.schema;
+  }
+
+  /** Template function for request context paths with type-safe autocomplete */
+  toTemplate<P extends DotPaths<z.infer<R>>>(path: P): `{{requestContext.${P}}}` {
+    return `{{requestContext.${path}}}` as `{{requestContext.${P}}}`;
+  }
+
+  getSchema(): R {
+    return this.schema;
+  }
+
+  getJsonSchema(): Record<string, unknown> {
+    return convertZodToJsonSchema(this.schema);
+  }
+}
 
 // Context system type definitions
 export type builderFetchDefinition<R extends z.ZodTypeAny> = {
@@ -23,30 +71,6 @@ export type builderFetchDefinition<R extends z.ZodTypeAny> = {
   defaultValue?: unknown;
   credentialReference?: CredentialReferenceApiInsert; // Reference to credential store for secure credential resolution
 };
-
-type ErrorResponse = { error?: string; message?: string; details?: unknown };
-
-type builderContextVariables = Record<string, builderFetchDefinition<z.ZodTypeAny>>;
-
-type builderContextConfig = Omit<ContextConfigSelect, 'contextVariables'> & {
-  contextVariables: builderContextVariables;
-};
-
-// Extract Zod schemas from contextVariables
-export type ExtractSchemasFromCV<CV> = {
-  [K in keyof CV]: CV[K] extends builderFetchDefinition<infer S> ? S : never;
-};
-
-export type InferContextFromSchemas<CZ> = {
-  [K in keyof CZ]: CZ[K] extends z.ZodTypeAny ? z.infer<CZ[K]> : never;
-};
-export type MergeRequestContext<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
-  ? { requestContext: z.infer<R> }
-  : {};
-type FullContext<R extends z.ZodTypeAny | undefined, CV> = MergeRequestContext<R> &
-  InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
-
-export type AllowedPaths<R extends z.ZodTypeAny | undefined, CV> = DotPaths<FullContext<R, CV>>;
 
 // Utility function for converting Zod schemas to JSON Schema
 export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
@@ -70,7 +94,7 @@ export interface ContextConfigBuilderOptions<
   id: string;
   name: string;
   description?: string;
-  requestContextSchema?: R; // Zod (optional)
+  requestContextSchema?: R | RequestContextSchemaBuilder<R extends z.ZodTypeAny ? R : z.ZodTypeAny>;
   contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
   projectId?: string;
@@ -81,26 +105,25 @@ export class ContextConfigBuilder<
   R extends z.ZodTypeAny | undefined,
   CV extends Record<string, builderFetchDefinition<z.ZodTypeAny>>,
 > {
-  private config: Partial<builderContextConfig>;
+  private config: Partial<ContextConfigSelect>;
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
-
-  private requestContextZod?: R;
-  private builderContextVars: CV;
-  private builderContextVarsZod: ExtractSchemasFromCV<CV>;
 
   constructor(options: ContextConfigBuilderOptions<R, CV>) {
     this.tenantId = options.tenantId || 'default';
     this.projectId = options.projectId || 'default';
     this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
-    this.builderContextVars = (options.contextVariables || {}) as CV;
-
-    this.builderContextVarsZod = {} as ExtractSchemasFromCV<CV>;
 
     // Convert request headers schema to JSON schema if provided
     let requestContextSchema: any;
     if (options.requestContextSchema) {
+      // Handle both RequestContextSchemaBuilder and direct Zod schema
+      const actualSchema =
+        options.requestContextSchema instanceof RequestContextSchemaBuilder
+          ? options.requestContextSchema.getSchema()
+          : options.requestContextSchema;
+
       logger.info(
         {
           requestContextSchema: options.requestContextSchema,
@@ -108,18 +131,20 @@ export class ContextConfigBuilder<
         'Converting request headers schema to JSON Schema for database storage'
       );
 
-      this.requestContextZod = options.requestContextSchema;
-      // It's a regular Zod schema for headers validation
-      requestContextSchema = convertZodToJsonSchema(options.requestContextSchema);
+      // Convert to JSON schema for database storage
+      requestContextSchema = convertZodToJsonSchema(actualSchema);
     }
 
     // Convert contextVariables responseSchemas to JSON schemas for database storage
     const processedContextVariables: Record<string, any> = {};
     if (options.contextVariables) {
       for (const [key, definition] of Object.entries(options.contextVariables)) {
+        // Convert builderFetchDefinition to ContextFetchDefinition format
+        const { credentialReference, ...rest } = definition;
         processedContextVariables[key] = {
-          ...definition,
+          ...rest,
           responseSchema: convertZodToJsonSchema(definition.responseSchema),
+          credentialReferenceId: credentialReference?.id,
         };
         logger.debug(
           {
@@ -138,7 +163,7 @@ export class ContextConfigBuilder<
       name: options.name,
       description: options.description || '',
       requestContextSchema,
-      contextVariables: processedContextVariables,
+      contextVariables: processedContextVariables as Record<string, ContextFetchDefinition>,
     };
 
     logger.info(
@@ -148,6 +173,23 @@ export class ContextConfigBuilder<
       },
       'ContextConfig builder initialized'
     );
+  }
+
+  /**
+   * Convert the builder to a plain object for database operations
+   */
+  toObject(): ContextConfigSelect {
+    return {
+      id: this.getId(),
+      tenantId: this.tenantId,
+      projectId: this.projectId,
+      name: this.getName(),
+      description: this.getDescription(),
+      requestContextSchema: this.getRequestContextSchema(),
+      contextVariables: this.getContextVariables(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   // Getter methods
@@ -173,24 +215,13 @@ export class ContextConfigBuilder<
     return this.config.requestContextSchema || null;
   }
 
-  getContextVariables(): builderContextVariables {
+  getContextVariables(): Record<string, ContextFetchDefinition> {
     return this.config.contextVariables || {};
   }
 
   // Builder methods for fluent API
   withRequestContextSchema(schema: any): this {
     this.config.requestContextSchema = schema;
-    return this;
-  }
-
-  withContextVariable(key: string, definition: builderFetchDefinition<z.ZodTypeAny>): this {
-    this.config.contextVariables = this.config.contextVariables || {};
-    this.config.contextVariables[key] = definition;
-    return this;
-  }
-
-  withContextVariables(variables: builderContextVariables): this {
-    this.config.contextVariables = variables;
     return this;
   }
 
@@ -367,6 +398,13 @@ export function contextConfig<
   options: ContextConfigBuilderOptions<R, CV> & { contextVariables?: CV }
 ): ContextConfigBuilder<R, CV> {
   return new ContextConfigBuilder<R, CV>(options);
+}
+
+// Factory function for creating request context schema builders
+export function requestContextSchema<R extends z.ZodTypeAny>(
+  options: RequestContextSchemaBuilderOptions<R>
+): RequestContextSchemaBuilder<R> {
+  return new RequestContextSchemaBuilder<R>(options);
 }
 
 // Helper function to create fetch definitions
