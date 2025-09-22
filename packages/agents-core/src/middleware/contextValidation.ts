@@ -46,13 +46,64 @@ export function isValidHttpRequest(obj: any): obj is ParsedHttpRequest {
 export function getCachedValidator(schema: Record<string, unknown>): ValidateFunction {
   const key = JSON.stringify(schema);
   if (!schemaCache.has(key)) {
-    schemaCache.set(key, ajv.compile(schema));
+    // Make schema permissive by setting additionalProperties: true
+    const permissiveSchema = makeSchemaPermissive(schema);
+    logger.debug(
+      {
+        originalSchema: schema,
+        permissiveSchema,
+        schemaType: schema.type || 'unknown',
+      },
+      'Applied permissive validation (additionalProperties: true) to JSON schema'
+    );
+    schemaCache.set(key, ajv.compile(permissiveSchema));
   }
   const validator = schemaCache.get(key);
   if (!validator) {
     throw new Error('Failed to compile JSON schema');
   }
   return validator;
+}
+
+// Helper function to recursively make schemas permissive
+function makeSchemaPermissive(schema: any): any {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+
+  const permissiveSchema = { ...schema };
+
+  // For object schemas, set additionalProperties: true
+  if (permissiveSchema.type === 'object') {
+    permissiveSchema.additionalProperties = true;
+
+    // Recursively apply to nested object properties
+    if (permissiveSchema.properties && typeof permissiveSchema.properties === 'object') {
+      const newProperties: any = {};
+      for (const [key, value] of Object.entries(permissiveSchema.properties)) {
+        newProperties[key] = makeSchemaPermissive(value);
+      }
+      permissiveSchema.properties = newProperties;
+    }
+  }
+
+  // For array schemas, apply to items
+  if (permissiveSchema.type === 'array' && permissiveSchema.items) {
+    permissiveSchema.items = makeSchemaPermissive(permissiveSchema.items);
+  }
+
+  // Handle oneOf, anyOf, allOf
+  if (permissiveSchema.oneOf) {
+    permissiveSchema.oneOf = permissiveSchema.oneOf.map(makeSchemaPermissive);
+  }
+  if (permissiveSchema.anyOf) {
+    permissiveSchema.anyOf = permissiveSchema.anyOf.map(makeSchemaPermissive);
+  }
+  if (permissiveSchema.allOf) {
+    permissiveSchema.allOf = permissiveSchema.allOf.map(makeSchemaPermissive);
+  }
+
+  return permissiveSchema;
 }
 
 // Validation wrapper for testing purposes (now uses cache)
