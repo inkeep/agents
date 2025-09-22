@@ -192,8 +192,6 @@ The default status components are defined in [`packages/agents-sdk/src/default-s
 
 ```
 
-This provides the best balance of user experience and implementation simplicity.
-
 ### Custom Structured Components
 
 For complete control over status format, define custom structured status components:
@@ -283,7 +281,6 @@ message.parts.forEach((part) => {
 
 ### Model Selection
 
-- **Same Model**: Use the same model for agents and status updates for consistency
 - **Faster Model**: Use a faster/cheaper model for status updates to reduce latency
 - **Specialized Model**: Use a model optimized for summarization tasks
 
@@ -342,4 +339,3 @@ statusUpdates: {
 
 - Status updates use additional model calls - consider costs for high-volume applications
 - Updates are generated asynchronously and won't block main agent operations
-- The system automatically prevents duplicate updates during concurrent operations
