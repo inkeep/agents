@@ -8,7 +8,7 @@ export async function cloneTemplate(templatePath: string, targetPath: string) {
   const emitter = degit(templatePathSuffix);
   try {
     await emitter.clone(targetPath);
-  } catch (error) {
+  } catch (_error) {
     process.exit(1);
   }
 }

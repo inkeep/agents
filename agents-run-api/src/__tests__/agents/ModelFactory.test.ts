@@ -237,7 +237,7 @@ describe('ModelFactory', () => {
         model: 'unsupported/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported');
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
     });
 
     test('should handle AI Gateway configuration', () => {
@@ -265,7 +265,7 @@ describe('ModelFactory', () => {
         model: 'unknown-provider/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unknown-provider. Please provide a model in the format of provider/model-name.');
+      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unknown-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
     });
 
     test('should handle fallback when creation fails', () => {
@@ -595,7 +595,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Invalid model provided: claude-3-5-haiku-20241022. Please provide a model in the format of provider/model-name.'
+        'No provider specified in model string: claude-3-5-haiku-20241022'
       );
     });
   });
@@ -730,7 +730,8 @@ describe('ModelFactory', () => {
 
     describe('provider validation', () => {
       test('should throw error for unsupported provider', () => {
-        expect(() => ModelFactory.parseModelString('unsupported-provider/some-model')).toThrow('Unsupported provider: unsupported-provider. Please provide a model in the format of provider/model-name.');
+        expect(() => ModelFactory.parseModelString('unsupported-provider/some-model'))
+          .toThrow('Unsupported provider: unsupported-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
       });
 
       test('should support anthropic provider', () => {
@@ -778,6 +779,120 @@ describe('ModelFactory', () => {
           modelName: 'claude-sonnet-4',
         });
       });
+
+      test('should support openrouter provider', () => {
+        const result = ModelFactory.parseModelString('openrouter/anthropic/claude-3.5-sonnet');
+        expect(result).toEqual({
+          provider: 'openrouter',
+          modelName: 'anthropic/claude-3.5-sonnet',
+        });
+      });
+
+      test('should support gateway provider', () => {
+        const result = ModelFactory.parseModelString('gateway/llama-3.1-70b');
+        expect(result).toEqual({
+          provider: 'gateway',
+          modelName: 'llama-3.1-70b',
+        });
+      });
+    });
+  });
+
+  describe('Custom Model Providers (OpenRouter and Gateway)', () => {
+    test('should create OpenRouter models without provider options', () => {
+      // OpenRouter can route to ANY model - it's a pass-through provider
+      const customModels = [
+        'openrouter/anthropic/claude-3.5-sonnet',
+        'openrouter/meta-llama/llama-3.1-70b',
+        'openrouter/qwen/qwen-72b-chat',
+        'openrouter/custom-finetuned-model',
+      ];
+
+      for (const modelString of customModels) {
+        const config: ModelSettings = { model: modelString };
+        const model = ModelFactory.createModel(config);
+        expect(model).toBeDefined();
+        expect(model.constructor.name).toBe('OpenRouterChatLanguageModel');
+      }
+    });
+
+    test('should create Gateway models without provider options', () => {
+      // Gateway can route to ANY model configured in Vercel AI SDK Gateway
+      const customModels = [
+        'gateway/llama-3.1-70b',
+        'gateway/qwen-72b-chat',
+        'gateway/custom-finetuned-model',
+        'gateway/production-model-v2',
+      ];
+
+      for (const modelString of customModels) {
+        const config: ModelSettings = { model: modelString };
+        const model = ModelFactory.createModel(config);
+        expect(model).toBeDefined();
+        // Gateway returns a LanguageModel object, not a string
+        expect(model).toHaveProperty('modelId', modelString.replace('gateway/', ''));
+      }
+    });
+
+    test('should parse complex model paths correctly', () => {
+      const testCases = [
+        // OpenRouter with nested paths
+        {
+          input: 'openrouter/org/team/model-v2',
+          expected: { provider: 'openrouter', modelName: 'org/team/model-v2' },
+        },
+        // Gateway with complex identifiers
+        {
+          input: 'gateway/org-specific-deployment',
+          expected: { provider: 'gateway', modelName: 'org-specific-deployment' },
+        },
+      ];
+
+      for (const { input, expected } of testCases) {
+        const result = ModelFactory.parseModelString(input);
+        expect(result).toEqual(expected);
+      }
+    });
+
+    test('should work identically for both custom model providers', () => {
+      const baseModels = ['llama-3.1-70b', 'qwen-72b', 'mistral-7b'];
+
+      for (const baseModel of baseModels) {
+        // Both should work without provider options
+        const openrouterConfig: ModelSettings = { model: `openrouter/${baseModel}` };
+        const gatewayConfig: ModelSettings = { model: `gateway/${baseModel}` };
+
+        const openrouterModel = ModelFactory.createModel(openrouterConfig);
+        const gatewayModel = ModelFactory.createModel(gatewayConfig);
+
+        expect(openrouterModel).toBeDefined();
+        expect(openrouterModel.constructor.name).toBe('OpenRouterChatLanguageModel');
+        expect(gatewayModel).toBeDefined();
+        expect(gatewayModel).toHaveProperty('modelId', baseModel);
+      }
+    });
+
+    test('should accept generation parameters without API keys', () => {
+      const configs = [
+        {
+          model: 'openrouter/llama-3.1-70b',
+          providerOptions: { temperature: 0.7, maxTokens: 4096 },
+        },
+        {
+          model: 'gateway/llama-3.1-70b',
+          providerOptions: { temperature: 0.8, frequencyPenalty: 0.1 },
+        },
+      ];
+
+      for (const config of configs) {
+        // Should validate without errors (no API keys required)
+        const errors = ModelFactory.validateConfig(config);
+        expect(errors).toHaveLength(0);
+
+        // Should create generation config successfully
+        const generationConfig = ModelFactory.prepareGenerationConfig(config);
+        expect(generationConfig).toBeDefined();
+      }
     });
   });
 });

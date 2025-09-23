@@ -1,14 +1,15 @@
+import './env'; // Load environment files first
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
+import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listGraphsCommand } from './commands/list-graphs';
 import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
-import { addCommand } from './commands/add';
 
 // Get the current directory for ESM
 const __filename = fileURLToPath(import.meta.url);

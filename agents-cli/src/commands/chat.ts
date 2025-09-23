@@ -2,6 +2,7 @@ import * as readline from 'node:readline';
 import chalk from 'chalk';
 import ora from 'ora';
 import { ExecutionApiClient, ManagementApiClient } from '../api';
+import { env } from '../env';
 
 export interface ChatOptions {
   url?: string;
@@ -68,7 +69,7 @@ export async function chatCommand(graphId: string, options: ChatOptions) {
               const content = parsed.choices?.[0]?.delta?.content;
               if (content) {
                 // Debug logging
-                if (process.env.DEBUG) {
+                if (env.DEBUG) {
                   console.error('Content received:', content);
                 }
                 // Filter out data operation JSON messages

@@ -175,15 +175,26 @@ statusUpdates: {
 // Results in: "Discovering relevant documentation...", "Analyzing search results for best matches"
 ```
 
-## Advanced: Structured Status Updates
+## Default vs Structured Status Updates
 
-For more control over status format, use structured status components:
+Status updates can be generated in two ways:
 
-<Callout type="info">
-  **Schema Update**: The status components schema has been simplified. Use
-  `type` instead of `id` and `name`, and `detailsSchema` instead of `schema`.
-  The `detailsSchema` is now optional.
-</Callout>
+### Default Status Components
+
+When no `statusComponents` are configured, the system uses built-in default status components that generate structured labels with contextual details:
+
+- **`label`**: AI-generated user-friendly description (e.g., "Searching documentation for API examples")
+- **`details`**: Optional structured data with context about the operation
+
+The default status components are defined in [`packages/agents-sdk/src/default-status-schemas.ts`](https://github.com/inkeep/agents/blob/main/packages/agents-sdk/src/default-status-schemas.ts):
+
+```typescript src="packages/agents-sdk/src/default-status-schemas.ts"
+```
+
+### Custom Structured Components
+
+For complete control over status format, define custom structured status components:
+
 
 ```typescript
 statusUpdates: {
@@ -214,28 +225,6 @@ statusUpdates: {
         required: ['tool_name', 'purpose', 'outcome'],
       },
     },
-    {
-      type: 'progress_update',
-      description: 'Current progress and next steps',
-      detailsSchema: {
-        type: 'object',
-        properties: {
-          current_task: {
-            type: 'string',
-            description: 'What is currently being worked on'
-          },
-          completion_percentage: {
-            type: 'number',
-            description: 'Estimated completion percentage (0-100)'
-          },
-          next_steps: {
-            type: 'string',
-            description: 'What will happen next'
-          },
-        },
-        required: ['current_task'],
-      },
-    },
   ],
 }
 ```
@@ -248,19 +237,37 @@ Status updates arrive as `data-summary` events with AI-generated labels and cont
 // In your message processing
 message.parts.forEach((part) => {
   if (part.type === "data-summary") {
-    const { label, details } = part.data;
+    const { type, label, details } = part.data;
 
     // Display the user-friendly status label
     displayStatusUpdate(label);
 
     // Handle optional structured details
     if (details) {
-      // Unstructured summary text
-      // Any structured data (progress, counts, etc.)
+      // For default status components: contextual operation details
+      // For custom components: your defined schema structure
       displayStructuredDetails(details);
     }
+
+    // The 'type' field indicates the summary category
+    console.log(`Status update type: ${type}`);
   }
 });
+```
+
+### Data Structure Examples
+
+**Custom Status Components:**
+```json
+{
+  "type": "tool_summary",
+  "label": "Search completed successfully",
+  "details": {
+    "tool_name": "search_knowledge_base",
+    "purpose": "Find API authentication documentation",
+    "outcome": "Found 5 relevant articles with code examples"
+  }
+}
 ```
 
 ## Best Practices
@@ -273,7 +280,6 @@ message.parts.forEach((part) => {
 
 ### Model Selection
 
-- **Same Model**: Use the same model for agents and status updates for consistency
 - **Faster Model**: Use a faster/cheaper model for status updates to reduce latency
 - **Specialized Model**: Use a model optimized for summarization tasks
 
@@ -332,11 +338,3 @@ statusUpdates: {
 
 - Status updates use additional model calls - consider costs for high-volume applications
 - Updates are generated asynchronously and won't block main agent operations
-- The system automatically prevents duplicate updates during concurrent operations
-
-## Examples
-
-See working examples in the repository:
-
-- [`examples/status-updates-example.graph.ts`](https://github.com/inkeep/agents/tree/main/examples) - Basic configuration
-- [`examples/agent-configurations/basic_fact_agent/`](https://github.com/inkeep/agents/tree/main/examples/agent-configurations) - Structured status updates

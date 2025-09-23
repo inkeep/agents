@@ -39,13 +39,27 @@ export function ModelSelector({
   canClear = true,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState<'openrouter' | 'gateway' | null>(null);
+  const [customModelInput, setCustomModelInput] = useState('');
 
   const selectedModel = useMemo(() => {
     for (const [_provider, models] of Object.entries(modelOptions)) {
       const model = models.find((m) => m.value === value);
       if (model) return model;
     }
-    return value ? { value, label: value } : null;
+    // Handle custom models with prefix display
+    if (value) {
+      if (value.startsWith('openrouter/')) {
+        const modelName = value.replace('openrouter/', '');
+        return { value, label: modelName, prefix: 'openrouter/' };
+      }
+      if (value.startsWith('gateway/')) {
+        const modelName = value.replace('gateway/', '');
+        return { value, label: modelName, prefix: 'gateway/' };
+      }
+      return { value, label: `${value} (custom)` };
+    }
+    return null;
   }, [value]);
 
   const inheritedModel = useMemo(() => {
@@ -73,6 +87,7 @@ export function ModelSelector({
         )}
         {isRequired && <span className="text-red-500">*</span>}
       </Label>
+      <div className="relative">
       <div className="flex w-full shadow-xs rounded-md">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -86,7 +101,12 @@ export function ModelSelector({
               )}
             >
               {selectedModel ? (
-                <div className="truncate">{selectedModel.label}</div>
+                <div className="truncate">
+                  {'prefix' in selectedModel && selectedModel.prefix && (
+                    <span className="text-gray-400">{selectedModel.prefix}</span>
+                  )}
+                  {selectedModel.label}
+                </div>
               ) : inheritedModel ? (
                 <div className="truncate text-muted-foreground">
                   <span className="italic">{inheritedModel.label}</span>
@@ -110,11 +130,66 @@ export function ModelSelector({
             }}
           >
             <Command>
-              <CommandInput placeholder="Search models..." />
+              <CommandInput placeholder="Search models or type custom model ID..." />
               <CommandList className="max-h-64">
                 <CommandEmpty>
-                  <div className="text-muted-foreground">No model found.</div>
+                  {(() => {
+                    const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                    const searchValue = input?.value || '';
+                    
+                    if (searchValue.trim()) {
+                      return (
+                        <CommandItem
+                          className="flex items-center justify-between cursor-pointer text-foreground"
+                          value={searchValue}
+                          onSelect={() => {
+                            const modelValue = searchValue.trim();
+                            
+                            // Auto-add prefixes if they look like they belong to these services
+                            if (modelValue.includes('/') && !modelValue.startsWith('openrouter/') && !modelValue.startsWith('gateway/')) {
+                              // Could be openrouter format, let user decide or add logic here
+                            }
+                            
+                            onValueChange?.(modelValue);
+                            setOpen(false);
+                          }}
+                        >
+                          Use "{searchValue}" as custom model
+                        </CommandItem>
+                      );
+                    }
+                    
+                    return (
+                      <div className="p-2 text-muted-foreground text-sm">
+                        Type to search models or enter a custom model ID
+                      </div>
+                    );
+                  })()}
                 </CommandEmpty>
+                {/* LLM Gateway options */}
+                <CommandGroup heading="LLM Gateway">
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__openrouter__"
+                    onSelect={() => {
+                      setShowCustomInput('openrouter');
+                      setCustomModelInput('');
+                    }}
+                  >
+                    OpenRouter ...
+                  </CommandItem>
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__gateway__"
+                    onSelect={() => {
+                      setShowCustomInput('gateway');
+                      setCustomModelInput('');
+                    }}
+                  >
+                    Vercel AI Gateway ...
+                  </CommandItem>
+                </CommandGroup>
+                {/* Predefined models */}
                 {Object.entries(modelOptions).map(([provider, models]) => (
                   <CommandGroup key={provider} heading={provider}>
                     {models.map((model) => (
@@ -142,6 +217,67 @@ export function ModelSelector({
             </Command>
           </PopoverContent>
         </Popover>
+        {showCustomInput && (
+          <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
+            <div className="space-y-2">
+              <div className="text-sm font-medium">
+                {showCustomInput === 'openrouter' ? 'OpenRouter Model ID' : 'Vercel AI Gateway Model ID'}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {showCustomInput === 'openrouter' 
+                  ? 'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct'
+                  : 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'
+                }
+              </div>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={showCustomInput === 'openrouter' ? 'anthropic/claude-3-5-sonnet' : 'openai/gpt-4o'}
+                  value={customModelInput}
+                  onChange={(e) => setCustomModelInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && customModelInput.trim()) {
+                      const prefix = showCustomInput === 'openrouter' ? 'openrouter/' : 'gateway/';
+                      onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                      setShowCustomInput(null);
+                      setCustomModelInput('');
+                      setOpen(false);
+                    }
+                    if (e.key === 'Escape') {
+                      setShowCustomInput(null);
+                      setCustomModelInput('');
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (customModelInput.trim()) {
+                      const prefix = showCustomInput === 'openrouter' ? 'openrouter/' : 'gateway/';
+                      onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                      setShowCustomInput(null);
+                      setCustomModelInput('');
+                      setOpen(false);
+                    }
+                  }}
+                  disabled={!customModelInput.trim()}
+                >
+                  Add
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setShowCustomInput(null);
+                    setCustomModelInput('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         {canClear && (
           <div
             className={cn(
@@ -164,6 +300,7 @@ export function ModelSelector({
             </Button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

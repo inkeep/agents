@@ -26,9 +26,10 @@ export const defaultGeminiModelConfigurations = {
   },
 };
 
+
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: 'openai/gpt-5-2025-08-07',
+    model: 'openai/gpt-4.1-2025-04-14',
   },
   structuredOutput: {
     model: 'openai/gpt-4.1-mini-2025-04-14',
@@ -83,12 +84,12 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   ];
 
   const openaiModels = [
-    { name: 'GPT-5', value: 'openai/gpt-5-2025-08-07' },
-    { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini-2025-08-07' },
-    { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano-2025-08-07' },
     { name: 'GPT-4.1', value: 'openai/gpt-4.1-2025-04-14' },
     { name: 'GPT-4.1 Mini', value: 'openai/gpt-4.1-mini-2025-04-14' },
     { name: 'GPT-4.1 Nano', value: 'openai/gpt-4.1-nano-2025-04-14' },
+    { name: 'GPT-5', value: 'openai/gpt-5-2025-08-07' },
+    { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini-2025-08-07' },
+    { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano-2025-08-07' },
   ];
 
   const googleModels = [

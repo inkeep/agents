@@ -1,9 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadEnvironmentCredentials } from '../../utils/environment-loader';
 import * as fs from 'node:fs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadEnvironmentCredentials } from '../../utils/environment-loader';
 
 // Mock the file system and tsx-loader
-vi.mock('node:fs');
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+    readFileSync: vi.fn(),
+  };
+});
 vi.mock('../../utils/tsx-loader', () => ({
   importWithTypeScriptSupport: vi.fn(),
 }));

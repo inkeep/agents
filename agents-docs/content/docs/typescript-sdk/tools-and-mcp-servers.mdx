@@ -22,10 +22,13 @@ const qaAgent = agent({
   id: "qa-agent",
   name: "QA Agent",
   description: "Responsible for answering questions about the company knowledge base.",
-  prompt: "You are a QA agent that can answer questions about the company knowledge base.",
+  prompt: `You are a QA agent that can answer questions about the company knowledge base.
+  You have access to the knowledge base tool to search for information.`,
   canUse: () => [knowledgeBaseTool],
 });
 ```
+
+<Note>Tip: When adding tools to an agent, you can also reference the tool in the agent's prompt to help the agent understand how to use the tool.</Note>
 
 ## Authentication
 
@@ -41,28 +44,6 @@ MCP servers support various authentication methods (via credentials):
 For OAuth flows and OAuth 2.1 flows, it's recommended to use the [Visual Builder](/visual-builder/credentials) for easier configuration.
 
 See [Credentials](/typescript-sdk/credentials) for detailed examples and implementation guidance for each authentication type.
-
-### Example with Authentication
-
-```typescript
-import { mcpTool, credential } from "@inkeep/agents-sdk";
-import { CredentialStoreType } from "@inkeep/agents-core";
-
-const apiKeyTool = mcpTool({
-  id: "weather-api",
-  name: "weather",
-  description: "Get weather information",
-  serverUrl: "https://api.weather.com/mcp",
-  credential: credential({
-    id: "weather-api-credential",
-    type: CredentialStoreType.memory,
-    credentialStoreId: "memory-default",
-    retrievalParams: {
-      key: "WEATHER_API_KEY",
-    },
-  }),
-});
-```
 
 ### Custom Headers
 
@@ -83,7 +64,7 @@ const customHeadersTool = mcpTool({
 });
 ```
 
-## Selective Tools
+## Selecting Tools
 
 ### Selective Tool Activation
 
@@ -101,41 +82,27 @@ const selectiveTool = mcpTool({
 });
 ```
 
-## Best Practices
+### Using agentMCP for Tool Selection
 
-To ensure agents properly utilize their tools, follow these best practices:
-
-1. **Give tools clear, descriptive names and descriptions** - Explain what the tool does and when it should be used
-2. **Reference the tool in the agent's prompt** - Explicitly mention that the agent has access to specific tools and describe scenarios where they should be used
-3. **Secure your credentials** - Store sensitive information using the credential system
-4. **Limit tool scope** - Use `activeTools` to expose only necessary functionality
-
-Example with best practices applied:
+While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `agentMCP`. This allows different agents to use different subsets of tools from the same MCP server.
 
 ```typescript
-import { mcpTool, agent } from "@inkeep/agents-sdk";
+import { agent, mcpTool, agentMcp } from "@inkeep/agents-sdk";
 
-const productTool = mcpTool({
-  id: "product-tool",
-  name: "product",
-  description: "Search product information, pricing, and specifications",
-  serverUrl: "https://mcp.inkeep.com/inkeep/mcp",
-  activeTools: ["search_products", "get_pricing", "get_specifications"], // Only enable needed tools
+// Define the MCP server with all available tools
+const echoTool = mcpTool({
+  id: "echo-tool",
+  name: "Echo tool",
+  serverUrl: "https://mcp-for-next-js-seven-iota.vercel.app/mcp",
 });
 
-const productAgent = agent({
-  id: "product-agent",
-  name: "Product Agent",
-  description: "Answers questions about the Inkeep product",
-  prompt: `You are a product specialist for Inkeep. You have access to the product tool to search for:
-    - Product features and specifications
-    - Pricing information
-    - Technical documentation
-    - Integration guides
-    
-    Use the product tool when customers ask about features, pricing, or technical details.
-    If questions are outside the Inkeep product scope, transfer to the router agent.`,
-  canUse: () => [productTool],
-  canTransferTo: () => [routerAgent],
+// Agent that only uses specific tools from the server
+const weatherAssistant = agent({
+  id: "weather-assistant",
+  name: "Weather assistant",
+  description: "Responsible for routing between the geocoder agent and weather forecast agent",
+  prompt: "You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast",
+  canDelegateTo: () => [weatherForecaster, geocoderAgent],
+  canUse: () => [agentMcp({ server: echoTool, selectedTools: ["echo2"] })],
 });
 ```

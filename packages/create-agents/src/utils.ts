@@ -22,7 +22,7 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: 'openai/gpt-5-2025-08-07',
+    model: 'openai/gpt-4.1-2025-04-14',
   },
   structuredOutput: {
     model: 'openai/gpt-4.1-mini-2025-04-14',

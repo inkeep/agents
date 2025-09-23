@@ -5,8 +5,9 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
 } from '@inkeep/agents-core';
+import { defaultStatusSchemas } from '@inkeep/agents-sdk';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { generateObject, generateText } from 'ai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
 import { getFormattedConversationHistory } from '../data/conversations';
@@ -515,107 +516,73 @@ export class GraphSession {
       const now = Date.now();
       const elapsedTime = now - statusUpdateState.startTime;
 
-      // Generate status update - either structured or text summary
-      let summaryToSend: any;
-
-      if (
+      // Use default status schemas if no custom ones are configured
+      const statusComponents =
         statusUpdateState.config.statusComponents &&
         statusUpdateState.config.statusComponents.length > 0
-      ) {
-        // Use generateObject to intelligently select relevant data components
-        const result = await this.generateStructuredStatusUpdate(
-          this.events.slice(statusUpdateState.lastEventCount),
-          elapsedTime,
-          statusUpdateState.config.statusComponents,
-          statusUpdateState.summarizerModel,
-          this.previousSummaries
-        );
+          ? statusUpdateState.config.statusComponents
+          : defaultStatusSchemas;
 
-        if (result.summaries && result.summaries.length > 0) {
-          // Send each operation separately using writeData for dynamic types
-          for (const summary of result.summaries) {
-            // Guard against empty/invalid operations
-            if (
-              !summary ||
-              !summary.type ||
-              !summary.data ||
-              !summary.data.label ||
-              Object.keys(summary.data).length === 0
-            ) {
-              logger.warn(
-                {
-                  sessionId: this.sessionId,
-                  summary: summary,
-                },
-                'Skipping empty or invalid structured operation'
-              );
-              continue;
-            }
+      // Generate structured status update using configured or default schemas
+      const result = await this.generateStructuredStatusUpdate(
+        this.events.slice(statusUpdateState.lastEventCount),
+        elapsedTime,
+        statusComponents,
+        statusUpdateState.summarizerModel,
+        this.previousSummaries
+      );
 
-            const summaryToSend = {
-              type: summary.data.type || summary.type, // Preserve the actual custom type from LLM
-              label: summary.data.label,
-              details: Object.fromEntries(
-                Object.entries(summary.data).filter(([key]) => !['label', 'type'].includes(key))
-              ),
-            };
-
-            await streamHelper.writeSummary(summaryToSend as SummaryEvent);
+      if (result.summaries && result.summaries.length > 0) {
+        // Send each operation separately using writeData for dynamic types
+        for (const summary of result.summaries) {
+          // Guard against empty/invalid operations
+          if (
+            !summary ||
+            !summary.type ||
+            !summary.data ||
+            !summary.data.label ||
+            Object.keys(summary.data).length === 0
+          ) {
+            logger.warn(
+              {
+                sessionId: this.sessionId,
+                summary: summary,
+              },
+              'Skipping empty or invalid structured operation'
+            );
+            continue;
           }
 
-          // Store summaries for next time - use full JSON for better comparison
-          const summaryTexts = result.summaries.map((summary) =>
-            JSON.stringify({ type: summary.type, data: summary.data })
-          );
-          this.previousSummaries.push(...summaryTexts);
+          const summaryToSend = {
+            type: summary.data.type || summary.type, // Preserve the actual custom type from LLM
+            label: summary.data.label,
+            details: Object.fromEntries(
+              Object.entries(summary.data).filter(([key]) => !['label', 'type'].includes(key))
+            ),
+          };
 
-          // Update state after sending all operations
-          if (this.statusUpdateState) {
-            this.statusUpdateState.lastUpdateTime = now;
-            this.statusUpdateState.lastEventCount = this.events.length;
-          }
-
-          return;
-        } else {
-          // Fall through to regular text summary if no structured updates
+          await streamHelper.writeSummary(summaryToSend as SummaryEvent);
         }
-      } else {
-        // Use regular text generation for simple summaries
-        const summary = await this.generateProgressSummary(
-          this.events.slice(statusUpdateState.lastEventCount),
-          elapsedTime,
-          statusUpdateState.summarizerModel,
-          this.previousSummaries
+
+        // Store summaries for next time - use full JSON for better comparison
+        const summaryTexts = result.summaries.map((summary) =>
+          JSON.stringify({ type: summary.type, data: summary.data })
         );
+        this.previousSummaries.push(...summaryTexts);
 
-        // Store this summary for next time
-        this.previousSummaries.push(summary);
+        // Update state after sending all operations
+        if (this.statusUpdateState) {
+          this.statusUpdateState.lastUpdateTime = now;
+          this.statusUpdateState.lastEventCount = this.events.length;
+        }
 
-        // Create standard status update operation
-        const summaryToSend = {
-          type: 'update', // Simple text summaries get 'update' type
-          label: summary,
-        };
+        return;
       }
 
       // Keep only last 3 summaries to avoid context getting too large
       if (this.previousSummaries.length > 3) {
         this.previousSummaries.shift();
       }
-
-      // Guard against sending empty/undefined operations that break streams
-      if (!summaryToSend || !summaryToSend.label) {
-        logger.warn(
-          {
-            sessionId: this.sessionId,
-            summaryToSend,
-          },
-          'Skipping empty or invalid status update operation'
-        );
-        return;
-      }
-
-      await streamHelper.writeSummary(summaryToSend);
 
       // Update state - check if still exists (could be cleaned up during async operation)
       if (this.statusUpdateState) {
@@ -725,121 +692,6 @@ export class GraphSession {
   }
 
   /**
-   * Generate user-focused progress summary hiding internal operations
-   */
-  private async generateProgressSummary(
-    newEvents: GraphSessionEvent[],
-    elapsedTime: number,
-    summarizerModel?: ModelSettings,
-    previousSummaries: string[] = []
-  ): Promise<string> {
-    return tracer.startActiveSpan(
-      'graph_session.generate_progress_summary',
-      {
-        attributes: {
-          'graph_session.id': this.sessionId,
-          'events.count': newEvents.length,
-          'elapsed_time.seconds': Math.round(elapsedTime / 1000),
-          'llm.model': summarizerModel?.model,
-          'previous_summaries.count': previousSummaries.length,
-        },
-      },
-      async (span) => {
-        try {
-          // Extract user-visible activities (hide internal agent operations)
-          const userVisibleActivities = this.extractUserVisibleActivities(newEvents);
-
-          // Get conversation history to understand user's context and question
-          let conversationContext = '';
-          if (this.tenantId && this.projectId) {
-            try {
-              const conversationHistory = await getFormattedConversationHistory({
-                tenantId: this.tenantId,
-                projectId: this.projectId,
-                conversationId: this.sessionId,
-                options: {
-                  limit: 10, // Get recent conversation context
-                  maxOutputTokens: 2000,
-                },
-                filters: {},
-              });
-              conversationContext = conversationHistory.trim()
-                ? `\nUser's Question/Context:\n${conversationHistory}\n`
-                : '';
-            } catch (error) {
-              logger.warn(
-                { sessionId: this.sessionId, error },
-                'Failed to fetch conversation history for status update'
-              );
-            }
-          }
-
-          const previousSummaryContext =
-            previousSummaries.length > 0
-              ? `\nPrevious updates provided to user:\n${previousSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
-              : '';
-
-          // Use custom prompt if provided, otherwise use default
-          const basePrompt = `Generate a meaningful status update that tells the user what specific information or result was just found/achieved.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
-
-Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
-
-Create a short 3-5 word label describing the ACTUAL finding. Use sentence case (only capitalize the first word and proper nouns). Examples: "Found admin permissions needed", "Identified three channel types", "OAuth token required".
-
-${this.statusUpdateState?.config.prompt?.trim() || ''}`;
-
-          const prompt = basePrompt;
-
-          // Use summarizer model if available, otherwise fall back to base model
-          let modelToUse = summarizerModel;
-          if (!summarizerModel?.model?.trim()) {
-            if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              throw new Error(
-                'Either summarizer or base model is required for progress summary generation. Please configure models at the project level.'
-              );
-            }
-            modelToUse = this.statusUpdateState.baseModel;
-          }
-
-          if (!modelToUse) {
-            throw new Error('No model configuration available');
-          }
-          const model = ModelFactory.createModel(modelToUse);
-
-          const { text } = await generateText({
-            model,
-            prompt,
-            experimental_telemetry: {
-              isEnabled: true,
-              functionId: `status_update_${this.sessionId}`,
-              recordInputs: true,
-              recordOutputs: true,
-              metadata: {
-                operation: 'progress_summary_generation',
-                sessionId: this.sessionId,
-              },
-            },
-          });
-
-          span.setAttributes({
-            'summary.length': text.trim().length,
-            'user_activities.count': userVisibleActivities.length,
-          });
-          span.setStatus({ code: SpanStatusCode.OK });
-
-          return text.trim();
-        } catch (error) {
-          setSpanWithError(span, error);
-          logger.error({ error }, 'Failed to generate summary, using fallback');
-          return this.generateFallbackSummary(newEvents, elapsedTime);
-        } finally {
-          span.end();
-        }
-      }
-    );
-  }
-
-  /**
    * Generate structured status update using configured data components
    */
   private async generateStructuredStatusUpdate(
@@ -932,17 +784,45 @@ Rules:
 - Fill in data for relevant components only
 - Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
-- Labels MUST be short 3-5 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
+- Labels MUST be short 3-7 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
 - Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required"). ALWAYS capitalize the first word of the label.
 - DO NOT use action words like "Searching", "Processing", "Analyzing" - state what was FOUND
 - Include specific details, numbers, requirements, or insights discovered
 - Examples: "Admin permissions required", "Three OAuth steps found", "Token expires daily"
-- You are ONE unified AI system - NEVER mention agents, transfers, delegations, or routing
-- CRITICAL: NEVER use the words "transfer", "delegation", "agent", "routing", "artifact", or any internal system terminology in labels or any names of agents, tools, or systems.
-- Present all operations as seamless actions by a single system
-- Anonymize all internal operations so that the information appears descriptive and USER FRIENDLY. HIDE ALL INTERNAL OPERATIONS!
-- Bad examples: "Transferring to search agent", "continuing transfer to qa agent", "Delegating task", "Routing request", "Processing request", "Artifact found", "Artifact saved", or not using the no_relevant_updates
-- Good examples: "Slack bot needs admin privileges", "Found 3-step OAuth flow required", "Channel limit is 500 per workspace", or use the no_relevant_updates component if nothing new to report.
+
+CRITICAL - HIDE ALL INTERNAL SYSTEM OPERATIONS:
+- You are ONE unified AI system presenting results to the user
+- ABSOLUTELY FORBIDDEN WORDS/PHRASES: "transfer", "transferring", "delegation", "delegating", "delegate", "agent", "routing", "route", "artifact", "saving artifact", "stored artifact", "artifact saved", "continuing", "passing to", "handing off", "switching to"
+- NEVER reveal internal architecture: No mentions of different agents, components, systems, or modules working together
+- NEVER mention artifact operations: Users don't need to know about data being saved, stored, or organized internally
+- NEVER describe handoffs or transitions: Present everything as one seamless operation
+- If you see "transfer", "delegation_sent", "delegation_returned", or "artifact_saved" events - IGNORE THEM or translate to user-facing information only
+- Focus ONLY on actual discoveries, findings, and results that matter to the user
+
+- Bad examples: 
+  * "Transferring to search agent"
+  * "Delegating research task" 
+  * "Routing to QA specialist"
+  * "Artifact saved successfully"
+  * "Storing results for later"
+  * "Passing request to tool handler"
+  * "Continuing with analysis"
+  * "Handing off to processor"
+- Good examples:
+  * "Slack bot needs admin privileges"
+  * "Found 3-step OAuth flow required"  
+  * "Channel limit is 500 per workspace"
+  * Use no_relevant_updates if nothing new to report
+
+CRITICAL ANTI-HALLUCINATION RULES:
+- NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION. EVERY SINGLE UPDATE MUST BE BACKED UP WITH ACTUAL INFORMATION.
+- DO NOT MAKE UP PEOPLE, NAMES, PLACES, THINGS, ORGANIZATIONS, OR INFORMATION. IT IS OBVIOUS WHEN A PERSON/ENTITY DOES NOT EXIST.
+- Only report facts that are EXPLICITLY mentioned in the activities or tool results
+- If you don't have concrete information about something, DO NOT mention it
+- Never invent names like "John Doe", "Alice", "Bob", or any other placeholder names
+- Never create fictional companies, products, or services
+- If a tool returned no results or an error, DO NOT pretend it found something
+- Every detail in your status update must be traceable back to the actual activities provided
 
 REMEMBER YOU CAN ONLY USE 'no_relevant_updates' ALONE! IT CANNOT BE CONCATENATED WITH OTHER STATUS UPDATES!
 
@@ -1034,7 +914,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
       label: z
         .string()
         .describe(
-          'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The ACTUAL finding or result, not the action. What specific information was discovered? (e.g., "Slack requires OAuth 2.0 setup", "Found 5 integration methods", "API rate limit is 100/minute"). Include the actual detail or insight, not just that you searched or processed.'
+          'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The ACTUAL finding or result, not the action. What specific information was discovered? (e.g., "Slack requires OAuth 2.0 setup", "Found 5 integration methods", "API rate limit is 100/minute"). Include the actual detail or insight, not just that you searched or processed. CRITICAL: Only use facts explicitly found in the activities - NEVER invent names, people, organizations, or details that are not present in the actual tool results.'
         ),
     });
   }
@@ -1053,7 +933,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     properties['label'] = z
       .string()
       .describe(
-        'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known?'
+        'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known? CRITICAL: Only use facts explicitly found in the activities - NEVER invent names, people, organizations, or details that are not present in the actual tool results.'
       );
 
     for (const [key, value] of Object.entries(jsonSchema.properties)) {
@@ -1149,50 +1029,18 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           break;
         }
 
-        case 'transfer': {
-          const data = event.data as TransferData;
-          // Hide internal transfer operations - present as seamless continuation
-          activities.push(
-            `🔄 **Continuing**: ${data.reason || 'Processing request'}\n` +
-              `   ${data.context ? `Context: ${JSON.stringify(data.context, null, 2)}` : ''}`
-          );
+        // INTERNAL OPERATIONS - DO NOT EXPOSE TO STATUS UPDATES
+        case 'transfer': 
+        case 'delegation_sent':
+        case 'delegation_returned':
+        case 'artifact_saved':
+          // These are internal system operations that should never be visible in status updates
+          // Skip them entirely - they don't produce user-facing activities
           break;
-        }
-
-        case 'delegation_sent': {
-          const data = event.data as DelegationSentData;
-          // Hide delegation as task processing
-          activities.push(
-            `📤 **Processing**: ${data.taskDescription}\n` +
-              `   ${data.context ? `Context: ${JSON.stringify(data.context, null, 2)}` : ''}`
-          );
-          break;
-        }
-
-        case 'delegation_returned': {
-          const data = event.data as DelegationReturnedData;
-          // Hide delegation return as task completion
-          activities.push(
-            `📥 **Completed subtask**\n` + `   Result: ${JSON.stringify(data.result, null, 2)}`
-          );
-          break;
-        }
-
-        case 'artifact_saved': {
-          const data = event.data as ArtifactSavedData;
-          activities.push(
-            `💾 **Artifact Saved**: ${data.artifactType}\n` +
-              `   ID: ${data.artifactId}\n` +
-              `   Task: ${data.taskId}\n` +
-              `   ${data.summaryData ? `Summary: ${data.summaryData}` : ''}\n` +
-              `   ${data.fullData ? `Full Data: ${data.fullData}` : ''}`
-          );
-          break;
-        }
 
         case 'agent_reasoning': {
           const data = event.data as AgentReasoningData;
-          // Hide internal reasoning as analysis
+          // Present as analysis without mentioning agents
           activities.push(
             `⚙️ **Analyzing request**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
@@ -1201,7 +1049,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
         case 'agent_generate': {
           const data = event.data as AgentGenerateData;
-          // Hide generation type - just show we're working
+          // Present as response preparation without mentioning agents
           activities.push(
             `⚙️ **Preparing response**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
@@ -1216,23 +1064,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     }
 
     return activities;
-  }
-
-  /**
-   * Generate fallback summary when LLM fails
-   */
-  private generateFallbackSummary(events: GraphSessionEvent[], elapsedTime: number): string {
-    const timeStr = Math.round(elapsedTime / 1000);
-    const toolCalls = events.filter((e) => e.eventType === 'tool_execution').length;
-    const artifacts = events.filter((e) => e.eventType === 'artifact_saved').length;
-
-    if (artifacts > 0) {
-      return `Generated ${artifacts} result${artifacts > 1 ? 's' : ''} so far (${timeStr}s elapsed)`;
-    } else if (toolCalls > 0) {
-      return `Used ${toolCalls} tool${toolCalls > 1 ? 's' : ''} to gather information (${timeStr}s elapsed)`;
-    } else {
-      return `Processing your request... (${timeStr}s elapsed)`;
-    }
   }
 
   /**

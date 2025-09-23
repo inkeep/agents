@@ -1,7 +1,10 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
+import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel, Provider } from 'ai';
+
 import { getLogger } from '../logger';
 
 const logger = getLogger('ModelFactory');
@@ -27,6 +30,19 @@ export class ModelFactory {
         return createOpenAI(config);
       case 'google':
         return createGoogleGenerativeAI(config);
+      case 'openrouter':
+        // Use official OpenRouter provider, error if text embeddings or image generation are used (https://github.com/OpenRouterTeam/ai-sdk-provider/issues/62)
+        return {
+          ...createOpenRouter(config),
+          textEmbeddingModel: () => {
+            throw new Error('OpenRouter does not support text embeddings');
+          },
+          imageModel: () => {
+            throw new Error('OpenRouter does not support image generation');
+          },
+        };
+      case 'gateway':
+        return createGateway(config);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -54,8 +70,6 @@ export class ModelFactory {
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
     }
-
-    // Note: API keys should come from environment variables, not configuration
 
     return providerConfig;
   }
@@ -89,6 +103,7 @@ export class ModelFactory {
     );
 
     // Extract provider configuration from providerOptions
+    // Pass provider name to determine if apiKey should be included
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
     // Only create custom provider if there's actual configuration
@@ -106,19 +121,35 @@ export class ModelFactory {
         return openai(modelName);
       case 'google':
         return google(modelName);
+      case 'openrouter':
+        return openrouter(modelName);
+      case 'gateway':
+        return gateway(modelName);
       default:
-        throw new Error(`Unsupported provider: ${provider}`);
+        // Unknown provider not supported
+        throw new Error(
+          `Unsupported provider: ${provider}. ` +
+            `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+            `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
+        );
     }
   }
 
   /**
-   * Supported providers for security validation
+   * Built-in providers that have special handling
    */
-  private static readonly SUPPORTED_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+  private static readonly BUILT_IN_PROVIDERS = [
+    'anthropic',
+    'openai',
+    'google',
+    'openrouter',
+    'gateway',
+  ] as const;
 
   /**
    * Parse model string to extract provider and model name
    * Examples: "anthropic/claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" }
+   *          "openrouter/anthropic/claude-sonnet-4" -> { provider: "openrouter", modelName: "anthropic/claude-sonnet-4" }
    *          "claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" } (default to anthropic)
    */
   static parseModelString(modelString: string): { provider: string; modelName: string } {
@@ -128,13 +159,11 @@ export class ModelFactory {
       const normalizedProvider = provider.toLowerCase();
 
       // Validate provider is supported
-      if (!ModelFactory.SUPPORTED_PROVIDERS.includes(normalizedProvider as any)) {
-        logger.error(
-          { provider: normalizedProvider, modelName: modelParts.join('/') },
-          'Unsupported provider detected, falling back to anthropic'
-        );
+      if (!ModelFactory.BUILT_IN_PROVIDERS.includes(normalizedProvider as any)) {
         throw new Error(
-          `Unsupported provider: ${normalizedProvider}. Please provide a model in the format of provider/model-name.`
+          `Unsupported provider: ${normalizedProvider}. ` +
+            `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
+            `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
         );
       }
 
@@ -144,9 +173,8 @@ export class ModelFactory {
       };
     }
 
-    throw new Error(
-      `Invalid model provided: ${modelString}. Please provide a model in the format of provider/model-name.`
-    );
+    // throw error if no provider specified
+    throw new Error(`No provider specified in model string: ${modelString}`);
   }
 
   /**

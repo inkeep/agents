@@ -30,8 +30,7 @@ function runCli(args: string[]): { stdout: string; stderr: string; exitCode: num
       windowsHide: true, // Hide windows on Windows
       env: {
         ...process.env,
-        NODE_ENV: 'test',
-        ENVIRONMENT: 'test', // Required by the CLI
+        // Test environment
         CI: 'true', // Signal to CLI that it's running in CI
         NODE_OPTIONS: '--max-old-space-size=256', // Limit memory usage
       },

@@ -1,11 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
-import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { env } from '../env';
+import { categorizeTypeScriptFiles, findAllTypeScriptFiles } from '../utils/file-finder';
 import { findProjectDirectory } from '../utils/project-directory';
-import { findAllTypeScriptFiles, categorizeTypeScriptFiles } from '../utils/file-finder';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 import { generateTypeScriptFileWithLLM } from './pull.llm-generate';
 
 export interface PullOptions {
@@ -131,7 +132,7 @@ async function updateProjectFilesWithLLM(
       let agentData = null;
       for (const graph of Object.values(graphs)) {
         const graphData = graph as any;
-        if (graphData.agents && graphData.agents[fileName]) {
+        if (graphData.agents?.[fileName]) {
           agentData = graphData.agents[fileName];
           break;
         }
@@ -167,6 +168,17 @@ async function updateProjectFilesWithLLM(
  * Main pull command
  */
 export async function pullProjectCommand(options: PullOptions): Promise<void> {
+  // Validate ANTHROPIC_API_KEY is available for LLM operations
+  if (!env.ANTHROPIC_API_KEY) {
+    console.error(
+      chalk.red('Error: ANTHROPIC_API_KEY environment variable is required for the pull command.')
+    );
+    console.error(chalk.gray('Please set your Anthropic API key:'));
+    console.error(chalk.gray('  export ANTHROPIC_API_KEY=your_api_key_here'));
+    console.error(chalk.gray('  or add it to your .env file'));
+    process.exit(1);
+  }
+
   const spinner = ora('Finding project...').start();
 
   try {

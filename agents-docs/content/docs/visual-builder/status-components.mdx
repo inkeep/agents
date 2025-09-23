@@ -4,17 +4,16 @@ description: Configure intelligent status updates using structured components in
 icon: "LuClock"
 ---
 
-The Visual Builder provides powerful tools for configuring status updates across your agent graphs. These features keep users informed during long-running operations with either generic text summaries or structured component data.
+The Visual Builder provides powerful tools for configuring status updates across your agent graphs. These features keep users informed during long-running operations with structured component data.
 
 ## Default Status Updates
 
-By default, status updates provide generic text summaries of what's happening:
+By default, status updates use built-in **default status components** that provide structured labels with contextual details:
 
-- "Searching for information about your query..."
-- "Found 3 relevant documents, analyzing content..."
-- "Preparing detailed response based on findings..."
+- **Label**: User-friendly description like "Searching for information about your query..."
+- **Details**: Structured data with operation context, tool usage, and progress information
 
-These are generated automatically by your graph's summarizer model based on recent agent activity.
+These are generated automatically by your graph's summarizer model and provide richer information than plain text summaries.
 
 ## Custom Status Components
 
@@ -76,7 +75,12 @@ Status updates are generated using your graph's configured **summarizer model**,
 1. **Event Tracking**: The system monitors all agent operations (tool calls, transfers, generations)
 2. **Intelligent Triggering**: Updates are sent based on event count or time intervals
 3. **AI Analysis**: The summarizer model analyzes recent events and conversation context
-4. **Output Generation**: Creates either generic text summaries or structured component data
+4. **Output Generation**: Creates structured status updates with labels and contextual details
+
+### Status Update Modes
+
+- **Default Status Components**: Built-in structured format with `label` and `details` fields
+- **Custom Status Components**: Your defined schemas for specific data structures
 
 ### Summarizer Model Settings
 
