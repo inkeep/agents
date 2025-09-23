@@ -18,7 +18,8 @@ const ajv = new Ajv({ allErrors: true, strict: false });
 export const HTTP_REQUEST_PARTS = ['headers'] as const;
 export type HttpRequestPart = (typeof HTTP_REQUEST_PARTS)[number];
 
-// Schema compilation cache for performance
+// Schema compilation cache for performance with LRU eviction
+const MAX_SCHEMA_CACHE_SIZE = 1000;
 const schemaCache = new Map<string, ValidateFunction>();
 
 export interface ContextValidationError {
@@ -42,26 +43,36 @@ export function isValidHttpRequest(obj: any): obj is ParsedHttpRequest {
   return obj != null && typeof obj === 'object' && !Array.isArray(obj) && 'headers' in obj;
 }
 
-// Cached schema compilation for performance
+// Cached schema compilation for performance with LRU eviction
 export function getCachedValidator(schema: Record<string, unknown>): ValidateFunction {
   const key = JSON.stringify(schema);
-  if (!schemaCache.has(key)) {
-    // Make schema permissive by setting additionalProperties: true
-    const permissiveSchema = makeSchemaPermissive(schema);
-    logger.debug(
-      {
-        originalSchema: schema,
-        permissiveSchema,
-        schemaType: schema.type || 'unknown',
-      },
-      'Applied permissive validation (additionalProperties: true) to JSON schema'
-    );
-    schemaCache.set(key, ajv.compile(permissiveSchema));
+
+  // Check if schema exists in cache
+  if (schemaCache.has(key)) {
+    // LRU: Move to end by deleting and re-adding (marks as recently used)
+    const validator = schemaCache.get(key);
+    if (!validator) {
+      throw new Error('Unexpected: validator not found in cache after has() check');
+    }
+    schemaCache.delete(key);
+    schemaCache.set(key, validator);
+    return validator;
   }
-  const validator = schemaCache.get(key);
-  if (!validator) {
-    throw new Error('Failed to compile JSON schema');
+
+  // Evict oldest entry if cache is at size limit
+  if (schemaCache.size >= MAX_SCHEMA_CACHE_SIZE) {
+    const firstKey = schemaCache.keys().next().value;
+    if (firstKey) {
+      schemaCache.delete(firstKey);
+    }
   }
+
+  // Compile new schema
+  const permissiveSchema = makeSchemaPermissive(schema);
+
+  const validator = ajv.compile(permissiveSchema);
+  schemaCache.set(key, validator);
+
   return validator;
 }
 

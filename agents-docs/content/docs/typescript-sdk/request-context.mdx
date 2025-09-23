@@ -54,7 +54,7 @@ const requestSchema = z.object({
 
 // Define schema for expected headers (use lowercase keys)
 const requestContext = requestContextSchema({
-  schema: rz.object({
+  schema: z.object({
   user_id: z.string(),
   auth_token: z.string(),
   org_name: z.string().optional()
