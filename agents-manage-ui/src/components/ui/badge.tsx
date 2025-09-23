@@ -24,13 +24,11 @@ const badgeVariants = cva(
           'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-red-50 border-red-200 text-red-800 dark:border-red-700 dark:text-red-300 dark:bg-red-950/40 uppercase',
         warning:
           'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-amber-50 border-amber-200 text-amber-800 dark:border-amber-700 dark:text-amber-300 dark:bg-amber-950/40 uppercase',
-        emerald:
-          'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-emerald-50 border-emerald-200 text-emerald-800 dark:border-emerald-700 dark:text-emerald-300 dark:bg-emerald-950/40',
-        cyan: 'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-cyan-50 border-cyan-200 text-cyan-800 dark:border-cyan-700 dark:text-cyan-300 dark:bg-cyan-950/40',
+        sky: 'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-sky-50 border-sky-200 text-sky-800 dark:border-sky-700 dark:text-sky-300 dark:bg-sky-950/40',
         violet:
           'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-violet-50 border-violet-200 text-violet-800 dark:border-violet-700 dark:text-violet-300 dark:bg-violet-950/40',
-        fuchsia:
-          'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800 dark:border-fuchsia-700 dark:text-fuchsia-300 dark:bg-fuchsia-950/40',
+        orange:
+          'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-orange-50 border-orange-200 text-orange-800 dark:border-orange-700 dark:text-orange-300 dark:bg-orange-950/40',
       },
     },
     defaultVariants: {

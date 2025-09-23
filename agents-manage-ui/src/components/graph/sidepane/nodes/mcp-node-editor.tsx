@@ -191,7 +191,7 @@ export function MCPServerNodeEditor({
       )}
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
-          <Label>Selected tools (click to select/deselect)</Label>
+          <Label>Selected tools</Label>
           <Badge
             variant="code"
             className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
@@ -205,6 +205,7 @@ export function MCPServerNodeEditor({
             }
           </Badge>
         </div>
+        <p className="text-xs text-muted-foreground mb-1.5">Click to select/deselect</p>
         {activeTools && activeTools.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {activeTools.map((tool) => {
