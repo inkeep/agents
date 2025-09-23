@@ -14,7 +14,7 @@
     "test": "echo 'No tests configured for chat-widget'"
   },
   "dependencies": {
-    "@inkeep/cxkit-react-oss": "0.5.101",
+    "@inkeep/cxkit-react-oss": "0.5.102",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

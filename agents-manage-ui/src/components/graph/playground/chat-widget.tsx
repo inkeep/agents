@@ -209,9 +209,9 @@ export function ChatWidget({
               Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
-            components: {
-              IkpMessage,
-            },
+            // components: {
+            //   IkpMessage,
+            // },
             introMessage: 'Hi! How can I help?',
           }}
         />
@@ -220,6 +220,7 @@ export function ChatWidget({
   );
 }
 
+// using the built in IkpMessage component from cxkit-react-oss but leaving this here for reference / testing
 const IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
   const { message, renderMarkdown, renderComponent } = props;
 
