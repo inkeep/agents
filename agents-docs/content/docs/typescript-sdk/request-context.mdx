@@ -134,7 +134,8 @@ const graph = agentGraph({
 
 ## Using request context in your agents
 
-Request context values are available throughout your agent system using template syntax `{{requestContext.field_name}}`:
+Request context values can be used in your agent prompts and fetch definitions using JSONPath template syntax `{{requestContext.field_name}}`. 
+You can use the request context schema's `toTemplate()` method for type-safe templating with autocomplete and validation.
 
 ### In Context Fetchers
 

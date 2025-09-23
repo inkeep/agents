@@ -47,7 +47,7 @@ const requestContext = requestContextSchema({
   })
 });
 
-// 2. Create the fetcher with type-safe templating
+// 2. Create the fetcher with
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
@@ -96,8 +96,8 @@ export const graph = agentGraph({
 
 ## Using Context Variables
 
+Context variables can be used in your agent prompts using JSONPath template syntax `{{contextVariableKey.field_name}}`. 
 Use the context config's `toTemplate()` method for type-safe templating with autocomplete and validation.
-You can embed fetched data in agent prompts using the key defined in `contextVariables`:
 
 ```typescript
 // Create request context schema
