@@ -3,14 +3,16 @@ import { join, resolve } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { env } from '../env';
+import { validateConfiguration } from '../utils/config';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
-import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 
 export interface PushOptions {
   project?: string;
   config?: string;
+  tenantId?: string;
   agentsManageApiUrl?: string;
+  agentsRunApiUrl?: string;
   env?: string;
   json?: boolean;
 }
@@ -43,28 +45,51 @@ async function loadProject(projectDir: string) {
 }
 
 export async function pushCommand(options: PushOptions) {
-  const spinner = ora('Detecting project...').start();
+  const spinner = ora('Loading configuration...').start();
 
   try {
-    // Find project directory
-    const projectDir = await findProjectDirectory(options.project, options.config);
+    // Use unified config validation
+    const config = await validateConfiguration(
+      options.tenantId,
+      options.agentsManageApiUrl,
+      options.agentsRunApiUrl,
+      options.config
+    );
 
-    if (!projectDir) {
-      spinner.fail('Project not found');
-      if (options.project) {
-        console.error(chalk.red(`Project directory not found: ${options.project}`));
-        console.error(
-          chalk.yellow('Make sure the project directory contains an inkeep.config.ts file')
-        );
-      } else {
-        console.error(chalk.red('No project found in current directory or parent directories'));
-        console.error(
-          chalk.yellow(
-            'Either run this command from within a project directory or use --project <project-id>'
-          )
-        );
+    spinner.succeed('Configuration loaded');
+
+    // Log configuration sources
+    console.log(chalk.gray('Configuration sources:'));
+    console.log(chalk.gray(`  • Tenant ID: ${config.tenantId}`));
+    console.log(chalk.gray(`  • Manage API URL: ${config.agentsManageApiUrl}`));
+    console.log(chalk.gray(`  • Run API URL: ${config.agentsRunApiUrl}`));
+    if (config.sources.configFile) {
+      console.log(chalk.gray(`  • Config file: ${config.sources.configFile}`));
+    }
+
+    // Determine project directory - look for index.ts in current directory
+    spinner.start('Detecting project...');
+    let projectDir: string;
+
+    if (options.project) {
+      // If project path is explicitly specified, use it
+      projectDir = resolve(process.cwd(), options.project);
+      if (!existsSync(join(projectDir, 'index.ts'))) {
+        spinner.fail(`No index.ts found in specified project directory: ${projectDir}`);
+        process.exit(1);
       }
-      process.exit(1);
+    } else {
+      // Look for index.ts in current directory
+      const currentDir = process.cwd();
+      if (existsSync(join(currentDir, 'index.ts'))) {
+        projectDir = currentDir;
+      } else {
+        spinner.fail('No index.ts found in current directory');
+        console.error(
+          chalk.yellow('Please run this command from a directory containing index.ts or use --project <path>')
+        );
+        process.exit(1);
+      }
     }
 
     spinner.succeed(`Project found: ${projectDir}`);
@@ -76,45 +101,38 @@ export async function pushCommand(options: PushOptions) {
       spinner.text = `Setting environment to '${options.env}'...`;
     }
 
+    // Set environment variables for the SDK to use during project construction
+    // This ensures the project is created with the correct tenant ID from the start
+    const originalTenantId = process.env.INKEEP_TENANT_ID;
+    const originalApiUrl = process.env.INKEEP_API_URL;
+
+    process.env.INKEEP_TENANT_ID = config.tenantId;
+    process.env.INKEEP_API_URL = config.agentsManageApiUrl;
+
     // Load project from index.ts
     spinner.text = 'Loading project from index.ts...';
     const project = await loadProject(projectDir);
 
+    // Restore original environment variables
+    if (originalTenantId !== undefined) {
+      process.env.INKEEP_TENANT_ID = originalTenantId;
+    } else {
+      delete process.env.INKEEP_TENANT_ID;
+    }
+    if (originalApiUrl !== undefined) {
+      process.env.INKEEP_API_URL = originalApiUrl;
+    } else {
+      delete process.env.INKEEP_API_URL;
+    }
+
     spinner.succeed('Project loaded successfully');
 
-    // Load inkeep.config.ts for configuration
-    spinner.text = 'Loading configuration...';
-    const configPath = options.config ? resolve(process.cwd(), options.config) : join(projectDir, 'inkeep.config.ts');
-    const configModule = await importWithTypeScriptSupport(configPath);
-    const config = configModule.default;
-
-    if (!config) {
-      throw new Error('No default export found in inkeep.config.ts');
-    }
-
-    // Override config with CLI options
-    const finalConfig = {
-      ...config,
-      agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
-    };
-
-    if (!finalConfig.tenantId || !finalConfig.agentsManageApiUrl) {
-      throw new Error('Missing required configuration: tenantId or agentsManageApiUrl');
-    }
-
-    spinner.succeed('Configuration loaded');
-
-    // Log configuration sources
-    console.log(chalk.gray('Configuration sources:'));
-    console.log(chalk.gray(`  • Tenant ID: ${finalConfig.tenantId}`));
-    console.log(chalk.gray(`  • API URL: ${finalConfig.agentsManageApiUrl}`));
-
-    // Set configuration on the project
+    // Set configuration on the project (still needed for consistency)
     if (typeof project.setConfig === 'function') {
       project.setConfig(
-        finalConfig.tenantId,
-        finalConfig.agentsManageApiUrl,
-        undefined
+        config.tenantId,
+        config.agentsManageApiUrl
+        // Note: models should be passed here if needed, not agentsRunApiUrl
       );
     }
 

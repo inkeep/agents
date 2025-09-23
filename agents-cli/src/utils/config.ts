@@ -118,7 +118,7 @@ export async function getTenantId(configPath?: string): Promise<string | undefin
   return config.tenantId;
 }
 
-export async function getProjectId(configPath?: string): Promise<string> {
+export async function getProjectId(_configPath?: string): Promise<string> {
   // Always return 'default' as projectId is no longer part of the config
   return 'default';
 }

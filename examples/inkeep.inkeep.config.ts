@@ -1,9 +1,8 @@
 import { defineConfig } from '@inkeep/agents-cli/config';
 
-const config = defineConfig({
-  tenantId: 'default',
+export default defineConfig({
+  tenantId: 'inkeep',
+  outputDirectory: 'default',
   agentsManageApiUrl: 'http://localhost:3002',
   agentsRunApiUrl: 'http://localhost:3003',
 });
-
-export default config;

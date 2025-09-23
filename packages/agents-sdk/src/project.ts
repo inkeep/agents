@@ -105,8 +105,8 @@ export class Project implements ProjectInterface {
     this.projectId = config.id;
     this.projectName = config.name;
     this.projectDescription = config.description;
-    // tenantId will be set by setConfig method from CLI or other sources
-    this.tenantId = 'default';
+    // Check environment variable first, fallback to default
+    this.tenantId = process.env.INKEEP_TENANT_ID || 'default';
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.models = config.models;
     this.stopWhen = config.stopWhen;

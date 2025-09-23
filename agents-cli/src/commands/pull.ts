@@ -1,19 +1,18 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
 import prompts from 'prompts';
 import { env } from '../env';
-import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { findProjectDirectory } from '../utils/project-directory';
 import {
   generateArtifactComponentFile,
   generateDataComponentFile,
   generateEnvironmentFiles,
   generateGraphFile,
   generateIndexFile,
-  generateInkeepConfigFile,
   generateToolFile,
 } from './pull.llm-generate';
 
@@ -31,6 +30,7 @@ export interface PullOptions {
 async function loadProjectConfig(projectDir: string, configPathOverride?: string): Promise<{
   tenantId: string;
   agentsManageApiUrl: string;
+  outputDirectory?: string;
 }> {
   const configPath = configPathOverride ? resolve(process.cwd(), configPathOverride) : join(projectDir, 'inkeep.config.ts');
 
@@ -55,6 +55,7 @@ async function loadProjectConfig(projectDir: string, configPathOverride?: string
     return {
       tenantId: config.tenantId,
       agentsManageApiUrl: config.agentsManageApiUrl || 'http://localhost:3002',
+      outputDirectory: config.outputDirectory,
     };
   } catch (error: any) {
     throw new Error(`Failed to load configuration: ${error.message}`);
@@ -147,9 +148,7 @@ async function generateProjectFiles(
     environmentsDir: string;
   },
   projectData: any,
-  projectId: string,
   modelSettings: ModelSettings,
-  tenantId: string,
   environment: string = 'development'
 ): Promise<void> {
   const { graphs, tools, dataComponents, artifactComponents } = projectData;
@@ -162,11 +161,6 @@ async function generateProjectFiles(
   const indexPath = join(dirs.projectRoot, 'index.ts');
   generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
   fileInfo.push({ type: 'config', name: 'index.ts' });
-
-  // Add inkeep.config.ts generation task
-  const configPath = join(dirs.projectRoot, 'inkeep.config.ts');
-  generationTasks.push(generateInkeepConfigFile(projectData, projectId, configPath, modelSettings, tenantId));
-  fileInfo.push({ type: 'config', name: 'inkeep.config.ts' });
 
   // Add graph generation tasks
   if (graphs && Object.keys(graphs).length > 0) {
@@ -205,7 +199,7 @@ async function generateProjectFiles(
   }
 
   // Add environment files generation (non-LLM, so fast)
-  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, projectData, environment));
+  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, environment));
   fileInfo.push({ type: 'env', name: `${environment}.env.ts` });
 
   // Display what we're generating
@@ -255,14 +249,99 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     process.exit(1);
   }
 
-  const spinner = ora('Finding project...').start();
+  const spinner = ora('Loading configuration...').start();
 
   try {
-    // Find the src directory or current directory
+    let config: any = null;
+    let configFound = false;
+    let configLocation = '';
+
+    // If a specific config file was provided, use that
+    if (options.config) {
+      const configPath = resolve(process.cwd(), options.config);
+      if (existsSync(configPath)) {
+        try {
+          config = await loadProjectConfig(dirname(configPath), options.config);
+          configFound = true;
+          configLocation = configPath;
+        } catch (error) {
+          spinner.fail('Failed to load specified configuration file');
+          console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+          process.exit(1);
+        }
+      } else {
+        spinner.fail(`Specified configuration file not found: ${configPath}`);
+        process.exit(1);
+      }
+    }
+
+    // If no config specified, search for inkeep.config.ts
+    if (!configFound) {
+      // Check current directory first
+      const currentConfigPath = join(baseDir, 'inkeep.config.ts');
+      if (existsSync(currentConfigPath)) {
+        try {
+          config = await loadProjectConfig(baseDir);
+          configFound = true;
+          configLocation = currentConfigPath;
+        } catch (_error) {
+          spinner.warn('Failed to load configuration from current directory');
+        }
+      }
+
+      // Check parent directory if not found in current
+      if (!configFound) {
+        const parentConfigPath = join(baseDir, '..', 'inkeep.config.ts');
+        if (existsSync(parentConfigPath)) {
+          try {
+            config = await loadProjectConfig(join(baseDir, '..'));
+            configFound = true;
+            configLocation = parentConfigPath;
+          } catch (_error) {
+            spinner.warn('Failed to load configuration from parent directory');
+          }
+        }
+      }
+
+      // Use find-up as last resort
+      if (!configFound) {
+        const { findUp } = await import('find-up');
+        const foundConfigPath = await findUp('inkeep.config.ts', { cwd: baseDir });
+        if (foundConfigPath) {
+          try {
+            config = await loadProjectConfig(dirname(foundConfigPath));
+            configFound = true;
+            configLocation = foundConfigPath;
+          } catch (_error) {
+            spinner.warn('Failed to load configuration from found path');
+          }
+        }
+      }
+    }
+
+    if (!configFound || !config) {
+      spinner.fail('No inkeep.config.ts found');
+      console.error(chalk.red('Configuration file is required for pull command'));
+      console.log(chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings'));
+      console.log(chalk.gray('Searched in:'));
+      console.log(chalk.gray(`  • Current directory: ${baseDir}`));
+      console.log(chalk.gray(`  • Parent directory: ${join(baseDir, '..')}`));
+      console.log(chalk.gray(`  • Parent directories up to root`));
+      process.exit(1);
+    }
+
+    spinner.succeed(`Configuration loaded from ${configLocation}`);
+
+    // Now determine base directory, considering outputDirectory from config
+    spinner.start('Determining output directory...');
     let baseDir: string;
+
     if (options.project) {
       // If project path is specified, use it
       baseDir = options.project;
+    } else if (config.outputDirectory && config.outputDirectory !== 'default') {
+      // Use outputDirectory from config if specified and not 'default'
+      baseDir = resolve(process.cwd(), config.outputDirectory);
     } else {
       // Find the src directory by looking for package.json
       const projectRoot = await findProjectDirectory();
@@ -276,30 +355,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       }
     }
 
-    spinner.succeed(`Base directory: ${baseDir}`);
-
-    // Load configuration from parent directory if it exists
-    spinner.start('Loading configuration...');
-
-    // Try to load config from parent directory
-    const parentConfigPath = join(baseDir, '..', 'inkeep.config.ts');
-    let config: any = null;
-
-    if (existsSync(parentConfigPath)) {
-      try {
-        config = await loadProjectConfig(join(baseDir, '..'), options.config);
-      } catch (error) {
-        spinner.fail('Failed to load configuration from parent directory');
-        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-        console.log(chalk.yellow('Please ensure you have a valid inkeep.config.ts file in the parent directory'));
-        process.exit(1);
-      }
-    } else {
-      spinner.fail('No inkeep.config.ts found in parent directory');
-      console.error(chalk.red('Configuration file is required for pull command'));
-      console.log(chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings'));
-      process.exit(1);
-    }
+    spinner.succeed(`Output directory: ${baseDir}`);
 
     // Override with CLI options
     const finalConfig = {
@@ -384,7 +440,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       model: 'anthropic/claude-sonnet-4-20250514',
     };
 
-    await generateProjectFiles(dirs, projectData, finalConfig.projectId, modelSettings, finalConfig.tenantId, options.env || 'development');
+    await generateProjectFiles(dirs, projectData, modelSettings, options.env || 'development');
 
     // Count generated files for summary
     const fileCount = {

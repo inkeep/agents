@@ -142,34 +142,6 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
- * Generate inkeep.config.ts file
- */
-export async function generateInkeepConfigFile(
-  projectData: any,
-  projectId: string,
-  outputPath: string,
-  modelSettings: ModelSettings,
-  tenantId: string
-): Promise<void> {
-  // Create the config file directly without LLM since it's a simple template
-  const modelConfig = projectData.models || {};
-
-  const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
-
-const config = defineConfig({
-  tenantId: '${tenantId}',
-  agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
-});
-
-export default config;
-`;
-
-  // Write the config file directly
-  writeFileSync(outputPath, configContent);
-}
-
-/**
  * Generate a graph TypeScript file
  */
 export async function generateGraphFile(
@@ -451,7 +423,6 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
  */
 export async function generateEnvironmentFiles(
   environmentsDir: string,
-  projectData: any,
   environment: string = 'development'  // Default to development if not specified
 ): Promise<void> {
   // Generate production.env.ts template
@@ -524,8 +495,6 @@ export type ValidatedEnv = z.infer<typeof envSchema>;
     case 'stage':
       writeFileSync(join(environmentsDir, 'staging.env.ts'), stagingEnvContent);
       break;
-    case 'development':
-    case 'dev':
     default:
       writeFileSync(join(environmentsDir, 'development.env.ts'), devEnvContent);
       break;

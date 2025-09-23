@@ -88,7 +88,9 @@ program
   .description('Push a project configuration to the backend')
   .option('--project <project-id>', 'Project ID or path to project directory')
   .option('--config <path>', 'Path to configuration file')
+  .option('--tenant-id <id>', 'Override tenant ID')
   .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
+  .option('--agents-run-api-url <url>', 'Override agents run API URL')
   .option(
     '--env <environment>',
     'Environment to use for credential resolution (e.g., development, production)'
