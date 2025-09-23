@@ -192,11 +192,11 @@ function parseTypeFromDef(def: any): string {
  */
 export function getTypeBadgeVariant(
   type: string
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  if (type.includes('string')) return 'default';
-  if (type.includes('number')) return 'secondary';
-  if (type.includes('boolean')) return 'outline';
-  if (type.includes('array')) return 'secondary';
-  if (type.includes('object')) return 'destructive';
-  return 'outline';
+): 'error' | 'primary' | 'code' | 'emerald' | 'fuchsia' | 'cyan' | 'violet' {
+  if (type.includes('string')) return 'primary';
+  if (type.includes('number')) return 'violet';
+  if (type.includes('boolean')) return 'emerald';
+  if (type.includes('array')) return 'fuchsia';
+  if (type.includes('object')) return 'cyan';
+  return 'code';
 }

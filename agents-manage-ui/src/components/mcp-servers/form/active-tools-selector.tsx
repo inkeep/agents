@@ -143,7 +143,7 @@ export function ActiveToolsSelector<
         return (
           <div className="flex flex-wrap gap-2">
             {availableTools.map((tool) => (
-              <Badge key={tool.name} variant="secondary" className="text-xs">
+              <Badge key={tool.name} variant="primary" className="text-xs">
                 {tool.name}
               </Badge>
             ))}
@@ -157,7 +157,7 @@ export function ActiveToolsSelector<
         return validSelectedTools.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {validSelectedTools.map((toolName: string) => (
-              <Badge key={toolName} variant="secondary" className="text-xs">
+              <Badge key={toolName} variant="primary" className="text-xs">
                 {toolName}
               </Badge>
             ))}
@@ -227,8 +227,8 @@ export function ActiveToolsSelector<
                     return (
                       <div key={tool.name} className="space-y-2">
                         <Badge
-                          variant={isChecked ? 'default' : 'outline'}
-                          className={`font-mono text-xs cursor-pointer transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent'}`}
+                          variant={isChecked ? 'primary' : 'code'}
+                          className={`font-mono text-xs cursor-pointer transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={() => !disabled && handleToolToggle(tool.name, !isChecked)}
                         >
                           {tool.name}
