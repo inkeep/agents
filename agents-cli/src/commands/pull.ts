@@ -256,6 +256,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     let configFound = false;
     let configLocation = '';
 
+    // Determine initial search directory for config
+    const searchDir = process.cwd();
+
     // If a specific config file was provided, use that
     if (options.config) {
       const configPath = resolve(process.cwd(), options.config);
@@ -278,10 +281,10 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     // If no config specified, search for inkeep.config.ts
     if (!configFound) {
       // Check current directory first
-      const currentConfigPath = join(baseDir, 'inkeep.config.ts');
+      const currentConfigPath = join(searchDir, 'inkeep.config.ts');
       if (existsSync(currentConfigPath)) {
         try {
-          config = await loadProjectConfig(baseDir);
+          config = await loadProjectConfig(searchDir);
           configFound = true;
           configLocation = currentConfigPath;
         } catch (_error) {
@@ -291,10 +294,10 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
       // Check parent directory if not found in current
       if (!configFound) {
-        const parentConfigPath = join(baseDir, '..', 'inkeep.config.ts');
+        const parentConfigPath = join(searchDir, '..', 'inkeep.config.ts');
         if (existsSync(parentConfigPath)) {
           try {
-            config = await loadProjectConfig(join(baseDir, '..'));
+            config = await loadProjectConfig(join(searchDir, '..'));
             configFound = true;
             configLocation = parentConfigPath;
           } catch (_error) {
@@ -306,7 +309,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       // Use find-up as last resort
       if (!configFound) {
         const { findUp } = await import('find-up');
-        const foundConfigPath = await findUp('inkeep.config.ts', { cwd: baseDir });
+        const foundConfigPath = await findUp('inkeep.config.ts', { cwd: searchDir });
         if (foundConfigPath) {
           try {
             config = await loadProjectConfig(dirname(foundConfigPath));
@@ -324,8 +327,8 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       console.error(chalk.red('Configuration file is required for pull command'));
       console.log(chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings'));
       console.log(chalk.gray('Searched in:'));
-      console.log(chalk.gray(`  • Current directory: ${baseDir}`));
-      console.log(chalk.gray(`  • Parent directory: ${join(baseDir, '..')}`));
+      console.log(chalk.gray(`  • Current directory: ${searchDir}`));
+      console.log(chalk.gray(`  • Parent directory: ${join(searchDir, '..')}`));
       console.log(chalk.gray(`  • Parent directories up to root`));
       process.exit(1);
     }
