@@ -44,7 +44,7 @@ import {
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { generateToolId } from '../utils/agent-operations';
-import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
+import { ArtifactReferenceSchema, ArtifactCreateSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { graphSessionManager } from '../utils/graph-session';
 import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
@@ -157,7 +157,6 @@ function isValidTool(
 export class Agent {
   private config: AgentConfig;
   private systemPromptBuilder = new SystemPromptBuilder('v1', new V1Config());
-  private responseFormatter: ResponseFormatter;
   private credentialStuffer?: CredentialStuffer;
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
@@ -194,13 +193,14 @@ export class Agent {
       });
     }
 
-    // If we have artifact components, add the default artifact data component for response hydration
+    // If we have artifact components, add the default artifact data components for response hydration
     if (
       this.artifactComponents.length > 0 &&
       config.dataComponents &&
       config.dataComponents.length > 0
     ) {
       processedDataComponents = [
+        ArtifactCreateSchema.getDataComponent(config.tenantId, config.projectId),
         ArtifactReferenceSchema.getDataComponent(config.tenantId, config.projectId),
         ...processedDataComponents,
       ];
@@ -213,7 +213,6 @@ export class Agent {
       conversationHistoryConfig:
         config.conversationHistoryConfig || createDefaultConversationHistoryConfig(),
     };
-    this.responseFormatter = new ResponseFormatter(config.tenantId);
 
     // Store the credential store registry
     this.credentialStoreRegistry = credentialStoreRegistry;
@@ -537,16 +536,19 @@ export class Agent {
               // Call the original MCP tool with proper error handling
               const result = await originalTool.execute(args, { toolCallId });
 
-              // Record the result immediately in the session manager
+              // Analyze result structure and add path hints for artifact creation
+              const enhancedResult = this.enhanceToolResultWithStructureHints(result);
+
+              // Record the enhanced result in the session manager
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
                 args,
-                result,
+                result: enhancedResult,
                 timestamp: Date.now(),
               });
 
-              return { result, toolCallId };
+              return { result: enhancedResult, toolCallId };
             } catch (error) {
               logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
               throw error;
@@ -986,6 +988,7 @@ Key requirements:
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
+      artifactComponents: this.artifactComponents,
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -1039,15 +1042,8 @@ Key requirements:
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
-    // Only add save_tool_result if this specific agent has artifact components
-    if (this.artifactComponents.length > 0) {
-      defaultTools.save_tool_result = createSaveToolResultTool(
-        sessionId,
-        streamRequestId,
-        this.config.id,
-        this.artifactComponents
-      );
-    }
+    // Note: save_tool_result tool is replaced by artifact:create response annotations
+    // Agents with artifact components will receive creation instructions in their system prompt
 
     // Add thinking_complete tool if we have structured output components
     const hasStructuredOutput = this.config.dataComponents && this.config.dataComponents.length > 0;
@@ -1069,6 +1065,88 @@ Key requirements:
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  /**
+   * Analyze tool result structure and add helpful path hints for artifact creation
+   */
+  private enhanceToolResultWithStructureHints(result: any): any {
+    if (!result) {
+      return result;
+    }
+
+    // Parse embedded JSON if result is a string (same logic as artifact parser)
+    let parsedForAnalysis = result;
+    if (typeof result === 'string') {
+      try {
+        // Import the same parsing function used by artifact parser
+        const { parseEmbeddedJson } = require('./generateTaskHandler');
+        parsedForAnalysis = parseEmbeddedJson(result);
+      } catch (error) {
+        // If parsing fails, analyze the original result
+        parsedForAnalysis = result;
+      }
+    }
+
+    if (!parsedForAnalysis || typeof parsedForAnalysis !== 'object') {
+      return result;
+    }
+
+    const findArrayPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 6) return []; // Prevent infinite recursion
+      
+      const paths: string[] = [];
+      if (Array.isArray(obj)) {
+        if (obj.length > 0) {
+          paths.push(`${prefix}[0-${obj.length - 1}]`);
+        }
+      } else if (obj && typeof obj === 'object') {
+        for (const [key, value] of Object.entries(obj)) {
+          paths.push(...findArrayPaths(value, `${prefix}.${key}`, depth + 1));
+        }
+      }
+      return paths;
+    };
+
+    const findCommonFields = (obj: any, depth = 0): Set<string> => {
+      if (depth > 5) return new Set();
+      
+      const fields = new Set<string>();
+      if (Array.isArray(obj)) {
+        // Check first few items for common field patterns
+        obj.slice(0, 3).forEach(item => {
+          if (item && typeof item === 'object') {
+            Object.keys(item).forEach(key => fields.add(key));
+          }
+        });
+      } else if (obj && typeof obj === 'object') {
+        Object.keys(obj).forEach(key => fields.add(key));
+        Object.values(obj).forEach(value => {
+          findCommonFields(value, depth + 1).forEach(field => fields.add(field));
+        });
+      }
+      return fields;
+    };
+
+    try {
+      const arrayPaths = findArrayPaths(parsedForAnalysis);
+      const commonFields = Array.from(findCommonFields(parsedForAnalysis)).slice(0, 10); // Limit to prevent spam
+
+      // Add structure hints to the original result (not the parsed version)
+      const enhanced = {
+        ...result,
+        _structureHints: {
+          availablePaths: arrayPaths.slice(0, 8), // Limit to most relevant paths
+          commonFields,
+          note: "Use these paths for artifact base selectors. Remove this _structureHints object from your selectors."
+        }
+      };
+
+      return enhanced;
+    } catch (error) {
+      logger.warn({ error }, 'Failed to enhance tool result with structure hints');
+      return result;
+    }
   }
 
   // Check if any agents in the graph have artifact components
@@ -1312,7 +1390,22 @@ Key requirements:
           if (!streamHelper) {
             throw new Error('Stream helper is unexpectedly undefined in streaming context');
           }
-          const parser = new IncrementalStreamParser(streamHelper, this.config.tenantId, contextId);
+          // Get session info from tool session manager
+          const session = toolSessionManager.getSession(sessionId);
+          const artifactParserOptions = {
+            sessionId,
+            taskId: session?.taskId,
+            projectId: session?.projectId,
+            artifactComponents: this.artifactComponents,
+            streamRequestId: this.getStreamRequestId(),
+            agentId: this.config.id,
+          };
+          const parser = new IncrementalStreamParser(
+            streamHelper, 
+            this.config.tenantId, 
+            contextId,
+            artifactParserOptions
+          );
 
           // Process the full stream - track all events including tool calls
           // Note: stopWhen will automatically stop on transfer_to_
@@ -1522,8 +1615,9 @@ ${output}`;
               });
             }
 
-            // Add artifact reference schema
+            // Add artifact schemas
             if (this.artifactComponents.length > 0) {
+              componentSchemas.push(ArtifactCreateSchema.getSchema());
               componentSchemas.push(ArtifactReferenceSchema.getSchema());
             }
 
@@ -1579,10 +1673,21 @@ ${output}`;
               if (!streamHelper) {
                 throw new Error('Stream helper is unexpectedly undefined in streaming context');
               }
+              // Get session info for artifact parser
+              const session = toolSessionManager.getSession(sessionId);
+              const artifactParserOptions = {
+                sessionId,
+                taskId: session?.taskId,
+                projectId: session?.projectId,
+                artifactComponents: this.artifactComponents,
+                streamRequestId: this.getStreamRequestId(),
+                agentId: this.config.id,
+              };
               const parser = new IncrementalStreamParser(
                 streamHelper,
                 this.config.tenantId,
-                contextId
+                contextId,
+                artifactParserOptions
               );
 
               // Process the object stream with better delta handling
@@ -1667,15 +1772,27 @@ ${output}`;
         let formattedContent: MessageContent | null = response.formattedContent || null;
 
         if (!formattedContent) {
+          // Create ResponseFormatter with proper context
+          const session = toolSessionManager.getSession(sessionId);
+          const responseFormatter = new ResponseFormatter(this.config.tenantId, {
+            sessionId,
+            taskId: session?.taskId,
+            projectId: session?.projectId,
+            contextId,
+            artifactComponents: this.artifactComponents,
+            streamRequestId: this.getStreamRequestId(),
+            agentId: this.config.id,
+          });
+
           if (response.object) {
             // For object responses, replace artifact markers and convert to parts array
-            formattedContent = await this.responseFormatter.formatObjectResponse(
+            formattedContent = await responseFormatter.formatObjectResponse(
               response.object,
               contextId
             );
           } else if (textResponse) {
             // For text responses, apply artifact marker formatting to create text/data parts
-            formattedContent = await this.responseFormatter.formatResponse(textResponse, contextId);
+            formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
           }
         }
 

@@ -572,6 +572,7 @@ export const ledgerArtifacts = sqliteTable(
 
     // Links
     taskId: text('task_id'),
+    toolCallId: text('tool_call_id'), // Added for traceability to the specific tool execution
     contextId: text('context_id').notNull(),
 
     // Core Artifact fields
@@ -662,6 +663,9 @@ export const credentialReferences = sqliteTable(
 // Indexes & Constraints for ledger artifacts
 export const ledgerArtifactsTaskIdIdx = index('ledger_artifacts_task_id_idx').on(
   ledgerArtifacts.taskId
+);
+export const ledgerArtifactsToolCallIdIdx = index('ledger_artifacts_tool_call_id_idx').on(
+  ledgerArtifacts.toolCallId
 );
 export const ledgerArtifactsContextIdIdx = index('ledger_artifacts_context_id_idx').on(
   ledgerArtifacts.contextId

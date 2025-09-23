@@ -13,9 +13,10 @@ export const addLedgerArtifacts =
     scopes: ProjectScopeConfig;
     contextId: string;
     taskId?: string | null;
+    toolCallId?: string | null;
     artifacts: Artifact[];
   }): Promise<void> => {
-    const { scopes, contextId, taskId = null, artifacts } = params;
+    const { scopes, contextId, taskId = null, toolCallId = null, artifacts } = params;
     if (artifacts.length === 0) return;
 
     const now = new Date().toISOString();
@@ -28,6 +29,7 @@ export const addLedgerArtifacts =
         tenantId: scopes.tenantId,
         projectId: scopes.projectId,
         taskId: resolvedTaskId,
+        toolCallId: toolCallId ?? (art.metadata as any)?.toolCallId ?? null,
         contextId,
         name: art.name ?? null,
         description: art.description ?? null,
@@ -50,20 +52,21 @@ export const addLedgerArtifacts =
   };
 
 /**
- * Retrieve artifacts by taskId and/or artifactId.
- * At least one of taskId or artifactId must be provided.
+ * Retrieve artifacts by taskId, toolCallId, and/or artifactId.
+ * At least one of taskId, toolCallId, or artifactId must be provided.
  */
 export const getLedgerArtifacts =
   (db: DatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     taskId?: string;
+    toolCallId?: string;
     artifactId?: string;
   }): Promise<Artifact[]> => {
-    const { scopes, taskId, artifactId } = params;
+    const { scopes, taskId, toolCallId, artifactId } = params;
 
-    if (!taskId && !artifactId) {
-      throw new Error('Either taskId or artifactId must be provided');
+    if (!taskId && !toolCallId && !artifactId) {
+      throw new Error('At least one of taskId, toolCallId, or artifactId must be provided');
     }
 
     const conditions = [
@@ -77,6 +80,10 @@ export const getLedgerArtifacts =
 
     if (taskId) {
       conditions.push(eq(ledgerArtifacts.taskId, taskId));
+    }
+
+    if (toolCallId) {
+      conditions.push(eq(ledgerArtifacts.toolCallId, toolCallId));
     }
 
     const query = db

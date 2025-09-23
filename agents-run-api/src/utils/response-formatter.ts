@@ -12,8 +12,19 @@ const logger = getLogger('ResponseFormatter');
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
 
-  constructor(tenantId: string) {
-    this.artifactParser = new ArtifactParser(tenantId);
+  constructor(
+    tenantId: string,
+    artifactParserOptions?: {
+      sessionId?: string;
+      taskId?: string;
+      projectId?: string;
+      contextId?: string;
+      artifactComponents?: any[];
+      streamRequestId?: string;
+      agentId?: string;
+    }
+  ) {
+    this.artifactParser = new ArtifactParser(tenantId, artifactParserOptions);
   }
 
   /**

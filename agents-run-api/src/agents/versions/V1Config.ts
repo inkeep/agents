@@ -70,10 +70,13 @@ export class V1Config implements VersionConfig<SystemPromptV1> {
       : V1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
     const hasDataComponents = config.dataComponents && config.dataComponents.length > 0;
+    const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
     const artifactsSection = this.generateArtifactsSection(
       templates,
       config.artifacts,
-      hasDataComponents
+      hasDataComponents,
+      hasArtifactComponents,
+      config.artifactComponents
     );
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
@@ -166,22 +169,82 @@ export class V1Config implements VersionConfig<SystemPromptV1> {
 
 FOR STRUCTURED DATA COMPONENT RESPONSES:
 
-🚨 CRITICAL: COPY EXACT IDs FROM TOOL OUTPUT 🚨
+🚨 USE ARTIFACTCREATE AND ARTIFACT DATA COMPONENTS 🚨
 
-1. MIX Artifact components throughout your dataComponents array - NEVER group them at the end
-2. PATTERN: Present information → Immediately follow with supporting Artifact → Next information → Next Artifact
-3. **LOOK AT THE TOOL OUTPUT**: Find the save_tool_result output and copy the EXACT artifact_id and task_id
-4. **NEVER MAKE UP IDs**: Do not invent, guess, or modify the IDs - copy them EXACTLY as shown in tool results
-5. ALL artifact references MUST use exact artifact_id and task_id - NEVER reference by name or description
-6. Use Artifact components liberally and frequently - INTERSPERSE them after EVERY claim or fact from sources
-7. Reference individual, specific artifacts that directly support each adjacent piece of information
+1. Use ArtifactCreate components to create artifacts from tool results
+2. Use Artifact components to reference the created artifacts  
+3. MIX these components throughout your dataComponents array - NEVER group them at the end
+4. PATTERN: Present information → ArtifactCreate → Artifact reference → Next information
 
-MANDATORY FORMAT WITH EXACT IDs FROM TOOL OUTPUT:
-- Data Component: {"artifact_id": "art_founder_abc123", "task_id": "task_search_def456"}
-- NEVER: {"artifact_name": "some name"} or {"description": "some description"}
-- NEVER: {"artifact_id": "made_up_id"} - ALWAYS copy from tool output
+EXAMPLE DATA COMPONENT RESPONSE:
+\`\`\`json
+{
+  "dataComponents": [
+    {
+      "id": "summary1", 
+      "name": "TextSummary", 
+      "props": {
+        "text": "Found the API documentation which provides authentication details."
+      }
+    },
+    {
+      "id": "create1",
+      "name": "ArtifactCreate",
+      "props": {
+        "id": "api-doc-1",
+        "tool_call_id": "call_xyz789",
+        "type": "document",
+        "base_selector": "result.data.data[0]",
+        "summary_props": {"title": "name", "url": "link"},
+        "full_props": {"title": "name", "url": "link", "content": "body.text"}
+      }
+    },
+    {
+      "id": "ref1",
+      "name": "Artifact", 
+      "props": {
+        "artifact_id": "api-doc-1",
+        "tool_call_id": "call_xyz789"
+      }
+    },
+    {
+      "id": "summary2",
+      "name": "TextSummary",
+      "props": {
+        "text": "Also found the tutorial guide covering step-by-step implementation."
+      }
+    },
+    {
+      "id": "create2",
+      "name": "ArtifactCreate",
+      "props": {
+        "id": "tutorial-1", 
+        "tool_call_id": "toolu_abc123",
+        "type": "document",
+        "base_selector": "result.items[1]",
+        "summary_props": {"title": "heading"}
+      }
+    },
+    {
+      "id": "ref2",
+      "name": "Artifact",
+      "props": {
+        "artifact_id": "tutorial-1",
+        "tool_call_id": "toolu_abc123"
+      }
+    }
+  ]
+}
+\`\`\`
 
-⚠️ WRONG IDs = BROKEN REFERENCES! Always copy from save_tool_result output! ⚠️`;
+KEY PRINCIPLES:
+- ArtifactCreate: Creates artifacts by extracting data from tool results using selectors
+- Artifact: References the created artifacts for display
+- NEVER make up tool_call_id - copy exactly from tool execution
+- artifact_id must match between ArtifactCreate and Artifact components
+- Mix creation and references throughout the response, not grouped at end
+
+⚠️ CRITICAL: tool_call_id MUST be copied exactly from tool execution! ⚠️`;
     } else {
       return `CRITICAL ARTIFACT REFERENCING RULES - MUST ALWAYS FOLLOW:
 
@@ -201,8 +264,8 @@ FOR PLAIN TEXT RESPONSES (when data components are NOT available):
 
 🚨 CRITICAL: COPY EXACT IDs FROM TOOL OUTPUT 🚨
 
-1. When referencing ANY artifact in flowing text, ALWAYS use this exact format: <artifact:ref id="{{artifact_id}}" task="{{task_id}}" />
-2. **LOOK AT THE TOOL OUTPUT**: Find the save_tool_result output and copy the EXACT artifact_id and task_id
+1. When referencing ANY artifact in flowing text, ALWAYS use this exact format: <artifact:ref id="{{artifact_id}}" tool="{{tool_call_id}}" />
+2. **LOOK AT THE TOOL OUTPUT**: Find the tool execution result and copy the EXACT artifact_id and tool_call_id
 3. **NEVER MAKE UP IDs**: Do not invent, guess, or modify the IDs - copy them EXACTLY as shown in tool results
 4. NEVER reference artifacts by name or description alone - IDs are MANDATORY
 5. This format is MANDATORY for text content, delegation messages, and all responses
@@ -210,24 +273,207 @@ FOR PLAIN TEXT RESPONSES (when data components are NOT available):
 7. Reference individual, specific artifacts that directly support each piece of information
 
 EXAMPLES WITH EXACT IDs FROM TOOL OUTPUT:
-- Plain Text: "Based on the Nick Gomez profile <artifact:ref id="art_founder_abc123" task="task_search_def456" /> you can..."
-- Delegation: "Delegating to agent with founder information <artifact:ref id="art_profile_xyz789" task="task_analysis_uvw012" />"
+- Plain Text: "Based on the Nick Gomez profile <artifact:ref id="art_founder_abc123" tool="call_search_def456" /> you can..."
+- Delegation: "Delegating to agent with founder information <artifact:ref id="art_profile_xyz789" tool="toolu_analysis_uvw012" />"
 
-⚠️ WRONG IDs = BROKEN REFERENCES! Always copy from save_tool_result output! ⚠️`;
+⚠️ WRONG IDs = BROKEN REFERENCES! Always copy from tool execution output! ⚠️`;
     }
+  }
+
+  private getArtifactCreationInstructions(hasArtifactComponents: boolean, artifactComponents?: any[]): string {
+    if (!hasArtifactComponents || !artifactComponents) {
+      return '';
+    }
+
+    const componentTypes = artifactComponents
+      .map(ac => {
+        const summaryPropsSchema = ac.summaryProps?.properties 
+          ? Object.keys(ac.summaryProps.properties).join(', ')
+          : 'No summary props defined';
+        const fullPropsSchema = ac.fullProps?.properties 
+          ? Object.keys(ac.fullProps.properties).join(', ')
+          : 'No full props defined';
+        
+        return `- ${ac.name}: ${ac.description || 'No description available'}
+  Summary Props: ${summaryPropsSchema}
+  Full Props: ${fullPropsSchema}`;
+      })
+      .join('\n');
+
+    return `🚨 ARTIFACT CREATION INSTRUCTIONS 🚨
+
+When you use tools that return structured data, create artifacts as CITATIONS to support your answers:
+
+🎯 CITATION PATTERN - CRITICAL:
+1. FIRST: Provide your answer/content
+2. THEN: Create artifact as supporting citation
+
+✅ CORRECT EXAMPLES:
+
+Example 1 - Simple document (OpenAI format):
+"The API documentation explains authentication. <artifact:create id='api-doc-1' tool='call_xyz789' type='document' base='result.data.data[0]' summary='{\"title\":\"name\", \"url\":\"link\"}' full='{\"title\":\"name\", \"url\":\"link\", \"content\":\"body.text\"}' />"
+
+Example 2 - Nested content structure (Anthropic format):
+"Found the user guide. <artifact:create id='guide-1' tool='toolu_abc123' type='document' base='result.structuredContent.content[2]' summary='{\"title\":\"title\", \"url\":\"url\"}' full='{\"title\":\"title\", \"url\":\"url\", \"content\":\"source.content[0].text\"}' />"
+
+Example 3 - Multiple artifacts (Mixed formats):
+"There are two key resources: the setup guide <artifact:create id='setup-1' tool='call_def456' type='document' base='result.items[0]' summary='{\"title\":\"heading\", \"url\":\"permalink\"}' /> and the FAQ <artifact:create id='faq-1' tool='toolu_ghi789' type='document' base='result.items[1]' summary='{\"title\":\"heading\", \"url\":\"permalink\"}' />."
+
+❌ WRONG EXAMPLES:
+
+Wrong 1 - Artifact before content:
+"<artifact:create ...> The company has 50 employees." 
+(Should be: "The company has 50 employees. <artifact:create ...>")
+
+Wrong 2 - Using literal field names as values:
+"Details here. <artifact:create ... summary='{\"title\":\"title\", \"url\":\"url\"}' />"
+(If the actual field is 'name', use: summary='{\"title\":\"name\", \"url\":\"link\"}')
+
+Wrong 3 - Missing nested levels:
+"Found docs. <artifact:create ... base='result.content[0]' />"
+(If structure is result.structuredContent.content, use: base='result.structuredContent.content[0]')
+
+🔄 REFERENCE PATTERN:
+- FIRST use of data: Create artifact with <artifact:create>
+- SUBSEQUENT references: Use <artifact:ref id="same-id" tool="same-tool-call-id" />
+- NEVER create the same artifact twice
+
+When you use tools that return structured data, create artifacts using this annotation syntax:
+
+<artifact:create 
+  id="unique-artifact-id" 
+  tool="exact-tool-call-id" 
+  type="artifact-type" 
+  base="result.path.to.data[?filter]" 
+  summary='{"propName": "actualFieldPath", "url": "urlField"}'
+  full='{"propName": "actualFieldPath", "url": "urlField", "content": "contentField"}' />
+
+🔧 TOOL CALL ID FORMATS (Provider Agnostic):
+- OpenAI format: call_abc123, call_xyz789, call_def456
+- Anthropic format: toolu_abc123, toolu_xyz789, toolu_def456
+- ALWAYS copy the EXACT tool call ID from the tool execution
+
+🚨 CRITICAL SELECTOR RULES WITH REAL EXAMPLES 🚨:
+
+**EXAMPLE TOOL RESULT STRUCTURE:**
+\`\`\`json
+{
+  "result": {
+    "data": {
+      "data": [
+        {
+          "name": "API Guide",
+          "content": {
+            "content": {
+              "text": "How to use our API..."
+            }
+          }
+        },
+        {
+          "name": "Tutorial",
+          "content": {
+            "content": {
+              "text": "Step-by-step guide..."
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+\`\`\`
+
+1. **BASE SELECTOR EXAMPLES WITH OUTCOMES**:
+   
+   ✅ **CORRECT**: \`base="result.data.data[0]"\`
+   Returns: \`{"name": "API Guide", "content": {"content": {"text": "How to use our API..."}}}\`
+   
+   ❌ **WRONG**: \`base="result.data[0]"\` 
+   Returns: \`null\` (because result.data is an object, not an array!)
+   
+   ❌ **WRONG**: \`base="result.data.data"\`
+   Returns: \`[array]\` (returns entire array, not a specific item - props will fail!)
+
+2. **PROP SELECTOR EXAMPLES WITH OUTCOMES**:
+   
+   Given \`base="result.data.data[0]"\` which returns the API Guide object:
+   
+   ✅ **CORRECT**: \`summary='{"title": "name", "body": "content.content.text"}'\`
+   Extracts: \`{"title": "API Guide", "body": "How to use our API..."}\`
+   
+   ❌ **WRONG**: \`summary='{"title": "title", "body": "text"}'\`
+   Extracts: \`{"title": null, "body": null}\` (fields don't exist at that level!)
+   
+   ❌ **WRONG**: \`summary='{"body": "content.text"}'\`
+   Extracts: \`{"body": null}\` (skipped middle 'content' level!)
+
+**KEY DEBUGGING TIP**: 
+If your selector returns \`null\`, check:
+1. Are you including ALL nested levels?
+2. Are field names exactly correct (not "title" when it's "name")?
+3. Does your base point to ONE item, not an array?
+
+⚡ CRITICAL: JSON-like text content in tool results is AUTOMATICALLY PARSED into proper JSON objects - treat all data as structured, not text strings.
+🚨 CRITICAL: Data structures are deeply nested. When your path fails, READ THE ERROR MESSAGE - it shows the correct path!
+
+AVAILABLE ARTIFACT TYPES:
+${componentTypes}
+
+🚨 FUNDAMENTAL RULE: ONE ARTIFACT = ONE SEPARATE DATA COMPONENT 🚨
+
+Each artifact becomes a SEPARATE DATA COMPONENT in the structured response:
+✅ A SINGLE, SPECIFIC document (e.g., one specific API endpoint, one specific person's profile, one specific error)
+✅ IMPORTANT and directly relevant to the user's question  
+✅ UNIQUE with distinct value from other artifacts
+✅ RENDERED AS INDIVIDUAL DATA COMPONENT in the UI
+
+USAGE PATTERN:
+1. base: Navigate through nested structures to target ONE SPECIFIC item
+   - Navigate through all necessary levels: "result.data.items.nested[?condition]"
+   - Handle nested structures properly: "result.content.content[?field1=='value']" is fine if that's the structure
+   - Use [?condition] filtering to get exactly the item you want
+   - Example: "result.items[?field_a=='target_value' && field_b=='specific_type']"
+   - NOT: "result.items[*]" (too broad, gets everything)
+
+2. summary/full props: Extract properties relative to your selected item
+   - 🎯 CRITICAL: Always relative to the single item that base selector returns
+   - If base ends at a document → props access document fields
+   - If base ends at content[0] → props access content[0] fields
+   - Simple paths from that exact level: {"prop1": "field_x", "prop2": "nested.field_y"}
+   - ❌ DON'T try to go back up or deeper - adjust your base selector instead!
+
+3. Result: ONE artifact representing ONE important, unique item → ONE data component
+
+💡 HANDLING NESTED STRUCTURES:
+- Navigate as deep as needed: "result.data.items.content.documents[?condition]" is fine
+- Focus on getting to the right level with base, then keep prop selectors simple
+- Test your base selector: Does it return exactly the items you want?
+
+REQUIRED ATTRIBUTES:
+- id: Generate unique, descriptive ID (e.g., "doc-search-results-123")
+- tool: EXACT tool call ID from the tool result you're processing (call_xyz789 or toolu_abc123)
+- type: Must match one of the available artifact types above
+- base: JMESPath selector starting with "result." to navigate to main data
+- summary: JSON object mapping summary properties to JMESPath selectors
+- full: JSON object mapping full properties to JMESPath selectors`;
   }
 
   private generateArtifactsSection(
     templates: Map<string, string>,
     artifacts: Artifact[],
-    hasDataComponents: boolean = false
+    hasDataComponents: boolean = false,
+    hasArtifactComponents: boolean = false,
+    artifactComponents?: any[]
   ): string {
     const rules = this.getArtifactReferencingRules(hasDataComponents);
+    const creationInstructions = this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
 
     if (artifacts.length === 0) {
       return `<available_artifacts description="No artifacts are currently available, but you may create them during execution.
 
 ${rules}
+
+${creationInstructions}
 
 "></available_artifacts>`;
     }
@@ -239,6 +485,8 @@ ${rules}
     return `<available_artifacts description="These are the artifacts available for you to use in generating responses.
 
 ${rules}
+
+${creationInstructions}
 
 ">
   ${artifactsXml}

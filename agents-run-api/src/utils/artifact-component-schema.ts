@@ -104,15 +104,15 @@ export class ArtifactReferenceSchema {
       artifact_id: {
         type: 'string',
         description:
-          'The EXACT artifact_id from save_tool_result tool output. NEVER invent or make up IDs.',
+          'The artifact_id from your artifact:create tag. Must match exactly.',
       },
-      task_id: {
+      tool_call_id: {
         type: 'string',
         description:
-          'The EXACT task_id from save_tool_result tool output. NEVER invent or make up IDs.',
+          'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
       },
     },
-    required: ['artifact_id', 'task_id'],
+    required: ['artifact_id', 'tool_call_id'],
   };
 
   /**
@@ -131,13 +131,77 @@ export class ArtifactReferenceSchema {
    */
   static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
     return {
-      id: 'The EXACT artifact_id from save_tool_result tool output. NEVER invent or make up IDs.',
+      id: 'The artifact_id from your artifact:create tag. Must match exactly.',
       tenantId: tenantId,
       projectId: projectId,
       name: 'Artifact',
       description:
-        'Reference to saved content from tool results that grounds information in verifiable sources.',
+        'Reference to artifacts created from tool results that grounds information in verifiable sources.',
       props: ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA,
+    };
+  }
+}
+
+/**
+ * Standard artifact creation component schema for data components
+ */
+export class ArtifactCreateSchema {
+  // Standard artifact create props schema
+  private static readonly ARTIFACT_CREATE_PROPS_SCHEMA = {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        description: 'Unique artifact identifier (e.g., "api-doc-1", "tutorial-guide-2")',
+      },
+      tool_call_id: {
+        type: 'string',
+        description:
+          'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+      },
+      type: {
+        type: 'string',
+        description: 'Artifact type - must match one of the available artifact component types',
+      },
+      base_selector: {
+        type: 'string',
+        description: 'JMESPath selector starting with "result." to navigate to main data',
+      },
+      summary_props: {
+        type: 'object',
+        description: 'JSON object mapping summary properties to JMESPath selectors',
+      },
+      full_props: {
+        type: 'object',
+        description: 'JSON object mapping full properties to JMESPath selectors',
+      },
+    },
+    required: ['id', 'tool_call_id', 'type', 'base_selector'],
+  };
+
+  /**
+   * Get the standard Zod schema for artifact create components
+   */
+  static getSchema(): z.ZodType<any> {
+    return z.object({
+      id: z.string(),
+      name: z.literal('ArtifactCreate'),
+      props: jsonSchemaToZod(ArtifactCreateSchema.ARTIFACT_CREATE_PROPS_SCHEMA),
+    });
+  }
+
+  /**
+   * Get complete DataComponent for artifact creation
+   */
+  static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
+    return {
+      id: 'artifact-create',
+      tenantId: tenantId,
+      projectId: projectId,
+      name: 'ArtifactCreate',
+      description:
+        'Create artifacts from tool results by extracting structured data using selectors.',
+      props: ArtifactCreateSchema.ARTIFACT_CREATE_PROPS_SCHEMA,
     };
   }
 }
