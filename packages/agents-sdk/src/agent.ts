@@ -31,8 +31,9 @@ export class Agent implements AgentInterface {
   constructor(config: AgentConfig) {
     this.config = { ...config, type: 'internal' };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    this.tenantId = config.tenantId || 'default';
-    this.projectId = config.projectId || 'default';
+    // tenantId and projectId will be set later by the graph or CLI
+    this.tenantId = 'default';
+    this.projectId = 'default';
 
     logger.info(
       {
@@ -42,6 +43,12 @@ export class Agent implements AgentInterface {
       },
       'Agent constructor initialized'
     );
+  }
+
+  // Set context (tenantId and projectId) from external source (graph, CLI, etc)
+  setContext(tenantId: string, projectId: string): void {
+    this.tenantId = tenantId;
+    this.projectId = projectId;
   }
 
   // Return the configured ID
@@ -345,8 +352,6 @@ export class Agent implements AgentInterface {
       // Convert database format to config format
       const dbDataComponents = existingComponents.map((component: any) => ({
         id: component.id,
-        tenantId: component.tenantId || this.tenantId,
-        projectId: component.projectId || this.projectId,
         name: component.name,
         description: component.description,
         props: component.props,
@@ -407,8 +412,6 @@ export class Agent implements AgentInterface {
       // Convert database format to config format
       const dbArtifactComponents = existingComponents.map((component: any) => ({
         id: component.id,
-        tenantId: component.tenantId || this.tenantId,
-        projectId: component.projectId || this.projectId,
         name: component.name,
         description: component.description,
         summaryProps: component.summaryProps,
@@ -484,17 +487,18 @@ export class Agent implements AgentInterface {
         const mcpConfig = toolConfig as AgentMcpConfig;
         tool = mcpConfig.server;
         selectedTools = mcpConfig.selectedTools;
+        tool.setContext(this.tenantId, this.projectId);
         await tool.init();
       }
       // Check if this is already a tool instance
       else if (toolConfig instanceof Tool) {
         tool = toolConfig;
+        tool.setContext(this.tenantId, this.projectId);
         await tool.init();
       } else {
         // Legacy: create MCP tool from config
         tool = new Tool({
           id: toolId,
-          tenantId: this.tenantId,
           name: (toolConfig as any).name || toolId,
           description: (toolConfig as any).description || `MCP tool: ${toolId}`,
           serverUrl:
@@ -504,6 +508,7 @@ export class Agent implements AgentInterface {
           activeTools: (toolConfig as any).config?.mcp?.activeTools,
           credential: (toolConfig as any).credential,
         });
+        tool.setContext(this.tenantId, this.projectId);
         await tool.init();
       }
 
@@ -534,12 +539,13 @@ export class Agent implements AgentInterface {
     try {
       // Create a DataComponent instance from the config
       const dc = new DataComponent({
-        tenantId: this.tenantId,
-        projectId: this.projectId,
         name: dataComponent.name,
         description: dataComponent.description,
         props: dataComponent.props,
       });
+
+      // Set the context from the agent
+      dc.setContext(this.tenantId, this.projectId);
 
       // Initialize the data component (this handles creation/update)
       await dc.init();
@@ -574,13 +580,14 @@ export class Agent implements AgentInterface {
     try {
       // Create an ArtifactComponent instance from the config
       const ac = new ArtifactComponent({
-        tenantId: this.tenantId,
-        projectId: this.projectId,
         name: artifactComponent.name,
         description: artifactComponent.description,
         summaryProps: artifactComponent.summaryProps,
         fullProps: artifactComponent.fullProps,
       });
+
+      // Set the context from the agent
+      ac.setContext(this.tenantId, this.projectId);
 
       // Initialize the artifact component (this handles creation/update)
       await ac.init();

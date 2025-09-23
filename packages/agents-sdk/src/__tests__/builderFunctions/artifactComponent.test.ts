@@ -65,7 +65,7 @@ describe('artifactComponent builder function', () => {
     expect(component.getId()).toBe('artifact-component-with-spaces-special-characters');
   });
 
-  it('should use default tenant when not provided', () => {
+  it('should allow setting tenant and project context', () => {
     const config: ArtifactComponentConfig = {
       name: 'Default Tenant Artifact',
       description: 'Artifact without tenant',
@@ -74,6 +74,9 @@ describe('artifactComponent builder function', () => {
     };
 
     const component = artifactComponent(config);
-    expect(component.config.tenantId).toBe('default');
+    // Should be able to set context after creation
+    component.setContext('test-tenant', 'test-project');
+    // Verify the component can be created without tenantId/projectId
+    expect(component.getId()).toBeDefined();
   });
 });

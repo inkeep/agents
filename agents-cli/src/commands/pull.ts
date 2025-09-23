@@ -48,9 +48,13 @@ async function loadProjectConfig(projectDir: string): Promise<{
       throw new Error('No configuration found in inkeep.config.ts');
     }
 
+    if (!config.tenantId) {
+      throw new Error('tenantId is required in inkeep.config.ts');
+    }
+
     return {
-      tenantId: config.tenantId || 'default',
-      projectId: config.projectId || 'default',
+      tenantId: config.tenantId,
+      projectId: config.projectId || '',
       agentsManageApiUrl: config.agentsManageApiUrl || 'http://localhost:3002',
     };
   } catch (error: any) {
@@ -103,7 +107,10 @@ function createProjectStructure(
   artifactComponentsDir: string;
   environmentsDir: string;
 } {
-  const projectRoot = join(projectDir, projectId);
+  // Check if projectDir already ends with projectId to avoid nested folders
+  const dirName = projectDir.split('/').pop() || projectDir;
+  const projectRoot = dirName === projectId ? projectDir : join(projectDir, projectId);
+
   const graphsDir = join(projectRoot, 'graphs');
   const toolsDir = join(projectRoot, 'tools');
   const dataComponentsDir = join(projectRoot, 'data-components');
@@ -142,7 +149,8 @@ async function generateProjectFiles(
   },
   projectData: any,
   projectId: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  tenantId: string
 ): Promise<void> {
   const { graphs, tools, dataComponents, artifactComponents } = projectData;
 
@@ -157,7 +165,7 @@ async function generateProjectFiles(
 
   // Add inkeep.config.ts generation task
   const configPath = join(dirs.projectRoot, 'inkeep.config.ts');
-  generationTasks.push(generateInkeepConfigFile(projectData, projectId, configPath, modelSettings));
+  generationTasks.push(generateInkeepConfigFile(projectData, projectId, configPath, modelSettings, tenantId));
   fileInfo.push({ type: 'config', name: 'inkeep.config.ts' });
 
   // Add graph generation tasks
@@ -272,19 +280,25 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Load configuration from parent directory if it exists
     spinner.start('Loading configuration...');
-    let config: any = {
-      tenantId: 'default',
-      agentsManageApiUrl: 'http://localhost:3002',
-    };
 
     // Try to load config from parent directory
     const parentConfigPath = join(baseDir, '..', 'inkeep.config.ts');
+    let config: any = null;
+
     if (existsSync(parentConfigPath)) {
       try {
         config = await loadProjectConfig(join(baseDir, '..'));
       } catch (error) {
-        console.warn(chalk.yellow('Warning: Could not load configuration from parent directory'));
+        spinner.fail('Failed to load configuration from parent directory');
+        console.error(chalk.red(`Error: ${error.message}`));
+        console.log(chalk.yellow('Please ensure you have a valid inkeep.config.ts file in the parent directory'));
+        process.exit(1);
       }
+    } else {
+      spinner.fail('No inkeep.config.ts found in parent directory');
+      console.error(chalk.red('Configuration file is required for pull command'));
+      console.log(chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings'));
+      process.exit(1);
     }
 
     // Override with CLI options
@@ -370,7 +384,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       model: 'anthropic/claude-sonnet-4-20250514',
     };
 
-    await generateProjectFiles(dirs, projectData, finalConfig.projectId, modelSettings);
+    await generateProjectFiles(dirs, projectData, finalConfig.projectId, modelSettings, finalConfig.tenantId);
 
     // Count generated files for summary
     const fileCount = {

@@ -169,13 +169,12 @@ export function mcpServer(config: MCPServerConfig): Tool {
     name: config.name,
     description: config.description,
     serverUrl: config.serverUrl,
-    tenantId: config.tenantId,
     credential: config.credential,
     activeTools: config.activeTools,
     headers: config.headers,
     imageUrl: config.imageUrl,
-    transport: config.transport ? { type: config.transport } : undefined,
-  } as MCPToolConfig);
+    transport: config.transport ? { type: config.transport as 'streamable_http' | 'sse' } : undefined,
+  });
 }
 /**
  * Creates an MCP tool from a raw configuration object.
@@ -239,11 +238,7 @@ export function mcpTool(config: MCPToolConfig): Tool {
  */
 
 export function artifactComponent(config: ArtifactComponentConfig): ArtifactComponent {
-  return new ArtifactComponent({
-    ...config,
-    tenantId: config.tenantId || 'default',
-    projectId: config.projectId || 'default',
-  });
+  return new ArtifactComponent(config);
 }
 /**
  * Creates a data component with automatic ID generation.
@@ -269,11 +264,7 @@ export function artifactComponent(config: ArtifactComponentConfig): ArtifactComp
  */
 
 export function dataComponent(config: DataComponentConfig): DataComponent {
-  return new DataComponent({
-    ...config,
-    tenantId: config.tenantId || 'default',
-    projectId: config.projectId || 'default',
-  });
+  return new DataComponent(config);
 }
 
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {

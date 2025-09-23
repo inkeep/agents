@@ -22,7 +22,6 @@ export interface ProjectConfig {
   id: string;
   name: string;
   description?: string;
-  tenantId?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
@@ -106,7 +105,8 @@ export class Project implements ProjectInterface {
     this.projectId = config.id;
     this.projectName = config.name;
     this.projectDescription = config.description;
-    this.tenantId = config.tenantId || 'default';
+    // tenantId will be set by setConfig method from CLI or other sources
+    this.tenantId = 'default';
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.models = config.models;
     this.stopWhen = config.stopWhen;

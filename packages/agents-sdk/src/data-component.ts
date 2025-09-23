@@ -7,34 +7,34 @@ import {
 const logger = getLogger('dataComponent');
 
 export interface DataComponentInterface {
-  config: Omit<DataComponentType, 'id'>;
+  config: Omit<DataComponentType, 'id' | 'tenantId' | 'projectId'>;
   init(): Promise<void>;
   getId(): DataComponentType['id'];
   getName(): DataComponentType['name'];
   getDescription(): DataComponentType['description'];
   getProps(): DataComponentType['props'];
+  setContext(tenantId: string, projectId: string): void;
 }
 
 export class DataComponent implements DataComponentInterface {
-  public config: DataComponentType;
+  public config: Omit<DataComponentType, 'tenantId' | 'projectId'>;
   private baseURL: string;
-  private tenantId: DataComponentType['tenantId'];
-  private projectId: DataComponentType['projectId'];
+  private tenantId: string;
+  private projectId: string;
   private initialized = false;
   private id: DataComponentType['id'];
 
-  constructor(config: Omit<DataComponentType, 'id'>) {
+  constructor(config: Omit<DataComponentType, 'id' | 'tenantId' | 'projectId'>) {
     this.id = generateIdFromName(config.name);
 
     this.config = {
       ...config,
       id: this.id,
-      tenantId: config.tenantId || 'default',
-      projectId: config.projectId || 'default',
     };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    this.tenantId = this.config.tenantId;
-    this.projectId = this.config.projectId;
+    // tenantId and projectId will be set by setContext method
+    this.tenantId = 'default';
+    this.projectId = 'default';
     logger.info(
       {
         dataComponentId: this.getId(),
@@ -42,6 +42,12 @@ export class DataComponent implements DataComponentInterface {
       },
       'DataComponent constructor initialized'
     );
+  }
+
+  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
+  setContext(tenantId: string, projectId: string): void {
+    this.tenantId = tenantId;
+    this.projectId = projectId;
   }
 
   // Compute ID from name using same slug transformation as agents

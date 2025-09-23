@@ -38,8 +38,7 @@ export interface MCPServerConfig {
   id?: string;
   parameters?: Record<string, z.ZodJSONSchema>;
   credential?: CredentialReferenceApiInsert;
-  tenantId?: string;
-  transport?: keyof typeof MCPTransportType;
+  transport?: 'streamable_http' | 'sse';
   activeTools?: string[];
   headers?: Record<string, string>;
   imageUrl?: string;
@@ -51,8 +50,6 @@ export interface MCPServerConfig {
 export interface ComponentConfig {
   name: string;
   description: string;
-  tenantId?: string;
-  projectId?: string;
 }
 
 export interface ArtifactComponentConfig extends ComponentConfig {

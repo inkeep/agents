@@ -48,7 +48,6 @@ describe('Agent Builder', () => {
         name: 'Test Agent',
         description: 'Test agent description',
         prompt: 'You are a helpful test agent',
-        tenantId: 'test-tenant',
       };
 
       const agent = new Agent(config);
@@ -303,7 +302,6 @@ describe('Agent Builder', () => {
         id: 'testTool',
         name: 'Test Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
       } as any;
 
       agent = new Agent({
@@ -311,8 +309,6 @@ describe('Agent Builder', () => {
         name: 'Test Agent',
         prompt: 'Test instructions',
         description: 'Test description',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
         canUse: () => [testTool],
         dataComponents: () => [
           {
@@ -322,6 +318,8 @@ describe('Agent Builder', () => {
           },
         ],
       });
+      // Set context for the agent
+      agent.setContext('test-tenant', 'test-project');
     });
 
     it('should initialize agent and create backend entities', async () => {

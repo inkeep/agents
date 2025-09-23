@@ -67,8 +67,6 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
   canUse?: () => AgentCanUseType[];
   canTransferTo?: () => AgentInterface[];
   canDelegateTo?: () => AllAgentInterface[];
-  tenantId?: string;
-  projectId?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
@@ -218,7 +216,6 @@ export interface GraphConfig {
   description?: string;
   defaultAgent?: AgentInterface;
   agents?: () => AllAgentInterface[];
-  tenantId?: string;
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: GraphStopWhen;
@@ -280,6 +277,7 @@ export interface AgentInterface {
   getDelegates(): AllAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
+  setContext(tenantId: string, projectId: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: AgentInterface[]): void;
   addDelegate(...agents: AgentInterface[]): void;
@@ -295,6 +293,7 @@ export interface ExternalAgentInterface {
   getBaseUrl(): string;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
+  setContext?(tenantId: string): void;
 }
 
 // Graph interface for runner operations

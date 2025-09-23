@@ -7,35 +7,35 @@ import {
 const logger = getLogger('artifactComponent');
 
 export interface ArtifactComponentInterface {
-  config: Omit<ArtifactComponentType, 'id'>;
+  config: Omit<ArtifactComponentType, 'id' | 'tenantId' | 'projectId'>;
   init(): Promise<void>;
   getId(): ArtifactComponentType['id'];
   getName(): ArtifactComponentType['name'];
   getDescription(): ArtifactComponentType['description'];
   getSummaryProps(): ArtifactComponentType['summaryProps'];
   getFullProps(): ArtifactComponentType['fullProps'];
+  setContext(tenantId: string, projectId: string): void;
 }
 
 export class ArtifactComponent implements ArtifactComponentInterface {
-  public config: ArtifactComponentType;
+  public config: Omit<ArtifactComponentType, 'tenantId' | 'projectId'>;
   private baseURL: string;
-  private tenantId: ArtifactComponentType['tenantId'];
-  private projectId: ArtifactComponentType['projectId'];
+  private tenantId: string;
+  private projectId: string;
   private initialized = false;
   private id: ArtifactComponentType['id'];
 
-  constructor(config: Omit<ArtifactComponentType, 'id'>) {
+  constructor(config: Omit<ArtifactComponentType, 'id' | 'tenantId' | 'projectId'>) {
     this.id = generateIdFromName(config.name);
 
     this.config = {
       ...config,
       id: this.id,
-      tenantId: config.tenantId || 'default',
-      projectId: config.projectId || 'default',
     };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    this.tenantId = this.config.tenantId;
-    this.projectId = this.config.projectId;
+    // tenantId and projectId will be set by setContext method
+    this.tenantId = 'default';
+    this.projectId = 'default';
     logger.info(
       {
         artifactComponentId: this.getId(),
@@ -43,6 +43,12 @@ export class ArtifactComponent implements ArtifactComponentInterface {
       },
       'ArtifactComponent constructor initialized'
     );
+  }
+
+  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
+  setContext(tenantId: string, projectId: string): void {
+    this.tenantId = tenantId;
+    this.projectId = projectId;
   }
 
   // Compute ID from name using same slug transformation as agents

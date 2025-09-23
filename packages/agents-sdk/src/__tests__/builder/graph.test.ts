@@ -225,10 +225,11 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         description: 'A test graph',
         defaultAgent,
-        tenantId: 'test-tenant',
       };
 
       const graph = new AgentGraph(config);
+      // Set config to provide tenantId
+      graph.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
 
       expect(graph.getId()).toBe('test-graph');
       expect(graph.getName()).toBe('Test Graph');
@@ -338,8 +339,9 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         defaultAgent,
         agents: () => [supportAgent],
-        tenantId: 'test-tenant',
       });
+      // Set config to provide tenantId and projectId
+      graph.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
     });
 
     it('should initialize graph and create database entities', async () => {
@@ -348,7 +350,7 @@ describe('AgentGraph', () => {
       const { updateFullGraphViaAPI } = await import('../../graphFullClient.js');
       expect(updateFullGraphViaAPI).toHaveBeenCalledWith(
         'test-tenant', // tenantId
-        'default', // projectId
+        'test-project', // projectId
         'http://localhost:3002', // apiUrl
         'test-graph', // graphId
         expect.objectContaining({

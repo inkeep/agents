@@ -54,7 +54,8 @@ export class AgentGraph implements GraphInterface {
 
   constructor(config: GraphConfig) {
     this.defaultAgent = config.defaultAgent;
-    this.tenantId = config.tenantId || 'default';
+    // tenantId and projectId will be set by setConfig method from CLI or other sources
+    this.tenantId = 'default';
     this.projectId = 'default'; // Default project ID, will be overridden by setConfig
     this.graphId = config.id;
     this.graphName = config.name || this.graphId;
@@ -120,20 +121,22 @@ export class AgentGraph implements GraphInterface {
     this.projectId = projectId;
     this.baseURL = apiUrl;
 
-    // Propagate tenantId to all agents and their tools
+    // Propagate tenantId and projectId to all agents and their tools
     for (const agent of this.agents) {
       if (this.isInternalAgent(agent)) {
         const internalAgent = agent as AgentInterface;
-        if (!internalAgent.config.tenantId) {
-          internalAgent.config.tenantId = tenantId;
+        // Set the context on the agent
+        if (internalAgent.setContext) {
+          internalAgent.setContext(tenantId, projectId);
         }
 
         // Also update tools in this agent
         const tools = internalAgent.getTools();
         for (const [_, toolInstance] of Object.entries(tools)) {
-          if (toolInstance && typeof toolInstance === 'object' && toolInstance.config) {
-            if (!toolInstance.config.tenantId) {
-              toolInstance.config.tenantId = tenantId;
+          if (toolInstance && typeof toolInstance === 'object') {
+            // Set context on the tool if it has the method
+            if ('setContext' in toolInstance && typeof toolInstance.setContext === 'function') {
+              toolInstance.setContext(tenantId, projectId);
             }
             // Also update baseURL for tools if they have one
             if ('baseURL' in toolInstance && !toolInstance.baseURL) {
@@ -144,9 +147,9 @@ export class AgentGraph implements GraphInterface {
       }
     }
 
-    // Update context config tenant ID if present
-    if (this.contextConfig && !this.contextConfig.tenantId) {
-      this.contextConfig.tenantId = tenantId;
+    // Update context config tenant ID and project ID if present
+    if (this.contextConfig && this.contextConfig.setContext) {
+      this.contextConfig.setContext(tenantId, projectId);
     }
 
     logger.info(

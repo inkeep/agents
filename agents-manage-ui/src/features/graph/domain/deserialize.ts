@@ -19,22 +19,64 @@ interface TransformResult {
 }
 
 export const NODE_WIDTH = 300;
-const NODE_HEIGHT = 150;
+const BASE_NODE_HEIGHT = 150;
+const MIN_NODE_HEIGHT = 120;
+
+function calculateNodeHeight(node: Node): number {
+  // Base height for all nodes
+  let height = MIN_NODE_HEIGHT;
+
+  // Agent and External Agent nodes have dynamic height
+  if (node.type === NodeType.Agent || node.type === NodeType.ExternalAgent) {
+    const data = node.data as any;
+
+    // Add height for description if it exists
+    if (data.description) {
+      height += 20;
+    }
+
+    // Add height for model badge if present
+    if (data.models?.base?.model) {
+      height += 30;
+    }
+
+    // Add height for data components section
+    if (data.dataComponents && data.dataComponents.length > 0) {
+      // Title + items section
+      height += 60 + Math.ceil(data.dataComponents.length / 3) * 30;
+    }
+
+    // Add height for artifact components section
+    if (data.artifactComponents && data.artifactComponents.length > 0) {
+      // Title + items section
+      height += 60 + Math.ceil(data.artifactComponents.length / 3) * 30;
+    }
+  }
+
+  // MCP nodes are typically smaller
+  if (node.type === NodeType.MCP) {
+    height = 100;
+  }
+
+  return Math.max(height, BASE_NODE_HEIGHT);
+}
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new (dagre as any).graphlib.Graph();
   g.setGraph({
     rankdir: 'TB',
     nodesep: 150,
-    ranksep: 120,
+    ranksep: 150, // Increased vertical spacing between ranks
     edgesep: 80,
     marginx: 50,
     marginy: 50,
   });
   g.setDefaultEdgeLabel(() => ({}));
 
+  // Set nodes with calculated heights
   for (const node of nodes) {
-    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    const nodeHeight = calculateNodeHeight(node);
+    g.setNode(node.id, { width: NODE_WIDTH, height: nodeHeight });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
@@ -44,11 +86,12 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
 
   return nodes.map((node) => {
     const nodeWithPosition = g.node(node.id);
+    const nodeHeight = calculateNodeHeight(node);
     return {
       ...node,
       position: {
         x: nodeWithPosition.x - NODE_WIDTH / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
       },
     };
   });

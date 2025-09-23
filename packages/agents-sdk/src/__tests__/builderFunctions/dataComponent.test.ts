@@ -82,7 +82,7 @@ describe('dataComponent builder function', () => {
     expect(component.getId()).toBe('data-component-with-spaces-special-characters');
   });
 
-  it('should use default tenant when not provided', () => {
+  it('should allow setting tenant and project context', () => {
     const config: DataComponentConfig = {
       name: 'Default Tenant Data Component',
       description: 'Data component without tenant',
@@ -90,7 +90,10 @@ describe('dataComponent builder function', () => {
     };
 
     const component = dataComponent(config);
-    expect(component.config.tenantId).toBe('default');
+    // Should be able to set context after creation
+    component.setContext('test-tenant', 'test-project');
+    // Verify the component can be created without tenantId/projectId
+    expect(component.getId()).toBeDefined();
   });
 
   it('should handle empty props', () => {

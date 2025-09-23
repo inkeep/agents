@@ -84,10 +84,17 @@ ${JSON.stringify(projectData, null, 2)}
 
 REQUIREMENTS:
 1. Import the project function from '@inkeep/agents-sdk'
-2. Import all graphs from the graphs directory (e.g., import { graphName } from './graphs/graphName')
-3. Import all tools from the tools directory if any exist
-4. Import all data components from the data-components directory if any exist
-5. Import all artifact components from the artifact-components directory if any exist
+2. Import all graphs from the graphs directory using their IDs as file names
+   - CRITICAL: Convert graph IDs with hyphens to camelCase for the import name (e.g., 'basic-graph' becomes 'basicGraph', 'my-graph-id' becomes 'myGraphId')
+   - The file name keeps the hyphens, but the JavaScript identifier uses camelCase
+   - IMPORTANT: Import names must match the exact export names in the files (camelCase conversion)
+3. CRITICAL: Import all tools from the tools directory using their IDs as both the file name AND the import name
+   - For example, if tool ID is "fUI2riwrBVJ6MepT8rjx0", import as: import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0'
+   - DO NOT use the tool's name for imports, ALWAYS use the tool's ID
+4. Import all data components from the data-components directory using their IDs as file names
+   - IMPORTANT: Component IDs with hyphens should have them removed in the import name (e.g., 'weather-forecast' becomes 'weatherForecast')
+   - Never create duplicate imports with different casing
+5. Import all artifact components from the artifact-components directory using their IDs as file names
 6. CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
 7. Export a const named after the project ID using the project() function
 8. The project object should include:
@@ -97,14 +104,18 @@ REQUIREMENTS:
    - models: model configuration (if provided)
    - stopWhen: stop configuration (if provided)
    - graphs: arrow function returning array of imported graphs
-   - tools: arrow function returning array of imported tools (if any)
+   - tools: arrow function returning array of imported tools by their IDs (if any)
    - dataComponents: arrow function returning array of imported data components (if any)
    - artifactComponents: arrow function returning array of imported artifact components (if any)
 
-EXAMPLE:
+EXAMPLE (note: tools are imported and referenced by ID, not name):
 import { project } from '@inkeep/agents-sdk';
+import { weatherForecast } from './data-components/weather-forecast';
+import { basicGraph } from './graphs/basic-graph';  // Note: 'basic-graph' becomes camelCase 'basicGraph'
+import { myGraphId } from './graphs/my-graph-id';  // Note: 'my-graph-id' becomes camelCase 'myGraphId'
 import { weatherGraph } from './graphs/weather-graph';
-import { searchTool } from './tools/search-tool';
+import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0';
+import { fdxgfv9HL7SXlfynPx8hf } from './tools/fdxgfv9HL7SXlfynPx8hf';
 
 export const weatherProject = project({
   id: 'weather-project',
@@ -113,8 +124,9 @@ export const weatherProject = project({
   models: {
     base: { model: 'gpt-4o-mini' }
   },
-  graphs: () => [weatherGraph],
-  tools: () => [searchTool]
+  graphs: () => [basicGraph, myGraphId, weatherGraph],
+  tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
+  dataComponents: () => [weatherForecast]
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -136,7 +148,8 @@ export async function generateInkeepConfigFile(
   projectData: any,
   projectId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  tenantId: string
 ): Promise<void> {
   // Create the config file directly without LLM since it's a simple template
   const modelConfig = projectData.models || {};
@@ -145,7 +158,7 @@ export async function generateInkeepConfigFile(
 
 const config = defineConfig({
   projectId: '${projectId}',
-  tenantId: "default",
+  tenantId: '${tenantId}',
   agentsManageApiUrl: 'http://localhost:3002',
   agentsRunApiUrl: 'http://localhost:3003',
   modelSettings: ${JSON.stringify({
@@ -180,52 +193,79 @@ ${JSON.stringify(graphData, null, 2)}
 
 GRAPH ID: ${graphId}
 
+IMPORTANT CONTEXT:
+- Tools are defined at the project level and imported from '../tools' directory
+- Data components are imported from '../data-components' directory
+- Artifact components are imported from '../artifact-components' directory
+- CRITICAL: Tool files are named by their IDs (e.g., '../tools/fUI2riwrBVJ6MepT8rjx0')
+- CRITICAL: Import tools using their IDs as both file name and variable name
+- Agents reference these resources by their imported variable names
+- The 'tools' field in agents contains tool IDs that must match the imported variable names
+
 REQUIREMENTS:
-1. Import functions from '@inkeep/agents-sdk' - ALWAYS sort named imports alphabetically (e.g., import { agent, agentGraph } not { agentGraph, agent })
-2. Import any necessary tool functions - sort all import paths alphabetically
-3. Define each agent using the agent() function with their configurations
-4. Create the graph using agentGraph() with:
-   - id: graph ID
-   - name: graph name
-   - description: graph description (use undefined, not null, if no description)
-   - defaultAgent: the default agent
-   - agents: arrow function returning array of all agents: agents: () => [agent1, agent2]
-5. Export the graph as a named export
-6. For agent relationships, use canTransferTo and canDelegateTo as arrow functions
-7. CRITICAL: For agent properties that accept arrays:
-   - canUse: Use arrow function syntax: canUse: () => [tool1, tool2]
-   - dataComponents: Use arrow function syntax: dataComponents: () => [component1]
-   - artifactComponents: Use arrow function syntax: artifactComponents: () => [component1]
-   - canTransferTo: Use arrow function syntax: canTransferTo: () => [agent1, agent2]
-   - canDelegateTo: Use arrow function syntax: canDelegateTo: () => [agent1, agent2]
-8. Use proper TypeScript syntax
-9. CRITICAL: Ensure all imports are sorted alphabetically to comply with Biome linting rules
+1. Import { agent, agentGraph } from '@inkeep/agents-sdk' - ALWAYS sort named imports alphabetically
+2. CRITICAL: Import tools from '../tools/{toolId}' where toolId is the exact ID
+   - Example: import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0'
+   - DO NOT use tool names for imports, ALWAYS use the tool ID
+3. Import data components from '../data-components/{componentId}' if agents use them
+4. Import artifact components from '../artifact-components/{componentId}' if agents use them
+5. Define each agent using the agent() function with:
+   - id, name, description, prompt
+   - canUse: arrow function returning array of imported tool variables (using their IDs)
+   - selectedTools: if present, maps tool ID variable to selected tool names
+   - dataComponents: arrow function returning array of imported component configs
+   - artifactComponents: arrow function returning array of imported component configs
+   - canTransferTo/canDelegateTo: arrow functions returning agent variables
+6. Create the graph using agentGraph() with proper structure
+   - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
+   - Only include description if it has a meaningful value
+7. CRITICAL: Export the graph with proper camelCase naming:
+   - Convert graph IDs with hyphens to camelCase (e.g., 'basic-graph' becomes 'basicGraph')
+   - Remove hyphens and capitalize the letter after each hyphen
+   - First letter should be lowercase
+8. Ensure all imports are sorted alphabetically
 
 EXAMPLE:
-import { agent, agentGraph, mcpTool } from '@inkeep/agents-sdk';
-
-const searchTool = mcpTool({ id: 'search', name: 'Search', serverUrl: 'https://example.com/mcp' });
+import { agent, agentGraph } from '@inkeep/agents-sdk';
+import { weatherForecast } from '../data-components/weather-forecast';
+import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
+import { fdxgfv9HL7SXlfynPx8hf } from '../tools/fdxgfv9HL7SXlfynPx8hf';
 
 const routerAgent = agent({
   id: 'router',
   name: 'Router Agent',
   prompt: 'Route requests to appropriate agents',
-  canTransferTo: () => [qaAgent, orderAgent]
+  canTransferTo: () => [qaAgent]
 });
 
 const qaAgent = agent({
   id: 'qa',
   name: 'QA Agent',
   prompt: 'Answer questions',
-  canUse: () => [searchTool]  // MUST be arrow function
+  canUse: () => [searchTool, weatherTool],
+  selectedTools: {
+    [searchTool.id]: ['search_web', 'search_docs'],
+    [weatherTool.id]: ['get_forecast']
+  },
+  dataComponents: () => [userProfile.config]
 });
 
+// Example: Graph ID 'support-graph' becomes 'supportGraph'
 export const supportGraph = agentGraph({
   id: 'support-graph',
-  name: 'Customer Support',
-  description: 'Multi-agent customer support system',
+  name: 'Support Graph',
+  description: 'Multi-agent support system', // Only include if description has a value
   defaultAgent: routerAgent,
-  agents: () => [routerAgent, qaAgent]  // MUST be arrow function
+  agents: () => [routerAgent, qaAgent]
+});
+
+// Example without description (when null or undefined):
+export const weatherGraph = agentGraph({
+  id: 'weather-graph',
+  name: 'Weather Graph',
+  // description is omitted when null, undefined, or empty
+  defaultAgent: routerAgent,
+  agents: () => [routerAgent, qaAgent]
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
