@@ -508,7 +508,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
         name: expect.any(String),
         description: expect.any(String),
         canDelegateTo: expect.any(Array),
-        tools: expect.any(Array),
+        canUse: expect.any(Array),
       });
     });
 
