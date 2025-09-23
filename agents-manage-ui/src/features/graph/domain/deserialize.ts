@@ -156,7 +156,16 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
             ? { stepCountIs: (agent as any).stopWhen.stepCountIs }
             : undefined,
           type: agent.type,
-          ...(agent.selectedTools && { selectedTools: agent.selectedTools }),
+          // Convert canUse back to tools and selectedTools for UI
+          tools: agent.canUse ? agent.canUse.map(item => item.toolId) : [],
+          selectedTools: agent.canUse
+            ? agent.canUse.reduce((acc, item) => {
+                if (item.toolSelection) {
+                  acc[item.toolId] = item.toolSelection;
+                }
+                return acc;
+              }, {} as Record<string, string[]>)
+            : undefined,
         };
 
     const agentNode: Node = {
@@ -173,12 +182,13 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   // Tool visualization will need to be handled at the project level
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
-    // Check if agent has tools property (internal agents)
-    if ('tools' in agent && agent.tools && agent.tools.length > 0) {
+    // Check if agent has canUse property (internal agents)
+    if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       // Only create tool nodes if tools data is available in graph (backward compatibility)
       const toolsData = (data as any).tools;
       if (toolsData) {
-        for (const toolId of agent.tools) {
+        for (const canUseItem of agent.canUse) {
+          const toolId = canUseItem.toolId;
           const tool = toolsData[toolId];
           if (!tool) {
             // eslint-disable-next-line no-console

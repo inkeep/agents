@@ -633,10 +633,14 @@ export const StatusUpdateSchema = z.object({
   statusComponents: z.array(StatusComponentSchema).optional(),
 });
 
+export const CanUseItemSchema = z.object({
+  toolId: z.string(),
+  toolSelection: z.array(z.string()).nullable().optional(),
+});
+
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
   type: z.literal('internal'),
-  tools: z.array(z.string()),
-  selectedTools: z.record(z.string(), z.array(z.string())).optional(),
+  canUse: z.array(CanUseItemSchema),
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),

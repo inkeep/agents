@@ -9,7 +9,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
 
 // Extract the internal agent type from the union
-type InternalAgent = Extract<FullGraphDefinition['agents'][string], { tools: string[] }>;
+type InternalAgent = Extract<FullGraphDefinition['agents'][string], { canUse: Array<{ toolId: string; toolSelection?: string[] | null }> }>;
 
 type ExternalAgent = {
   id: string;
@@ -24,7 +24,6 @@ export type ExtendedAgent =
       dataComponents: string[];
       artifactComponents: string[];
       models?: GraphMetadata['models'];
-      selectedTools?: Record<string, string[]>;
       type: 'internal';
     })
   | ExternalAgent;
@@ -108,12 +107,21 @@ export function serializeGraphData(
       const processedModels = processModels(modelsData);
 
       const stopWhen = (node.data as any).stopWhen;
+
+      // Convert tools and selectedTools to canUse array
+      const tools = (node.data as any).tools || [];
+      const selectedTools = (node.data as any).selectedTools || {};
+      const canUse = tools.map((toolId: string) => ({
+        toolId,
+        toolSelection: selectedTools[toolId] || null
+      }));
+
       const agent: ExtendedAgent = {
         id: agentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         prompt: node.data.prompt as string,
-        tools: [],
+        canUse,
         canTransferTo: [],
         canDelegateTo: [],
         dataComponents: agentDataComponents,
@@ -121,9 +129,6 @@ export function serializeGraphData(
         ...(processedModels && { models: processedModels }),
         type: 'internal',
         ...(stopWhen && { stopWhen }),
-        ...((node.data as any).selectedTools && {
-          selectedTools: (node.data as any).selectedTools,
-        }),
       };
 
       if ((node.data as any).isDefault) {
@@ -179,7 +184,7 @@ export function serializeGraphData(
           relationshipType: 'canTransferTo' | 'canDelegateTo',
           targetId: string
         ) => {
-          if ('tools' in agent) {
+          if ('canUse' in agent) {
             if (!agent[relationshipType]) agent[relationshipType] = [];
             const agentRelationships = agent[relationshipType];
             if (agentRelationships && !agentRelationships.includes(targetId)) {

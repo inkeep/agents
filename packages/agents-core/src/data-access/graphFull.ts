@@ -352,22 +352,22 @@ export const createFullGraphServerSide =
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [agentId, agentData] of Object.entries(typed.agents)) {
-        if (isInternalAgent(agentData) && agentData.tools && Array.isArray(agentData.tools)) {
-          for (const toolId of agentData.tools) {
+        if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
+          for (const canUseItem of agentData.canUse) {
             agentToolPromises.push(
               (async () => {
                 try {
-                  const selectedTools = agentData.selectedTools?.[toolId];
+                  const { toolId, toolSelection } = canUseItem;
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
                     agentId,
                     toolId,
-                    selectedTools,
+                    selectedTools: toolSelection || undefined,
                   });
                   logger.info({ agentId, toolId }, 'Agent-tool relation processed successfully');
                 } catch (error) {
-                  logger.error({ agentId, toolId, error }, 'Failed to create agent-tool relation');
+                  logger.error({ agentId, toolId: canUseItem.toolId, error }, 'Failed to create agent-tool relation');
                   // Don't throw - allow partial success for relations
                 }
               })()
@@ -851,24 +851,24 @@ export const updateFullGraphServerSide =
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [agentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
-        if (isInternalAgent(agentData) && agentData.tools && Array.isArray(agentData.tools)) {
-          for (const toolId of agentData.tools) {
+        if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
+          for (const canUseItem of agentData.canUse) {
             agentToolPromises.push(
               (async () => {
                 try {
-                  const selectedTools = agentData.selectedTools?.[toolId];
+                  const { toolId, toolSelection } = canUseItem;
                   await createAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
                     data: {
                       agentId,
                       toolId,
-                      selectedTools,
+                      selectedTools: toolSelection || undefined,
                     },
                   });
 
                   logger.info({ agentId, toolId }, 'Agent-tool relation created');
                 } catch (error) {
-                  logger.error({ agentId, toolId, error }, 'Failed to create agent-tool relation');
+                  logger.error({ agentId, toolId: canUseItem.toolId, error }, 'Failed to create agent-tool relation');
                   // Don't throw - allow partial success for relations
                 }
               })()

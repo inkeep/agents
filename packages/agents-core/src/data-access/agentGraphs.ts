@@ -406,13 +406,11 @@ export const getFullGraphDefinition =
           (rel) => rel.artifactComponentId
         );
 
-        // Construct selectedTools Record from agentTools
-        const selectedTools: Record<string, string[]> = {};
-        agentTools.forEach((tool) => {
-          if (tool.selectedTools && Array.isArray(tool.selectedTools)) {
-            selectedTools[tool.id] = tool.selectedTools;
-          }
-        });
+        // Construct canUse array from agentTools
+        const canUse = agentTools.map((tool) => ({
+          toolId: tool.id,
+          toolSelection: tool.selectedTools || null,
+        }));
 
         return {
           id: agent.id,
@@ -425,8 +423,7 @@ export const getFullGraphDefinition =
           canDelegateTo,
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
-          ...(Object.keys(selectedTools).length > 0 && { selectedTools }),
-          tools: agentTools.map((tool) => tool.id), // Only return tool IDs, not full objects
+          canUse, // Use the new canUse structure
         };
       })
     );
