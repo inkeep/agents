@@ -10,13 +10,11 @@ describe('Agent with DataComponents Integration', () => {
     const agentConfig: AgentConfig = {
       id: 'test-agent-with-datacomponents',
       name: 'TestAgentWithDataComponents',
-      tenantId,
       description: 'An agent that has data components',
       prompt: 'You are a helpful agent with UI components.',
       dataComponents: () => [
         {
           id: 'orders-list-1',
-          tenantId,
           name: 'OrdersList',
           description: 'Display a list of user orders',
           props: {
@@ -33,7 +31,6 @@ describe('Agent with DataComponents Integration', () => {
         },
         {
           id: 'sales-button-1',
-          tenantId,
           name: 'SalesButton',
           description: 'Button to contact sales team',
           props: {
@@ -65,7 +62,6 @@ describe('Agent with DataComponents Integration', () => {
     const agentConfig = {
       id: 'simple-agent',
       name: 'SimpleAgent',
-      tenantId,
       description: 'A simple agent without data components',
       prompt: 'You are a simple helpful agent.',
     };
@@ -80,7 +76,6 @@ describe('Agent with DataComponents Integration', () => {
     const agentConfig: AgentConfig = {
       id: 'empty-datacomponents-agent',
       name: 'EmptyDataComponentsAgent',
-      tenantId,
       description: 'Agent with empty data components',
       prompt: 'You are a helpful agent.',
       dataComponents: () => [],

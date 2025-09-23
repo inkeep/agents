@@ -37,7 +37,6 @@ describe('Agent Builder', () => {
       id: 'testTool',
       name: 'Test Tool',
       serverUrl: 'http://localhost:3000',
-      tenantId: 'test-tenant',
     } as any;
   });
 
@@ -116,7 +115,6 @@ describe('Agent Builder', () => {
         name: 'Test Agent',
         description: 'Test agent description',
         prompt: 'Test agent',
-        tenantId: 'test-tenant',
       });
     });
 
@@ -285,8 +283,6 @@ describe('Agent Builder', () => {
         name: 'No Description Agent',
         description: '',
         prompt: 'No description provided',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       const description = agentWithoutDesc.getDescription();

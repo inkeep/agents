@@ -391,10 +391,10 @@ describe('Project', () => {
       const stats = project.getStats();
 
       expect(stats).toEqual({
-        projectId: 'test-project',
-        tenantId: 'test-tenant',
         graphCount: 1,
         initialized: false,
+        projectId: 'test-project',
+        tenantId: 'test-tenant',
       });
     });
   });

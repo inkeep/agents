@@ -18,6 +18,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     tools: [] as any[],
     dataComponents: [] as string[],
     artifactComponents: [] as string[],
+    canUse: [],
     type: 'internal' as const,
   });
 

@@ -291,7 +291,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
         config = await loadProjectConfig(join(baseDir, '..'));
       } catch (error) {
         spinner.fail('Failed to load configuration from parent directory');
-        console.error(chalk.red(`Error: ${error.message}`));
+        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
         console.log(chalk.yellow('Please ensure you have a valid inkeep.config.ts file in the parent directory'));
         process.exit(1);
       }
