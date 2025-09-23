@@ -97,8 +97,8 @@ export async function pushCommand(options: PushOptions) {
       agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
     };
 
-    if (!finalConfig.tenantId || !finalConfig.projectId || !finalConfig.agentsManageApiUrl) {
-      throw new Error('Missing required configuration: tenantId, projectId, or agentsManageApiUrl');
+    if (!finalConfig.tenantId || !finalConfig.agentsManageApiUrl) {
+      throw new Error('Missing required configuration: tenantId or agentsManageApiUrl');
     }
 
     spinner.succeed('Configuration loaded');
@@ -106,7 +106,6 @@ export async function pushCommand(options: PushOptions) {
     // Log configuration sources
     console.log(chalk.gray('Configuration sources:'));
     console.log(chalk.gray(`  • Tenant ID: ${finalConfig.tenantId}`));
-    console.log(chalk.gray(`  • Project ID: ${finalConfig.projectId}`));
     console.log(chalk.gray(`  • API URL: ${finalConfig.agentsManageApiUrl}`));
 
     // Set configuration on the project
@@ -114,7 +113,7 @@ export async function pushCommand(options: PushOptions) {
       project.setConfig(
         finalConfig.tenantId,
         finalConfig.agentsManageApiUrl,
-        finalConfig.modelSettings
+        undefined
       );
     }
 
@@ -145,7 +144,7 @@ export async function pushCommand(options: PushOptions) {
         const projectDefinition = await (project as any).toFullProjectDefinition();
 
         // Create the JSON file path
-        const jsonFilePath = join(projectDir, `${finalConfig.projectId}.json`);
+        const jsonFilePath = join(projectDir, `project.json`);
 
         // Write the project data to JSON file
         const fs = await import('node:fs/promises');

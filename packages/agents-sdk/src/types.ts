@@ -14,6 +14,8 @@ import { z } from 'zod';
 import type { AgentMcpConfig } from './builders';
 import type { ExternalAgentConfig } from './externalAgent';
 import type { Tool } from './tool';
+import type { DataComponentInterface } from './data-component';
+import type { ArtifactComponentInterface } from './artifact-component';
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -77,8 +79,8 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
   };
-  dataComponents?: () => DataComponentApiInsert[];
-  artifactComponents?: () => ArtifactComponentApiInsert[];
+  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
+  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 

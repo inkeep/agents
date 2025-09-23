@@ -1,29 +1,23 @@
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { ProjectModels } from '@inkeep/agents-core';
 import { importWithTypeScriptSupport } from './tsx-loader';
 
 export interface InkeepConfig {
   tenantId?: string;
-  projectId?: string;
   agentsManageApiUrl?: string;
   agentsRunApiUrl?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: ProjectModels;
 }
 
 export interface ValidatedConfiguration {
   tenantId: string;
-  projectId: string;
   agentsManageApiUrl: string;
   agentsRunApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: ProjectModels;
   sources: {
     tenantId: string;
-    projectId: string;
     agentsManageApiUrl: string;
     agentsRunApiUrl: string;
     configFile?: string;
@@ -125,8 +119,8 @@ export async function getTenantId(configPath?: string): Promise<string | undefin
 }
 
 export async function getProjectId(configPath?: string): Promise<string> {
-  const config = await loadConfig(configPath);
-  return config.projectId || 'default';
+  // Always return 'default' as projectId is no longer part of the config
+  return 'default';
 }
 
 export async function getAgentsManageApiUrl(
@@ -190,7 +184,6 @@ export async function validateConfiguration(
   if (configFilePath) {
     const config = await loadConfig(configFilePath);
     const tenantId = config.tenantId;
-    const projectId = config.projectId || 'default';
     const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl; // Allow ---agents-manage-api-url to override
     const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl; // Allow --agents-run-api-url to override
 
@@ -216,7 +209,6 @@ export async function validateConfiguration(
 
     const sources = {
       tenantId: `config file (${configFilePath})`,
-      projectId: config.projectId ? `config file (${configFilePath})` : 'default',
       agentsManageApiUrl: agentsManageApiUrlFlag
         ? 'command-line flag (--agents-manage-api-url)'
         : `config file (${configFilePath})`,
@@ -228,11 +220,9 @@ export async function validateConfiguration(
 
     return {
       tenantId,
-      projectId,
       agentsManageApiUrl,
       agentsRunApiUrl,
       manageUiUrl: config.manageUiUrl,
-      modelSettings: config.modelSettings || undefined,
       sources,
     };
   }
@@ -241,17 +231,14 @@ export async function validateConfiguration(
   if (tenantIdFlag && agentsManageApiUrlFlag && agentsRunApiUrlFlag) {
     const sources = {
       tenantId: 'command-line flag (--tenant-id)',
-      projectId: 'default',
       agentsManageApiUrl: 'command-line flag (--agents-manage-api-url)',
       agentsRunApiUrl: 'command-line flag (--agents-run-api-url)',
     };
     return {
       tenantId: tenantIdFlag,
-      projectId: 'default',
       agentsManageApiUrl: agentsManageApiUrlFlag,
       agentsRunApiUrl: agentsRunApiUrlFlag,
       manageUiUrl: undefined,
-      modelSettings: undefined,
       sources,
     };
   }
@@ -268,7 +255,6 @@ export async function validateConfiguration(
   // Case 4: Try to load from default config file
   const config = await loadConfig();
   const tenantId = config.tenantId;
-  const projectId = config.projectId || 'default';
   const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl; // Allow --agents-manage-api-url to override
   const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl; // Allow --agents-run-api-url to override
 
@@ -333,11 +319,6 @@ export async function validateConfiguration(
 
   const sources = {
     tenantId: `config file (${configFile})`,
-    projectId: config.projectId
-      ? configFile
-        ? `config file (${configFile})`
-        : 'config'
-      : 'default',
     agentsManageApiUrl: agentsManageApiUrlSource,
     agentsRunApiUrl: agentsRunApiUrlSource,
     configFile: configFile || undefined,
@@ -345,11 +326,9 @@ export async function validateConfiguration(
 
   return {
     tenantId,
-    projectId,
     agentsManageApiUrl,
     agentsRunApiUrl,
     manageUiUrl: config.manageUiUrl,
-    modelSettings: config.modelSettings || undefined,
     sources,
   };
 }

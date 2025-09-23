@@ -10,7 +10,6 @@ vi.mock('../utils/tsx-loader.js', () => ({
     Promise.resolve({
       default: {
         tenantId: 'config-tenant',
-        projectId: 'config-project',
         agentsManageApiUrl: 'http://config-management',
         agentsRunApiUrl: 'http://config-execution',
       },

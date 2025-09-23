@@ -142,7 +142,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
- * Generate inkeep.config.ts file with projectId
+ * Generate inkeep.config.ts file
  */
 export async function generateInkeepConfigFile(
   projectData: any,
@@ -157,15 +157,9 @@ export async function generateInkeepConfigFile(
   const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
 
 const config = defineConfig({
-  projectId: '${projectId}',
   tenantId: '${tenantId}',
   agentsManageApiUrl: 'http://localhost:3002',
   agentsRunApiUrl: 'http://localhost:3003',
-  modelSettings: ${JSON.stringify({
-    base: modelConfig.base || { model: 'anthropic/claude-sonnet-4-20250514' },
-    structuredOutput: modelConfig.structuredOutput || { model: 'anthropic/claude-3-5-haiku-20241022' },
-    summarizer: modelConfig.summarizer || { model: 'anthropic/claude-3-5-haiku-20241022' }
-  }, null, 4).split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n')}
 });
 
 export default config;

@@ -6,14 +6,22 @@ const goodbyeAgent = agent({
   description: 'A goodbye agent',
   prompt: 'You are a goodbye agent that just says goodbye. You only reply with the word "goodbye", but you may do it in different variations like g00dby3, g00dby3w0rld, g00dby3w0rld! etc...',
   canTransferTo: () => [helloAgent, goodbyeAgent],
-  canDelegateTo: () => [helloAgent, goodbyeAgent]
+  canDelegateTo: () => [helloAgent, goodbyeAgent],
+  canUse: () => [],
+  dataComponents: () => [],
+  artifactComponents: () => []
 });
 
 const helloAgent = agent({
   id: 'hello-agent',
   name: 'Hello Agent',
   description: 'A basic agent',
-  prompt: 'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...'
+  prompt: 'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+  canTransferTo: () => [],
+  canDelegateTo: () => [],
+  canUse: () => [],
+  dataComponents: () => [],
+  artifactComponents: () => []
 });
 
 export const basicGraph = agentGraph({

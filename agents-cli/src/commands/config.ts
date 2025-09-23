@@ -80,7 +80,6 @@ export async function configSetCommand(key: string, value: string, options?: Con
 
 export default defineConfig({
     tenantId: '${key === 'tenantId' ? value : ''}',
-    projectId: '${key === 'projectId' ? value : 'default'}',
     apiUrl: '${key === 'apiUrl' ? value : 'http://localhost:3002'}',
 });
 `;
@@ -106,17 +105,6 @@ export default defineConfig({
           content = content.replace(
             /defineConfig\s*\(\s*{/,
             `defineConfig({\n    tenantId: '${value}',`
-          );
-        }
-      } else if (key === 'projectId') {
-        // Update or add projectId
-        if (content.includes('projectId:')) {
-          content = content.replace(/projectId:\s*['"][^'"]*['"]/, `projectId: '${value}'`);
-        } else {
-          // Add projectId after tenantId
-          content = content.replace(
-            /(tenantId:\s*['"][^'"]*['"]),?/,
-            `$1,\n    projectId: '${value}',`
           );
         }
       } else if (key === 'apiUrl') {

@@ -59,7 +59,7 @@
         }
       },
       "createdAt": "2025-09-22T22:42:24.572Z",
-      "updatedAt": "2025-09-22T22:45:29.861Z",
+      "updatedAt": "2025-09-23T06:17:29.501Z",
       "models": {
         "base": {
           "model": "anthropic/claude-sonnet-4-20250514",
@@ -110,8 +110,8 @@
           "stopWhen": null,
           "canTransferTo": [],
           "canDelegateTo": [
-            "geocoder-agent",
-            "weather-forecaster"
+            "weather-forecaster",
+            "geocoder-agent"
           ],
           "dataComponents": [
             "weather-forecast"
@@ -144,7 +144,7 @@
         }
       },
       "createdAt": "2025-09-22T22:42:24.591Z",
-      "updatedAt": "2025-09-22T22:45:29.861Z",
+      "updatedAt": "2025-09-23T06:17:29.501Z",
       "models": {
         "base": {
           "model": "anthropic/claude-sonnet-4-20250514",
@@ -227,5 +227,5 @@
   "contextConfig": {},
   "credentialReferences": {},
   "createdAt": "2025-09-19T02:17:55.108Z",
-  "updatedAt": "2025-09-22T22:45:29.853Z"
+  "updatedAt": "2025-09-23T06:17:29.493Z"
 }

@@ -17,11 +17,9 @@ vi.mock('../../utils/project-directory.js', () => ({
 vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
-    projectId: 'test-project',
     agentsManageApiUrl: 'http://localhost:3002',
     sources: {
       tenantId: 'config',
-      projectId: 'config',
       agentsManageApiUrl: 'config',
     },
   }),
@@ -104,7 +102,6 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -162,7 +159,6 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 

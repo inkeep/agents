@@ -29,7 +29,6 @@ export interface PullOptions {
  */
 async function loadProjectConfig(projectDir: string): Promise<{
   tenantId: string;
-  projectId: string;
   agentsManageApiUrl: string;
 }> {
   const configPath = join(projectDir, 'inkeep.config.ts');
@@ -54,7 +53,6 @@ async function loadProjectConfig(projectDir: string): Promise<{
 
     return {
       tenantId: config.tenantId,
-      projectId: config.projectId || '',
       agentsManageApiUrl: config.agentsManageApiUrl || 'http://localhost:3002',
     };
   } catch (error: any) {

@@ -98,7 +98,6 @@ describe('Push Command - Project Validation', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -191,7 +190,6 @@ describe('Push Command - Project Validation', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -229,7 +227,6 @@ describe('Push Command - Project Validation', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -301,7 +298,6 @@ describe('Push Command - Project Validation', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -363,7 +359,6 @@ describe('Push Command - Output Messages', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://api.example.com',
       manageUiUrl: 'http://ui.example.com',
     };
@@ -395,7 +390,6 @@ describe('Push Command - Output Messages', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
       // No manageUiUrl - should use default
     };
@@ -423,7 +417,6 @@ describe('Push Command - Output Messages', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -454,7 +447,6 @@ describe('Push Command - Output Messages', () => {
 
     const mockConfig = {
       tenantId: 'test-tenant',
-      projectId: 'test-project',
       agentsManageApiUrl: 'http://api.example.com/',
       manageUiUrl: 'http://ui.example.com/',
     };

@@ -53,9 +53,10 @@ describe('Agent with DataComponents Integration', () => {
     expect(agent.config.description).toBe('An agent that has data components');
     expect(agent.getInstructions()).toBe('You are a helpful agent with UI components.');
     expect(agent.getId()).toBe('test-agent-with-datacomponents');
-    expect(agent.config.dataComponents?.()).toHaveLength(2);
-    expect(agent.config.dataComponents?.()?.[0]?.name).toBe('OrdersList');
-    expect(agent.config.dataComponents?.()?.[1]?.name).toBe('SalesButton');
+    const dataComponents = agent.getDataComponents();
+    expect(dataComponents).toHaveLength(2);
+    expect(dataComponents[0]?.name).toBe('OrdersList');
+    expect(dataComponents[1]?.name).toBe('SalesButton');
   });
 
   it('should handle agents without data components', () => {
