@@ -150,7 +150,8 @@ async function generateProjectFiles(
   projectData: any,
   projectId: string,
   modelSettings: ModelSettings,
-  tenantId: string
+  tenantId: string,
+  environment: string = 'development'
 ): Promise<void> {
   const { graphs, tools, dataComponents, artifactComponents } = projectData;
 
@@ -205,8 +206,8 @@ async function generateProjectFiles(
   }
 
   // Add environment files generation (non-LLM, so fast)
-  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, projectData));
-  fileInfo.push({ type: 'env', name: 'environment templates' });
+  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, projectData, environment));
+  fileInfo.push({ type: 'env', name: `${environment}.env.ts` });
 
   // Display what we're generating
   console.log(chalk.cyan('  📝 Generating files in parallel:'));
@@ -384,7 +385,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       model: 'anthropic/claude-sonnet-4-20250514',
     };
 
-    await generateProjectFiles(dirs, projectData, finalConfig.projectId, modelSettings, finalConfig.tenantId);
+    await generateProjectFiles(dirs, projectData, finalConfig.projectId, modelSettings, finalConfig.tenantId, options.env || 'development');
 
     // Count generated files for summary
     const fileCount = {
@@ -419,7 +420,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     if (fileCount.artifactComponents > 0) {
       console.log(chalk.gray(`  ├── artifact-components/ (${fileCount.artifactComponents} files)`));
     }
-    console.log(chalk.gray(`  └── environments/`));
+    console.log(chalk.gray(`  └── environments/ (${options.env || 'development'}.env.ts)`));
 
     console.log(chalk.cyan('\n📝 Next steps:'));
     console.log(chalk.gray(`  • cd ${dirs.projectRoot}`));

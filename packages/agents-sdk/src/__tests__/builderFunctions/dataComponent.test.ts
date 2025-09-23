@@ -58,16 +58,12 @@ describe('dataComponent builder function', () => {
     const config: DataComponentConfig = {
       name: 'Complex Data Component',
       description: 'Data component with complex structure',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
       props: complexProps,
     };
 
     const component = dataComponent(config);
 
     expect(component.getName()).toBe('Complex Data Component');
-    expect(component.config.tenantId).toBe('test-tenant');
-    expect(component.config.projectId).toBe('test-project');
     expect(component.getProps()).toEqual(complexProps);
   });
 

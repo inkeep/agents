@@ -9,9 +9,9 @@ import {
   mcpNodeHandleId,
   NodeType,
 } from '@/components/graph/configuration/node-types';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import type { MCPTool } from '@/lib/api/tools';
+import type { FullGraphDefinition, InternalAgentDefinition, ExternalAgentDefinition } from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';
-import type { ExtendedAgent } from './serialize';
 
 interface TransformResult {
   nodes: Node[];
@@ -97,13 +97,13 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeGraphData(data: FullGraphDefinition): TransformResult {
+export function deserializeGraphData(data: FullGraphDefinition, toolLookup?: Record<string, MCPTool>): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
   const agentIds: string[] = Object.keys(data.agents);
   for (const agentId of agentIds) {
-    const agent = data.agents[agentId] as ExtendedAgent;
+    const agent = data.agents[agentId];
     const isDefault = agentId === data.defaultAgentId;
     const isExternal = agent.type === 'external';
 
@@ -113,60 +113,63 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
           id: agent.id,
           name: agent.name,
           description: agent.description,
-          baseUrl: agent.baseUrl,
+          baseUrl: (agent as ExternalAgentDefinition).baseUrl,
           type: agent.type,
         }
-      : {
-          id: agent.id,
-          name: agent.name,
-          isDefault,
-          prompt: agent.prompt,
-          description: agent.description,
-          dataComponents: agent.dataComponents,
-          artifactComponents: agent.artifactComponents,
-          models: agent.models
-            ? {
-                base: agent.models.base
-                  ? {
-                      model: agent.models.base.model ?? '',
-                      providerOptions: agent.models.base.providerOptions
-                        ? formatJsonField(agent.models.base.providerOptions)
-                        : undefined,
-                    }
-                  : undefined,
-                structuredOutput: agent.models.structuredOutput
-                  ? {
-                      model: agent.models.structuredOutput.model ?? '',
-                      providerOptions: agent.models.structuredOutput.providerOptions
-                        ? formatJsonField(agent.models.structuredOutput.providerOptions)
-                        : undefined,
-                    }
-                  : undefined,
-                summarizer: agent.models.summarizer
-                  ? {
-                      model: agent.models.summarizer.model ?? '',
-                      providerOptions: agent.models.summarizer.providerOptions
-                        ? formatJsonField(agent.models.summarizer.providerOptions)
-                        : undefined,
-                    }
-                  : undefined,
-              }
-            : undefined,
-          stopWhen: (agent as any).stopWhen
-            ? { stepCountIs: (agent as any).stopWhen.stepCountIs }
-            : undefined,
-          type: agent.type,
-          // Convert canUse back to tools and selectedTools for UI
-          tools: agent.canUse ? agent.canUse.map(item => item.toolId) : [],
-          selectedTools: agent.canUse
-            ? agent.canUse.reduce((acc, item) => {
-                if (item.toolSelection) {
-                  acc[item.toolId] = item.toolSelection;
+      : (() => {
+          const internalAgent = agent as InternalAgentDefinition;
+          return {
+            id: agent.id,
+            name: agent.name,
+            isDefault,
+            prompt: internalAgent.prompt,
+            description: agent.description,
+            dataComponents: internalAgent.dataComponents,
+            artifactComponents: internalAgent.artifactComponents,
+            models: internalAgent.models
+              ? {
+                  base: internalAgent.models.base
+                    ? {
+                        model: internalAgent.models.base.model ?? '',
+                        providerOptions: internalAgent.models.base.providerOptions
+                          ? formatJsonField(internalAgent.models.base.providerOptions)
+                          : undefined,
+                      }
+                    : undefined,
+                  structuredOutput: internalAgent.models.structuredOutput
+                    ? {
+                        model: internalAgent.models.structuredOutput.model ?? '',
+                        providerOptions: internalAgent.models.structuredOutput.providerOptions
+                          ? formatJsonField(internalAgent.models.structuredOutput.providerOptions)
+                          : undefined,
+                      }
+                    : undefined,
+                  summarizer: internalAgent.models.summarizer
+                    ? {
+                        model: internalAgent.models.summarizer.model ?? '',
+                        providerOptions: internalAgent.models.summarizer.providerOptions
+                          ? formatJsonField(internalAgent.models.summarizer.providerOptions)
+                          : undefined,
+                      }
+                    : undefined,
                 }
-                return acc;
-              }, {} as Record<string, string[]>)
-            : undefined,
-        };
+              : undefined,
+            stopWhen: internalAgent.stopWhen
+              ? { stepCountIs: internalAgent.stopWhen.stepCountIs }
+              : undefined,
+            type: agent.type,
+            // Convert canUse back to tools and selectedTools for UI
+            tools: internalAgent.canUse ? internalAgent.canUse.map(item => item.toolId) : [],
+            selectedTools: internalAgent.canUse
+              ? internalAgent.canUse.reduce((acc, item) => {
+                  if (item.toolSelection) {
+                    acc[item.toolId] = item.toolSelection;
+                  }
+                  return acc;
+                }, {} as Record<string, string[]>)
+              : undefined,
+          };
+        })();
 
     const agentNode: Node = {
       id: agentId,
@@ -215,14 +218,25 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
           edges.push(agentToToolEdge);
         }
       } else {
-        // Tools are project-scoped, create placeholder nodes with tool IDs
-        for (const toolId of agent.tools) {
+        // Tools are project-scoped, use the tool lookup if available
+        for (const canUseItem of agent.canUse) {
+          const toolId = canUseItem.toolId;
+          const tool = toolLookup?.[toolId];
           const toolNodeId = nanoid();
           const toolNode: Node = {
             id: toolNodeId,
             type: NodeType.MCP,
             position: { x: 0, y: 0 },
-            data: {
+            data: tool ? {
+              id: tool.id,
+              name: tool.name,
+              description: '', // MCPTool doesn't have a description field at top level
+              type: 'mcp',
+              config: tool.config || {},
+              status: tool.status,
+              availableTools: tool.availableTools,
+              selectedTools: canUseItem.toolSelection // Use toolSelection from canUseItem
+            } : {
               id: toolId,
               name: toolId,
               description: 'Project-scoped tool',

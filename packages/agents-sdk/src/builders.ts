@@ -1,4 +1,4 @@
-import type { CredentialReferenceApiInsert, MCPTransportType } from '@inkeep/agents-core';
+import type { CredentialReferenceApiInsert, } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { Agent } from './agent';
 import type { Tool } from './tool';

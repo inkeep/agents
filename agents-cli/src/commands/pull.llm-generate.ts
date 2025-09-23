@@ -457,7 +457,8 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
  */
 export async function generateEnvironmentFiles(
   environmentsDir: string,
-  projectData: any
+  projectData: any,
+  environment: string = 'development'  // Default to development if not specified
 ): Promise<void> {
   // Generate production.env.ts template
   const prodEnvContent = `// Production environment configuration
@@ -519,10 +520,24 @@ export const envSchema = z.object({
 export type ValidatedEnv = z.infer<typeof envSchema>;
 `;
 
-  // Write all environment files
-  writeFileSync(join(environmentsDir, 'production.env.ts'), prodEnvContent);
-  writeFileSync(join(environmentsDir, 'staging.env.ts'), stagingEnvContent);
-  writeFileSync(join(environmentsDir, 'development.env.ts'), devEnvContent);
+  // Only write the specified environment file
+  switch (environment.toLowerCase()) {
+    case 'production':
+    case 'prod':
+      writeFileSync(join(environmentsDir, 'production.env.ts'), prodEnvContent);
+      break;
+    case 'staging':
+    case 'stage':
+      writeFileSync(join(environmentsDir, 'staging.env.ts'), stagingEnvContent);
+      break;
+    case 'development':
+    case 'dev':
+    default:
+      writeFileSync(join(environmentsDir, 'development.env.ts'), devEnvContent);
+      break;
+  }
+
+  // Always write the validation file as it's environment-agnostic
   writeFileSync(join(environmentsDir, '.env.validation.ts'), validationContent);
 }
 

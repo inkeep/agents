@@ -92,7 +92,7 @@ program
   .description('Pull entire project configuration from backend and update local files')
   .option('--project <project-id>', 'Project ID or path to project directory')
   .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
-  .option('--env <environment>', 'Environment to use for credential resolution')
+  .option('--env <environment>', 'Environment file to generate (development, staging, production). Defaults to development')
   .option('--json', 'Generate project data JSON file instead of updating files')
   .action(async (options) => {
     await pullProjectCommand(options);

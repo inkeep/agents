@@ -32,7 +32,6 @@ describe.skip('Tool Manager', () => {
         id: 'test-mcp-tool',
         name: 'Test MCP Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
       });
 
       expect(tool.getName()).toBe('Test MCP Tool');
@@ -44,7 +43,6 @@ describe.skip('Tool Manager', () => {
         id: 'hosted-api-tool',
         name: 'Hosted API Tool',
         serverUrl: 'https://api.example.com',
-        tenantId: 'test-tenant',
       });
 
       expect(tool.getName()).toBe('Hosted API Tool');
@@ -55,7 +53,6 @@ describe.skip('Tool Manager', () => {
         id: 'complex-tool-name-with-spaces',
         name: 'Complex Tool Name With Spaces',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
       });
 
       expect(tool.getId()).toBe('complex-tool-name-with-spaces');
@@ -69,7 +66,6 @@ describe.skip('Tool Manager', () => {
         transport: {
           type: 'streamable_http' as const,
         },
-        tenantId: 'test-tenant',
       });
 
       expect(tool.config.transport).toEqual({
@@ -83,7 +79,6 @@ describe.skip('Tool Manager', () => {
         name: 'Args Tool',
         serverUrl: 'http://localhost:3000',
         activeTools: ['tool1', 'tool2', 'tool3'],
-        tenantId: 'test-tenant',
       };
 
       const tool = new Tool(config);
@@ -100,7 +95,6 @@ describe.skip('Tool Manager', () => {
         id: 'test-tool',
         name: 'Test Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
         description: 'A test tool',
         capabilities: {
           tools: true,
@@ -169,7 +163,6 @@ describe.skip('Tool Manager', () => {
         transport: {
           type: 'streamable_http' as const,
         },
-        tenantId: 'test-tenant',
       });
 
       expect(tool.config.transport).toEqual({ type: 'streamable_http' });
@@ -183,7 +176,6 @@ describe.skip('Tool Manager', () => {
         transport: {
           type: 'sse' as const,
         },
-        tenantId: 'test-tenant',
       });
 
       expect(tool.config.transport).toEqual({ type: 'sse' });
@@ -199,7 +191,6 @@ describe.skip('Tool Manager', () => {
           Authorization: 'Bearer token',
           'Content-Type': 'application/json',
         },
-        tenantId: 'test-tenant',
       });
 
       expect(tool.config.headers).toEqual({
@@ -217,7 +208,6 @@ describe.skip('Tool Manager', () => {
         id: 'lifecycle-tool',
         name: 'Lifecycle Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
       });
       await tool.init();
     });
@@ -315,7 +305,6 @@ describe.skip('Tool Manager', () => {
         id: 'discovery-tool',
         name: 'Discovery Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
       });
       await tool.init();
     });
@@ -383,8 +372,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             type: 'mcp',
             command: ['node', 'tool.js'],
-            tenantId: 'test-tenant',
-          } as any)
+              } as any)
       ).toThrow();
     });
 
@@ -394,8 +382,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             name: 'Test Tool',
             command: ['node', 'tool.js'],
-            tenantId: 'test-tenant',
-          } as any)
+              } as any)
       ).toThrow();
     });
 
@@ -405,8 +392,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             name: 'MCP Tool',
             type: 'mcp',
-            tenantId: 'test-tenant',
-          } as any)
+              } as any)
       ).toThrow();
     });
 
@@ -416,8 +402,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             name: 'Hosted Tool',
             type: 'hosted',
-            tenantId: 'test-tenant',
-          } as any)
+              } as any)
       ).toThrow();
     });
 
@@ -433,8 +418,7 @@ describe.skip('Tool Manager', () => {
           name: `${transport.type} Tool`,
           serverUrl: 'http://localhost:3000',
           transport,
-          tenantId: 'test-tenant',
-        });
+          });
 
         expect(tool.config.transport).toEqual(transport);
       });
@@ -449,7 +433,6 @@ describe.skip('Tool Manager', () => {
         id: 'error-tool',
         name: 'Error Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
       });
       await tool.init();
     });
@@ -487,7 +470,6 @@ describe.skip('Tool Manager', () => {
         id: 'metadata-tool',
         name: 'Metadata Tool',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
         // Note: Tool doesn't have metadata field in MCPToolConfig
       });
 
@@ -505,7 +487,6 @@ describe.skip('Tool Manager', () => {
           type: 'memory' as const,
           credentialStoreId: 'store-123',
         },
-        tenantId: 'test-tenant',
       });
 
       expect(tool.config.credential?.id).toBe('cred-123');

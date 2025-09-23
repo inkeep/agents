@@ -22,8 +22,6 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Complex Artifact',
       description: 'Artifact with complex props',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
       summaryProps: {
         title: 'Complex Summary',
         metadata: {
@@ -47,8 +45,6 @@ describe('artifactComponent builder function', () => {
     const component = artifactComponent(config);
 
     expect(component.getName()).toBe('Complex Artifact');
-    expect(component.config.tenantId).toBe('test-tenant');
-    expect(component.config.projectId).toBe('test-project');
     expect(component.getSummaryProps()).toEqual(config.summaryProps);
     expect(component.getFullProps()).toEqual(config.fullProps);
   });

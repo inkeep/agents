@@ -148,7 +148,7 @@ export class AgentGraph implements GraphInterface {
     }
 
     // Update context config tenant ID and project ID if present
-    if (this.contextConfig && this.contextConfig.setContext) {
+    if (this.contextConfig?.setContext) {
       this.contextConfig.setContext(tenantId, projectId);
     }
 
@@ -228,6 +228,13 @@ export class AgentGraph implements GraphInterface {
           }
         }
 
+        // Convert tools and selectedTools to canUse array
+        // Always include canUse for internal agents (even if empty) as it's required by the API
+        const canUse = tools.map(toolId => ({
+          toolId,
+          toolSelection: selectedToolsMapping[toolId] || null
+        }));
+
         agentsObject[internalAgent.getId()] = {
           id: internalAgent.getId(),
           name: internalAgent.getName(),
@@ -236,9 +243,7 @@ export class AgentGraph implements GraphInterface {
           models: internalAgent.config.models,
           canTransferTo: transfers.map((h) => h.getId()),
           canDelegateTo: delegates.map((d) => d.getId()),
-          tools,
-          selectedTools:
-            Object.keys(selectedToolsMapping).length > 0 ? selectedToolsMapping : undefined,
+          canUse, // Always include for internal agents (required by API)
           dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
           artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
           type: 'internal',
@@ -254,7 +259,6 @@ export class AgentGraph implements GraphInterface {
           baseUrl: externalAgent.getBaseUrl(),
           credentialReferenceId: externalAgent.getCredentialReferenceId(),
           headers: externalAgent.getHeaders(),
-          tools: [], // External agents don't have tools in this context
           type: 'external',
         };
       }

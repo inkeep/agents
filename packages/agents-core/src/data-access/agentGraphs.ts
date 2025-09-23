@@ -487,13 +487,13 @@ export const getFullGraphDefinition =
     }
 
     // Get dataComponents for all agents in this graph
-    let dataComponentsObject: Record<string, any> = {};
+    // let dataComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      dataComponentsObject = await fetchComponentRelationships(db)(
+      await fetchComponentRelationships(db)(
         { tenantId, projectId },
         agentIds,
         {
@@ -515,13 +515,13 @@ export const getFullGraphDefinition =
     }
 
     // Get artifactComponents for all agents in this graph
-    let artifactComponentsObject: Record<string, any> = {};
+    // let artifactComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      artifactComponentsObject = await fetchComponentRelationships(db)(
+      await fetchComponentRelationships(db)(
         { tenantId, projectId },
         agentIds,
         {

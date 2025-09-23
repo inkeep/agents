@@ -575,16 +575,33 @@ export class Project implements ProjectInterface {
         const agentDataComponents = (agent as any).getDataComponents?.();
         if (agentDataComponents) {
           for (const dataComponent of agentDataComponents) {
-            const dataComponentId =
-              dataComponent.id || dataComponent.name.toLowerCase().replace(/\s+/g, '-');
+            // Handle both DataComponent instances and plain objects
+            let dataComponentId: string;
+            let dataComponentName: string;
+            let dataComponentDescription: string;
+            let dataComponentProps: any;
+
+            if (dataComponent.getId) {
+              // DataComponent instance
+              dataComponentId = dataComponent.getId();
+              dataComponentName = dataComponent.getName();
+              dataComponentDescription = dataComponent.getDescription() || '';
+              dataComponentProps = dataComponent.getProps() || {};
+            } else {
+              // Plain object from agent config
+              dataComponentId = dataComponent.id || (dataComponent.name ? dataComponent.name.toLowerCase().replace(/\s+/g, '-') : '');
+              dataComponentName = dataComponent.name || '';
+              dataComponentDescription = dataComponent.description || '';
+              dataComponentProps = dataComponent.props || {};
+            }
 
             // Only add if not already added (avoid duplicates)
-            if (!dataComponentsObject[dataComponentId]) {
+            if (!dataComponentsObject[dataComponentId] && dataComponentName) {
               dataComponentsObject[dataComponentId] = {
                 id: dataComponentId,
-                name: dataComponent.name,
-                description: dataComponent.description || '',
-                props: dataComponent.props || {},
+                name: dataComponentName,
+                description: dataComponentDescription,
+                props: dataComponentProps,
               };
             }
           }
@@ -594,17 +611,37 @@ export class Project implements ProjectInterface {
         const agentArtifactComponents = (agent as any).getArtifactComponents?.();
         if (agentArtifactComponents) {
           for (const artifactComponent of agentArtifactComponents) {
-            const artifactComponentId =
-              artifactComponent.id || artifactComponent.name.toLowerCase().replace(/\s+/g, '-');
+            // Handle both ArtifactComponent instances and plain objects
+            let artifactComponentId: string;
+            let artifactComponentName: string;
+            let artifactComponentDescription: string;
+            let artifactComponentSummaryProps: any;
+            let artifactComponentFullProps: any;
+
+            if (artifactComponent.getId) {
+              // ArtifactComponent instance
+              artifactComponentId = artifactComponent.getId();
+              artifactComponentName = artifactComponent.getName();
+              artifactComponentDescription = artifactComponent.getDescription() || '';
+              artifactComponentSummaryProps = artifactComponent.getSummaryProps() || {};
+              artifactComponentFullProps = artifactComponent.getFullProps() || {};
+            } else {
+              // Plain object from agent config
+              artifactComponentId = artifactComponent.id || (artifactComponent.name ? artifactComponent.name.toLowerCase().replace(/\s+/g, '-') : '');
+              artifactComponentName = artifactComponent.name || '';
+              artifactComponentDescription = artifactComponent.description || '';
+              artifactComponentSummaryProps = artifactComponent.summaryProps || {};
+              artifactComponentFullProps = artifactComponent.fullProps || {};
+            }
 
             // Only add if not already added (avoid duplicates)
-            if (!artifactComponentsObject[artifactComponentId]) {
+            if (!artifactComponentsObject[artifactComponentId] && artifactComponentName) {
               artifactComponentsObject[artifactComponentId] = {
                 id: artifactComponentId,
-                name: artifactComponent.name,
-                description: artifactComponent.description || '',
-                summaryProps: artifactComponent.summaryProps || {},
-                fullProps: artifactComponent.fullProps || {},
+                name: artifactComponentName,
+                description: artifactComponentDescription,
+                summaryProps: artifactComponentSummaryProps,
+                fullProps: artifactComponentFullProps,
               };
             }
           }

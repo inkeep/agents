@@ -1,0 +1,231 @@
+{
+  "id": "my-project",
+  "name": "My Project",
+  "description": "My project",
+  "models": {
+    "base": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "providerOptions": {}
+    }
+  },
+  "graphs": {
+    "basic-graph": {
+      "id": "basic-graph",
+      "name": "Basic Graph Example",
+      "description": "A basic graph",
+      "defaultAgentId": "hello-agent",
+      "agents": {
+        "goodbye-agent": {
+          "id": "goodbye-agent",
+          "name": "Goodbye Agent",
+          "description": "A goodbye agent",
+          "prompt": "You are a goodbye agent that just says goodbye. You only reply with the word \"goodbye\", but you may do it in different variations like g00dby3, g00dby3w0rld, g00dby3w0rld! etc...",
+          "models": {
+            "base": {
+              "model": "anthropic/claude-sonnet-4-20250514",
+              "providerOptions": {}
+            }
+          },
+          "stopWhen": null,
+          "canTransferTo": [
+            "hello-agent",
+            "goodbye-agent"
+          ],
+          "canDelegateTo": [
+            "hello-agent",
+            "goodbye-agent"
+          ],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        },
+        "hello-agent": {
+          "id": "hello-agent",
+          "name": "Hello Agent",
+          "description": "A basic agent",
+          "prompt": "You are a basic agent that just says hello. You only reply with the word \"hello\", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...",
+          "models": {
+            "base": {
+              "model": "anthropic/claude-sonnet-4-20250514",
+              "providerOptions": {}
+            }
+          },
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        }
+      },
+      "createdAt": "2025-09-22T22:42:24.572Z",
+      "updatedAt": "2025-09-22T22:45:29.861Z",
+      "models": {
+        "base": {
+          "model": "anthropic/claude-sonnet-4-20250514",
+          "providerOptions": {}
+        }
+      }
+    },
+    "weather-graph": {
+      "id": "weather-graph",
+      "name": "Weather graph",
+      "description": null,
+      "defaultAgentId": "weather-assistant",
+      "agents": {
+        "geocoder-agent": {
+          "id": "geocoder-agent",
+          "name": "Geocoder agent",
+          "description": "Responsible for converting location or address into coordinates",
+          "prompt": "You are a helpful assistant responsible for converting location or address into coordinates using your geocode tool",
+          "models": {
+            "base": {
+              "model": "anthropic/claude-sonnet-4-20250514",
+              "providerOptions": {}
+            }
+          },
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "toolId": "fdxgfv9HL7SXlfynPx8hf",
+              "toolSelection": null
+            }
+          ]
+        },
+        "weather-assistant": {
+          "id": "weather-assistant",
+          "name": "Weather assistant",
+          "description": "This component is used to render a group of times in a day along with the weather temperature (in Farenheit) and condition at give times.",
+          "prompt": "You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast",
+          "models": {
+            "base": {
+              "model": "anthropic/claude-sonnet-4-20250514",
+              "providerOptions": {}
+            }
+          },
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [
+            "geocoder-agent",
+            "weather-forecaster"
+          ],
+          "dataComponents": [
+            "weather-forecast"
+          ],
+          "artifactComponents": [],
+          "canUse": []
+        },
+        "weather-forecaster": {
+          "id": "weather-forecaster",
+          "name": "Weather forecaster",
+          "description": "This agent is responsible for taking in coordinates and returning the forecast for the weather at that location",
+          "prompt": "You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool",
+          "models": {
+            "base": {
+              "model": "anthropic/claude-sonnet-4-20250514",
+              "providerOptions": {}
+            }
+          },
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "toolId": "fUI2riwrBVJ6MepT8rjx0",
+              "toolSelection": null
+            }
+          ]
+        }
+      },
+      "createdAt": "2025-09-22T22:42:24.591Z",
+      "updatedAt": "2025-09-22T22:45:29.861Z",
+      "models": {
+        "base": {
+          "model": "anthropic/claude-sonnet-4-20250514",
+          "providerOptions": {}
+        }
+      }
+    }
+  },
+  "tools": {
+    "fUI2riwrBVJ6MepT8rjx0": {
+      "id": "fUI2riwrBVJ6MepT8rjx0",
+      "name": "Forecast weather",
+      "config": {
+        "type": "mcp",
+        "mcp": {
+          "server": {
+            "url": "https://weather-forecast-mcp.vercel.app/mcp"
+          }
+        }
+      }
+    },
+    "fdxgfv9HL7SXlfynPx8hf": {
+      "id": "fdxgfv9HL7SXlfynPx8hf",
+      "name": "Geocode address",
+      "config": {
+        "type": "mcp",
+        "mcp": {
+          "server": {
+            "url": "https://geocoder-mcp.vercel.app/mcp"
+          }
+        }
+      }
+    }
+  },
+  "dataComponents": {
+    "weather-forecast": {
+      "id": "weather-forecast",
+      "name": "WeatherForecast",
+      "description": "A hourly forecast for the weather at a given location",
+      "props": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "forecast": {
+            "description": "The hourly forecast for the weather at a given location",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": {
+                  "description": "The time of current item E.g. 12PM, 1PM",
+                  "type": "string"
+                },
+                "temperature": {
+                  "description": "The temperature at given time in Farenheit",
+                  "type": "number"
+                },
+                "code": {
+                  "description": "Weather code at given time",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "time",
+                "temperature",
+                "code"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "forecast"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "artifactComponents": {},
+  "contextConfig": {},
+  "credentialReferences": {},
+  "createdAt": "2025-09-19T02:17:55.108Z",
+  "updatedAt": "2025-09-22T22:45:29.853Z"
+}
