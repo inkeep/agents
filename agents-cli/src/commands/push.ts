@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { env } from '../env';
@@ -9,6 +9,7 @@ import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 
 export interface PushOptions {
   project?: string;
+  config?: string;
   agentsManageApiUrl?: string;
   env?: string;
   json?: boolean;
@@ -46,7 +47,7 @@ export async function pushCommand(options: PushOptions) {
 
   try {
     // Find project directory
-    const projectDir = await findProjectDirectory(options.project);
+    const projectDir = await findProjectDirectory(options.project, options.config);
 
     if (!projectDir) {
       spinner.fail('Project not found');
@@ -83,7 +84,7 @@ export async function pushCommand(options: PushOptions) {
 
     // Load inkeep.config.ts for configuration
     spinner.text = 'Loading configuration...';
-    const configPath = join(projectDir, 'inkeep.config.ts');
+    const configPath = options.config ? resolve(process.cwd(), options.config) : join(projectDir, 'inkeep.config.ts');
     const configModule = await importWithTypeScriptSupport(configPath);
     const config = configModule.default;
 

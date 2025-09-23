@@ -5,6 +5,7 @@ import inquirer from 'inquirer';
 
 export interface InitOptions {
   path?: string;
+  config?: string;
   interactive?: boolean;
 }
 

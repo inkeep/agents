@@ -132,7 +132,7 @@ describe('Inkeep CLI', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('List all available graphs');
-      expect(result.stdout).toContain('--api-url');
+      expect(result.stdout).toContain('--agents-manage-api-url');
     });
   });
 

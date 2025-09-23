@@ -14,6 +14,7 @@ export interface DevOptions {
   build?: boolean;
   outputDir?: string;
   vercel?: boolean;
+  config?: string;
 }
 
 function resolveWebRuntime() {

@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -19,6 +19,7 @@ import {
 
 export interface PullOptions {
   project?: string;
+  config?: string;
   agentsManageApiUrl?: string;
   env?: string;
   json?: boolean;
@@ -27,11 +28,11 @@ export interface PullOptions {
 /**
  * Load and validate inkeep.config.ts
  */
-async function loadProjectConfig(projectDir: string): Promise<{
+async function loadProjectConfig(projectDir: string, configPathOverride?: string): Promise<{
   tenantId: string;
   agentsManageApiUrl: string;
 }> {
-  const configPath = join(projectDir, 'inkeep.config.ts');
+  const configPath = configPathOverride ? resolve(process.cwd(), configPathOverride) : join(projectDir, 'inkeep.config.ts');
 
   if (!existsSync(configPath)) {
     throw new Error(`Configuration file not found: ${configPath}`);
@@ -286,7 +287,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     if (existsSync(parentConfigPath)) {
       try {
-        config = await loadProjectConfig(join(baseDir, '..'));
+        config = await loadProjectConfig(join(baseDir, '..'), options.config);
       } catch (error) {
         spinner.fail('Failed to load configuration from parent directory');
         console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
