@@ -73,8 +73,8 @@ const styleOverrides = `
   width: 36px;
 }
 
-[data-role="assistant"] .ikp-ai-chat-message-content > div:first-child {
-  height: auto; /* Remove the height: 12px from the loading animation to match the sparkle icon height */
+.ikp-ai-chat-message-loading {
+  height: auto;
 }
 
 /* User message styles */
