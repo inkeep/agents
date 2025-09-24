@@ -134,7 +134,7 @@ export function ViewMCPServerDetails({
           />
           <div>
             <h2 className="text-xl font-medium tracking-tight">{tool.name}</h2>
-            <p className="text-sm text-muted-foreground">MCP Server Details</p>
+            <p className="text-sm text-muted-foreground">MCP server details</p>
           </div>
         </div>
         <Button asChild>

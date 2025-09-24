@@ -16,7 +16,7 @@ async function NewBearerCredentialsPage({
           href: `/${tenantId}/projects/${projectId}/credentials`,
         },
         {
-          label: 'New Credential',
+          label: 'New credential',
           href: `/${tenantId}/projects/${projectId}/credentials/new`,
         },
         { label: 'Bearer' },

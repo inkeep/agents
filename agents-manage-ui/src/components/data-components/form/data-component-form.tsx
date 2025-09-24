@@ -121,7 +121,7 @@ export function DataComponentForm({
         <JsonSchemaInput
           control={form.control}
           name="props"
-          label="Props (JSON Schema)"
+          label="Props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
           isRequired
         />

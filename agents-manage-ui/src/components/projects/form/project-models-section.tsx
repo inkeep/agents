@@ -40,7 +40,7 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
       </div>
       <ExpandableJsonEditor
         name="models.base.providerOptions"
-        label="Provider Options"
+        label="Provider options"
         value={
           providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
         }
@@ -82,7 +82,7 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
     <div className="space-y-4">
       <div className="space-y-2">
         <ModelSelector
-          label="Structured Output Model"
+          label="Structured output model"
           placeholder="Select structured output model (optional)"
           value={modelField.value || ''}
           onValueChange={modelField.onChange}
@@ -95,7 +95,7 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
       </div>
       <ExpandableJsonEditor
         name="models.structuredOutput.providerOptions"
-        label="Provider Options"
+        label="Provider options"
         value={
           providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
         }
@@ -137,7 +137,7 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
     <div className="space-y-4">
       <div className="space-y-2">
         <ModelSelector
-          label="Summarizer Model"
+          label="Summarizer model"
           placeholder="Select summarizer model (optional)"
           value={modelField.value || ''}
           onValueChange={modelField.onChange}
@@ -150,7 +150,7 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
       </div>
       <ExpandableJsonEditor
         name="models.summarizer.providerOptions"
-        label="Provider Options"
+        label="Provider options"
         value={
           providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
         }
@@ -179,7 +179,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
   return (
     <div className="space-y-4">
       <div>
-        <Label className="text-sm font-medium">Default Models</Label>
+        <Label className="text-sm font-medium">Default models</Label>
         <p className="text-sm text-muted-foreground mt-1">
           Set default models that will be inherited by graphs and agents in this project
         </p>
@@ -194,7 +194,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
             className="flex items-center justify-start gap-2 w-full group p-0 h-auto  hover:!bg-transparent transition-colors py-2 px-4"
           >
             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-            Configure Default Models
+            Configure default models
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
