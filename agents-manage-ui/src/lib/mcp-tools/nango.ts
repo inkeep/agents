@@ -33,7 +33,7 @@ const getNangoClient = () => {
   try {
     return new Nango({
       secretKey,
-      host: process.env.NANGO_HOST || undefined, // defaults to Nango Cloud
+      host: process.env.NANGO_SERVER_URL || undefined, // defaults to Nango Cloud
     });
   } catch (error) {
     throw new NangoError('Failed to initialize Nango client', 'new Nango', error);
@@ -281,7 +281,7 @@ export async function createNangoApiKeyConnection({
 
     // Step 2: Import the connection to Nango
     try {
-      const importConnectionUrl = `${process.env.NANGO_HOST || 'https://api.nango.dev'}/connections`;
+      const importConnectionUrl = `${process.env.NANGO_SERVER_URL || 'https://api.nango.dev'}/connections`;
 
       const credentials: ApiKeyCredentials = {
         type: 'API_KEY',
