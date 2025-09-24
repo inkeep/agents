@@ -10,24 +10,21 @@ keywords: Sentry, error tracking, monitoring, distributed tracing
 
 Learn how to add Sentry monitoring to your Inkeep Agent Framework services.
 
-## Step 1:  install sentry
-
+## Step 1: Install Sentry
 ```bash
 pnpm install @sentry/node
 ```
 
-## Step 2: update your .env file
+## Step 2: Update your `.env` file
 
-Ad your Sentry DSN to the .env file in the root of your workspace.
-
-```
+Add your Sentry DSN to the `.env` file in the root of your workspace.
+```bash
 SENTRY_DSN=https://<your-sentry-dsn>@sentry.io/<your-sentry-project>
 ```
 
 ## Step 3: Configure Sentry
 
-In `apps/run-api` and `apps/manage-api` create a new file called `instrument.mjs` and add the following code:
-
+In `apps/run-api` and `apps/manage-api` create a new file called `sentry.ts` and add the following code:
 ```typescript
 import * as Sentry from "@sentry/node";
 
@@ -41,7 +38,7 @@ Sentry.init({
 In `apps/run-api/src/index.ts` and `apps/manage-api/src/index.ts` add the following code to the top of the file before all other imports:
 
 ```typescript
-import "./instrument";
+import "./sentry";
 ```
 
 ## Forward Error Logs to Sentry
@@ -57,7 +54,6 @@ pnpm install pino-sentry-transport
 ### Step 2: Configure pino-sentry-transport
 
 Add the following code to the top of your `apps/run-api/src/index.ts` file:
-
 ```typescript
 logger = getLogger('agents-run-api');
 logger.addTransport({
@@ -71,7 +67,6 @@ logger.addTransport({
 ```
 
 Add the following code to the top of your `apps/manage-api/src/index.ts` file:
-
 ```typescript
 logger = getLogger('agents-manage-api');
 logger.addTransport({
@@ -84,8 +79,5 @@ logger.addTransport({
 });
 ```
 
-
-
 ## Addition Resources
-
 For more information on how to configure your Sentry you can consult the official Sentry Node.js [documentation](https://docs.sentry.io/platforms/node/).
