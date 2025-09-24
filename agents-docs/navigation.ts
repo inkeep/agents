@@ -6,7 +6,11 @@ export default {
         {
           group: 'Quick Start',
           icon: 'LuZap',
-          pages: ['quick-start/start-development', 'quick-start/observability', 'quick-start/credentials'],
+          pages: [
+            'quick-start/start-development',
+            'quick-start/observability',
+            'quick-start/credentials',
+          ],
         },
         'concepts',
       ],
@@ -118,6 +122,11 @@ export default {
     //     },
     //   ],
     // },
+    {
+      group: 'Self-Hosting',
+      icon: 'LuServer',
+      pages: ['self-hosting/add-sentry', 'self-hosting/add-datadog-apm'],
+    },
     {
       group: 'Community',
       icon: 'LuUsers',
