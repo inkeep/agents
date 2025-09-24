@@ -1,8 +1,8 @@
 import {
   type ArtifactComponentInsert as ArtifactComponentType,
-  generateIdFromName,
   getLogger,
 } from '@inkeep/agents-core';
+import { generateIdFromName } from './utils/generateIdFromName';
 
 const logger = getLogger('artifactComponent');
 
@@ -26,7 +26,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
   private id: ArtifactComponentType['id'];
 
   constructor(config: Omit<ArtifactComponentType, 'tenantId' | 'projectId'>) {
-    this.id = config.id;
+    this.id = config.id || generateIdFromName(config.name);
 
     this.config = {
       ...config,

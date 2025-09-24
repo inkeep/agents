@@ -1,8 +1,8 @@
 import {
   type DataComponentInsert as DataComponentType,
-  generateIdFromName,
   getLogger,
 } from '@inkeep/agents-core';
+import { generateIdFromName } from './utils/generateIdFromName';
 
 const logger = getLogger('dataComponent');
 
@@ -25,7 +25,7 @@ export class DataComponent implements DataComponentInterface {
   private id: DataComponentType['id'];
 
   constructor(config: Omit<DataComponentType, 'tenantId' | 'projectId'>) {
-    this.id = config.id;
+    this.id = config.id || generateIdFromName(config.name);
 
     this.config = {
       ...config,

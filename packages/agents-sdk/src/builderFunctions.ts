@@ -238,7 +238,12 @@ export function mcpTool(config: MCPToolConfig): Tool {
  */
 
 export function artifactComponent(config: ArtifactComponentConfig): ArtifactComponent {
-  return new ArtifactComponent(config);
+  // Generate ID if not provided
+  const configWithId = {
+    ...config,
+    id: config.id || generateIdFromName(config.name),
+  };
+  return new ArtifactComponent(configWithId);
 }
 /**
  * Creates a data component with automatic ID generation.
@@ -264,7 +269,12 @@ export function artifactComponent(config: ArtifactComponentConfig): ArtifactComp
  */
 
 export function dataComponent(config: DataComponentConfig): DataComponent {
-  return new DataComponent(config);
+  // Generate ID if not provided
+  const configWithId = {
+    ...config,
+    id: config.id || generateIdFromName(config.name),
+  };
+  return new DataComponent(configWithId);
 }
 
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
