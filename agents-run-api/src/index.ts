@@ -4,9 +4,9 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
-import type { NodeSDK } from '@opentelemetry/sdk-node';
 import { createExecutionHono } from './app';
 import { defaultNodeSDK } from './instrumentation';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 
 // Create default configuration
 const defaultConfig: ServerConfig = {
