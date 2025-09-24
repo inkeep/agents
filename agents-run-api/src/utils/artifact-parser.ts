@@ -182,8 +182,16 @@ export class ArtifactParser {
         });
 
         for (const artifact of taskArtifacts) {
-          const key = `${artifact.artifactId}:${artifact.taskId}`;
-          artifacts.set(key, artifact);
+          // For cache key, use toolCallId from metadata (the unique identifier)
+          // This matches how we create artifacts with toolCallId
+          const toolCallId = artifact.metadata?.toolCallId || '';
+          if (toolCallId) {
+            const key = `${artifact.artifactId}:${toolCallId}`;
+            artifacts.set(key, artifact);
+          }
+          // Also store with taskId as fallback for backwards compatibility
+          const taskKey = `${artifact.artifactId}:${artifact.taskId}`;
+          artifacts.set(taskKey, artifact);
         }
       }
 
@@ -359,12 +367,13 @@ export class ArtifactParser {
         });
       }
 
-      // Cache the created artifact
+      // Cache the created artifact using toolCallId as key (the unique identifier)
       const cacheKey = `${annotation.artifactId}:${annotation.toolCallId}`;
       this.createdArtifacts.set(cacheKey, {
         ...artifactData,
         parts: [{ data: { summary: artifactData.artifactSummary, full: fullData } }],
-        metadata: { artifactType: annotation.type },
+        metadata: { artifactType: annotation.type, toolCallId: annotation.toolCallId },
+        taskId: this.taskId,  // Store taskId for database scoping
       });
 
       return artifactData;
@@ -488,6 +497,7 @@ export class ArtifactParser {
       } else {
         // Handle artifact:ref tags
         const [, artifactId, toolCallId] = match;
+        // Use toolCallId for cache key (the unique identifier)
         const cacheKey = `${artifactId}:${toolCallId}`;
         
         if (this.createdArtifacts.has(cacheKey)) {
@@ -495,7 +505,7 @@ export class ArtifactParser {
           const cached = this.createdArtifacts.get(cacheKey)!;
           artifactData = this.formatArtifactData(cached, artifactId, toolCallId);
         } else {
-          // Get from existing artifacts
+          // Get from existing artifacts map or database
           artifactData = await this.getArtifactData(artifactId, toolCallId, artifactMap);
         }
       }
@@ -622,6 +632,7 @@ export class ArtifactParser {
     toolCallId: string,
     artifactMap?: Map<string, any>
   ): Promise<ArtifactData | null> {
+    // Use toolCallId for cache key lookup (the unique identifier)
     const key = `${artifactId}:${toolCallId}`;
 
     // Try map first
