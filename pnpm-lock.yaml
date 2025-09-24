@@ -889,6 +889,9 @@ importers:
       pino:
         specifier: ^9.11.0
         version: 9.11.0
+      pino-pretty:
+        specifier: ^13.1.1
+        version: 13.1.1
       ts-pattern:
         specifier: ^5.7.1
         version: 5.8.0
@@ -911,9 +914,6 @@ importers:
       drizzle-kit:
         specifier: ^0.31.4
         version: 0.31.4
-      pino-pretty:
-        specifier: ^13.1.1
-        version: 13.1.1
       tsx:
         specifier: ^4.19.2
         version: 4.20.5
