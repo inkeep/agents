@@ -53,6 +53,8 @@
     "inquirer-autocomplete-prompt": "^3.0.1",
     "ora": "^8.0.1",
     "picocolors": "^1.1.1",
+    "pino": "^9.11.0",
+    "pino-pretty": "^13.1.1",
     "recast": "^0.23.0",
     "ts-morph": "^26.0.0",
     "tsx": "^4.20.5"

@@ -112,7 +112,7 @@ app.openapi(
       logger.info({ toolId, tenantId, projectId }, 'Processing OAuth callback');
 
       // Exchange authorization code for access token using OAuth service
-      logger.info('Exchanging authorization code for access token');
+      logger.info({ toolId }, 'Exchanging authorization code for access token');
 
       // Convert database result to McpTool (using helper function)
       const mcpTool = dbResultToMcpTool(tool);
@@ -161,7 +161,7 @@ app.openapi(
         });
       } else {
         // Create new credential
-        logger.info('Creating new credential');
+        logger.info({ credentialId }, 'Creating new credential');
         credential = await createCredentialReference(dbClient)({
           tenantId,
           projectId,

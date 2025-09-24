@@ -14,6 +14,10 @@ import crudRoutes from './routes/index';
 import oauthRoutes from './routes/oauth';
 import projectFullRoutes from './routes/projectFull';
 
+const logger = getLogger('agents-manage-api');
+
+logger.info({ logger: logger.getTransports() }, 'Logger initialized');
+
 type AppVariables = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
@@ -35,10 +39,21 @@ function createManagementHono(
     return next();
   });
 
-  // Logging middleware
+  // Logging middleware - let hono-pino create its own logger to preserve formatting
   app.use(
     pinoLogger({
-      pino: getLogger(),
+      pino: {
+        name: 'agents-manage-api-http',
+        level: process.env.LOG_LEVEL || 'info',
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'HH:MM:ss',
+            ignore: 'pid,hostname',
+          },
+        },
+      },
       http: {
         onResLevel(c) {
           if (c.res.status >= 500) {
@@ -88,7 +103,7 @@ function createManagementHono(
       if (!isExpectedError) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         const errorStack = err instanceof Error ? err.stack : undefined;
-        getLogger().error(
+        logger.error(
           {
             error: err,
             message: errorMessage,
@@ -99,7 +114,7 @@ function createManagementHono(
           'Unexpected server error occurred'
         );
       } else {
-        getLogger().error(
+        logger.error(
           {
             error: err,
             path: c.req.path,
@@ -116,7 +131,7 @@ function createManagementHono(
         const response = err.getResponse();
         return response;
       } catch (responseError) {
-        getLogger().error({ error: responseError }, 'Error while handling HTTPException response');
+        logger.error({ error: responseError }, 'Error while handling HTTPException response');
       }
     }
 

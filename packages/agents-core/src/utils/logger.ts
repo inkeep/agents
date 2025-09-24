@@ -1,4 +1,3 @@
-import { createRequire } from 'module';
 import type {
   LoggerOptions,
   Logger as PinoLoggerInstance,
@@ -6,9 +5,7 @@ import type {
   TransportSingleOptions,
 } from 'pino';
 import pino from 'pino';
-import { fileURLToPath } from 'url';
-
-const require = createRequire(import.meta.url);
+import pinoPretty from 'pino-pretty';
 
 /**
  * Logger interface for core package components
@@ -79,7 +76,11 @@ export class PinoLogger implements Logger {
   ) {
     this.options = {
       name: this.name,
-      level: 'debug',
+      level: process.env.LOG_LEVEL || 'info',
+      serializers: {
+        obj: (value: any) => ({ ...value }),
+      },
+      redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
       ...config.options,
     };
 
@@ -91,24 +92,20 @@ export class PinoLogger implements Logger {
     if (this.transportConfigs.length > 0) {
       this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
     } else {
-      // Use pino-pretty as default with proper path resolution
-      // try {
-      const pinoPrettyPath = require.resolve('pino-pretty');
-      const transportConfig = {
-        target: pinoPrettyPath,
-        options: {
+      // Use pino-pretty stream directly instead of transport
+      try {
+        const prettyStream = pinoPretty({
           colorize: true,
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
-        },
-      };
-      this.transportConfigs.push(transportConfig);
-      this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
-      // } catch (error) {
-      //   // Fall back to standard pino if pino-pretty can't be resolved
-      //   console.warn('Warning: pino-pretty not found, using standard JSON output.');
-      //   this.pinoInstance = pino(this.options);
-      // }
+        });
+
+        this.pinoInstance = pino(this.options, prettyStream);
+      } catch (error) {
+        // Fall back to standard pino if pino-pretty fails
+        console.warn('Warning: pino-pretty failed, using standard JSON output:', error);
+        this.pinoInstance = pino(this.options);
+      }
     }
   }
 
@@ -117,8 +114,20 @@ export class PinoLogger implements Logger {
    */
   private recreateInstance(): void {
     if (this.transportConfigs.length === 0) {
-      // Default pino instance
-      this.pinoInstance = pino(this.options);
+      // Use pino-pretty stream directly instead of transport (same as constructor)
+      try {
+        const prettyStream = pinoPretty({
+          colorize: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname',
+        });
+
+        this.pinoInstance = pino(this.options, prettyStream);
+      } catch (error) {
+        // Fall back to standard pino if pino-pretty fails
+        console.warn('Warning: pino-pretty failed, using standard JSON output:', error);
+        this.pinoInstance = pino(this.options);
+      }
     } else {
       const multiTransport: TransportMultiOptions = { targets: this.transportConfigs };
       const pinoTransport = pino.transport(multiTransport);

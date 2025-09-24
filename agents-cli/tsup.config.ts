@@ -13,6 +13,8 @@ export default defineConfig({
   // Minimal external list - just problematic packages
   external: [
     'keytar', // Native module - MUST be external
+    'pino',
+    'pino-pretty',
   ],
   // Bundle workspace packages
   noExternal: ['@inkeep/agents-core'],

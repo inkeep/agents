@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  Logger,
   ConsoleLogger,
-  NoOpLogger,
-  loggerFactory,
+  PinoLogger,
   configureLogging,
-  getLogger
+  getLogger,
+  loggerFactory,
+  NoOpLogger,
 } from '../../utils/logger';
 
 describe('Logger', () => {
@@ -97,12 +97,11 @@ describe('Logger', () => {
     });
   });
 
-
   describe('LoggerFactory', () => {
-    it('should return ConsoleLogger by default', () => {
+    it('should return PinoLogger by default', () => {
       const logger = loggerFactory.getLogger('test');
 
-      expect(logger).toBeInstanceOf(ConsoleLogger);
+      expect(logger).toBeInstanceOf(PinoLogger);
     });
 
     it('should cache logger instances', () => {
@@ -113,11 +112,11 @@ describe('Logger', () => {
     });
 
     it('should use custom logger factory', () => {
-      const customLogger = new NoOpLogger();
+      const customLogger = new PinoLogger('custom');
       const customFactory = vi.fn(() => customLogger);
 
       loggerFactory.configure({
-        loggerFactory: customFactory
+        loggerFactory: customFactory,
       });
 
       const logger = loggerFactory.getLogger('test');
@@ -127,10 +126,10 @@ describe('Logger', () => {
     });
 
     it('should use default logger', () => {
-      const defaultLogger = new NoOpLogger();
+      const defaultLogger = new PinoLogger('default');
 
       loggerFactory.configure({
-        defaultLogger: defaultLogger
+        defaultLogger: defaultLogger,
       });
 
       const logger = loggerFactory.getLogger('test');
@@ -142,7 +141,7 @@ describe('Logger', () => {
       const logger1 = loggerFactory.getLogger('test');
 
       loggerFactory.configure({
-        defaultLogger: new NoOpLogger()
+        defaultLogger: new PinoLogger('reconfigured'),
       });
 
       const logger2 = loggerFactory.getLogger('test');
@@ -152,23 +151,22 @@ describe('Logger', () => {
 
     it('should reset to default state', () => {
       loggerFactory.configure({
-        defaultLogger: new NoOpLogger()
+        defaultLogger: new PinoLogger('configured'),
       });
 
       loggerFactory.reset();
 
       const logger = loggerFactory.getLogger('test');
-      expect(logger).toBeInstanceOf(ConsoleLogger);
+      expect(logger).toBeInstanceOf(PinoLogger);
     });
   });
 
-
   describe('configureLogging', () => {
     it('should configure the global logger factory', () => {
-      const customLogger = new NoOpLogger();
+      const customLogger = new PinoLogger('custom');
 
       configureLogging({
-        defaultLogger: customLogger
+        defaultLogger: customLogger,
       });
 
       const logger = getLogger('test');
@@ -180,7 +178,7 @@ describe('Logger', () => {
     it('should return logger from factory', () => {
       const logger = getLogger('test');
 
-      expect(logger).toBeInstanceOf(ConsoleLogger);
+      expect(logger).toBeInstanceOf(PinoLogger);
     });
   });
 });
