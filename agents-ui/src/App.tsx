@@ -3,7 +3,7 @@ import { InkeepEmbeddedChat } from '@inkeep/cxkit-react-oss';
 
 function App() {
   return (
-    <div>
+    <div className="inkeep-chat-container">
       <InkeepEmbeddedChat
         baseSettings={{
           primaryBrandColor: '#3784ff',
