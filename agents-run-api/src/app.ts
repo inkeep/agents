@@ -7,7 +7,6 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
-import type { NodeSDK } from '@opentelemetry/sdk-node';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
