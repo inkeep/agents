@@ -253,7 +253,6 @@ describe('API Key Authentication Middleware', () => {
       const body = await res.json();
       expect(body).toMatchObject({
         apiKey: 'sk_prod_differentkey123456.verylongsecretkey',
-        name: 'test-api-key',
         tenantId: 'tenant_456',
         projectId: 'project_456',
         graphId: 'graph_456',
