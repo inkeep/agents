@@ -138,12 +138,14 @@ program
   .option('--host <host>', 'Host to bind the server to', 'localhost')
   .option('--build', 'Create a Vercel-ready build and exit')
   .option('--output-dir <dir>', 'Output directory for build files', './vercel-build')
+  .option('--vercel', 'Copy Vercel output to .vercel/output for deployment')
   .action(async (options) => {
     await devCommand({
       port: parseInt(options.port, 10),
       host: options.host,
       build: options.build,
       outputDir: options.outputDir,
+      vercel: options.vercel,
     });
   });
 

@@ -13,6 +13,7 @@ export interface DevOptions {
   host?: string;
   build?: boolean;
   outputDir?: string;
+  vercel?: boolean;
 }
 
 function resolveWebRuntime() {
@@ -78,6 +79,50 @@ function startWebApp({ port = 3000, host = 'localhost' }: DevOptions) {
     spinner.fail('Failed to start dashboard server');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
+  }
+}
+
+async function copyVercelOutput() {
+  const spinner = ora('Copying Vercel output...').start();
+
+  try {
+    // 1. Find the package's .vercel/output folder
+    const pkg = require.resolve('@inkeep/agents-manage-ui/package.json');
+    const root = dirname(pkg);
+    const sourceOutputPath = join(root, '.vercel', 'output');
+
+    // Check if the vercel output exists
+    if (!existsSync(sourceOutputPath)) {
+      spinner.fail('Vercel output not found');
+      console.error(chalk.red('The Vercel output has not been built yet in the package.'));
+      process.exit(1);
+    }
+
+    // 2. Determine destination path (current working directory)
+    const destVercelDir = join(process.cwd(), '.vercel');
+    const destOutputPath = join(destVercelDir, 'output');
+
+    // 3. Ensure .vercel directory exists
+    await fs.ensureDir(destVercelDir);
+
+    // 4. Remove existing output directory if it exists
+    if (existsSync(destOutputPath)) {
+      await fs.remove(destOutputPath);
+    }
+
+    // 5. Copy the vercel output
+    await fs.copy(sourceOutputPath, destOutputPath);
+
+    spinner.succeed(`Vercel output copied to .vercel/output/`);
+
+    console.log('');
+    console.log(chalk.blue('🚀 Ready for Vercel deployment'));
+    console.log(chalk.gray('Run: vercel deploy --prebuilt --prod'));
+    console.log('');
+  } catch (error) {
+    spinner.fail('Failed to copy Vercel output');
+    console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
+    throw error;
   }
 }
 
@@ -187,7 +232,18 @@ Make sure to set these in your Vercel project settings:
 }
 
 export async function devCommand(options: DevOptions) {
-  const { port = 3000, host = 'localhost', build = false, outputDir = './vercel-build' } = options;
+  const {
+    port = 3000,
+    host = 'localhost',
+    build = false,
+    outputDir = './vercel-build',
+    vercel = false,
+  } = options;
+
+  if (vercel) {
+    await copyVercelOutput();
+    return;
+  }
 
   if (build) {
     await buildForVercel({ outputDir });
