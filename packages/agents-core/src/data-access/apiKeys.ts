@@ -96,6 +96,7 @@ export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert)
     .insert(apiKeys)
     .values({
       id: params.id,
+      name: params.name,
       tenantId: params.tenantId,
       projectId: params.projectId,
       graphId: params.graphId,
@@ -119,6 +120,7 @@ export const updateApiKey =
     const [updatedKey] = await db
       .update(apiKeys)
       .set({
+        name: params.data.name,
         expiresAt: params.data.expiresAt,
         updatedAt: now,
       })
@@ -210,7 +212,7 @@ export const generateAndCreateApiKey = async (
   params: CreateApiKeyParams,
   db: DatabaseClient
 ): Promise<ApiKeyCreateResult> => {
-  const { tenantId, projectId, graphId, expiresAt } = params;
+  const { tenantId, projectId, graphId, expiresAt, name } = params;
 
   // Generate the API key
   const keyData = await generateApiKey();
@@ -220,6 +222,7 @@ export const generateAndCreateApiKey = async (
     tenantId,
     projectId,
     graphId,
+    name,
     expiresAt,
     ...keyData,
   });

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
+import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
@@ -68,10 +69,12 @@ export function ApiKeyForm({
   const onSubmit = async (data: ApiKeyFormData) => {
     try {
       const expiresAt = data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined;
+      const name = data.name;
 
       const payload: Partial<ApiKey> = {
         graphId: data.graphId,
         expiresAt,
+        name,
       };
 
       const res = await createApiKeyAction(tenantId, projectId, payload);
@@ -93,6 +96,13 @@ export function ApiKeyForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <GenericInput
+          control={form.control}
+          name="name"
+          label="Name"
+          placeholder="Enter a name"
+          isRequired
+        />
         <GenericSelect
           control={form.control}
           name="expiresAt"

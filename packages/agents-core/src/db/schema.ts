@@ -621,6 +621,7 @@ export const apiKeys = sqliteTable(
     publicId: text('public_id').notNull().unique(), // Public ID for O(1) lookup (e.g., "abc123def456")
     keyHash: text('key_hash').notNull(), // Hashed API key (never store plaintext)
     keyPrefix: text('key_prefix').notNull(), // First 8 chars for identification (e.g., "sk_live_abc...")
+    name: text('name'),
     lastUsedAt: text('last_used_at'),
     expiresAt: text('expires_at'),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
