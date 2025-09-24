@@ -35,6 +35,8 @@ import {
 import { getLogger } from '../logger';
 import { oauthService } from '../utils/oauth-service';
 
+const logger = getLogger('tools');
+
 type AppVariables = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
@@ -184,7 +186,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    getLogger().info({ body }, 'body');
+    logger.info({ body }, 'body');
 
     const id = body.id || nanoid();
 
@@ -646,7 +648,6 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const logger = getLogger('oauth-login');
 
     try {
       // 1. Get the tool

@@ -17,6 +17,7 @@ export default defineConfig({
     },
     env: {
       ENVIRONMENT: 'test',
+      DB_FILE_NAME: ':memory:',
     },
     coverage: {
       provider: 'v8',
