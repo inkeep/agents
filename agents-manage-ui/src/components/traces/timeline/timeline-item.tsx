@@ -191,30 +191,6 @@ export function TimelineItem({
             <Bubble className="break-all">{truncateChars(activity.toolResult, 50)}</Bubble>
           )}
 
-          {/* context resolution summary */}
-          {activity.type === 'context_resolution' && activity.status !== 'error' && (
-            <div className="mt-2 p-3 rounded-lg max-w-4xl">
-              <div className="space-y-2 text-sm">
-                {activity.contextConfigId && TagRow('Config', activity.contextConfigId)}
-                {activity.contextAgentGraphId && TagRow('Graph', activity.contextAgentGraphId)}
-                {activity.contextStatusDescription && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        activity.status === 'success'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                      }`}
-                    >
-                      {activity.contextStatusDescription}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* context resolution URL */}
           {activity.type === 'context_resolution' && activity.contextUrl && (
             <CodeBubble className=" break-all">{truncateChars(activity.contextUrl, 50)}</CodeBubble>
