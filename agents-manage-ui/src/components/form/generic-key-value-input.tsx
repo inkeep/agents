@@ -1,5 +1,6 @@
 'use client';
 
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -78,7 +79,10 @@ export function GenericKeyValueInput<T extends FieldValues>({
             {Object.entries(currentData).length > 0 && (
               <div className="space-y-2">
                 {Object.entries(currentData).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
+                  <div
+                    key={key}
+                    className="flex items-center gap-2 py-1.5 px-3 border rounded-md bg-muted/30"
+                  >
                     <span className="font-medium text-sm">{key}:</span>
                     <span className="text-sm text-muted-foreground flex-1">{value}</span>
                     <Button
@@ -88,7 +92,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
                       onClick={() => removeKeyValue(key)}
                       className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
                     >
-                      ×
+                      <X className="h-4 w-4 opacity-50" />
                     </Button>
                   </div>
                 ))}

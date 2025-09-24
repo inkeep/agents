@@ -146,17 +146,17 @@ export function ActiveToolsSelector<
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
           <div className="mt-2">
             {availableTools.length === 0 && (
-              <div className="text-sm text-muted-foreground p-4 border rounded-md bg-muted/30">
+              <div className="text-sm text-muted-foreground border rounded-md p-3 py-2 bg-gray-100/80 dark:bg-sidebar">
                 No tools available from this server
               </div>
             )}
             {availableTools.length > 0 && (
               <>
-                <div className="flex items-center gap-2 justify-between py-3 px-6 rounded-t-md border border-b-0">
+                <div className="flex items-center gap-2 justify-between py-3 px-6 rounded-t-lg border border-b-0">
                   <div className="text-sm">
                     {getSelectedCount()}{' '}
                     <span className="text-gray-400 dark:text-white/40">
-                      / {availableTools.length} tools
+                      / {availableTools.length} tool{availableTools.length === 1 ? '' : 's'}
                     </span>
                   </div>
                   {allToolsSelected ? (
@@ -185,14 +185,14 @@ export function ActiveToolsSelector<
                 </div>
 
                 {/* Individual Tool Selection */}
-                <div className="max-h-96 overflow-y-auto border rounded-md rounded-t-none scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
+                <div className="max-h-96 overflow-y-auto border rounded-lg rounded-t-none scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
                   {availableTools.map((tool) => {
                     const isChecked = isToolSelected(tool.name);
 
                     return (
                       <div
                         key={tool.name}
-                        className="space-y-2 flex items-start gap-6 border-b last:border-b-0 py-4 px-6 relative "
+                        className="space-y-2 flex items-start gap-6 border-b last:border-b-0 py-4 px-6 relative"
                       >
                         <div className="flex items-center h-[22px]">
                           <Checkbox

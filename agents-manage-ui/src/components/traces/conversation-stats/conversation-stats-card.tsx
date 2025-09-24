@@ -105,7 +105,7 @@ export function ConversationStatsCard({
           <CardTitle className="flex font-medium items-center gap-4 text-foreground">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-gray-400 dark:text-white/40" />
-              Recent Conversations
+              Recent conversations
             </div>
 
             <Badge variant="code" className="text-xs">

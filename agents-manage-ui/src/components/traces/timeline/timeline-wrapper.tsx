@@ -15,33 +15,33 @@ import type {
 import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { ExternalLink } from '@/components/ui/external-link';
+import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {
     case 'ai_generation':
-      return 'AI Generation Details';
+      return 'AI generation details';
     case 'user_message':
-      return 'User Message Details';
+      return 'User message details';
     case 'ai_assistant_message':
-      return 'AI Assistant Message Details';
+      return 'AI assistant message details';
     case 'context_fetch':
-      return 'Context Fetch Details';
+      return 'Context fetch details';
     case 'context_resolution':
-      return 'Context Resolution Details';
+      return 'Context resolution details';
     case 'delegation':
       return 'Delegation Details';
     case 'transfer':
-      return 'Transfer Details';
+      return 'Transfer details';
     case 'tool_purpose':
-      return 'Tool Purpose Details';
+      return 'Tool purpose details';
     case 'generic_tool':
-      return 'Tool Call Details';
+      return 'Tool call details';
     case 'ai_model_streamed_text':
-      return 'AI Streaming Text Details';
+      return 'AI Streaming text details';
     case 'mcp_tool_error':
-      return 'MCP Tool Error Details';
+      return 'MCP tool error details';
     default:
       return 'Details';
   }
@@ -55,6 +55,7 @@ interface TimelineWrapperProps {
   retryConnection?: () => void;
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
+  conversationId?: string;
 }
 
 function EmptyTimeline({
@@ -83,7 +84,9 @@ function EmptyTimeline({
                   The SIGNOZ_API_KEY environment variable is not configured. Please set this
                   environment variable to the enable activity timeline.
                 </p>
-                <ExternalLink href={`https://docs.inkeep.com/visual-builder/graphs`}>Learn more</ExternalLink>
+                <ExternalLink href={`https://docs.inkeep.com/visual-builder/graphs`}>
+                  Learn more
+                </ExternalLink>
               </div>
             ) : (
               error
@@ -128,6 +131,7 @@ export function TimelineWrapper({
   retryConnection,
   refreshOnce,
   showConversationTracesLink = false,
+  conversationId
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -147,6 +151,13 @@ export function TimelineWrapper({
       setPanelVisible(false);
     }
   }, [selected]);
+
+    // Clear selected panel when conversation changes
+    useEffect(() => {
+      if (conversationId) {
+        setSelected(null);
+      }
+    }, [conversationId]);
 
   // Memoize activities calculation to prevent expensive operations on every render
   const activities = useMemo(() => {
@@ -281,7 +292,7 @@ export function TimelineWrapper({
         <div className="bg-background h-full flex flex-col py-4">
           <div className="flex-shrink-0">
             <div className="flex items-center justify-between px-6 pb-4">
-              <div className="text-foreground text-md font-medium">Activity Timeline</div>
+              <div className="text-foreground text-md font-medium">Activity timeline</div>
               <div className="flex items-center gap-2">
                 {/* Expand/Collapse AI Messages Buttons */}
                 {sortedActivities.some(

@@ -1,5 +1,22 @@
 # @inkeep/agents-manage-ui
 
+## 0.4.0
+
+### Minor Changes
+
+- a379dec: Added env var loader to agents-cli package
+
+### Patch Changes
+
+- 0a8352f: Updates
+- 0a8352f: Added new providers
+- Updated dependencies [0a8352f]
+- Updated dependencies [0a8352f]
+- Updated dependencies [a379dec]
+  - @inkeep/agents-core@0.4.0
+  - @inkeep/agents-run-api@0.4.0
+  - @inkeep/agents-manage-api@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

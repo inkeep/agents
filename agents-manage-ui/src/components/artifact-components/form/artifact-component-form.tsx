@@ -121,14 +121,14 @@ export function ArtifactComponentForm({
         <JsonSchemaInput
           control={form.control}
           name="summaryProps"
-          label="Summary props (JSON Schema)"
+          label="Summary props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
           isRequired
         />
         <JsonSchemaInput
           control={form.control}
           name="fullProps"
-          label="Full props (JSON Schema)"
+          label="Full props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
           isRequired
         />

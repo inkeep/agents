@@ -110,7 +110,7 @@ export function MCPServerForm({
           control={form.control}
           name="name"
           label="Name"
-          placeholder="MCP Server"
+          placeholder="MCP server"
           isRequired
         />
         <GenericInput
@@ -122,8 +122,9 @@ export function MCPServerForm({
         />
         <GenericSelect
           control={form.control}
+          selectTriggerClassName="w-full"
           name="config.mcp.transport.type"
-          label="Transport Type"
+          label="Transport type"
           placeholder="Select transport type"
           options={[
             {
@@ -141,6 +142,7 @@ export function MCPServerForm({
         />
         <GenericSelect
           control={form.control}
+          selectTriggerClassName="w-full"
           name="credentialReferenceId"
           label="Credential"
           placeholder="Select a credential"

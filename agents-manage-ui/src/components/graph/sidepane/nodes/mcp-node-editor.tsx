@@ -158,7 +158,7 @@ export function MCPServerNodeEditor({
           name="name"
           value={selectedNode.data.name || ''}
           onChange={handleInputChange}
-          placeholder="MCP Server"
+          placeholder="MCP server"
           className="w-full"
           disabled
         />
