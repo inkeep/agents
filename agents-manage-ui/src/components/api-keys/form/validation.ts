@@ -15,4 +15,10 @@ export const apiKeySchema = z.object({
   expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never'] as const),
 });
 
+export const apiKeyUpdateSchema = z.object({
+  name: z.string().min(1, 'Please enter a name.'),
+  expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never'] as const),
+});
+
 export type ApiKeyFormData = z.infer<typeof apiKeySchema>;
+export type ApiKeyUpdateData = z.infer<typeof apiKeyUpdateSchema>;

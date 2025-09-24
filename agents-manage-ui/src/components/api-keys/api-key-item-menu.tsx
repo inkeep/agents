@@ -1,31 +1,33 @@
 'use client';
 
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { ApiKey } from '@/lib/api/api-keys';
 import { DeleteApiKeyConfirmation } from './delete-api-key-confirmation';
+import { ApiKeyUpdateDialog } from './update-api-key-dialog';
 
 interface ApiKeyItemMenuProps {
-  apiKeyId: string;
-  apiKeyName?: string;
+  apiKey: ApiKey;
 }
 
-export function ApiKeyItemMenu({ apiKeyId, apiKeyName }: ApiKeyItemMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
+type DialogType = 'delete' | 'update' | null;
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
+export function ApiKeyItemMenu({ apiKey }: ApiKeyItemMenuProps) {
+  const [openDialog, setOpenDialog] = useState<DialogType>(null);
+
+  const handleDialogClose = () => {
+    setOpenDialog(null);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -34,21 +36,34 @@ export function ApiKeyItemMenu({ apiKeyId, apiKeyName }: ApiKeyItemMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
-              <Trash2 className="size-4 text-destructive" />
-              Delete
-            </DropdownMenuItem>
-          </DialogTrigger>
+          <DropdownMenuItem
+            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
+            onClick={() => setOpenDialog('delete')}
+          >
+            <Trash2 className="size-4 text-destructive" />
+            Delete
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-primary hover:!bg-primary/10 dark:hover:!bg-primary/20 hover:!text-primary cursor-pointer"
+            onClick={() => setOpenDialog('update')}
+          >
+            <Pencil className="size-4 text-primary" />
+            Edit
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {isOpen && (
+
+      {openDialog === 'delete' && (
         <DeleteApiKeyConfirmation
-          apiKeyId={apiKeyId}
-          apiKeyName={apiKeyName}
-          setIsOpen={setIsOpen}
+          apiKeyId={apiKey.id}
+          apiKeyName={apiKey.name || 'No name'}
+          setIsOpen={handleDialogClose}
         />
       )}
-    </Dialog>
+
+      {openDialog === 'update' && (
+        <ApiKeyUpdateDialog apiKey={apiKey} setIsOpen={handleDialogClose} />
+      )}
+    </>
   );
 }

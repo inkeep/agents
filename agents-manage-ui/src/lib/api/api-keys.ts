@@ -114,3 +114,30 @@ export async function deleteApiKey(
     method: 'DELETE',
   });
 }
+
+/**
+ * Update an api key
+ */
+export async function updateApiKey(
+  tenantId: string,
+  projectId: string,
+  apiKeyData: Partial<ApiKey>
+): Promise<ApiKey> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiSelect>>(
+    `tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyData.id}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(apiKeyData),
+    }
+  );
+
+  return {
+    ...response.data,
+    name: response.data.name ?? 'No Name', // name could be null due to backward compatibility
+    lastUsedAt: response.data.lastUsedAt ?? undefined,
+    expiresAt: response.data.expiresAt ?? undefined,
+  };
+}
