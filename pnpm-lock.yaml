@@ -99,6 +99,9 @@ importers:
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
+      pino:
+        specifier: ^9.11.0
+        version: 9.11.0
       recast:
         specifier: ^0.23.0
         version: 0.23.11
@@ -127,6 +130,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.14)(jiti@2.5.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))
+      pino-pretty:
+        specifier: ^13.1.1
+        version: 13.1.1
       tsup:
         specifier: ^8.5.0
         version: 8.5.0(jiti@2.5.1)(postcss@8.5.6)(tsx@4.20.5)(typescript@5.9.2)(yaml@2.8.1)
@@ -883,9 +889,6 @@ importers:
       pino:
         specifier: ^9.11.0
         version: 9.11.0
-      pino-pretty:
-        specifier: ^13.1.1
-        version: 13.1.1
       ts-pattern:
         specifier: ^5.7.1
         version: 5.8.0
@@ -908,6 +911,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.4
         version: 0.31.4
+      pino-pretty:
+        specifier: ^13.1.1
+        version: 13.1.1
       tsx:
         specifier: ^4.19.2
         version: 4.20.5
@@ -7509,7 +7515,6 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
-    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
