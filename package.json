@@ -11,7 +11,7 @@
   "scripts": {
     "sync:licenses": "node scripts/sync-licenses.mjs",
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
-    "build": "turbo build",
+    "build": "turbo build --filter='!@inkeep/agents-manage-ui' && pnpm --filter @inkeep/agents-manage-ui build:vercel",
     "dev": "turbo dev --filter='!@inkeep/create-agents'",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
