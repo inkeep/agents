@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, SlackIcon } from 'lucide-react';
 import Link from 'next/link';
 import { GithubIcon } from '@/components/brand-icons';
 import { Fade } from '@/components/fade';
@@ -8,6 +8,7 @@ import { SidebarTrigger } from '@/components/navbar/sidebar-trigger';
 import { SearchToggle } from '@/components/search-trigger';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { SLACK_URL } from '@/lib/constants';
 import { ChatToggle } from './chat-trigger';
 
 export const Navbar = () => {
@@ -29,6 +30,17 @@ export const Navbar = () => {
           </div>
 
           <div className="flex-1 flex items-center gap-0.5 md:gap-4 ml-auto justify-end">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="max-sm:hidden text-fd-muted-foreground hover:text-fd-accent-foreground"
+              asChild
+            >
+              <a href={SLACK_URL} target="_blank" rel="noreferrer">
+                <SlackIcon />
+                <span className="sr-only">Slack</span>
+              </a>
+            </Button>
             <Button variant="outline" size="sm" className="max-sm:hidden" asChild>
               <a href="https://github.com/inkeep/agents" target="_blank" rel="noreferrer">
                 <GithubIcon />

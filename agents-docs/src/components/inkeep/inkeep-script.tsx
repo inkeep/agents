@@ -13,7 +13,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { detectedSalesSignal, salesSignalType } from './sales-escalation';
 import { provideAnswerConfidenceSchema } from './support-escalation';
 
-const validSalesSignalTypes: string[] = salesSignalType.options.map((option: any) => option.value);
+const validSalesSignalTypes: string[] = salesSignalType.options.map((option) => option.value);
 
 const apiKey = process.env.NEXT_PUBLIC_INKEEP_API_KEY;
 
@@ -204,6 +204,10 @@ export function InkeepScript() {
       true
     );
   }, []);
+
+  if (!apiKey) {
+    console.warn('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
+  }
 
   return (
     <>
