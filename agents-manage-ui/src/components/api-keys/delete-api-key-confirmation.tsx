@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
+import { Dialog } from '@/components/ui/dialog';
 import { deleteApiKeyAction } from '@/lib/actions/api-keys';
 
 interface DeleteApiKeyConfirmationProps {
@@ -39,10 +40,12 @@ export function DeleteApiKeyConfirmation({
   };
 
   return (
-    <DeleteConfirmation
-      itemName={apiKeyName || 'this API key'}
-      isSubmitting={isSubmitting}
-      onDelete={handleDelete}
-    />
+    <Dialog open={true} onOpenChange={(open) => !open && setIsOpen(false)}>
+      <DeleteConfirmation
+        itemName={apiKeyName || 'this API key'}
+        isSubmitting={isSubmitting}
+        onDelete={handleDelete}
+      />
+    </Dialog>
   );
 }

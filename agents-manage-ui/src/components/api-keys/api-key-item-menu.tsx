@@ -36,19 +36,16 @@ export function ApiKeyItemMenu({ apiKey }: ApiKeyItemMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem className=" cursor-pointer" onClick={() => setOpenDialog('update')}>
+            <Pencil className="size-4" />
+            Edit
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
             onClick={() => setOpenDialog('delete')}
           >
             <Trash2 className="size-4 text-destructive" />
             Delete
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-primary hover:!bg-primary/10 dark:hover:!bg-primary/20 hover:!text-primary cursor-pointer"
-            onClick={() => setOpenDialog('update')}
-          >
-            <Pencil className="size-4 text-primary" />
-            Edit
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
