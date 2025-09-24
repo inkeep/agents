@@ -20,6 +20,7 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
+
 const logger = getLogger('agents-run-api');
 
 type AppVariables = {
@@ -31,7 +32,7 @@ type AppVariables = {
 
 function createExecutionHono(
   serverConfig: ServerConfig,
-  credentialStores: CredentialStoreRegistry,
+  credentialStores: CredentialStoreRegistry
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 

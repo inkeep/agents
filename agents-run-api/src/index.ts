@@ -5,6 +5,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { createExecutionHono } from './app';
+
 // Create default configuration
 const defaultConfig: ServerConfig = {
   port: 3003,
