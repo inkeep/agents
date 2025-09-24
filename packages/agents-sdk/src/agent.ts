@@ -622,6 +622,7 @@ export class Agent implements AgentInterface {
     try {
       // Create a DataComponent instance from the config
       const dc = new DataComponent({
+        id: dataComponent.id,
         name: dataComponent.name,
         description: dataComponent.description,
         props: dataComponent.props,
@@ -663,6 +664,7 @@ export class Agent implements AgentInterface {
     try {
       // Create an ArtifactComponent instance from the config
       const ac = new ArtifactComponent({
+        id: artifactComponent.id,
         name: artifactComponent.name,
         description: artifactComponent.description,
         summaryProps: artifactComponent.summaryProps,

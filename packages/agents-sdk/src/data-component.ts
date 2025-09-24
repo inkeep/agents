@@ -7,7 +7,7 @@ import {
 const logger = getLogger('dataComponent');
 
 export interface DataComponentInterface {
-  config: Omit<DataComponentType, 'id' | 'tenantId' | 'projectId'>;
+  config: Omit<DataComponentType, 'tenantId' | 'projectId'>;
   init(): Promise<void>;
   getId(): DataComponentType['id'];
   getName(): DataComponentType['name'];
@@ -24,8 +24,8 @@ export class DataComponent implements DataComponentInterface {
   private initialized = false;
   private id: DataComponentType['id'];
 
-  constructor(config: Omit<DataComponentType, 'id' | 'tenantId' | 'projectId'>) {
-    this.id = generateIdFromName(config.name);
+  constructor(config: Omit<DataComponentType, 'tenantId' | 'projectId'>) {
+    this.id = config.id;
 
     this.config = {
       ...config,

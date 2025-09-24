@@ -19,7 +19,7 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
   type CredentialKeys = UnionCredentialIds<T>;
 
   return {
-    getEnvironmentSetting: async (key: CredentialKeys): Promise<CredentialReferenceApiInsert> => {
+    getEnvironmentSetting: (key: CredentialKeys): CredentialReferenceApiInsert => {
       const currentEnv = process.env.INKEEP_ENV || 'development';
       const env = environments[currentEnv];
 

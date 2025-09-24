@@ -4,6 +4,11 @@ import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { ModelSettings } from '@inkeep/agents-core';
 import { generateText } from 'ai';
+import {
+  calculateTokenSavings,
+  createPlaceholders,
+  restorePlaceholders,
+} from './pull.placeholder-system';
 
 /**
  * Create a language model instance from configuration
@@ -59,6 +64,34 @@ CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
   - Graph: import { myGraph } from './graphs/my-graph'; export const myGraph = agentGraph({ id: 'my-graph', ... })
 `;
 
+const IMPORT_INSTRUCTIONS = `
+CRITICAL IMPORT PATTERNS:
+- Tools: Import from '../tools/{toolId}' (individual files)
+- Data components: Import from '../data-components/{componentId}' (individual files)
+- Artifact components: Import from '../artifact-components/{componentId}' (individual files)
+- Graphs: Import from './graphs/{graphId}' (individual files)
+
+NEVER use barrel imports from directories:
+❌ WRONG: import { ambiguity, fact } from '../data-components';
+✅ CORRECT:
+   import { ambiguity } from '../data-components/ambiguity';
+   import { fact } from '../data-components/fact';
+
+EXAMPLES:
+// Multiple data components - each from individual file:
+import { ambiguity } from '../data-components/ambiguity';
+import { clarifyingquestion } from '../data-components/clarifyingquestion';
+import { fact } from '../data-components/fact';
+
+// Tools - each from individual file:
+import { inkeepFacts } from '../tools/inkeep_facts';
+import { weatherApi } from '../tools/weather-api';
+
+// Graphs - each from individual file:
+import { inkeepQaGraph } from './graphs/inkeep-qa-graph';
+import { weatherGraph } from './graphs/weather-graph';
+`;
+
 /**
  * Clean generated text by removing markdown code fences
  */
@@ -69,6 +102,65 @@ function cleanGeneratedCode(text: string): string {
     .replace(/^```(?:typescript|ts)?\n?/, '')
     .replace(/\n?```$/, '')
     .trim();
+}
+
+/**
+ * Enhanced generateText wrapper with placeholder support
+ *
+ * @param model - The language model instance
+ * @param data - The data object to process for placeholders
+ * @param promptTemplate - Template string with {{DATA}} placeholder for data insertion
+ * @param options - Generation options (temperature, maxTokens, etc.)
+ * @param debug - Whether to log debug information
+ * @returns Generated and processed text with placeholders restored
+ */
+export async function generateTextWithPlaceholders(
+  model: any,
+  data: any,
+  promptTemplate: string,
+  options: {
+    temperature?: number;
+    maxOutputTokens?: number;
+    abortSignal?: AbortSignal;
+  },
+  debug: boolean = false
+): Promise<string> {
+  // Create placeholders to reduce prompt size
+  const { processedData, replacements } = createPlaceholders(data);
+
+  if (debug && Object.keys(replacements).length > 0) {
+    const savings = calculateTokenSavings(data, processedData);
+    console.log(`[DEBUG] Placeholder optimization:`);
+    console.log(`[DEBUG]   - Original data size: ${savings.originalSize} characters`);
+    console.log(`[DEBUG]   - Processed data size: ${savings.processedSize} characters`);
+    console.log(
+      `[DEBUG]   - Token savings: ${savings.savings} characters (${savings.savingsPercentage.toFixed(1)}%)`
+    );
+    console.log(`[DEBUG]   - Placeholders created: ${Object.keys(replacements).length}`);
+  }
+
+  // Replace {{DATA}} in the prompt template with the processed data
+  const prompt = promptTemplate.replace('{{DATA}}', JSON.stringify(processedData, null, 2));
+
+  if (debug) {
+    console.log(`[DEBUG] Final prompt size: ${prompt.length} characters`);
+  }
+
+  // Generate text using the LLM
+  const { text } = await generateText({
+    model,
+    prompt,
+    ...options,
+  });
+
+  // Restore placeholders in the generated code
+  const restoredText = restorePlaceholders(text, replacements);
+
+  if (debug && Object.keys(replacements).length > 0) {
+    console.log(`[DEBUG] Placeholders restored successfully`);
+  }
+
+  return restoredText;
 }
 
 /**
@@ -100,19 +192,37 @@ export async function generateIndexFile(
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const prompt = `Generate a TypeScript index.ts file for an Inkeep project with the following data:
+  const promptTemplate = `Generate a TypeScript index.ts file for an Inkeep project with the following data:
 
 PROJECT DATA:
-${JSON.stringify(projectData, null, 2)}
+{{DATA}}
 
 ${NAMING_CONVENTION_RULES}
 
+CRITICAL IMPORT PATTERNS FOR INDEX.TS:
+- Tools: Import from './tools/{toolId}' (individual files)
+- Data components: Import from './data-components/{componentId}' (individual files)
+- Artifact components: Import from './artifact-components/{componentId}' (individual files)
+- Graphs: Import from './graphs/{graphId}' (individual files)
+
+NEVER use barrel imports from directories:
+❌ WRONG: import { ambiguity, fact } from './data-components';
+✅ CORRECT:
+   import { ambiguity } from './data-components/ambiguity';
+   import { fact } from './data-components/fact';
+
+EXAMPLES:
+// Multiple data components - each from individual file:
+import { ambiguity } from './data-components/ambiguity';
+import { clarifyingquestion } from './data-components/clarifyingquestion';
+import { fact } from './data-components/fact';
+
 REQUIREMENTS:
 1. Import the project function from '@inkeep/agents-sdk'
-2. Import all graphs from the graphs directory
-3. Import all tools from the tools directory
-4. Import all data components from the data-components directory
-5. Import all artifact components from the artifact-components directory
+2. Import each graph from individual files in the graphs directory
+3. Import each tool from individual files in the tools directory
+4. Import each data component from individual files in the data-components directory
+5. Import each artifact component from individual files in the artifact-components directory
 6. CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
 7. Export a const named after the project ID (in camelCase) using the project() function
 8. The project object should include:
@@ -149,9 +259,7 @@ export const weatherProject = project({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const { text } = await generateText({
-    model,
-    prompt,
+  const text = await generateTextWithPlaceholders(model, projectData, promptTemplate, {
     temperature: 0.1,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000), // 60 second timeout
@@ -172,17 +280,17 @@ export async function generateGraphFile(
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const prompt = `Generate a TypeScript file for an Inkeep agent graph.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep agent graph.
 
 GRAPH DATA:
-${JSON.stringify(graphData, null, 2)}
+{{DATA}}
 
 GRAPH ID: ${graphId}
 
 IMPORTANT CONTEXT:
 - Tools are defined at the project level and imported from '../tools' directory
-- Data components are imported from '../data-components' directory
-- Artifact components are imported from '../artifact-components' directory
+- Data components are imported from individual files in '../data-components' directory
+- Artifact components are imported from individual files in '../artifact-components' directory
 - CRITICAL: Tool files are named by their IDs (e.g., '../tools/fUI2riwrBVJ6MepT8rjx0')
 - CRITICAL: Import tools using their IDs as both file name and variable name
 - Agents reference these resources by their imported variable names
@@ -210,6 +318,12 @@ REQUIREMENTS:
    - Remove hyphens and capitalize the letter after each hyphen
    - First letter should be lowercase
 8. Ensure all imports are sorted alphabetically
+9. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
+   - Single-line strings: use regular quotes 'short string'
+   - Multi-line strings: MUST use template literals starting and ending with backticks
+   - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
+   - Placeholders contain multi-line content and require template literals
+   - This prevents TypeScript syntax errors with newlines and special characters
 
 NAMING CONVENTION EXAMPLES:
 // Tool with underscore ID 'inkeep_facts':
@@ -223,6 +337,15 @@ import { userProfile } from '../data-components/user-profile';  // camelCase imp
 
 // Random ID (no conversion needed):
 import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
+
+// PLACEHOLDER HANDLING EXAMPLES:
+// CORRECT - Placeholder wrapped in template literals:
+prompt: \`<{{agents.facts.prompt.abc12345}}>\`
+
+// INCORRECT - Placeholder wrapped in single quotes (causes syntax errors):
+prompt: '<{{agents.facts.prompt.abc12345}}>'
+
+${IMPORT_INSTRUCTIONS}
 
 FULL EXAMPLE:
 import { agent, agentGraph } from '@inkeep/agents-sdk';
@@ -240,7 +363,12 @@ const routerAgent = agent({
 const qaAgent = agent({
   id: 'qa',
   name: 'QA Agent',
-  prompt: 'Answer questions',
+  prompt: \`You are a helpful QA agent.
+
+Follow these rules:
+- Always be helpful
+- Provide accurate answers
+- Use available tools\`,
   canUse: () => [searchTool, weatherTool],
   selectedTools: {
     [searchTool.id]: ['search_web', 'search_docs'],
@@ -274,7 +402,6 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     console.log(`[DEBUG] Output path: ${outputPath}`);
     console.log(`[DEBUG] Model: ${modelSettings.model || 'default'}`);
     console.log(`[DEBUG] Graph data size: ${JSON.stringify(graphData).length} characters`);
-    console.log(`[DEBUG] Prompt length: ${prompt.length} characters`);
 
     // Log graph complexity
     const agentCount = Object.keys(graphData.agents || {}).length;
@@ -285,13 +412,19 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     for (const agent of Object.values(graphData.agents || {})) {
       const agentData = agent as any;
       if (agentData.tools) {
-        Object.keys(agentData.tools).forEach((toolId) => toolIds.add(toolId));
+        for (const toolId of Object.keys(agentData.tools)) {
+          toolIds.add(toolId);
+        }
       }
       if (agentData.dataComponents) {
-        Object.keys(agentData.dataComponents).forEach((id) => dataComponentIds.add(id));
+        for (const id of Object.keys(agentData.dataComponents)) {
+          dataComponentIds.add(id);
+        }
       }
       if (agentData.artifactComponents) {
-        Object.keys(agentData.artifactComponents).forEach((id) => artifactComponentIds.add(id));
+        for (const id of Object.keys(agentData.artifactComponents)) {
+          artifactComponentIds.add(id);
+        }
       }
     }
 
@@ -312,13 +445,17 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       console.log(`[DEBUG] Sending request to LLM API...`);
     }
 
-    const { text } = await generateText({
+    const text = await generateTextWithPlaceholders(
       model,
-      prompt,
-      temperature: 0.1,
-      maxOutputTokens: 16000,
-      abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex graphs
-    });
+      graphData,
+      promptTemplate,
+      {
+        temperature: 0.1,
+        maxOutputTokens: 16000,
+        abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex graphs
+      },
+      debug // Pass debug flag to show placeholder optimization info
+    );
 
     const duration = Date.now() - startTime;
 
@@ -341,7 +478,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       console.error(`[DEBUG] Error name: ${error.name}`);
       console.error(`[DEBUG] Error message: ${error.message}`);
       if (error.name === 'AbortError') {
-        console.error(`[DEBUG] Request timed out after 120 seconds`);
+        console.error(`[DEBUG] Request timed out after 240 seconds`);
         console.error(`[DEBUG] This might indicate the graph is too complex or the API is slow`);
       }
       if (error.response) {
@@ -365,10 +502,10 @@ export async function generateToolFile(
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const prompt = `Generate a TypeScript file for an Inkeep tool.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep tool.
 
 TOOL DATA:
-${JSON.stringify(toolData, null, 2)}
+{{DATA}}
 
 TOOL ID: ${toolId}
 
@@ -415,9 +552,7 @@ export const fUI2riwrBVJ6MepT8rjx0 = mcpTool({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const { text } = await generateText({
-    model,
-    prompt,
+  const text = await generateTextWithPlaceholders(model, toolData, promptTemplate, {
     temperature: 0.1,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000), // 60 second timeout
@@ -437,10 +572,10 @@ export async function generateDataComponentFile(
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const prompt = `Generate a TypeScript file for an Inkeep data component.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep data component.
 
 DATA COMPONENT DATA:
-${JSON.stringify(componentData, null, 2)}
+{{DATA}}
 
 COMPONENT ID: ${componentId}
 
@@ -449,7 +584,7 @@ ${NAMING_CONVENTION_RULES}
 REQUIREMENTS:
 1. Import dataComponent from '@inkeep/agents-sdk'
 2. Create the data component using dataComponent()
-3. Include all properties from the component data
+3. Include all properties from the component data INCLUDING the 'id' property
 4. Export following naming convention rules (camelCase version of ID)
 5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
@@ -458,7 +593,7 @@ import { dataComponent } from '@inkeep/agents-sdk';
 
 // Component ID 'user_profile' becomes export name 'userProfile'
 export const userProfile = dataComponent({
-  id: 'user_profile',  // Keep original ID here
+  id: 'user_profile',
   name: 'User Profile',
   description: 'User profile information',
   props: {
@@ -473,7 +608,7 @@ import { dataComponent } from '@inkeep/agents-sdk';
 
 // Component ID 'weather-data' becomes export name 'weatherData'
 export const weatherData = dataComponent({
-  id: 'weather-data',  // Keep original ID here
+  id: 'weather-data',
   name: 'Weather Data',
   description: 'Weather information',
   props: {
@@ -484,9 +619,7 @@ export const weatherData = dataComponent({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const { text } = await generateText({
-    model,
-    prompt,
+  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
     temperature: 0.1,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000), // 60 second timeout
@@ -506,10 +639,10 @@ export async function generateArtifactComponentFile(
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const prompt = `Generate a TypeScript file for an Inkeep artifact component.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep artifact component.
 
 ARTIFACT COMPONENT DATA:
-${JSON.stringify(componentData, null, 2)}
+{{DATA}}
 
 COMPONENT ID: ${componentId}
 
@@ -520,14 +653,15 @@ REQUIREMENTS:
 2. Create the artifact component using artifactComponent()
 3. Include summaryProps and fullProps from the component data
 4. Export following naming convention rules (camelCase version of ID)
-5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+5. Include the 'id' property to preserve the original component ID
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
 EXAMPLE WITH UNDERSCORE ID:
 import { artifactComponent } from '@inkeep/agents-sdk';
 
 // Component ID 'pdf_export' becomes export name 'pdfExport'
 export const pdfExport = artifactComponent({
-  id: 'pdf_export',  // Keep original ID here
+  id: 'pdf_export',
   name: 'PDF Export',
   description: 'Export data as PDF',
   summaryProps: {
@@ -544,7 +678,7 @@ import { artifactComponent } from '@inkeep/agents-sdk';
 
 // Component ID 'order-summary' becomes export name 'orderSummary'
 export const orderSummary = artifactComponent({
-  id: 'order-summary',  // Keep original ID here
+  id: 'order-summary',
   name: 'Order Summary',
   description: 'Summary of customer order',
   summaryProps: {
@@ -561,9 +695,7 @@ export const orderSummary = artifactComponent({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const { text } = await generateText({
-    model,
-    prompt,
+  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
     temperature: 0.1,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000), // 60 second timeout
@@ -577,9 +709,8 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
  */
 export async function generateEnvironmentFiles(
   environmentsDir: string,
-  environment: string = 'development', // Default to development if not specified
   credentials?: Record<string, any>, // Actual credential data from backend
-  debug: boolean = false
+  environment: string = 'development' // Which environment to generate
 ): Promise<void> {
   // Helper to generate credential definitions
   const generateCredentialCode = (cred: any) => {
@@ -590,85 +721,100 @@ export async function generateEnvironmentFiles(
     ];
     if (cred.retrievalParams) {
       params.push(
-        `retrievalParams: ${JSON.stringify(cred.retrievalParams, null, 4).replace(/\n/g, '\n    ')}`
+        `retrievalParams: ${JSON.stringify(cred.retrievalParams, null, 4).replace(/\n/g, '\n      ')}`
       );
     }
-    return `credential({\n    ${params.join(',\n    ')}\n  })`;
+    return `credential({\n      ${params.join(',\n      ')}\n    })`;
   };
 
   // Generate credentials object from actual data
+  const hasCredentials = credentials && Object.keys(credentials).length > 0;
   let credentialsCode = '';
-  if (credentials && Object.keys(credentials).length > 0) {
+  let imports = "import { registerEnvironmentSettings } from '@inkeep/agents-sdk';";
+
+  if (hasCredentials) {
+    imports = "import { credential, registerEnvironmentSettings } from '@inkeep/agents-sdk';";
     const credentialEntries: string[] = [];
     for (const [credId, cred] of Object.entries(credentials)) {
       // Use a sanitized version of the ID as the variable name
       const varName = credId.replace(/-/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      credentialEntries.push(`  ${varName}: ${generateCredentialCode(cred)}`);
+      credentialEntries.push(`    ${varName}: ${generateCredentialCode(cred)}`);
     }
-    credentialsCode = credentialEntries.join(',\n');
+    credentialsCode = `\n${credentialEntries.join(',\n')}\n  `;
   } else {
-    credentialsCode = `  // No credentials found. Add credentials to your project and pull again.\n  // Example:\n  // apiKey: credential({\n  //   id: 'api-key',\n  //   type: 'memory',\n  //   credentialStoreId: 'memory-default',\n  //   retrievalParams: { key: 'API_KEY' }\n  // })`;
+    credentialsCode = '\n  ';
   }
 
-  // Generate production.env.ts with actual credentials
-  const prodEnvContent = `// Production environment configuration
-import { credential } from '@inkeep/agents-sdk';
+  // Generate only the specified environment file
+  const envContent = `${imports}
 
-export const production = {
-${credentialsCode}
-};
+export const ${environment} = registerEnvironmentSettings({
+  credentials: {${credentialsCode}}
+});
 `;
+  writeFileSync(join(environmentsDir, `${environment}.env.ts`), envContent);
 
-  // Generate staging.env.ts with actual credentials
-  const stagingEnvContent = `// Staging environment configuration
-import { credential } from '@inkeep/agents-sdk';
+  // Update environments/index.ts incrementally
+  await updateEnvironmentIndex(environmentsDir, environment);
+}
 
-export const staging = {
-${credentialsCode}
-};
-`;
+/**
+ * Update environments/index.ts to include the specified environment
+ * without removing existing environments
+ */
+async function updateEnvironmentIndex(environmentsDir: string, environment: string): Promise<void> {
+  const indexPath = join(environmentsDir, 'index.ts');
+  const { readFileSync, existsSync } = await import('node:fs');
 
-  // Generate development.env.ts with actual credentials
-  const devEnvContent = `// Development environment configuration
-import { credential } from '@inkeep/agents-sdk';
+  const existingEnvironments: string[] = [];
+  let existingContent = '';
 
-export const development = {
-${credentialsCode}
-};
-`;
+  // Read existing index.ts if it exists
+  if (existsSync(indexPath)) {
+    existingContent = readFileSync(indexPath, 'utf-8');
 
-  // Generate .env.validation.ts template
-  const validationContent = `// Environment validation schema
-import { z } from 'zod';
+    // Extract existing environment imports
+    const importRegex = /import\s+{\s*(\w+)\s*}\s+from\s+['"]\.\/([\w-]+)\.env['"];?/g;
+    let match: RegExpExecArray | null;
+    while ((match = importRegex.exec(existingContent)) !== null) {
+      const envName = match[2];
+      if (!existingEnvironments.includes(envName)) {
+        existingEnvironments.push(envName);
+      }
+    }
+  }
 
-// Define your environment validation schema
-export const envSchema = z.object({
-  // Add validation rules for your credentials
-  // Example:
-  // apiKey: z.string().min(1, 'API Key is required')
+  // Add the new environment if it's not already included
+  if (!existingEnvironments.includes(environment)) {
+    existingEnvironments.push(environment);
+  }
+
+  // Sort environments for consistent output
+  existingEnvironments.sort();
+
+  // Generate the complete index.ts content
+  const importStatements = existingEnvironments
+    .map(env => `import { ${env} } from './${env}.env';`)
+    .join('\n');
+
+  const environmentObject = existingEnvironments
+    .map(env => `  ${env},`)
+    .join('\n');
+
+  const exportStatement = existingEnvironments.join(', ');
+
+  const indexContent = `import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+${importStatements}
+
+export const envSettings = createEnvironmentSettings({
+${environmentObject}
 });
 
-// Type for validated environment
-export type ValidatedEnv = z.infer<typeof envSchema>;
+// Export individual environments for direct access if needed
+export { ${exportStatement} };
 `;
 
-  // Only write the specified environment file
-  switch (environment.toLowerCase()) {
-    case 'production':
-    case 'prod':
-      writeFileSync(join(environmentsDir, 'production.env.ts'), prodEnvContent);
-      break;
-    case 'staging':
-    case 'stage':
-      writeFileSync(join(environmentsDir, 'staging.env.ts'), stagingEnvContent);
-      break;
-    default:
-      writeFileSync(join(environmentsDir, 'development.env.ts'), devEnvContent);
-      break;
-  }
-
-  // Always write the validation file as it's environment-agnostic
-  writeFileSync(join(environmentsDir, '.env.validation.ts'), validationContent);
+  writeFileSync(indexPath, indexContent);
 }
 
 /**

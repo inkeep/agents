@@ -201,8 +201,9 @@ async function generateProjectFiles(
   }
 
   // Add environment files generation with actual credential data
-  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, environment, credentialReferences, debug));
-  fileInfo.push({ type: 'env', name: `${environment}.env.ts` });
+  const targetEnvironment = environment;
+  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, credentialReferences, targetEnvironment));
+  fileInfo.push({ type: 'env', name: `index.ts, ${targetEnvironment}.env.ts` });
 
   // Display what we're generating
   console.log(chalk.cyan('  📝 Generating files in parallel:'));
@@ -451,12 +452,21 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       0
     );
 
+    const dataComponentCount = Object.keys(projectData.dataComponents || {}).length;
+    const artifactComponentCount = Object.keys(projectData.artifactComponents || {}).length;
+
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Name: ${projectData.name}`));
     console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
     console.log(chalk.gray(`  • Graphs: ${graphCount}`));
     console.log(chalk.gray(`  • Tools: ${toolCount}`));
     console.log(chalk.gray(`  • Agents: ${agentCount}`));
+    if (dataComponentCount > 0) {
+      console.log(chalk.gray(`  • Data Components: ${dataComponentCount}`));
+    }
+    if (artifactComponentCount > 0) {
+      console.log(chalk.gray(`  • Artifact Components: ${artifactComponentCount}`));
+    }
 
     // Display credential tracking information
     const credentialReferences = projectData.credentialReferences || {};
@@ -528,7 +538,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       fileCount.tools +
       fileCount.dataComponents +
       fileCount.artifactComponents +
-      3; // +3 for index.ts, inkeep.config.ts, and environment files
+      5; // +1 for index.ts, +4 for environment files (index.ts, development.env.ts, staging.env.ts, production.env.ts)
 
     spinner.succeed(`Project files generated (${totalFiles} files created)`);
 
@@ -536,7 +546,6 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.cyan('\n📁 Generated structure:'));
     console.log(chalk.gray(`  ${dirs.projectRoot}/`));
     console.log(chalk.gray(`  ├── index.ts`));
-    console.log(chalk.gray(`  ├── inkeep.config.ts`));
     if (fileCount.graphs > 0) {
       console.log(chalk.gray(`  ├── graphs/ (${fileCount.graphs} files)`));
     }
@@ -549,7 +558,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     if (fileCount.artifactComponents > 0) {
       console.log(chalk.gray(`  ├── artifact-components/ (${fileCount.artifactComponents} files)`));
     }
-    console.log(chalk.gray(`  └── environments/ (${options.env || 'development'}.env.ts)`));
+    console.log(chalk.gray('  └── environments/ (4 files)'));
 
     console.log(chalk.cyan('\n📝 Next steps:'));
     console.log(chalk.gray(`  • cd ${dirs.projectRoot}`));

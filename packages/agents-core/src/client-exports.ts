@@ -141,7 +141,7 @@ export const CredentialReferenceApiInsertSchema = z.object({
 
 // Data Component API schemas (inline definitions)
 export const DataComponentApiInsertSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   name: z.string(),
   description: z.string().optional(),
   props: z.record(z.string(), z.unknown()),
@@ -149,7 +149,7 @@ export const DataComponentApiInsertSchema = z.object({
 
 // Artifact Component API schemas (inline definitions)
 export const ArtifactComponentApiInsertSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   name: z.string(),
   description: z.string().optional(),
   summaryProps: z.record(z.string(), z.unknown()),

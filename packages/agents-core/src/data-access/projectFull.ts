@@ -270,7 +270,6 @@ export const createFullProjectServerSide =
               );
               await upsertArtifactComponent(db)({
                 data: {
-                  id: componentId,
                   ...componentData,
                   tenantId,
                   projectId: typed.id,
@@ -626,7 +625,6 @@ export const updateFullProjectServerSide =
               );
               await upsertArtifactComponent(db)({
                 data: {
-                  id: componentId,
                   ...componentData,
                   tenantId,
                   projectId: typed.id,

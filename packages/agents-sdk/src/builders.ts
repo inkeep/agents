@@ -48,6 +48,7 @@ export interface MCPServerConfig {
  * Configuration for component builders
  */
 export interface ComponentConfig {
+  id: string;
   name: string;
   description: string;
 }

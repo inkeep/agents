@@ -7,7 +7,7 @@ import {
 const logger = getLogger('artifactComponent');
 
 export interface ArtifactComponentInterface {
-  config: Omit<ArtifactComponentType, 'id' | 'tenantId' | 'projectId'>;
+  config: Omit<ArtifactComponentType, 'tenantId' | 'projectId'>;
   init(): Promise<void>;
   getId(): ArtifactComponentType['id'];
   getName(): ArtifactComponentType['name'];
@@ -25,8 +25,8 @@ export class ArtifactComponent implements ArtifactComponentInterface {
   private initialized = false;
   private id: ArtifactComponentType['id'];
 
-  constructor(config: Omit<ArtifactComponentType, 'id' | 'tenantId' | 'projectId'>) {
-    this.id = generateIdFromName(config.name);
+  constructor(config: Omit<ArtifactComponentType, 'tenantId' | 'projectId'>) {
+    this.id = config.id;
 
     this.config = {
       ...config,
