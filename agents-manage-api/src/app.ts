@@ -42,18 +42,7 @@ function createManagementHono(
   // Logging middleware - let hono-pino create its own logger to preserve formatting
   app.use(
     pinoLogger({
-      pino: {
-        name: 'agents-manage-api-http',
-        level: process.env.LOG_LEVEL || 'info',
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'HH:MM:ss',
-            ignore: 'pid,hostname',
-          },
-        },
-      },
+      pino: getLogger('agents-manage-api').getPinoInstance(),
       http: {
         onResLevel(c) {
           if (c.res.status >= 500) {
