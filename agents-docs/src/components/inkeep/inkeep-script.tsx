@@ -176,33 +176,53 @@ export function InkeepScript() {
   const modalRef = useRef<InkeepEmbeddedSearchAndChatFunctions>(null);
 
   useEffect(() => {
-    // When the search bar or button element is clicked, open the Inkeep search modal
-    for (const button of document.querySelectorAll('#search-trigger, #search-trigger-mobile')) {
-      button.addEventListener('click', () => {
-        setModalOpen(true);
-      });
-    }
+    // Create named functions so we can remove them later
+    const handleSearchClick = () => {
+      setModalOpen(true);
+    };
 
-    for (const button of document.querySelectorAll('#chat-trigger')) {
-      button.addEventListener('click', () => {
-        modalRef.current?.setView('chat');
+    const handleChatClick = () => {
+      modalRef.current?.setView('chat');
+      setModalOpen(true);
+    };
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'k' || event.key === 'K')) {
+        event.stopPropagation();
+        event.preventDefault();
         setModalOpen(true);
-      });
-    }
+        return false;
+      }
+    };
+
+    // When the search bar or button element is clicked, open the Inkeep search modal
+    const searchButtons = document.querySelectorAll('#search-trigger, #search-trigger-mobile');
+    const chatButtons = document.querySelectorAll('#chat-trigger');
+
+    // Add event listeners
+    searchButtons.forEach((button) => {
+      button.addEventListener('click', handleSearchClick);
+    });
+
+    chatButtons.forEach((button) => {
+      button.addEventListener('click', handleChatClick);
+    });
 
     // Open the Inkeep Modal with cmd+k
-    window.addEventListener(
-      'keydown',
-      (event) => {
-        if ((event.metaKey || event.ctrlKey) && (event.key === 'k' || event.key === 'K')) {
-          event.stopPropagation();
-          event.preventDefault();
-          setModalOpen(true);
-          return false;
-        }
-      },
-      true
-    );
+    window.addEventListener('keydown', handleKeydown, true);
+
+    // Cleanup function to remove event listeners
+    return () => {
+      searchButtons.forEach((button) => {
+        button.removeEventListener('click', handleSearchClick);
+      });
+
+      chatButtons.forEach((button) => {
+        button.removeEventListener('click', handleChatClick);
+      });
+
+      window.removeEventListener('keydown', handleKeydown, true);
+    };
   }, []);
 
   if (!apiKey) {
