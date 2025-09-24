@@ -171,7 +171,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
           href: `/${tenantId}/projects/${projectId}/credentials`,
         },
         {
-          label: 'New Credential',
+          label: 'New credential',
           href: `/${tenantId}/projects/${projectId}/credentials/new`,
         },
         {

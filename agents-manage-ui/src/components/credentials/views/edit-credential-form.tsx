@@ -11,6 +11,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { InfoCard } from '@/components/ui/info-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
@@ -113,23 +114,21 @@ export function EditCredentialForm({
 
           {/* Credential Type Display */}
           <div className="space-y-3">
-            <Label>Credential Type</Label>
+            <Label>Credential type</Label>
             <Input type="text" disabled={true} value={getCredentialType(credential)} />
             {getCredentialType(credential) === 'Bearer Auth' && (
-              <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-md">
-                <p className="mb-2">
-                  <strong>How this works:</strong> When your agent connects to the MCP server, this
-                  API key will be automatically sent as an authentication header:
-                </p>
+              <InfoCard title="How this works">
                 <p>
-                  <code className="bg-background px-1.5 py-0.5 rounded border mx-1">
+                  When your agent connects to the MCP server, this API key will be automatically
+                  sent as an authentication header:
+                </p>
+                <p className="my-2">
+                  <code className="bg-background px-1.5 py-0.5 rounded border">
                     Authorization: Bearer your-api-key-here
                   </code>
                 </p>
-                <p className="mt-2 text-muted-foreground/80">
-                  This ensures secure access to the server's tools and data.
-                </p>
-              </div>
+                <p>This ensures secure access to the server's tools and data.</p>
+              </InfoCard>
             )}
           </div>
 
@@ -139,7 +138,7 @@ export function EditCredentialForm({
               <GenericKeyValueInput
                 control={form.control}
                 name="metadata"
-                label="Metadata (Optional)"
+                label="Metadata (optional)"
                 keyPlaceholder="Header name (e.g., X-API-Key)"
                 valuePlaceholder="Header value"
               />

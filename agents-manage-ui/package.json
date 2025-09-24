@@ -8,7 +8,10 @@
     "./package.json": "./package.json"
   },
   "files": [
-    ".next/standalone"
+    ".next/standalone",
+    ".vercel/output",
+    "!.next/standalone/**/node_modules",
+    "!.next/standalone/node_modules"
   ],
   "publishConfig": {
     "access": "public",
@@ -18,6 +21,7 @@
     "dev": "next dev -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
+    "build:vercel": "vercel build",
     "start": "next start",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
@@ -31,11 +35,10 @@
     "@ai-sdk/react": "2.0.11",
     "@codemirror/lang-json": "^6.0.2",
     "@hookform/resolvers": "^5.2.1",
+    "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-api": "workspace:^",
     "@inkeep/agents-run-api": "workspace:^",
-    "@inkeep/agents-core": "workspace:^",
-    "@inkeep/cxkit-react": "0.0.0-rc-20250912162759",
-    "@inkeep/cxkit-react-oss": "0.0.0-rc-20250912162759",
+    "@inkeep/cxkit-react-oss": "0.5.103",
     "@lezer/highlight": "^1.2.1",
     "@nangohq/frontend": "^0.66.0",
     "@nangohq/node": "^0.66.0",
@@ -101,9 +104,10 @@
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5",
+    "vercel": "^48.1.4",
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": "20.x"
   }
 }

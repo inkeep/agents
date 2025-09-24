@@ -66,7 +66,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
     name: 'MCP',
   },
   [NodeType.MCPPlaceholder]: {
-    name: 'Select MCP Server',
+    name: 'Select MCP server',
   },
 };
 

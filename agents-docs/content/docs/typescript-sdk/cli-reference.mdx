@@ -241,6 +241,9 @@ inkeep dev
 
 - `--port <port>` - Port to run the server on (default: 3000)
 - `--host <host>` - Host to bind the server to (default: localhost)
+- `--build` - Create a Standalone build
+- `--output-dir <dir>` - Output directory for build files (default: ./vercel-build)
+- `--vercel` - Copy Vercel output to .vercel/output for deployment
 
 **Examples:**
 
@@ -253,6 +256,15 @@ inkeep dev --port 3001
 
 # Bind to all interfaces
 inkeep dev --host 0.0.0.0
+
+# Copy Vercel output for deployment (recommended)
+inkeep dev --vercel
+
+# Then deploy with Vercel CLI
+vercel deploy --prebuilt --prod
+
+# Alternative: Create standalone build
+inkeep dev --build --output-dir ./my-build
 ```
 
 ### `inkeep config`

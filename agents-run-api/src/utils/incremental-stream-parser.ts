@@ -320,6 +320,7 @@ export class IncrementalStreamParser {
       const cleanedText = this.pendingTextBuffer
         .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
         .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
+        .replace(/<\/artifact:ref>/g, '') // Remove closing artifact:ref tags
         .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
       if (cleanedText) {
@@ -433,6 +434,7 @@ export class IncrementalStreamParser {
         const cleanedText = this.pendingTextBuffer
           .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
           .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
+          .replace(/<\/artifact:ref>/g, '') // Remove closing artifact:ref tags
           .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
         if (cleanedText) {
@@ -448,6 +450,7 @@ export class IncrementalStreamParser {
         const cleanedText = this.pendingTextBuffer
           .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
           .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
+          .replace(/<\/artifact:ref>/g, '') // Remove closing artifact:ref tags
           .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
         if (cleanedText) {

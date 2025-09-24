@@ -19,7 +19,7 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: (v) => [remarkSourceCode, mdxSnippet, [emoji, { accessible: true }], ...v],
+    remarkPlugins: (v) => [[remarkSourceCode, { baseDir: '..' }], mdxSnippet, [emoji, { accessible: true }], ...v],
     rehypeCodeOptions: {
       inline: 'tailing-curly-colon',
       themes: {

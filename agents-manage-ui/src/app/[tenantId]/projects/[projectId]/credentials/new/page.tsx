@@ -1,4 +1,4 @@
-import { Search, Settings } from 'lucide-react';
+import { KeyRound, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
@@ -24,17 +24,17 @@ async function NewCredentialsPage({
     {
       id: 'providers',
       icon: <Search className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />,
-      title: 'Browse Providers',
+      title: 'Browse providers',
       description:
-        'Connect to popular providers like GitHub, Google Drive, Slack, and more. This is useful when you want to give MCP Servers access to your providers.',
+        'Connect to popular providers like GitHub, Google Drive, Slack, and more. This is useful when you want to give MCP servers access to your providers.',
       href: `/${tenantId}/projects/${projectId}/credentials/new/providers`,
     },
     {
       id: 'bearer',
-      icon: <Settings className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />,
-      title: 'Bearer Authentication',
+      icon: <KeyRound className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />,
+      title: 'Bearer authentication',
       description:
-        'Create a bearer token for API authentication. Useful when you need to provide secure access tokens to your MCP Servers.',
+        'Create a bearer token for API authentication. Useful when you need to provide secure access tokens to your MCP servers.',
       href: `/${tenantId}/projects/${projectId}/credentials/new/bearer`,
     },
   ];
@@ -61,11 +61,11 @@ async function NewCredentialsPage({
           label: 'Credentials',
           href: `/${tenantId}/projects/${projectId}/credentials`,
         },
-        { label: 'New Credential' },
+        { label: 'New credential' },
       ]}
     >
       <MainContent>
-        <PageHeader title="New Credential" description="Create credentials for your MCP servers" />
+        <PageHeader title="New credential" description="Create credentials for your MCP servers." />
         <ItemCardGrid
           items={credentialOptions}
           getKey={(option) => option.id}

@@ -16,7 +16,7 @@ export default async function NewMCPServerLayout({
           label: 'MCP servers',
           href: `/${tenantId}/projects/${projectId}/mcp-servers`,
         },
-        { label: 'New MCP Server' },
+        { label: 'New MCP server' },
       ]}
     >
       <MainContent>{children}</MainContent>

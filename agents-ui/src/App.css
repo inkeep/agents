@@ -4,3 +4,9 @@
   padding: 2rem;
   text-align: center;
 }
+
+.inkeep-chat-container {
+  min-width: 750px;
+  width: 100%;
+  height: 100%;
+}

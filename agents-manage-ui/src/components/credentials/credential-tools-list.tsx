@@ -88,7 +88,7 @@ function ToolItem({ tool, tenantId, projectId }: ToolItemProps) {
 
 export function CredentialToolsList({
   tools,
-  label = 'MCP Servers Using This Credential',
+  label = 'MCP servers using this credential',
   tenantId,
   projectId,
 }: CredentialToolsListProps) {
@@ -102,7 +102,7 @@ export function CredentialToolsList({
           ))}
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-md">
+        <div className="text-sm text-muted-foreground p-3 py-2 bg-gray-100/80 dark:bg-sidebar rounded-md">
           No MCP servers are currently using this credential
         </div>
       )}

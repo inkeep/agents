@@ -47,8 +47,7 @@ yarn-error.log*
 # Keep env.example for easy setup
 !env.example
 
-# vercel
-.vercel
+
 
 # typescript
 *.tsbuildinfo

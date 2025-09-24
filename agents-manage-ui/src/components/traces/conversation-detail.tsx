@@ -1,15 +1,16 @@
 'use client';
 
 import { Activity, ArrowLeft, MessageSquare, TriangleAlert } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import type {
   ActivityItem,
   ConversationDetail as ConversationDetailType,
 } from '@/components/traces/timeline/types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConversationErrors } from './conversation-errors';
@@ -27,6 +28,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showErrorsPage, setShowErrorsPage] = useState(false);
+  const { tenantId, projectId } = useParams();
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
@@ -52,7 +54,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-4 mb-6">
-          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-8 w-24" />
           <Skeleton className="h-8 w-64" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -102,21 +104,19 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             </Button>
           )}
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-light">Conversation Details</h3>
-            <Badge variant="code" className="text-xs">
-              {conversationId}
-            </Badge>
-            {(conversation.graphId || conversation.graphName) && (
-              <Badge variant="code" className="text-xs">
-                Graph:{' '}
-                {conversation.graphName
-                  ? `${conversation.graphName} (${conversation.graphId})`
-                  : conversation.graphId}
-              </Badge>
-            )}
+            <h3 className="text-xl font-light">Conversation details</h3>
           </div>
         </div>
-        <SignozLink conversationId={conversationId} />
+        <div className="flex items-center gap-2">
+          {(conversation.graphId || conversation.graphName) && (
+            <ExternalLink
+              href={`/${tenantId}/projects/${projectId}/graphs/${conversation.graphId}`}
+            >
+              {conversation.graphName ? `${conversation.graphName}` : conversation.graphId}
+            </ExternalLink>
+          )}
+          <SignozLink conversationId={conversationId} />
+        </div>
       </div>
 
       {/* Summary Cards */}
