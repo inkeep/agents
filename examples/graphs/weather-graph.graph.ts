@@ -19,7 +19,7 @@ const weatherAssistant = agent({
   id: 'weather-assistant',
   name: 'Weather assistant',
   description:
-    'This component is used to render a group of times in a day along with the weather temperature (in Farenheit) and condition at give times.',
+    'This component is used to render a group of times in a day along with the weather temperature (in Fahrenheit) and condition at give times.',
   prompt:
     'You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast',
   canDelegateTo: () => [weatherForecaster, geocoderAgent],

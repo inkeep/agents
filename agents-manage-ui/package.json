@@ -9,7 +9,9 @@
   },
   "files": [
     ".next/standalone",
-    ".vercel/output"
+    ".vercel/output",
+    "!.next/standalone/**/node_modules",
+    "!.next/standalone/node_modules"
   ],
   "publishConfig": {
     "access": "public",
@@ -36,8 +38,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-api": "workspace:^",
     "@inkeep/agents-run-api": "workspace:^",
-    "@inkeep/cxkit-react": "0.0.0-rc-20250912162759",
-    "@inkeep/cxkit-react-oss": "0.0.0-rc-20250912162759",
+    "@inkeep/cxkit-react-oss": "0.5.103",
     "@lezer/highlight": "^1.2.1",
     "@nangohq/frontend": "^0.66.0",
     "@nangohq/node": "^0.66.0",

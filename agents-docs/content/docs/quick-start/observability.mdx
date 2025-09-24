@@ -10,7 +10,7 @@ keywords: SigNoz, tracing, observability, OpenTelemetry, monitoring, distributed
 
 You can set up SigNoz in two ways:
 
-1.  **Cloud Setup**: Use SigNoz Cloud
+1. **Cloud Setup**: Use SigNoz Cloud
 2. **Local Setup**: Run SigNoz locally using Docker
 
 ## Option 1: SigNoz cloud setup
@@ -26,7 +26,7 @@ You'll need to collect three pieces of information from your SigNoz dashboard:
 
 1. **API Key**: 
    - Navigate to Settings → Workspace Settings → API Keys → New Key
-   - Set expiration to "No Expiry" when creating the key
+   - Set the expiration field to "No Expiry" to prevent the key from expiring
    - Copy the generated API key
 
 2. **Ingestion Key**:
@@ -88,7 +88,7 @@ SIGNOZ_ADMIN_PASSWORD="adminADMIN#1"
 Run the following command to start SigNoz and related services:
 
 ```bash
-docker compose up -d
+docker-compose --profile signoz up -d
 ```
 
 This will start:
@@ -107,13 +107,18 @@ In your **root project directory** (of my-agent-directory), update your `.env` f
 # SigNoz Configuration
 SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key
+
+# IMPORTANT: Comment out the OTEL Configuration
+# OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
+# OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 ```
 
 To get your SigNoz API key:
 
 1. Open SigNoz at `http://localhost:3080`
-2. Navigate to Settings → Account Settings → API Keys
-3. Create a new API key or copy an existing one
+2. Navigate to Settings → Account Settings → API Keys → New Key
+3. Create a new API key or copy an existing one. 
+   - Set the expiration field to "No Expiry" to prevent the key from expiring
 
 ### Step 5: Verify Setup
 
