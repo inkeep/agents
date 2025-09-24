@@ -7,6 +7,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import type { NodeSDK } from '@opentelemetry/sdk-node';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
@@ -32,8 +33,10 @@ type AppVariables = {
 
 function createExecutionHono(
   serverConfig: ServerConfig,
-  credentialStores: CredentialStoreRegistry
+  credentialStores: CredentialStoreRegistry,
+  nodeSDK?: NodeSDK
 ) {
+  nodeSDK?.start();
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
   app.use('*', otel());
