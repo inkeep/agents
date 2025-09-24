@@ -8,50 +8,6 @@ import pino from 'pino';
 import pinoPretty from 'pino-pretty';
 
 /**
- * Logger interface for core package components
- * Allows services to inject their own logger implementation
- */
-export interface Logger {
-  error(data: any, message: string): void;
-  warn(data: any, message: string): void;
-  info(data: any, message: string): void;
-  debug(data: any, message: string): void;
-}
-
-/**
- * Default console logger implementation
- */
-export class ConsoleLogger implements Logger {
-  constructor(private name: string) {}
-
-  error(data: any, message: string): void {
-    console.error(`[${this.name}] ${message}`, data);
-  }
-
-  warn(data: any, message: string): void {
-    console.warn(`[${this.name}] ${message}`, data);
-  }
-
-  info(data: any, message: string): void {
-    console.info(`[${this.name}] ${message}`, data);
-  }
-
-  debug(data: any, message: string): void {
-    console.debug(`[${this.name}] ${message}`, data);
-  }
-}
-
-/**
- * No-op logger that silently ignores all log calls
- */
-export class NoOpLogger implements Logger {
-  error(_data: any, _message: string): void {}
-  warn(_data: any, _message: string): void {}
-  info(_data: any, _message: string): void {}
-  debug(_data: any, _message: string): void {}
-}
-
-/**
  * Configuration options for PinoLogger
  */
 export interface PinoLoggerConfig {
@@ -64,7 +20,7 @@ export interface PinoLoggerConfig {
 /**
  * Pino logger implementation with transport customization support
  */
-export class PinoLogger implements Logger {
+export class PinoLogger {
   private transportConfigs: TransportSingleOptions[] = [];
 
   private pinoInstance: PinoLoggerInstance;
@@ -113,6 +69,10 @@ export class PinoLogger implements Logger {
    * Recreate the pino instance with current transports
    */
   private recreateInstance(): void {
+    if (this.pinoInstance && typeof this.pinoInstance.flush === 'function') {
+      this.pinoInstance.flush();
+    }
+
     if (this.transportConfigs.length === 0) {
       // Use pino-pretty stream directly instead of transport (same as constructor)
       try {
@@ -267,72 +227,4 @@ export const loggerFactory = new LoggerFactory();
  */
 export function getLogger(name: string): PinoLogger {
   return loggerFactory.getLogger(name);
-}
-
-/**
- * Create a factory function for PinoLogger instances
- */
-export function createPinoLoggerFactory(
-  config: PinoLoggerConfig = {}
-): (name: string) => PinoLogger {
-  return (name: string) => new PinoLogger(name, config);
-}
-
-/**
- * Configure the global logger factory
- * This should be called once at application startup
- *
- * Example usage:
- * ```typescript
- * // Basic pino usage
- * import { configureLogging, createPinoLoggerFactory } from '@inkeep/agents-core';
- *
- * configureLogging({
- *   loggerFactory: createPinoLoggerFactory()
- * });
- *
- * // With Sentry transport
- * configureLogging({
- *   loggerFactory: createPinoLoggerFactory({
- *     transport: {
- *       target: 'pino-sentry-transport',
- *       options: {
- *         sentry: {
- *           dsn: 'https://******@sentry.io/12345',
- *         }
- *       }
- *     }
- *   })
- * });
- *
- * // With multiple transports
- * configureLogging({
- *   loggerFactory: createPinoLoggerFactory({
- *     transport: {
- *       targets: [
- *         {
- *           target: 'pino-pretty',
- *           level: 'info',
- *           options: { colorize: true }
- *         },
- *         {
- *           target: 'pino-sentry-transport',
- *           level: 'error',
- *           options: {
- *             sentry: { dsn: 'https://******@sentry.io/12345' }
- *           }
- *         }
- *       ]
- *     }
- *   })
- * });
- *
- * // Custom logger implementation
- * configureLogging({
- *   loggerFactory: (name) => new CustomLogger(name)
- * });
- * ```
- */
-export function configureLogging(config: LoggerFactoryConfig): void {
-  loggerFactory.configure(config);
 }
