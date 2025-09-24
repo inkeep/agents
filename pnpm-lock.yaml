@@ -601,9 +601,6 @@ importers:
       '@inkeep/agents-core':
         specifier: workspace:^
         version: link:../packages/agents-core
-      '@inkeep/agents-sdk':
-        specifier: workspace:^
-        version: link:../packages/agents-sdk
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.2
         version: 1.18.0

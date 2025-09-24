@@ -8,6 +8,7 @@ import type {
   GraphStopWhen,
   McpTransportConfig,
   ToolInsert,
+  StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import type { AgentMcpConfig } from './builders';
@@ -211,25 +212,6 @@ export interface RunResult {
 }
 
 // Graph types
-export interface StatusComponent {
-  type: string;
-  description?: string;
-  detailsSchema?: {
-    type: 'object';
-    properties: Record<string, any>;
-    required?: string[];
-  };
-}
-
-export interface StatusUpdateSettings {
-  enabled?: boolean; // Enable/disable status updates (default: true if any other setting is provided)
-  numEvents?: number; // Trigger summary after N events (default: 10)
-  timeInSeconds?: number; // Trigger summary after N seconds (default: 30)
-  model?: string; // Override model for status summaries
-  statusComponents?: StatusComponent[]; // Structured status components for status updates
-  prompt?: string; // Custom prompt for status updates
-}
-
 export interface GraphConfig {
   id: string;
   name?: string;
