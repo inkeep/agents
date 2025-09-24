@@ -230,6 +230,44 @@ export async function pushCommand(options: PushOptions) {
       }
     }
 
+    // Display credential tracking information
+    try {
+      const credentialTracking = await project.getCredentialTracking();
+      const credentialCount = Object.keys(credentialTracking.credentials).length;
+
+      if (credentialCount > 0) {
+        console.log(chalk.cyan('\n🔐 Credentials:'));
+        console.log(chalk.gray(`  • Total credentials: ${credentialCount}`));
+
+        // Show credential details
+        for (const [credId, credData] of Object.entries(credentialTracking.credentials)) {
+          const usageInfo = credentialTracking.usage[credId] || [];
+          const credType = (credData as any).type || 'unknown';
+          const storeId = (credData as any).credentialStoreId || 'unknown';
+
+          console.log(chalk.gray(`  • ${credId} (${credType}, store: ${storeId})`));
+
+          if (usageInfo.length > 0) {
+            const usageByType: Record<string, number> = {};
+            for (const usage of usageInfo) {
+              usageByType[usage.type] = (usageByType[usage.type] || 0) + 1;
+            }
+
+            const usageSummary = Object.entries(usageByType)
+              .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
+              .join(', ');
+
+            console.log(chalk.gray(`      Used by: ${usageSummary}`));
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail if credential tracking is not available
+      if (env.DEBUG) {
+        console.error(chalk.yellow('Could not retrieve credential tracking information'));
+      }
+    }
+
     // Provide next steps
     console.log(chalk.green('\n✨ Next steps:'));
     console.log(chalk.gray(`  • Test your project: inkeep chat`));

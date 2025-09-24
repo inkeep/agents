@@ -22,6 +22,7 @@ export interface PullOptions {
   agentsManageApiUrl?: string;
   env?: string;
   json?: boolean;
+  debug?: boolean;
 }
 
 /**
@@ -149,9 +150,10 @@ async function generateProjectFiles(
   },
   projectData: any,
   modelSettings: ModelSettings,
-  environment: string = 'development'
+  environment: string = 'development',
+  debug: boolean = false
 ): Promise<void> {
-  const { graphs, tools, dataComponents, artifactComponents } = projectData;
+  const { graphs, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
 
   // Prepare all generation tasks
   const generationTasks: Promise<void>[] = [];
@@ -198,8 +200,8 @@ async function generateProjectFiles(
     }
   }
 
-  // Add environment files generation (non-LLM, so fast)
-  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, environment));
+  // Add environment files generation with actual credential data
+  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, environment, credentialReferences, debug));
   fileInfo.push({ type: 'env', name: `${environment}.env.ts` });
 
   // Display what we're generating
@@ -231,7 +233,42 @@ async function generateProjectFiles(
 
   // Execute all tasks in parallel
   console.log(chalk.yellow(`  ⚡ Processing ${generationTasks.length} files in parallel...`));
-  await Promise.all(generationTasks);
+
+  if (debug) {
+    console.log(chalk.gray('\n📍 Debug: Starting LLM file generation...'));
+    console.log(chalk.gray(`  Model: ${modelSettings.model}`));
+    console.log(chalk.gray(`  Total tasks: ${generationTasks.length}`));
+
+    // Execute with progress tracking in debug mode
+    const startTime = Date.now();
+    try {
+      await Promise.all(
+        generationTasks.map(async (task, index) => {
+          const taskStartTime = Date.now();
+          if (debug) {
+            const taskInfo = fileInfo[index];
+            console.log(chalk.gray(`  [${index + 1}/${generationTasks.length}] Starting ${taskInfo.type}: ${taskInfo.name}`));
+          }
+          await task;
+          if (debug) {
+            const taskInfo = fileInfo[index];
+            const taskDuration = Date.now() - taskStartTime;
+            console.log(chalk.gray(`  [${index + 1}/${generationTasks.length}] ✓ Completed ${taskInfo.type}: ${taskInfo.name} (${taskDuration}ms)`));
+          }
+        })
+      );
+    } catch (error) {
+      if (debug) {
+        console.error(chalk.red('📍 Debug: LLM generation error:'), error);
+      }
+      throw error;
+    }
+
+    const totalDuration = Date.now() - startTime;
+    console.log(chalk.gray(`\n📍 Debug: LLM generation completed in ${totalDuration}ms`));
+  } else {
+    await Promise.all(generationTasks);
+  }
 }
 
 /**
@@ -362,7 +399,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Override with CLI options
     const finalConfig = {
-      tenantId: options.env || config.tenantId,
+      tenantId: config.tenantId, // Tenant ID comes from config, not env flag
       projectId: '', // Will be determined from API response or user input
       agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
     };
@@ -421,6 +458,40 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.gray(`  • Tools: ${toolCount}`));
     console.log(chalk.gray(`  • Agents: ${agentCount}`));
 
+    // Display credential tracking information
+    const credentialReferences = projectData.credentialReferences || {};
+    const credentialCount = Object.keys(credentialReferences).length;
+
+    if (credentialCount > 0) {
+      console.log(chalk.cyan('\n🔐 Credentials Found:'));
+      console.log(chalk.gray(`  • Total credentials: ${credentialCount}`));
+
+      // Show credential details
+      for (const [credId, credData] of Object.entries(credentialReferences)) {
+        const credType = (credData as any).type || 'unknown';
+        const storeId = (credData as any).credentialStoreId || 'unknown';
+
+        console.log(chalk.gray(`  • ${credId} (${credType}, store: ${storeId})`));
+
+        // Show usage information if available
+        const usageInfo = (credData as any).usedBy;
+        if (usageInfo && Array.isArray(usageInfo) && usageInfo.length > 0) {
+          const usageByType: Record<string, number> = {};
+          for (const usage of usageInfo) {
+            usageByType[usage.type] = (usageByType[usage.type] || 0) + 1;
+          }
+
+          const usageSummary = Object.entries(usageByType)
+            .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
+            .join(', ');
+
+          console.log(chalk.gray(`      Used by: ${usageSummary}`));
+        }
+      }
+
+      console.log(chalk.yellow(`  ⚠️  Environment file (${options.env || 'development'}.env.ts) will be generated with credential references`));
+    }
+
     // Create project directory structure
     spinner.start('Creating project structure...');
     const dirs = createProjectStructure(baseDir, finalConfig.projectId);
@@ -443,7 +514,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       model: 'anthropic/claude-sonnet-4-20250514',
     };
 
-    await generateProjectFiles(dirs, projectData, modelSettings, options.env || 'development');
+    await generateProjectFiles(dirs, projectData, modelSettings, options.env || 'development', options.debug || false);
 
     // Count generated files for summary
     const fileCount = {

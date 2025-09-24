@@ -29,7 +29,7 @@ describe('Credential Environment Settings System', () => {
 
   describe('Environment Setting Helpers', () => {
     it('should require environments to be provided', async () => {
-      const helper = createEnvironmentSettings({});
+      const helper = createEnvironmentSettings({}) as any;
 
       await expect(helper.getEnvironmentSetting('any-key')).rejects.toThrow(
         /Environment.*not found/

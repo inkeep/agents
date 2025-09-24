@@ -4,7 +4,7 @@ import type { AgentConfig } from '../../types';
 import { createTestTenantId } from '../utils/testTenant';
 
 describe('Agent with DataComponents Integration', () => {
-  const tenantId = createTestTenantId('agent-datacomponents');
+  const _tenantId = createTestTenantId('agent-datacomponents');
 
   it('should handle agents with data components configuration', () => {
     const agentConfig: AgentConfig = {

@@ -359,6 +359,27 @@ export class Project implements ProjectInterface {
   }
 
   /**
+   * Get credential tracking information
+   */
+  async getCredentialTracking(): Promise<{
+    credentials: Record<string, any>;
+    usage: Record<string, Array<{ type: string; id: string; graphId?: string }>>;
+  }> {
+    const fullDef = await this.toFullProjectDefinition();
+    const credentials = fullDef.credentialReferences || {};
+    const usage: Record<string, Array<{ type: string; id: string; graphId?: string }>> = {};
+
+    // Extract usage information from credentials
+    for (const [credId, credData] of Object.entries(credentials)) {
+      if ((credData as any).usedBy) {
+        usage[credId] = (credData as any).usedBy;
+      }
+    }
+
+    return { credentials, usage };
+  }
+
+  /**
    * Get all graphs in the project
    */
   getGraphs(): AgentGraph[] {
@@ -477,12 +498,102 @@ export class Project implements ProjectInterface {
     const toolsObject: Record<string, any> = {};
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
+    const credentialReferencesObject: Record<string, any> = {};
+    // Track which resources use each credential
+    const credentialUsageMap: Record<string, Array<{ type: string; id: string; graphId?: string }>> = {};
 
     // Convert all graphs to FullGraphDefinition format and collect components
     for (const graph of this.graphs) {
       // Get the graph's full definition
       const graphDefinition = await (graph as any).toFullGraphDefinition();
       graphsObject[graph.getId()] = graphDefinition;
+
+      // Collect credentials from this graph
+      const graphCredentials = (graph as any).credentials;
+      if (graphCredentials && Array.isArray(graphCredentials)) {
+        for (const credential of graphCredentials) {
+          // Skip credential references - they don't define credentials
+          if (credential?.__type === 'credential-ref') {
+            continue;
+          }
+
+          if (credential?.id) {
+            // Add credential to project-level credentials
+            if (!credentialReferencesObject[credential.id]) {
+              credentialReferencesObject[credential.id] = {
+                id: credential.id,
+                type: credential.type,
+                credentialStoreId: credential.credentialStoreId,
+                retrievalParams: credential.retrievalParams,
+              };
+              credentialUsageMap[credential.id] = [];
+            }
+            // Track that this graph uses this credential
+            credentialUsageMap[credential.id].push({
+              type: 'graph',
+              id: graph.getId(),
+            });
+          }
+        }
+      }
+
+      // Check context config for credentials
+      const contextConfig = (graph as any).contextConfig;
+      if (contextConfig) {
+        const contextVariables = contextConfig.getContextVariables?.() || contextConfig.contextVariables;
+        if (contextVariables) {
+          for (const [key, variable] of Object.entries(contextVariables)) {
+            // Check for credential references in fetch definitions
+            if ((variable as any)?.credential) {
+              const credential = (variable as any).credential;
+              let credId: string | undefined;
+
+              // Check if it's a credential reference
+              if (credential.__type === 'credential-ref') {
+                credId = credential.id;
+                // Resolve from injected credentials if available
+                if (credId && this.credentialReferences) {
+                  const resolvedCred = this.credentialReferences.find(c => c.id === credId);
+                  if (resolvedCred && !credentialReferencesObject[credId]) {
+                    credentialReferencesObject[credId] = resolvedCred;
+                    credentialUsageMap[credId] = [];
+                  }
+                }
+              } else if (credential.id) {
+                // Direct credential object
+                credId = credential.id;
+                if (credId && !credentialReferencesObject[credId]) {
+                  credentialReferencesObject[credId] = credential;
+                  credentialUsageMap[credId] = [];
+                }
+              }
+
+              if (credId) {
+                if (!credentialUsageMap[credId]) {
+                  credentialUsageMap[credId] = [];
+                }
+                credentialUsageMap[credId].push({
+                  type: 'contextVariable',
+                  id: key,
+                  graphId: graph.getId(),
+                });
+              }
+            }
+            // Also check legacy credentialReferenceId field
+            else if ((variable as any)?.credentialReferenceId) {
+              const credId = (variable as any).credentialReferenceId;
+              if (!credentialUsageMap[credId]) {
+                credentialUsageMap[credId] = [];
+              }
+              credentialUsageMap[credId].push({
+                type: 'contextVariable',
+                id: key,
+                graphId: graph.getId(),
+              });
+            }
+          }
+        }
+      }
 
       // Collect tools from all agents in this graph
       for (const agent of (graph as any).agents) {
@@ -561,9 +672,33 @@ export class Project implements ProjectInterface {
               if (actualTool.lastToolsSync) {
                 toolData.lastToolsSync = actualTool.lastToolsSync;
               }
-              // Add credential reference ID if available
+              // Add credential reference ID if available and track usage
               if (actualTool.getCredentialReferenceId?.()) {
-                toolData.credentialReferenceId = actualTool.getCredentialReferenceId();
+                const credId = actualTool.getCredentialReferenceId();
+                toolData.credentialReferenceId = credId;
+
+                // Track credential usage
+                if (!credentialUsageMap[credId]) {
+                  credentialUsageMap[credId] = [];
+                }
+                credentialUsageMap[credId].push({
+                  type: 'tool',
+                  id: toolId,
+                  graphId: graph.getId(),
+                });
+              } else if (actualTool.config?.credential?.id) {
+                const credId = actualTool.config.credential.id;
+                toolData.credentialReferenceId = credId;
+
+                // Track credential usage
+                if (!credentialUsageMap[credId]) {
+                  credentialUsageMap[credId] = [];
+                }
+                credentialUsageMap[credId].push({
+                  type: 'tool',
+                  id: toolId,
+                  graphId: graph.getId(),
+                });
               }
 
               toolsObject[toolId] = toolData;
@@ -649,6 +784,26 @@ export class Project implements ProjectInterface {
       }
     }
 
+    // Merge in any credentials set via setCredentials() method
+    if (this.credentialReferences && this.credentialReferences.length > 0) {
+      for (const credential of this.credentialReferences) {
+        if (credential.id) {
+          // Only add if not already present
+          if (!credentialReferencesObject[credential.id]) {
+            credentialReferencesObject[credential.id] = credential;
+            credentialUsageMap[credential.id] = [];
+          }
+        }
+      }
+    }
+
+    // Add usedBy information to credentials
+    for (const [credId, usages] of Object.entries(credentialUsageMap)) {
+      if (credentialReferencesObject[credId]) {
+        credentialReferencesObject[credId].usedBy = usages;
+      }
+    }
+
     return {
       id: this.projectId,
       name: this.projectName,
@@ -661,7 +816,8 @@ export class Project implements ProjectInterface {
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
       artifactComponents:
         Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
-      credentialReferences: undefined, // Projects don't directly hold credentials yet
+      credentialReferences:
+        Object.keys(credentialReferencesObject).length > 0 ? credentialReferencesObject : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

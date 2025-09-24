@@ -123,16 +123,16 @@ describe('Push Command - TypeScript Loading', () => {
   });
 
   it('should handle TypeScript import errors gracefully', async () => {
-    // Mock import failure
-    mockImportWithTypeScriptSupport.mockRejectedValue(new Error('Failed to load TypeScript file'));
+    // Mock import returning empty module (no project export)
+    mockImportWithTypeScriptSupport.mockResolvedValue({});
 
     await pushCommand({});
 
-    // Verify error handling
+    // Verify error handling - it should fail because no project export found
     expect(oraInstance.fail).toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Error'),
-      'Failed to load TypeScript file'
+      'Error:',
+      expect.stringContaining('No project export found')
     );
     expect(mockExit).toHaveBeenCalledWith(1);
   });

@@ -109,6 +109,7 @@ program
   .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
   .option('--env <environment>', 'Environment file to generate (development, staging, production). Defaults to development')
   .option('--json', 'Generate project data JSON file instead of updating files')
+  .option('--debug', 'Enable debug logging for LLM generation')
   .action(async (options) => {
     await pullProjectCommand(options);
   });

@@ -1,9 +1,9 @@
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { ModelSettings } from '@inkeep/agents-core';
 import { generateText } from 'ai';
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 /**
  * Create a language model instance from configuration
@@ -40,12 +40,35 @@ function createModel(config: ModelSettings) {
 }
 
 /**
+ * Reusable naming convention rules for all LLM generation functions
+ */
+const NAMING_CONVENTION_RULES = `
+CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
+- File paths ALWAYS use the exact original ID (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
+- Import/export names MUST be camelCase versions of the ID
+- Conversion rules for import/export names:
+  - IDs with underscores: 'inkeep_facts' → inkeepFacts
+  - IDs with hyphens: 'weather-api' → weatherApi
+  - IDs with both: 'my_weather-api' → myWeatherApi
+  - Random/UUID IDs: Keep as-is (e.g., 'fUI2riwrBVJ6MepT8rjx0' → fUI2riwrBVJ6MepT8rjx0)
+  - IDs starting with uppercase: Make first letter lowercase unless it's an acronym
+- The ID field in the exported object keeps the original format
+- Examples:
+  - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
+  - Component: import { userProfile } from '../data-components/user-profile'; export const userProfile = dataComponent({ id: 'user-profile', ... })
+  - Graph: import { myGraph } from './graphs/my-graph'; export const myGraph = agentGraph({ id: 'my-graph', ... })
+`;
+
+/**
  * Clean generated text by removing markdown code fences
  */
 function cleanGeneratedCode(text: string): string {
   // Remove opening and closing markdown code fences
   // Handles ```typescript, ```ts, or just ```
-  return text.replace(/^```(?:typescript|ts)?\n?/, '').replace(/\n?```$/, '').trim();
+  return text
+    .replace(/^```(?:typescript|ts)?\n?/, '')
+    .replace(/\n?```$/, '')
+    .trim();
 }
 
 /**
@@ -82,21 +105,16 @@ export async function generateIndexFile(
 PROJECT DATA:
 ${JSON.stringify(projectData, null, 2)}
 
+${NAMING_CONVENTION_RULES}
+
 REQUIREMENTS:
 1. Import the project function from '@inkeep/agents-sdk'
-2. Import all graphs from the graphs directory using their IDs as file names
-   - CRITICAL: Convert graph IDs with hyphens to camelCase for the import name (e.g., 'basic-graph' becomes 'basicGraph', 'my-graph-id' becomes 'myGraphId')
-   - The file name keeps the hyphens, but the JavaScript identifier uses camelCase
-   - IMPORTANT: Import names must match the exact export names in the files (camelCase conversion)
-3. CRITICAL: Import all tools from the tools directory using their IDs as both the file name AND the import name
-   - For example, if tool ID is "fUI2riwrBVJ6MepT8rjx0", import as: import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0'
-   - DO NOT use the tool's name for imports, ALWAYS use the tool's ID
-4. Import all data components from the data-components directory using their IDs as file names
-   - IMPORTANT: Component IDs with hyphens should have them removed in the import name (e.g., 'weather-forecast' becomes 'weatherForecast')
-   - Never create duplicate imports with different casing
-5. Import all artifact components from the artifact-components directory using their IDs as file names
+2. Import all graphs from the graphs directory
+3. Import all tools from the tools directory
+4. Import all data components from the data-components directory
+5. Import all artifact components from the artifact-components directory
 6. CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
-7. Export a const named after the project ID using the project() function
+7. Export a const named after the project ID (in camelCase) using the project() function
 8. The project object should include:
    - id: project ID
    - name: project name
@@ -136,6 +154,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     prompt,
     temperature: 0.1,
     maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
   });
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
@@ -148,7 +167,8 @@ export async function generateGraphFile(
   graphData: any,
   graphId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  debug: boolean = false
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -168,13 +188,13 @@ IMPORTANT CONTEXT:
 - Agents reference these resources by their imported variable names
 - The 'tools' field in agents contains tool IDs that must match the imported variable names
 
+${NAMING_CONVENTION_RULES}
+
 REQUIREMENTS:
 1. Import { agent, agentGraph } from '@inkeep/agents-sdk' - ALWAYS sort named imports alphabetically
-2. CRITICAL: Import tools from '../tools/{toolId}' where toolId is the exact ID
-   - Example: import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0'
-   - DO NOT use tool names for imports, ALWAYS use the tool ID
-3. Import data components from '../data-components/{componentId}' if agents use them
-4. Import artifact components from '../artifact-components/{componentId}' if agents use them
+2. Import tools from '../tools/{toolId}' following naming convention rules
+3. Import data components from '../data-components/{componentId}' following naming convention rules
+4. Import artifact components from '../artifact-components/{componentId}' following naming convention rules
 5. Define each agent using the agent() function with:
    - id, name, description, prompt
    - canUse: arrow function returning array of imported tool variables (using their IDs)
@@ -191,11 +211,24 @@ REQUIREMENTS:
    - First letter should be lowercase
 8. Ensure all imports are sorted alphabetically
 
-EXAMPLE:
-import { agent, agentGraph } from '@inkeep/agents-sdk';
-import { weatherForecast } from '../data-components/weather-forecast';
+NAMING CONVENTION EXAMPLES:
+// Tool with underscore ID 'inkeep_facts':
+import { inkeepFacts } from '../tools/inkeep_facts';  // camelCase import, exact ID in path
+
+// Tool with hyphen ID 'weather-api':
+import { weatherApi } from '../tools/weather-api';  // camelCase import, exact ID in path
+
+// Data component with hyphen ID 'user-profile':
+import { userProfile } from '../data-components/user-profile';  // camelCase import, exact ID in path
+
+// Random ID (no conversion needed):
 import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
-import { fdxgfv9HL7SXlfynPx8hf } from '../tools/fdxgfv9HL7SXlfynPx8hf';
+
+FULL EXAMPLE:
+import { agent, agentGraph } from '@inkeep/agents-sdk';
+import { userProfile } from '../data-components/user-profile';
+import { inkeepFacts } from '../tools/inkeep_facts';
+import { weatherApi } from '../tools/weather-api';
 
 const routerAgent = agent({
   id: 'router',
@@ -236,14 +269,89 @@ export const weatherGraph = agentGraph({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const { text } = await generateText({
-    model,
-    prompt,
-    temperature: 0.1,
-    maxOutputTokens: 16000,
-  });
+  if (debug) {
+    console.log(`\n[DEBUG] === Starting graph generation for: ${graphId} ===`);
+    console.log(`[DEBUG] Output path: ${outputPath}`);
+    console.log(`[DEBUG] Model: ${modelSettings.model || 'default'}`);
+    console.log(`[DEBUG] Graph data size: ${JSON.stringify(graphData).length} characters`);
+    console.log(`[DEBUG] Prompt length: ${prompt.length} characters`);
 
-  writeFileSync(outputPath, cleanGeneratedCode(text));
+    // Log graph complexity
+    const agentCount = Object.keys(graphData.agents || {}).length;
+    const toolIds = new Set();
+    const dataComponentIds = new Set();
+    const artifactComponentIds = new Set();
+
+    for (const agent of Object.values(graphData.agents || {})) {
+      const agentData = agent as any;
+      if (agentData.tools) {
+        Object.keys(agentData.tools).forEach((toolId) => toolIds.add(toolId));
+      }
+      if (agentData.dataComponents) {
+        Object.keys(agentData.dataComponents).forEach((id) => dataComponentIds.add(id));
+      }
+      if (agentData.artifactComponents) {
+        Object.keys(agentData.artifactComponents).forEach((id) => artifactComponentIds.add(id));
+      }
+    }
+
+    console.log(`[DEBUG] Graph complexity:`);
+    console.log(`[DEBUG]   - Agents: ${agentCount}`);
+    console.log(`[DEBUG]   - Unique tools: ${toolIds.size}`);
+    console.log(`[DEBUG]   - Data components: ${dataComponentIds.size}`);
+    console.log(`[DEBUG]   - Artifact components: ${artifactComponentIds.size}`);
+    console.log(
+      `[DEBUG]   - Has relations: ${graphData.relations ? Object.keys(graphData.relations).length : 0}`
+    );
+  }
+
+  try {
+    const startTime = Date.now();
+
+    if (debug) {
+      console.log(`[DEBUG] Sending request to LLM API...`);
+    }
+
+    const { text } = await generateText({
+      model,
+      prompt,
+      temperature: 0.1,
+      maxOutputTokens: 16000,
+      abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex graphs
+    });
+
+    const duration = Date.now() - startTime;
+
+    if (debug) {
+      console.log(`[DEBUG] LLM response received in ${duration}ms`);
+      console.log(`[DEBUG] Generated text length: ${text.length} characters`);
+      console.log(`[DEBUG] Writing to file: ${outputPath}`);
+    }
+
+    const cleanedCode = cleanGeneratedCode(text);
+    writeFileSync(outputPath, cleanedCode);
+
+    if (debug) {
+      console.log(`[DEBUG] Graph file written successfully`);
+      console.log(`[DEBUG] === Completed graph generation for: ${graphId} ===\n`);
+    }
+  } catch (error: any) {
+    if (debug) {
+      console.error(`[DEBUG] === ERROR generating graph file ${graphId} ===`);
+      console.error(`[DEBUG] Error name: ${error.name}`);
+      console.error(`[DEBUG] Error message: ${error.message}`);
+      if (error.name === 'AbortError') {
+        console.error(`[DEBUG] Request timed out after 120 seconds`);
+        console.error(`[DEBUG] This might indicate the graph is too complex or the API is slow`);
+      }
+      if (error.response) {
+        console.error(`[DEBUG] Response status: ${error.response.status}`);
+        console.error(`[DEBUG] Response headers:`, error.response.headers);
+      }
+      console.error(`[DEBUG] Full error:`, error);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -264,28 +372,38 @@ ${JSON.stringify(toolData, null, 2)}
 
 TOOL ID: ${toolId}
 
+${NAMING_CONVENTION_RULES}
+
 REQUIREMENTS:
 1. Import mcpTool from '@inkeep/agents-sdk' - ensure imports are alphabetically sorted
 2. Use mcpTool() with serverUrl property (not nested server object)
 3. Include id, name, and serverUrl as the main properties
-4. Export the tool as a named export
+4. Export the tool following naming convention rules (camelCase version of ID)
 5. Include all configuration from the tool data
 6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
-IMPORTANT: The exported const MUST be named exactly after the tool ID (camelCased) since the ID is unique and will be imported by that name.
-
-EXAMPLE FOR MCP TOOL:
+EXAMPLE FOR TOOL WITH UNDERSCORE ID:
 import { mcpTool } from '@inkeep/agents-sdk';
 
-// If tool ID is 'search-tool', export name is 'searchTool'
-export const searchTool = mcpTool({
-  id: 'search-tool',
-  name: 'Search Tool',
-  serverUrl: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-brave-search']
+// Tool ID 'inkeep_facts' becomes export name 'inkeepFacts'
+export const inkeepFacts = mcpTool({
+  id: 'inkeep_facts',  // Keep original ID here
+  name: 'Inkeep Facts',
+  serverUrl: 'https://facts.inkeep.com/mcp'
 });
 
-EXAMPLE FOR MCP TOOL WITH RANDOM ID:
+EXAMPLE FOR TOOL WITH HYPHEN ID:
+import { mcpTool } from '@inkeep/agents-sdk';
+
+// Tool ID 'weather-api' becomes export name 'weatherApi'
+export const weatherApi = mcpTool({
+  id: 'weather-api',  // Keep original ID here
+  name: 'Weather API',
+  serverUrl: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-weather']
+});
+
+EXAMPLE FOR RANDOM ID:
 import { mcpTool } from '@inkeep/agents-sdk';
 
 // If tool ID is 'fUI2riwrBVJ6MepT8rjx0', export name is 'fUI2riwrBVJ6MepT8rjx0'
@@ -302,6 +420,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     prompt,
     temperature: 0.1,
     maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
   });
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
@@ -325,26 +444,41 @@ ${JSON.stringify(componentData, null, 2)}
 
 COMPONENT ID: ${componentId}
 
+${NAMING_CONVENTION_RULES}
+
 REQUIREMENTS:
 1. Import dataComponent from '@inkeep/agents-sdk'
 2. Create the data component using dataComponent()
 3. Include all properties from the component data
-4. Export as a named export
+4. Export following naming convention rules (camelCase version of ID)
 5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
-IMPORTANT: The exported const MUST be named exactly after the component ID (camelCased) since the ID is unique and will be imported by that name.
-
-EXAMPLE:
+EXAMPLE WITH UNDERSCORE ID:
 import { dataComponent } from '@inkeep/agents-sdk';
 
-// If component ID is 'user-profile', export name is 'userProfile'
+// Component ID 'user_profile' becomes export name 'userProfile'
 export const userProfile = dataComponent({
+  id: 'user_profile',  // Keep original ID here
   name: 'User Profile',
   description: 'User profile information',
   props: {
     userId: { type: 'string', required: true },
     email: { type: 'string', required: true },
     preferences: { type: 'object' }
+  }
+});
+
+EXAMPLE WITH HYPHEN ID:
+import { dataComponent } from '@inkeep/agents-sdk';
+
+// Component ID 'weather-data' becomes export name 'weatherData'
+export const weatherData = dataComponent({
+  id: 'weather-data',  // Keep original ID here
+  name: 'Weather Data',
+  description: 'Weather information',
+  props: {
+    temperature: { type: 'number', required: true },
+    conditions: { type: 'string' }
   }
 });
 
@@ -355,6 +489,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     prompt,
     temperature: 0.1,
     maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
   });
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
@@ -378,20 +513,38 @@ ${JSON.stringify(componentData, null, 2)}
 
 COMPONENT ID: ${componentId}
 
+${NAMING_CONVENTION_RULES}
+
 REQUIREMENTS:
 1. Import artifactComponent from '@inkeep/agents-sdk'
 2. Create the artifact component using artifactComponent()
 3. Include summaryProps and fullProps from the component data
-4. Export as a named export
+4. Export following naming convention rules (camelCase version of ID)
 5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
-IMPORTANT: The exported const MUST be named exactly after the component ID (camelCased) since the ID is unique and will be imported by that name.
-
-EXAMPLE:
+EXAMPLE WITH UNDERSCORE ID:
 import { artifactComponent } from '@inkeep/agents-sdk';
 
-// If component ID is 'order-summary', export name is 'orderSummary'
+// Component ID 'pdf_export' becomes export name 'pdfExport'
+export const pdfExport = artifactComponent({
+  id: 'pdf_export',  // Keep original ID here
+  name: 'PDF Export',
+  description: 'Export data as PDF',
+  summaryProps: {
+    filename: { type: 'string', required: true }
+  },
+  fullProps: {
+    filename: { type: 'string', required: true },
+    content: { type: 'object', required: true }
+  }
+});
+
+EXAMPLE WITH HYPHEN ID:
+import { artifactComponent } from '@inkeep/agents-sdk';
+
+// Component ID 'order-summary' becomes export name 'orderSummary'
 export const orderSummary = artifactComponent({
+  id: 'order-summary',  // Keep original ID here
   name: 'Order Summary',
   description: 'Summary of customer order',
   summaryProps: {
@@ -413,6 +566,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     prompt,
     temperature: 0.1,
     maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
   });
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
@@ -423,50 +577,63 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
  */
 export async function generateEnvironmentFiles(
   environmentsDir: string,
-  environment: string = 'development'  // Default to development if not specified
+  environment: string = 'development', // Default to development if not specified
+  credentials?: Record<string, any>, // Actual credential data from backend
+  debug: boolean = false
 ): Promise<void> {
-  // Generate production.env.ts template
+  // Helper to generate credential definitions
+  const generateCredentialCode = (cred: any) => {
+    const params = [
+      `id: '${cred.id}'`,
+      `type: '${cred.type}'`,
+      `credentialStoreId: '${cred.credentialStoreId}'`,
+    ];
+    if (cred.retrievalParams) {
+      params.push(
+        `retrievalParams: ${JSON.stringify(cred.retrievalParams, null, 4).replace(/\n/g, '\n    ')}`
+      );
+    }
+    return `credential({\n    ${params.join(',\n    ')}\n  })`;
+  };
+
+  // Generate credentials object from actual data
+  let credentialsCode = '';
+  if (credentials && Object.keys(credentials).length > 0) {
+    const credentialEntries: string[] = [];
+    for (const [credId, cred] of Object.entries(credentials)) {
+      // Use a sanitized version of the ID as the variable name
+      const varName = credId.replace(/-/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      credentialEntries.push(`  ${varName}: ${generateCredentialCode(cred)}`);
+    }
+    credentialsCode = credentialEntries.join(',\n');
+  } else {
+    credentialsCode = `  // No credentials found. Add credentials to your project and pull again.\n  // Example:\n  // apiKey: credential({\n  //   id: 'api-key',\n  //   type: 'memory',\n  //   credentialStoreId: 'memory-default',\n  //   retrievalParams: { key: 'API_KEY' }\n  // })`;
+  }
+
+  // Generate production.env.ts with actual credentials
   const prodEnvContent = `// Production environment configuration
 import { credential } from '@inkeep/agents-sdk';
 
 export const production = {
-  // Add your production credential references here
-  // Example:
-  // apiKey: credential({
-  //   id: 'prod-api-key',
-  //   name: 'Production API Key',
-  //   type: 'string'
-  // })
+${credentialsCode}
 };
 `;
 
-  // Generate staging.env.ts template
+  // Generate staging.env.ts with actual credentials
   const stagingEnvContent = `// Staging environment configuration
 import { credential } from '@inkeep/agents-sdk';
 
 export const staging = {
-  // Add your staging credential references here
-  // Example:
-  // apiKey: credential({
-  //   id: 'staging-api-key',
-  //   name: 'Staging API Key',
-  //   type: 'string'
-  // })
+${credentialsCode}
 };
 `;
 
-  // Generate development.env.ts template
+  // Generate development.env.ts with actual credentials
   const devEnvContent = `// Development environment configuration
 import { credential } from '@inkeep/agents-sdk';
 
 export const development = {
-  // Add your development credential references here
-  // Example:
-  // apiKey: credential({
-  //   id: 'dev-api-key',
-  //   name: 'Development API Key',
-  //   type: 'string'
-  // })
+${credentialsCode}
 };
 `;
 
@@ -546,6 +713,7 @@ export async function generateTypeScriptFileWithLLM(
       prompt,
       temperature: 0.1, // Low temperature for consistent code generation
       maxOutputTokens: 16000, // Increased to handle large TypeScript files
+      abortSignal: AbortSignal.timeout(60000), // 60 second timeout
     });
 
     // Write the generated code to the file (clean it first)

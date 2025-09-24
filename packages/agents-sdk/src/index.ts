@@ -11,6 +11,13 @@ export {
   mcpTool,
   project,
 } from './builderFunctions';
+export {
+  credentialRef,
+  isCredentialReference,
+  type CredentialReference,
+  type ExtractCredentialIds,
+  type UnionCredentialIds,
+} from './credential-ref';
 export { transfer } from './builders';
 export { DataComponent, type DataComponentInterface } from './data-component';
 export {

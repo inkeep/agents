@@ -160,7 +160,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle component mode correctly', async () => {
-    const tenantId = createTestTenantId('graph-component-mode');
+    const _tenantId = createTestTenantId('graph-component-mode');
 
     // Import and spy on the updateFullGraphViaAPI function
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
@@ -202,7 +202,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle graphs with no relationships', async () => {
-    const tenantId = createTestTenantId('graph-no-relations');
+    const _tenantId = createTestTenantId('graph-no-relations');
 
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
@@ -245,7 +245,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it('should preserve the legacy initialization method', async () => {
-    const tenantId = createTestTenantId('graph-legacy');
+    const _tenantId = createTestTenantId('graph-legacy');
 
     const agent1 = agent({
       id: 'legacy-agent',
@@ -270,7 +270,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle errors in graph initialization gracefully', async () => {
-    const tenantId = createTestTenantId('graph-error');
+    const _tenantId = createTestTenantId('graph-error');
 
     // Mock updateFullGraphViaAPI to throw an error
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
