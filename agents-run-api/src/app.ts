@@ -12,7 +12,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
-import { batchProcessor } from './instrumentation';
+import { defaultBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -263,19 +263,19 @@ function createExecutionHono(
 
   app.use('/tenants/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
   app.use('/agents/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
   app.use('/v1/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
   app.use('/api/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
 
   const baseApp = new Hono();

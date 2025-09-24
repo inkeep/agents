@@ -15,16 +15,10 @@ import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import { env } from './env';
-
-const maxExportBatchSize =
-  env.OTEL_MAX_EXPORT_BATCH_SIZE ?? (env.ENVIRONMENT === 'development' ? 1 : 512);
 
 const otlpExporter = new OTLPTraceExporter();
 
-export const batchProcessor = new BatchSpanProcessor(otlpExporter, {
-  maxExportBatchSize,
-});
+export const defaultBatchProcessor = new BatchSpanProcessor(otlpExporter);
 
 export const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
@@ -55,7 +49,7 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
 
 export const defaultSpanProcessors: SpanProcessor[] = [
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
-  batchProcessor,
+  defaultBatchProcessor,
 ];
 
 export const defaultContextManager = new AsyncLocalStorageContextManager();
@@ -70,4 +64,6 @@ export const defaultSDK = new NodeSDK({
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
+
 });
+
