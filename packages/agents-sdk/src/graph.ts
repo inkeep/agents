@@ -3,7 +3,7 @@ import type {
   FullGraphDefinition,
   GraphStopWhen,
 } from '@inkeep/agents-core';
-import { createDatabaseClient, getLogger, getProject } from '@inkeep/agents-core';
+import { createDatabaseClient, getLogger, getProject, type StatusUpdateSettings } from '@inkeep/agents-core';
 import { ExternalAgent } from './externalAgent';
 import { updateFullGraphViaAPI } from './graphFullClient';
 import type {
@@ -16,7 +16,6 @@ import type {
   MessageInput,
   ModelSettings,
   RunResult,
-  StatusUpdateSettings,
   StreamResponse,
 } from './types';
 
