@@ -5,9 +5,6 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { createExecutionHono } from './app';
-import { defaultNodeSDK } from './instrumentation';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-
 // Create default configuration
 const defaultConfig: ServerConfig = {
   port: 3003,
@@ -23,7 +20,7 @@ const defaultStores = createDefaultCredentialStores();
 const defaultRegistry = new CredentialStoreRegistry(defaultStores);
 
 // Create default app instance for simple usage
-const app = createExecutionHono(defaultConfig, defaultRegistry, defaultNodeSDK);
+const app = createExecutionHono(defaultConfig, defaultRegistry);
 
 // Export the default app for Vite dev server and simple deployments
 export default app;
@@ -35,14 +32,10 @@ export { createExecutionHono };
 export function createExecutionApp(config?: {
   serverConfig?: ServerConfig;
   credentialStores?: CredentialStore[];
-  nodeSDK?: NodeSDK;
 }) {
-  // Use custom NodeSDK if provided, otherwise use default
-  const nodeSDK = config?.nodeSDK ?? defaultNodeSDK;
-
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? defaultStores;
   const registry = new CredentialStoreRegistry(stores);
 
-  return createExecutionHono(serverConfig, registry, nodeSDK);
+  return createExecutionHono(serverConfig, registry);
 }
