@@ -55,6 +55,7 @@ interface TimelineWrapperProps {
   retryConnection?: () => void;
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
+  conversationId?: string;
 }
 
 function EmptyTimeline({
@@ -128,6 +129,7 @@ export function TimelineWrapper({
   retryConnection,
   refreshOnce,
   showConversationTracesLink = false,
+  conversationId
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -147,6 +149,13 @@ export function TimelineWrapper({
       setPanelVisible(false);
     }
   }, [selected]);
+
+    // Clear selected panel when conversation changes
+    useEffect(() => {
+      if (conversationId) {
+        setSelected(null);
+      }
+    }, [conversationId]);
 
   // Memoize activities calculation to prevent expensive operations on every render
   const activities = useMemo(() => {

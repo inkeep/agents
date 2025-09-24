@@ -269,7 +269,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           direction="horizontal"
           className="h-full border rounded-xl bg-background"
         >
-          <TimelineWrapper conversation={conversation} />
+          <TimelineWrapper conversation={conversation} conversationId={conversationId} />
         </ResizablePanelGroup>
       </div>
     </div>
