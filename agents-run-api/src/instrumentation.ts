@@ -64,7 +64,7 @@ export const defaultTextMapPropagator = new CompositePropagator({
   propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
 });
 
-export const defaultSDK= new NodeSDK({
+export const defaultSDK = new NodeSDK({
   resource: defaultResource,
   contextManager: defaultContextManager,
   textMapPropagator: defaultTextMapPropagator,

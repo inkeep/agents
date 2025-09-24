@@ -1,4 +1,4 @@
-import {defaultSDK} from './src/instrumentation';
+import { defaultSDK } from './src/instrumentation';
 defaultSDK.start();
 import app from './src/index';
 
