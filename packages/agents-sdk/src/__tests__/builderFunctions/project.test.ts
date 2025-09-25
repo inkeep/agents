@@ -24,6 +24,7 @@ describe('project builder function', () => {
       id: 'full-project',
       name: 'Full Test Project',
       description: 'A full test project configuration',
+      tenantId: 'test-tenant',
       models: {
         base: { model: 'gpt-4o-mini' },
         structuredOutput: { model: 'gpt-4o' },
@@ -36,8 +37,6 @@ describe('project builder function', () => {
     };
 
     const projectInstance = project(config);
-    // Set config after creation to provide tenantId
-    projectInstance.setConfig('test-tenant', 'http://localhost:3002');
 
     expect(projectInstance).toBeInstanceOf(Project);
     expect(projectInstance.getId()).toBe('full-project');

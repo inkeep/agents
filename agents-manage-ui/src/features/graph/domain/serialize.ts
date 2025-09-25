@@ -9,7 +9,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
 
 // Extract the internal agent type from the union
-type InternalAgent = Extract<FullGraphDefinition['agents'][string], { canUse: Array<{ toolId: string; toolSelection?: string[] | null }> }>;
+type InternalAgent = Extract<FullGraphDefinition['agents'][string], { tools: string[] }>;
 
 type ExternalAgent = {
   id: string;
@@ -24,6 +24,7 @@ export type ExtendedAgent =
       dataComponents: string[];
       artifactComponents: string[];
       models?: GraphMetadata['models'];
+      selectedTools?: Record<string, string[]>;
       type: 'internal';
     })
   | ExternalAgent;
@@ -107,21 +108,12 @@ export function serializeGraphData(
       const processedModels = processModels(modelsData);
 
       const stopWhen = (node.data as any).stopWhen;
-
-      // Convert tools and selectedTools to canUse array
-      const tools = (node.data as any).tools || [];
-      const selectedTools = (node.data as any).selectedTools || {};
-      const canUse = tools.map((toolId: string) => ({
-        toolId,
-        toolSelection: selectedTools[toolId] || null
-      }));
-
       const agent: ExtendedAgent = {
         id: agentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         prompt: node.data.prompt as string,
-        canUse,
+        tools: [],
         canTransferTo: [],
         canDelegateTo: [],
         dataComponents: agentDataComponents,
@@ -129,6 +121,9 @@ export function serializeGraphData(
         ...(processedModels && { models: processedModels }),
         type: 'internal',
         ...(stopWhen && { stopWhen }),
+        ...((node.data as any).selectedTools && {
+          selectedTools: (node.data as any).selectedTools,
+        }),
       };
 
       if ((node.data as any).isDefault) {
@@ -184,7 +179,7 @@ export function serializeGraphData(
           relationshipType: 'canTransferTo' | 'canDelegateTo',
           targetId: string
         ) => {
-          if ('canUse' in agent) {
+          if ('tools' in agent) {
             if (!agent[relationshipType]) agent[relationshipType] = [];
             const agentRelationships = agent[relationshipType];
             if (agentRelationships && !agentRelationships.includes(targetId)) {
@@ -214,37 +209,26 @@ export function serializeGraphData(
       const sourceAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
       const sourceAgent: ExtendedAgent = agents[sourceAgentId];
       const targetToolNode = nodes.find((node) => node.id === edge.target);
-      if (sourceAgent && targetToolNode && sourceAgent.type === 'internal') {
-        const toolId = (targetToolNode.data as any).id as string;
-        const internalAgent = sourceAgent as InternalAgent & {
-          dataComponents: string[];
-          artifactComponents: string[];
-          models?: GraphMetadata['models'];
-          type: 'internal';
-        };
-
-        // Check if tool is already in canUse array
-        const existingCanUse = internalAgent.canUse.find(item => item.toolId === toolId);
-        if (!existingCanUse) {
-          internalAgent.canUse.push({
-            toolId,
-            toolSelection: null
-          });
+      if (sourceAgent && targetToolNode && 'tools' in sourceAgent) {
+        if (!sourceAgent.tools.includes((targetToolNode.data as any).id as string)) {
+          sourceAgent.tools.push((targetToolNode.data as any).id as string);
         }
 
-        // Only override toolSelection if user made changes in the UI for this specific tool
+        // Only override selectedTools if user made changes in the UI for this specific tool
         const userSelectedTools = (targetToolNode.data as any).tempSelectedTools;
         if (userSelectedTools !== undefined) {
           // User has made selections in the UI for this tool
-          const canUseItem = internalAgent.canUse.find(item => item.toolId === toolId);
-          if (canUseItem) {
-            if (userSelectedTools === null) {
-              // User selected all tools - set to null (null = all)
-              canUseItem.toolSelection = null;
-            } else {
-              // User selected specific tools (including empty array for "none selected")
-              canUseItem.toolSelection = userSelectedTools;
-            }
+          if (!sourceAgent.selectedTools) {
+            sourceAgent.selectedTools = {};
+          }
+
+          const toolId = (targetToolNode.data as any).id as string;
+          if (userSelectedTools === null) {
+            // User selected all tools - remove this toolId from selectedTools (null = all)
+            delete sourceAgent.selectedTools[toolId];
+          } else {
+            // User selected specific tools (including empty array for "none selected")
+            sourceAgent.selectedTools[toolId] = userSelectedTools;
           }
         }
       }
@@ -364,12 +348,11 @@ export function validateSerializedData(data: FullGraphDefinition): string[] {
 
   for (const [agentId, agent] of Object.entries(data.agents)) {
     // Only validate tools for internal agents (external agents don't have tools)
-    if ('canUse' in agent && agent.canUse) {
+    if ('tools' in agent && agent.tools) {
       // Skip tool validation if tools data is not available (project-scoped)
       const toolsData = (data as any).tools;
       if (toolsData) {
-        for (const canUseItem of agent.canUse) {
-          const toolId = canUseItem.toolId;
+        for (const toolId of agent.tools) {
           if (!toolsData[toolId]) {
             errors.push(`Tool '${toolId}' referenced by agent '${agentId}' not found in tools`);
           }

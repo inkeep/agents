@@ -6,6 +6,7 @@ const logger = getLogger('external-agent-builder');
 
 export type ExternalAgentConfig = {
   type?: 'external'; // Discriminator for external agents
+  tenantId?: string;
   id: string;
   name: string;
   description: string;
@@ -23,15 +24,14 @@ export class ExternalAgent implements ExternalAgentInterface {
 
   constructor(config: ExternalAgentConfig) {
     this.config = { ...config, type: 'external' };
-    // tenantId will be set by setContext method from external source
-    this.tenantId = 'default';
+    this.tenantId = config.tenantId || 'default';
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
 
     logger.debug(
       {
         externalAgentName: this.config.name,
         baseUrl: this.config.baseUrl,
-        tenantId: this.tenantId,
+        tenantId: this.config.tenantId,
       },
       'External Agent constructor initialized'
     );
@@ -65,11 +65,6 @@ export class ExternalAgent implements ExternalAgentInterface {
       );
       throw error;
     }
-  }
-
-  // Set context (tenantId) from external source (graph, CLI, etc)
-  setContext(tenantId: string): void {
-    this.tenantId = tenantId;
   }
 
   // Compute ID from name using a simple slug transformation

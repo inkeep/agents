@@ -16,7 +16,6 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
     prompt: `Test Instructions${suffix}`,
     type: 'internal' as const,
     tools: [],
-    canUse: [],
   });
 
   // Helper function to create test agent graph data
@@ -508,7 +507,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
         name: expect.any(String),
         description: expect.any(String),
         canDelegateTo: expect.any(Array),
-        canUse: expect.any(Array),
+        tools: expect.any(Array),
       });
     });
 
@@ -605,7 +604,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
           name: expect.any(String),
           description: expect.any(String),
           canDelegateTo: expect.any(Array),
-          canUse: expect.any(Array),
+          tools: expect.any(Array),
         });
       }
     });
@@ -643,7 +642,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       // The default agent should have empty relationship arrays
       expect(body.data.agents[agentId].canTransferTo).toEqual([]);
       expect(body.data.agents[agentId].canDelegateTo).toEqual([]);
-      expect(body.data.agents[agentId].canUse).toEqual([]);
+      expect(body.data.agents[agentId].tools).toEqual([]);
     });
   });
 });

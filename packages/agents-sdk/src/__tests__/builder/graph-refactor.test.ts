@@ -92,6 +92,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const agent1 = agent({
       id: 'agent1',
+      tenantId,
       name: 'Agent 1',
       description: 'First test agent',
       prompt: 'You are agent 1.',
@@ -100,6 +101,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const agent2 = agent({
       id: 'agent2',
+      tenantId,
       name: 'Agent 2',
       prompt: 'You are agent 2.',
       description: 'Second test agent',
@@ -111,6 +113,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     // Create the graph
     const graphId = `test-graph-${nanoid()}`;
     const graph = agentGraph({
+      tenantId,
       id: graphId,
       name: 'Test Graph',
       description: 'A test graph for refactor validation',
@@ -160,7 +163,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle component mode correctly', async () => {
-    const _tenantId = createTestTenantId('graph-component-mode');
+    const tenantId = createTestTenantId('graph-component-mode');
 
     // Import and spy on the updateFullGraphViaAPI function
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
@@ -169,6 +172,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const agent1 = agent({
       id: 'component-agent',
+      tenantId,
       name: 'Component Agent',
       description: 'Agent with component mode',
       prompt: 'You are a component-enabled agent.',
@@ -176,6 +180,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const graphId = `component-graph-${nanoid()}`;
     const graph = agentGraph({
+      tenantId,
       id: graphId,
       name: 'Component Graph',
       description: 'A graph with component mode enabled',
@@ -202,7 +207,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle graphs with no relationships', async () => {
-    const _tenantId = createTestTenantId('graph-no-relations');
+    const tenantId = createTestTenantId('graph-no-relations');
 
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
@@ -210,6 +215,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const standaloneAgent = agent({
       id: 'standalone',
+      tenantId,
       name: 'Standalone Agent',
       description: 'An agent with no relationships',
       prompt: 'You work alone.',
@@ -217,6 +223,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const graphId = `standalone-graph-${nanoid()}`;
     const graph = agentGraph({
+      tenantId,
       id: graphId,
       name: 'Standalone Graph',
       defaultAgent: standaloneAgent,
@@ -245,10 +252,11 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it('should preserve the legacy initialization method', async () => {
-    const _tenantId = createTestTenantId('graph-legacy');
+    const tenantId = createTestTenantId('graph-legacy');
 
     const agent1 = agent({
       id: 'legacy-agent',
+      tenantId,
       name: 'Legacy Agent',
       description: 'Agent for legacy test',
       prompt: 'You are a legacy agent.',
@@ -256,6 +264,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const graphId = `legacy-graph-${nanoid()}`;
     const graph = agentGraph({
+      tenantId,
       id: graphId,
       name: 'Legacy Graph',
       defaultAgent: agent1,
@@ -270,7 +279,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle errors in graph initialization gracefully', async () => {
-    const _tenantId = createTestTenantId('graph-error');
+    const tenantId = createTestTenantId('graph-error');
 
     // Mock updateFullGraphViaAPI to throw an error
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
@@ -280,6 +289,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const agent1 = agent({
       id: 'error-agent',
+      tenantId,
       name: 'Error Agent',
       description: 'Agent that will cause error',
       prompt: 'You will cause an error.',
@@ -287,6 +297,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     const graphId = `error-graph-${nanoid()}`;
     const graph = agentGraph({
+      tenantId,
       id: graphId,
       name: 'Error Graph',
       defaultAgent: agent1,

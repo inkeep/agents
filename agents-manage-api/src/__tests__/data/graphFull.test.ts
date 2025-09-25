@@ -34,7 +34,6 @@ describe('Graph Full Service Layer - Unit Tests', () => {
     dataComponents: [] as string[],
     artifactComponents: [] as string[],
     tools: [] as string[], // Array of tool IDs, not tool objects
-    canUse: [] as { toolId: string; toolSelection?: string[] | null }[], // Required field for internal agents
     type: 'internal' as const,
   });
 
@@ -191,7 +190,6 @@ describe('Graph Full Service Layer - Unit Tests', () => {
             description: 'Test agent description',
             prompt: 'You are a helpful assistant.',
             tools: [], // Empty tools array - no tools needed for basic test
-            canUse: [],
             type: 'internal' as const,
           },
           'agent-2': {
@@ -200,7 +198,6 @@ describe('Graph Full Service Layer - Unit Tests', () => {
             description: 'Test agent description',
             prompt: 'You are a helpful assistant.',
             tools: [],
-            canUse: [],
             canTransferTo: ['agent-1'],
             type: 'internal' as const,
           },

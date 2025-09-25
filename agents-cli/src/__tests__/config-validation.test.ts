@@ -10,6 +10,7 @@ vi.mock('../utils/tsx-loader.js', () => ({
     Promise.resolve({
       default: {
         tenantId: 'config-tenant',
+        projectId: 'config-project',
         agentsManageApiUrl: 'http://config-management',
         agentsRunApiUrl: 'http://config-execution',
       },
@@ -115,17 +116,16 @@ describe('Configuration Validation', () => {
     });
 
     describe('Invalid Configurations', () => {
-      it('should reject non-existent config file', async () => {
+      it('should reject --config-file-path with --tenant-id', async () => {
         await expect(
           validateConfiguration('test-tenant', undefined, undefined, '/path/to/config.js')
-        ).rejects.toThrow('Config file not found');
+        ).rejects.toThrow('Invalid configuration combination');
       });
 
-      it('should use defaults when --tenant-id is provided without API URLs', async () => {
-        const config = await validateConfiguration('test-tenant', undefined, undefined, undefined);
-        expect(config.tenantId).toBe('test-tenant');
-        expect(config.agentsManageApiUrl).toBe('http://localhost:3002');
-        expect(config.agentsRunApiUrl).toBe('http://localhost:3003');
+      it('should reject --tenant-id without both API URLs', async () => {
+        await expect(
+          validateConfiguration('test-tenant', undefined, undefined, undefined)
+        ).rejects.toThrow('--tenant-id requires --agents-manage-api-url and --agents-run-api-url');
       });
 
       it('should reject when no configuration is provided', async () => {

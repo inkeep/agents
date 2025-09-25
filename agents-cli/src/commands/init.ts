@@ -2,10 +2,10 @@ import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import { promptForModelConfiguration } from '../utils/model-config';
 
 export interface InitOptions {
   path?: string;
-  config?: string;
   interactive?: boolean;
 }
 
@@ -133,6 +133,18 @@ export async function initCommand(options?: InitOptions) {
     },
     {
       type: 'input',
+      name: 'projectId',
+      message: 'Enter your project ID:',
+      default: 'default',
+      validate: (input) => {
+        if (!input || input.trim() === '') {
+          return 'Project ID is required';
+        }
+        return true;
+      },
+    },
+    {
+      type: 'input',
       name: 'apiUrl',
       message: 'Enter the API URL:',
       default: 'http://localhost:3002',
@@ -147,13 +159,18 @@ export async function initCommand(options?: InitOptions) {
     },
   ]);
 
+  // Model configuration prompts
+  const { modelSettings } = await promptForModelConfiguration();
+
   // Generate the config file content
   const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: '${answers.tenantId}',
+  projectId: '${answers.projectId}',
   agentsManageApiUrl: '${answers.apiUrl}',
   agentsRunApiUrl: '${answers.apiUrl}',
+  modelSettings: ${JSON.stringify(modelSettings, null, 2)},
 });
 `;
 

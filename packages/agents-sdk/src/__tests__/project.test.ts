@@ -55,6 +55,7 @@ describe('Project', () => {
       id: 'test-project',
       name: 'Test Project',
       description: 'A test project',
+      tenantId: 'test-tenant',
       models: {
         base: { model: 'gpt-4o-mini' },
         structuredOutput: { model: 'gpt-4o' },
@@ -77,8 +78,6 @@ describe('Project', () => {
   describe('constructor', () => {
     it('should create a project with basic configuration', () => {
       const project = new Project(projectConfig);
-      // Set config to provide tenantId
-      project.setConfig('test-tenant', 'http://localhost:3002');
 
       expect(project.getId()).toBe('test-project');
       expect(project.getName()).toBe('Test Project');
@@ -117,9 +116,8 @@ describe('Project', () => {
 
       expect(project.getGraphs()).toHaveLength(1);
       expect(project.getGraph('test-graph')).toBe(mockGraph);
-      // Graphs are initially set with defaults, setConfig is called with 'default' tenantId
       expect(mockGraph.setConfig).toHaveBeenCalledWith(
-        'default',
+        'test-tenant',
         'test-project',
         'http://localhost:3002'
       );
@@ -182,8 +180,6 @@ describe('Project', () => {
   describe('init', () => {
     it('should initialize project and create it in backend', async () => {
       const project = new Project(projectConfig);
-      // Set config to provide tenantId
-      project.setConfig('test-tenant', 'http://localhost:3002');
 
       // Mock successful full project API call
       mockFetch.mockResolvedValueOnce({
@@ -206,8 +202,6 @@ describe('Project', () => {
 
     it('should update existing project in backend', async () => {
       const project = new Project(projectConfig);
-      // Set config to provide tenantId
-      project.setConfig('test-tenant', 'http://localhost:3002');
 
       // Mock successful full project API call
       mockFetch.mockResolvedValueOnce({
@@ -309,8 +303,6 @@ describe('Project', () => {
 
     beforeEach(() => {
       project = new Project(projectConfig);
-      // Set config to provide tenantId
-      project.setConfig('test-tenant', 'http://localhost:3002');
     });
 
     it('should add a graph to the project', () => {
@@ -386,15 +378,13 @@ describe('Project', () => {
       };
 
       const project = new Project(configWithGraphs);
-      // Set config to provide tenantId
-      project.setConfig('test-tenant', 'http://localhost:3002');
       const stats = project.getStats();
 
       expect(stats).toEqual({
-        graphCount: 1,
-        initialized: false,
         projectId: 'test-project',
         tenantId: 'test-tenant',
+        graphCount: 1,
+        initialized: false,
       });
     });
   });

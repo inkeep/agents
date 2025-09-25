@@ -21,12 +21,11 @@ export class Tool implements ToolInterface {
   private initialized = false;
   private projectId: string;
 
-  constructor(config: Omit<MCPToolConfig, 'tenantId' | 'projectId'>) {
-    this.config = config as MCPToolConfig;
+  constructor(config: MCPToolConfig) {
+    this.config = config;
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    // tenantId and projectId will be set by setContext method
-    this.tenantId = 'default';
-    this.projectId = 'default';
+    this.tenantId = config.tenantId || 'default';
+    this.projectId = config.projectId || 'default';
     logger.info(
       {
         Id: this.getId(),
@@ -34,12 +33,6 @@ export class Tool implements ToolInterface {
       },
       'Tool constructor initialized'
     );
-  }
-
-  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
-  setContext(tenantId: string, projectId: string): void {
-    this.tenantId = tenantId;
-    this.projectId = projectId;
   }
 
   // Compute ID from name using same slug transformation as agents

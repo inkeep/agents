@@ -23,7 +23,7 @@ import { env } from '../env';
 import { createDatabaseClient } from './client';
 
 const dbClient = createDatabaseClient({
-  url: env.DB_FILE_NAME ?? 'local.db',
+  url: env.DB_FILE_NAME,
 });
 
 /**

@@ -22,7 +22,7 @@ describe('FullProjectDefinitionSchema', () => {
             name: 'Test Agent',
             description: 'A test agent for validation',
             prompt: 'You are a test agent',
-            canUse: [],
+            tools: [],
             type: 'internal',
           },
         },

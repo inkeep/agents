@@ -14,7 +14,6 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     tools: [] as string[],
     dataComponents: [] as string[],
     artifactComponents: [] as string[],
-    canUse: [],
     type: 'internal' as const,
   });
 

@@ -27,7 +27,6 @@ import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { MCPTool } from '@/lib/api/tools';
 import { saveGraph } from '@/lib/services/save-graph';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';
@@ -65,37 +64,11 @@ interface GraphProps {
   };
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
 }
 
-function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {}, toolLookup: initialToolLookup = {} }: GraphProps) {
+function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {} }: GraphProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
-  const [toolLookup, setToolLookup] = useState<Record<string, MCPTool>>(initialToolLookup);
-
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-
-  // Fetch tools on client side if not provided
-  useEffect(() => {
-    if (Object.keys(toolLookup).length === 0 && tenantId && projectId) {
-      fetch(`http://localhost:3002/tenants/${tenantId}/projects/${projectId}/tools`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.data) {
-            const lookup = data.data.reduce((acc: Record<string, MCPTool>, tool: MCPTool) => {
-              acc[tool.id] = tool;
-              return acc;
-            }, {});
-            setToolLookup(lookup);
-          }
-        })
-        .catch(err => console.error('Failed to fetch tools:', err));
-    }
-  }, [tenantId, projectId, toolLookup]);
-
   const initialNodes = useMemo<Node[]>(
     () => [
       {
@@ -109,11 +82,13 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {}, t
     []
   );
 
-  const { nodes: graphNodes, edges: graphEdges } = useMemo(() => {
-    return graph
-      ? deserializeGraphData(graph, toolLookup)
-      : { nodes: initialNodes, edges: initialEdges };
-  }, [graph, toolLookup, initialNodes]);
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
+  const { nodes: graphNodes, edges: graphEdges } = graph
+    ? deserializeGraphData(graph)
+    : { nodes: initialNodes, edges: initialEdges };
 
   // Create selectedTools lookup from graph data
   const selectedToolsLookup = useMemo((): Record<string, Record<string, string[]>> => {

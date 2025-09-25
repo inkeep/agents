@@ -237,12 +237,8 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges);
 
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
-        toolId: 'mcp1',
-        toolSelection: ['tool1', 'tool2']
-      });
+      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
+      expect((result.agents.agent1 as any).selectedTools.mcp1).toEqual(['tool1', 'tool2']);
     });
 
     it('should handle null tempSelectedTools (all tools selected) by removing from selectedTools', () => {
@@ -287,13 +283,9 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges);
 
-      // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
-        toolId: 'mcp1',
-        toolSelection: null
-      });
+      // When tempSelectedTools is null, the tool ID should be removed from selectedTools
+      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
+      expect((result.agents.agent1 as any).selectedTools.mcp1).toBeUndefined();
     });
 
     it('should handle empty array tempSelectedTools (no tools selected)', () => {
@@ -337,12 +329,8 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges);
 
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
-        toolId: 'mcp1',
-        toolSelection: []
-      });
+      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
+      expect((result.agents.agent1 as any).selectedTools.mcp1).toEqual([]);
     });
 
     it('should not modify selectedTools when tempSelectedTools is undefined', () => {
@@ -433,14 +421,9 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges);
 
-      // When tempSelectedTools is undefined and there's an edge to MCP tool,
-      // the toolSelection will be null (all tools selected by default)
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
-        toolId: 'mcp1',
-        toolSelection: null  // null means all tools are selected
-      });
+      // Should preserve existing selectedTools from database
+      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
+      expect((result.agents.agent1 as any).selectedTools.mcp1).toEqual(['existing-tool1']);
     });
   });
 });

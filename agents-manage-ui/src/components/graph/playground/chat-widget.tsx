@@ -221,7 +221,7 @@ export function ChatWidget({
 }
 
 // using the built in IkpMessage component from cxkit-react-oss but leaving this here for reference / testing
-const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
+const IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
   const { message, renderMarkdown, renderComponent } = props;
 
   // Check if we're still streaming - the last event should be a completion data-operation

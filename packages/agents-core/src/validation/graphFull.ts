@@ -39,10 +39,10 @@ export function validateToolReferences(
 
   for (const [agentId, agentData] of Object.entries(graphData.agents)) {
     // Only internal agents have tools
-    if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
-      for (const canUseItem of agentData.canUse) {
-        if (!availableToolIds.has(canUseItem.toolId)) {
-          errors.push(`Agent '${agentId}' references non-existent tool '${canUseItem.toolId}'`);
+    if (isInternalAgent(agentData) && agentData.tools && Array.isArray(agentData.tools)) {
+      for (const toolId of agentData.tools) {
+        if (!availableToolIds.has(toolId)) {
+          errors.push(`Agent '${agentId}' references non-existent tool '${toolId}'`);
         }
       }
     }

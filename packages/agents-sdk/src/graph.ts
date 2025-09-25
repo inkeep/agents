@@ -54,8 +54,7 @@ export class AgentGraph implements GraphInterface {
 
   constructor(config: GraphConfig) {
     this.defaultAgent = config.defaultAgent;
-    // tenantId and projectId will be set by setConfig method from CLI or other sources
-    this.tenantId = 'default';
+    this.tenantId = config.tenantId || 'default';
     this.projectId = 'default'; // Default project ID, will be overridden by setConfig
     this.graphId = config.id;
     this.graphName = config.name || this.graphId;
@@ -121,22 +120,20 @@ export class AgentGraph implements GraphInterface {
     this.projectId = projectId;
     this.baseURL = apiUrl;
 
-    // Propagate tenantId and projectId to all agents and their tools
+    // Propagate tenantId to all agents and their tools
     for (const agent of this.agents) {
       if (this.isInternalAgent(agent)) {
         const internalAgent = agent as AgentInterface;
-        // Set the context on the agent
-        if (internalAgent.setContext) {
-          internalAgent.setContext(tenantId, projectId);
+        if (!internalAgent.config.tenantId) {
+          internalAgent.config.tenantId = tenantId;
         }
 
         // Also update tools in this agent
         const tools = internalAgent.getTools();
         for (const [_, toolInstance] of Object.entries(tools)) {
-          if (toolInstance && typeof toolInstance === 'object') {
-            // Set context on the tool if it has the method
-            if ('setContext' in toolInstance && typeof toolInstance.setContext === 'function') {
-              toolInstance.setContext(tenantId, projectId);
+          if (toolInstance && typeof toolInstance === 'object' && toolInstance.config) {
+            if (!toolInstance.config.tenantId) {
+              toolInstance.config.tenantId = tenantId;
             }
             // Also update baseURL for tools if they have one
             if ('baseURL' in toolInstance && !toolInstance.baseURL) {
@@ -147,9 +144,9 @@ export class AgentGraph implements GraphInterface {
       }
     }
 
-    // Update context config tenant ID and project ID if present
-    if (this.contextConfig?.setContext) {
-      this.contextConfig.setContext(tenantId, projectId);
+    // Update context config tenant ID if present
+    if (this.contextConfig && !this.contextConfig.tenantId) {
+      this.contextConfig.tenantId = tenantId;
     }
 
     logger.info(
@@ -228,13 +225,6 @@ export class AgentGraph implements GraphInterface {
           }
         }
 
-        // Convert tools and selectedTools to canUse array
-        // Always include canUse for internal agents (even if empty) as it's required by the API
-        const canUse = tools.map(toolId => ({
-          toolId,
-          toolSelection: selectedToolsMapping[toolId] || null
-        }));
-
         agentsObject[internalAgent.getId()] = {
           id: internalAgent.getId(),
           name: internalAgent.getName(),
@@ -243,7 +233,9 @@ export class AgentGraph implements GraphInterface {
           models: internalAgent.config.models,
           canTransferTo: transfers.map((h) => h.getId()),
           canDelegateTo: delegates.map((d) => d.getId()),
-          canUse, // Always include for internal agents (required by API)
+          tools,
+          selectedTools:
+            Object.keys(selectedToolsMapping).length > 0 ? selectedToolsMapping : undefined,
           dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
           artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
           type: 'internal',
@@ -259,6 +251,7 @@ export class AgentGraph implements GraphInterface {
           baseUrl: externalAgent.getBaseUrl(),
           credentialReferenceId: externalAgent.getCredentialReferenceId(),
           headers: externalAgent.getHeaders(),
+          tools: [], // External agents don't have tools in this context
           type: 'external',
         };
       }

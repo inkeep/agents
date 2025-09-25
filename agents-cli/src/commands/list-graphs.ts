@@ -8,8 +8,7 @@ import { validateConfiguration } from '../utils/config';
 export interface ListGraphsOptions {
   tenantId?: string;
   agentsManageApiUrl?: string;
-  config?: string;
-  configFilePath?: string; // deprecated, kept for backward compatibility
+  configFilePath?: string;
 }
 
 export async function listGraphsCommand(options: ListGraphsOptions) {
@@ -17,13 +16,11 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
   let config: ValidatedConfiguration;
 
   try {
-    // Use new config parameter, fall back to configFilePath for backward compatibility
-    const configPath = options.config || options.configFilePath;
     config = await validateConfiguration(
       options.tenantId,
       options.agentsManageApiUrl,
       undefined, // agentsRunApiUrl not needed for list-graphs
-      configPath
+      options.configFilePath
     );
   } catch (error: any) {
     console.error(chalk.red(error.message));
@@ -36,10 +33,9 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
   console.log(chalk.gray(`  • API URL: ${config.sources.agentsManageApiUrl}`));
   console.log();
 
-  const configPath = options.config || options.configFilePath;
   const api = await ManagementApiClient.create(
     config.agentsManageApiUrl,
-    configPath,
+    options.configFilePath,
     config.tenantId
   );
   const spinner = ora('Fetching graphs...').start();

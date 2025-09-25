@@ -53,7 +53,15 @@ describe('Init Command', () => {
         })
         .mockResolvedValueOnce({
           tenantId: 'test-tenant-123',
+          projectId: 'default',
           apiUrl: 'http://localhost:3002',
+        })
+        .mockResolvedValueOnce({
+          providers: ['anthropic'],
+        })
+        .mockResolvedValueOnce({
+          baseModel: 'anthropic/claude-sonnet-4-20250514',
+          configureOptionalModels: false,
         });
 
       await initCommand();
@@ -87,7 +95,15 @@ describe('Init Command', () => {
         .mockResolvedValueOnce({ overwrite: true })
         .mockResolvedValueOnce({
           tenantId: 'new-tenant-456',
+          projectId: 'default',
           apiUrl: 'https://api.example.com',
+        })
+        .mockResolvedValueOnce({
+          providers: ['openai'],
+        })
+        .mockResolvedValueOnce({
+          baseModel: 'openai/gpt-4.1-2025-04-14',
+          configureOptionalModels: false,
         });
 
       await initCommand();
@@ -141,7 +157,7 @@ describe('Init Command', () => {
           // First call is for path confirmation
           return { confirmedPath: './inkeep.config.ts' };
         } else if (callCount === 2) {
-          // Second call is for tenant ID and API URL
+          // Second call is for tenant ID, project ID, and API URL
           const tenantIdQuestion = questions.find((q: any) => q.name === 'tenantId');
           expect(tenantIdQuestion.validate('')).toBe('Tenant ID is required');
           expect(tenantIdQuestion.validate('   ')).toBe('Tenant ID is required');
@@ -149,7 +165,17 @@ describe('Init Command', () => {
 
           return {
             tenantId: 'valid-tenant',
+            projectId: 'default',
             apiUrl: 'http://localhost:3002',
+          };
+        } else if (callCount === 3) {
+          // Third call is for provider selection
+          return { providers: ['anthropic'] };
+        } else {
+          // Fourth call is for model selection
+          return {
+            baseModel: 'anthropic/claude-sonnet-4-20250514',
+            configureOptionalModels: false,
           };
         }
       });
@@ -172,7 +198,7 @@ describe('Init Command', () => {
           // First call is for path confirmation
           return { confirmedPath: './inkeep.config.ts' };
         } else if (callCount === 2) {
-          // Second call is for tenant ID and API URL
+          // Second call is for tenant ID, project ID, and API URL
           const apiUrlQuestion = questions.find((q: any) => q.name === 'apiUrl');
           expect(apiUrlQuestion.validate('not-a-url')).toBe('Please enter a valid URL');
           expect(apiUrlQuestion.validate('http://localhost:3002')).toBe(true);
@@ -180,7 +206,17 @@ describe('Init Command', () => {
 
           return {
             tenantId: 'test-tenant',
+            projectId: 'default',
             apiUrl: 'http://localhost:3002',
+          };
+        } else if (callCount === 3) {
+          // Third call is for provider selection
+          return { providers: ['anthropic'] };
+        } else {
+          // Fourth call is for model selection
+          return {
+            baseModel: 'anthropic/claude-sonnet-4-20250514',
+            configureOptionalModels: false,
           };
         }
       });
@@ -197,7 +233,15 @@ describe('Init Command', () => {
       promptMock
         .mockResolvedValueOnce({
           tenantId: 'test-tenant',
+          projectId: 'default',
           apiUrl: 'http://localhost:3002',
+        })
+        .mockResolvedValueOnce({
+          providers: ['anthropic'],
+        })
+        .mockResolvedValueOnce({
+          baseModel: 'anthropic/claude-sonnet-4-20250514',
+          configureOptionalModels: false,
         });
 
       await initCommand({ path: './custom/path' });
@@ -221,7 +265,15 @@ describe('Init Command', () => {
         })
         .mockResolvedValueOnce({
           tenantId: 'test-tenant',
+          projectId: 'default',
           apiUrl: 'http://localhost:3002',
+        })
+        .mockResolvedValueOnce({
+          providers: ['anthropic'],
+        })
+        .mockResolvedValueOnce({
+          baseModel: 'anthropic/claude-sonnet-4-20250514',
+          configureOptionalModels: false,
         });
       vi.mocked(writeFileSync).mockImplementation(() => {
         throw new Error('Permission denied');

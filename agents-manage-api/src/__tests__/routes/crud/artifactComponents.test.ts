@@ -10,7 +10,6 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test artifact component data
   const createArtifactComponentData = ({ suffix = '' } = {}) => ({
-    id: `test-artifact-component${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
     name: `TestArtifactComponent${suffix}`,
     description: `Test artifact component description${suffix}`,
     summaryProps: {
@@ -293,7 +292,6 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('artifact-components-create-minimal');
       await ensureTestProject(tenantId, projectId);
       const minimalData = {
-        id: `minimal-artifact-component-${nanoid(6)}`,
         name: 'MinimalArtifactComponent',
         description: 'Minimal test artifact component',
       };
@@ -631,7 +629,6 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('artifact-components-schema-valid');
       await ensureTestProject(tenantId, projectId);
       const validSchemaData = {
-        id: `schema-test-component-${nanoid(6)}`,
         name: 'SchemaTestComponent',
         description: 'Testing valid JSON schema',
         summaryProps: {
@@ -662,7 +659,6 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('artifact-components-schema-complex');
       await ensureTestProject(tenantId, projectId);
       const complexSchemaData = {
-        id: `complex-schema-component-${nanoid(6)}`,
         name: 'ComplexSchemaComponent',
         description: 'Testing complex nested JSON schema',
         fullProps: {

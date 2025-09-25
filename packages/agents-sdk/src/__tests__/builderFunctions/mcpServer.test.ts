@@ -33,7 +33,8 @@ describe('mcpServer builder function', () => {
       name: 'Full Config MCP Server',
       description: 'MCP server with all options',
       serverUrl: 'https://api.example.com/mcp',
-      transport: 'streamable_http',
+      tenantId: 'test-tenant',
+      transport: 'streamableHttp',
       activeTools: ['tool1', 'tool2', 'tool3'],
       headers: {
         Authorization: 'Bearer token123',
@@ -47,9 +48,8 @@ describe('mcpServer builder function', () => {
     expect(server.getName()).toBe('Full Config MCP Server');
     expect(server.getId()).toBe('custom-mcp-server-id');
     expect(server.getServerUrl()).toBe('https://api.example.com/mcp');
-    // Can set context after creation
-    server.setContext('test-tenant', 'test-project');
-    expect(server.config.transport).toEqual({ type: 'streamable_http' });
+    expect(server.config.tenantId).toBe('test-tenant');
+    expect(server.config.transport).toEqual({ type: 'streamableHttp' });
     expect(server.config.activeTools).toEqual(['tool1', 'tool2', 'tool3']);
     expect(server.config.headers).toEqual({
       Authorization: 'Bearer token123',
@@ -93,7 +93,7 @@ describe('mcpServer builder function', () => {
       name: 'HTTP Server',
       description: 'HTTP transport server',
       serverUrl: 'http://localhost:3000/mcp',
-      transport: 'streamable_http',
+      transport: 'streamableHttp',
     };
 
     const wsConfig: MCPServerConfig = {
@@ -106,7 +106,7 @@ describe('mcpServer builder function', () => {
     const httpServer = mcpServer(httpConfig);
     const wsServer = mcpServer(wsConfig);
 
-    expect(httpServer.config.transport).toEqual({ type: 'streamable_http' });
+    expect(httpServer.config.transport).toEqual({ type: 'streamableHttp' });
     expect(wsServer.config.transport).toEqual({ type: 'sse' });
   });
 });

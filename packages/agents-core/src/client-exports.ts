@@ -14,7 +14,6 @@ import { CredentialStoreType, MCPTransportType } from './types';
 import {
   type AgentStopWhen,
   AgentStopWhenSchema,
-  FullGraphAgentInsertSchema,
   type GraphStopWhen,
   GraphStopWhenSchema,
   type StopWhen,
@@ -141,7 +140,7 @@ export const CredentialReferenceApiInsertSchema = z.object({
 
 // Data Component API schemas (inline definitions)
 export const DataComponentApiInsertSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
   props: z.record(z.string(), z.unknown()),
@@ -149,7 +148,7 @@ export const DataComponentApiInsertSchema = z.object({
 
 // Artifact Component API schemas (inline definitions)
 export const ArtifactComponentApiInsertSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
   summaryProps: z.record(z.string(), z.unknown()),
@@ -187,7 +186,37 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(
     z.string(),
     z.union([
-      FullGraphAgentInsertSchema,
+      AgentApiInsertSchema.extend({
+        id: z.string(),
+        tools: z.array(z.string()),
+        dataComponents: z.array(z.string()).optional(),
+        artifactComponents: z.array(z.string()).optional(),
+        canTransferTo: z.array(z.string()).optional(),
+        canDelegateTo: z.array(z.string()).optional(),
+        type: z.enum(['internal', 'external']).optional(),
+        models: z
+          .object({
+            base: z
+              .object({
+                model: z.string(),
+                providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+              })
+              .optional(),
+            structuredOutput: z
+              .object({
+                model: z.string(),
+                providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+              })
+              .optional(),
+            summarizer: z
+              .object({
+                model: z.string(),
+                providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+      }),
       ExternalAgentApiInsertSchema.extend({
         id: z.string(),
       }),
@@ -262,8 +291,6 @@ export type ContextConfigApiInsert = z.infer<typeof ContextConfigApiInsertSchema
 export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type AgentGraphApiInsert = z.infer<typeof AgentGraphApiInsertSchema>;
 export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
-export type InternalAgentDefinition = z.infer<typeof FullGraphAgentInsertSchema>;
-export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;

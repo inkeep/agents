@@ -133,8 +133,7 @@ vi.mock('@inkeep/agents-core', async () => {
     ...actual,
     getProject: vi.fn().mockReturnValue(() =>
       Promise.resolve({
-          tenantId: 'test-tenant',
-          models: {
+        models: {
           base: { model: 'gpt-4o' },
           structuredOutput: { model: 'gpt-4o-mini' },
           summarizer: { model: 'gpt-3.5-turbo' },
@@ -180,6 +179,7 @@ describe('AgentGraph', () => {
       name: 'Test Tool',
       description: 'A test tool for graph testing',
       serverUrl: 'http://localhost:3000',
+      tenantId: 'test-tenant',
     });
 
     // Create test agents
@@ -188,6 +188,8 @@ describe('AgentGraph', () => {
       name: 'Default Agent',
       description: 'Default agent for graph testing',
       prompt: 'You are a helpful default agent',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
       canUse: () => [testTool],
     });
 
@@ -196,6 +198,8 @@ describe('AgentGraph', () => {
       name: 'Support Agent',
       description: 'Support agent for graph testing',
       prompt: 'You provide customer support',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
     });
 
     externalAgent = new ExternalAgent({
@@ -221,11 +225,10 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         description: 'A test graph',
         defaultAgent,
+        tenantId: 'test-tenant',
       };
 
       const graph = new AgentGraph(config);
-      // Set config to provide tenantId
-      graph.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
 
       expect(graph.getId()).toBe('test-graph');
       expect(graph.getName()).toBe('Test Graph');
@@ -239,6 +242,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         defaultAgent,
         agents: () => [supportAgent, externalAgent],
+        tenantId: 'test-tenant',
       };
 
       const graph = new AgentGraph(config);
@@ -256,6 +260,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         defaultAgent,
         agents: () => [supportAgent, externalAgent],
+        tenantId: 'test-tenant',
       };
 
       const graph = new AgentGraph(config);
@@ -287,6 +292,7 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         defaultAgent,
+        tenantId: 'test-tenant',
       });
     });
 
@@ -332,9 +338,8 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         defaultAgent,
         agents: () => [supportAgent],
+        tenantId: 'test-tenant',
       });
-      // Set config to provide tenantId and projectId
-      graph.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
     });
 
     it('should initialize graph and create database entities', async () => {
@@ -343,7 +348,7 @@ describe('AgentGraph', () => {
       const { updateFullGraphViaAPI } = await import('../../graphFullClient.js');
       expect(updateFullGraphViaAPI).toHaveBeenCalledWith(
         'test-tenant', // tenantId
-        'test-project', // projectId
+        'default', // projectId
         'http://localhost:3002', // apiUrl
         'test-graph', // graphId
         expect.objectContaining({
@@ -372,6 +377,7 @@ describe('AgentGraph', () => {
         name: 'Error Graph',
         defaultAgent,
         agents: () => [defaultAgent],
+        tenantId: 'test-tenant',
       });
 
       await expect(errorGraph.init()).rejects.toThrow('DB error');
@@ -394,6 +400,7 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         defaultAgent,
+        tenantId: 'test-tenant',
       });
       await graph.init();
     });
@@ -451,6 +458,7 @@ describe('AgentGraph', () => {
       const graphWithoutDefault = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
+        tenantId: 'test-tenant',
       });
       await graphWithoutDefault.init();
 
@@ -489,6 +497,7 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         defaultAgent,
+        tenantId: 'test-tenant',
       });
       await graph.init();
     });
@@ -544,6 +553,7 @@ describe('AgentGraph', () => {
         description: 'Test description',
         defaultAgent,
         agents: () => [supportAgent, externalAgent],
+        tenantId: 'test-tenant',
       });
 
       await graph.init();
@@ -585,6 +595,7 @@ describe('AgentGraph', () => {
       const graph = new AgentGraph({
         id: 'test-graph',
         defaultAgent,
+        tenantId: 'test-tenant',
       });
       await graph.init();
 
@@ -606,7 +617,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project for graph testing',
           models: {
@@ -628,6 +640,7 @@ describe('AgentGraph', () => {
         name: 'Agent 1',
         description: 'Test agent 1 for init',
         prompt: 'Test agent 1',
+        tenantId: 'test-tenant',
       });
 
       agent2 = new Agent({
@@ -635,6 +648,7 @@ describe('AgentGraph', () => {
         name: 'Agent 2',
         description: 'Test agent 2 for init',
         prompt: 'Test agent 2',
+        tenantId: 'test-tenant',
       });
 
       graph = new AgentGraph({
@@ -642,6 +656,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         defaultAgent: agent1,
         agents: () => [agent2],
+        tenantId: 'test-tenant',
       });
 
       // Mock successful API responses for graph operations
@@ -799,7 +814,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValueOnce(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project',
           models: null,
@@ -921,6 +937,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph Add Agent',
         defaultAgent: agent1,
         models: graphModels,
+        tenantId: 'test-tenant',
       });
 
       // Create a new agent after graph construction
@@ -929,6 +946,8 @@ describe('AgentGraph', () => {
         name: 'New Agent',
         description: 'Dynamically added agent',
         prompt: 'New agent added later',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       // Agent should have no models initially
@@ -954,7 +973,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project for graph testing',
           models: {
@@ -976,6 +996,7 @@ describe('AgentGraph', () => {
         name: 'Agent 1',
         description: 'Test agent 1 for init',
         prompt: 'Test agent 1',
+        tenantId: 'test-tenant',
       });
 
       agent2 = new Agent({
@@ -983,6 +1004,7 @@ describe('AgentGraph', () => {
         name: 'Agent 2',
         description: 'Test agent 2 for init',
         prompt: 'Test agent 2',
+        tenantId: 'test-tenant',
       });
 
       graph = new AgentGraph({
@@ -990,6 +1012,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph',
         defaultAgent: agent1,
         agents: () => [agent2],
+        tenantId: 'test-tenant',
       });
 
       // Mock successful API responses for graph operations
@@ -1037,6 +1060,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph Explicit',
         defaultAgent: agent1,
         agents: () => [agent2],
+        tenantId: 'test-tenant',
         stopWhen: {
           transferCountIs: 20, // explicit value
         },
@@ -1082,6 +1106,8 @@ describe('AgentGraph', () => {
         name: 'Test Agent 1',
         description: 'First test agent',
         prompt: 'Test agent 1',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testAgent2 = new Agent({
@@ -1089,6 +1115,8 @@ describe('AgentGraph', () => {
         name: 'Test Agent 2',
         description: 'Second test agent',
         prompt: 'Test agent 2',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testGraph = new AgentGraph({
@@ -1096,6 +1124,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph No StopWhen',
         defaultAgent: testAgent1,
         agents: () => [testAgent2],
+        tenantId: 'test-tenant',
       });
 
       const initialStopWhen = testGraph.getStopWhen();
@@ -1108,7 +1137,8 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
-          tenantId: 'test-tenant',            id: 'test-project',
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
             description: 'Test project',
             models: {
@@ -1137,6 +1167,8 @@ describe('AgentGraph', () => {
         name: 'Test Agent 1 Error',
         description: 'Error test agent 1',
         prompt: 'Test agent 1',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testAgent2 = new Agent({
@@ -1144,6 +1176,8 @@ describe('AgentGraph', () => {
         name: 'Test Agent 2 Error',
         description: 'Error test agent 2',
         prompt: 'Test agent 2',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testGraph = new AgentGraph({
@@ -1151,6 +1185,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph Error',
         defaultAgent: testAgent1,
         agents: () => [testAgent2],
+        tenantId: 'test-tenant',
       });
 
       const initialStopWhen = testGraph.getStopWhen();
@@ -1181,6 +1216,8 @@ describe('AgentGraph', () => {
         name: 'Test Agent 1 Partial',
         description: 'Partial test agent 1',
         prompt: 'Test agent 1',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testAgent2 = new Agent({
@@ -1188,6 +1225,8 @@ describe('AgentGraph', () => {
         name: 'Test Agent 2 Partial',
         description: 'Partial test agent 2',
         prompt: 'Test agent 2',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       const testGraph = new AgentGraph({
@@ -1195,6 +1234,7 @@ describe('AgentGraph', () => {
         name: 'Test Graph Partial',
         defaultAgent: testAgent1,
         agents: () => [testAgent2],
+        tenantId: 'test-tenant',
       });
 
       // Clear and set specific mock for this test (after beforeEach)
@@ -1204,7 +1244,8 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
-          tenantId: 'test-tenant',            id: 'test-project',
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
             description: 'Test project',
             models: {
@@ -1274,6 +1315,7 @@ describe('AgentGraph', () => {
         name: 'Mixed Graph',
         defaultAgent: agent1,
         agents: () => [agent2],
+        tenantId: 'test-tenant',
         stopWhen: {
           transferCountIs: 18, // graph explicit
           // no stepCountIs - will be inherited from project
@@ -1305,6 +1347,7 @@ describe('AgentGraph', () => {
         name: 'Test Agent',
         description: 'Test agent',
         prompt: 'Test instructions',
+        tenantId: 'test-tenant',
       });
 
       const credentialRef = {
@@ -1324,6 +1367,7 @@ describe('AgentGraph', () => {
         defaultAgent: testAgent,
         agents: () => [testAgent],
         credentials: () => [credentialRef],
+        tenantId: 'test-tenant',
       });
 
       expect(graph.getAgents()).toContain(testAgent);
@@ -1340,6 +1384,7 @@ describe('AgentGraph', () => {
         description: 'Test agent',
         prompt: 'Test instructions',
         canUse: () => [tool1, tool2],
+        tenantId: 'test-tenant',
       });
 
       const tools = agent.getTools();
@@ -1372,6 +1417,8 @@ describe('AgentGraph', () => {
         prompt: 'Test instructions',
         dataComponents: () => [dataComponent],
         artifactComponents: () => [artifactComponent],
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
       });
 
       expect(agent.getDataComponents()).toEqual([dataComponent]);

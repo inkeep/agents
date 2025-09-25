@@ -10,21 +10,18 @@ export interface ChatOptions {
   tenantId?: string;
   agentsManageApiUrl?: string;
   agentsRunApiUrl?: string;
-  config?: string;
-  configFilePath?: string; // deprecated, kept for backward compatibility
+  configFilePath?: string;
 }
 
 export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatOptions) {
   // Validate configuration
   let config: ValidatedConfiguration;
   try {
-    // Use new config parameter, fall back to configFilePath for backward compatibility
-    const configPath = options?.config || options?.configFilePath;
     config = await validateConfiguration(
       options?.tenantId,
       options?.agentsManageApiUrl,
       options?.agentsRunApiUrl,
-      configPath
+      options?.configFilePath
     );
   } catch (error: any) {
     console.error(chalk.red(error.message));
@@ -38,15 +35,14 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   console.log(chalk.gray(`  • Execution API: ${config.sources.agentsRunApiUrl}`));
   console.log();
 
-  const configPath = options?.config || options?.configFilePath;
   const managementApi = await ManagementApiClient.create(
     config.agentsManageApiUrl,
-    configPath,
+    options?.configFilePath,
     config.tenantId
   );
   const executionApi = await ExecutionApiClient.create(
     config.agentsRunApiUrl,
-    configPath,
+    options?.configFilePath,
     config.tenantId
   );
 

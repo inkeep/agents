@@ -5,18 +5,9 @@ import { findUp } from 'find-up';
 /**
  * Find project directory by looking for inkeep.config.ts
  * @param projectId - Optional project ID or path to look for
- * @param configPath - Optional specific config file path to use
  * @returns Path to project directory or null if not found
  */
-export async function findProjectDirectory(projectId?: string, configPath?: string): Promise<string | null> {
-  // If a specific config path is provided, use its directory
-  if (configPath) {
-    const absoluteConfigPath = resolve(process.cwd(), configPath);
-    if (existsSync(absoluteConfigPath)) {
-      return resolve(absoluteConfigPath, '..');
-    }
-  }
-
+export async function findProjectDirectory(projectId?: string): Promise<string | null> {
   if (projectId) {
     // Check if projectId is a path
     if (projectId.includes('/') || projectId.includes('\\')) {
@@ -35,11 +26,11 @@ export async function findProjectDirectory(projectId?: string, configPath?: stri
   }
 
   // Use find-up to look for inkeep.config.ts starting from current directory
-  const foundConfigPath = await findUp('inkeep.config.ts');
+  const configPath = await findUp('inkeep.config.ts');
 
-  if (foundConfigPath) {
+  if (configPath) {
     // Return the directory containing the config file
-    return resolve(foundConfigPath, '..');
+    return resolve(configPath, '..');
   }
 
   return null;

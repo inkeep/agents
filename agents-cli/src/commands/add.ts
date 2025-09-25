@@ -6,7 +6,6 @@ import { cloneTemplate, getAvailableTemplates } from '../utils/templates';
 export interface AddOptions {
   template?: string;
   targetPath?: string;
-  config?: string;
   list: boolean;
 }
 

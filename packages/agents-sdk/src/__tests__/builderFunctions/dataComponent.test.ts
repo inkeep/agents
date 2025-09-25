@@ -58,12 +58,16 @@ describe('dataComponent builder function', () => {
     const config: DataComponentConfig = {
       name: 'Complex Data Component',
       description: 'Data component with complex structure',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
       props: complexProps,
     };
 
     const component = dataComponent(config);
 
     expect(component.getName()).toBe('Complex Data Component');
+    expect(component.config.tenantId).toBe('test-tenant');
+    expect(component.config.projectId).toBe('test-project');
     expect(component.getProps()).toEqual(complexProps);
   });
 
@@ -78,7 +82,7 @@ describe('dataComponent builder function', () => {
     expect(component.getId()).toBe('data-component-with-spaces-special-characters');
   });
 
-  it('should allow setting tenant and project context', () => {
+  it('should use default tenant when not provided', () => {
     const config: DataComponentConfig = {
       name: 'Default Tenant Data Component',
       description: 'Data component without tenant',
@@ -86,10 +90,7 @@ describe('dataComponent builder function', () => {
     };
 
     const component = dataComponent(config);
-    // Should be able to set context after creation
-    component.setContext('test-tenant', 'test-project');
-    // Verify the component can be created without tenantId/projectId
-    expect(component.getId()).toBeDefined();
+    expect(component.config.tenantId).toBe('default');
   });
 
   it('should handle empty props', () => {

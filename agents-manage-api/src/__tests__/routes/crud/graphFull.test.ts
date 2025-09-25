@@ -18,7 +18,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     tools: [] as any[],
     dataComponents: [] as string[],
     artifactComponents: [] as string[],
-    canUse: [] as { toolId: string }[],
     type: 'internal' as const,
   });
 
@@ -171,9 +170,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     agent1.canDelegateTo = [agentId2];
     agent2.canTransferTo = [agentId1];
 
-    // Add tool IDs to agents via canUse field
-    agent1.canUse = [{ toolId: tool1.id }];
-    agent2.canUse = [{ toolId: tool2.id }];
+    // Add tool IDs to agents (not the tool objects)
+    agent1.tools = [tool1.id];
+    agent2.tools = [tool2.id];
 
     const graphData: any = {
       id,
@@ -292,9 +291,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(defaultAgent.canDelegateTo).toContain(Object.keys(graphData.agents)[1]);
 
       // Verify tools were created and linked
-      expect(defaultAgent.canUse).toHaveLength(1);
+      expect(defaultAgent.tools).toHaveLength(1);
       expect(body.data.tools).toBeDefined();
-      const toolId = defaultAgent.canUse[0];
+      const toolId = defaultAgent.tools[0];
       expect(body.data.tools[toolId]).toMatchObject({
         name: expect.stringContaining('Test Tool'),
         status: 'unknown',
@@ -335,7 +334,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.agents).toHaveProperty(agentId);
       expect(body.data.agents[agentId].canTransferTo).toHaveLength(0);
       expect(body.data.agents[agentId].canDelegateTo).toHaveLength(0);
-      expect(body.data.agents[agentId].canUse).toHaveLength(0);
+      expect(body.data.agents[agentId].tools).toHaveLength(0);
     });
 
     it('should return 400 for invalid graph data', async () => {
@@ -746,9 +745,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
       const body = await res.json();
 
-      expect(body.data.agents[agentId].canUse).toHaveLength(2);
-      expect(body.data.agents[agentId].canUse).toContain(tool1Id);
-      expect(body.data.agents[agentId].canUse).toContain(tool2Id);
+      expect(body.data.agents[agentId].tools).toHaveLength(2);
+      expect(body.data.agents[agentId].tools).toContain(tool1Id);
+      expect(body.data.agents[agentId].tools).toContain(tool2Id);
       expect(body.data.tools).toBeDefined();
       expect(body.data.tools[tool1Id]).toBeDefined();
       expect(body.data.tools[tool2Id]).toBeDefined();
@@ -1088,7 +1087,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const defaultAgent = body.data.agents[graphData.defaultAgentId];
       expect(defaultAgent.canTransferTo).toHaveLength(1); // 1 internal
       expect(defaultAgent.canDelegateTo).toHaveLength(2); // 1 internal + 1 external
-      expect(defaultAgent.canUse).toHaveLength(1);
+      expect(defaultAgent.tools).toHaveLength(1);
       expect(defaultAgent.dataComponents).toHaveLength(1);
       expect(defaultAgent.artifactComponents).toHaveLength(1);
     });
@@ -1164,7 +1163,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       // External agents should not have internal relationships or tools fields
       expect((externalAgent as any).canTransferTo).toBeUndefined();
       expect((externalAgent as any).canDelegateTo).toBeUndefined();
-      expect((externalAgent as any).canUse).toBeUndefined();
+      expect((externalAgent as any).tools).toBeUndefined();
 
       // Internal agents should be able to transfer to external agents
       const defaultAgent = body.data.agents[graphData.defaultAgentId];
@@ -1571,7 +1570,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const createBody = await createRes.json();
 
       // Verify that the tool has all the expected fields in the response
-      const createdTool = createBody.data.canUse[toolId];
+      const createdTool = createBody.data.tools[toolId];
       expect(createdTool).toBeDefined();
 
       // Check that all ToolApiFullSchema fields are present

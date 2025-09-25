@@ -1,40 +1,40 @@
 import {
   type DataComponentInsert as DataComponentType,
+  generateIdFromName,
   getLogger,
 } from '@inkeep/agents-core';
-import { generateIdFromName } from './utils/generateIdFromName';
 
 const logger = getLogger('dataComponent');
 
 export interface DataComponentInterface {
-  config: Omit<DataComponentType, 'tenantId' | 'projectId'>;
+  config: Omit<DataComponentType, 'id'>;
   init(): Promise<void>;
   getId(): DataComponentType['id'];
   getName(): DataComponentType['name'];
   getDescription(): DataComponentType['description'];
   getProps(): DataComponentType['props'];
-  setContext(tenantId: string, projectId: string): void;
 }
 
 export class DataComponent implements DataComponentInterface {
-  public config: Omit<DataComponentType, 'tenantId' | 'projectId'>;
+  public config: DataComponentType;
   private baseURL: string;
-  private tenantId: string;
-  private projectId: string;
+  private tenantId: DataComponentType['tenantId'];
+  private projectId: DataComponentType['projectId'];
   private initialized = false;
   private id: DataComponentType['id'];
 
-  constructor(config: Omit<DataComponentType, 'tenantId' | 'projectId'>) {
-    this.id = config.id || generateIdFromName(config.name);
+  constructor(config: Omit<DataComponentType, 'id'>) {
+    this.id = generateIdFromName(config.name);
 
     this.config = {
       ...config,
       id: this.id,
+      tenantId: config.tenantId || 'default',
+      projectId: config.projectId || 'default',
     };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    // tenantId and projectId will be set by setContext method
-    this.tenantId = 'default';
-    this.projectId = 'default';
+    this.tenantId = this.config.tenantId;
+    this.projectId = this.config.projectId;
     logger.info(
       {
         dataComponentId: this.getId(),
@@ -42,12 +42,6 @@ export class DataComponent implements DataComponentInterface {
       },
       'DataComponent constructor initialized'
     );
-  }
-
-  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
-  setContext(tenantId: string, projectId: string): void {
-    this.tenantId = tenantId;
-    this.projectId = projectId;
   }
 
   // Compute ID from name using same slug transformation as agents
@@ -108,7 +102,7 @@ export class DataComponent implements DataComponentInterface {
 
     // First try to update (in case data component exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/data-components/${this.getId()}`,
+      `${this.baseURL}/tenants/${this.tenantId}/data-components/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -146,7 +140,7 @@ export class DataComponent implements DataComponentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/data-components`,
+        `${this.baseURL}/tenants/${this.tenantId}/data-components`,
         {
           method: 'POST',
           headers: {

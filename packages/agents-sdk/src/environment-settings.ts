@@ -1,7 +1,6 @@
 // Environment settings system for environment-agnostic entities management
 
 import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
-import type { UnionCredentialIds } from './credential-ref';
 
 interface EnvironmentSettingsConfig {
   credentials?: {
@@ -16,10 +15,10 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
   environments: T
 ) {
   // Simple type to extract credential keys for autocomplete
-  type CredentialKeys = UnionCredentialIds<T>;
+  type CredentialKeys = keyof NonNullable<T[keyof T]['credentials']>;
 
   return {
-    getEnvironmentSetting: (key: CredentialKeys): CredentialReferenceApiInsert => {
+    getEnvironmentSetting: async (key: CredentialKeys): Promise<CredentialReferenceApiInsert> => {
       const currentEnv = process.env.INKEEP_ENV || 'development';
       const env = environments[currentEnv];
 
@@ -45,6 +44,3 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
 export function registerEnvironmentSettings<T extends EnvironmentSettingsConfig>(config: T): T {
   return config;
 }
-
-// Re-export type helpers for convenience
-export type { ExtractCredentialIds, UnionCredentialIds } from './credential-ref';

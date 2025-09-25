@@ -5,39 +5,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { deleteMCPTool, fetchMCPTools, type MCPTool } from '../api/tools';
+import { deleteMCPTool } from '../api/tools';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
-
-/**
- * Fetch all tools for a project
- */
-export async function fetchToolsAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<MCPTool[]>> {
-  try {
-    const tools = await fetchMCPTools(tenantId, projectId);
-    return {
-      success: true,
-      data: tools,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
 
 /**
  * Delete a tool (mcp server)

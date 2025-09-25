@@ -62,7 +62,7 @@ describe('projectFull data access', () => {
               prompt: 'You are a helpful assistant.',
               type: 'internal', // Add type field for discriminated union
               canDelegateTo: [],
-              canUse: [{ toolId, toolSelection: null }], // Use new canUse structure
+              tools: [toolId], // Reference tool by ID
               dataComponents: [],
               artifactComponents: [],
             },

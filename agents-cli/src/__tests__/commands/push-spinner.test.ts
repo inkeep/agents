@@ -10,7 +10,6 @@ vi.mock('node:fs', async () => {
     existsSync: vi.fn(),
   };
 });
-
 vi.mock('@inkeep/agents-core');
 vi.mock('../../utils/project-directory.js', () => ({
   findProjectDirectory: vi.fn(),
@@ -18,9 +17,11 @@ vi.mock('../../utils/project-directory.js', () => ({
 vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
+    projectId: 'test-project',
     agentsManageApiUrl: 'http://localhost:3002',
     sources: {
       tenantId: 'config',
+      projectId: 'config',
       agentsManageApiUrl: 'config',
     },
   }),
@@ -63,15 +64,6 @@ describe('Push Command - TypeScript Loading', () => {
     // Reset ora instance
     oraInstance = null;
 
-    // Reset validateConfiguration mock
-    const { validateConfiguration } = await import('../../utils/config.js');
-    (validateConfiguration as Mock).mockResolvedValue({
-      tenantId: 'test-tenant',
-      agentsManageApiUrl: 'http://localhost:3002',
-      agentsRunApiUrl: 'http://localhost:3001',
-      sources: {},
-    });
-
     // Environment setup
 
     // Mock file exists
@@ -112,6 +104,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 
@@ -132,22 +125,22 @@ describe('Push Command - TypeScript Loading', () => {
     expect(oraInstance.succeed).toHaveBeenCalled();
   });
 
-  it.skip('should handle TypeScript import errors gracefully', async () => {
-    // Mock import returning empty module (no project export)
-    mockImportWithTypeScriptSupport.mockResolvedValue({});
+  it('should handle TypeScript import errors gracefully', async () => {
+    // Mock import failure
+    mockImportWithTypeScriptSupport.mockRejectedValue(new Error('Failed to load TypeScript file'));
 
     await pushCommand({});
 
-    // Verify error handling - it should fail because no project export found
+    // Verify error handling
     expect(oraInstance.fail).toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
-      'Error:',
-      'No project export found in index.ts. Expected an export with __type = "project"'
+      expect.stringContaining('Error'),
+      'Failed to load TypeScript file'
     );
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
-  it.skip('should work with JavaScript files without tsx loader', async () => {
+  it('should work with JavaScript files without tsx loader', async () => {
     // Mock file exists
     (existsSync as Mock).mockReturnValue(true);
 
@@ -169,6 +162,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       agentsManageApiUrl: 'http://localhost:3002',
     };
 

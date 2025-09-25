@@ -355,6 +355,7 @@ import { defineConfig } from "@inkeep/agents-cli/config";
 
 export default defineConfig({
   tenantId: "your-tenant-id",
+  projectId: "your-project-id",
   agentsManageApiUrl: "http://localhost:3002",
   agentsRunApiUrl: "http://localhost:3003",
 });
@@ -382,8 +383,8 @@ The CLI and SDK respect the following environment variables:
 
 **Project Not Found:**
 
-- Projects are automatically managed based on your tenantId
-- `inkeep push` will create resources as needed
+- Ensure your `projectId` in `inkeep.config.ts` matches an existing project
+- `inkeep push` will create the project automatically if it does not exist
 
 ### Getting Help
 

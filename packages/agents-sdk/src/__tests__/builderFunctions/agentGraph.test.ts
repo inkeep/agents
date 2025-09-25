@@ -66,11 +66,10 @@ describe('agentGraph builder function', () => {
       name: 'Configured Graph',
       description: 'A graph with description',
       agents: () => [agent],
+      tenantId: 'test-tenant',
     };
 
     const graph = agentGraph(config);
-    // Can set context after creation
-    graph.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
 
     expect(graph.getName()).toBe('Configured Graph');
     expect(graph.getDescription()).toBe('A graph with description');
