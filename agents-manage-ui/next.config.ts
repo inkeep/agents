@@ -20,8 +20,8 @@ const nextConfig: NextConfig = {
     // Disable ESLint during builds on Vercel to avoid deployment failures
     ignoreDuringBuilds: true,
   },
-  typescript:{
-    ignoreBuildErrors: true,
+  typescript: {
+    ignoreBuildErrors: process.env.NEXTJS_IGNORE_TYPECHECK === 'true',
   },
   images: {
     // Allow all external image domains since users can provide any URL

@@ -9,7 +9,14 @@ import { ArtifactComponent } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
 import { DataComponent } from './data-component';
 import { Tool } from './tool';
-import type { AgentCanUseType, AgentConfig, AgentInterface, AllAgentInterface } from './types';
+import type {
+  AgentCanUseType,
+  AgentConfig,
+  AgentInterface,
+  AgentTool,
+  AllAgentInterface,
+} from './types';
+import { isAgentMcpConfig } from './utils/tool-normalization';
 
 const logger = getLogger('agent');
 
@@ -72,7 +79,7 @@ export class Agent implements AgentInterface {
     return this.config.description || '';
   }
 
-  getTools(): Record<string, unknown> {
+  getTools(): Record<string, AgentTool> {
     const tools = resolveGetter(this.config.canUse);
     if (!tools) {
       return {};
@@ -82,22 +89,22 @@ export class Agent implements AgentInterface {
       throw new Error('tools getter must return an array');
     }
     // Convert array to record using tool id or name as key
-    const toolRecord: Record<string, unknown> = {};
+    const toolRecord: Record<string, AgentTool> = {};
     for (const tool of tools) {
       if (tool && typeof tool === 'object') {
         let id: string;
-        let toolInstance: unknown;
+        let toolInstance: AgentTool;
 
-        // Check if this is an AgentMcpConfig
-        if ('server' in tool && 'selectedTools' in tool) {
-          const agentMcpConfig = tool as AgentMcpConfig;
-          id = agentMcpConfig.server.getId();
-          toolInstance = agentMcpConfig.server;
-          (toolInstance as any).selectedTools = agentMcpConfig.selectedTools;
+        // Check if this is an AgentMcpConfig using type guard
+        if (isAgentMcpConfig(tool)) {
+          id = tool.server.getId();
+          toolInstance = tool.server;
+          // Add selectedTools metadata to the tool instance
+          toolInstance.selectedTools = tool.selectedTools;
         } else {
           // Regular tool instance
-          id = (tool as any).id || (tool as any).getId?.() || (tool as any).name;
           toolInstance = tool;
+          id = toolInstance.getId();
         }
 
         if (id) {
@@ -134,7 +141,7 @@ export class Agent implements AgentInterface {
           id: comp.getId(),
           name: comp.getName(),
           description: comp.getDescription(),
-          props: comp.getProps()
+          props: comp.getProps(),
         };
       }
       // Otherwise assume it's already a plain object
@@ -153,7 +160,7 @@ export class Agent implements AgentInterface {
           name: comp.getName(),
           description: comp.getDescription(),
           summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
-          fullProps: comp.getFullProps?.() || comp.fullProps
+          fullProps: comp.getFullProps?.() || comp.fullProps,
         };
       }
       // Otherwise assume it's already a plain object
@@ -349,14 +356,15 @@ export class Agent implements AgentInterface {
     if (components) {
       for (const dataComponent of components) {
         // Convert DataComponent instances to plain objects
-        const plainComponent = (dataComponent && typeof (dataComponent as any).getId === 'function')
-          ? {
-              id: (dataComponent as any).getId(),
-              name: (dataComponent as any).getName(),
-              description: (dataComponent as any).getDescription(),
-              props: (dataComponent as any).getProps()
-            }
-          : dataComponent;
+        const plainComponent =
+          dataComponent && typeof (dataComponent as any).getId === 'function'
+            ? {
+                id: (dataComponent as any).getId(),
+                name: (dataComponent as any).getName(),
+                description: (dataComponent as any).getDescription(),
+                props: (dataComponent as any).getProps(),
+              }
+            : dataComponent;
         await this.createDataComponent(plainComponent as DataComponentApiInsert);
       }
     }
@@ -371,15 +379,20 @@ export class Agent implements AgentInterface {
     if (components) {
       for (const artifactComponent of components) {
         // Convert ArtifactComponent instances to plain objects
-        const plainComponent = (artifactComponent && typeof (artifactComponent as any).getId === 'function')
-          ? {
-              id: (artifactComponent as any).getId(),
-              name: (artifactComponent as any).getName(),
-              description: (artifactComponent as any).getDescription(),
-              summaryProps: (artifactComponent as any).getSummaryProps?.() || (artifactComponent as any).summaryProps,
-              fullProps: (artifactComponent as any).getFullProps?.() || (artifactComponent as any).fullProps
-            }
-          : artifactComponent;
+        const plainComponent =
+          artifactComponent && typeof (artifactComponent as any).getId === 'function'
+            ? {
+                id: (artifactComponent as any).getId(),
+                name: (artifactComponent as any).getName(),
+                description: (artifactComponent as any).getDescription(),
+                summaryProps:
+                  (artifactComponent as any).getSummaryProps?.() ||
+                  (artifactComponent as any).summaryProps,
+                fullProps:
+                  (artifactComponent as any).getFullProps?.() ||
+                  (artifactComponent as any).fullProps,
+              }
+            : artifactComponent;
         await this.createArtifactComponent(plainComponent as ArtifactComponentApiInsert);
       }
     }
@@ -416,7 +429,7 @@ export class Agent implements AgentInterface {
             id: comp.getId(),
             name: comp.getName(),
             description: comp.getDescription(),
-            props: comp.getProps()
+            props: comp.getProps(),
           };
         }
         return comp;
@@ -426,7 +439,8 @@ export class Agent implements AgentInterface {
 
       // Remove duplicates (config components override database ones with same id)
       const uniqueComponents = allComponents.reduce((acc, component) => {
-        const componentId = typeof component.getId === 'function' ? component.getId() : component.id;
+        const componentId =
+          typeof component.getId === 'function' ? component.getId() : component.id;
         const existingIndex = acc.findIndex((c: any) => {
           const cId = typeof c.getId === 'function' ? c.getId() : c.id;
           return cId === componentId;
@@ -495,7 +509,7 @@ export class Agent implements AgentInterface {
             name: comp.getName(),
             description: comp.getDescription(),
             summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
-            fullProps: comp.getFullProps?.() || comp.fullProps
+            fullProps: comp.getFullProps?.() || comp.fullProps,
           };
         }
         return comp;
@@ -505,7 +519,8 @@ export class Agent implements AgentInterface {
 
       // Remove duplicates (config components override database ones with same id)
       const uniqueComponents = allComponents.reduce((acc, component) => {
-        const componentId = typeof component.getId === 'function' ? component.getId() : component.id;
+        const componentId =
+          typeof component.getId === 'function' ? component.getId() : component.id;
         const existingIndex = acc.findIndex((c: any) => {
           const cId = typeof c.getId === 'function' ? c.getId() : c.id;
           return cId === componentId;

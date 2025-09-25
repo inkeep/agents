@@ -42,8 +42,8 @@ Define a schema for your request context and configure how it's used in your age
 
 ```typescript
 import { z } from "zod";
-import { agent, agentGraph, fetchDefinition } from "@inkeep/agents-manage-api/builders";
-import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
+import { agent, agentGraph } from "@inkeep/agents-sdk";
+import { contextConfig, fetchDefinition, requestContextSchema } from '@inkeep/agents-core';
 
 // Define schema for expected headers (use lowercase keys)
 const requestSchema = z.object({
@@ -52,16 +52,25 @@ const requestSchema = z.object({
   org_name: z.string().optional()
 });
 
-// Create a context fetcher that uses request values
+// Define schema for expected headers (use lowercase keys)
+const requestContext = requestContextSchema({
+  schema: z.object({
+  user_id: z.string(),
+  auth_token: z.string(),
+  org_name: z.string().optional()
+});
+});
+
+// Create a context fetcher that uses request values with type-safe templating
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
   trigger: "initialization",
   fetchConfig: {
-    url: "https://api.example.com/users/{{requestContext.user_id}}",
+    url: `https://api.example.com/users/${requestContext.toTemplate('user_id')}`,
     method: "GET",
     headers: {
-      Authorization: "Bearer {{requestContext.auth_token}}",
+      Authorization: `Bearer ${requestContext.toTemplate('auth_token')}`,
     },
     transform: "name"  // Extract the 'name' field from response
   },
@@ -69,12 +78,12 @@ const userFetcher = fetchDefinition({
   defaultValue: "Guest User"
 });
 
-// Configure context for your graph
+// Configure context for your graph 
 const userContext = contextConfig({
   id: "user-context",
-  name: "User Context",
+  name: "User Context", 
   description: "User personalization context",
-  requestContextSchema: requestSchema,
+  requestContextSchema: requestContext, // Use the builder for consistency
   contextVariables: {
     userName: userFetcher,
   },
@@ -83,11 +92,11 @@ const userContext = contextConfig({
 // Create an agent that uses context variables
 const personalAssistant = agent({
   id: "personal-assistant",
-  name: "Personal Assistant",
+  name: "Personal Assistant", 
   description: "Personalized AI assistant",
-  prompt: `You are a helpful assistant for {{userName}} from {{requestContext.org_name}}.
+  prompt: `You are a helpful assistant for ${userContext.toTemplate('userName')} from ${userContext.toTemplate('requestContext.org_name')}.
   
-  User ID: {{requestContext.user_id}}
+  User ID: ${userContext.toTemplate('requestContext.user_id')}
   
   Provide personalized assistance based on their context.`,
 });
@@ -125,7 +134,8 @@ const graph = agentGraph({
 
 ## Using request context in your agents
 
-Request context values are available throughout your agent system using template syntax `{{requestContext.field_name}}`:
+Request context values can be used in your agent prompts and fetch definitions using JSONPath template syntax `{{requestContext.field_name}}`. 
+You can use the request context schema's `toTemplate()` method for type-safe templating with autocomplete and validation.
 
 ### In Context Fetchers
 
@@ -136,30 +146,44 @@ const userDataFetcher = fetchDefinition({
   id: "user-data",
   name: "User Data",
   fetchConfig: {
-    url: "https://api.example.com/users/{{requestContext.user_id}}/profile",
+    url: `https://api.example.com/users/${requestContext.toTemplate('user_id')}/profile`,
     headers: {
-      Authorization: "Bearer {{requestContext.auth_token}}",
-      "X-Organization": "{{requestContext.org_name}}"
+      Authorization: `Bearer ${requestContext.toTemplate('auth_token')}`,
+      "X-Organization": requestContext.toTemplate('org_name')
     },
     body: {
       includePreferences: true,
-      userId: "{{requestContext.user_id}}"
+      userId: requestContext.toTemplate('user_id')
     }
-  }
+  },
+  responseSchema: z.object({
+    name: z.string(),
+    preferences: z.record(z.unknown())
+  })
 });
 ```
 
 ### In Agent Prompts
 
-Reference context directly in agent prompts for personalization:
+Reference context directly in agent prompts for personalization using the context config's template method:
 
 ```typescript
-const agent = agent({
-  prompt: `You are an assistant for {{userName}} from {{requestContext.org_name}}.
+// Create context config with both request context and fetchers
+const userContext = contextConfig({
+  id: "user-context",
+  name: "User Context",
+  requestContextSchema: requestContext,
+  contextVariables: {
+    userName: userDataFetcher,
+  },
+});
+
+const assistantAgent = agent({
+  prompt: `You are an assistant for ${userContext.toTemplate('userName')} from ${userContext.toTemplate('requestContext.org_name')}.
   
   User context:
-  - ID: {{requestContext.user_id}}
-  - Organization: {{requestContext.org_name}}
+  - ID: ${userContext.toTemplate('requestContext.user_id')}
+  - Organization: ${userContext.toTemplate('requestContext.org_name')}
   
   Provide help tailored to their organization's needs.`
 });
@@ -167,16 +191,16 @@ const agent = agent({
 
 ### In External Tools
 
-Configure external agents or MCP servers with dynamic headers:
+Configure external agents or MCP servers with dynamic headers using request context:
 
 ```typescript
 const externalAgent = externalAgent({
   id: "external-service",
-  baseUrl: "https://external.api.com",
+  baseUrl: "https://external.api.com", 
   headers: {
-    Authorization: "Bearer {{requestContext.auth_token}}",
-    "X-User-Context": "{{requestContext.user_id}}",
-    "X-Org": "{{requestContext.org_name}}"
+    Authorization: `Bearer ${requestContext.toTemplate('auth_token')}`,
+    "X-User-Context": requestContext.toTemplate('user_id'),
+    "X-Org": requestContext.toTemplate('org_name')
   }
 });
 ```

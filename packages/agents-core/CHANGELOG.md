@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.6.3
+
+## 0.6.2
+
+### Patch Changes
+
+- d32d3bc: Template validation helper
+
+## 0.6.1
+
 ## 0.6.0
 
 ### Minor Changes

@@ -107,7 +107,10 @@ program
   .option('--project <project-id>', 'Project ID or path to project directory')
   .option('--config <path>', 'Path to configuration file')
   .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
-  .option('--env <environment>', 'Environment file to generate (development, staging, production). Defaults to development')
+  .option(
+    '--env <environment>',
+    'Environment file to generate (development, staging, production). Defaults to development'
+  )
   .option('--json', 'Generate project data JSON file instead of updating files')
   .option('--debug', 'Enable debug logging for LLM generation')
   .action(async (options) => {
@@ -136,7 +139,8 @@ program
 // List graphs command
 program
   .command('list-graphs')
-  .description('List all available graphs for the current tenant')
+  .description('List all available graphs for a specific project')
+  .requiredOption('--project <project-id>', 'Project ID to list graphs for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
   .option('--config <path>', 'Path to configuration file')
@@ -153,18 +157,16 @@ program
   .description('Start the Inkeep dashboard server')
   .option('--port <port>', 'Port to run the server on', '3000')
   .option('--host <host>', 'Host to bind the server to', 'localhost')
-  .option('--build', 'Create a Vercel-ready build and exit')
+  .option('--build', 'Build the Dashboard UI for production', false)
   .option('--output-dir <dir>', 'Output directory for build files', './vercel-build')
-  .option('--vercel', 'Copy Vercel output to .vercel/output for deployment')
-  .option('--config <path>', 'Path to configuration file')
+  .option('--path', 'Output the path to the Dashboard UI', false)
   .action(async (options) => {
     await devCommand({
       port: parseInt(options.port, 10),
       host: options.host,
       build: options.build,
       outputDir: options.outputDir,
-      vercel: options.vercel,
-      config: options.config,
+      path: options.path,
     });
   });
 

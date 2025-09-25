@@ -127,11 +127,12 @@ describe('Inkeep CLI', () => {
   });
 
   describe('list-graphs command', () => {
-    it('should accept --url option', () => {
+    it('should require --project option and accept --url option', () => {
       const result = runCli(['list-graphs', '--help']);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('List all available graphs');
+      expect(result.stdout).toContain('List all available graphs for a specific project');
+      expect(result.stdout).toContain('--project <project-id>');
       expect(result.stdout).toContain('--agents-manage-api-url');
     });
   });
@@ -145,7 +146,7 @@ describe('Inkeep CLI', () => {
       expect(result.stdout).toContain('Commands:');
       expect(result.stdout).toContain('push');
       expect(result.stdout).toContain('chat');
-      expect(result.stdout).toContain('tenant');
+      expect(result.stdout).toContain('config');
       expect(result.stdout).toContain('list-graphs');
     });
 
