@@ -281,14 +281,15 @@ inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.co
 
 ### `inkeep list-graphs`
 
-List all available graphs for the current tenant.
+List all available graphs for a specific project.
 
 ```bash
-inkeep list-graphs
+inkeep list-graphs --project <project-id>
 ```
 
 **Options:**
 
+- `--project <project-id>` - **Required.** Project ID to list graphs for
 - `--tenant-id <tenant-id>` - Tenant ID
 - `--agents-manage-api-url <url>` - Agents manage API URL
 - `--config <path>` - Path to configuration file
@@ -297,14 +298,14 @@ inkeep list-graphs
 **Examples:**
 
 ```bash
-# List graphs using config file
-inkeep list-graphs
+# List graphs for a specific project
+inkeep list-graphs --project my-project
 
 # List graphs using a specific config file
-inkeep list-graphs --config ./inkeep.config.ts
+inkeep list-graphs --project my-project --config ./inkeep.config.ts
 
 # Override tenant and API URL
-inkeep list-graphs --tenant-id my-tenant --agents-manage-api-url https://api.example.com
+inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep dev`
