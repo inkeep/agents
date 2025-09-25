@@ -3,7 +3,7 @@
  */
 
 import type { McpTool } from '../types/entities';
-import type { Logger } from './logging';
+import type { PinoLogger } from './logger';
 
 /**
  * OAuth configuration interface
@@ -45,7 +45,7 @@ const buildOAuthConfig = (metadata: any): OAuthConfig => ({
  */
 const tryWellKnownEndpoints = async (
   baseUrl: string,
-  logger?: Logger
+  logger?: PinoLogger
 ): Promise<OAuthConfig | null> => {
   const wellKnownUrls = getWellKnownUrls(baseUrl);
 
@@ -69,7 +69,7 @@ const tryWellKnownEndpoints = async (
 /**
  * Check if a server supports OAuth 2.1/PKCE endpoints (simple boolean)
  */
-const checkForOAuthEndpoints = async (serverUrl: string, logger?: Logger): Promise<boolean> => {
+const checkForOAuthEndpoints = async (serverUrl: string, logger?: PinoLogger): Promise<boolean> => {
   const config = await discoverOAuthEndpoints(serverUrl, logger);
   return config !== null;
 };
@@ -79,7 +79,7 @@ const checkForOAuthEndpoints = async (serverUrl: string, logger?: Logger): Promi
  */
 export const discoverOAuthEndpoints = async (
   serverUrl: string,
-  logger?: Logger
+  logger?: PinoLogger
 ): Promise<OAuthConfig | null> => {
   try {
     // 1. Try direct 401 response first
@@ -122,7 +122,7 @@ export const discoverOAuthEndpoints = async (
 export const detectAuthenticationRequired = async (
   tool: McpTool,
   error: Error,
-  logger?: Logger
+  logger?: PinoLogger
 ): Promise<boolean> => {
   const serverUrl = tool.config.mcp.server.url;
 

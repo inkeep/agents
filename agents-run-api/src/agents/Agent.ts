@@ -239,6 +239,49 @@ export class Agent {
   }
 
   /**
+   * Sanitizes tool names at runtime for AI SDK compatibility.
+   * The AI SDK requires tool names to match pattern ^[a-zA-Z0-9_-]{1,128}$
+   */
+  private sanitizeToolsForAISDK(tools: ToolSet): ToolSet {
+    const sanitizedTools: ToolSet = {};
+
+    for (const [originalKey, toolDef] of Object.entries(tools)) {
+      // Sanitize the tool key (object property name)
+      let sanitizedKey = originalKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+      sanitizedKey = sanitizedKey.replace(/_+/g, '_');
+      sanitizedKey = sanitizedKey.replace(/^_+|_+$/g, '');
+
+      if (!sanitizedKey || sanitizedKey.length === 0) {
+        sanitizedKey = 'unnamed_tool';
+      }
+
+      if (sanitizedKey.length > 100) {
+        sanitizedKey = sanitizedKey.substring(0, 100);
+      }
+
+      // Clone the tool with a sanitized ID
+      const originalId = (toolDef as any).id || originalKey;
+      let sanitizedId = originalId.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      sanitizedId = sanitizedId.replace(/_+/g, '_');
+      sanitizedId = sanitizedId.replace(/^_+|_+$/g, '');
+
+      if (sanitizedId.length > 128) {
+        sanitizedId = sanitizedId.substring(0, 128);
+      }
+
+      // Create a new tool object with sanitized ID
+      const sanitizedTool = {
+        ...toolDef,
+        id: sanitizedId,
+      };
+
+      sanitizedTools[sanitizedKey] = sanitizedTool;
+    }
+
+    return sanitizedTools;
+  }
+
+  /**
    * Get the primary model settings for text generation and thinking
    * Requires model to be configured at project level
    */
@@ -1131,6 +1174,9 @@ Key requirements:
           ...defaultTools,
         };
 
+        // Sanitize tool names at runtime for AI SDK compatibility
+        const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
+
         // Get conversation history
         let conversationHistory = '';
         const historyConfig =
@@ -1226,7 +1272,7 @@ Key requirements:
           const streamResult = streamText({
             ...streamConfig,
             messages,
-            tools: allTools,
+            tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
               // Track the last step's text reasoning
               const last = steps.at(-1);
@@ -1329,7 +1375,7 @@ Key requirements:
           response = await generateText({
             ...genConfig,
             messages,
-            tools: allTools,
+            tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
               // Track the last step's text reasoning
               const last = steps.at(-1);
