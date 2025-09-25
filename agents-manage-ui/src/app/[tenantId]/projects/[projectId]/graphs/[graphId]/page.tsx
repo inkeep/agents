@@ -20,16 +20,22 @@ async function GraphPage({ params }: GraphPageProps) {
     getFullGraphAction(tenantId, projectId, graphId),
     fetchDataComponentsAction(tenantId, projectId),
     fetchArtifactComponentsAction(tenantId, projectId),
-    fetchToolsAction(tenantId, projectId),
     fetchCredentialsAction(tenantId, projectId),
+    fetchToolsAction(tenantId, projectId),
   ]);
 
   if (!graph.success) throw new Error(graph.error);
-  if (!dataComponents.success || !artifactComponents.success || !tools.success) {
+  if (
+    !dataComponents.success ||
+    !artifactComponents.success ||
+    !credentials.success ||
+    !tools.success
+  ) {
     console.error(
       'Failed to fetch components:',
       dataComponents.error,
       artifactComponents.error,
+      credentials.error,
       tools.error
     );
   }
