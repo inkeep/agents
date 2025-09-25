@@ -98,12 +98,12 @@ export class Agent implements AgentInterface {
         // Check if this is an AgentMcpConfig using type guard
         if (isAgentMcpConfig(tool)) {
           id = tool.server.getId();
-          toolInstance = tool.server as AgentTool;
+          toolInstance = tool.server;
           // Add selectedTools metadata to the tool instance
           toolInstance.selectedTools = tool.selectedTools;
         } else {
           // Regular tool instance
-          toolInstance = tool as AgentTool;
+          toolInstance = tool;
           id = toolInstance.getId();
         }
 
