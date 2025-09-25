@@ -2,14 +2,23 @@
   "name": "@inkeep/agents-manage-ui",
   "version": "0.6.2",
   "license": "SEE LICENSE IN LICENSE.md",
-  "main": ".next/standalone/server.js",
+  "main": "index.js",
+  "types": "index.d.ts",
   "exports": {
     ".": "./.next/standalone/server.js",
     "./package.json": "./package.json"
   },
   "files": [
+    "src",
+    "public",
+    "next.config.ts",
+    "postcss.config.mjs",
+    "tailwind.config.mjs",
+    "tsconfig.json",
+    "index.js",
+    "index.d.ts",
+    "package.json",
     ".next/standalone",
-    ".vercel/output",
     "!.next/standalone/**/node_modules",
     "!.next/standalone/node_modules"
   ],

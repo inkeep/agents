@@ -45,6 +45,6 @@ export const emptyStateProjectDescription = (
   <>
     {projectDescription} Create your first project to get started.
     {'\n'}
-    <ExternalLink href={`${DOCS_BASE_URL}/`}>Check out the docs.</ExternalLink>
+    <ExternalLink href={`${DOCS_BASE_URL}/`}>Check out the docs</ExternalLink>
   </>
 );
