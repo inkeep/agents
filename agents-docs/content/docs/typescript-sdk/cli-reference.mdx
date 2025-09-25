@@ -417,7 +417,7 @@ inkeep config list
 
 ### `inkeep add`
 
-Add a new template to the project.
+Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/template-projects).
 
 ```bash
 inkeep add [template]
@@ -432,13 +432,13 @@ inkeep add [template]
 
 ```bash
 # Add a template
-inkeep add my-template
+inkeep add weather-project
 
 # Add template to specific path
-inkeep add my-template --target-path ./src/templates
+inkeep add weather-project --target-path ./src/templates
 
-# Using config file
-inkeep add my-template --config ./my-config.ts
+# Using specific config file
+inkeep add weather-project --config ./my-config.ts
 ```
 
 ## Configuration File

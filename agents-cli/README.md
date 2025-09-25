@@ -113,7 +113,7 @@ export INKEEP_AGENTS_RUN_API_URL=http://localhost:3003
 
 ### `inkeep add [template]`
 
-Add a new template to the project.
+Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/template-projects).
 
 ```bash
 # Add a template
