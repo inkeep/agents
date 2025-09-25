@@ -9,7 +9,7 @@ import {
   mcpNodeHandleId,
   NodeType,
 } from '@/components/graph/configuration/node-types';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import type { FullGraphDefinition, InternalAgentDefinition, ExternalAgentDefinition } from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';
 

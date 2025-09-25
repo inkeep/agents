@@ -27,7 +27,7 @@ import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import { saveGraph } from '@/lib/services/save-graph';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';

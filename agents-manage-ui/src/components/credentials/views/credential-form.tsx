@@ -1,26 +1,27 @@
-'use client';
+'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { GenericInput } from '@/components/form/generic-input';
-import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
-import { GenericSelect } from '@/components/form/generic-select';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Form } from '@/components/ui/form';
-import { InfoCard } from '@/components/ui/info-card';
-import { fetchMCPTools, type MCPTool } from '@/lib/api/tools';
-import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { GenericInput } from '@/components/form/generic-input'
+import { GenericKeyValueInput } from '@/components/form/generic-key-value-input'
+import { GenericSelect } from '@/components/form/generic-select'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Form } from '@/components/ui/form'
+import { InfoCard } from '@/components/ui/info-card'
+import { fetchMCPTools } from '@/lib/api/tools'
+import type { MCPTool } from '@/lib/types/tools'
+import { type CredentialFormData, credentialFormSchema } from './credential-form-validation'
 
 interface CredentialFormProps {
   /** Handler for creating new credentials */
-  onCreateCredential: (data: CredentialFormData) => Promise<void>;
+  onCreateCredential: (data: CredentialFormData) => Promise<void>
   /** Tenant ID */
-  tenantId: string;
+  tenantId: string
   /** Project ID */
-  projectId: string;
+  projectId: string
 }
 
 const defaultValues: CredentialFormData = {
@@ -28,47 +29,47 @@ const defaultValues: CredentialFormData = {
   apiKeyToSet: '',
   metadata: {},
   selectedTool: undefined,
-};
+}
 
 export function CredentialForm({ onCreateCredential, tenantId, projectId }: CredentialFormProps) {
-  const [availableTools, setAvailableTools] = useState<MCPTool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(true);
-  const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
+  const [availableTools, setAvailableTools] = useState<MCPTool[]>([])
+  const [toolsLoading, setToolsLoading] = useState(true)
+  const [shouldLinkToServer, setShouldLinkToServer] = useState(false)
 
   const form = useForm({
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
-  });
+  })
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting } = form.formState
 
   useEffect(() => {
     const loadAvailableTools = async () => {
       try {
-        const allTools = await fetchMCPTools(tenantId, projectId);
-        const toolsWithoutCredentials = allTools.filter((tool) => !tool.credentialReferenceId);
-        setAvailableTools(toolsWithoutCredentials);
+        const allTools = await fetchMCPTools(tenantId, projectId)
+        const toolsWithoutCredentials = allTools.filter((tool) => !tool.credentialReferenceId)
+        setAvailableTools(toolsWithoutCredentials)
       } catch (err) {
-        console.error('Failed to load MCP tools:', err);
+        console.error('Failed to load MCP tools:', err)
       } finally {
-        setToolsLoading(false);
+        setToolsLoading(false)
       }
-    };
+    }
 
-    loadAvailableTools();
-  }, [tenantId, projectId]);
+    loadAvailableTools()
+  }, [tenantId, projectId])
 
   // Handle checkbox state changes
   useEffect(() => {
     if (!shouldLinkToServer) {
       // Clear the selectedTool field when not linking to server
-      form.setValue('selectedTool', undefined);
+      form.setValue('selectedTool', undefined)
     }
-  }, [shouldLinkToServer, form]);
+  }, [shouldLinkToServer, form])
 
   const handleLinkToServerChange = (checked: boolean | 'indeterminate') => {
-    setShouldLinkToServer(checked === true);
-  };
+    setShouldLinkToServer(checked === true)
+  }
 
   const onSubmit = async (data: CredentialFormData) => {
     try {
@@ -76,16 +77,16 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         shouldLinkToServer &&
         (data.selectedTool === 'loading' || data.selectedTool === 'error')
       ) {
-        toast('Please select a valid MCP server');
-        return;
+        toast('Please select a valid MCP server')
+        return
       }
 
-      await onCreateCredential(data);
+      await onCreateCredential(data)
     } catch (err) {
-      console.error('Failed to create credential:', err);
-      toast(err instanceof Error ? err.message : 'Failed to create credential');
+      console.error('Failed to create credential:', err)
+      toast(err instanceof Error ? err.message : 'Failed to create credential')
     }
-  };
+  }
 
   const serverOptions = useMemo(
     () => [
@@ -104,7 +105,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
       })),
     ],
     [availableTools, toolsLoading]
-  );
+  )
 
   return (
     <Form {...form}>
@@ -201,5 +202,5 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         </div>
       </form>
     </Form>
-  );
+  )
 }

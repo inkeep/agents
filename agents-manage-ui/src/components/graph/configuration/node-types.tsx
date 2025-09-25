@@ -1,5 +1,5 @@
 import { Bot, BotMessageSquare, Hammer } from 'lucide-react';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import { AgentNode } from '../nodes/agent-node';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { MCPNode } from '../nodes/mcp-node';

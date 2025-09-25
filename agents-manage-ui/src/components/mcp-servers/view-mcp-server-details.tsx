@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import { cn } from '@/lib/utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
