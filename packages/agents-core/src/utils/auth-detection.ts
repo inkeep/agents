@@ -124,7 +124,9 @@ export const detectAuthenticationRequired = async (
   error: Error,
   logger?: Logger
 ): Promise<boolean> => {
-  const serverUrl = tool.config.mcp.server.url;
+  const serverUrl = tool.config.mcp?.server?.url;
+
+  if (!serverUrl) return false;
 
   // 1. First, try OAuth 2.1/PKCE endpoint discovery (most reliable for our use case)
   let hasOAuthEndpoints = false;

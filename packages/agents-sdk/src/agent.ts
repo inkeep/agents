@@ -8,6 +8,7 @@ import {
 import { ArtifactComponent } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
 import { DataComponent } from './data-component';
+import { FunctionTool } from './function-tool';
 import { Tool } from './tool';
 import type { AgentCanUseType, AgentConfig, AgentInterface, AllAgentInterface } from './types';
 
@@ -457,8 +458,72 @@ export class Agent implements AgentInterface {
     }
   }
 
+  private async createFunctionTool(toolId: string, functionTool: FunctionTool): Promise<void> {
+    try {
+      // Serialize the function tool
+      const serialized = functionTool.serialize();
+
+      // Store function tool in database using the same pattern as MCP tools
+      const response = await fetch(
+        `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: serialized.id,
+            name: serialized.name,
+            config: {
+              type: 'function' as const,
+              function: {
+                description: serialized.description,
+                inputSchema: serialized.inputSchema,
+                executeCode: serialized.executeCode,
+                dependencies: serialized.dependencies,
+                sandboxConfig: serialized.sandboxConfig,
+              },
+            },
+            status: 'active' as const,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to create function tool: ${response.status}`);
+      }
+
+      // Create the agent-tool relation
+      await this.createAgentToolRelation(serialized.id, undefined);
+
+      logger.info(
+        {
+          agentId: this.getId(),
+          toolId: serialized.id,
+        },
+        'Function tool created and linked to agent'
+      );
+    } catch (error) {
+      logger.error(
+        {
+          agentId: this.getId(),
+          toolId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        'Failed to create function tool'
+      );
+      throw error;
+    }
+  }
+
   private async createTool(toolId: string, toolConfig: AgentCanUseType): Promise<void> {
     try {
+      // Check if this is a FunctionTool instance
+      if (toolConfig instanceof FunctionTool) {
+        await this.createFunctionTool(toolId, toolConfig);
+        return;
+      }
+
       // Check if this is a function tool (has type: 'function')
       if ((toolConfig as any).type === 'function') {
         logger.info(

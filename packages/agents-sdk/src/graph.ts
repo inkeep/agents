@@ -278,6 +278,10 @@ export class AgentGraph implements GraphInterface {
             const mcpConfig = toolInstance as any; // AgentMcpConfig
             actualTool = mcpConfig.server;
             toolId = actualTool.getId();
+          } else if (toolInstance.constructor.name === 'FunctionTool') {
+            // Function tool instance
+            actualTool = toolInstance;
+            toolId = actualTool.getId();
           } else {
             // Regular tool instance
             actualTool = toolInstance;
@@ -288,8 +292,21 @@ export class AgentGraph implements GraphInterface {
           if (!toolsObject[toolId]) {
             let toolConfig: any;
 
-            // Check if it's an IPCTool with MCP server configuration
-            if (actualTool.config?.serverUrl) {
+            // Check if it's a FunctionTool
+            if (actualTool.constructor.name === 'FunctionTool') {
+              const serialized = actualTool.serialize();
+              toolConfig = {
+                type: 'function',
+                function: {
+                  description: serialized.description,
+                  inputSchema: serialized.inputSchema,
+                  executeCode: serialized.executeCode,
+                  dependencies: serialized.dependencies,
+                  sandboxConfig: serialized.sandboxConfig,
+                },
+              };
+            } else if (actualTool.config?.serverUrl) {
+              // IPCTool with MCP server configuration
               toolConfig = {
                 type: 'mcp',
                 mcp: {
@@ -302,7 +319,7 @@ export class AgentGraph implements GraphInterface {
               // Already has proper MCP config
               toolConfig = actualTool.config;
             } else {
-              // Fallback for function tools or uninitialized tools
+              // Fallback for uninitialized tools
               toolConfig = {
                 type: 'function',
                 parameters: actualTool.parameters || {},
