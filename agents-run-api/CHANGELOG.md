@@ -1,5 +1,12 @@
 # @inkeep/agents-run-api
 
+## 0.6.1
+
+### Patch Changes
+
+- 8cd4924: fix preloading env from file
+  - @inkeep/agents-core@0.6.1
+
 ## 0.6.0
 
 ### Minor Changes
