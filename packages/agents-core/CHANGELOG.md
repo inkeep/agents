@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.6.0
+
+### Minor Changes
+
+- 9e04bb6: Inkeep CLI Project based push and pull functionality. Push and pull an entire project set of resources in one command line.
+
 ## 0.5.0
 
 ### Minor Changes
