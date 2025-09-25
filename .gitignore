@@ -1,5 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+inkeep-qa-project
 # dependencies
 node_modules
 /.pnp
@@ -64,3 +65,4 @@ dist
 .hosted-tools/
 
 .playwright-mcp
+.vercel

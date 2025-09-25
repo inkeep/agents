@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsup",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",

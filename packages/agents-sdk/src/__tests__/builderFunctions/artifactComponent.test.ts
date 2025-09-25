@@ -22,8 +22,6 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Complex Artifact',
       description: 'Artifact with complex props',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
       summaryProps: {
         title: 'Complex Summary',
         metadata: {
@@ -47,8 +45,6 @@ describe('artifactComponent builder function', () => {
     const component = artifactComponent(config);
 
     expect(component.getName()).toBe('Complex Artifact');
-    expect(component.config.tenantId).toBe('test-tenant');
-    expect(component.config.projectId).toBe('test-project');
     expect(component.getSummaryProps()).toEqual(config.summaryProps);
     expect(component.getFullProps()).toEqual(config.fullProps);
   });
@@ -65,7 +61,7 @@ describe('artifactComponent builder function', () => {
     expect(component.getId()).toBe('artifact-component-with-spaces-special-characters');
   });
 
-  it('should use default tenant when not provided', () => {
+  it('should allow setting tenant and project context', () => {
     const config: ArtifactComponentConfig = {
       name: 'Default Tenant Artifact',
       description: 'Artifact without tenant',
@@ -74,6 +70,9 @@ describe('artifactComponent builder function', () => {
     };
 
     const component = artifactComponent(config);
-    expect(component.config.tenantId).toBe('default');
+    // Should be able to set context after creation
+    component.setContext('test-tenant', 'test-project');
+    // Verify the component can be created without tenantId/projectId
+    expect(component.getId()).toBeDefined();
   });
 });

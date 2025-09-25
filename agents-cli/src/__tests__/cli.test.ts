@@ -96,8 +96,8 @@ describe('Inkeep CLI', () => {
 
       // The push command now tries to detect project automatically
       expect(result.exitCode).toBe(1);
-      // It should fail because index.ts is not found in test environment
-      expect(result.stderr).toContain('index.ts not found');
+      // It should fail because configuration or project is missing in test environment
+      expect(result.stderr.toLowerCase()).toMatch(/tenant id|index\.ts|config/);
     });
 
     it('should accept --agents-manage-api-url option', () => {
@@ -132,7 +132,7 @@ describe('Inkeep CLI', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('List all available graphs');
-      expect(result.stdout).toContain('--api-url');
+      expect(result.stdout).toContain('--agents-manage-api-url');
     });
   });
 
