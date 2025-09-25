@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.5.0
+
+### Minor Changes
+
+- 45b3b91: Use Pino Logger
+
 ## 0.4.0
 
 ### Minor Changes

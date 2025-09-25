@@ -1,5 +1,17 @@
 # @inkeep/agents-run-api
 
+## 0.5.0
+
+### Minor Changes
+
+- 58596bc: extracts instrumentation for agents-run-api
+- 45b3b91: Use Pino Logger
+
+### Patch Changes
+
+- Updated dependencies [45b3b91]
+  - @inkeep/agents-core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
