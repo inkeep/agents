@@ -27,9 +27,9 @@ import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { MCPTool } from "@/lib/types/tools";;
 import { saveGraph } from '@/lib/services/save-graph';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import type { MCPTool } from '@/lib/types/tools';
 import { formatJsonField } from '@/lib/utils';
 import { getErrorSummaryMessage, parseGraphValidationErrors } from '@/lib/utils/graph-error-parser';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
@@ -68,7 +68,12 @@ interface GraphProps {
   toolLookup?: Record<string, MCPTool>;
 }
 
-function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {}, toolLookup: initialToolLookup = {} }: GraphProps) {
+function Flow({
+  graph,
+  dataComponentLookup = {},
+  artifactComponentLookup = {},
+  toolLookup: initialToolLookup = {},
+}: GraphProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
   const [toolLookup, setToolLookup] = useState<Record<string, MCPTool>>(initialToolLookup);
@@ -79,11 +84,12 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {}, t
   }>();
 
   // Fetch tools on client side if not provided
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render otherwise it will fetch tools in an infinite loop
   useEffect(() => {
     if (Object.keys(toolLookup).length === 0 && tenantId && projectId) {
       fetch(`http://localhost:3002/tenants/${tenantId}/projects/${projectId}/tools`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           if (data.data) {
             const lookup = data.data.reduce((acc: Record<string, MCPTool>, tool: MCPTool) => {
               acc[tool.id] = tool;
@@ -92,9 +98,9 @@ function Flow({ graph, dataComponentLookup = {}, artifactComponentLookup = {}, t
             setToolLookup(lookup);
           }
         })
-        .catch(err => console.error('Failed to fetch tools:', err));
+        .catch((err) => console.error('Failed to fetch tools:', err));
     }
-  }, [tenantId, projectId, toolLookup]);
+  }, [tenantId, projectId]);
 
   const initialNodes = useMemo<Node[]>(
     () => [
