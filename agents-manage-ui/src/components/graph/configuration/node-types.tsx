@@ -38,6 +38,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   name: string;
   description?: string;
   baseUrl: string;
+  headers: string;
 }
 
 export enum NodeType {

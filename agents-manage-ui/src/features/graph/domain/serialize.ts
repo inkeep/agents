@@ -20,6 +20,7 @@ type ExternalAgent = {
   name: string;
   description: string;
   baseUrl: string;
+  headers?: Record<string, string> | null;
   type: 'external';
 };
 
@@ -206,11 +207,16 @@ export function serializeGraphData(
       agents[agentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const agentId = (node.data.id as string) || node.id;
+
+      // Parse headers from JSON string to object
+      const parsedHeaders = safeJsonParse(node.data.headers as string);
+
       const agent: ExternalAgent = {
         id: agentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         baseUrl: node.data.baseUrl as string,
+        headers: parsedHeaders || null,
         type: 'external',
       };
 
