@@ -136,7 +136,8 @@ program
 // List graphs command
 program
   .command('list-graphs')
-  .description('List all available graphs for the current tenant')
+  .description('List all available graphs for a specific project')
+  .requiredOption('--project <project-id>', 'Project ID to list graphs for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
   .option('--config <path>', 'Path to configuration file')

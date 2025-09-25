@@ -6,6 +6,7 @@ import type { ValidatedConfiguration } from '../utils/config';
 import { validateConfiguration } from '../utils/config';
 
 export interface ListGraphsOptions {
+  project: string; // required project ID
   tenantId?: string;
   agentsManageApiUrl?: string;
   config?: string;
@@ -40,17 +41,18 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
   const api = await ManagementApiClient.create(
     config.agentsManageApiUrl,
     configPath,
-    config.tenantId
+    config.tenantId,
+    options.project // pass project ID as projectIdOverride
   );
   const spinner = ora('Fetching graphs...').start();
 
   try {
     const graphs = await api.listGraphs();
-    spinner.succeed(`Found ${graphs.length} graph(s)`);
+    spinner.succeed(`Found ${graphs.length} graph(s) in project "${options.project}"`);
 
     if (graphs.length === 0) {
       console.log(
-        chalk.gray('No graphs found. Define graphs in your project and run: inkeep push')
+        chalk.gray(`No graphs found in project "${options.project}". Define graphs in your project and run: inkeep push`)
       );
       return;
     }
