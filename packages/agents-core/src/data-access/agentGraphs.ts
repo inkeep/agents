@@ -473,7 +473,7 @@ export const getFullGraphDefinition =
           baseUrl: (agent as any).baseUrl,
           credentialReferenceId: agent.credentialReferenceId,
           headers: agent.headers,
-          type: agent.type,
+          type: 'external',
         };
       } else {
         // Internal agent - already processed with tools as IDs
