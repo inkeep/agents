@@ -1,4 +1,3 @@
-import './instrumentation';
 import {
   type CredentialStore,
   CredentialStoreRegistry,

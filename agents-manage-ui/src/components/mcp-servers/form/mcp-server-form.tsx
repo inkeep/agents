@@ -1,27 +1,28 @@
-'use client';
+'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { MCPTransportType } from '@inkeep/agents-core/client-exports';
-import { nanoid } from 'nanoid';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { GenericInput } from '@/components/form/generic-input';
-import { GenericSelect } from '@/components/form/generic-select';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
-import type { Credential } from '@/lib/api/credentials';
-import { createMCPTool, type MCPTool, syncMCPTool, updateMCPTool } from '@/lib/api/tools';
-import { ActiveToolsSelector } from './active-tools-selector';
-import { type MCPToolFormData, mcpToolSchema } from './validation';
+import { zodResolver } from '@hookform/resolvers/zod'
+import { MCPTransportType } from '@inkeep/agents-core/client-exports'
+import { nanoid } from 'nanoid'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { GenericInput } from '@/components/form/generic-input'
+import { GenericSelect } from '@/components/form/generic-select'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
+import type { Credential } from '@/lib/api/credentials'
+import { createMCPTool, syncMCPTool, updateMCPTool } from '@/lib/api/tools'
+import type { MCPTool } from '@/lib/types/tools'
+import { ActiveToolsSelector } from './active-tools-selector'
+import { type MCPToolFormData, mcpToolSchema } from './validation'
 
 interface MCPServerFormProps {
-  initialData?: MCPToolFormData;
-  mode?: 'create' | 'update';
-  tool?: MCPTool;
-  credentials: Credential[];
-  tenantId: string;
-  projectId: string;
+  initialData?: MCPToolFormData
+  mode?: 'create' | 'update'
+  tool?: MCPTool
+  credentials: Credential[]
+  tenantId: string
+  projectId: string
 }
 
 const defaultValues: MCPToolFormData = {
@@ -40,7 +41,7 @@ const defaultValues: MCPToolFormData = {
   },
   imageUrl: '', // Initialize as empty string to avoid uncontrolled/controlled warning
   credentialReferenceId: 'none',
-};
+}
 
 export function MCPServerForm({
   initialData,
@@ -50,7 +51,7 @@ export function MCPServerForm({
   tenantId,
   projectId,
 }: MCPServerFormProps) {
-  const router = useRouter();
+  const router = useRouter()
 
   const form = useForm({
     resolver: zodResolver(mcpToolSchema),
@@ -58,9 +59,9 @@ export function MCPServerForm({
       ...defaultValues,
       ...initialData,
     },
-  });
+  })
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting } = form.formState
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
@@ -81,27 +82,27 @@ export function MCPServerForm({
                 : data.config.mcp.toolsConfig.tools,
           },
         },
-      };
+      }
 
       if (mode === 'update' && tool) {
-        await updateMCPTool(tenantId, projectId, tool.id, transformedData);
-        await syncMCPTool(tenantId, projectId, tool.id);
-        toast.success('MCP server updated successfully');
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`);
+        await updateMCPTool(tenantId, projectId, tool.id, transformedData)
+        await syncMCPTool(tenantId, projectId, tool.id)
+        toast.success('MCP server updated successfully')
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`)
       } else {
         const newTool = await createMCPTool(tenantId, projectId, {
           ...transformedData,
           id: nanoid(),
-        });
-        await syncMCPTool(tenantId, projectId, newTool.id);
-        toast.success('MCP server created successfully');
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+        })
+        await syncMCPTool(tenantId, projectId, newTool.id)
+        toast.success('MCP server created successfully')
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`)
       }
     } catch (error) {
-      console.error(`Failed to ${mode} MCP tool:`, error);
-      toast.error(`Failed to ${mode} MCP server. Please try again.`);
+      console.error(`Failed to ${mode} MCP tool:`, error)
+      toast.error(`Failed to ${mode} MCP server. Please try again.`)
     }
-  };
+  }
 
   return (
     <Form {...form}>
@@ -110,7 +111,7 @@ export function MCPServerForm({
           control={form.control}
           name="name"
           label="Name"
-          placeholder="MCP Server"
+          placeholder="MCP server"
           isRequired
         />
         <GenericInput
@@ -122,8 +123,9 @@ export function MCPServerForm({
         />
         <GenericSelect
           control={form.control}
+          selectTriggerClassName="w-full"
           name="config.mcp.transport.type"
-          label="Transport Type"
+          label="Transport type"
           placeholder="Select transport type"
           options={[
             {
@@ -141,6 +143,7 @@ export function MCPServerForm({
         />
         <GenericSelect
           control={form.control}
+          selectTriggerClassName="w-full"
           name="credentialReferenceId"
           label="Credential"
           placeholder="Select a credential"
@@ -168,5 +171,5 @@ export function MCPServerForm({
         </Button>
       </form>
     </Form>
-  );
+  )
 }

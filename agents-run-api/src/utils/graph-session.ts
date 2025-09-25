@@ -5,7 +5,7 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
 } from '@inkeep/agents-core';
-import { defaultStatusSchemas } from '@inkeep/agents-sdk';
+import { defaultStatusSchemas } from './default-status-schemas';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -1030,7 +1030,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
 
         // INTERNAL OPERATIONS - DO NOT EXPOSE TO STATUS UPDATES
-        case 'transfer': 
+        case 'transfer':
         case 'delegation_sent':
         case 'delegation_returned':
         case 'artifact_saved':

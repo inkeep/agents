@@ -26,13 +26,24 @@ export async function createFullProjectViaAPI(
   );
 
   const url = `${apiUrl}/tenants/${tenantId}/project-full`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(projectData),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(projectData),
+    });
+  } catch (fetchError) {
+    logger.error({
+      error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
+      url,
+      tenantId,
+      projectId: projectData.id
+    }, 'Fetch request failed');
+    throw fetchError;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -92,13 +103,24 @@ export async function updateFullProjectViaAPI(
   );
 
   const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(projectData),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(projectData),
+    });
+  } catch (fetchError) {
+    logger.error({
+      error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
+      url,
+      tenantId,
+      projectId
+    }, 'Fetch request failed');
+    throw fetchError;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

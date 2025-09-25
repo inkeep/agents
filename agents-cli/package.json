@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.3.0",
+  "version": "0.6.0",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -53,6 +53,8 @@
     "inquirer-autocomplete-prompt": "^3.0.1",
     "ora": "^8.0.1",
     "picocolors": "^1.1.1",
+    "pino": "^9.11.0",
+    "prompts": "^2.4.2",
     "recast": "^0.23.0",
     "ts-morph": "^26.0.0",
     "tsx": "^4.20.5"
@@ -62,10 +64,12 @@
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
     "@types/node": "^20.10.0",
+    "@types/prompts": "^2.4.9",
     "@vitest/coverage-v8": "^3.2.4",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "pino-pretty": "^13.1.1"
   },
   "peerDependencies": {
     "zod": "^4.1.5"

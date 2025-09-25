@@ -28,7 +28,8 @@
       "!**/build/**",
       "!**/out/**",
       "!**/*.css",
-      "!**/.source/**"
+      "!**/.source/**",
+      "!**/.vercel/**"
     ],
     "rules": {
       "recommended": true,
@@ -85,7 +86,8 @@
       "!**/drizzle.config.*",
       "!**/.next/**",
       "!**/build/**",
-      "!**/out/**"
+      "!**/out/**",
+      "!**/.vercel/**"
     ],
     "lineWidth": 100,
     "indentStyle": "space",

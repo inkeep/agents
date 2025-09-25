@@ -5,6 +5,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    env: {
+      ENVIRONMENT: 'test',
+      DB_FILE_NAME: ':memory:',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

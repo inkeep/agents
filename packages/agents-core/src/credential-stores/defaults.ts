@@ -16,7 +16,7 @@ export function createDefaultCredentialStores(): CredentialStore[] {
   if (process.env.NANGO_SECRET_KEY) {
     stores.push(
       createNangoCredentialStore('nango-default', {
-        apiUrl: process.env.NANGO_HOST || 'https://api.nango.dev',
+        apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
         secretKey: process.env.NANGO_SECRET_KEY,
       })
     );

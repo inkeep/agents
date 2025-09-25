@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import { getTypeBadgeVariant, parseMCPInputSchema } from '@/lib/utils/mcp-schema-parser';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -78,16 +78,11 @@ function ToolCard({ tool }: ToolCardProps) {
           <div className="text-sm font-medium">Parameters</div>
           <div className="space-y-2">
             {parsedSchema.properties.map((param) => (
-              <div
-                key={param.name}
-                className="flex items-center justify-between p-2 bg-muted/30 rounded"
-              >
+              <div key={param.name} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
-                  <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                    {param.name}
-                  </code>
+                  <code className="text-xs font-mono">{param.name}</code>
                   {!param.required && (
-                    <span className="text-xs text-muted-foreground">optional</span>
+                    <span className="text-xs text-gray-500 dark:text-white/40">optional</span>
                   )}
                 </div>
                 <Badge variant={getTypeBadgeVariant(param.type)} className="text-xs">

@@ -4,19 +4,17 @@ import type { AgentConfig } from '../../types';
 import { createTestTenantId } from '../utils/testTenant';
 
 describe('Agent with DataComponents Integration', () => {
-  const tenantId = createTestTenantId('agent-datacomponents');
+  const _tenantId = createTestTenantId('agent-datacomponents');
 
   it('should handle agents with data components configuration', () => {
     const agentConfig: AgentConfig = {
       id: 'test-agent-with-datacomponents',
       name: 'TestAgentWithDataComponents',
-      tenantId,
       description: 'An agent that has data components',
       prompt: 'You are a helpful agent with UI components.',
       dataComponents: () => [
         {
           id: 'orders-list-1',
-          tenantId,
           name: 'OrdersList',
           description: 'Display a list of user orders',
           props: {
@@ -33,7 +31,6 @@ describe('Agent with DataComponents Integration', () => {
         },
         {
           id: 'sales-button-1',
-          tenantId,
           name: 'SalesButton',
           description: 'Button to contact sales team',
           props: {
@@ -56,16 +53,16 @@ describe('Agent with DataComponents Integration', () => {
     expect(agent.config.description).toBe('An agent that has data components');
     expect(agent.getInstructions()).toBe('You are a helpful agent with UI components.');
     expect(agent.getId()).toBe('test-agent-with-datacomponents');
-    expect(agent.config.dataComponents?.()).toHaveLength(2);
-    expect(agent.config.dataComponents?.()?.[0]?.name).toBe('OrdersList');
-    expect(agent.config.dataComponents?.()?.[1]?.name).toBe('SalesButton');
+    const dataComponents = agent.getDataComponents();
+    expect(dataComponents).toHaveLength(2);
+    expect(dataComponents[0]?.name).toBe('OrdersList');
+    expect(dataComponents[1]?.name).toBe('SalesButton');
   });
 
   it('should handle agents without data components', () => {
     const agentConfig = {
       id: 'simple-agent',
       name: 'SimpleAgent',
-      tenantId,
       description: 'A simple agent without data components',
       prompt: 'You are a simple helpful agent.',
     };
@@ -80,7 +77,6 @@ describe('Agent with DataComponents Integration', () => {
     const agentConfig: AgentConfig = {
       id: 'empty-datacomponents-agent',
       name: 'EmptyDataComponentsAgent',
-      tenantId,
       description: 'Agent with empty data components',
       prompt: 'You are a helpful agent.',
       dataComponents: () => [],

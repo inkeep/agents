@@ -8,7 +8,7 @@ import {
   MCPTransportType,
 } from '../types/index';
 import { getCredentialStoreLookupKeyFromRetrievalParams } from '../utils/credential-store-utils';
-import { getLogger, type Logger } from '../utils/logger';
+import { getLogger, type PinoLogger } from '../utils/logger';
 import type { McpServerConfig } from '../utils/mcp-client';
 
 /**
@@ -73,12 +73,12 @@ export interface ContextResolverInterface {
  * Uses CredentialStoreRegistry for credential store management
  */
 export class CredentialStuffer {
-  private readonly logger: Logger;
+  private readonly logger: PinoLogger;
 
   constructor(
     private credentialStoreRegistry: CredentialStoreRegistry,
     private contextResolver?: ContextResolverInterface,
-    logger?: Logger
+    logger?: PinoLogger
   ) {
     this.logger = logger || getLogger('credential-stuffer');
   }

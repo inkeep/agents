@@ -39,33 +39,33 @@ export function ApiKeysTable({ apiKeys, graphLookup }: ApiKeysTableProps) {
               </TableCell>
             </TableRow>
           ) : (
-            apiKeys.map(({ id, name, graphId, keyPrefix, lastUsedAt, expiresAt, createdAt }) => (
-              <TableRow key={id} noHover>
+            apiKeys.map((apiKey) => (
+              <TableRow key={apiKey.id} noHover>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{name || 'No name'}</span>
+                    <span className="font-medium text-foreground">{apiKey.name || 'No name'}</span>
                     <span className="text-sm text-muted-foreground">
-                      {graphLookup[graphId]?.name || graphId}
+                      {graphLookup[apiKey.graphId]?.name || apiKey.graphId}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
-                    {keyPrefix}
+                    {apiKey.keyPrefix}
                     {'•'.repeat(3)}
                   </code>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {lastUsedAt ? formatDateAgo(lastUsedAt) : 'Never'}
+                  {apiKey.lastUsedAt ? formatDateAgo(apiKey.lastUsedAt) : 'Never'}
                 </TableCell>
                 <TableCell>
-                  <ExpirationIndicator expiresAt={expiresAt} />
+                  <ExpirationIndicator expiresAt={apiKey.expiresAt} />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {createdAt ? formatDateAgo(createdAt) : ''}
+                  {apiKey.createdAt ? formatDateAgo(apiKey.createdAt) : ''}
                 </TableCell>
                 <TableCell>
-                  <ApiKeyItemMenu apiKeyId={id} apiKeyName={name} />
+                  <ApiKeyItemMenu apiKey={apiKey} />
                 </TableCell>
               </TableRow>
             ))

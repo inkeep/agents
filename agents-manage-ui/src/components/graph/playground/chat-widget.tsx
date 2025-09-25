@@ -72,23 +72,31 @@ const styleOverrides = `
   height: 36px;
   width: 36px;
 }
-.ikp-ai-chat-tagline__logo {
-  display: none;
+
+.ikp-ai-chat-message-loading {
+  height: auto;
 }
-.ikp-ai-chat-tagline__brand-name {
-  font-weight: 500;
+
+/* User message styles */
+[data-role="user"] .ikp-ai-chat-message-content-wrapper {
+  align-items: flex-end;
 }
-.ikp-ai-chat-tagline__brand-name:before {
-  content: '';
-  margin-top: 1px;
-  margin-left: 6px;
-  margin-right: 3px;
-  width: 20px;
-  height: 20px;
-  background: url('/assets/logo-outline.svg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+[data-role="user"] .ikp-ai-chat-message-content {
+  background-color: var(--ikp-color-gray-100);
+  color: var(--ikp-color-gray-900);
+  border-radius: 24px;
+  border-bottom-right-radius: 2px;
+  padding: 8px 16px;
+}
+[data-role="user"] .ikp-ai-chat-message-part > p {
+  margin: 0px;
+}
+[data-role="user"] .ikp-ai-chat-message-part {
+  margin-bottom: 0px;
+}
+[data-theme=dark] [data-role="user"] .ikp-ai-chat-message-content {
+  background-color: var(--ikp-color-white-alpha-100);
+  color: var(--ikp-color-white-alpha-950);
 }
 
 /* Dark mode styles for chat containers */
@@ -201,9 +209,9 @@ export function ChatWidget({
               Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
-            components: {
-              IkpMessage,
-            },
+            // components: {
+            //   IkpMessage,
+            // },
             introMessage: 'Hi! How can I help?',
           }}
         />
@@ -212,7 +220,8 @@ export function ChatWidget({
   );
 }
 
-const IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
+// using the built in IkpMessage component from cxkit-react-oss but leaving this here for reference / testing
+const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
   const { message, renderMarkdown, renderComponent } = props;
 
   // Check if we're still streaming - the last event should be a completion data-operation

@@ -1,0 +1,417 @@
+---
+title: Push and Pull Workflows
+description: Understand the complete workflows for pushing and pulling agent projects with detailed flow diagrams
+icon: "LuGitBranch"
+---
+
+## Overview
+
+The `inkeep push` and `inkeep pull` commands implement sophisticated workflows for deploying and synchronizing agent projects. These workflows handle project discovery, configuration resolution, resource compilation, and bidirectional synchronization between local and remote environments.
+
+## Push Workflow
+
+The push workflow deploys your local project to the Inkeep management API:
+
+```mermaid
+graph TD
+    A[inkeep push] --> B[Parse CLI Arguments]
+    B --> C{--config provided?}
+    C -->|Yes| D[Load specified config]
+    C -->|No| E[Search for inkeep.config.ts]
+
+    E --> F{Config found?}
+    F -->|No| G[Error: Config not found]
+    F -->|Yes| H[Load config file]
+
+    D --> I[Apply Environment Variables]
+    H --> I
+    I --> J[Apply CLI Flag Overrides]
+
+    J --> K{--env provided?}
+    K -->|Yes| L[Load environment config]
+    K -->|No| M[Use base config only]
+
+    L --> N{Environment file exists?}
+    N -->|No| O[Error: Environment not found]
+    N -->|Yes| P[Merge environment settings]
+
+    P --> Q[Project Discovery]
+    M --> Q
+
+    Q --> R[Scan project directory]
+    R --> S[Find TypeScript files]
+    S --> T[Categorize files by type]
+    T --> U[Load and compile resources]
+
+    U --> V{--json flag?}
+    V -->|Yes| W[Export to JSON file]
+    V -->|No| X[Validate project resources]
+
+    X --> Y[Connect to Management API]
+    Y --> Z[Deploy resources]
+    Z --> AA[Print deployment summary]
+
+    W --> BB[Save JSON and exit]
+    G --> CC[Exit with error]
+    O --> CC
+```
+
+### Push Process Details
+
+1. **Argument Parsing**: CLI parses command-line arguments and flags
+2. **Configuration Resolution**: Loads and merges configuration from multiple sources
+3. **Environment Application**: Applies environment-specific settings if specified
+4. **Project Discovery**: Scans project directory for resources
+5. **Resource Compilation**: Compiles TypeScript files and resolves dependencies
+6. **Validation**: Validates resource configurations and relationships
+7. **Deployment**: Uploads resources to management API
+8. **Confirmation**: Returns deployment summary
+
+### Configuration Resolution Flow
+
+```mermaid
+graph TD
+    A[Start Config Resolution] --> B{--config flag?}
+    B -->|Yes| C[Load specified file]
+    B -->|No| D[Current working directory]
+
+    D --> E{inkeep.config.ts exists?}
+    E -->|Yes| F[Load config from current dir]
+    E -->|No| G[Check parent directory]
+    G --> H{At filesystem root?}
+    H -->|No| E
+    H -->|Yes| I[Config not found error]
+
+    C --> J[Base Configuration]
+    F --> J
+
+    J --> K[Apply Environment Variables]
+    K --> L[Apply CLI Flags]
+    L --> M{--env flag?}
+
+    M -->|Yes| N[Load environments/env.env.ts from project]
+    M -->|No| O[Final Configuration]
+
+    N --> P{Environment file exists in project?}
+    P -->|No| Q[Environment error]
+    P -->|Yes| R[Merge environment settings]
+    R --> O
+
+    style C fill:#e1f5fe
+    style F fill:#e1f5fe
+    style O fill:#c8e6c9
+    style I fill:#ffcdd2
+    style Q fill:#ffcdd2
+
+    %% Notes
+    S["📝 Config file lives at workspace root<br/>same level as package.json"]
+    T["📝 Projects are subdirectories<br/>containing index.ts"]
+
+    style S fill:#fff3e0
+    style T fill:#fff3e0
+```
+
+## Pull Workflow
+
+The pull workflow synchronizes local files with remote configurations:
+
+```mermaid
+graph TD
+    A[inkeep pull] --> B[Parse CLI Arguments]
+    B --> C[Configuration Resolution]
+    C --> D[Connect to Management API]
+    D --> E[Fetch project data]
+
+    E --> F{--json flag?}
+    F -->|Yes| G[Save as JSON file]
+    F -->|No| H[Project File Discovery]
+
+    H --> I[Scan local project directory]
+    I --> J[Find TypeScript files]
+    J --> K[Categorize files by type]
+
+    K --> L[File Processing Loop]
+    L --> M{File type?}
+
+    M -->|Index| N[Full project context]
+    M -->|Graph| O[Specific graph data]
+    M -->|Agent| P[Specific agent data]
+    M -->|Tool| Q[Specific tool data]
+    M -->|Data Component| R[Specific component data]
+    M -->|Other| S[General project context]
+
+    N --> T[LLM Generation Request]
+    O --> T
+    P --> T
+    Q --> T
+    R --> T
+    S --> T
+
+    T --> U[Generate updated TypeScript]
+    U --> V[Validate generated code]
+    V --> W{Validation successful?}
+
+    W -->|Yes| X[Write updated file]
+    W -->|No| Y[Log generation error]
+
+    X --> Z{More files?}
+    Y --> Z
+    Z -->|Yes| L
+    Z -->|No| AA[Update complete]
+
+    G --> BB[JSON saved]
+
+    style T fill:#fff3e0
+    style U fill:#fff3e0
+    style V fill:#e8f5e8
+    style X fill:#e8f5e8
+    style Y fill:#ffebee
+```
+
+### Pull Process Details
+
+1. **Configuration Resolution**: Same as push workflow
+2. **API Connection**: Connects to management API
+3. **Data Fetching**: Retrieves complete project data from server
+4. **File Discovery**: Scans local project for TypeScript files
+5. **File Categorization**: Identifies file types for context-aware processing
+6. **LLM Generation**: Uses AI to update files with server data
+7. **Validation**: Validates generated TypeScript syntax
+8. **File Updates**: Writes updated content to local files
+
+### File Categorization Logic
+
+```mermaid
+graph TD
+    A[TypeScript File] --> B{Filename check}
+
+    B -->|index.ts, main.ts| C[Index File]
+    B -->|In /graphs/ dir| D[Graph File]
+    B -->|In /tools/ dir| E[Tool File]
+    B -->|In /data-components/ dir| F[Data Component File]
+    B -->|In /environments/ dir| G[Environment File]
+    B -->|Contains agent call| H[Agent File]
+    B -->|Other| I[Generic File]
+
+    C --> J[Full project context]
+    D --> K[Relevant graph data]
+    E --> L[Relevant tool data]
+    F --> M[Relevant component data]
+    G --> N[Environment data]
+    H --> O[Relevant agent data]
+    I --> P[General context]
+
+    style C fill:#e3f2fd
+    style D fill:#f3e5f5
+    style E fill:#e8f5e8
+    style F fill:#fff3e0
+    style G fill:#fce4ec
+    style H fill:#e1f5fe
+    style I fill:#f5f5f5
+```
+
+## Resource Processing Flow
+
+Both push and pull operations process project resources systematically:
+
+```mermaid
+graph TD
+    A[Workspace Root] --> A1[Find inkeep.config.ts]
+    A1 --> B[Discover Project Directories]
+    B --> B1[Look for subdirs with index.ts]
+    B1 --> C[Scan Project Files]
+    C --> D[Exclude patterns]
+
+    D --> E{File location}
+    E -->|/node_modules/| F[Skip]
+    E -->|/.git/| F
+    E -->|project/environments/| G[Environment Config]
+    E -->|project/*.ts files| H[Project Resource]
+
+    H --> I[Parse TypeScript]
+    I --> J[Extract exports]
+    J --> K{Export type}
+
+    K -->|project call| L[Project Definition]
+    K -->|agentGraph call| M[Graph Definition]
+    K -->|agent call| N[Agent Definition]
+    K -->|tool call| O[Tool Definition]
+    K -->|dataComponent call| P[Data Component]
+    K -->|Other| Q[Generic Resource]
+
+    L --> R[Compile Resources per Project]
+    M --> R
+    N --> R
+    O --> R
+    P --> R
+    G --> S[Load Environment per Project]
+
+    R --> T[Validate Dependencies]
+    T --> U[Build Resource Graph]
+    U --> V[Ready for Push/Pull]
+
+    style F fill:#ffcdd2
+    style G fill:#fff9c4
+    style R fill:#c8e6c9
+    style V fill:#c8e6c9
+
+    %% Structure note
+    W["📁 Workspace Structure:<br/>config.ts at root<br/>projects in subdirs"]
+    style W fill:#fff3e0
+```
+
+## Error Handling and Recovery
+
+Both workflows include comprehensive error handling:
+
+```mermaid
+graph TD
+    A[Operation Start] --> B{Config Resolution}
+    B -->|Success| C[Continue Processing]
+    B -->|Error| D[Config Error Handler]
+
+    C --> E{Project Discovery}
+    E -->|Success| F[Resource Processing]
+    E -->|Error| G[Project Error Handler]
+
+    F --> H{Resource Validation}
+    H -->|Success| I[API Operation]
+    H -->|Error| J[Validation Error Handler]
+
+    I --> K{API Request}
+    K -->|Success| L[Operation Complete]
+    K -->|Error| M[API Error Handler]
+
+    D --> N[Show Config Help]
+    N --> O[Suggest Solutions]
+    O --> P[Exit with Code 1]
+
+    G --> Q[Show Project Structure Help]
+    Q --> O
+
+    J --> R[Show Validation Errors]
+    R --> S[Suggest Fixes]
+    S --> P
+
+    M --> T[Show API Error Details]
+    T --> U[Retry Suggestions]
+    U --> P
+
+    style L fill:#c8e6c9
+    style P fill:#ffcdd2
+    style N fill:#fff3e0
+    style Q fill:#fff3e0
+    style R fill:#fff3e0
+    style T fill:#fff3e0
+```
+
+## Performance Optimizations
+
+The workflows include several performance optimizations:
+
+### Parallel Processing
+
+```mermaid
+graph TD
+    A[File Discovery] --> B[Group by Type]
+    B --> C[Parallel Processing]
+
+    C --> D[Graph Files]
+    C --> E[Tool Files]
+    C --> F[Agent Files]
+    C --> G[Data Component Files]
+
+    D --> H[Process Graphs]
+    E --> I[Process Tools]
+    F --> J[Process Agents]
+    G --> K[Process Components]
+
+    H --> L[Merge Results]
+    I --> L
+    J --> L
+    K --> L
+
+    L --> M[Dependency Resolution]
+    M --> N[Final Resource Graph]
+```
+
+### Caching Strategy
+
+```mermaid
+graph LR
+    A[API Request] --> B{Cache exists?}
+    B -->|Yes| C{Cache valid?}
+    B -->|No| D[Fetch from API]
+
+    C -->|Yes| E[Return cached data]
+    C -->|No| D
+
+    D --> F[Update cache]
+    F --> G[Return fresh data]
+
+    style E fill:#c8e6c9
+    style G fill:#c8e6c9
+```
+
+## Best Practices
+
+### 1. Pre-Push Validation
+
+Always validate your project before pushing:
+
+```bash
+# Validate without pushing
+inkeep push --json
+
+# Check for TypeScript errors
+npx tsc --noEmit
+
+# Run tests
+npm test
+```
+
+### 2. Environment-Specific Deployments
+
+Use environments for different deployment stages:
+
+```bash
+# Development deployment
+inkeep push --env development
+
+# Staging deployment
+inkeep push --env staging
+
+# Production deployment (with validation)
+inkeep push --json && inkeep push --env production
+```
+
+### 3. Pull with Backup
+
+Always backup before pulling changes:
+
+```bash
+# Create backup branch
+git checkout -b backup-before-pull
+
+# Pull changes
+inkeep pull
+
+# Review changes
+git diff
+
+# Commit or revert as needed
+```
+
+### 4. Monitoring Deployments
+
+Use logging and monitoring during deployments:
+
+```bash
+# Enable debug logging
+DEBUG=1 inkeep push --env production
+
+# Monitor deployment
+inkeep list-graphs
+```
+
+These workflows provide a robust foundation for managing your Inkeep Agent projects across different environments and deployment scenarios. The visual diagrams help understand the complex interactions between configuration resolution, resource processing, and API communication that make the CLI both powerful and reliable.

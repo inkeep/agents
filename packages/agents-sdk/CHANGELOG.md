@@ -1,5 +1,36 @@
 # @inkeep/agents-sdk
 
+## 0.6.0
+
+### Minor Changes
+
+- 9e04bb6: Inkeep CLI Project based push and pull functionality. Push and pull an entire project set of resources in one command line.
+
+### Patch Changes
+
+- Updated dependencies [9e04bb6]
+  - @inkeep/agents-core@0.6.0
+
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [45b3b91]
+  - @inkeep/agents-core@0.5.0
+
+## 0.4.0
+
+### Minor Changes
+
+- a379dec: Added env var loader to agents-cli package
+
+### Patch Changes
+
+- Updated dependencies [0a8352f]
+- Updated dependencies [0a8352f]
+- Updated dependencies [a379dec]
+  - @inkeep/agents-core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -6,7 +6,11 @@ export default {
         {
           group: 'Quick Start',
           icon: 'LuZap',
-          pages: ['quick-start/start-development', 'quick-start/observability', 'quick-start/credentials'],
+          pages: [
+            'quick-start/start-development',
+            'quick-start/observability',
+            'quick-start/credentials',
+          ],
         },
         'concepts',
       ],
@@ -26,7 +30,17 @@ export default {
         'typescript-sdk/data-components',
         'typescript-sdk/artifact-components',
         'typescript-sdk/status-updates',
-        'typescript-sdk/cli-reference',
+        {
+          group: 'Project Management',
+          icon: 'LuFolderOpen',
+          pages: [
+            'typescript-sdk/project-structure',
+            'typescript-sdk/configuration',
+            'typescript-sdk/environments',
+            'typescript-sdk/push-pull-workflows',
+            'typescript-sdk/cli-reference',
+          ],
+        },
         {
           group: 'Observability',
           icon: 'LuChartColumn',
@@ -118,6 +132,11 @@ export default {
     //     },
     //   ],
     // },
+    {
+      group: 'Self-Hosting',
+      icon: 'LuServer',
+      pages: ['self-hosting/add-sentry', 'self-hosting/add-datadog-apm'],
+    },
     {
       group: 'Community',
       icon: 'LuUsers',

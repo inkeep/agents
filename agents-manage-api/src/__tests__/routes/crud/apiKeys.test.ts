@@ -14,6 +14,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     description: `Test Description${suffix}`,
     prompt: `Test Instructions${suffix}`,
     tools: [], // Required for internal agents
+    canUse: [],
     type: 'internal' as const,
   });
 

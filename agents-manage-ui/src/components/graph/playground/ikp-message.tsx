@@ -392,8 +392,8 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 
   if (message.role === 'user') {
     return (
-      <div className="flex justify-end mb-4">
-        <div className="max-w-3xl bg-gray-100 dark:bg-muted text-gray-700 dark:text-foreground rounded-3xl rounded-br-xs px-4 py-2">
+      <div className="">
+        <div className="">
           <p className="text-sm">{textContent}</p>
         </div>
       </div>
@@ -449,7 +449,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 
                   if (
                     part.type === 'text' ||
-                    part.type === 'data-artifact' ||  // Include artifacts in text groups!
+                    part.type === 'data-artifact' || // Include artifacts in text groups!
                     (part.type === 'data-component' && part.data.type === 'text')
                   ) {
                     currentTextGroup.push(part);

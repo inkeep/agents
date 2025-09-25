@@ -1,4 +1,4 @@
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 
 /**
  * Parses an MCP tool name to extract the type and name components.

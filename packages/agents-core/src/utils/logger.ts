@@ -1,53 +1,168 @@
+import type {
+  LoggerOptions,
+  Logger as PinoLoggerInstance,
+  TransportMultiOptions,
+  TransportSingleOptions,
+} from 'pino';
+import pino from 'pino';
+import pinoPretty from 'pino-pretty';
+
 /**
- * Logger interface for core package components
- * Allows services to inject their own logger implementation
+ * Configuration options for PinoLogger
  */
-export interface Logger {
-  error(data: any, message: string): void;
-  warn(data: any, message: string): void;
-  info(data: any, message: string): void;
-  debug(data: any, message: string): void;
+export interface PinoLoggerConfig {
+  /** Pino logger options */
+  options?: LoggerOptions;
+  /** Pino transport configuration */
+  transportConfigs?: TransportSingleOptions[];
 }
 
 /**
- * Default console logger implementation
+ * Pino logger implementation with transport customization support
  */
-export class ConsoleLogger implements Logger {
-  constructor(private name: string) {}
+export class PinoLogger {
+  private transportConfigs: TransportSingleOptions[] = [];
+
+  private pinoInstance: PinoLoggerInstance;
+  private options: LoggerOptions;
+
+  constructor(
+    private name: string,
+    config: PinoLoggerConfig = {}
+  ) {
+    this.options = {
+      name: this.name,
+      level: process.env.LOG_LEVEL || 'info',
+      serializers: {
+        obj: (value: any) => ({ ...value }),
+      },
+      redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
+      ...config.options,
+    };
+
+    // Initialize transports array
+    if (config.transportConfigs) {
+      this.transportConfigs = config.transportConfigs;
+    }
+
+    if (this.transportConfigs.length > 0) {
+      this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
+    } else {
+      // Use pino-pretty stream directly instead of transport
+      try {
+        const prettyStream = pinoPretty({
+          colorize: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname',
+        });
+
+        this.pinoInstance = pino(this.options, prettyStream);
+      } catch (error) {
+        // Fall back to standard pino if pino-pretty fails
+        console.warn('Warning: pino-pretty failed, using standard JSON output:', error);
+        this.pinoInstance = pino(this.options);
+      }
+    }
+  }
+
+  /**
+   * Recreate the pino instance with current transports
+   */
+  private recreateInstance(): void {
+    if (this.pinoInstance && typeof this.pinoInstance.flush === 'function') {
+      this.pinoInstance.flush();
+    }
+
+    if (this.transportConfigs.length === 0) {
+      // Use pino-pretty stream directly instead of transport (same as constructor)
+      try {
+        const prettyStream = pinoPretty({
+          colorize: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname',
+        });
+
+        this.pinoInstance = pino(this.options, prettyStream);
+      } catch (error) {
+        // Fall back to standard pino if pino-pretty fails
+        console.warn('Warning: pino-pretty failed, using standard JSON output:', error);
+        this.pinoInstance = pino(this.options);
+      }
+    } else {
+      const multiTransport: TransportMultiOptions = { targets: this.transportConfigs };
+      const pinoTransport = pino.transport(multiTransport);
+      this.pinoInstance = pino(this.options, pinoTransport);
+    }
+  }
+
+  /**
+   * Add a new transport to the logger
+   */
+  addTransport(transportConfig: TransportSingleOptions): void {
+    this.transportConfigs.push(transportConfig);
+    this.recreateInstance();
+  }
+
+  /**
+   * Remove a transport by index
+   */
+  removeTransport(index: number): void {
+    if (index >= 0 && index < this.transportConfigs.length) {
+      this.transportConfigs.splice(index, 1);
+      this.recreateInstance();
+    }
+  }
+
+  /**
+   * Get current transports
+   */
+  getTransports(): TransportSingleOptions[] {
+    return [...this.transportConfigs];
+  }
+
+  /**
+   * Update logger options
+   */
+  updateOptions(options: Partial<LoggerOptions>): void {
+    this.options = {
+      ...this.options,
+      ...options,
+    };
+    this.recreateInstance();
+  }
+
+  /**
+   * Get the underlying pino instance for advanced usage
+   */
+  getPinoInstance(): PinoLoggerInstance {
+    return this.pinoInstance;
+  }
 
   error(data: any, message: string): void {
-    console.error(`[${this.name}] ${message}`, data);
+    this.pinoInstance.error(data, message);
   }
 
   warn(data: any, message: string): void {
-    console.warn(`[${this.name}] ${message}`, data);
+    this.pinoInstance.warn(data, message);
   }
 
   info(data: any, message: string): void {
-    console.info(`[${this.name}] ${message}`, data);
+    this.pinoInstance.info(data, message);
   }
 
   debug(data: any, message: string): void {
-    console.debug(`[${this.name}] ${message}`, data);
+    this.pinoInstance.debug(data, message);
   }
-}
-
-/**
- * No-op logger that silently ignores all log calls
- */
-export class NoOpLogger implements Logger {
-  error(_data: any, _message: string): void {}
-  warn(_data: any, _message: string): void {}
-  info(_data: any, _message: string): void {}
-  debug(_data: any, _message: string): void {}
 }
 
 /**
  * Logger factory configuration
  */
 export interface LoggerFactoryConfig {
-  defaultLogger?: Logger;
-  loggerFactory?: (name: string) => Logger;
+  defaultLogger?: PinoLogger;
+  loggerFactory?: (name: string) => PinoLogger;
+  /** Configuration for creating PinoLogger instances when using createPinoLoggerFactory */
+  pinoConfig?: PinoLoggerConfig;
 }
 
 /**
@@ -55,7 +170,7 @@ export interface LoggerFactoryConfig {
  */
 class LoggerFactory {
   private config: LoggerFactoryConfig = {};
-  private loggers = new Map<string, Logger>();
+  private loggers = new Map<string, PinoLogger>();
 
   /**
    * Configure the logger factory
@@ -69,7 +184,7 @@ class LoggerFactory {
   /**
    * Get or create a logger instance
    */
-  getLogger(name: string): Logger {
+  getLogger(name: string): PinoLogger {
     // Check cache first
     if (this.loggers.has(name)) {
       const logger = this.loggers.get(name);
@@ -80,13 +195,14 @@ class LoggerFactory {
     }
 
     // Create logger using factory or default
-    let logger: Logger;
+    let logger: PinoLogger;
     if (this.config.loggerFactory) {
       logger = this.config.loggerFactory(name);
     } else if (this.config.defaultLogger) {
       logger = this.config.defaultLogger;
     } else {
-      logger = new ConsoleLogger(name);
+      // Default to PinoLogger instead of ConsoleLogger
+      logger = new PinoLogger(name, this.config.pinoConfig);
     }
 
     // Cache and return
@@ -109,25 +225,6 @@ export const loggerFactory = new LoggerFactory();
 /**
  * Convenience function to get a logger
  */
-export function getLogger(name: string): Logger {
+export function getLogger(name: string): PinoLogger {
   return loggerFactory.getLogger(name);
-}
-
-/**
- * Configure the global logger factory
- * This should be called once at application startup
- *
- * Example usage:
- * ```typescript
- * // In your service initialization
- * import { configureLogging } from '@inkeep/agents-core';
- * import { getLogger as getPinoLogger } from './logger.j';
- *
- * configureLogging({
- *   loggerFactory: (name) => getPinoLogger(name)
- * });
- * ```
- */
-export function configureLogging(config: LoggerFactoryConfig): void {
-  loggerFactory.configure(config);
 }

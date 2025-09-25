@@ -160,6 +160,7 @@ app.openapi(
     const insertData = {
       tenantId,
       projectId,
+      name: body.name,
       graphId: body.graphId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
@@ -237,6 +238,7 @@ app.openapi(
       id,
       data: {
         expiresAt: body.expiresAt,
+        name: body.name,
       },
     });
 

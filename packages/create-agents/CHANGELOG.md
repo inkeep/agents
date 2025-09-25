@@ -1,5 +1,20 @@
 # @inkeep/create-agents
 
+## 0.6.0
+
+## 0.5.0
+
+## 0.4.0
+
+### Minor Changes
+
+- a379dec: Added env var loader to agents-cli package
+
+### Patch Changes
+
+- 0a8352f: Updates
+- 0a8352f: Added new providers
+
 ## 0.3.0
 
 ### Minor Changes

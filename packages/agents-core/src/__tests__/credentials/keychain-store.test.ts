@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CredentialStoreType } from '../../index.js';
+import { CredentialStoreType } from '../../types/index.js';
 
 // Mock the keytar module
 const mockKeytar = {

@@ -2,7 +2,7 @@ import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 
 interface MCPServerItemProps {
   mcp: MCPTool;

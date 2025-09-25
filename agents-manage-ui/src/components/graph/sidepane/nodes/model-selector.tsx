@@ -134,31 +134,34 @@ export function ModelSelector({
               <CommandList className="max-h-64">
                 <CommandEmpty>
                   {(() => {
-                    const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
-                    const searchValue = input?.value || '';
-                    
-                    if (searchValue.trim()) {
-                      return (
-                        <CommandItem
-                          className="flex items-center justify-between cursor-pointer text-foreground"
-                          value={searchValue}
-                          onSelect={() => {
-                            const modelValue = searchValue.trim();
-                            
-                            // Auto-add prefixes if they look like they belong to these services
-                            if (modelValue.includes('/') && !modelValue.startsWith('openrouter/') && !modelValue.startsWith('gateway/')) {
-                              // Could be openrouter format, let user decide or add logic here
-                            }
-                            
-                            onValueChange?.(modelValue);
-                            setOpen(false);
-                          }}
-                        >
-                          Use "{searchValue}" as custom model
-                        </CommandItem>
-                      );
+                    // Only access document on the client side
+                    if (typeof document !== 'undefined') {
+                      const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                      const searchValue = input?.value || '';
+
+                      if (searchValue.trim()) {
+                        return (
+                          <CommandItem
+                            className="flex items-center justify-between cursor-pointer text-foreground"
+                            value={searchValue}
+                            onSelect={() => {
+                              const modelValue = searchValue.trim();
+
+                              // Auto-add prefixes if they look like they belong to these services
+                              if (modelValue.includes('/') && !modelValue.startsWith('openrouter/') && !modelValue.startsWith('gateway/')) {
+                                // Could be openrouter format, let user decide or add logic here
+                              }
+
+                              onValueChange?.(modelValue);
+                              setOpen(false);
+                            }}
+                          >
+                            Use "{searchValue}" as custom model
+                          </CommandItem>
+                        );
+                      }
                     }
-                    
+
                     return (
                       <div className="p-2 text-muted-foreground text-sm">
                         Type to search models or enter a custom model ID

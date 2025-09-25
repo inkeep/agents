@@ -68,6 +68,7 @@ export const Playground = ({
             retryConnection={retryConnection}
             refreshOnce={refreshOnce}
             showConversationTracesLink={true}
+            conversationId={conversationId}
           />
         </ResizablePanelGroup>
       </div>
