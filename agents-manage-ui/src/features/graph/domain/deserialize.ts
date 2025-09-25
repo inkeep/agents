@@ -9,8 +9,12 @@ import {
   mcpNodeHandleId,
   NodeType,
 } from '@/components/graph/configuration/node-types';
-import type { MCPTool } from "@/lib/types/tools";;
-import type { FullGraphDefinition, InternalAgentDefinition, ExternalAgentDefinition } from '@/lib/types/graph-full';
+import type {
+  ExternalAgentDefinition,
+  FullGraphDefinition,
+  InternalAgentDefinition,
+} from '@/lib/types/graph-full';
+import type { MCPTool } from '@/lib/types/tools';
 import { formatJsonField } from '@/lib/utils';
 
 interface TransformResult {
@@ -97,7 +101,10 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeGraphData(data: FullGraphDefinition, toolLookup?: Record<string, MCPTool>): TransformResult {
+export function deserializeGraphData(
+  data: FullGraphDefinition,
+  toolLookup?: Record<string, MCPTool>
+): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
@@ -105,7 +112,7 @@ export function deserializeGraphData(data: FullGraphDefinition, toolLookup?: Rec
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
     const isDefault = agentId === data.defaultAgentId;
-    const isExternal = agent.type === 'external';
+    const isExternal = agent.type === 'external' || 'baseUrl' in agent;
 
     const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.Agent;
     const agentNodeData = isExternal
@@ -114,6 +121,7 @@ export function deserializeGraphData(data: FullGraphDefinition, toolLookup?: Rec
           name: agent.name,
           description: agent.description,
           baseUrl: (agent as ExternalAgentDefinition).baseUrl,
+          headers: formatJsonField(agent.headers) || '{}',
           type: agent.type,
         }
       : (() => {
@@ -159,14 +167,17 @@ export function deserializeGraphData(data: FullGraphDefinition, toolLookup?: Rec
               : undefined,
             type: agent.type,
             // Convert canUse back to tools and selectedTools for UI
-            tools: internalAgent.canUse ? internalAgent.canUse.map(item => item.toolId) : [],
+            tools: internalAgent.canUse ? internalAgent.canUse.map((item) => item.toolId) : [],
             selectedTools: internalAgent.canUse
-              ? internalAgent.canUse.reduce((acc, item) => {
-                  if (item.toolSelection) {
-                    acc[item.toolId] = item.toolSelection;
-                  }
-                  return acc;
-                }, {} as Record<string, string[]>)
+              ? internalAgent.canUse.reduce(
+                  (acc, item) => {
+                    if (item.toolSelection) {
+                      acc[item.toolId] = item.toolSelection;
+                    }
+                    return acc;
+                  },
+                  {} as Record<string, string[]>
+                )
               : undefined,
           };
         })();
@@ -227,22 +238,24 @@ export function deserializeGraphData(data: FullGraphDefinition, toolLookup?: Rec
             id: toolNodeId,
             type: NodeType.MCP,
             position: { x: 0, y: 0 },
-            data: tool ? {
-              id: tool.id,
-              name: tool.name,
-              description: '', // MCPTool doesn't have a description field at top level
-              type: 'mcp',
-              config: tool.config || {},
-              status: tool.status,
-              availableTools: tool.availableTools,
-              selectedTools: canUseItem.toolSelection // Use toolSelection from canUseItem
-            } : {
-              id: toolId,
-              name: toolId,
-              description: 'Project-scoped tool',
-              type: 'project-scoped',
-              config: {}
-            },
+            data: tool
+              ? {
+                  id: tool.id,
+                  name: tool.name,
+                  description: '', // MCPTool doesn't have a description field at top level
+                  type: 'mcp',
+                  config: tool.config || {},
+                  status: tool.status,
+                  availableTools: tool.availableTools,
+                  selectedTools: canUseItem.toolSelection, // Use toolSelection from canUseItem
+                }
+              : {
+                  id: toolId,
+                  name: toolId,
+                  description: 'Project-scoped tool',
+                  type: 'project-scoped',
+                  config: {},
+                },
           };
           nodes.push(toolNode);
 
