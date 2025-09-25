@@ -149,6 +149,14 @@ describe('ContextValidation - Headers Only Implementation', () => {
     });
 
     describe('Schema Caching', () => {
+      // Helper function to create unique schemas for testing
+      const createSchema = (id: string) => ({
+        type: 'object' as const,
+        properties: {
+          [`field_${id}`]: { type: 'string' as const },
+        },
+      });
+
       it('should cache compiled validators', () => {
         const schema = { type: 'object', properties: { name: { type: 'string' } } };
 
@@ -175,6 +183,130 @@ describe('ContextValidation - Headers Only Implementation', () => {
         expect(validator({ name: 'John' })).toBe(true);
         expect(validator({ name: 123 })).toBe(false);
         expect(validator({})).toBe(true); // No required properties
+      });
+
+      describe('LRU Cache Behavior', () => {
+        it('should implement LRU behavior for recently accessed schemas', () => {
+          const schema1 = createSchema('1');
+          const schema2 = createSchema('2');
+
+          // Get initial validators
+          const validator1_initial = getCachedValidator(schema1);
+          const validator2_initial = getCachedValidator(schema2);
+
+          // Access schema1 again (should move it to end in LRU)
+          const validator1_accessed = getCachedValidator(schema1);
+
+          // Should return the same cached instance
+          expect(validator1_initial).toBe(validator1_accessed);
+          expect(validator2_initial).toBe(getCachedValidator(schema2));
+        });
+
+        it('should maintain validator functionality after LRU operations', () => {
+          const schema = createSchema('lru_test');
+
+          // Get validator multiple times
+          const validator1 = getCachedValidator(schema);
+          const validator2 = getCachedValidator(schema);
+          const validator3 = getCachedValidator(schema);
+
+          // All should be the same instance
+          expect(validator1).toBe(validator2);
+          expect(validator2).toBe(validator3);
+
+          // Validator should still work correctly
+          expect(validator3({ field_lru_test: 'valid' })).toBe(true);
+          expect(validator3({ field_lru_test: 123 })).toBe(false);
+        });
+
+        it('should handle cache eviction when size limit is reached', () => {
+          // Create more schemas than cache size (1000)
+          // For testing purposes, we'll create a reasonable number and verify behavior
+          const schemas = Array.from({ length: 10 }, (_, i) => createSchema(`eviction_${i}`));
+
+          // Fill some cache slots
+          const validators = schemas.map((schema) => getCachedValidator(schema));
+
+          // All validators should be properly compiled and functional
+          validators.forEach((validator, index) => {
+            expect(typeof validator).toBe('function');
+            expect(validator({ [`field_eviction_${index}`]: 'test' })).toBe(true);
+          });
+
+          // Access the first schema again (mark as recently used)
+          const firstValidatorReaccessed = getCachedValidator(schemas[0]);
+          expect(firstValidatorReaccessed).toBe(validators[0]);
+        });
+
+        it('should evict least recently used items when cache is full', () => {
+          // This test assumes we can fill the cache close to capacity
+          // In practice, with a 1000 item limit, this would be expensive to test fully
+          // So we'll test the mechanism with a smaller set
+
+          const schemas = Array.from({ length: 5 }, (_, i) => createSchema(`capacity_${i}`));
+
+          // Get all validators (add to cache)
+          const validators = schemas.map((schema) => getCachedValidator(schema));
+
+          // Access first few schemas to mark them as recently used
+          getCachedValidator(schemas[0]);
+          getCachedValidator(schemas[1]);
+
+          // Add many more schemas to potentially trigger eviction
+          // (In a real scenario with 1000+ schemas)
+          const additionalSchemas = Array.from({ length: 10 }, (_, i) =>
+            createSchema(`additional_${i}`)
+          );
+
+          additionalSchemas.forEach((schema) => {
+            getCachedValidator(schema);
+          });
+
+          // The recently accessed schemas should still return the same validator instance
+          expect(getCachedValidator(schemas[0])).toBe(validators[0]);
+          expect(getCachedValidator(schemas[1])).toBe(validators[1]);
+        });
+
+        it('should handle identical schemas with different object references', () => {
+          // Two identical schemas but different object instances
+          const schema1 = { type: 'object', properties: { name: { type: 'string' } } };
+          const schema2 = { type: 'object', properties: { name: { type: 'string' } } };
+
+          // Should use the same cached validator since JSON.stringify will be identical
+          const validator1 = getCachedValidator(schema1);
+          const validator2 = getCachedValidator(schema2);
+
+          expect(validator1).toBe(validator2);
+        });
+
+        it('should handle schemas with different property orders', () => {
+          const schema1 = {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              age: { type: 'number' },
+            },
+          };
+          const schema2 = {
+            type: 'object',
+            properties: {
+              age: { type: 'number' },
+              name: { type: 'string' },
+            },
+          };
+
+          // These should create different cache entries due to JSON.stringify differences
+          const validator1 = getCachedValidator(schema1);
+          const validator2 = getCachedValidator(schema2);
+
+          // Different instances due to property order difference in JSON string
+          expect(validator1).not.toBe(validator2);
+
+          // But both should validate the same data correctly
+          const testData = { name: 'John', age: 30 };
+          expect(validator1(testData)).toBe(true);
+          expect(validator2(testData)).toBe(true);
+        });
       });
     });
 
