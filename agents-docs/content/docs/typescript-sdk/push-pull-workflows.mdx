@@ -190,7 +190,7 @@ graph TD
     B -->|In /tools/ dir| E[Tool File]
     B -->|In /data-components/ dir| F[Data Component File]
     B -->|In /environments/ dir| G[Environment File]
-    B -->|Contains 'agent(' call| H[Agent File]
+    B -->|Contains agent call| H[Agent File]
     B -->|Other| I[Generic File]
 
     C --> J[Full project context]
@@ -232,11 +232,11 @@ graph TD
     I --> J[Extract exports]
     J --> K{Export type}
 
-    K -->|project()| L[Project Definition]
-    K -->|agentGraph()| M[Graph Definition]
-    K -->|agent()| N[Agent Definition]
-    K -->|tool()| O[Tool Definition]
-    K -->|dataComponent()| P[Data Component]
+    K -->|project call| L[Project Definition]
+    K -->|agentGraph call| M[Graph Definition]
+    K -->|agent call| N[Agent Definition]
+    K -->|tool call| O[Tool Definition]
+    K -->|dataComponent call| P[Data Component]
     K -->|Other| Q[Generic Resource]
 
     L --> R[Compile Resources per Project]
