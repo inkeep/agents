@@ -10,6 +10,7 @@ import {
   deleteCredentialReference,
   ErrorResponseSchema,
   getCredentialReferenceById,
+  getCredentialReferenceWithTools,
   getCredentialStoreLookupKeyFromRetrievalParams,
   IdParamsSchema,
   ListResponseSchema,
@@ -89,7 +90,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const credential = await getCredentialReferenceById(dbClient)({
+    const credential = await getCredentialReferenceWithTools(dbClient)({
       scopes: { tenantId, projectId },
       id,
     });
