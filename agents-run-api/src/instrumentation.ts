@@ -65,4 +65,7 @@ export const defaultSDK = new NodeSDK({
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
+
 });
+
+

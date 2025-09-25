@@ -17,8 +17,8 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: ApiKeyApiSelect might not have a 'name' field yet, and UI expects undefined instead of null
-export type ApiKey = Omit<ApiKeyApiSelect, 'lastUsedAt' | 'expiresAt'> & {
-  name?: string; // todo: will be added soon (should be required then)
+export type ApiKey = Omit<ApiKeyApiSelect, 'lastUsedAt' | 'expiresAt' | 'name'> & {
+  name: string;
   lastUsedAt?: string; // Convert null to undefined for UI compatibility
   expiresAt?: string; // Convert null to undefined for UI compatibility
 };
@@ -61,7 +61,6 @@ export async function createApiKey(
 ): Promise<ApiKeyCreateResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiCreationResponse>>(
     `tenants/${tenantId}/projects/${projectId}/api-keys`,
     {
@@ -111,10 +110,34 @@ export async function deleteApiKey(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyId}`,
+  await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Update an api key
+ */
+export async function updateApiKey(
+  tenantId: string,
+  projectId: string,
+  apiKeyData: Partial<ApiKey>
+): Promise<ApiKey> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiSelect>>(
+    `tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyData.id}`,
     {
-      method: 'DELETE',
+      method: 'PUT',
+      body: JSON.stringify(apiKeyData),
     }
   );
+
+  return {
+    ...response.data,
+    name: response.data.name ?? 'No Name', // name could be null due to backward compatibility
+    lastUsedAt: response.data.lastUsedAt ?? undefined,
+    expiresAt: response.data.expiresAt ?? undefined,
+  };
 }

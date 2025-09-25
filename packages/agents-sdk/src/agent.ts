@@ -31,8 +31,9 @@ export class Agent implements AgentInterface {
   constructor(config: AgentConfig) {
     this.config = { ...config, type: 'internal' };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    this.tenantId = config.tenantId || 'default';
-    this.projectId = config.projectId || 'default';
+    // tenantId and projectId will be set later by the graph or CLI
+    this.tenantId = 'default';
+    this.projectId = 'default';
 
     logger.info(
       {
@@ -42,6 +43,12 @@ export class Agent implements AgentInterface {
       },
       'Agent constructor initialized'
     );
+  }
+
+  // Set context (tenantId and projectId) from external source (graph, CLI, etc)
+  setContext(tenantId: string, projectId: string): void {
+    this.tenantId = tenantId;
+    this.projectId = projectId;
   }
 
   // Return the configured ID
@@ -118,11 +125,40 @@ export class Agent implements AgentInterface {
   }
 
   getDataComponents(): DataComponentApiInsert[] {
-    return resolveGetter(this.config.dataComponents) || [];
+    const components = resolveGetter(this.config.dataComponents) || [];
+    // Handle both DataComponent instances and plain objects
+    return components.map((comp: any) => {
+      // If it's a DataComponent instance with methods
+      if (comp && typeof comp.getId === 'function') {
+        return {
+          id: comp.getId(),
+          name: comp.getName(),
+          description: comp.getDescription(),
+          props: comp.getProps()
+        };
+      }
+      // Otherwise assume it's already a plain object
+      return comp;
+    });
   }
 
   getArtifactComponents(): ArtifactComponentApiInsert[] {
-    return resolveGetter(this.config.artifactComponents) || [];
+    const components = resolveGetter(this.config.artifactComponents) || [];
+    // Handle both ArtifactComponent instances and plain objects
+    return components.map((comp: any) => {
+      // If it's an ArtifactComponent instance with methods
+      if (comp && typeof comp.getId === 'function') {
+        return {
+          id: comp.getId(),
+          name: comp.getName(),
+          description: comp.getDescription(),
+          summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
+          fullProps: comp.getFullProps?.() || comp.fullProps
+        };
+      }
+      // Otherwise assume it's already a plain object
+      return comp;
+    });
   }
 
   // adjust
@@ -312,7 +348,16 @@ export class Agent implements AgentInterface {
     const components = resolveGetter(this.config.dataComponents);
     if (components) {
       for (const dataComponent of components) {
-        await this.createDataComponent(dataComponent);
+        // Convert DataComponent instances to plain objects
+        const plainComponent = (dataComponent && typeof (dataComponent as any).getId === 'function')
+          ? {
+              id: (dataComponent as any).getId(),
+              name: (dataComponent as any).getName(),
+              description: (dataComponent as any).getDescription(),
+              props: (dataComponent as any).getProps()
+            }
+          : dataComponent;
+        await this.createDataComponent(plainComponent as DataComponentApiInsert);
       }
     }
   }
@@ -325,7 +370,17 @@ export class Agent implements AgentInterface {
     const components = resolveGetter(this.config.artifactComponents);
     if (components) {
       for (const artifactComponent of components) {
-        await this.createArtifactComponent(artifactComponent);
+        // Convert ArtifactComponent instances to plain objects
+        const plainComponent = (artifactComponent && typeof (artifactComponent as any).getId === 'function')
+          ? {
+              id: (artifactComponent as any).getId(),
+              name: (artifactComponent as any).getName(),
+              description: (artifactComponent as any).getDescription(),
+              summaryProps: (artifactComponent as any).getSummaryProps?.() || (artifactComponent as any).summaryProps,
+              fullProps: (artifactComponent as any).getFullProps?.() || (artifactComponent as any).fullProps
+            }
+          : artifactComponent;
+        await this.createArtifactComponent(plainComponent as ArtifactComponentApiInsert);
       }
     }
   }
@@ -345,8 +400,6 @@ export class Agent implements AgentInterface {
       // Convert database format to config format
       const dbDataComponents = existingComponents.map((component: any) => ({
         id: component.id,
-        tenantId: component.tenantId || this.tenantId,
-        projectId: component.projectId || this.projectId,
         name: component.name,
         description: component.description,
         props: component.props,
@@ -356,11 +409,28 @@ export class Agent implements AgentInterface {
 
       // Merge with existing config data components (config takes precedence)
       const configComponents = resolveGetter(this.config.dataComponents) || [];
-      const allComponents = [...dbDataComponents, ...configComponents];
+      // Convert any DataComponentInterface instances to plain objects
+      const normalizedConfigComponents = configComponents.map((comp: any) => {
+        if (comp && typeof comp.getId === 'function') {
+          return {
+            id: comp.getId(),
+            name: comp.getName(),
+            description: comp.getDescription(),
+            props: comp.getProps()
+          };
+        }
+        return comp;
+      });
+
+      const allComponents = [...dbDataComponents, ...normalizedConfigComponents];
 
       // Remove duplicates (config components override database ones with same id)
       const uniqueComponents = allComponents.reduce((acc, component) => {
-        const existingIndex = acc.findIndex((c: any) => c.id === component.id);
+        const componentId = typeof component.getId === 'function' ? component.getId() : component.id;
+        const existingIndex = acc.findIndex((c: any) => {
+          const cId = typeof c.getId === 'function' ? c.getId() : c.id;
+          return cId === componentId;
+        });
         if (existingIndex >= 0) {
           // Replace with the later one (config takes precedence)
           acc[existingIndex] = component;
@@ -368,10 +438,10 @@ export class Agent implements AgentInterface {
           acc.push(component);
         }
         return acc;
-      }, [] as DataComponentApiInsert[]);
+      }, [] as any[]);
 
       // Update the config with merged components
-      this.config.dataComponents = uniqueComponents as any;
+      this.config.dataComponents = () => uniqueComponents;
 
       logger.info(
         {
@@ -407,8 +477,6 @@ export class Agent implements AgentInterface {
       // Convert database format to config format
       const dbArtifactComponents = existingComponents.map((component: any) => ({
         id: component.id,
-        tenantId: component.tenantId || this.tenantId,
-        projectId: component.projectId || this.projectId,
         name: component.name,
         description: component.description,
         summaryProps: component.summaryProps,
@@ -419,11 +487,29 @@ export class Agent implements AgentInterface {
 
       // Merge with existing config artifact components (config takes precedence)
       const configComponents = resolveGetter(this.config.artifactComponents) || [];
-      const allComponents = [...dbArtifactComponents, ...configComponents];
+      // Convert any ArtifactComponentInterface instances to plain objects
+      const normalizedConfigComponents = configComponents.map((comp: any) => {
+        if (comp && typeof comp.getId === 'function') {
+          return {
+            id: comp.getId(),
+            name: comp.getName(),
+            description: comp.getDescription(),
+            summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
+            fullProps: comp.getFullProps?.() || comp.fullProps
+          };
+        }
+        return comp;
+      });
+
+      const allComponents = [...dbArtifactComponents, ...normalizedConfigComponents];
 
       // Remove duplicates (config components override database ones with same id)
       const uniqueComponents = allComponents.reduce((acc, component) => {
-        const existingIndex = acc.findIndex((c: any) => c.id === component.id);
+        const componentId = typeof component.getId === 'function' ? component.getId() : component.id;
+        const existingIndex = acc.findIndex((c: any) => {
+          const cId = typeof c.getId === 'function' ? c.getId() : c.id;
+          return cId === componentId;
+        });
         if (existingIndex >= 0) {
           // Replace with the later one (config takes precedence)
           acc[existingIndex] = component;
@@ -431,10 +517,10 @@ export class Agent implements AgentInterface {
           acc.push(component);
         }
         return acc;
-      }, [] as ArtifactComponentApiInsert[]);
+      }, [] as any[]);
 
       // Update the config with merged components
-      this.config.artifactComponents = uniqueComponents as any;
+      this.config.artifactComponents = () => uniqueComponents;
 
       logger.info(
         {
@@ -484,17 +570,18 @@ export class Agent implements AgentInterface {
         const mcpConfig = toolConfig as AgentMcpConfig;
         tool = mcpConfig.server;
         selectedTools = mcpConfig.selectedTools;
+        tool.setContext(this.tenantId, this.projectId);
         await tool.init();
       }
       // Check if this is already a tool instance
       else if (toolConfig instanceof Tool) {
         tool = toolConfig;
+        tool.setContext(this.tenantId, this.projectId);
         await tool.init();
       } else {
         // Legacy: create MCP tool from config
         tool = new Tool({
           id: toolId,
-          tenantId: this.tenantId,
           name: (toolConfig as any).name || toolId,
           description: (toolConfig as any).description || `MCP tool: ${toolId}`,
           serverUrl:
@@ -504,6 +591,7 @@ export class Agent implements AgentInterface {
           activeTools: (toolConfig as any).config?.mcp?.activeTools,
           credential: (toolConfig as any).credential,
         });
+        tool.setContext(this.tenantId, this.projectId);
         await tool.init();
       }
 
@@ -534,12 +622,14 @@ export class Agent implements AgentInterface {
     try {
       // Create a DataComponent instance from the config
       const dc = new DataComponent({
-        tenantId: this.tenantId,
-        projectId: this.projectId,
+        id: dataComponent.id,
         name: dataComponent.name,
         description: dataComponent.description,
         props: dataComponent.props,
       });
+
+      // Set the context from the agent
+      dc.setContext(this.tenantId, this.projectId);
 
       // Initialize the data component (this handles creation/update)
       await dc.init();
@@ -574,13 +664,15 @@ export class Agent implements AgentInterface {
     try {
       // Create an ArtifactComponent instance from the config
       const ac = new ArtifactComponent({
-        tenantId: this.tenantId,
-        projectId: this.projectId,
+        id: artifactComponent.id,
         name: artifactComponent.name,
         description: artifactComponent.description,
         summaryProps: artifactComponent.summaryProps,
         fullProps: artifactComponent.fullProps,
       });
+
+      // Set the context from the agent
+      ac.setContext(this.tenantId, this.projectId);
 
       // Initialize the artifact component (this handles creation/update)
       await ac.init();

@@ -97,6 +97,7 @@ CREATE TABLE `api_keys` (
 	`public_id` text NOT NULL,
 	`key_hash` text NOT NULL,
 	`key_prefix` text NOT NULL,
+	`name` text,
 	`last_used_at` text,
 	`expires_at` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,

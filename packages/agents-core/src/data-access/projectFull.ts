@@ -270,7 +270,6 @@ export const createFullProjectServerSide =
               );
               await upsertArtifactComponent(db)({
                 data: {
-                  id: componentId,
                   ...componentData,
                   tenantId,
                   projectId: typed.id,
@@ -626,7 +625,6 @@ export const updateFullProjectServerSide =
               );
               await upsertArtifactComponent(db)({
                 data: {
-                  id: componentId,
                   ...componentData,
                   tenantId,
                   projectId: typed.id,
@@ -780,20 +778,10 @@ export const getFullProject =
             id: tool.id,
             name: tool.name,
             config: tool.config,
+            credentialReferenceId: tool.credentialReferenceId || undefined,
             imageUrl: tool.imageUrl || undefined,
-            status: tool.status,
-            capabilities: tool.capabilities || undefined,
-            lastHealthCheck:
-              tool.lastHealthCheck && !Number.isNaN(new Date(tool.lastHealthCheck).getTime())
-                ? new Date(tool.lastHealthCheck).toISOString()
-                : undefined,
-            lastError: tool.lastError || undefined,
-            availableTools: tool.availableTools || undefined,
-            activeTools: (tool.config as any)?.mcp?.activeTools || undefined,
-            lastToolsSync:
-              tool.lastToolsSync && !Number.isNaN(new Date(tool.lastToolsSync).getTime())
-                ? new Date(tool.lastToolsSync).toISOString()
-                : undefined,
+            // Don't include runtime fields in configuration
+            // status, capabilities, lastHealthCheck, lastError, availableTools, activeTools, lastToolsSync are all runtime
           };
         }
         logger.info(

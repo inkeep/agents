@@ -1,12 +1,15 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./instrumentation": {"import": "./dist/instrumentation.js", "types": "./dist/instrumentation.d.ts"}
+    "./instrumentation": {
+      "import": "./dist/instrumentation.js",
+      "types": "./dist/instrumentation.d.ts"
+    }
   },
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -15,7 +18,7 @@
     "dev:with-bypass": "PORT=3003 vite",
     "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_API_BYPASS_SECRET= vite",
     "build": "tsup",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "test": "./run-tests.sh",
     "test:ci": "vitest --run --config vitest.config.ci.ts",
     "test:watch": "vitest",
@@ -33,7 +36,6 @@
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
-    "@inkeep/agents-sdk": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",

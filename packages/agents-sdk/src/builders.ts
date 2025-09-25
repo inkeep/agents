@@ -1,4 +1,4 @@
-import type { CredentialReferenceApiInsert, MCPTransportType } from '@inkeep/agents-core';
+import type { CredentialReferenceApiInsert, } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { Agent } from './agent';
 import type { Tool } from './tool';
@@ -38,8 +38,7 @@ export interface MCPServerConfig {
   id?: string;
   parameters?: Record<string, z.ZodJSONSchema>;
   credential?: CredentialReferenceApiInsert;
-  tenantId?: string;
-  transport?: keyof typeof MCPTransportType;
+  transport?: 'streamable_http' | 'sse';
   activeTools?: string[];
   headers?: Record<string, string>;
   imageUrl?: string;
@@ -49,10 +48,9 @@ export interface MCPServerConfig {
  * Configuration for component builders
  */
 export interface ComponentConfig {
+  id?: string;
   name: string;
   description: string;
-  tenantId?: string;
-  projectId?: string;
 }
 
 export interface ArtifactComponentConfig extends ComponentConfig {

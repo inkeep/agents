@@ -201,17 +201,22 @@ export const getRelatedAgentsForGraph =
         relationType: agentRelations.relationType,
       })
       .from(agentRelations)
-      .innerJoin(agents, eq(agentRelations.targetAgentId, agents.id))
+      .innerJoin(
+        agents,
+        and(
+          eq(agentRelations.targetAgentId, agents.id),
+          eq(agentRelations.tenantId, agents.tenantId),
+          eq(agentRelations.projectId, agents.projectId),
+          eq(agentRelations.graphId, agents.graphId)
+        )
+      )
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
           eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
-          isNotNull(agentRelations.targetAgentId),
-          eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId),
-          eq(agents.graphId, params.scopes.graphId)
+          isNotNull(agentRelations.targetAgentId)
         )
       );
 
@@ -228,17 +233,22 @@ export const getRelatedAgentsForGraph =
         },
       })
       .from(agentRelations)
-      .innerJoin(externalAgents, eq(agentRelations.externalAgentId, externalAgents.id))
+      .innerJoin(
+        externalAgents,
+        and(
+          eq(agentRelations.externalAgentId, externalAgents.id),
+          eq(agentRelations.tenantId, externalAgents.tenantId),
+          eq(agentRelations.projectId, externalAgents.projectId),
+          eq(agentRelations.graphId, externalAgents.graphId)
+        )
+      )
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
           eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
-          isNotNull(agentRelations.externalAgentId),
-          eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.graphId, params.scopes.graphId)
+          isNotNull(agentRelations.externalAgentId)
         )
       );
 
@@ -648,7 +658,14 @@ export const getToolsForAgent =
           },
         })
         .from(agentToolRelations)
-        .innerJoin(tools, eq(agentToolRelations.toolId, tools.id))
+        .innerJoin(
+          tools,
+          and(
+            eq(agentToolRelations.tenantId, tools.tenantId),
+            eq(agentToolRelations.projectId, tools.projectId),
+            eq(agentToolRelations.toolId, tools.id)
+          )
+        )
         .where(
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
@@ -712,7 +729,15 @@ export const getAgentsForTool =
           },
         })
         .from(agentToolRelations)
-        .innerJoin(agents, eq(agentToolRelations.agentId, agents.id))
+        .innerJoin(
+          agents,
+          and(
+            eq(agentToolRelations.agentId, agents.id),
+            eq(agentToolRelations.tenantId, agents.tenantId),
+            eq(agentToolRelations.projectId, agents.projectId),
+            eq(agentToolRelations.graphId, agents.graphId)
+          )
+        )
         .where(
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
