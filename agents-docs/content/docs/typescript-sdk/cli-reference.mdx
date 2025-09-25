@@ -126,11 +126,13 @@ export const development = registerEnvironmentSettings({
 The `inkeep push` command follows this discovery process:
 
 1. **Config File Discovery**: Searches for `inkeep.config.ts` using this pattern:
+
    - Starts from current working directory
    - Traverses **upward** through parent directories until found
    - Can be overridden by providing a path to the config file with the `--config` flag
 
 2. **Workspace Structure**: Expects this directory layout:
+
    ```
    workspace-root/
    ├── package.json              # Workspace package.json
@@ -160,6 +162,7 @@ The `inkeep push` command follows this discovery process:
 #### Push Behavior
 
 When pushing, the CLI:
+
 - Finds and loads configuration from `inkeep.config.ts` at workspace root
 - Discovers all project directories containing `index.ts`
 - Applies environment-specific settings if `--env` is specified
@@ -310,7 +313,7 @@ inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-ap
 
 ### `inkeep dev`
 
-Start the Inkeep dashboard server.
+Start the Inkeep dashboard server or build for production.
 
 ```bash
 inkeep dev
@@ -320,34 +323,34 @@ inkeep dev
 
 - `--port <port>` - Port to run the server on (default: 3000)
 - `--host <host>` - Host to bind the server to (default: localhost)
-- `--build` - Create a Vercel-ready build and exit
+- `--build` - Build the Dashboard UI for production
 - `--output-dir <dir>` - Output directory for build files (default: ./vercel-build)
-- `--vercel` - Copy Vercel output to .vercel/output for deployment
-- `--config <path>` - Path to configuration file
+- `--path` - Output the path to the Dashboard UI
 
 **Examples:**
 
 ```bash
-# Start with defaults
+# Start development server
 inkeep dev
 
-# Custom port
-inkeep dev --port 3001
+# Start on custom port and host
+inkeep dev --port 3001 --host 0.0.0.0
 
-# Bind to all interfaces
-inkeep dev --host 0.0.0.0
+# Build for production
+inkeep dev --build --output-dir ./build
 
-# Copy Vercel output for deployment (recommended)
-inkeep dev --vercel
+# Get dashboard path for deployment
+DASHBOARD_PATH=$(inkeep dev --path)
+echo "Dashboard built at: $DASHBOARD_PATH"
 
-# Then deploy with Vercel CLI
-vercel deploy --prebuilt --prod
+# Use with Vercel
+vercel --cwd $(inkeep dev --path) -Q .vercel build
 
-# Alternative: Create Vercel-ready build
-inkeep dev --build --output-dir ./my-build
+# Use with Docker
+docker build -t inkeep-dashboard $(inkeep dev --path)
 
-# Use specific config file
-inkeep dev --config ./custom-config.ts
+# Use with other deployment tools
+rsync -av $(inkeep dev --path)/ user@server:/var/www/dashboard/
 ```
 
 ### `inkeep config`
@@ -414,32 +417,28 @@ inkeep config list
 
 ### `inkeep add`
 
-Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/template-projects).
+Add a new template to the project.
 
 ```bash
-inkeep add [template-name]
+inkeep add [template]
 ```
 
 **Options:**
 
-- Pass no template name to list all available templates
 - `--target-path <path>` - Target path to add the template to
 - `--config <path>` - Path to configuration file
 
 **Examples:**
 
 ```bash
-# List available templates
-inkeep add
-
-# Add specific template
-inkeep add weather-project
+# Add a template
+inkeep add my-template
 
 # Add template to specific path
-inkeep add weather-project --target-path ./my-project-directory
+inkeep add my-template --target-path ./src/templates
 
-# Use specific config file
-inkeep add weather-project --config ./custom-config.ts
+# Using config file
+inkeep add my-template --config ./my-config.ts
 ```
 
 ## Configuration File
