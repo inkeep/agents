@@ -145,6 +145,9 @@ importers:
 
   agents-docs:
     dependencies:
+      '@inkeep/cxkit-react':
+        specifier: ^0.5.98
+        version: 0.5.98(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)
       '@inkeep/docskit':
         specifier: ^0.0.6
         version: 0.0.6(next@15.4.7(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vite@7.1.5(@types/node@24.0.7)(jiti@2.5.1)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))
@@ -238,6 +241,9 @@ importers:
       zod:
         specifier: ^3.24.3
         version: 3.25.76
+      zod-to-json-schema:
+        specifier: ^3.24.6
+        version: 3.24.6(zod@3.25.76)
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.1.11
@@ -2088,8 +2094,29 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@inkeep/cxkit-color-mode@0.5.98':
+    resolution: {integrity: sha512-ddTNq2uX9WRFc/L7wJspUpYWYXWXS6a9Vg5fjj/FNrS9H6ah7MzyBNiuC3hFHpzmSgx+6hIJY+2N6z6OWEfVaA==}
+
+  '@inkeep/cxkit-primitives@0.5.98':
+    resolution: {integrity: sha512-B2DDbIUsSfvhRvjHpCy4r9k7UOhuXld+OCsv2rxSgUXHvcQ+FK1rZAkR7C6TSSsytfFnGNrDriRmQIELcIzHmA==}
+    peerDependencies:
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
+
   '@inkeep/cxkit-react-oss@0.5.103':
     resolution: {integrity: sha512-bGUEpFZxBLWz7Gh30MSWcmaL0VkN48Be1hPcAZt5MXJc9DA4vzWz/MVUy7T3O99tuIH3oKoVrXjR2z4tkfJ3HA==}
+
+  '@inkeep/cxkit-react@0.5.98':
+    resolution: {integrity: sha512-vGm8V/zINlxls4G6QO9N0DTUwv6j0Sp9if7HC+4D/0EL6SfkzAu87vszTgtbRssdPyqh/pa2E6OaXpfCSwIzew==}
+
+  '@inkeep/cxkit-styled@0.5.98':
+    resolution: {integrity: sha512-rTsrFalyCIeQzVhMAqBSiYFI5VxkpY0to0qRpoZ8DhKGfC0FGgMXumZl5YOEgxZFtWjCObEdTvPeBHcjeExvWA==}
+
+  '@inkeep/cxkit-theme@0.5.98':
+    resolution: {integrity: sha512-JBRi3dlfN8WODEQpxC/C1ZYCUZEf0KIKE10SDHQ8DSI+eBS51SaSSlE3OuHCJetDg3E9yKOiqTOSuvVQ1lp15A==}
+
+  '@inkeep/cxkit-types@0.5.98':
+    resolution: {integrity: sha512-mSC+0uBGcYYu0UrCpMb7QHlTD66f24LgXYn38nXLyb+/CvCXCAk5N+RjaKiRZ+1yved8DEDYjZhsCgiuKeXhTQ==}
 
   '@inkeep/docskit@0.0.6':
     resolution: {integrity: sha512-v+JHrbvChrMp3On9FYK/S9y9hYO4hsxMGAhiBxEefrqE5sxIJlooJXnn2iOi87zCghmvyWuabX4rlFHBG+N3CQ==}
@@ -7512,6 +7539,7 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
+    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
@@ -11467,6 +11495,69 @@ snapshots:
   '@img/sharp-win32-x64@0.34.3':
     optional: true
 
+  '@inkeep/cxkit-color-mode@0.5.98': {}
+
+  '@inkeep/cxkit-primitives@0.5.98(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)':
+    dependencies:
+      '@inkeep/cxkit-color-mode': 0.5.98
+      '@inkeep/cxkit-theme': 0.5.98
+      '@inkeep/cxkit-types': 0.5.98
+      '@radix-ui/number': 1.1.1
+      '@radix-ui/primitive': 1.1.3
+      '@radix-ui/react-avatar': 1.1.2(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-checkbox': 1.1.3(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-collection': 1.1.7(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-context': 1.1.2(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-direction': 1.1.1(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-dismissable-layer': 1.1.11(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-focus-guards': 1.1.3(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-focus-scope': 1.1.7(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-hover-card': 1.1.15(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-id': 1.1.1(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-popover': 1.1.6(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-popper': 1.2.8(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-portal': 1.1.9(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-presence': 1.1.5(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-primitive': 2.1.3(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-scroll-area': 1.2.2(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-slot': 1.2.3(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-tooltip': 1.1.6(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-use-callback-ref': 1.1.1(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.1.13)(react@19.1.1)
+      '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.1.13)(react@19.1.1)
+      '@zag-js/focus-trap': 1.22.1
+      '@zag-js/presence': 1.22.1
+      '@zag-js/react': 1.22.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      altcha-lib: 1.3.0
+      aria-hidden: 1.2.6
+      dequal: 2.0.3
+      humps: 2.0.1
+      lucide-react: 0.503.0(react@19.1.1)
+      marked: 15.0.12
+      merge-anything: 5.1.7
+      openai: 4.78.1(zod@3.25.76)
+      prism-react-renderer: 2.4.1(react@19.1.1)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      react-error-boundary: 6.0.0(react@19.1.1)
+      react-hook-form: 7.54.2(react@19.1.1)
+      react-markdown: 9.0.3(@types/react@19.1.13)(react@19.1.1)
+      react-remove-scroll: 2.7.1(@types/react@19.1.13)(react@19.1.1)
+      react-svg: 16.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react-textarea-autosize: 8.5.7(@types/react@19.1.13)(react@19.1.1)
+      rehype-raw: 7.0.0
+      remark-gfm: 4.0.1
+      unist-util-visit: 5.0.0
+      use-sync-external-store: 1.5.0(react@19.1.1)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - supports-color
+      - zod
+
   '@inkeep/cxkit-react-oss@0.5.103(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.8)
@@ -11533,6 +11624,42 @@ snapshots:
       - react
       - react-dom
       - supports-color
+
+  '@inkeep/cxkit-react@0.5.98(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)':
+    dependencies:
+      '@inkeep/cxkit-styled': 0.5.98(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.1.13)(react@19.1.1)
+      lucide-react: 0.503.0(react@19.1.1)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - react
+      - react-dom
+      - supports-color
+      - zod
+
+  '@inkeep/cxkit-styled@0.5.98(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)':
+    dependencies:
+      '@inkeep/cxkit-primitives': 0.5.98(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(zod@3.25.76)
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      merge-anything: 5.1.7
+      tailwind-merge: 2.6.0
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - react
+      - react-dom
+      - supports-color
+      - zod
+
+  '@inkeep/cxkit-theme@0.5.98':
+    dependencies:
+      colorjs.io: 0.5.2
+
+  '@inkeep/cxkit-types@0.5.98': {}
 
   '@inkeep/docskit@0.0.6(next@15.4.7(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vite@7.1.5(@types/node@24.0.7)(jiti@2.5.1)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))':
     dependencies:
@@ -18907,6 +19034,20 @@ snapshots:
       oniguruma-parser: 0.12.1
       regex: 6.0.1
       regex-recursion: 6.0.2
+
+  openai@4.78.1(zod@3.25.76):
+    dependencies:
+      '@types/node': 18.19.124
+      '@types/node-fetch': 2.6.13
+      abort-controller: 3.0.0
+      agentkeepalive: 4.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.7.0
+    optionalDependencies:
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - encoding
 
   openai@4.78.1(zod@4.1.8):
     dependencies:

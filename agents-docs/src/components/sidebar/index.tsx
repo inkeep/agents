@@ -1,5 +1,6 @@
 import { List } from '@/components/sidebar/list';
 import { Sidebar, SidebarFooter } from '@/components/ui/sidebar';
+import { SLACK_URL } from '@/lib/constants';
 import { docsGroups } from '@/lib/source';
 import { Fade } from '../fade';
 import { FooterLink } from './footer-link';
@@ -11,7 +12,7 @@ const footerLinks = [
     label: 'GitHub',
   },
   {
-    href: 'https://inkeep-ai.slack.com/ssb/redirect',
+    href: SLACK_URL,
     iconName: 'LuSlack',
     label: 'Slack',
   },
