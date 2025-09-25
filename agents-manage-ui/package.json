@@ -30,7 +30,6 @@
     "dev": "next dev --turbopack -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
-    "build:vercel": "vercel build",
     "start": "next start",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
