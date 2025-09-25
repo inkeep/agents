@@ -5,7 +5,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { deleteMCPTool, fetchMCPTools, type MCPTool } from '../api/tools';
+import { deleteMCPTool, fetchMCPTools } from '../api/tools';
+import type { MCPTool } from '../types/tools';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
