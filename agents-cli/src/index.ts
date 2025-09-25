@@ -136,12 +136,16 @@ program
   .description('Start the Inkeep dashboard server')
   .option('--port <port>', 'Port to run the server on', '3000')
   .option('--host <host>', 'Host to bind the server to', 'localhost')
-  .option('--build', 'Build the Next.js app for production')
+  .option('--build', 'Build the Dashboard UI for production', false)
+  .option('--output-dir <dir>', 'Output directory for build files', './vercel-build')
+  .option('--path', 'Output the path to the Dashboard UI', false)
   .action(async (options) => {
     await devCommand({
       port: parseInt(options.port, 10),
       host: options.host,
       build: options.build,
+      outputDir: options.outputDir,
+      path: options.path,
     });
   });
 

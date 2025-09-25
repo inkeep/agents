@@ -5,7 +5,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "exports": {
-    ".": "./index.js",
+    ".": "./.next/standalone/server.js",
     "./package.json": "./package.json"
   },
   "files": [
