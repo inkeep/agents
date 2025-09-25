@@ -1,3 +1,4 @@
+import './src/env';
 import { defaultSDK } from './src/instrumentation';
 defaultSDK.start();
 import app from './src/index';

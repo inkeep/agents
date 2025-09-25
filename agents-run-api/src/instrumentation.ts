@@ -15,7 +15,6 @@ import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import './env';
 
 const otlpExporter = new OTLPTraceExporter();
 
