@@ -21,8 +21,6 @@ export default defineConfig({
   // Required: Your tenant identifier
   tenantId: 'my-company',
 
-  // Optional: Output directory for builds
-  outputDirectory: 'default',
 
   // API endpoints
   agentsManageApiUrl: 'http://localhost:3002',
@@ -39,7 +37,6 @@ export default defineConfig({
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
 | `tenantId` | `string` | **Required.** Unique identifier for your tenant | - |
-| `outputDirectory` | `string` | Directory for build outputs | `'default'` |
 | `agentsManageApiUrl` | `string` | Management API endpoint | `'http://localhost:3002'` |
 | `agentsRunApiUrl` | `string` | Runtime API endpoint | `'http://localhost:3003'` |
 | `apiTimeout` | `number` | API request timeout (ms) | `30000` |
@@ -70,24 +67,28 @@ graph TD
 ### Search Pattern
 
 1. **Explicit Path**: If `--config` flag is provided, use that file directly
-2. **Upward Search**: Starting from current directory:
-   - Look for `inkeep.config.ts`
+2. **Upward Search**: Starting from current working directory:
+   - Look for `inkeep.config.ts` in current directory
    - If not found, move to parent directory
    - Repeat until found or reach filesystem root
+   - Config file should be at the same level as `package.json`/`tsconfig.json`
 3. **Error Handling**: If no config found, provide helpful error message
 
 ### Example Discovery
 
 ```bash
-# Directory structure
-/home/user/projects/
-├── inkeep.config.ts          # Found here
-└── my-agents/
-    ├── subfolder/
-    │   └── current-location/   # CLI run from here
-    └── package.json
+# Directory structure (workspace root)
+/home/user/workspace/
+├── package.json              # Workspace package.json
+├── tsconfig.json             # Workspace TypeScript config
+├── inkeep.config.ts          # ✅ Config file at workspace root
+├── my-agents/                # Project directory
+│   ├── index.ts              # Project entry point
+│   └── subfolder/
+│       └── current-location/ # CLI run from here
+└── other-project/
 
-# CLI searches: current-location → subfolder → my-agents → projects → FOUND!
+# CLI searches: current-location → subfolder → my-agents → workspace → FOUND!
 ```
 
 ## Configuration Priority
@@ -164,7 +165,6 @@ Default values used when not specified elsewhere:
 
 ```typescript
 const defaults = {
-  outputDirectory: 'default',
   agentsManageApiUrl: 'http://localhost:3002',
   agentsRunApiUrl: 'http://localhost:3003',
   apiTimeout: 30000,
@@ -192,9 +192,10 @@ export default defineConfig(config);
 
 ### Dynamic Configuration
 
-You can use environment-based logic in your config:
+You can use environment-based logic in your workspace config:
 
 ```typescript
+// inkeep.config.ts at workspace root
 import { defineConfig } from '@inkeep/agents-cli/config';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -208,12 +209,14 @@ export default defineConfig({
 });
 ```
 
+**Note**: This single config file manages all projects within the workspace.
+
 ### Multiple Configurations
 
-For projects requiring different configurations:
+For workspaces requiring different configurations:
 
 ```typescript
-// inkeep.config.ts (main config)
+// inkeep.config.ts (main config at workspace root)
 export default defineConfig({
   tenantId: 'production-tenant',
   agentsManageApiUrl: 'https://api.production.com',
@@ -221,7 +224,7 @@ export default defineConfig({
 ```
 
 ```typescript
-// inkeep.dev.config.ts (development config)
+// inkeep.dev.config.ts (development config at workspace root)
 export default defineConfig({
   tenantId: 'dev-tenant',
   agentsManageApiUrl: 'http://localhost:3002',
@@ -229,8 +232,10 @@ export default defineConfig({
 ```
 
 ```bash
-# Use development config
-inkeep push --config ./inkeep.dev.config.ts
+# Use development config (specify from any project directory)
+inkeep push --config ../inkeep.dev.config.ts
+# or with absolute path
+inkeep push --config /path/to/workspace/inkeep.dev.config.ts
 ```
 
 ## Configuration Validation
@@ -353,9 +358,11 @@ Error: Could not find inkeep.config.ts
 ```
 
 **Solutions:**
-- Run from project root directory
-- Use `--config` flag to specify location
+- Ensure `inkeep.config.ts` exists at **workspace root** (same level as `package.json`)
+- CLI searches upward - make sure you're running from within the workspace
+- Use `--config` flag to specify absolute or relative path to config file
 - Check file name (must be exactly `inkeep.config.ts`)
+- Verify you're not running from a completely separate directory tree
 
 ### Invalid Configuration
 

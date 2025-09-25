@@ -13,14 +13,17 @@ Environment management in Inkeep Agent projects enables you to maintain differen
 ### Directory Layout
 
 ```
-my-project/
-├── inkeep.config.ts          # Base configuration
-├── environments/             # Environment-specific configs
-│   ├── index.ts              # Environment exports
-│   ├── development.env.ts    # Development settings
-│   ├── staging.env.ts        # Staging settings
-│   └── production.env.ts     # Production settings
-└── ...
+workspace-root/
+├── package.json              # Workspace package.json
+├── inkeep.config.ts          # Base configuration (at workspace root)
+└── my-project/               # Individual project directory
+    ├── index.ts              # Project entry point
+    ├── environments/         # Environment-specific configs
+    │   ├── index.ts          # Environment exports
+    │   ├── development.env.ts # Development settings
+    │   ├── staging.env.ts    # Staging settings
+    │   └── production.env.ts # Production settings
+    └── ...
 ```
 
 ### Environment File Format

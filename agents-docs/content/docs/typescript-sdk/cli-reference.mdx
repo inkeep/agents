@@ -116,40 +116,48 @@ export const development = registerEnvironmentSettings({
 The `inkeep push` command follows this discovery process:
 
 1. **Config File Discovery**: Searches for `inkeep.config.ts` using this pattern:
-   - Current directory first
-   - Traverses up parent directories until found
+   - Starts from current working directory
+   - Traverses **upward** through parent directories until found
+   - Looks for config at workspace root (same level as `package.json`)
    - Can be overridden with `--config` flag
 
-2. **Project Structure**: Expects this directory layout:
+2. **Workspace Structure**: Expects this directory layout:
    ```
-   my-project/
-   ├── inkeep.config.ts          # Configuration file
-   ├── index.ts                  # Project entry point
-   ├── graphs/                   # Agent graph definitions
-   │   └── *.ts
-   ├── tools/                    # Tool definitions
-   │   └── *.ts
-   ├── data-components/          # Data component definitions
-   │   └── *.ts
-   └── environments/             # Environment-specific configs
-       ├── development.env.ts
-       └── production.env.ts
+   workspace-root/
+   ├── package.json              # Workspace package.json
+   ├── tsconfig.json             # Workspace TypeScript config
+   ├── inkeep.config.ts          # Inkeep configuration file
+   ├── my-project/               # Individual project directory
+   │   ├── index.ts              # Project entry point
+   │   ├── graphs/               # Agent graph definitions
+   │   │   └── *.ts
+   │   ├── tools/                # Tool definitions
+   │   │   └── *.ts
+   │   ├── data-components/      # Data component definitions
+   │   │   └── *.ts
+   │   └── environments/         # Environment-specific configs
+   │       ├── development.env.ts
+   │       └── production.env.ts
+   └── another-project/          # Additional projects
+       └── index.ts
    ```
 
 3. **Resource Compilation**: Automatically discovers and compiles:
-   - All TypeScript files in the project
+   - All project directories containing `index.ts`
+   - All TypeScript files within each project directory
    - Categorizes files by type (graphs, agents, tools, data components)
-   - Resolves dependencies and relationships
+   - Resolves dependencies and relationships within each project
 
 #### Push Behavior
 
 When pushing, the CLI:
-- Loads configuration from `inkeep.config.ts`
+- Finds and loads configuration from `inkeep.config.ts` at workspace root
+- Discovers all project directories containing `index.ts`
 - Applies environment-specific settings if `--env` is specified
-- Compiles all project resources defined in your `index.ts`
-- Validates agent relationships and tool configurations
-- Deploys to the management API
-- Prints deployment summary with resource counts
+- Compiles all project resources defined in each project's `index.ts`
+- Validates agent relationships and tool configurations across all projects
+- Deploys all projects to the management API
+- Prints deployment summary with resource counts per project
 
 ### `inkeep pull`
 

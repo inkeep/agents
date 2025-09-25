@@ -73,10 +73,10 @@ graph TD
 graph TD
     A[Start Config Resolution] --> B{--config flag?}
     B -->|Yes| C[Load specified file]
-    B -->|No| D[Current directory]
+    B -->|No| D[Current working directory]
 
     D --> E{inkeep.config.ts exists?}
-    E -->|Yes| F[Load config]
+    E -->|Yes| F[Load config from current dir]
     E -->|No| G[Check parent directory]
     G --> H{At filesystem root?}
     H -->|No| E
@@ -89,10 +89,10 @@ graph TD
     K --> L[Apply CLI Flags]
     L --> M{--env flag?}
 
-    M -->|Yes| N[Load environments/env.env.ts]
+    M -->|Yes| N[Load environments/env.env.ts from project]
     M -->|No| O[Final Configuration]
 
-    N --> P{Environment file exists?}
+    N --> P{Environment file exists in project?}
     P -->|No| Q[Environment error]
     P -->|Yes| R[Merge environment settings]
     R --> O
@@ -102,6 +102,13 @@ graph TD
     style O fill:#c8e6c9
     style I fill:#ffcdd2
     style Q fill:#ffcdd2
+
+    %% Notes
+    S["📝 Config file lives at workspace root<br/>same level as package.json"]
+    T["📝 Projects are subdirectories<br/>containing index.ts"]
+
+    style S fill:#fff3e0
+    style T fill:#fff3e0
 ```
 
 ## Pull Workflow
@@ -209,15 +216,17 @@ Both push and pull operations process project resources systematically:
 
 ```mermaid
 graph TD
-    A[Project Directory] --> B[File Discovery]
-    B --> C[TypeScript Files]
+    A[Workspace Root] --> A1[Find inkeep.config.ts]
+    A1 --> B[Discover Project Directories]
+    B --> B1[Look for subdirs with index.ts]
+    B1 --> C[Scan Project Files]
     C --> D[Exclude patterns]
 
     D --> E{File location}
     E -->|/node_modules/| F[Skip]
     E -->|/.git/| F
-    E -->|/environments/| G[Environment Config]
-    E -->|Other .ts files| H[Project Resource]
+    E -->|project/environments/| G[Environment Config]
+    E -->|project/*.ts files| H[Project Resource]
 
     H --> I[Parse TypeScript]
     I --> J[Extract exports]
@@ -230,12 +239,12 @@ graph TD
     K -->|dataComponent()| P[Data Component]
     K -->|Other| Q[Generic Resource]
 
-    L --> R[Compile Resources]
+    L --> R[Compile Resources per Project]
     M --> R
     N --> R
     O --> R
     P --> R
-    G --> S[Load Environment]
+    G --> S[Load Environment per Project]
 
     R --> T[Validate Dependencies]
     T --> U[Build Resource Graph]
@@ -245,6 +254,10 @@ graph TD
     style G fill:#fff9c4
     style R fill:#c8e6c9
     style V fill:#c8e6c9
+
+    %% Structure note
+    W["📁 Workspace Structure:<br/>config.ts at root<br/>projects in subdirs"]
+    style W fill:#fff3e0
 ```
 
 ## Error Handling and Recovery

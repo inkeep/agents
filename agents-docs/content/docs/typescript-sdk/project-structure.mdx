@@ -11,48 +11,56 @@ Inkeep Agent projects follow a standardized directory structure that enables the
 ## Standard Project Layout
 
 ```
-my-agent-project/
-├── inkeep.config.ts          # Project configuration
-├── index.ts                  # Project entry point
-├── graphs/                   # Agent graph definitions
-│   ├── main-graph.ts
-│   └── support-graph.ts
-├── tools/                    # Tool definitions
-│   ├── search-tool.ts
-│   └── calculator-tool.ts
-├── data-components/          # Data component definitions
-│   ├── user-profile.ts
-│   └── product-catalog.ts
-├── environments/             # Environment-specific configurations
-│   ├── index.ts
-│   ├── development.env.ts
-│   ├── staging.env.ts
-│   └── production.env.ts
-└── package.json              # Project dependencies
+workspace-root/               # Repository/workspace root
+├── package.json              # Workspace package.json
+├── tsconfig.json             # TypeScript configuration
+├── inkeep.config.ts          # Inkeep configuration file
+├── my-agent-project/         # Individual project directory
+│   ├── index.ts              # Project entry point
+│   ├── graphs/               # Agent graph definitions
+│   │   ├── main-graph.ts
+│   │   └── support-graph.ts
+│   ├── tools/                # Tool definitions
+│   │   ├── search-tool.ts
+│   │   └── calculator-tool.ts
+│   ├── data-components/      # Data component definitions
+│   │   ├── user-profile.ts
+│   │   └── product-catalog.ts
+│   └── environments/         # Environment-specific configurations
+│       ├── index.ts
+│       ├── development.env.ts
+│       ├── staging.env.ts
+│       └── production.env.ts
+└── another-project/          # Additional projects can coexist
+    ├── index.ts
+    └── ...
 ```
 
 ## Core Files
 
 ### `inkeep.config.ts`
 
-The configuration file that defines your project settings:
+The configuration file at the workspace root that defines settings for all projects in this workspace:
 
 ```typescript
+// Located at workspace root, same level as package.json
 import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: 'my-company',
-  outputDirectory: 'default',
   agentsManageApiUrl: 'http://localhost:3002',
   agentsRunApiUrl: 'http://localhost:3003',
 });
 ```
 
+**Important**: This file lives at the workspace/repository root level, **not** inside individual project directories.
+
 ### `index.ts`
 
-The project entry point that exports your project definition:
+The project entry point inside each project directory that exports your project definition:
 
 ```typescript
+// Located inside project directory (e.g., my-agent-project/index.ts)
 import { project } from '@inkeep/agents-sdk';
 import { mainGraph } from './graphs/main-graph';
 import { supportGraph } from './graphs/support-graph';
@@ -83,13 +91,13 @@ import { agentGraph, agent } from '@inkeep/agents-sdk';
 const routerAgent = agent({
   id: 'support-router',
   name: 'Support Router',
-  instructions: 'Route customer inquiries to appropriate specialists',
+  prompt: 'Route customer inquiries to appropriate specialists',
 });
 
 const billingAgent = agent({
   id: 'billing-specialist',
   name: 'Billing Specialist',
-  instructions: 'Handle billing and payment inquiries',
+  prompt: 'Handle billing and payment inquiries',
 });
 
 export const customerSupportGraph = agentGraph({
@@ -172,17 +180,23 @@ export const production = registerEnvironmentSettings({
 The CLI automatically discovers files using these patterns:
 
 1. **Config Discovery**: Searches for `inkeep.config.ts`:
-   - Starts in current directory
-   - Traverses up parent directories until found
+   - Starts from current working directory
+   - Traverses **upward** through parent directories until found
+   - Looks at the same level as `package.json` and `tsconfig.json`
    - Can be overridden with `--config` flag
 
-2. **Resource Discovery**: Scans for TypeScript files:
+2. **Project Discovery**: Once config is found:
+   - Uses the config file's directory as the workspace root
+   - Scans for project subdirectories containing `index.ts`
+   - Each project directory is treated as a separate agent project
+
+3. **Resource Discovery**: Within each project directory:
    - Excludes `node_modules/` and `.git/`
-   - Categorizes files by directory name
+   - Categorizes files by directory name and content
    - Processes dependencies and relationships
 
-3. **File Categorization**:
-   - **Index files**: `index.ts`, `main.ts`
+4. **File Categorization**:
+   - **Index files**: `index.ts`, `main.ts` (project entry points)
    - **Graph files**: Files in `/graphs/` directory
    - **Agent files**: Files containing agent definitions
    - **Tool files**: Files in `/tools/` directory
@@ -218,22 +232,25 @@ The CLI automatically discovers files using these patterns:
 ```bash
 Error: Could not find inkeep.config.ts in current directory or parent directories
 ```
-- Ensure `inkeep.config.ts` exists in your project root
-- Use `--config` flag to specify custom location
+- Ensure `inkeep.config.ts` exists at your **workspace root** (same level as `package.json`)
+- CLI searches upward from current directory - make sure you're in or below the workspace
+- Use `--config` flag to specify custom location if needed
 
 **Invalid project structure:**
 ```bash
 Warning: No graphs found in project
 ```
-- Check that graph files are in `/graphs/` directory
-- Verify exports are properly named and typed
+- Check that you're running from within a project directory (containing `index.ts`)
+- Verify graph files are in the project's `/graphs/` subdirectory
+- Ensure exports are properly named and typed
 
 **Missing dependencies:**
 ```bash
 Error: Cannot resolve import './graphs/missing-graph'
 ```
-- Ensure all imported files exist
-- Check file paths and extensions
+- Ensure all imported files exist within the project directory
+- Check relative file paths and extensions
+- Verify imports use correct paths relative to project root
 
 ### Validation
 
@@ -251,10 +268,12 @@ inkeep config get
 
 If migrating from older project structures:
 
-1. **Create standard directories**: Add `/graphs/`, `/tools/`, `/data-components/`
-2. **Move files appropriately**: Organize existing files into correct directories
-3. **Update imports**: Fix import paths after moving files
-4. **Test compilation**: Run `inkeep push --json` to validate structure
-5. **Update CI/CD**: Adjust build scripts for new structure
+1. **Move config to workspace root**: Ensure `inkeep.config.ts` is at same level as `package.json`
+2. **Create project directories**: Organize agents into project subdirectories
+3. **Create standard subdirectories**: Add `/graphs/`, `/tools/`, `/data-components/` within each project
+4. **Move files appropriately**: Organize existing files into correct project and subdirectories
+5. **Update imports**: Fix import paths after restructuring
+6. **Test compilation**: Run `inkeep push --json` to validate structure
+7. **Update CI/CD**: Adjust build scripts for new workspace structure
 
 This standardized structure ensures your projects work seamlessly with the Inkeep CLI and can be easily shared, deployed, and maintained across different environments.
