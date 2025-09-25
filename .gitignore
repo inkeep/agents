@@ -65,3 +65,4 @@ dist
 .hosted-tools/
 
 .playwright-mcp
+.vercel

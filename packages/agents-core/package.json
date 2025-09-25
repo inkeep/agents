@@ -5,12 +5,28 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./schema": "./dist/db/schema.js",
-    "./types": "./dist/types/index.js",
-    "./validation": "./dist/validation/index.js",
-    "./client-exports": "./dist/client-exports.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/db/schema.d.ts",
+      "default": "./dist/db/schema.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "default": "./dist/validation/index.js"
+    },
+    "./client-exports": {
+      "types": "./dist/client-exports.d.ts",
+      "default": "./dist/client-exports.js"
+    }
   },
   "scripts": {
     "build": "tsup",
