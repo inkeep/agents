@@ -22,6 +22,7 @@ type ExternalAgent = {
   baseUrl: string;
   headers?: Record<string, string> | null;
   type: 'external';
+  credentialReferenceId?: string | null;
 };
 
 export type ExtendedAgent =
@@ -218,6 +219,7 @@ export function serializeGraphData(
         baseUrl: node.data.baseUrl as string,
         headers: parsedHeaders || null,
         type: 'external',
+        credentialReferenceId: (node.data.credentialReferenceId as string) || null,
       };
 
       if ((node.data as any).isDefault) {

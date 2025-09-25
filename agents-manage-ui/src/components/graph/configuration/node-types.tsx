@@ -39,6 +39,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   description?: string;
   baseUrl: string;
   headers: string;
+  credentialReferenceId?: string | null;
 }
 
 export enum NodeType {
