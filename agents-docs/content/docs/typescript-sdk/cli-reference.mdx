@@ -58,7 +58,7 @@ inkeep push
 
 **Options:**
 
-- `--project <project-path>` - Specify project directory by path or ID (defaults to current directory or searches for `inkeep.config.ts`)
+- `--project <project-path>` - Specify project directory path (defaults to current directory or searches for `inkeep.config.ts`)
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--agents-manage-api-url <url>` - Override the management API URL from config
@@ -118,8 +118,7 @@ The `inkeep push` command follows this discovery process:
 1. **Config File Discovery**: Searches for `inkeep.config.ts` using this pattern:
    - Starts from current working directory
    - Traverses **upward** through parent directories until found
-   - Looks for config at workspace root (same level as `package.json`)
-   - Can be overridden with `--config` flag
+   - Can be overridden by providing a path to the config file with the `--config` flag
 
 2. **Workspace Structure**: Expects this directory layout:
    ```
@@ -169,12 +168,11 @@ inkeep pull
 
 **Options:**
 
-- `--project <project-path>` - Specify project directory by path or ID (defaults to current directory or searches for `inkeep.config.ts`)
+- `--project <project-path>` - Specify project directory path (defaults to current directory or searches for `inkeep.config.ts`)
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--agents-manage-api-url <url>` - Override the management API URL from config
-- `--env <environment>` - Override tenant ID when using custom API URL
+- `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
 - `--json` - Save project data as JSON file instead of updating TypeScript files
-- `--no-cache` - Force fresh data fetch from server (bypasses caching)
 
 **How it Works:**
 
@@ -217,9 +215,6 @@ inkeep pull --agents-manage-api-url https://api.example.com --env production
 
 # Use specific config file
 inkeep pull --config ./custom-config/inkeep.config.ts
-
-# Force fresh data fetch
-inkeep pull --no-cache
 ```
 
 #### Model Configuration
