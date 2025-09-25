@@ -10,6 +10,7 @@ vi.mock('node:fs', async () => {
     existsSync: vi.fn(),
   };
 });
+
 vi.mock('@inkeep/agents-core');
 vi.mock('../../utils/project-directory.js', () => ({
   findProjectDirectory: vi.fn(),
