@@ -65,6 +65,9 @@ export const createTaskHandler = (
         .map((part) => part.text)
         .join(' ');
 
+      // Extract all parts including images for full message processing
+      const allParts = task.input.parts;
+
       if (!userMessage.trim()) {
         return {
           status: {
@@ -303,6 +306,8 @@ export const createTaskHandler = (
           threadId: contextId, // using conversationId as threadId for now
           streamRequestId: streamRequestId,
           ...(config.apiKey ? { apiKey: config.apiKey } : {}),
+          // Pass image parts through metadata for agent to process
+          ...(allParts.length > 0 ? { messageParts: allParts } : {}),
         },
       });
 

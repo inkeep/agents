@@ -27,6 +27,12 @@ interface ExecutionHandlerParams {
   executionContext: ExecutionContext;
   conversationId: string;
   userMessage: string;
+  messageParts?: Array<{
+    kind: string;
+    text?: string;
+    data?: string | Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+  }>;
   initialAgentId: string;
   requestId: string;
   sseHelper: StreamHelper;
@@ -58,7 +64,7 @@ export class ExecutionHandler {
    * @returns
    */
   async execute(params: ExecutionHandlerParams): Promise<ExecutionResult> {
-    const { executionContext, conversationId, userMessage, initialAgentId, requestId, sseHelper } =
+    const { executionContext, conversationId, userMessage, messageParts, initialAgentId, requestId, sseHelper } =
       params;
 
     const { tenantId, projectId, graphId, apiKey, baseUrl } = executionContext;
@@ -240,15 +246,30 @@ export class ExecutionHandler {
           messageMetadata.fromAgentId = fromAgentId;
         }
 
+        // Build message parts - use original messageParts for first iteration, text-only for transfers
+        let messageParts_A2A: Array<{ kind: string; text?: string; data?: string | Record<string, unknown> }>;
+        
+        if ((iterations === 1 || !fromAgentId) && messageParts && messageParts.length > 0) {
+          // First iteration OR retry (not a transfer): use the original message parts (including images)
+          messageParts_A2A = messageParts.map(part => ({
+            kind: part.kind,
+            text: part.text,
+            data: part.data
+          }));
+        } else {
+          // Agent transfers: use current text message only
+          messageParts_A2A = [
+            {
+              kind: 'text',
+              text: currentMessage,
+            },
+          ];
+        }
+
         messageResponse = await a2aClient.sendMessage({
           message: {
             role: 'user',
-            parts: [
-              {
-                kind: 'text',
-                text: currentMessage,
-              },
-            ],
+            parts: messageParts_A2A,
             messageId: `${requestId}-iter-${iterations}`,
             kind: 'message',
             contextId: conversationId,
@@ -366,7 +387,7 @@ export class ExecutionHandler {
 
           // Stream completion operation
           // Completion operation (data operations removed)
-          return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+          return tracer.startActiveSpan('execution_handler.execute', {}, async (span: any) => {
             try {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',

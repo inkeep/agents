@@ -1208,9 +1208,76 @@ Key requirements:
         if (conversationHistory.trim() !== '') {
           messages.push({ role: 'user', content: conversationHistory });
         }
+        // Check if we have image parts in metadata
+        const messageParts = (runtimeContext?.metadata as any)?.messageParts;
+
+        // Helper function to convert our parts to AI SDK v5 format
+        const toModelMessages = (userText: string, parts?: any[]) => {
+          if (!parts || parts.length === 0) {
+            return userText;
+          }
+
+          const contentParts: any[] = [];
+          
+          // Add text if present
+          if (userText.trim()) {
+            contentParts.push({ type: 'text', text: userText });
+          }
+          
+          // Add image parts
+          for (const part of parts) {
+            if (part.kind === 'image' && part.data) {
+              try {
+                let base64Data: string;
+                
+                if (typeof part.data === 'string') {
+                  if (part.data.startsWith('data:image/')) {
+                    // Extract base64 from data URL
+                    const base64Match = part.data.match(/^data:image\/[^;]+;base64,(.+)$/);
+                    if (!base64Match) {
+                      logger.warn('Invalid image data URL format, skipping image');
+                      continue;
+                    }
+                    base64Data = base64Match[1];
+                  } else {
+                    // Assume it's raw base64
+                    base64Data = part.data;
+                  }
+                  
+                  // Validate base64 format
+                  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
+                    throw new Error('Invalid base64 characters');
+                  }
+                  
+                  // Convert base64 to Buffer for AI SDK v5
+                  const imageBuffer = Buffer.from(base64Data, 'base64');
+                  
+                  contentParts.push({
+                    type: 'image',
+                    image: imageBuffer
+                  });
+                } else {
+                  logger.warn('Unsupported image data type, skipping image');
+                  continue;
+                }
+              } catch (error) {
+                logger.warn({
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                }, 'Failed to process image data, skipping image');
+                continue;
+              }
+            }
+          }
+          
+          return contentParts.length > 0 ? contentParts : userText;
+        };
+        
+        // Use the adapter to build the message content
+        const messageContent = toModelMessages(userMessage, messageParts);
+        
         messages.push({
           role: 'user',
-          content: userMessage,
+          content: messageContent,
         });
 
         // ----- PHASE 1: Planning with tools -----
