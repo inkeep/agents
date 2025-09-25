@@ -25,6 +25,7 @@ import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useGraphShortcuts } from '@/features/graph/ui/use-graph-shortcuts';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { saveGraph } from '@/lib/services/save-graph';
@@ -87,11 +88,11 @@ function Flow({
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render otherwise it will fetch tools in an infinite loop
   useEffect(() => {
     if (Object.keys(toolLookup).length === 0 && tenantId && projectId) {
-      fetch(`http://localhost:3002/tenants/${tenantId}/projects/${projectId}/tools`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.data) {
-            const lookup = data.data.reduce((acc: Record<string, MCPTool>, tool: MCPTool) => {
+      fetchToolsAction(tenantId, projectId)
+        .then((res) => {
+          const data = res.data;
+          if (data) {
+            const lookup = data.reduce((acc: Record<string, MCPTool>, tool: MCPTool) => {
               acc[tool.id] = tool;
               return acc;
             }, {});
