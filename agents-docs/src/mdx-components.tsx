@@ -26,7 +26,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { openapi } from '@/lib/openapi';
 import { Mermaid } from '@/components/mdx/mermaid';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 // Custom pre component that handles mermaid code blocks
 function pre(props: ComponentProps<typeof OriginalPre>) {
