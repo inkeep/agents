@@ -122,15 +122,22 @@ async function verifyGeneratedFiles(
 
       if (existsSync(toolPath)) {
         const toolContent = readFileSync(toolPath, 'utf8');
-        if (!toolContent.includes('transport')) {
-          structuralWarnings.push('Tool file may be missing transport configuration');
-        }
+        // Check for credential reference (more important than transport now)
         if (!toolContent.includes('credential:')) {
           structuralWarnings.push('Tool file may be missing credential reference');
         }
+        // Check for serverUrl
+        if (!toolContent.includes('serverUrl:')) {
+          structuralErrors.push('Tool file missing required serverUrl property');
+        }
+        // Check that it doesn't have invalid config property
+        if (toolContent.includes('config:')) {
+          structuralWarnings.push('Tool file contains invalid config property (should use individual properties)');
+        }
         if (debug) {
-          console.log(chalk.gray(`  • Tool file exists with transport: ${toolContent.includes('transport')}`));
-          console.log(chalk.gray(`  • Tool file exists with credential: ${toolContent.includes('credential:')}`));
+          console.log(chalk.gray(`  • Tool file has serverUrl: ${toolContent.includes('serverUrl:')}`));
+          console.log(chalk.gray(`  • Tool file has credential: ${toolContent.includes('credential:')}`));
+          console.log(chalk.gray(`  • Tool file has invalid config: ${toolContent.includes('config:')}`));
         }
       } else {
         structuralErrors.push('Tool file inkeep_facts.ts not found');
