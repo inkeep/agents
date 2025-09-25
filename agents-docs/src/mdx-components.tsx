@@ -1,3 +1,9 @@
+import type { ComponentProps } from 'react';
+import type { MDXComponents } from 'mdx/types';
+
+import { APIPage } from 'fumadocs-openapi/ui';
+import defaultMdxComponents from 'fumadocs-ui/mdx';
+
 import {
   Accordion,
   Accordions,
@@ -21,12 +27,9 @@ import {
   Video,
   Warning,
 } from '@inkeep/docskit/mdx';
-import { APIPage } from 'fumadocs-openapi/ui';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import type { MDXComponents } from 'mdx/types';
-import { openapi } from '@/lib/openapi';
+
 import { Mermaid } from '@/components/mdx/mermaid';
-import type { ComponentProps } from 'react';
+import { openapi } from '@/lib/openapi';
 
 // Custom pre component that handles mermaid code blocks
 function pre(props: ComponentProps<typeof OriginalPre>) {
@@ -49,7 +52,7 @@ function pre(props: ComponentProps<typeof OriginalPre>) {
       return '';
     };
 
-    textContent = extractTextFromNode(children.props.children);
+    textContent = extractTextFromNode((children as any).props.children);
   }
 
   // Check if this is a mermaid code block by looking for mermaid syntax
