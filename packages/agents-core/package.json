@@ -1,16 +1,32 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./schema": "./src/db/schema.ts",
-    "./types": "./src/types/index.ts",
-    "./validation": "./src/validation/index.ts",
-    "./client-exports": "./src/client-exports.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/db/schema.d.ts",
+      "default": "./dist/db/schema.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "default": "./dist/validation/index.js"
+    },
+    "./client-exports": {
+      "types": "./dist/client-exports.d.ts",
+      "default": "./dist/client-exports.js"
+    }
   },
   "scripts": {
     "build": "tsup",

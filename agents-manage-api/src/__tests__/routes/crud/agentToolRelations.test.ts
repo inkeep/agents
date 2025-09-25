@@ -37,6 +37,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     prompt: `Test Instructions${suffix}`,
     type: 'internal' as const,
     tools: [],
+    canUse: [],
   });
 
   // Helper function to create test tool data

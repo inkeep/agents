@@ -36,16 +36,13 @@ describe('agent builder function', () => {
       name: 'Full Config Agent',
       description: 'Agent with all config options',
       prompt: 'Comprehensive test agent',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
     };
 
     const testAgent = agent(config);
+    testAgent.setContext('test-tenant', 'test-project');
 
     expect(testAgent.getName()).toBe('Full Config Agent');
     expect(testAgent.getId()).toBe('full-config-agent');
-    expect(testAgent.config.tenantId).toBe('test-tenant');
-    expect(testAgent.config.projectId).toBe('test-project');
   });
 
   it('should create an agent with data components function', () => {

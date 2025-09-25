@@ -20,95 +20,50 @@ First, create a Langfuse account and get your API keys:
    - Public Key: `pk-lf-xxxxxxxxxx`
    - Secret Key: `sk-lf-xxxxxxxxxx`
 
-### 2. Configure OpenTelemetry Collector
+### 2. Configure Langfuse
 
-Add Langfuse as an exporter to your OTEL collector configuration in the [`agents-optional-local-dev`](https://github.com/inkeep/agents-optional-local-dev) repository:
+To integrate Langfuse with your Inkeep Agent Framework instrumentation, you need to modify your instrumentation file to include the Langfuse span processor.
 
-```yaml
-# otel-collector-config.yaml
-exporters:
-  # Export to Langfuse
-  otlphttp/langfuse:
-    endpoint: "https://us.cloud.langfuse.com/api/public/otel" # US region
-    headers:
-      Authorization: "Basic <BASE64_ENCODED_CREDENTIALS>"
+Replace the default setup with a custom NodeSDK configuration:
 
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlphttp/langfuse]
-```
-
-### 3. Generate Authentication Credentials
-
-Langfuse requires Basic Authentication with base64-encoded credentials:
-
+Set your environment variables:
 ```bash
-# Generate base64 encoded credentials
-echo -n "pk-lf-YOUR_PUBLIC_KEY:sk-lf-YOUR_SECRET_KEY" | base64
+LANGFUSE_PUBLIC_KEY=pk-lf-xxxxxxxxxx
+LANGFUSE_SECRET_KEY=sk-lf-xxxxxxxxxx
+LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
+```
+Update your instrumentation file:
+```typescript
+import { 
+  defaultSpanProcessors, 
+  defaultContextManager, 
+  defaultResource, 
+  defaultTextMapPropagator, 
+  defaultInstrumentations 
+} from "@inkeep/agents-run-api/instrumentation";
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+
+export const defaultSDK = new NodeSDK({
+  resource: defaultResource,
+  contextManager: defaultContextManager,
+  textMapPropagator: defaultTextMapPropagator,
+  spanProcessors: [...defaultSpanProcessors, new LangfuseSpanProcessor()],
+  instrumentations: defaultInstrumentations,
+});
+
+defaultSDK.start();
 ```
 
-### 4. Complete Configuration Example
+#### What This Configuration Does
 
-Here's a complete OTEL collector configuration with Langfuse integration:
+- **Preserves all default instrumentation**: Uses the same resource, context manager, propagator, and instrumentations as the default setup
+- **Adds Langfuse span processor**: Extends the default span processors with Langfuse's processor for specialized LLM observability
+- **Maintains compatibility**: Your existing traces will continue to work while adding Langfuse-specific features
 
-```yaml
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
 
-processors:  
-  batch:
-    send_batch_size: 1
 
-exporters:
-  # Export to SigNoz OTEL Collector
-  otlp/signoz:
-    endpoint: host.docker.internal:4317
-    tls:
-      insecure: true
-  # Export to Jaeger
-  otlp/jaeger:
-    endpoint: host.docker.internal:24317
-    tls:
-      insecure: true
-  # Export to Langfuse
-  otlp/langfuse:
-    endpoint: "https://us.cloud.langfuse.com/api/public/otel"
-    headers:
-      Authorization: "Bearer ${LANGFUSE_CREDENTIAL}"
 
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp/signoz, otlp/jaeger, otlp/langfuse]
-```
-
-### 5. Start the Services
-
-```bash
-# From the root directory of the agents-optional-local-dev
-docker compose up -d
-
-```
-
-## Architecture
-
-The Langfuse integration works alongside your existing observability stack:
-
-```
-Application → OTEL Collector → Jaeger → Jaeger UI (http://localhost:16686)
-                             → SigNoz → SigNoz UI (http://localhost:3080)
-                             → Langfuse → Langfuse Dashboard
-```
 
 ## Dataset setup and execution
 

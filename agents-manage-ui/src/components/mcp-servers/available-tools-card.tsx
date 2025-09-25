@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import { getTypeBadgeVariant, parseMCPInputSchema } from '@/lib/utils/mcp-schema-parser';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';

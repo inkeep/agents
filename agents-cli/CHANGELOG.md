@@ -1,5 +1,30 @@
 # @inkeep/agents-cli
 
+## 0.6.0
+
+### Minor Changes
+
+- 9e04bb6: Inkeep CLI Project based push and pull functionality. Push and pull an entire project set of resources in one command line.
+
+### Patch Changes
+
+- Updated dependencies [9e04bb6]
+  - @inkeep/agents-core@0.6.0
+  - @inkeep/agents-manage-ui@0.6.0
+
+## 0.5.0
+
+### Minor Changes
+
+- 45b3b91: Use Pino Logger
+
+### Patch Changes
+
+- Updated dependencies [bcf3d77]
+- Updated dependencies [45b3b91]
+  - @inkeep/agents-manage-ui@0.5.0
+  - @inkeep/agents-core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

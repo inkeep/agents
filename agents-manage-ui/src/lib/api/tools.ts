@@ -2,9 +2,6 @@
 
 import type { McpTool, ToolApiInsert } from '@inkeep/agents-core';
 
-// Export the core McpTool type for convenience
-export type { McpTool as MCPTool } from '@inkeep/agents-core';
-
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';

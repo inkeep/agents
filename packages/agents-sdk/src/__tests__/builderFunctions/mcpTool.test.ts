@@ -24,7 +24,6 @@ describe('mcpTool builder function', () => {
       name: 'Full Config MCP Tool',
       description: 'MCP tool with all options',
       serverUrl: 'https://api.example.com/tools',
-      tenantId: 'test-tenant',
       activeTools: ['search', 'fetch'],
       transport: {
         type: 'streamable_http',
@@ -36,7 +35,6 @@ describe('mcpTool builder function', () => {
     expect(tool.getName()).toBe('Full Config MCP Tool');
     expect(tool.getId()).toBe('custom-tool-id');
     expect(tool.getServerUrl()).toBe('https://api.example.com/tools');
-    expect(tool.config.tenantId).toBe('test-tenant');
     expect(tool.config.activeTools).toEqual(['search', 'fetch']);
     expect(tool.config.transport).toEqual({
       type: 'streamable_http',

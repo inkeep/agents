@@ -247,6 +247,7 @@ export interface CreateApiKeyParams {
   tenantId: string;
   projectId: string;
   graphId: string;
+  name: string;
   expiresAt?: string;
 }
 

@@ -13,6 +13,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     name: `Test Agent${suffix}`,
     description: `Test Description${suffix}`,
     prompt: `Test Instructions${suffix}`,
+    canUse: [],
     type: 'internal' as const,
     tools: [],
   });

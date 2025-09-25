@@ -8,11 +8,14 @@ import type {
   GraphStopWhen,
   McpTransportConfig,
   ToolInsert,
+  StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import type { AgentMcpConfig } from './builders';
 import type { ExternalAgentConfig } from './externalAgent';
 import type { Tool } from './tool';
+import type { DataComponentInterface } from './data-component';
+import type { ArtifactComponentInterface } from './artifact-component';
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -66,8 +69,6 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
   canUse?: () => AgentCanUseType[];
   canTransferTo?: () => AgentInterface[];
   canDelegateTo?: () => AllAgentInterface[];
-  tenantId?: string;
-  projectId?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
@@ -78,8 +79,8 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
   };
-  dataComponents?: () => DataComponentApiInsert[];
-  artifactComponents?: () => ArtifactComponentApiInsert[];
+  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
+  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
@@ -211,32 +212,12 @@ export interface RunResult {
 }
 
 // Graph types
-export interface StatusComponent {
-  type: string;
-  description?: string;
-  detailsSchema?: {
-    type: 'object';
-    properties: Record<string, any>;
-    required?: string[];
-  };
-}
-
-export interface StatusUpdateSettings {
-  enabled?: boolean; // Enable/disable status updates (default: true if any other setting is provided)
-  numEvents?: number; // Trigger summary after N events (default: 10)
-  timeInSeconds?: number; // Trigger summary after N seconds (default: 30)
-  model?: string; // Override model for status summaries
-  statusComponents?: StatusComponent[]; // Structured status components for status updates
-  prompt?: string; // Custom prompt for status updates
-}
-
 export interface GraphConfig {
   id: string;
   name?: string;
   description?: string;
   defaultAgent?: AgentInterface;
   agents?: () => AllAgentInterface[];
-  tenantId?: string;
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: GraphStopWhen;
@@ -298,6 +279,7 @@ export interface AgentInterface {
   getDelegates(): AllAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
+  setContext(tenantId: string, projectId: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: AgentInterface[]): void;
   addDelegate(...agents: AgentInterface[]): void;
@@ -313,6 +295,7 @@ export interface ExternalAgentInterface {
   getBaseUrl(): string;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
+  setContext?(tenantId: string): void;
 }
 
 // Graph interface for runner operations

@@ -23,7 +23,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { deleteToolAction } from '@/lib/actions/tools';
-import type { MCPTool } from '@/lib/api/tools';
+import type { MCPTool } from "@/lib/types/tools";;
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Badge } from '../ui/badge';
 import { CardTitle } from '../ui/card';
