@@ -4,8 +4,8 @@
  */
 
 import type { McpTool } from '@inkeep/agents-core';
+import { discoverOAuthEndpoints, type OAuthConfig } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { discoverOAuthEndpoints, type OAuthConfig } from './auth-detection';
 
 const logger = getLogger('oauth-service');
 
@@ -121,7 +121,7 @@ class OAuthService {
     const { tool, tenantId, projectId, toolId } = params;
 
     // 1. Detect OAuth requirements
-    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url);
+    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);
     if (!oAuthConfig) {
       throw new Error('OAuth not supported by this server');
     }
@@ -174,7 +174,7 @@ class OAuthService {
     const { code, codeVerifier, clientId, tool } = params;
 
     // Discover OAuth server endpoints from MCP server
-    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url);
+    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);
     if (!oAuthConfig?.tokenUrl) {
       throw new Error('Could not discover OAuth token endpoint');
     }

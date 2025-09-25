@@ -149,7 +149,7 @@ export class McpClient {
     if (!activeTools) return;
     for (const item of activeTools) {
       if (tools.includes(item)) continue;
-      throw new Error(`[Tools] Tool ${item} not found in tools`);
+      console.warn(`[Tools] Tool ${item} not found in tools`);
     }
   }
 
