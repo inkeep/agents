@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./instrumentation": {"import": "./dist/instrumentation.js", "types": "./dist/instrumentation.d.ts"}
   },
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
