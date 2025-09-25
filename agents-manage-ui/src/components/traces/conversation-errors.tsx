@@ -91,13 +91,8 @@ export function ConversationErrors({ conversationId, onBack }: ConversationError
       try {
         setExceptionsLoading(true);
         const response = await fetch(`/api/signoz/conversations/${conversationId}/exceptions`);
-
-        if (response.ok) {
-          const data = await response.json();
-          setExceptions(data.exceptions || []);
-        } else {
-          setExceptions([]);
-        }
+        const data = response.ok ? await response.json() : { exceptions: [] };
+        setExceptions(data.exceptions || []);
       } catch {
         setExceptions([]);
       } finally {

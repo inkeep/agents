@@ -57,7 +57,7 @@ export async function fetchExceptionsByTraceIds(
     SELECT
       traceID,
       spanID,
-      formatDateTime(timestamp, '%Y-%m-%dT%H:%i:%s.%fZ') as timestamp,
+      timestamp,
       exceptionType,
       exceptionMessage,
       exceptionStacktrace,

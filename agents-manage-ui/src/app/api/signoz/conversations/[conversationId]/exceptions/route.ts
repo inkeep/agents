@@ -26,7 +26,7 @@ export async function GET(
     logger.info({ conversationId }, 'Fetching conversation exceptions');
 
     // Check if API key is configured
-    if (!SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === '') {
+    if (!SIGNOZ_API_KEY) {
       logger.warn('SIGNOZ_API_KEY not configured');
       return NextResponse.json(
         {
@@ -39,16 +39,6 @@ export async function GET(
     const spans = await fetchAllSpanAttributes_SQL(conversationId, SIGNOZ_URL, SIGNOZ_API_KEY);
     const traceIds = extractTraceIds(spans);
     const exceptions = await fetchExceptionsByTraceIds(traceIds, SIGNOZ_URL, SIGNOZ_API_KEY);
-
-    logger.info(
-      {
-        conversationId,
-        spanCount: spans.length,
-        traceIdCount: traceIds.length,
-        exceptionCount: exceptions.length,
-      },
-      'Successfully fetched conversation exceptions'
-    );
 
     return NextResponse.json({
       exceptions,
