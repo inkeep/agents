@@ -1,0 +1,260 @@
+---
+title: Project Structure
+description: Learn how to organize your Inkeep Agent projects for optimal development and deployment
+icon: "LuFolder"
+---
+
+## Overview
+
+Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your agents, graphs, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
+
+## Standard Project Layout
+
+```
+my-agent-project/
+├── inkeep.config.ts          # Project configuration
+├── index.ts                  # Project entry point
+├── graphs/                   # Agent graph definitions
+│   ├── main-graph.ts
+│   └── support-graph.ts
+├── tools/                    # Tool definitions
+│   ├── search-tool.ts
+│   └── calculator-tool.ts
+├── data-components/          # Data component definitions
+│   ├── user-profile.ts
+│   └── product-catalog.ts
+├── environments/             # Environment-specific configurations
+│   ├── index.ts
+│   ├── development.env.ts
+│   ├── staging.env.ts
+│   └── production.env.ts
+└── package.json              # Project dependencies
+```
+
+## Core Files
+
+### `inkeep.config.ts`
+
+The configuration file that defines your project settings:
+
+```typescript
+import { defineConfig } from '@inkeep/agents-cli/config';
+
+export default defineConfig({
+  tenantId: 'my-company',
+  outputDirectory: 'default',
+  agentsManageApiUrl: 'http://localhost:3002',
+  agentsRunApiUrl: 'http://localhost:3003',
+});
+```
+
+### `index.ts`
+
+The project entry point that exports your project definition:
+
+```typescript
+import { project } from '@inkeep/agents-sdk';
+import { mainGraph } from './graphs/main-graph';
+import { supportGraph } from './graphs/support-graph';
+import { searchTool } from './tools/search-tool';
+import { calculatorTool } from './tools/calculator-tool';
+import { userProfile } from './data-components/user-profile';
+
+export const myProject = project({
+  id: 'my-agent-project',
+  name: 'My Agent Project',
+  description: 'A comprehensive multi-agent system',
+  graphs: () => [mainGraph, supportGraph],
+  tools: () => [searchTool, calculatorTool],
+  dataComponents: () => [userProfile],
+});
+```
+
+## Directory Conventions
+
+### `/graphs/`
+
+Contains agent graph definitions. Each file typically exports one graph:
+
+```typescript
+// graphs/customer-support.ts
+import { agentGraph, agent } from '@inkeep/agents-sdk';
+
+const routerAgent = agent({
+  id: 'support-router',
+  name: 'Support Router',
+  instructions: 'Route customer inquiries to appropriate specialists',
+});
+
+const billingAgent = agent({
+  id: 'billing-specialist',
+  name: 'Billing Specialist',
+  instructions: 'Handle billing and payment inquiries',
+});
+
+export const customerSupportGraph = agentGraph({
+  defaultAgent: routerAgent,
+  agents: [routerAgent, billingAgent],
+});
+```
+
+### `/tools/`
+
+Tool definitions that can be used by agents:
+
+```typescript
+// tools/database-query.ts
+import { tool } from '@inkeep/agents-sdk';
+
+export const databaseQueryTool = tool({
+  id: 'db-query',
+  name: 'Database Query Tool',
+  description: 'Execute SQL queries against the database',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      database: { type: 'string' }
+    }
+  },
+  // Tool implementation...
+});
+```
+
+### `/data-components/`
+
+Data components for managing structured data:
+
+```typescript
+// data-components/customer-data.ts
+import { dataComponent } from '@inkeep/agents-sdk';
+
+export const customerData = dataComponent({
+  id: 'customer-data',
+  name: 'Customer Information',
+  description: 'Customer profile and interaction history',
+  schema: {
+    type: 'object',
+    properties: {
+      customerId: { type: 'string' },
+      name: { type: 'string' },
+      email: { type: 'string' }
+    }
+  }
+});
+```
+
+### `/environments/`
+
+Environment-specific configurations for different deployment stages:
+
+```typescript
+// environments/production.env.ts
+import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
+import { CredentialStoreType } from '@inkeep/agents-core';
+
+export const production = registerEnvironmentSettings({
+  credentials: {
+    "openai-prod": {
+      id: "openai-prod",
+      type: CredentialStoreType.memory,
+      credentialStoreId: "memory-default",
+      retrievalParams: {
+        key: "OPENAI_API_KEY_PROD",
+      },
+    },
+  },
+});
+```
+
+## File Discovery Process
+
+The CLI automatically discovers files using these patterns:
+
+1. **Config Discovery**: Searches for `inkeep.config.ts`:
+   - Starts in current directory
+   - Traverses up parent directories until found
+   - Can be overridden with `--config` flag
+
+2. **Resource Discovery**: Scans for TypeScript files:
+   - Excludes `node_modules/` and `.git/`
+   - Categorizes files by directory name
+   - Processes dependencies and relationships
+
+3. **File Categorization**:
+   - **Index files**: `index.ts`, `main.ts`
+   - **Graph files**: Files in `/graphs/` directory
+   - **Agent files**: Files containing agent definitions
+   - **Tool files**: Files in `/tools/` directory
+   - **Data component files**: Files in `/data-components/` directory
+   - **Environment files**: Files in `/environments/` directory
+
+## Best Practices
+
+### Naming Conventions
+
+- Use kebab-case for file names: `customer-support-graph.ts`
+- Use camelCase for variable names: `customerSupportGraph`
+- Use descriptive IDs: `id: 'customer-support-router'`
+
+### File Organization
+
+- **One primary export per file**: Each file should export one main resource
+- **Group related functionality**: Keep related agents in the same graph file
+- **Separate concerns**: Keep tools, data components, and graphs in separate directories
+- **Environment isolation**: Use separate files for different environments
+
+### Dependencies
+
+- **Explicit imports**: Import all dependencies explicitly
+- **Circular dependency avoidance**: Structure imports to prevent circular references
+- **Type safety**: Use TypeScript for all configuration files
+
+## Troubleshooting
+
+### Common Issues
+
+**Config file not found:**
+```bash
+Error: Could not find inkeep.config.ts in current directory or parent directories
+```
+- Ensure `inkeep.config.ts` exists in your project root
+- Use `--config` flag to specify custom location
+
+**Invalid project structure:**
+```bash
+Warning: No graphs found in project
+```
+- Check that graph files are in `/graphs/` directory
+- Verify exports are properly named and typed
+
+**Missing dependencies:**
+```bash
+Error: Cannot resolve import './graphs/missing-graph'
+```
+- Ensure all imported files exist
+- Check file paths and extensions
+
+### Validation
+
+Use the CLI to validate your project structure:
+
+```bash
+# Validate project without pushing
+inkeep push --json
+
+# Check config resolution
+inkeep config get
+```
+
+## Migration from Legacy Structures
+
+If migrating from older project structures:
+
+1. **Create standard directories**: Add `/graphs/`, `/tools/`, `/data-components/`
+2. **Move files appropriately**: Organize existing files into correct directories
+3. **Update imports**: Fix import paths after moving files
+4. **Test compilation**: Run `inkeep push --json` to validate structure
+5. **Update CI/CD**: Adjust build scripts for new structure
+
+This standardized structure ensures your projects work seamlessly with the Inkeep CLI and can be easily shared, deployed, and maintained across different environments.

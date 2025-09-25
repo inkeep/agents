@@ -30,7 +30,17 @@ export default {
         'typescript-sdk/data-components',
         'typescript-sdk/artifact-components',
         'typescript-sdk/status-updates',
-        'typescript-sdk/cli-reference',
+        {
+          group: 'Project Management',
+          icon: 'LuFolderOpen',
+          pages: [
+            'typescript-sdk/project-structure',
+            'typescript-sdk/configuration',
+            'typescript-sdk/environments',
+            'typescript-sdk/push-pull-workflows',
+            'typescript-sdk/cli-reference',
+          ],
+        },
         {
           group: 'Observability',
           icon: 'LuChartColumn',
