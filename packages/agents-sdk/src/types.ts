@@ -5,17 +5,25 @@ import type {
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
+  FullGraphDefinition,
   GraphStopWhen,
   McpTransportConfig,
-  ToolInsert,
   StatusUpdateSettings,
+  ToolInsert,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
+import type { ArtifactComponentInterface } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
+import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './externalAgent';
 import type { Tool } from './tool';
-import type { DataComponentInterface } from './data-component';
-import type { ArtifactComponentInterface } from './artifact-component';
+
+/**
+ * Tool instance that may have additional metadata attached during agent processing
+ */
+export type AgentTool = Tool & {
+  selectedTools?: string[]; // Added when tool comes from AgentMcpConfig
+};
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -274,7 +282,7 @@ export interface AgentInterface {
   getName(): string;
   getDescription(): string;
   getInstructions(): string;
-  getTools(): Record<string, any>;
+  getTools(): Record<string, AgentTool>;
   getTransfers(): AgentInterface[];
   getDelegates(): AllAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
@@ -312,6 +320,7 @@ export interface GraphInterface {
   getDefaultAgent(): AgentInterface | undefined;
   getAgent(name: string): AllAgentInterface | undefined;
   getAgents(): AllAgentInterface[];
+  toFullGraphDefinition(): Promise<FullGraphDefinition>;
 }
 
 // Legacy builder types (for backward compatibility)

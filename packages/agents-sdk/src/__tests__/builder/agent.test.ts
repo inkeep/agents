@@ -37,6 +37,10 @@ describe('Agent Builder', () => {
       id: 'testTool',
       name: 'Test Tool',
       serverUrl: 'http://localhost:3000',
+      tenantId: 'test-tenant',
+      getId: () => 'testTool',
+      getName: () => 'Test Tool',
+      getCredentialReferenceId: () => undefined,
     } as any;
   });
 
@@ -298,6 +302,10 @@ describe('Agent Builder', () => {
         id: 'testTool',
         name: 'Test Tool',
         serverUrl: 'http://localhost:3000',
+        tenantId: 'test-tenant',
+        getId: () => 'testTool',
+        getName: () => 'Test Tool',
+        getCredentialReferenceId: () => undefined,
       } as any;
 
       agent = new Agent({
