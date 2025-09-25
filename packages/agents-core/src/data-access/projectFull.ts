@@ -778,6 +778,7 @@ export const getFullProject =
             id: tool.id,
             name: tool.name,
             config: tool.config,
+            credentialReferenceId: tool.credentialReferenceId || undefined,
             imageUrl: tool.imageUrl || undefined,
             // Don't include runtime fields in configuration
             // status, capabilities, lastHealthCheck, lastError, availableTools, activeTools, lastToolsSync are all runtime
