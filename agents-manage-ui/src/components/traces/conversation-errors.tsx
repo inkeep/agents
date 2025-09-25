@@ -28,6 +28,7 @@ interface ConversationDetail {
   contextErrors?: ContextError[];
   agentGenerationErrors?: AgentGenerationError[];
   executionIterationErrors?: ExecutionIterationError[];
+  exceptions?: ConversationException[];
 }
 
 interface ExecutionIterationError {
@@ -48,10 +49,22 @@ interface AgentGenerationError {
   statusDescription: string;
 }
 
+interface ConversationException {
+  spanId: string;
+  traceId: string;
+  timestamp: string;
+  exceptionType: string;
+  exceptionMessage: string;
+  exceptionStacktrace: string;
+  serviceName?: string;
+}
+
 export function ConversationErrors({ conversationId, onBack }: ConversationErrorsProps) {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exceptions, setExceptions] = useState<ConversationException[]>([]);
+  const [exceptionsLoading, setExceptionsLoading] = useState(true);
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
@@ -74,8 +87,27 @@ export function ConversationErrors({ conversationId, onBack }: ConversationError
       }
     };
 
+    const fetchExceptions = async () => {
+      try {
+        setExceptionsLoading(true);
+        const response = await fetch(`/api/signoz/conversations/${conversationId}/exceptions`);
+
+        if (response.ok) {
+          const data = await response.json();
+          setExceptions(data.exceptions || []);
+        } else {
+          setExceptions([]);
+        }
+      } catch {
+        setExceptions([]);
+      } finally {
+        setExceptionsLoading(false);
+      }
+    };
+
     if (conversationId) {
       fetchConversationDetail();
+      fetchExceptions();
     }
   }, [conversationId]);
 
@@ -297,13 +329,75 @@ export function ConversationErrors({ conversationId, onBack }: ConversationError
             </>
           )}
 
+        {/* Exceptions Section */}
+        {!exceptionsLoading && (
+          <h3 className="text-md font-semibold text-foreground mt-6 mb-3">
+            Error Logs
+            {exceptionsLoading && (
+              <span className="text-sm text-muted-foreground ml-2">(loading...)</span>
+            )}
+          </h3>
+        )}
+
+        {/* Show exceptions if found */}
+        {exceptions && exceptions.length > 0 && (
+          <>
+            {exceptions.map((exception) => (
+              <Card
+                key={`exception-${exception.spanId}`}
+                className="shadow-none bg-background border-l-4 border-l-red-600"
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                      {exception.exceptionType}
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      {exception.serviceName && (
+                        <Badge variant="outline" className="text-xs">
+                          {exception.serviceName}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {exception.spanId}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Exception Message</div>
+                    <div className="bg-destructive/10 dark:bg-destructive/20 border border-destructive/20 dark:border-destructive/30 rounded-lg p-3 mt-1">
+                      <p className="text-destructive dark:text-destructive text-sm leading-relaxed">
+                        {exception.exceptionMessage}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Stack Trace</div>
+                    <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg p-3 mt-1">
+                      <pre className="text-gray-800 dark:text-gray-300 text-xs leading-relaxed whitespace-pre-wrap overflow-x-auto">
+                        {exception.exceptionStacktrace}
+                      </pre>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
+
         {/* No Errors Message */}
         {(!conversation.mcpToolErrors || conversation.mcpToolErrors.length === 0) &&
           (!conversation.contextErrors || conversation.contextErrors.length === 0) &&
           (!conversation.agentGenerationErrors ||
             conversation.agentGenerationErrors.length === 0) &&
           (!conversation.executionIterationErrors ||
-            conversation.executionIterationErrors.length === 0) && (
+            conversation.executionIterationErrors.length === 0) &&
+          (!exceptions || exceptions.length === 0) &&
+          !exceptionsLoading && (
             <Card className="shadow-none bg-background">
               <CardContent className="py-8 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
