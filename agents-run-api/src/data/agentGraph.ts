@@ -48,7 +48,7 @@ async function hydrateGraph({
     // Create AgentCard for the graph (representing it as a single agent)
     const agentCard: AgentCard = {
       name: dbGraph.name,
-      description: dbGraph.description || `Agent graph: ${dbGraph.name}`,
+      description: dbGraph.description || '',
       url: baseUrl ? `${baseUrl}/a2a` : '',
       version: '1.0.0',
       capabilities: {
