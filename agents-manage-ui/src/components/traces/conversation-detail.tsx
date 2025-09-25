@@ -150,7 +150,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       if (mcp) parts.push(`${mcp} MCP tool`);
                       if (ctx) parts.push(`${ctx} context`);
                       if (agent) parts.push(`${agent} agent generation`);
-                      return `${parts.join(', ')} errors - Click to view details`;
+                      return `${parts.join(', ')} errors - Click to view details and logs`;
                     }
                     return 'Errors in conversation';
                   })()}
