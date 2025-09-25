@@ -34,8 +34,9 @@ inkeep init [path]
 **Options:**
 
 - `--no-interactive` - Skip interactive path selection
+- `--config <path>` - Path to use as template for new configuration
 
-**Example:**
+**Examples:**
 
 ```bash
 # Interactive initialization
@@ -46,6 +47,9 @@ inkeep init ./my-project
 
 # Non-interactive mode
 inkeep init --no-interactive
+
+# Use specific config as template
+inkeep init --config ./template-config.ts
 ```
 
 ### `inkeep push`
@@ -58,10 +62,12 @@ inkeep push
 
 **Options:**
 
-- `--project <project-path>` - Specify project directory path (defaults to current directory or searches for `inkeep.config.ts`)
+- `--project <project-id>` - Project ID or path to project directory
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
+- `--tenant-id <id>` - Override tenant ID
 - `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--agents-run-api-url <url>` - Override agents run API URL
 - `--json` - Generate project data as JSON file instead of pushing to server
 
 **Examples:**
@@ -79,8 +85,12 @@ inkeep push --env development
 # Generate project JSON without pushing
 inkeep push --json
 
-# Override API URL
+# Override tenant ID
+inkeep push --tenant-id my-tenant
+
+# Override API URLs
 inkeep push --agents-manage-api-url https://api.example.com
+inkeep push --agents-run-api-url https://run.example.com
 
 # Use specific config file
 inkeep push --config ./custom-config/inkeep.config.ts
@@ -168,11 +178,12 @@ inkeep pull
 
 **Options:**
 
-- `--project <project-path>` - Specify project directory path (defaults to current directory or searches for `inkeep.config.ts`)
+- `--project <project-id>` - Project ID or path to project directory
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--agents-manage-api-url <url>` - Override the management API URL from config
 - `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
 - `--json` - Save project data as JSON file instead of updating TypeScript files
+- `--debug` - Enable debug logging for LLM generation
 
 **How it Works:**
 
@@ -210,6 +221,9 @@ inkeep pull --json
 # Pull with custom API endpoint
 inkeep pull --agents-manage-api-url https://api.example.com
 
+# Enable debug logging
+inkeep pull --debug
+
 # Override tenant ID when using custom API URL
 inkeep pull --agents-manage-api-url https://api.example.com --env production
 
@@ -243,7 +257,11 @@ inkeep chat [graph-id]
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--tenant-id <tenant-id>` - Tenant ID
+- `--agents-manage-api-url <url>` - Agents manage API URL
+- `--agents-run-api-url <url>` - Agents run API URL
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -255,7 +273,10 @@ inkeep chat
 inkeep chat my-graph-id
 
 # Use a specific config file
-inkeep chat --config-file-path ./inkeep.config.ts
+inkeep chat --config ./inkeep.config.ts
+
+# Override tenant and API URLs
+inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep list-graphs`
@@ -268,7 +289,10 @@ inkeep list-graphs
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--tenant-id <tenant-id>` - Tenant ID
+- `--agents-manage-api-url <url>` - Agents manage API URL
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -277,7 +301,10 @@ inkeep list-graphs
 inkeep list-graphs
 
 # List graphs using a specific config file
-inkeep list-graphs --config-file-path ./inkeep.config.ts
+inkeep list-graphs --config ./inkeep.config.ts
+
+# Override tenant and API URL
+inkeep list-graphs --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep dev`
@@ -292,9 +319,10 @@ inkeep dev
 
 - `--port <port>` - Port to run the server on (default: 3000)
 - `--host <host>` - Host to bind the server to (default: localhost)
-- `--build` - Create a Standalone build
+- `--build` - Create a Vercel-ready build and exit
 - `--output-dir <dir>` - Output directory for build files (default: ./vercel-build)
 - `--vercel` - Copy Vercel output to .vercel/output for deployment
+- `--config <path>` - Path to configuration file
 
 **Examples:**
 
@@ -314,8 +342,11 @@ inkeep dev --vercel
 # Then deploy with Vercel CLI
 vercel deploy --prebuilt --prod
 
-# Alternative: Create standalone build
+# Alternative: Create Vercel-ready build
 inkeep dev --build --output-dir ./my-build
+
+# Use specific config file
+inkeep dev --config ./custom-config.ts
 ```
 
 ### `inkeep config`
@@ -334,7 +365,8 @@ inkeep config get [key]
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -356,7 +388,8 @@ inkeep config set <key> <value>
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -375,7 +408,8 @@ inkeep config list
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 ### `inkeep add`
 
@@ -389,12 +423,22 @@ inkeep add [template-name]
 
 - Pass no template name to list all available templates
 - `--target-path <path>` - Target path to add the template to
+- `--config <path>` - Path to configuration file
 
 **Examples:**
 
 ```bash
+# List available templates
+inkeep add
+
+# Add specific template
 inkeep add weather-project
+
+# Add template to specific path
 inkeep add weather-project --target-path ./my-project-directory
+
+# Use specific config file
+inkeep add weather-project --config ./custom-config.ts
 ```
 
 ## Configuration File
@@ -423,6 +467,7 @@ Effective resolution order:
 
 The CLI and SDK respect the following environment variables:
 
+- `INKEEP_TENANT_ID` - Tenant identifier
 - `INKEEP_AGENTS_MANAGE_API_URL` - Management API base URL
 - `INKEEP_AGENTS_RUN_API_URL` - Run API base URL
 - `INKEEP_ENV` - Environment name for credentials loading during `inkeep push`
