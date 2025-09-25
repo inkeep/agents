@@ -4,16 +4,20 @@ import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-graph-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import type { Credential } from '@/lib/api/credentials';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
+import { CredentialSelector } from './credential-selector';
 import { InputField, TextareaField } from './form-fields';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
+  credentialLookup: Record<string, Credential>;
   errorHelpers?: ErrorHelpers;
 }
 
 export function ExternalAgentNodeEditor({
   selectedNode,
+  credentialLookup,
   errorHelpers,
 }: ExternalAgentNodeEditorProps) {
   const { handleInputChange, getFieldError, setFieldRef, updateField } = useNodeEditor({
@@ -97,6 +101,17 @@ export function ExternalAgentNodeEditor({
         onChange={(value) => updateField('headers', value)}
         placeholder="{}"
         className=""
+      />
+      <CredentialSelector
+        label="Credential"
+        credentialLookup={credentialLookup}
+        value={
+          typeof selectedNode.data.credentialReferenceId === 'string'
+            ? selectedNode.data.credentialReferenceId
+            : null
+        }
+        onValueChange={(value) => updateField('credentialReferenceId', value || '')}
+        placeholder="Select a credential"
       />
     </div>
   );

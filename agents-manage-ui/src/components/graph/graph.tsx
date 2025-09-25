@@ -27,6 +27,7 @@ import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import { saveGraph } from '@/lib/services/save-graph';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
@@ -67,6 +68,7 @@ interface GraphProps {
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
+  credentialLookup?: Record<string, Credential>;
 }
 
 function Flow({
@@ -74,6 +76,7 @@ function Flow({
   dataComponentLookup = {},
   artifactComponentLookup = {},
   toolLookup: initialToolLookup = {},
+  credentialLookup = {},
 }: GraphProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
@@ -585,6 +588,7 @@ function Flow({
         backToGraph={backToGraph}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
+        credentialLookup={credentialLookup}
         selectedToolsLookup={selectedToolsLookup}
       />
       {showPlayground && graph?.id && (
@@ -599,13 +603,19 @@ function Flow({
   );
 }
 
-export function Graph({ graph, dataComponentLookup, artifactComponentLookup }: GraphProps) {
+export function Graph({
+  graph,
+  dataComponentLookup,
+  artifactComponentLookup,
+  credentialLookup,
+}: GraphProps) {
   return (
     <ReactFlowProvider>
       <Flow
         graph={graph}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
+        credentialLookup={credentialLookup}
       />
     </ReactFlowProvider>
   );

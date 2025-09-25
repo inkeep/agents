@@ -112,7 +112,7 @@ export function deserializeGraphData(
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
     const isDefault = agentId === data.defaultAgentId;
-    const isExternal = agent.type === 'external' || 'baseUrl' in agent;
+    const isExternal = agent.type === 'external';
 
     const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.Agent;
     const agentNodeData = isExternal
@@ -123,6 +123,7 @@ export function deserializeGraphData(
           baseUrl: (agent as ExternalAgentDefinition).baseUrl,
           headers: formatJsonField(agent.headers) || '{}',
           type: agent.type,
+          credentialReferenceId: agent.credentialReferenceId,
         }
       : (() => {
           const internalAgent = agent as InternalAgentDefinition;

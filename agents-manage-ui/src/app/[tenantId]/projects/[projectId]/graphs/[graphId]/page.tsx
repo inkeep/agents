@@ -1,6 +1,7 @@
 import { Graph } from '@/components/graph/graph';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
+import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { getFullGraphAction } from '@/lib/actions/graph-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
@@ -15,16 +16,22 @@ interface GraphPageProps {
 async function GraphPage({ params }: GraphPageProps) {
   const { graphId, tenantId, projectId } = await params;
 
-  const [graph, dataComponents, artifactComponents, tools] = await Promise.all([
+  const [graph, dataComponents, artifactComponents, credentials, tools] = await Promise.all([
     getFullGraphAction(tenantId, projectId, graphId),
     fetchDataComponentsAction(tenantId, projectId),
     fetchArtifactComponentsAction(tenantId, projectId),
     fetchToolsAction(tenantId, projectId),
+    fetchCredentialsAction(tenantId, projectId),
   ]);
 
   if (!graph.success) throw new Error(graph.error);
   if (!dataComponents.success || !artifactComponents.success || !tools.success) {
-    console.error('Failed to fetch components:', dataComponents.error, artifactComponents.error, tools.error);
+    console.error(
+      'Failed to fetch components:',
+      dataComponents.error,
+      artifactComponents.error,
+      tools.error
+    );
   }
 
   const dataComponentLookup = createLookup(
@@ -35,12 +42,11 @@ async function GraphPage({ params }: GraphPageProps) {
     artifactComponents.success ? artifactComponents.data : undefined
   );
 
-  const toolLookup = createLookup(
-    tools.success ? tools.data : undefined
-  );
+  const toolLookup = createLookup(tools.success ? tools.data : undefined);
 
   // Ensure the toolLookup is serializable
   const serializedToolLookup = JSON.parse(JSON.stringify(toolLookup));
+  const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
 
   return (
     <BodyTemplate
@@ -54,6 +60,7 @@ async function GraphPage({ params }: GraphPageProps) {
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={serializedToolLookup}
+        credentialLookup={credentialLookup}
       />
     </BodyTemplate>
   );

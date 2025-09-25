@@ -442,6 +442,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: agent.baseUrl,
+          headers: agent.headers,
+          credentialReferenceId: agent.credentialReferenceId,
+          type: 'external',
         };
       })
     );
@@ -465,6 +468,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: (agent as any).baseUrl,
+          credentialReferenceId: agent.credentialReferenceId,
+          headers: agent.headers,
+          type: agent.type,
         };
       } else {
         // Internal agent - already processed with tools as IDs
