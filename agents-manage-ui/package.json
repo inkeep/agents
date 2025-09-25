@@ -112,7 +112,6 @@
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5",
-    "vercel": "^48.1.4",
     "vitest": "^3.2.4"
   },
   "engines": {
