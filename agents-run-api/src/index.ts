@@ -1,3 +1,4 @@
+import './env';
 import {
   type CredentialStore,
   CredentialStoreRegistry,
