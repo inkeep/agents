@@ -513,13 +513,15 @@ ${NAMING_CONVENTION_RULES}
 
 REQUIREMENTS:
 1. Import mcpTool from '@inkeep/agents-sdk' - ensure imports are alphabetically sorted
-2. Use mcpTool() with serverUrl property (not nested server object)
-3. Include id, name, and serverUrl as the main properties
-4. Export the tool following naming convention rules (camelCase version of ID)
-5. Include all configuration from the tool data
+2. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
+3. CRITICAL: Preserve ALL configuration properties from the tool data in the config object
+4. Include both serverUrl property AND complete config object (SDK requires serverUrl, verification needs complete config)
+5. Export the tool following naming convention rules (camelCase version of ID)
 6. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
 7. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
 8. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+9. PRESERVE TRANSPORT CONFIG: If config.mcp.transport exists, it MUST be included in the config object
+10. ENSURE CONSISTENCY: serverUrl property should match config.mcp.server.url value
 
 EXAMPLE FOR TOOL WITH UNDERSCORE ID:
 import { mcpTool } from '@inkeep/agents-sdk';
@@ -531,16 +533,28 @@ export const inkeepFacts = mcpTool({
   serverUrl: 'https://facts.inkeep.com/mcp'
 });
 
-EXAMPLE FOR TOOL WITH CREDENTIAL REFERENCE:
+EXAMPLE FOR TOOL WITH CREDENTIAL REFERENCE AND TRANSPORT CONFIG:
 import { mcpTool } from '@inkeep/agents-sdk';
 import { envSettings } from '../environments';
 
-// Tool with credential reference - note credentialReferenceId 'inkeep-api-credential' becomes 'inkeep_api_credential'
+// Tool with credential reference and transport config - note credentialReferenceId 'inkeep-api-credential' becomes 'inkeep_api_credential'
+// IMPORTANT: Include both serverUrl (required by SDK) and complete config object (needed for verification)
 export const inkeepFacts = mcpTool({
   id: 'inkeep_facts',
   name: 'inkeep_facts',
   serverUrl: 'https://mcp.inkeep.com/inkeep/mcp',
-  credential: envSettings.getEnvironmentSetting('inkeep_api_credential')
+  credential: envSettings.getEnvironmentSetting('inkeep_api_credential'),
+  config: {
+    type: 'mcp',
+    mcp: {
+      server: {
+        url: 'https://mcp.inkeep.com/inkeep/mcp'
+      },
+      transport: {
+        type: 'streamable_http'
+      }
+    }
+  }
 });
 
 EXAMPLE FOR TOOL WITH HYPHEN ID:
