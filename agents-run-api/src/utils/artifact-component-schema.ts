@@ -1,7 +1,8 @@
-import type { ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
+import type { ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
+import { SchemaProcessor } from './base/SchemaProcessor';
 
 const _logger = getLogger('ArtifactComponentSchema');
 
@@ -146,62 +147,100 @@ export class ArtifactReferenceSchema {
  * Standard artifact creation component schema for data components
  */
 export class ArtifactCreateSchema {
-  // Standard artifact create props schema
-  private static readonly ARTIFACT_CREATE_PROPS_SCHEMA = {
-    type: 'object',
-    properties: {
-      id: {
-        type: 'string',
-        description: 'Unique artifact identifier (e.g., "api-doc-1", "tutorial-guide-2")',
-      },
-      tool_call_id: {
-        type: 'string',
-        description:
-          'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
-      },
-      type: {
-        type: 'string',
-        description: 'Artifact type - must match one of the available artifact component types',
-      },
-      base_selector: {
-        type: 'string',
-        description: 'JMESPath selector starting with "result." to navigate to main data',
-      },
-      summary_props: {
-        type: 'object',
-        description: 'JSON object mapping summary properties to JMESPath selectors',
-      },
-      full_props: {
-        type: 'object',
-        description: 'JSON object mapping full properties to JMESPath selectors',
-      },
-    },
-    required: ['id', 'tool_call_id', 'type', 'base_selector'],
-  };
-
   /**
-   * Get the standard Zod schema for artifact create components
+   * Generate artifact create schemas - one for each artifact component type
+   * @param artifactComponents - The available artifact components to generate schemas for
+   * @returns Array of Zod schemas, one for each artifact component
    */
-  static getSchema(): z.ZodType<any> {
-    return z.object({
-      id: z.string(),
-      name: z.literal('ArtifactCreate'),
-      props: jsonSchemaToZod(ArtifactCreateSchema.ARTIFACT_CREATE_PROPS_SCHEMA),
+  static getSchemas(artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>): z.ZodType<any>[] {
+    return artifactComponents.map(component => {
+      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
+      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
+      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+
+      const propsSchema = {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+          },
+          tool_call_id: {
+            type: 'string',
+            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+          },
+          type: {
+            type: 'string',
+            enum: [component.name],
+            description: `Artifact type - must be "${component.name}"`,
+          },
+          base_selector: {
+            type: 'string',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+          },
+          summary_props: enhancedSummaryProps,
+          full_props: enhancedFullProps,
+        },
+        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+      };
+
+      return z.object({
+        id: z.string(),
+        name: z.literal(`ArtifactCreate_${component.name}`),
+        props: jsonSchemaToZod(propsSchema),
+      });
     });
   }
 
   /**
-   * Get complete DataComponent for artifact creation
+   * Get DataComponents for artifact creation - one for each artifact component type
+   * @param artifactComponents - The available artifact components to generate schemas for
+   * @returns Array of DataComponent definitions, one for each artifact component
    */
-  static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
-    return {
-      id: 'artifact-create',
-      tenantId: tenantId,
-      projectId: projectId,
-      name: 'ArtifactCreate',
-      description:
-        'Create artifacts from tool results by extracting structured data using selectors.',
-      props: ArtifactCreateSchema.ARTIFACT_CREATE_PROPS_SCHEMA,
-    };
+  static getDataComponents(
+    tenantId: string,
+    projectId: string = '',
+    artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
+  ): DataComponentInsert[] {
+    return artifactComponents.map(component => {
+      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
+      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
+      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+
+      const propsSchema = {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+          },
+          tool_call_id: {
+            type: 'string',
+            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+          },
+          type: {
+            type: 'string',
+            enum: [component.name],
+            description: `Artifact type - must be "${component.name}"`,
+          },
+          base_selector: {
+            type: 'string',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+          },
+          summary_props: enhancedSummaryProps,
+          full_props: enhancedFullProps,
+        },
+        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+      };
+
+      return {
+        id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
+        tenantId: tenantId,
+        projectId: projectId,
+        name: `ArtifactCreate_${component.name}`,
+        description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
+        props: propsSchema,
+      };
+    });
   }
 }

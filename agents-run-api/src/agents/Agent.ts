@@ -44,7 +44,7 @@ import {
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { generateToolId } from '../utils/agent-operations';
-import { ArtifactReferenceSchema, ArtifactCreateSchema } from '../utils/artifact-component-schema';
+import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { graphSessionManager } from '../utils/graph-session';
 import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
@@ -58,7 +58,8 @@ import { createDelegateToAgentTool, createTransferToAgentTool } from './relation
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
-import { V1Config } from './versions/V1Config';
+import { Phase1Config } from './versions/v1/Phase1Config';
+import { Phase2Config } from './versions/v1/Phase2Config';
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -156,7 +157,7 @@ function isValidTool(
 
 export class Agent {
   private config: AgentConfig;
-  private systemPromptBuilder = new SystemPromptBuilder('v1', new V1Config());
+  private systemPromptBuilder = new SystemPromptBuilder('v1', new Phase1Config());
   private credentialStuffer?: CredentialStuffer;
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
@@ -200,7 +201,6 @@ export class Agent {
       config.dataComponents.length > 0
     ) {
       processedDataComponents = [
-        ArtifactCreateSchema.getDataComponent(config.tenantId, config.projectId),
         ArtifactReferenceSchema.getDataComponent(config.tenantId, config.projectId),
         ...processedDataComponents,
       ];
@@ -839,41 +839,32 @@ export class Agent {
    * based on configured data components and artifact components across the graph
    */
   private async buildPhase2SystemPrompt(): Promise<string> {
-    const hasDataComponents = this.config.dataComponents && this.config.dataComponents.length > 0;
+    const phase2Config = new Phase2Config();
     const hasArtifactComponents = await this.hasGraphArtifactComponents();
 
-    if (hasDataComponents && hasArtifactComponents) {
-      return `Generate the final structured JSON response using the configured data components. Intersperse artifact references throughout the dataComponents array to support each piece of information with evidence from the research above. Use exact artifact_id and task_id values from the tool outputs - never make up or modify these IDs.
+    // Get reference artifacts from existing tasks (same logic as buildSystemPrompt)
+    const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
+      contextId: this.conversationId || '',
+    });
 
-Key requirements:
-- Mix artifact references throughout your dataComponents array
-- Each artifact reference must use EXACT IDs from tool outputs
-- Reference artifacts that directly support the adjacent information
-- Follow the pattern: Data → Supporting Artifact → Next Data → Next Artifact
-- IMPORTANT: In Text components, write naturally as if having a conversation - do NOT mention components, schemas, JSON, structured data, or any technical implementation details`;
+    const referenceArtifacts: Artifact[] = [];
+    for (const taskId of referenceTaskIds) {
+      const artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+        },
+        taskId: taskId,
+      });
+      referenceArtifacts.push(...artifacts);
     }
 
-    if (hasDataComponents && !hasArtifactComponents) {
-      return `Generate the final structured JSON response using the configured data components. Organize the information from the research above into the appropriate structured format based on the available component schemas.
-
-Key requirements:
-- Use the exact component structure and property names
-- Fill in all relevant data from the research
-- Ensure data is organized logically and completely
-- IMPORTANT: In Text components, write naturally as if having a conversation - do NOT mention components, schemas, JSON, structured data, or any technical implementation details`;
-    }
-
-    if (!hasDataComponents && hasArtifactComponents) {
-      return `Generate the final structured response with artifact references based on the research above. Use the artifact reference component to cite relevant information with exact artifact_id and task_id values from the tool outputs.
-
-Key requirements:
-- Use exact artifact_id and task_id from tool outputs
-- Reference artifacts that support your response
-- Never make up or modify artifact IDs`;
-    }
-
-    // Fallback case (shouldn't happen in normal operation since we check hasStructuredOutput)
-    return `Generate the final response based on the research above. Write naturally as if having a conversation.`;
+    return phase2Config.assemblePhase2Prompt({
+      dataComponents: this.config.dataComponents || [],
+      artifactComponents: this.artifactComponents,
+      hasArtifactComponents,
+      artifacts: referenceArtifacts
+    });
   }
 
   private async buildSystemPrompt(
@@ -1114,15 +1105,15 @@ Key requirements:
       const fields = new Set<string>();
       if (Array.isArray(obj)) {
         // Check first few items for common field patterns
-        obj.slice(0, 3).forEach(item => {
+        obj.slice(0, 3).forEach((item) => {
           if (item && typeof item === 'object') {
-            Object.keys(item).forEach(key => fields.add(key));
+            Object.keys(item).forEach((key) => fields.add(key));
           }
         });
       } else if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach(key => fields.add(key));
-        Object.values(obj).forEach(value => {
-          findCommonFields(value, depth + 1).forEach(field => fields.add(field));
+        Object.keys(obj).forEach((key) => fields.add(key));
+        Object.values(obj).forEach((value) => {
+          findCommonFields(value, depth + 1).forEach((field) => fields.add(field));
         });
       }
       return fields;
@@ -1138,8 +1129,8 @@ Key requirements:
         _structureHints: {
           availablePaths: arrayPaths.slice(0, 8), // Limit to most relevant paths
           commonFields,
-          note: "Use these paths for artifact base selectors. Remove this _structureHints object from your selectors."
-        }
+          note: 'Use these paths for artifact base selectors. Remove this _structureHints object from your selectors.',
+        },
       };
 
       return enhanced;
@@ -1580,13 +1571,32 @@ Key requirements:
                           ? actualResult
                           : JSON.stringify(actualResult, null, 2);
 
+                      // Format structure hints if present
+                      let structureHintsFormatted = '';
+                      if (actualResult?._structureHints) {
+                        const hints = actualResult._structureHints;
+                        structureHintsFormatted = `
+### 📊 Structure Hints for Artifact Creation
+
+**Available Paths:**
+${hints.availablePaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Common Fields:**
+${hints.commonFields?.map((field: string) => `  • ${field}`).join('\n') || '  None detected'}
+
+**Note:** ${hints.note || 'Use these paths for artifact base selectors.'}
+`;
+                      }
+
                       const formattedResult = `## Tool: ${call.toolName}
+
+### 🔧 TOOL_CALL_ID: ${result.toolCallId}
 
 ### Input
 ${input}
 
 ### Output
-${output}`;
+${output}${structureHintsFormatted}`;
 
                       reasoningFlow.push({
                         role: 'assistant',
@@ -1615,9 +1625,14 @@ ${output}`;
               });
             }
 
-            // Add artifact schemas
+            // Add artifact schemas only when artifact components are available
             if (this.artifactComponents.length > 0) {
-              componentSchemas.push(ArtifactCreateSchema.getSchema());
+              // Add one ArtifactCreate schema for each artifact component type
+              const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
+                this.artifactComponents
+              );
+              componentSchemas.push(...artifactCreateSchemas);
+              // Add the single reference schema for all types
               componentSchemas.push(ArtifactReferenceSchema.getSchema());
             }
 
