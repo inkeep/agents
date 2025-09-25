@@ -3,6 +3,7 @@ import type {
   FullProjectDefinition,
   ProjectModels,
   StopWhen,
+  ToolApiInsert,
 } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 
@@ -12,8 +13,10 @@ import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
 import type { AgentGraph } from './graph';
 import { updateFullProjectViaAPI } from './projectFullClient';
+
 import type { Tool } from './tool';
-import type { ModelSettings } from './types';
+
+import type { AgentTool, ModelSettings } from './types';
 
 /**
  * Project configuration interface for the SDK
@@ -495,17 +498,20 @@ export class Project implements ProjectInterface {
    */
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
     const graphsObject: Record<string, any> = {};
-    const toolsObject: Record<string, any> = {};
+    const toolsObject: Record<string, ToolApiInsert> = {};
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     // Track which resources use each credential
-    const credentialUsageMap: Record<string, Array<{ type: string; id: string; graphId?: string }>> = {};
+    const credentialUsageMap: Record<
+      string,
+      Array<{ type: string; id: string; graphId?: string }>
+    > = {};
 
     // Convert all graphs to FullGraphDefinition format and collect components
     for (const graph of this.graphs) {
       // Get the graph's full definition
-      const graphDefinition = await (graph as any).toFullGraphDefinition();
+      const graphDefinition = await graph.toFullGraphDefinition();
       graphsObject[graph.getId()] = graphDefinition;
 
       // Collect credentials from this graph
@@ -540,7 +546,8 @@ export class Project implements ProjectInterface {
       // Check context config for credentials
       const contextConfig = (graph as any).contextConfig;
       if (contextConfig) {
-        const contextVariables = contextConfig.getContextVariables?.() || contextConfig.contextVariables;
+        const contextVariables =
+          contextConfig.getContextVariables?.() || contextConfig.contextVariables;
         if (contextVariables) {
           for (const [key, variable] of Object.entries(contextVariables)) {
             // Check for credential references in fetch definitions
@@ -553,7 +560,7 @@ export class Project implements ProjectInterface {
                 credId = credential.id;
                 // Resolve from injected credentials if available
                 if (credId && this.credentialReferences) {
-                  const resolvedCred = this.credentialReferences.find(c => c.id === credId);
+                  const resolvedCred = this.credentialReferences.find((c) => c.id === credId);
                   if (resolvedCred && !credentialReferencesObject[credId]) {
                     credentialReferencesObject[credId] = resolvedCred;
                     credentialUsageMap[credId] = [];
@@ -596,113 +603,49 @@ export class Project implements ProjectInterface {
       }
 
       // Collect tools from all agents in this graph
-      for (const agent of (graph as any).agents) {
-        if (!(agent as any).getTools) {
+      for (const agent of graph.getAgents()) {
+        if (agent.type === 'external') {
           continue; // Skip external agents
         }
 
-        const agentTools = (agent as any).getTools();
-        for (const [toolName, toolInstance] of Object.entries(agentTools)) {
-          if (toolInstance && typeof toolInstance === 'object') {
-            let actualTool: any;
-            let toolId: string;
+        const agentTools = agent.getTools();
+        for (const [, toolInstance] of Object.entries(agentTools)) {
+          // toolInstance is now properly typed as AgentTool from getTools()
+          const actualTool: AgentTool = toolInstance;
+          const toolId = actualTool.getId();
 
-            // Check if this is an AgentMcpConfig
-            if ('server' in toolInstance && 'selectedTools' in toolInstance) {
-              const mcpConfig = toolInstance as any;
-              actualTool = mcpConfig.server;
-              toolId = actualTool.getId();
-            } else {
-              // Regular tool instance
-              actualTool = toolInstance;
-              toolId = actualTool.getId?.() || actualTool.id || toolName;
+          // Only add if not already added (avoid duplicates across graphs)
+          if (!toolsObject[toolId]) {
+            const toolConfig: ToolApiInsert['config'] = {
+              type: 'mcp',
+              mcp: {
+                server: {
+                  url: actualTool.config.serverUrl,
+                },
+                transport: actualTool.config.transport,
+                activeTools: actualTool.config.activeTools,
+              },
+            };
+
+            const toolData: ToolApiInsert = {
+              id: toolId,
+              name: actualTool.getName(),
+              config: toolConfig,
+            };
+
+            // Add additional fields if available
+            if (actualTool.config?.imageUrl) {
+              toolData.imageUrl = actualTool.config.imageUrl;
+            }
+            if (actualTool.config?.headers) {
+              toolData.headers = actualTool.config.headers;
+            }
+            const credentialId = actualTool.getCredentialReferenceId();
+            if (credentialId) {
+              toolData.credentialReferenceId = credentialId;
             }
 
-            // Only add if not already added (avoid duplicates across graphs)
-            if (!toolsObject[toolId]) {
-              let toolConfig: any;
-
-              // Check if it's an IPCTool with MCP server configuration
-              if (actualTool.config?.serverUrl) {
-                toolConfig = {
-                  type: 'mcp',
-                  mcp: {
-                    server: {
-                      url: actualTool.config.serverUrl,
-                    },
-                  },
-                };
-              } else if (actualTool.config?.type === 'mcp') {
-                // Already has proper MCP config
-                toolConfig = actualTool.config;
-              } else {
-                // Fallback for function tools or uninitialized tools
-                toolConfig = {
-                  type: 'function',
-                  parameters: actualTool.parameters || {},
-                };
-              }
-
-              const toolData: any = {
-                id: toolId,
-                name: actualTool.config?.name || actualTool.name || toolName,
-                config: toolConfig,
-                status: actualTool.getStatus?.() || actualTool.status || 'unknown',
-              };
-
-              // Add additional fields if available
-              if (actualTool.config?.imageUrl) {
-                toolData.imageUrl = actualTool.config.imageUrl;
-              }
-              if (actualTool.config?.headers) {
-                toolData.headers = actualTool.config.headers;
-              }
-              if (actualTool.capabilities) {
-                toolData.capabilities = actualTool.capabilities;
-              }
-              if (actualTool.lastHealthCheck) {
-                toolData.lastHealthCheck = actualTool.lastHealthCheck;
-              }
-              if (actualTool.availableTools) {
-                toolData.availableTools = actualTool.availableTools;
-              }
-              if (actualTool.lastError) {
-                toolData.lastError = actualTool.lastError;
-              }
-              if (actualTool.lastToolsSync) {
-                toolData.lastToolsSync = actualTool.lastToolsSync;
-              }
-              // Add credential reference ID if available and track usage
-              if (actualTool.getCredentialReferenceId?.()) {
-                const credId = actualTool.getCredentialReferenceId();
-                toolData.credentialReferenceId = credId;
-
-                // Track credential usage
-                if (!credentialUsageMap[credId]) {
-                  credentialUsageMap[credId] = [];
-                }
-                credentialUsageMap[credId].push({
-                  type: 'tool',
-                  id: toolId,
-                  graphId: graph.getId(),
-                });
-              } else if (actualTool.config?.credential?.id) {
-                const credId = actualTool.config.credential.id;
-                toolData.credentialReferenceId = credId;
-
-                // Track credential usage
-                if (!credentialUsageMap[credId]) {
-                  credentialUsageMap[credId] = [];
-                }
-                credentialUsageMap[credId].push({
-                  type: 'tool',
-                  id: toolId,
-                  graphId: graph.getId(),
-                });
-              }
-
-              toolsObject[toolId] = toolData;
-            }
+            toolsObject[toolId] = toolData;
           }
         }
 
@@ -724,7 +667,9 @@ export class Project implements ProjectInterface {
               dataComponentProps = dataComponent.getProps() || {};
             } else {
               // Plain object from agent config
-              dataComponentId = dataComponent.id || (dataComponent.name ? dataComponent.name.toLowerCase().replace(/\s+/g, '-') : '');
+              dataComponentId =
+                dataComponent.id ||
+                (dataComponent.name ? dataComponent.name.toLowerCase().replace(/\s+/g, '-') : '');
               dataComponentName = dataComponent.name || '';
               dataComponentDescription = dataComponent.description || '';
               dataComponentProps = dataComponent.props || {};
@@ -762,7 +707,11 @@ export class Project implements ProjectInterface {
               artifactComponentFullProps = artifactComponent.getFullProps() || {};
             } else {
               // Plain object from agent config
-              artifactComponentId = artifactComponent.id || (artifactComponent.name ? artifactComponent.name.toLowerCase().replace(/\s+/g, '-') : '');
+              artifactComponentId =
+                artifactComponent.id ||
+                (artifactComponent.name
+                  ? artifactComponent.name.toLowerCase().replace(/\s+/g, '-')
+                  : '');
               artifactComponentName = artifactComponent.name || '';
               artifactComponentDescription = artifactComponent.description || '';
               artifactComponentSummaryProps = artifactComponent.summaryProps || {};

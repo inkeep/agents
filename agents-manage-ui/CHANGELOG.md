@@ -1,5 +1,23 @@
 # @inkeep/agents-manage-ui
 
+## 0.6.4
+
+### Patch Changes
+
+- 98a2a2d: Fix build
+  - @inkeep/agents-manage-api@0.6.4
+  - @inkeep/agents-run-api@0.6.4
+  - @inkeep/agents-core@0.6.4
+
+## 0.6.3
+
+### Patch Changes
+
+- 97f9e62: Fix infinite loop for tool lookup
+  - @inkeep/agents-manage-api@0.6.3
+  - @inkeep/agents-run-api@0.6.3
+  - @inkeep/agents-core@0.6.3
+
 ## 0.6.2
 
 ### Patch Changes
