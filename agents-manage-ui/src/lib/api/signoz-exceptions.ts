@@ -97,13 +97,13 @@ export async function fetchExceptionsByTraceIds(
       responseData?.data?.result?.[0]?.series?.map((item: any) => {
         const labels = item.labels || {};
         return {
-          spanId: labels.spanID || 'unknown',
-          traceId: labels.traceID || 'unknown',
-          timestamp: labels.timestamp || new Date().toISOString(),
-          exceptionType: labels.exceptionType || 'Unknown Exception',
-          exceptionMessage: labels.exceptionMessage || 'No message available',
-          exceptionStacktrace: labels.exceptionStacktrace || 'No stack trace available',
-          serviceName: labels.serviceName || 'unknown',
+          spanId: labels.spanID,
+          traceId: labels.traceID,
+          timestamp: labels.timestamp,
+          exceptionType: labels.exceptionType,
+          exceptionMessage: labels.exceptionMessage,
+          exceptionStacktrace: labels.exceptionStacktrace,
+          serviceName: labels.serviceName,
         };
       }) || [];
 
