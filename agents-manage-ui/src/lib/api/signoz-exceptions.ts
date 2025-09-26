@@ -1,6 +1,8 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
+import { getLogger } from '@/lib/logger';
 
+const logger = getLogger('signoz-exceptions');
 // Configure axios retry
 axiosRetry(axios, {
   retries: 3,
@@ -108,7 +110,8 @@ export async function fetchExceptionsByTraceIds(
       }) || [];
 
     return exceptions;
-  } catch {
+  } catch { 
+    logger.error('Failed to fetch exceptions');
     return [];
   }
 }
