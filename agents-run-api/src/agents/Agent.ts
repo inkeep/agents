@@ -577,7 +577,10 @@ export class Agent {
   /**
    * Convert database McpTool to builder MCPToolConfig format
    */
-  private convertToMCPToolConfig(tool: McpTool): MCPToolConfig {
+  private convertToMCPToolConfig(
+    tool: McpTool,
+    agentToolRelationHeaders?: Record<string, string>
+  ): MCPToolConfig {
     return {
       id: tool.id,
       name: tool.name,
@@ -588,7 +591,10 @@ export class Agent {
         ? MCPServerType.nango
         : MCPServerType.generic,
       transport: tool.config.mcp.transport,
-      headers: tool.headers,
+      headers: {
+        ...tool.headers,
+        ...agentToolRelationHeaders,
+      },
     };
   }
 
@@ -603,6 +609,9 @@ export class Agent {
         agentId: this.config.id,
       },
     });
+
+    const agentToolRelationHeaders =
+      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
 
     const selectedTools =
       toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
@@ -636,7 +645,7 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool),
+        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
         storeReference,
         selectedTools
       );
@@ -648,7 +657,7 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool),
+        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
         undefined,
         selectedTools
       );
@@ -659,6 +668,7 @@ export class Agent {
         url: tool.config.mcp.server.url,
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
+        headers: agentToolRelationHeaders,
       };
     }
 

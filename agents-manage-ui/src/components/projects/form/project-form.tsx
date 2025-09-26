@@ -77,6 +77,7 @@ export function ProjectForm({
 
   const onSubmit = async (data: ProjectFormData) => {
     const serializedData = serializeData(data);
+
     try {
       if (projectId) {
         const res = await updateProjectAction(tenantId, projectId, serializedData);

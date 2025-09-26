@@ -236,6 +236,7 @@ describe('serializeGraphData', () => {
       expect((result.agents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: ['tool1', 'tool2'],
+        headers: {},
       });
     });
 
@@ -281,6 +282,7 @@ describe('serializeGraphData', () => {
       expect((result.agents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: null,
+        headers: {},
       });
     });
 
@@ -324,6 +326,7 @@ describe('serializeGraphData', () => {
       expect((result.agents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: [],
+        headers: {},
       });
     });
 
@@ -410,6 +413,7 @@ describe('serializeGraphData', () => {
       expect((result.agents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: null, // null means all tools are selected
+        headers: {},
       });
     });
   });

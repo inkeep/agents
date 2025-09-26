@@ -378,6 +378,86 @@ describe('Tools Data Access', () => {
       expect(mockInsert).toHaveBeenCalled();
       expect(result).toEqual(expectedRelation);
     });
+
+    it('should add a tool to an agent with headers specified', async () => {
+      const headers = {
+        Authorization: 'Bearer token123',
+        'X-Custom-Header': 'custom-value',
+        'Content-Type': 'application/json',
+      };
+      const expectedRelation = {
+        id: expect.any(String),
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        toolId: testToolId,
+        headers,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedRelation]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
+      const result = await addToolToAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        agentId: testAgentId,
+        toolId: testToolId,
+        headers,
+      });
+
+      expect(mockInsert).toHaveBeenCalled();
+      expect(result).toEqual(expectedRelation);
+    });
+
+    it('should add a tool to an agent with both selectedTools and headers', async () => {
+      const selectedTools = ['tool_capability_1', 'tool_capability_2'];
+      const headers = {
+        Authorization: 'Bearer token456',
+        'X-API-Key': 'api-key-123',
+      };
+      const expectedRelation = {
+        id: expect.any(String),
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        toolId: testToolId,
+        selectedTools,
+        headers,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedRelation]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
+      const result = await addToolToAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        agentId: testAgentId,
+        toolId: testToolId,
+        selectedTools,
+        headers,
+      });
+
+      expect(mockInsert).toHaveBeenCalled();
+      expect(result).toEqual(expectedRelation);
+    });
   });
 
   describe('removeToolFromAgent', () => {

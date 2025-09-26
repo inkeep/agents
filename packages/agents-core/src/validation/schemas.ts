@@ -585,6 +585,7 @@ export const AgentToolRelationInsertSchema = createInsertSchema(agentToolRelatio
   agentId: resourceIdSchema,
   toolId: resourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
+  headers: z.record(z.string(), z.string()).nullish(),
 });
 
 export const AgentToolRelationUpdateSchema = AgentToolRelationInsertSchema.partial();
@@ -631,7 +632,8 @@ export const StatusUpdateSchema = z.object({
 
 export const CanUseItemSchema = z.object({
   toolId: z.string(),
-  toolSelection: z.array(z.string()).nullable().optional(),
+  toolSelection: z.array(z.string()).nullish(),
+  headers: z.record(z.string(), z.string()).nullish(),
 });
 
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({

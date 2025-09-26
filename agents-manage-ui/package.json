@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.7.0",
+  "version": "0.8.1",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -46,7 +46,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-api": "workspace:^",
     "@inkeep/agents-run-api": "workspace:^",
-    "@inkeep/cxkit-react-oss": "0.5.104",
+    "@inkeep/cxkit-react-oss": "0.5.105",
     "@lezer/highlight": "^1.2.1",
     "@nangohq/frontend": "^0.66.0",
     "@nangohq/node": "^0.66.0",

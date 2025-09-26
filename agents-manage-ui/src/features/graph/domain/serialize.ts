@@ -4,6 +4,7 @@ import type { A2AEdgeData } from '@/components/graph/configuration/edge-types';
 import { EdgeType } from '@/components/graph/configuration/edge-types';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
 import { NodeType } from '@/components/graph/configuration/node-types';
+import type { AgentToolConfigLookup } from '@/components/graph/graph';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
@@ -86,7 +87,7 @@ export function serializeGraphData(
   metadata?: GraphMetadata,
   dataComponentLookup?: Record<string, DataComponent>,
   artifactComponentLookup?: Record<string, ArtifactComponent>,
-  selectedToolsLookup?: Record<string, Record<string, string[]>>
+  agentToolConfigLookup?: AgentToolConfigLookup
 ): FullGraphDefinition {
   const agents: Record<string, ExtendedAgent> = {};
   // Note: Tools are now project-scoped and not included in graph serialization
@@ -113,7 +114,11 @@ export function serializeGraphData(
       const stopWhen = (node.data as any).stopWhen;
 
       // Build canUse array from edges connecting this agent to MCP nodes
-      const canUse: Array<{ toolId: string; toolSelection?: string[] | null }> = [];
+      const canUse: Array<{
+        toolId: string;
+        toolSelection?: string[] | null;
+        headers?: Record<string, string>;
+      }> = [];
 
       // Find edges from this agent to MCP nodes
       const agentToMcpEdges = edges.filter(
@@ -142,22 +147,38 @@ export function serializeGraphData(
               }
             } else {
               // No changes made to tool selection - preserve existing selection
-              if (
-                selectedToolsLookup &&
-                selectedToolsLookup[agentId] &&
-                selectedToolsLookup[agentId][toolId] !== undefined
-              ) {
+              if (agentToolConfigLookup?.[agentId]?.[toolId]?.toolSelection) {
                 // Get existing selection from saved data
-                toolSelection = selectedToolsLookup[agentId][toolId];
+                toolSelection = agentToolConfigLookup[agentId][toolId].toolSelection;
               } else {
                 // Default to all tools selected when no existing data found
                 toolSelection = null;
               }
             }
 
+            const tempHeaders = (mcpNode.data as any).tempHeaders;
+            let toolHeaders: Record<string, string> = {};
+
+            if (tempHeaders !== undefined) {
+              if (
+                typeof tempHeaders === 'object' &&
+                tempHeaders !== null &&
+                !Array.isArray(tempHeaders)
+              ) {
+                toolHeaders = tempHeaders;
+              }
+            } else {
+              // No changes made to headers - preserve existing headers
+              if (agentToolConfigLookup?.[agentId]?.[toolId]?.headers) {
+                // Get existing headers from saved data
+                toolHeaders = agentToolConfigLookup[agentId][toolId].headers;
+              }
+            }
+
             canUse.push({
               toolId,
               toolSelection,
+              headers: toolHeaders,
             });
           }
         }

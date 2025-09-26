@@ -1,5 +1,37 @@
 # @inkeep/agents-sdk
 
+## 0.8.1
+
+### Patch Changes
+
+- dc19f1a: @inkeep/create-agents creates inkeep.config.ts in the correct location; model choice of user is respected and user choice replaces any model config from template; model config is done at project level instead of inkeep.config.ts which is reserved for tenant level settings
+- Updated dependencies [dc19f1a]
+- Updated dependencies [2589d96]
+  - @inkeep/agents-core@0.8.1
+
+## 0.8.0
+
+### Minor Changes
+
+- 853d431: adding headers to agent-tool relation
+
+### Patch Changes
+
+- Updated dependencies [853d431]
+  - @inkeep/agents-core@0.8.0
+
+## 0.7.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.7.2
+
+## 0.7.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.7.1
+
 ## 0.7.0
 
 ### Patch Changes

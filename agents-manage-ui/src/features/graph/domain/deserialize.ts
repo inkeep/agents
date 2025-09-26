@@ -162,7 +162,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
               ? { stepCountIs: internalAgent.stopWhen.stepCountIs }
               : undefined,
             type: agent.type,
-            // Convert canUse back to tools and selectedTools for UI
+            // Convert canUse back to tools, selectedTools, headers for UI
             tools: internalAgent.canUse ? internalAgent.canUse.map((item) => item.toolId) : [],
             selectedTools: internalAgent.canUse
               ? internalAgent.canUse.reduce(
@@ -173,6 +173,17 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
                     return acc;
                   },
                   {} as Record<string, string[]>
+                )
+              : undefined,
+            headers: internalAgent.canUse
+              ? internalAgent.canUse.reduce(
+                  (acc, item) => {
+                    if (item.headers) {
+                      acc[item.toolId] = item.headers;
+                    }
+                    return acc;
+                  },
+                  {} as Record<string, Record<string, string>>
                 )
               : undefined,
           };

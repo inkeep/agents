@@ -462,6 +462,7 @@ export const agentToolRelations = sqliteTable(
     id: text('id').notNull(),
     toolId: text('tool_id').notNull(),
     selectedTools: blob('selected_tools', { mode: 'json' }).$type<string[] | null>(),
+    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
