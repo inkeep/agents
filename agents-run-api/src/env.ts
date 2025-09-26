@@ -11,6 +11,8 @@ const envSchema = z.object({
     .optional()
     .default('development'),
   DB_FILE_NAME: z.string(),
+  TURSO_DATABASE_URL: z.string().optional(),
+  TURSO_AUTH_TOKEN: z.string().optional(),
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SECRET_KEY: z.string().optional(),
