@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.7.1
+
+### Patch Changes
+
+- 78e71e9: Bump cxkit-react-oss version to 0.5.105
+  - @inkeep/agents-manage-api@0.7.1
+  - @inkeep/agents-run-api@0.7.1
+  - @inkeep/agents-core@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
