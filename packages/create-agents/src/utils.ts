@@ -1,9 +1,9 @@
-import * as p from '@clack/prompts';
 import { exec } from 'node:child_process';
-import fs from 'fs-extra';
 import path from 'node:path';
-import color from 'picocolors';
 import { promisify } from 'node:util';
+import * as p from '@clack/prompts';
+import fs from 'fs-extra';
+import color from 'picocolors';
 import { cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
@@ -361,14 +361,13 @@ async function createInkeepConfig(config: FileConfig) {
 
   const config = defineConfig({
     tenantId: "${config.tenantId}",
-    projectId: "${config.projectId}",
     agentsManageApiUrl: 'http://localhost:3002',
     agentsRunApiUrl: 'http://localhost:3003',
     modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
   });
       
   export default config;`;
-  await fs.writeFile(`src/${config.projectId}/inkeep.config.ts`, inkeepConfig);
+  await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
   if (config.customProject) {
     const customIndexContent = `import { project } from '@inkeep/agents-sdk';
@@ -402,9 +401,7 @@ async function setupProjectInDatabase(config: FileConfig) {
   // Run inkeep push
   try {
     // Suppress all output
-    await execAsync(
-      `pnpm inkeep push --project src/${config.projectId}`
-    );
+    await execAsync(`pnpm inkeep push --project src/${config.projectId}`);
   } catch (_error) {
     //Continue despite error - user can setup project manually
   } finally {
