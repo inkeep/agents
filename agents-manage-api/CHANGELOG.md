@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-api
 
+## 0.8.1
+
+### Patch Changes
+
+- dc19f1a: @inkeep/create-agents creates inkeep.config.ts in the correct location; model choice of user is respected and user choice replaces any model config from template; model config is done at project level instead of inkeep.config.ts which is reserved for tenant level settings
+- 2589d96: use turso if available
+- Updated dependencies [dc19f1a]
+- Updated dependencies [2589d96]
+  - @inkeep/agents-core@0.8.1
+
 ## 0.8.0
 
 ### Patch Changes
