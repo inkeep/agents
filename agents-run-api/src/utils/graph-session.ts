@@ -89,6 +89,7 @@ export interface DelegationReturnedData {
 export interface ArtifactSavedData {
   artifactId: string;
   taskId: string;
+  toolCallId?: string;
   artifactType: string;
   summaryData?: Record<string, any>;
   fullData?: Record<string, any>;

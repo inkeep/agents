@@ -323,7 +323,7 @@ export class ArtifactParser {
         resultKeys: Object.keys(toolResultData?.result || {}),
         structuredContentKeys: Object.keys(toolResultData?.result?.structuredContent || {}),
         contentArrayLength: toolResultData?.result?.structuredContent?.content?.length || 0,
-        firstThreeItems: toolResultData?.result?.structuredContent?.content?.slice(0, 3)?.map(item => ({
+        firstThreeItems: toolResultData?.result?.structuredContent?.content?.slice(0, 3)?.map((item: any) => ({
           title: item?.title,
           record_type: item?.record_type,
           type: item?.type

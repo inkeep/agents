@@ -6,7 +6,7 @@ import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 
-import type { SystemPromptV1, ToolData, VersionConfig } from '../types';
+import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
