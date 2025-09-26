@@ -1,7 +1,9 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { Check, CircleAlert } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
+import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -13,16 +15,19 @@ import type { MCPTool } from '@/lib/types/tools';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
+import type { AgentToolConfigLookup } from '../../graph';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
   selectedToolsLookup: Record<string, Record<string, string[]>>;
+  agentToolConfigLookup: AgentToolConfigLookup;
   toolLookup: Record<string, MCPTool>;
 }
 
 export function MCPServerNodeEditor({
   selectedNode,
   selectedToolsLookup,
+  agentToolConfigLookup,
   toolLookup,
 }: MCPServerNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
@@ -33,6 +38,32 @@ export function MCPServerNodeEditor({
 
   // All hooks must be called before any early returns
   const markUnsaved = useGraphStore((state) => state.markUnsaved);
+
+  // Get current headers for this tool from all agents
+  const getCurrentHeaders = useCallback((): Record<string, string> => {
+    // First check if we have temporary headers stored on the node
+    if ((selectedNode.data as any).tempHeaders !== undefined) {
+      return (selectedNode.data as any).tempHeaders;
+    }
+
+    // Otherwise, get from the database/initial state - find any agent that has headers for this tool
+    for (const agentId in agentToolConfigLookup) {
+      const toolConfig = agentToolConfigLookup[agentId]?.[selectedNode.data.toolId];
+      if (toolConfig?.headers) {
+        return toolConfig.headers;
+      }
+    }
+    return {};
+  }, [agentToolConfigLookup, selectedNode.data]);
+
+  // Local state for headers input (allows invalid JSON while typing)
+  const [headersInputValue, setHeadersInputValue] = useState('{}');
+
+  // Sync input value when external headers change
+  useEffect(() => {
+    const newHeaders = getCurrentHeaders();
+    setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
+  }, [getCurrentHeaders]);
 
   // Only use toolLookup - single source of truth
   const toolData = toolLookup[selectedNode.data.toolId];
@@ -101,6 +132,32 @@ export function MCPServerNodeEditor({
     if (selectedNode) {
       updateNodeData(selectedNode.id, { [name]: value });
       markUnsaved();
+    }
+  };
+
+  const handleHeadersChange = (value: string) => {
+    // Always update the input state (allows user to type invalid JSON)
+    setHeadersInputValue(value);
+
+    // Only save to node data if the JSON is valid
+    try {
+      const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
+
+      if (
+        typeof parsedHeaders === 'object' &&
+        parsedHeaders !== null &&
+        !Array.isArray(parsedHeaders)
+      ) {
+        // Valid format - save to node data
+        updateNodeData(selectedNode.id, {
+          ...selectedNode.data,
+          tempHeaders: parsedHeaders,
+        });
+        markUnsaved();
+      }
+    } catch {
+      // Invalid JSON - don't save, but allow user to continue typing
+      // The ExpandableJsonEditor will show the validation error
     }
   };
 
@@ -242,6 +299,17 @@ export function MCPServerNodeEditor({
             ))}
           </div>
         ) : null}
+      </div>
+
+      <div className="space-y-2">
+        <ExpandableJsonEditor
+          name="headers"
+          label="Headers (JSON)"
+          value={headersInputValue}
+          onChange={handleHeadersChange}
+          placeholder='{"X-Your-Header": "your-value", "Content-Type": "application/json"}'
+          className=""
+        />
       </div>
 
       <ExternalLink

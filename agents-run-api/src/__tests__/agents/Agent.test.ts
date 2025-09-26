@@ -875,8 +875,10 @@ describe('Agent Credential Integration', () => {
       name: 'Test MCP Tool',
       description: 'Test MCP Tool',
       serverUrl: 'https://api.nango.dev/mcp',
+      activeTools: undefined,
       mcpType: MCPServerType.nango,
       transport: { type: MCPTransportType.sse },
+      headers: {},
     });
   });
 

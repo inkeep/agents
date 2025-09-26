@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../externalAgent';
+import { Tool } from '../../tool';
 import type { AgentConfig } from '../../types';
 
 // Mock dependencies
@@ -33,15 +34,11 @@ describe('Agent Builder', () => {
       text: () => Promise.resolve('Success'),
     } as Response);
 
-    mockTool = {
+    mockTool = new Tool({
       id: 'testTool',
       name: 'Test Tool',
       serverUrl: 'http://localhost:3000',
-      tenantId: 'test-tenant',
-      getId: () => 'testTool',
-      getName: () => 'Test Tool',
-      getCredentialReferenceId: () => undefined,
-    } as any;
+    });
   });
 
   describe('Constructor', () => {
@@ -298,15 +295,12 @@ describe('Agent Builder', () => {
     let agent: Agent;
 
     beforeEach(() => {
-      const testTool = {
-        id: 'testTool',
+      const testTool = new Tool({
+        id: 'test-tool',
         name: 'Test Tool',
+        description: 'A test tool for graph testing',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
-        getId: () => 'testTool',
-        getName: () => 'Test Tool',
-        getCredentialReferenceId: () => undefined,
-      } as any;
+      });
 
       agent = new Agent({
         id: 'test-agent',

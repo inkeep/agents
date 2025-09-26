@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.8.0
+
+### Minor Changes
+
+- 853d431: adding headers to agent-tool relation
+
 ## 0.7.2
 
 ## 0.7.1

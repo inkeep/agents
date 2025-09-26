@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "77dc6bf8-47c3-4632-a7db-91aeb7261a44",
+  "id": "dc0327cc-aa99-47a2-a447-7a10c47b482a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -503,6 +503,13 @@
         },
         "selected_tools": {
           "name": "selected_tools",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "headers": {
+          "name": "headers",
           "type": "blob",
           "primaryKey": false,
           "notNull": false,

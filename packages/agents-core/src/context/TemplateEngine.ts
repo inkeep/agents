@@ -81,13 +81,28 @@ export class TemplateEngine {
             return match; // Keep original template
           }
 
-          logger.warn(
-            {
-              variable: trimmedPath,
-              availableKeys: Object.keys(context),
-            },
-            'Template variable not found in context'
-          );
+          // Enhanced debugging for requestContext issues
+          if (trimmedPath.startsWith('requestContext.')) {
+            logger.warn(
+              {
+                variable: trimmedPath,
+                availableKeys: Object.keys(context),
+                contextStructure: JSON.stringify(context, null, 2),
+                requestContextContent: context.requestContext
+                  ? JSON.stringify(context.requestContext, null, 2)
+                  : 'undefined',
+              },
+              'RequestContext template variable debugging'
+            );
+          } else {
+            logger.warn(
+              {
+                variable: trimmedPath,
+                availableKeys: Object.keys(context),
+              },
+              'Template variable not found in context'
+            );
+          }
           return ''; // Replace with empty string
         }
 

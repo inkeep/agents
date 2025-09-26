@@ -15,6 +15,7 @@ import {
   NodeType,
   nodeTypeMap,
 } from '../configuration/node-types';
+import type { AgentToolConfigLookup } from '../graph';
 import EdgeEditor from './edges/edge-editor';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
@@ -32,6 +33,7 @@ interface SidePaneProps {
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   selectedToolsLookup: Record<string, Record<string, string[]>>;
+  agentToolConfigLookup: AgentToolConfigLookup;
   toolLookup: Record<string, MCPTool>;
 }
 
@@ -44,6 +46,7 @@ export function SidePane({
   dataComponentLookup,
   artifactComponentLookup,
   selectedToolsLookup,
+  agentToolConfigLookup,
   toolLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -114,6 +117,7 @@ export function SidePane({
             <MCPServerNodeEditor
               selectedNode={selectedNode as Node<MCPNodeData>}
               selectedToolsLookup={selectedToolsLookup}
+              agentToolConfigLookup={agentToolConfigLookup}
               toolLookup={toolLookup}
             />
           );
@@ -135,6 +139,7 @@ export function SidePane({
     getFieldErrorMessage,
     getFirstErrorField,
     selectedToolsLookup,
+    agentToolConfigLookup,
     toolLookup,
   ]);
 

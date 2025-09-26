@@ -1,16 +1,27 @@
 import { createDatabaseClient } from '@inkeep/agents-core';
 import { env } from '../../env';
 
-// Create database URL - use in-memory for tests, file for other environments
-const getDbUrl = () => {
+// Create database URL - use in-memory for tests, Turso if available, else file
+const getDbConfig = () => {
   // Use in-memory database for tests - each worker gets its own isolated database
   if (env.ENVIRONMENT === 'test') {
-    return ':memory:';
+    return { url: ':memory:' };
   }
 
-  return env.DB_FILE_NAME;
+  // Prefer Turso if both URL + token are set
+  if (env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN) {
+    return {
+      url: env.TURSO_DATABASE_URL,
+      authToken: env.TURSO_AUTH_TOKEN,
+    };
+  }
+
+  // Otherwise, fallback to file (must be explicitly set)
+  return {
+    url: env.DB_FILE_NAME,
+  };
 };
 
-// Create the SQLite client
-const dbClient = createDatabaseClient({ url: getDbUrl() });
+// Create the database client
+const dbClient = createDatabaseClient(getDbConfig());
 export default dbClient;

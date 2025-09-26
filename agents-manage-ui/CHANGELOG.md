@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.8.0
+
+### Minor Changes
+
+- 853d431: adding headers to agent-tool relation
+
+### Patch Changes
+
+- Updated dependencies [853d431]
+  - @inkeep/agents-core@0.8.0
+  - @inkeep/agents-run-api@0.8.0
+  - @inkeep/agents-manage-api@0.8.0
+
 ## 0.7.2
 
 ### Patch Changes
