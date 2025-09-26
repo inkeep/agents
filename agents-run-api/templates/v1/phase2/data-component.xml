@@ -1,0 +1,9 @@
+<data-component>
+  <name>{{COMPONENT_NAME}}</name>
+  <description>{{COMPONENT_DESCRIPTION}}</description>
+  <props>
+    <schema>
+      {{COMPONENT_PROPS_SCHEMA}}
+    </schema>
+  </props>
+</data-component> 

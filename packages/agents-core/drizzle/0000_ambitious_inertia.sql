@@ -220,6 +220,7 @@ CREATE TABLE `ledger_artifacts` (
 	`project_id` text NOT NULL,
 	`id` text NOT NULL,
 	`task_id` text,
+	`tool_call_id` text,
 	`context_id` text NOT NULL,
 	`type` text DEFAULT 'source' NOT NULL,
 	`name` text,

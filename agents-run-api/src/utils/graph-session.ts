@@ -136,6 +136,7 @@ export class GraphSession {
   private readonly MAX_ARTIFACT_RETRIES = 3;
   private readonly MAX_PENDING_ARTIFACTS = 100; // Prevent unbounded growth
   private scheduledTimeouts?: Set<NodeJS.Timeout>; // Track scheduled timeouts for cleanup
+  private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
 
   constructor(
     public readonly sessionId: string,
@@ -1169,7 +1170,7 @@ Make it specific and relevant.`;
               .describe("Brief description of the artifact's relevance to the user's question"),
           });
 
-          // Add nested span for LLM generation
+          // Add nested span for LLM generation with retry logic
           const { object: result } = await tracer.startActiveSpan(
             'graph_session.generate_artifact_metadata',
             {
@@ -1181,6 +1182,10 @@ Make it specific and relevant.`;
               },
             },
             async (generationSpan) => {
+              const maxRetries = 3;
+              let lastError: Error | null = null;
+
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
               try {
                 const result = await generateObject({
                   model,
@@ -1194,6 +1199,7 @@ Make it specific and relevant.`;
                     metadata: {
                       operation: 'artifact_name_description_generation',
                       sessionId: this.sessionId,
+                        attempt,
                     },
                   },
                 });
@@ -1201,16 +1207,36 @@ Make it specific and relevant.`;
                 generationSpan.setAttributes({
                   'generation.name_length': result.object.name.length,
                   'generation.description_length': result.object.description.length,
+                    'generation.attempts': attempt,
                 });
 
                 generationSpan.setStatus({ code: SpanStatusCode.OK });
                 return result;
               } catch (error) {
-                setSpanWithError(generationSpan, error);
-                throw error;
-              } finally {
-                generationSpan.end();
+                  lastError = error instanceof Error ? error : new Error(String(error));
+                  
+                  logger.warn(
+                    {
+                      sessionId: this.sessionId,
+                      artifactId: artifactData.artifactId,
+                      attempt,
+                      maxRetries,
+                      error: lastError.message,
+                    },
+                    `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
+                  );
+
+                  // If this isn't the last attempt, wait before retrying
+                  if (attempt < maxRetries) {
+                    const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
               }
+            }
+              }
+
+              // All retries failed
+              setSpanWithError(generationSpan, lastError);
+              throw new Error(`Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`);
             }
           );
 
@@ -1331,6 +1357,23 @@ Make it specific and relevant.`;
       }
     );
   }
+
+  /**
+   * Cache an artifact in this session for immediate access
+   */
+  setArtifactCache(key: string, artifact: any): void {
+    this.artifactCache.set(key, artifact);
+    logger.debug({ sessionId: this.sessionId, key }, 'Artifact cached in session');
+  }
+
+  /**
+   * Get an artifact from this session cache
+   */
+  getArtifactCache(key: string): any | null {
+    const artifact = this.artifactCache.get(key);
+    logger.debug({ sessionId: this.sessionId, key, found: !!artifact }, 'Artifact cache lookup');
+    return artifact || null;
+  }
 }
 
 /**
@@ -1446,6 +1489,24 @@ export class GraphSessionManager {
       messageId: session.messageId,
       eventCount: session.getEvents().length,
     }));
+  }
+
+  /**
+   * Cache an artifact in the specified session
+   */
+  async setArtifactCache(sessionId: string, key: string, artifact: any): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.setArtifactCache(key, artifact);
+    }
+  }
+
+  /**
+   * Get an artifact from the specified session cache
+   */
+  async getArtifactCache(sessionId: string, key: string): Promise<any | null> {
+    const session = this.sessions.get(sessionId);
+    return session ? session.getArtifactCache(key) : null;
   }
 }
 

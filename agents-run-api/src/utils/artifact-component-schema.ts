@@ -2,7 +2,7 @@ import type { ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataCompon
 import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
-import { SchemaProcessor } from './base/SchemaProcessor';
+import { SchemaProcessor } from './SchemaProcessor';
 
 const _logger = getLogger('ArtifactComponentSchema');
 
@@ -176,7 +176,7 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
           },
           summary_props: enhancedSummaryProps,
           full_props: enhancedFullProps,
@@ -225,7 +225,7 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
           },
           summary_props: enhancedSummaryProps,
           full_props: enhancedFullProps,

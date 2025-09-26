@@ -4,7 +4,6 @@ import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { toolSessionManager } from '../agents/ToolSessionManager';
-import { parseEmbeddedJson } from '../agents/generateTaskHandler';
 import { graphSessionManager } from './graph-session';
 
 const logger = getLogger('ArtifactParser');
@@ -41,11 +40,11 @@ export interface ArtifactCreateAnnotation {
  * Used by both ResponseFormatter and IncrementalStreamParser to eliminate redundancy
  */
 export class ArtifactParser {
-  // Shared regex patterns
+  // Shared regex patterns - support both single and double quotes
   private static readonly ARTIFACT_REGEX =
-    /<artifact:ref\s+id="([^"]*?)"\s+tool="([^"]*?)"\s*\/>/gs;
+    /<artifact:ref\s+id=(['"])([^'"]*?)\1\s+tool=(['"])([^'"]*?)\3\s*\/>/gs;
   private static readonly ARTIFACT_CHECK_REGEX =
-    /<artifact:ref\s+(?=.*id="[^"]+")(?=.*tool="[^"]+")[^>]*\/>/;
+    /<artifact:ref\s+(?=.*id=['"][^'"]+['"])(?=.*tool=['"][^'"]+['"])[^>]*\/>/;
   
   // Artifact creation patterns
   private static readonly ARTIFACT_CREATE_REGEX = 
@@ -305,18 +304,59 @@ export class ArtifactParser {
     }
 
     try {
-      // Parse the tool result
-      const parsedResult = parseEmbeddedJson(toolResult);
+      // Tool result is already parsed in Agent.ts, no need to parse again
+      // Clean out structure hints which are not part of the actual data
+      const toolResultData = toolResult && typeof toolResult === 'object' && !Array.isArray(toolResult)
+        ? Object.fromEntries(Object.entries(toolResult).filter(([key]) => key !== '_structureHints'))
+        : toolResult;
+      
+      // Sanitize JMESPath selector to handle common syntax issues
+      const sanitizedBaseSelector = this.sanitizeJMESPathSelector(annotation.baseSelector);
       
       // Use base selector to get to the data
-      let selectedData = jmespath.search(parsedResult, annotation.baseSelector);
+      // Debug logging to understand what data we're working with
+      logger.debug({
+        annotation: annotation.artifactId,
+        originalBaseSelector: annotation.baseSelector,
+        sanitizedBaseSelector,
+        toolResultTopLevelKeys: Object.keys(toolResultData || {}),
+        resultKeys: Object.keys(toolResultData?.result || {}),
+        structuredContentKeys: Object.keys(toolResultData?.result?.structuredContent || {}),
+        contentArrayLength: toolResultData?.result?.structuredContent?.content?.length || 0,
+        firstThreeItems: toolResultData?.result?.structuredContent?.content?.slice(0, 3)?.map(item => ({
+          title: item?.title,
+          record_type: item?.record_type,
+          type: item?.type
+        }))
+      }, 'Debug: Tool result structure before JMESPath');
+      
+      let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
+      
+      logger.debug({
+        annotation: annotation.artifactId,
+        baseSelector: annotation.baseSelector,
+        selectedDataType: typeof selectedData,
+        selectedDataKeys: selectedData && typeof selectedData === 'object' ? Object.keys(selectedData) : null,
+        selectedData: selectedData
+      }, 'Debug: JMESPath selector result');
+      
+      // If selector returns an array, take the first item
+      if (Array.isArray(selectedData)) {
+        logger.debug({ 
+          annotation, 
+          arrayLength: selectedData.length,
+          baseSelector: annotation.baseSelector
+        }, 'Base selector returned array - selecting first item');
+        selectedData = selectedData.length > 0 ? selectedData[0] : {};
+      }
+      
       if (!selectedData) {
         logger.warn({ 
           annotation, 
           baseSelector: annotation.baseSelector,
-          availableTopLevelKeys: Object.keys(parsedResult?.result || {}),
-          structuredContentKeys: Object.keys(parsedResult?.result?.structuredContent || {}),
-          contentArrayLength: parsedResult?.result?.structuredContent?.content?.length || 0
+          availableTopLevelKeys: Object.keys(toolResultData?.result || {}),
+          structuredContentKeys: Object.keys(toolResultData?.result?.structuredContent || {}),
+          contentArrayLength: toolResultData?.result?.structuredContent?.content?.length || 0
         }, 'Base selector returned no data - using empty object as fallback');
         // Use empty object as fallback so artifact still gets created with placeholders
         selectedData = {};
@@ -367,20 +407,57 @@ export class ArtifactParser {
         });
       }
 
-      // Cache the created artifact using toolCallId as key (the unique identifier)
+      // Cache the created artifact in graph session for immediate access by artifact:ref tags
       const cacheKey = `${annotation.artifactId}:${annotation.toolCallId}`;
-      this.createdArtifacts.set(cacheKey, {
+      const artifactForCache = {
         ...artifactData,
         parts: [{ data: { summary: artifactData.artifactSummary, full: fullData } }],
         metadata: { artifactType: annotation.type, toolCallId: annotation.toolCallId },
         taskId: this.taskId,  // Store taskId for database scoping
-      });
+      };
+      
+      // Store in both local cache and graph session for this request
+      this.createdArtifacts.set(cacheKey, artifactForCache);
+      
+      if (this.streamRequestId) {
+        await graphSessionManager.setArtifactCache(this.streamRequestId, cacheKey, artifactForCache);
+      }
 
       return artifactData;
     } catch (error) {
       logger.error({ error, annotation }, 'Failed to extract artifact from annotation');
       return null;
     }
+  }
+
+  /**
+   * Sanitize JMESPath selector to fix common syntax issues from LLMs
+   */
+  private sanitizeJMESPathSelector(selector: string): string {
+    // Fix double quotes to single quotes in filter expressions
+    // Pattern: [?field=="value"] -> [?field=='value']
+    let sanitized = selector.replace(
+      /=="([^"]*)"/g,
+      "=='$1'"
+    );
+    
+    // Fix contains(@, "text") syntax - should be contains(field, "text")  
+    // Pattern: [?field ~ contains(@, "text")] -> [?contains(field, "text")]
+    sanitized = sanitized.replace(
+      /\[\\?\?(\w+)\s*~\s*contains\(@,\s*\\?"([^"]*)\\"?\)\]/g, 
+      '[?contains($1, `$2`)]'
+    );
+    
+    // Also handle single quotes
+    sanitized = sanitized.replace(
+      /\[\\?\?(\w+)\s*~\s*contains\(@,\s*'([^']*)'\)\]/g,
+      "[?contains($1, '$2')]"
+    );
+    
+    // Fix any remaining ~ operators that aren't valid JMESPath
+    sanitized = sanitized.replace(/\s*~\s*/g, ' ');
+    
+    return sanitized;
   }
 
   /**
@@ -392,12 +469,26 @@ export class ArtifactParser {
   ): Record<string, any> {
     const extracted: Record<string, any> = {};
     
+    logger.debug({ propSelectors, itemKeys: Object.keys(item || {}) }, 'extractProps called');
+    
     for (const [propName, selector] of Object.entries(propSelectors)) {
       try {
-        const value = selector ? jmespath.search(item, selector) : item[propName];
+        const sanitizedSelector = this.sanitizeJMESPathSelector(selector);
+        
+        // Log if selector was changed
+        if (sanitizedSelector !== selector) {
+          logger.info({ 
+            propName, 
+            originalSelector: selector, 
+            sanitizedSelector 
+          }, 'Sanitized JMESPath prop selector');
+        }
+        
+        const value = sanitizedSelector ? jmespath.search(item, sanitizedSelector) : item[propName];
         if (value !== null && value !== undefined) {
           extracted[propName] = value;
         }
+        logger.debug({ propName, selector: sanitizedSelector, value, extracted: value !== null && value !== undefined }, 'Property extraction');
       } catch (error) {
         logger.warn({ propName, selector, error }, 'Failed to extract property');
         // Try direct property access as fallback
@@ -495,8 +586,8 @@ export class ArtifactParser {
         // Direct replacement from create annotation
         artifactData = createdArtifactData.get(fullMatch) || null;
       } else {
-        // Handle artifact:ref tags
-        const [, artifactId, toolCallId] = match;
+        // Handle artifact:ref tags - new regex captures: [fullMatch, quote1, artifactId, quote2, toolCallId]
+        const [, , artifactId, , toolCallId] = match;
         // Use toolCallId for cache key (the unique identifier)
         const cacheKey = `${artifactId}:${toolCallId}`;
         
@@ -598,7 +689,7 @@ export class ArtifactParser {
    * Check if object is an artifact create component
    */
   private isArtifactCreateComponent(obj: any): boolean {
-    return obj?.name === 'ArtifactCreate' && obj?.props?.id && obj?.props?.tool_call_id;
+    return obj?.name?.startsWith('ArtifactCreate_') && obj?.props?.id && obj?.props?.tool_call_id;
   }
 
   /**
@@ -635,7 +726,38 @@ export class ArtifactParser {
     // Use toolCallId for cache key lookup (the unique identifier)
     const key = `${artifactId}:${toolCallId}`;
 
-    // Try map first
+    // First, check graph session cache for artifacts created in this request
+    if (this.streamRequestId) {
+      logger.debug({ 
+        artifactId, 
+        toolCallId, 
+        cacheKey: key,
+        streamRequestId: this.streamRequestId 
+      }, 'Checking graph session cache for artifact');
+      
+      const cachedArtifact = await graphSessionManager.getArtifactCache(this.streamRequestId, key);
+      if (cachedArtifact) {
+        logger.debug({ artifactId, toolCallId }, 'Found artifact in graph session cache');
+        return this.formatArtifactData(cachedArtifact, artifactId, toolCallId);
+      } else {
+        logger.debug({ 
+          artifactId, 
+          toolCallId, 
+          cacheKey: key,
+          streamRequestId: this.streamRequestId 
+        }, 'Artifact NOT found in graph session cache');
+      }
+    } else {
+      logger.warn({ artifactId, toolCallId }, 'No streamRequestId available for cache lookup');
+    }
+
+    // Try local cache
+    if (this.createdArtifacts.has(key)) {
+      const cached = this.createdArtifacts.get(key)!;
+      return this.formatArtifactData(cached, artifactId, toolCallId);
+    }
+
+    // Try provided artifact map
     if (artifactMap?.has(key)) {
       const artifact = artifactMap.get(key);
       return this.formatArtifactData(artifact, artifactId, toolCallId);
@@ -664,34 +786,4 @@ export class ArtifactParser {
     return null;
   }
 
-  /**
-   * Parse partial JSON buffer (for streaming)
-   */
-  parsePartialJSON(buffer: string): { complete: any[]; remaining: string } {
-    const complete: any[] = [];
-    let remaining = buffer;
-    let braceCount = 0;
-    let start = -1;
-
-    for (let i = 0; i < buffer.length; i++) {
-      if (buffer[i] === '{') {
-        if (braceCount === 0) start = i;
-        braceCount++;
-      } else if (buffer[i] === '}') {
-        braceCount--;
-        if (braceCount === 0 && start !== -1) {
-          const jsonStr = buffer.slice(start, i + 1);
-          try {
-            complete.push(JSON.parse(jsonStr));
-            remaining = buffer.slice(i + 1);
-            start = -1;
-          } catch {
-            // Invalid JSON, continue
-          }
-        }
-      }
-    }
-
-    return { complete, remaining };
-  }
 }

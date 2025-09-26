@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "77dc6bf8-47c3-4632-a7db-91aeb7261a44",
+  "id": "6bbc1dfa-cdda-4d42-a149-a2c4a0ae7ea2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -1652,6 +1652,13 @@
         },
         "task_id": {
           "name": "task_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tool_call_id": {
+          "name": "tool_call_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

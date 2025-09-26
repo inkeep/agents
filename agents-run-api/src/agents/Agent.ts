@@ -48,6 +48,7 @@ import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact
 import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { graphSessionManager } from '../utils/graph-session';
 import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
+import { parseEmbeddedJson } from '../utils/json-parser';
 import { ResponseFormatter } from '../utils/response-formatter';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
@@ -534,10 +535,13 @@ export class Agent {
 
             try {
               // Call the original MCP tool with proper error handling
-              const result = await originalTool.execute(args, { toolCallId });
+              const rawResult = await originalTool.execute(args, { toolCallId });
+
+              // Parse any embedded JSON in the result
+              const parsedResult = parseEmbeddedJson(rawResult);
 
               // Analyze result structure and add path hints for artifact creation
-              const enhancedResult = this.enhanceToolResultWithStructureHints(result);
+              const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
 
               // Record the enhanced result in the session manager
               toolSessionManager.recordToolResult(sessionId, {
@@ -863,9 +867,10 @@ export class Agent {
       dataComponents: this.config.dataComponents || [],
       artifactComponents: this.artifactComponents,
       hasArtifactComponents,
-      artifacts: referenceArtifacts
+      artifacts: referenceArtifacts,
     });
   }
+
 
   private async buildSystemPrompt(
     runtimeContext?: {
@@ -928,21 +933,16 @@ export class Agent {
           : 'Use this tool when appropriate for the task at hand.',
     }));
 
-    const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
-      contextId: runtimeContext?.contextId || '',
-    });
+    // Get artifacts that match the conversation history scope
+    const { getConversationScopedArtifacts } = await import('../data/conversations');
+    const historyConfig = this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
 
-    const referenceArtifacts: Artifact[] = [];
-    for (const taskId of referenceTaskIds) {
-      const artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: {
+    const referenceArtifacts: Artifact[] = await getConversationScopedArtifacts({
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-        },
-        taskId: taskId,
+      conversationId: runtimeContext?.contextId || '',
+      historyConfig,
       });
-      referenceArtifacts.push(...artifacts);
-    }
 
     // Use component dataComponents for system prompt (artifacts already separated in constructor)
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
@@ -1015,9 +1015,14 @@ export class Agent {
   private createThinkingCompleteTool(): any {
     return tool({
       description:
-        'Call when research and planning is complete, ready to generate structured response. This marks the end of the thinking phase.',
+        '🚨 CRITICAL: Call this tool IMMEDIATELY when you have gathered enough information to answer the user. This is MANDATORY - you CANNOT provide text responses in thinking mode, only tool calls. Call thinking_complete as soon as you have sufficient data to generate a structured response.',
       inputSchema: z.object({
-        complete: z.boolean().describe('Set to true when research is finished'),
+        complete: z.boolean().describe('ALWAYS set to true - marks end of research phase'),
+        summary: z
+          .string()
+          .describe(
+            'Brief summary of what information was gathered and why it is sufficient to answer the user'
+          ),
       }),
       execute: async (params) => params,
     });
@@ -1060,18 +1065,22 @@ export class Agent {
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
+   * Only adds hints when artifact components are available
    */
   private enhanceToolResultWithStructureHints(result: any): any {
     if (!result) {
       return result;
     }
 
-    // Parse embedded JSON if result is a string (same logic as artifact parser)
+    // Only add structure hints if artifact components are available
+    if (!this.artifactComponents || this.artifactComponents.length === 0) {
+      return result;
+    }
+
+    // Parse embedded JSON if result is a string
     let parsedForAnalysis = result;
     if (typeof result === 'string') {
       try {
-        // Import the same parsing function used by artifact parser
-        const { parseEmbeddedJson } = require('./generateTaskHandler');
         parsedForAnalysis = parseEmbeddedJson(result);
       } catch (error) {
         // If parsing fails, analyze the original result
@@ -1083,19 +1092,54 @@ export class Agent {
       return result;
     }
 
-    const findArrayPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
-      if (depth > 6) return []; // Prevent infinite recursion
+    const findAllPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 8) return []; // Allow deeper exploration
       
       const paths: string[] = [];
+
       if (Array.isArray(obj)) {
         if (obj.length > 0) {
-          paths.push(`${prefix}[0-${obj.length - 1}]`);
+          // Add the array path itself
+          paths.push(`${prefix}[array-${obj.length}-items]`);
+
+          // Add filtering examples based on actual data
+          if (obj[0] && typeof obj[0] === 'object') {
+            const sampleItem = obj[0];
+            Object.keys(sampleItem).forEach((key) => {
+              const value = sampleItem[key];
+              if (typeof value === 'string' && value.length < 50) {
+                paths.push(`${prefix}[?${key}=='${value}']`);
+              } else if (typeof value === 'boolean') {
+                paths.push(`${prefix}[?${key}==${value}]`);
+              } else if (key === 'id' || key === 'name' || key === 'type') {
+                paths.push(`${prefix}[?${key}=='value']`);
+              }
+            });
+          }
+
+          // Recurse into array items to find nested structures (use filtering instead of selecting all)
+          paths.push(...findAllPaths(obj[0], `${prefix}[?field=='value']`, depth + 1));
         }
       } else if (obj && typeof obj === 'object') {
-        for (const [key, value] of Object.entries(obj)) {
-          paths.push(...findArrayPaths(value, `${prefix}.${key}`, depth + 1));
+        // Add each property path
+        Object.entries(obj).forEach(([key, value]) => {
+          const currentPath = `${prefix}.${key}`;
+
+          if (value && typeof value === 'object') {
+            if (Array.isArray(value)) {
+              paths.push(`${currentPath}[array]`);
+            } else {
+              paths.push(`${currentPath}[object]`);
         }
+            // Recurse into nested structures
+            paths.push(...findAllPaths(value, currentPath, depth + 1));
+          } else {
+            // Terminal field
+            paths.push(`${currentPath}[${typeof value}]`);
       }
+        });
+      }
+
       return paths;
     };
 
@@ -1119,17 +1163,144 @@ export class Agent {
       return fields;
     };
 
+    // Find deeply nested paths that might be good for filtering
+    const findUsefulSelectors = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 5) return [];
+
+      const selectors: string[] = [];
+
+      if (Array.isArray(obj) && obj.length > 0) {
+        const firstItem = obj[0];
+        if (firstItem && typeof firstItem === 'object') {
+          // Add specific filtering examples based on actual data
+          if (firstItem.title) {
+            selectors.push(
+              `${prefix}[?title=='${String(firstItem.title).replace(/'/g, "\\'")}'] | [0]`
+            );
+          }
+          if (firstItem.type) {
+            selectors.push(`${prefix}[?type=='${firstItem.type}'] | [0]`);
+          }
+          if (firstItem.record_type) {
+            selectors.push(`${prefix}[?record_type=='${firstItem.record_type}'] | [0]`);
+          }
+          if (firstItem.url) {
+            selectors.push(`${prefix}[?url!=null] | [0]`);
+          }
+
+          // Add compound filters for better specificity
+          if (firstItem.type && firstItem.title) {
+            selectors.push(
+              `${prefix}[?type=='${firstItem.type}' && title=='${String(firstItem.title).replace(/'/g, "\\'")}'] | [0]`
+            );
+          }
+
+          // Add direct indexed access as fallback
+          selectors.push(`${prefix}[0]`);
+        }
+      } else if (obj && typeof obj === 'object') {
+        Object.entries(obj).forEach(([key, value]) => {
+          if (typeof value === 'object' && value !== null) {
+            selectors.push(...findUsefulSelectors(value, `${prefix}.${key}`, depth + 1));
+          }
+        });
+      }
+
+      return selectors;
+    };
+
+    // Find nested content paths specifically
+    const findNestedContentPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 6) return [];
+
+      const paths: string[] = [];
+
+      if (obj && typeof obj === 'object') {
+        // Look for nested content structures
+        Object.entries(obj).forEach(([key, value]) => {
+          const currentPath = `${prefix}.${key}`;
+
+          if (Array.isArray(value) && value.length > 0) {
+            // Check if this is a content array with structured items
+            const firstItem = value[0];
+            if (firstItem && typeof firstItem === 'object') {
+              if (firstItem.type === 'document' || firstItem.type === 'text') {
+                paths.push(`${currentPath}[?type=='document'] | [0]`);
+                paths.push(`${currentPath}[?type=='text'] | [0]`);
+
+                // Add specific filtering based on actual content
+                if (firstItem.title) {
+                  const titleSample = String(firstItem.title).slice(0, 20);
+                  paths.push(
+                    `${currentPath}[?title && contains(title, '${titleSample.split(' ')[0]}')] | [0]`
+                  );
+                }
+                if (firstItem.record_type) {
+                  paths.push(`${currentPath}[?record_type=='${firstItem.record_type}'] | [0]`);
+                }
+              }
+            }
+
+            // Continue deeper into nested structures
+            paths.push(...findNestedContentPaths(value, currentPath, depth + 1));
+          } else if (value && typeof value === 'object') {
+            paths.push(...findNestedContentPaths(value, currentPath, depth + 1));
+          }
+        });
+      }
+
+      return paths;
+    };
+
     try {
-      const arrayPaths = findArrayPaths(parsedForAnalysis);
-      const commonFields = Array.from(findCommonFields(parsedForAnalysis)).slice(0, 10); // Limit to prevent spam
+      const allPaths = findAllPaths(parsedForAnalysis);
+      const commonFields = Array.from(findCommonFields(parsedForAnalysis)).slice(0, 15);
+      const usefulSelectors = findUsefulSelectors(parsedForAnalysis).slice(0, 10);
+      const nestedContentPaths = findNestedContentPaths(parsedForAnalysis).slice(0, 8);
+
+      // Get comprehensive path information
+      const terminalPaths = allPaths
+        .filter((p) => p.includes('[string]') || p.includes('[number]') || p.includes('[boolean]'))
+        .slice(0, 20);
+      const arrayPaths = allPaths.filter((p) => p.includes('[array')).slice(0, 15);
+      const objectPaths = allPaths.filter((p) => p.includes('[object]')).slice(0, 15);
+
+      // Combine all selector examples and remove duplicates
+      const allSelectors = [...usefulSelectors, ...nestedContentPaths];
+      const uniqueSelectors = [...new Set(allSelectors)].slice(0, 15);
 
       // Add structure hints to the original result (not the parsed version)
       const enhanced = {
         ...result,
         _structureHints: {
-          availablePaths: arrayPaths.slice(0, 8), // Limit to most relevant paths
-          commonFields,
-          note: 'Use these paths for artifact base selectors. Remove this _structureHints object from your selectors.',
+          terminalPaths: terminalPaths, // All field paths that contain actual values
+          arrayPaths: arrayPaths, // All array structures found
+          objectPaths: objectPaths, // All nested object structures
+          commonFields: commonFields,
+          exampleSelectors: uniqueSelectors,
+          deepStructureExamples: nestedContentPaths,
+          maxDepthFound: Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length)),
+          totalPathsFound: allPaths.length,
+          artifactGuidance: {
+            creationFirst:
+              '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
+            baseSelector:
+              "🎯 CRITICAL: Use base_selector to navigate to ONE specific item. For deeply nested structures with repeated keys, use full paths with specific filtering (e.g., \"result.data.content.items[?type=='guide' && status=='active']\")",
+            summaryProps:
+              '📝 Use relative selectors from that item (e.g., "title", "metadata.category", "properties.status")',
+            fullProps:
+              '📖 Use relative selectors for detailed data (e.g., "content.details", "specifications.data", "attributes")',
+            avoidLiterals:
+              '❌ NEVER use literal values - always use field selectors to extract from data',
+            avoidArrays:
+              '✨ ALWAYS filter arrays to single items using [?condition] - NEVER use [*] notation which returns arrays',
+            nestedKeys:
+              '🔑 For structures with repeated keys (like result.content.data.content.items.content), use full paths with filtering at each level',
+            filterTips:
+              "💡 Use compound filters for precision: [?type=='document' && category=='api']",
+            pathDepth: `📏 This structure goes ${Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length))} levels deep - use full paths to avoid ambiguity`,
+          },
+          note: `Comprehensive structure analysis: ${allPaths.length} paths found, ${Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length))} levels deep. Use specific filtering for precise selection.`,
         },
       };
 
@@ -1534,55 +1705,55 @@ export class Agent {
                       if (toolName === 'thinking_complete') {
                         return;
                       }
-
-                      // Special handling for save_artifact_tool and save_tool_result
-                      if (toolName === 'save_artifact_tool' || toolName === 'save_tool_result') {
-                        logger.info({ result }, 'save_artifact_tool or save_tool_result');
-                        if (result.output.artifacts) {
-                          for (const artifact of result.output.artifacts) {
-                            const artifactId = artifact?.artifactId || 'N/A';
-                            const taskId = artifact?.taskId || 'N/A';
-                            const summaryData = artifact?.summaryData || {};
-
-                            const formattedArtifact = `## Artifact Saved
-
-    **Artifact ID:** ${artifactId}
-    **Task ID:** ${taskId}
-
-    ### Summary
-    ${typeof summaryData === 'string' ? summaryData : JSON.stringify(summaryData, null, 2)}`;
-
-                            reasoningFlow.push({
-                              role: 'assistant',
-                              content: formattedArtifact,
-                            });
-                          }
-                        }
-                        return;
-                      }
-
                       // Default formatting for all other tools
                       const actualResult = storedResult?.result || result.result || result;
                       const actualArgs = storedResult?.args || call.args;
 
+                      // Filter out _structureHints from the result for clean JSON output
+                      const cleanResult =
+                        actualResult &&
+                        typeof actualResult === 'object' &&
+                        !Array.isArray(actualResult)
+                          ? Object.fromEntries(
+                              Object.entries(actualResult).filter(
+                                ([key]) => key !== '_structureHints'
+                              )
+                            )
+                          : actualResult;
+
                       const input = actualArgs ? JSON.stringify(actualArgs, null, 2) : 'No input';
                       const output =
-                        typeof actualResult === 'string'
-                          ? actualResult
-                          : JSON.stringify(actualResult, null, 2);
+                        typeof cleanResult === 'string'
+                          ? cleanResult
+                          : JSON.stringify(cleanResult, null, 2);
 
-                      // Format structure hints if present
+                      // Format structure hints if present and artifact components are available
                       let structureHintsFormatted = '';
-                      if (actualResult?._structureHints) {
+                      if (
+                        actualResult?._structureHints &&
+                        this.artifactComponents &&
+                        this.artifactComponents.length > 0
+                      ) {
                         const hints = actualResult._structureHints;
                         structureHintsFormatted = `
 ### 📊 Structure Hints for Artifact Creation
 
-**Available Paths:**
-${hints.availablePaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+**Terminal Field Paths (${hints.terminalPaths?.length || 0} found):**
+${hints.terminalPaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Array Structures (${hints.arrayPaths?.length || 0} found):**
+${hints.arrayPaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Object Structures (${hints.objectPaths?.length || 0} found):**
+${hints.objectPaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Example Selectors:**
+${hints.exampleSelectors?.map((sel: string) => `  • ${sel}`).join('\n') || '  None detected'}
 
 **Common Fields:**
 ${hints.commonFields?.map((field: string) => `  • ${field}`).join('\n') || '  None detected'}
+
+**Structure Stats:** ${hints.totalPathsFound || 0} total paths, ${hints.maxDepthFound || 0} levels deep
 
 **Note:** ${hints.note || 'Use these paths for artifact base selectors.'}
 `;
@@ -1661,12 +1832,12 @@ ${output}${structureHintsFormatted}`;
               const streamResult = streamObject({
                 ...structuredModelSettings,
                 messages: [
-                  { role: 'user', content: userMessage },
-                  ...reasoningFlow,
                   {
-                    role: 'user',
+                    role: 'system',
                     content: await this.buildPhase2SystemPrompt(),
                   },
+                  { role: 'user', content: userMessage },
+                  ...reasoningFlow,
                 ],
                 schema: z.object({
                   dataComponents: z.array(dataComponentsSchema),
@@ -1739,15 +1910,14 @@ ${output}${structureHintsFormatted}`;
               textResponse = JSON.stringify(structuredResponse.object, null, 2);
             } else {
               // Non-streaming Phase 2: Use generateObject as fallback
-              const structuredResponse = await generateObject({
+              const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
+              
+              const structuredResponse = await generateObject(withJsonPostProcessing({
                 ...structuredModelSettings,
                 messages: [
+                  { role: 'system', content: await this.buildPhase2SystemPrompt() },
                   { role: 'user', content: userMessage },
                   ...reasoningFlow,
-                  {
-                    role: 'user',
-                    content: await this.buildPhase2SystemPrompt(),
-                  },
                 ],
                 schema: z.object({
                   dataComponents: z.array(dataComponentsSchema),
@@ -1762,7 +1932,7 @@ ${output}${structureHintsFormatted}`;
                   },
                 },
                 abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-              });
+              }));
 
               // Merge structured output into response
               response = {

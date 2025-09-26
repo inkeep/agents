@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import z from 'zod';
 import { getLogger } from '../logger';
 import { graphSessionManager } from '../utils/graph-session';
-import { parseEmbeddedJson } from './generateTaskHandler';
+import { parseEmbeddedJson } from '../utils/json-parser';
 import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('artifactTools');

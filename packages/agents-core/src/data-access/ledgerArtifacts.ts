@@ -99,6 +99,7 @@ export const getLedgerArtifacts =
         artifactId: row.id,
         type: row.type ?? 'source',
         taskId: row.taskId ?? undefined,
+        toolCallId: row.toolCallId ?? undefined, // Added for traceability to the specific tool execution
         name: row.name ?? undefined,
         description: row.description ?? undefined,
         parts: (row.parts ?? []) as Part[], // row.parts may be null in DB

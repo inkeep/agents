@@ -25,6 +25,7 @@ export class IncrementalStreamParser {
   private componentAccumulator: any = {};
   private lastStreamedComponents = new Map<string, any>();
   private componentSnapshots = new Map<string, string>();
+  private artifactMap?: Map<string, any>;
 
   // Memory management constants
   private static readonly MAX_SNAPSHOT_SIZE = 100; // Max number of snapshots to keep
@@ -49,6 +50,23 @@ export class IncrementalStreamParser {
       ...artifactParserOptions,
       contextId,
     });
+  }
+
+  /**
+   * Initialize artifact map for artifact:ref lookups during streaming
+   * Should be called before processing chunks
+   */
+  async initializeArtifactMap(): Promise<void> {
+    try {
+      this.artifactMap = await this.artifactParser.getContextArtifacts(this.contextId);
+      logger.debug({
+        contextId: this.contextId,
+        artifactMapSize: this.artifactMap.size,
+      }, 'Initialized artifact map for streaming');
+    } catch (error) {
+      logger.warn({ error, contextId: this.contextId }, 'Failed to initialize artifact map');
+      this.artifactMap = new Map();
+    }
   }
 
   /**
@@ -381,7 +399,7 @@ export class IncrementalStreamParser {
       if (safeEnd > 0) {
         const safeText = workingBuffer.slice(0, safeEnd);
         // Parse the safe portion for complete artifacts
-        const parts = await this.artifactParser.parseText(safeText);
+        const parts = await this.artifactParser.parseText(safeText, this.artifactMap);
         completeParts.push(...parts);
 
         return {
@@ -398,7 +416,7 @@ export class IncrementalStreamParser {
     }
 
     // No incomplete artifacts, parse the entire buffer
-    const parts = await this.artifactParser.parseText(workingBuffer);
+    const parts = await this.artifactParser.parseText(workingBuffer, this.artifactMap);
 
     // Check last part - if it's text, it might be incomplete
     if (parts.length > 0 && parts[parts.length - 1].kind === 'text') {

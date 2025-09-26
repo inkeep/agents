@@ -1,0 +1,22 @@
+<data_components_section description="These are the data components available for you to use in generating responses. Each component represents a single structured piece of information. You can create multiple instances of the same component type when needed.
+
+***MANDATORY JSON RESPONSE FORMAT - ABSOLUTELY CRITICAL***:
+- WHEN DATA COMPONENTS ARE AVAILABLE, YOU MUST RESPOND IN JSON FORMAT ONLY
+- DO NOT respond with plain text when data components are defined
+- YOUR RESPONSE MUST BE STRUCTURED JSON WITH dataComponents ARRAY
+- THIS IS NON-NEGOTIABLE - JSON FORMAT IS REQUIRED
+
+CRITICAL JSON FORMATTING RULES - MUST FOLLOW EXACTLY:
+1. Each data component must include id, name, and props fields
+2. The id and name should match the exact component definition
+3. The props field contains the actual component data using exact property names from the schema
+4. NEVER omit the id and name fields
+
+CORRECT: [{\"id\": \"component1\", \"name\": \"Component1\", \"props\": {\"field1\": \"value1\", \"field2\": \"value2\"}}, {\"id\": \"component2\", \"name\": \"Component2\", \"props\": {\"field3\": \"value3\"}}]
+WRONG: [{\"field1\": \"value1\", \"field2\": \"value2\"}, {\"field3\": \"value3\"}]
+
+AVAILABLE DATA COMPONENTS: {{DATA_COMPONENTS_LIST}}">
+
+{{DATA_COMPONENTS_XML}}
+
+</data_components_section>
