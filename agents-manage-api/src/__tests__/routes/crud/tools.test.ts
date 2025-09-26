@@ -1,61 +1,10 @@
 import { MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
-
-// Mock the entire agents-core module to avoid external dependencies
-vi.mock('@inkeep/agents-core', async () => {
-  const actual = await vi.importActual('@inkeep/agents-core');
-  return {
-    ...actual,
-    McpClient: vi.fn().mockImplementation(() => ({
-      connect: vi.fn().mockResolvedValue(undefined),
-      disconnect: vi.fn().mockResolvedValue(undefined),
-      tools: vi.fn().mockResolvedValue({
-        'test-function': {
-          name: 'test-function',
-          description: 'Test function from MCP server',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string' },
-            },
-          },
-        },
-      }),
-    })),
-    dbResultToMcpTool: vi.fn().mockImplementation(async (dbResult) => {
-      return {
-        // Return the database result with computed fields
-        ...dbResult,
-        // Add computed fields that dbResultToMcpTool would normally add
-        status: 'unknown' as const,
-        availableTools: [
-          {
-            name: 'test-function',
-            description: 'Test function from MCP server',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: { type: 'string', description: 'Query parameter' },
-              },
-              required: ['query'],
-            },
-          },
-        ],
-        createdAt: new Date(dbResult.createdAt),
-        updatedAt: new Date(dbResult.updatedAt),
-        capabilities: undefined,
-        lastError: undefined,
-        headers: undefined,
-        imageUrl: undefined,
-      };
-    }),
-  };
-});
 
 describe('Tools CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -124,12 +73,12 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await createTestTool({ tenantId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/tools?status=unknown`
+        `/tenants/${tenantId}/projects/${projectId}/tools?status=unhealthy`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].status).toBe('unknown');
+      expect(body.data[0].status).toBe('unhealthy');
     });
   });
 
@@ -144,7 +93,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.id).toBe(toolId);
       expect(body.data.name).toBe(toolData.name);
-      expect(body.data.status).toBe('unknown');
+      expect(body.data.status).toBe('unhealthy');
     });
 
     it('should return 404 when tool not found', async () => {
@@ -172,7 +121,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.name).toBe(toolData.name);
       expect(body.data.tenantId).toBe(tenantId);
-      expect(body.data.status).toBe('unknown');
+      expect(body.data.status).toBe('unhealthy');
     });
 
     it('should validate required fields', async () => {
