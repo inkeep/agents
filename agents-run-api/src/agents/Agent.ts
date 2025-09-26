@@ -570,7 +570,10 @@ export class Agent {
   /**
    * Convert database McpTool to builder MCPToolConfig format
    */
-  private convertToMCPToolConfig(tool: McpTool): MCPToolConfig {
+  private convertToMCPToolConfig(
+    tool: McpTool,
+    agentToolRelationHeaders?: Record<string, string>
+  ): MCPToolConfig {
     return {
       id: tool.id,
       name: tool.name,
@@ -581,7 +584,10 @@ export class Agent {
         ? MCPServerType.nango
         : MCPServerType.generic,
       transport: tool.config.mcp.transport,
-      headers: tool.headers,
+      headers: {
+        ...tool.headers,
+        ...agentToolRelationHeaders,
+      },
     };
   }
 
@@ -596,6 +602,9 @@ export class Agent {
         agentId: this.config.id,
       },
     });
+
+    const agentToolRelationHeaders =
+      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
 
     const selectedTools =
       toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
@@ -622,6 +631,11 @@ export class Agent {
         retrievalParams: credentialReference.retrievalParams || {},
       };
 
+      console.log(
+        'credentialReferenceId && this.credentialStuffer',
+        JSON.stringify(credentialReferenceId, null, 2)
+      );
+
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -629,11 +643,13 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool),
+        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
         storeReference,
         selectedTools
       );
     } else if (tool.headers && this.credentialStuffer) {
+      console.log('tool.headers && this.credentialStuffer', JSON.stringify(tool.headers, null, 2));
+
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -641,17 +657,19 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool),
+        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
         undefined,
         selectedTools
       );
     } else {
       // No credentials - build basic config
+      console.log('No credentials - build basic config');
       serverConfig = {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
         url: tool.config.mcp.server.url,
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
+        headers: agentToolRelationHeaders,
       };
     }
 
@@ -664,6 +682,8 @@ export class Agent {
       },
       'Built MCP server config with credentials'
     );
+
+    console.log('serverConfig', JSON.stringify(serverConfig, null, 2));
 
     // Create and connect MCP client
     const client = new McpClient({
@@ -896,6 +916,8 @@ Key requirements:
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
+    console.log('buildSystemPrompt resolvedContext', JSON.stringify(resolvedContext, null, 2));
+
     // Process agent prompt with context
     let processedPrompt = this.config.agentPrompt;
     if (resolvedContext) {
@@ -915,6 +937,8 @@ Key requirements:
         processedPrompt = this.config.agentPrompt;
       }
     }
+
+    console.log('buildSystemPrompt processedPrompt', JSON.stringify(processedPrompt, null, 2));
 
     // Get MCP tools, function tools, and relational tools
     const streamRequestId = runtimeContext?.metadata?.streamRequestId;
@@ -960,6 +984,8 @@ Key requirements:
 
     // Get graph prompt for additional context
     let graphPrompt = await this.getGraphPrompt();
+
+    console.log('buildSystemPrompt graphPrompt', JSON.stringify(graphPrompt, null, 2));
 
     // Process graph prompt with context variables
     if (graphPrompt && resolvedContext) {

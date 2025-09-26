@@ -22,6 +22,8 @@ async function GraphPage({ params }: GraphPageProps) {
     fetchToolsAction(tenantId, projectId),
   ]);
 
+  console.log('graph', JSON.stringify(graph, null, 2));
+
   if (!graph.success) throw new Error(graph.error);
   if (!dataComponents.success || !artifactComponents.success || !tools.success) {
     console.error(

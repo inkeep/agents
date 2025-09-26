@@ -34,6 +34,38 @@ import { formatJsonField } from '@/lib/utils';
 import { getErrorSummaryMessage, parseGraphValidationErrors } from '@/lib/utils/graph-error-parser';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+
+// Type for agent tool configuration lookup including both selection and headers
+export type AgentToolConfig = {
+  toolSelection?: string[];
+  headers?: Record<string, string>;
+};
+
+export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
+
+// Utility function to derive selectedToolsLookup from agentToolConfigLookup
+export function getSelectedToolsLookup(
+  agentToolConfigLookup: AgentToolConfigLookup
+): Record<string, Record<string, string[]>> {
+  const selectedToolsLookup: Record<string, Record<string, string[]>> = {};
+
+  Object.entries(agentToolConfigLookup).forEach(([agentId, toolsMap]) => {
+    const selectedToolsMap: Record<string, string[]> = {};
+
+    Object.entries(toolsMap).forEach(([toolId, config]) => {
+      if (config.toolSelection) {
+        selectedToolsMap[toolId] = config.toolSelection;
+      }
+    });
+
+    if (Object.keys(selectedToolsMap).length > 0) {
+      selectedToolsLookup[agentId] = selectedToolsMap;
+    }
+  });
+
+  return selectedToolsLookup;
+}
+
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import type { ContextConfig } from './configuration/graph-types';
 import {
@@ -134,17 +166,28 @@ function Flow({
     };
   }, [graph, enrichNodes, initialNodes]);
 
-  // Create selectedTools lookup from graph data
-  const selectedToolsLookup = useMemo((): Record<string, Record<string, string[]>> => {
-    if (!graph?.agents) return {} as Record<string, Record<string, string[]>>;
+  // Create agent tool configuration lookup from graph data
+  const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
+    if (!graph?.agents) return {} as AgentToolConfigLookup;
 
-    const lookup: Record<string, Record<string, string[]>> = {};
+    const lookup: AgentToolConfigLookup = {};
     Object.entries(graph.agents).forEach(([agentId, agentData]) => {
       if ('canUse' in agentData && agentData.canUse) {
-        const toolsMap: Record<string, string[]> = {};
+        const toolsMap: Record<string, AgentToolConfig> = {};
         agentData.canUse.forEach((tool) => {
+          const config: AgentToolConfig = {};
+
           if (tool.toolSelection) {
-            toolsMap[tool.toolId] = tool.toolSelection;
+            config.toolSelection = tool.toolSelection;
+          }
+
+          if (tool.headers) {
+            config.headers = tool.headers;
+          }
+
+          // Only add to map if we have either toolSelection or headers
+          if (config.toolSelection || config.headers) {
+            toolsMap[tool.toolId] = config;
           }
         });
         if (Object.keys(toolsMap).length > 0) {
@@ -154,6 +197,11 @@ function Flow({
     });
     return lookup;
   }, [graph?.agents]);
+
+  // Derive selectedToolsLookup from agentToolConfigLookup for backward compatibility
+  const selectedToolsLookup = useMemo(() => {
+    return getSelectedToolsLookup(agentToolConfigLookup);
+  }, [agentToolConfigLookup]);
 
   const { screenToFlowPosition } = useReactFlow();
   const {
@@ -504,7 +552,7 @@ function Flow({
       metadata,
       dataComponentLookup,
       artifactComponentLookup,
-      selectedToolsLookup
+      agentToolConfigLookup
     );
 
     const res = await saveGraph(
@@ -555,6 +603,7 @@ function Flow({
     clearErrors,
     setErrors,
     selectedToolsLookup,
+    agentToolConfigLookup,
     toolLookup,
   ]);
 
@@ -622,6 +671,7 @@ function Flow({
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         selectedToolsLookup={selectedToolsLookup}
+        agentToolConfigLookup={agentToolConfigLookup}
         toolLookup={toolLookup}
       />
       {showPlayground && graph?.id && (

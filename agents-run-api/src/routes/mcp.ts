@@ -368,6 +368,8 @@ const getServer = async (
           credentialStores,
         });
 
+        console.log('resolvedContext', JSON.stringify(resolvedContext, null, 2));
+
         logger.info(
           {
             tenantId,

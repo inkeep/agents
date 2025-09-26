@@ -327,6 +327,7 @@ export const addToolToAgent =
     agentId: string;
     toolId: string;
     selectedTools?: string[] | null;
+    headers?: Record<string, string> | null;
   }) => {
     const id = nanoid();
     const now = new Date().toISOString();
@@ -341,6 +342,7 @@ export const addToolToAgent =
         agentId: params.agentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
+        headers: params.headers,
         createdAt: now,
         updatedAt: now,
       })
@@ -378,6 +380,7 @@ export const upsertAgentToolRelation =
     agentId: string;
     toolId: string;
     selectedTools?: string[] | null;
+    headers?: Record<string, string> | null;
   }) => {
     // Check if relation already exists
     const existing = await db.query.agentToolRelations.findFirst({
@@ -402,6 +405,7 @@ export const upsertAgentToolRelation =
         agentId: params.agentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
+        headers: params.headers,
       },
     });
   };

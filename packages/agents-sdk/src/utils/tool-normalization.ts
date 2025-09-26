@@ -10,8 +10,6 @@ export function isAgentMcpConfig(value: unknown): value is AgentMcpConfig {
     value !== null &&
     typeof value === 'object' &&
     'server' in value &&
-    'selectedTools' in value &&
-    Array.isArray((value as any).selectedTools) &&
     (value as any).server &&
     typeof (value as any).server === 'object'
   );
@@ -46,6 +44,8 @@ export interface NormalizedToolInfo {
   toolId: string;
   /** Selected tools (only present for AgentMcpConfig) */
   selectedTools?: string[];
+  /** Agent-specific headers (only present for AgentMcpConfig) */
+  headers?: Record<string, string>;
   /** Whether this came from an AgentMcpConfig wrapper */
   isWrapped: boolean;
 }
@@ -62,6 +62,7 @@ export function normalizeAgentCanUseType(
       tool: value.server,
       toolId: value.server.getId(),
       selectedTools: value.selectedTools,
+      headers: value.headers,
       isWrapped: true,
     };
   }
