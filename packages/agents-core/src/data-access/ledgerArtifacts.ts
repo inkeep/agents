@@ -86,13 +86,13 @@ function sanitizeArtifactForDatabase(artifact: Artifact): Artifact {
 /**
  * Fallback insert strategy for when normal insert fails
  */
-async function tryFallbackInsert(db: DatabaseClient, rows: any[], originalError: any): Promise<void> {
+async function tryFallbackInsert(db: DatabaseClient, rows: any[], _originalError: any): Promise<void> {
   // Try inserting one row at a time to isolate problematic data
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
       await db.insert(ledgerArtifacts).values([row]);
-    } catch (fallbackError: any) {
+    } catch (_fallbackError: any) {
       
       // Try with minimal data as last resort
       try {
@@ -118,7 +118,7 @@ async function tryFallbackInsert(db: DatabaseClient, rows: any[], originalError:
         };
         
         await db.insert(ledgerArtifacts).values([minimalRow]);
-      } catch (finalError: any) {
+      } catch (_finalError: any) {
         // Don't throw here - we want to continue with other artifacts
       }
     }
@@ -212,7 +212,9 @@ export const addLedgerArtifacts =
     if (artifacts.length === 0) return;
 
     // Validate all artifacts before processing
-    artifacts.forEach((artifact, index) => validateArtifactData(artifact, index));
+    for (let i = 0; i < artifacts.length; i++) {
+      validateArtifactData(artifacts[i], i);
+    }
 
     const now = new Date().toISOString();
     const rows = artifacts.map((art) => {
@@ -279,7 +281,7 @@ export const addLedgerArtifacts =
         }
 
         // Wait before retrying (exponential backoff)
-        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 5000);
         await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
     }
