@@ -15,7 +15,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "prepare": "pnpm build --no-dts",
     "test": "vitest --run",
     "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
     "test:integration": "vitest --run src/__tests__/integration/",
