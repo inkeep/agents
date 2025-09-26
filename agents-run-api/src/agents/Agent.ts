@@ -844,7 +844,7 @@ export class Agent {
    */
   private async buildPhase2SystemPrompt(): Promise<string> {
     const phase2Config = new Phase2Config();
-    const hasArtifactComponents = await this.hasGraphArtifactComponents();
+    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
 
     // Get reference artifacts from existing tasks (same logic as buildSystemPrompt)
     const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
@@ -866,7 +866,8 @@ export class Agent {
     return phase2Config.assemblePhase2Prompt({
       dataComponents: this.config.dataComponents || [],
       artifactComponents: this.artifactComponents,
-      hasArtifactComponents,
+      hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
+      hasGraphArtifactComponents,
       artifacts: referenceArtifacts,
     });
   }
@@ -973,13 +974,21 @@ export class Agent {
       }
     }
 
+    // When excludeDataComponents = true (Phase 1 of two-phase), don't include artifact components
+    // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components  
+    const shouldIncludeArtifactComponents = !excludeDataComponents;
+
+    // Check if any agent in the graph has artifact components (for referencing guidance)
+    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       graphPrompt,
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
-      artifactComponents: this.artifactComponents,
+      artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
+      hasGraphArtifactComponents,
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,

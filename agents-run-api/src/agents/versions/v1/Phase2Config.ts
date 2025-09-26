@@ -111,8 +111,13 @@ COMMON FAILURE POINTS (AVOID THESE):
 
   private getStructuredArtifactGuidance(
     hasArtifactComponents: boolean,
-    artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
+    artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>,
+    shouldShowReferencingRules: boolean = true
   ): string {
+    // If we shouldn't show referencing rules at all, return empty
+    if (!shouldShowReferencingRules) {
+      return '';
+    }
     // Scenario 1: Has data components AND can create artifacts
     if (hasArtifactComponents && artifactComponents && artifactComponents.length > 0) {
       return `ARTIFACT MANAGEMENT FOR STRUCTURED RESPONSES:
@@ -377,9 +382,10 @@ ${artifactRetrievalGuidance}
     dataComponents: DataComponentApiInsert[];
     artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>;
     hasArtifactComponents: boolean;
+    hasGraphArtifactComponents?: boolean;
     artifacts?: Artifact[];
   }): string {
-    const { dataComponents, artifactComponents, hasArtifactComponents, artifacts = [] } = config;
+    const { dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
     let allDataComponents = [...dataComponents];
@@ -394,7 +400,8 @@ ${artifactRetrievalGuidance}
 
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);
     const artifactsSection = this.generateArtifactsSection(artifacts);
-    const artifactGuidance = this.getStructuredArtifactGuidance(hasArtifactComponents, artifactComponents);
+    const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
+    const artifactGuidance = this.getStructuredArtifactGuidance(hasArtifactComponents, artifactComponents, shouldShowReferencingRules);
     const artifactTypes = this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
 
     let phase2Prompt = systemPromptTemplate;

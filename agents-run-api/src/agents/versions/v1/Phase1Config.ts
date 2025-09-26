@@ -74,7 +74,8 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       templates,
       config.artifacts,
       hasArtifactComponents,
-      config.artifactComponents
+      config.artifactComponents,
+      config.hasGraphArtifactComponents
     );
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
@@ -194,8 +195,13 @@ COMMON FAILURE POINTS (AVOID THESE):
 
   private getArtifactReferencingRules(
     hasArtifactComponents: boolean = false,
-    templates?: Map<string, string>
+    templates?: Map<string, string>,
+    shouldShowReferencingRules: boolean = true
   ): string {
+    // If we shouldn't show referencing rules at all, return empty
+    if (!shouldShowReferencingRules) {
+      return '';
+    }
     // Get shared artifact retrieval guidance
     const sharedGuidance = templates?.get('artifact-retrieval-guidance') || '';
 
@@ -360,7 +366,7 @@ IMPORTANT GUIDELINES:
           fullSchema = `Available: ${fullDetails}`;
         }
 
-        return `  - ${ac.name}: ${ac.description || 'No description available'}
+        return `  - "${ac.name}": ${ac.description || 'No description available'}
     Summary Props: ${summarySchema}
     Full Props: ${fullSchema}`;
       })
@@ -376,16 +382,26 @@ ${typeDescriptions}
 - Do NOT make up arbitrary property names like "founders", "nick_details", "year"  
 - Each artifact type has specific required fields in summaryProps and available fields in fullProps
 - Your JMESPath selectors must extract values for these exact schema-defined properties
-- Example: If schema defines "title" and "url", use summary='{"title":"title","url":"url"}' not made-up names`;
+- Example: If schema defines "title" and "url", use summary='{"title":"title","url":"url"}' not made-up names
+
+🚨 CRITICAL: USE EXACT ARTIFACT TYPE NAMES IN QUOTES! 🚨
+- MUST use the exact type name shown in quotes above
+- Copy the exact string between the quotes, including any capitalization
+- The type= parameter in artifact:create MUST match exactly what is listed above
+- Do NOT abbreviate, modify, or guess the type name
+- Copy the exact quoted name from the "AVAILABLE ARTIFACT TYPES" list above`;
   }
 
   private generateArtifactsSection(
     templates: Map<string, string>,
     artifacts: Artifact[],
     hasArtifactComponents: boolean = false,
-    artifactComponents?: any[]
+    artifactComponents?: any[],
+    hasGraphArtifactComponents?: boolean
   ): string {
-    const rules = this.getArtifactReferencingRules(hasArtifactComponents, templates);
+    // Show referencing rules if any agent in graph has artifact components OR if artifacts exist
+    const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
+    const rules = this.getArtifactReferencingRules(hasArtifactComponents, templates, shouldShowReferencingRules);
     const creationInstructions = this.getArtifactCreationInstructions(
       hasArtifactComponents,
       artifactComponents
