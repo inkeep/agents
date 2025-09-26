@@ -5,6 +5,7 @@ import { devtools } from 'zustand/middleware';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import type { MCPTool } from '@/lib/types/tools';
 import type { GraphErrorSummary } from '@/lib/utils/graph-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
@@ -15,6 +16,8 @@ type GraphStateData = {
   metadata: GraphMetadata;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  selectedToolsLookup: Record<string, Record<string, string[]>>;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -28,10 +31,14 @@ type GraphState = GraphStateData & {
     edges: Edge[],
     metadata: GraphMetadata,
     dataComponentLookup?: Record<string, DataComponent>,
-    artifactComponentLookup?: Record<string, ArtifactComponent>
+    artifactComponentLookup?: Record<string, ArtifactComponent>,
+    toolLookup?: Record<string, MCPTool>,
+    selectedToolsLookup?: Record<string, Record<string, string[]>>
   ): void;
   setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
   setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
+  setToolLookup(toolLookup: Record<string, MCPTool>): void;
+  setSelectedToolsLookup(selectedToolsLookup: Record<string, Record<string, string[]>>): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
@@ -74,18 +81,30 @@ export const useGraphStore = create<GraphState>()(
     },
     dataComponentLookup: {},
     artifactComponentLookup: {},
+    toolLookup: {},
+    selectedToolsLookup: {},
     dirty: false,
     history: [],
     future: [],
     errors: null,
     showErrors: false,
-    setInitial(nodes, edges, metadata, dataComponentLookup = {}, artifactComponentLookup = {}) {
+    setInitial(
+      nodes,
+      edges,
+      metadata,
+      dataComponentLookup = {},
+      artifactComponentLookup = {},
+      toolLookup = {},
+      selectedToolsLookup = {}
+    ) {
       set({
         nodes,
         edges,
         metadata,
         dataComponentLookup,
         artifactComponentLookup,
+        toolLookup,
+        selectedToolsLookup,
         dirty: false,
         history: [],
         future: [],
@@ -98,6 +117,12 @@ export const useGraphStore = create<GraphState>()(
     },
     setArtifactComponentLookup(artifactComponentLookup) {
       set({ artifactComponentLookup });
+    },
+    setToolLookup(toolLookup) {
+      set({ toolLookup });
+    },
+    setSelectedToolsLookup(selectedToolsLookup) {
+      set({ selectedToolsLookup });
     },
     setNodes(updater) {
       set((state) => ({ nodes: updater(state.nodes) }));

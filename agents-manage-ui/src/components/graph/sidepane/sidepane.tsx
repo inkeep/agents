@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { MCPTool } from '@/lib/types/tools';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
@@ -32,9 +31,7 @@ interface SidePaneProps {
   isOpen: boolean;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
-  selectedToolsLookup: Record<string, Record<string, string[]>>;
   agentToolConfigLookup: AgentToolConfigLookup;
-  toolLookup: Record<string, MCPTool>;
 }
 
 export function SidePane({
@@ -45,9 +42,7 @@ export function SidePane({
   isOpen,
   dataComponentLookup,
   artifactComponentLookup,
-  selectedToolsLookup,
   agentToolConfigLookup,
-  toolLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
@@ -116,9 +111,7 @@ export function SidePane({
           return (
             <MCPServerNodeEditor
               selectedNode={selectedNode as Node<MCPNodeData>}
-              selectedToolsLookup={selectedToolsLookup}
               agentToolConfigLookup={agentToolConfigLookup}
-              toolLookup={toolLookup}
             />
           );
         }
@@ -138,9 +131,7 @@ export function SidePane({
     hasFieldError,
     getFieldErrorMessage,
     getFirstErrorField,
-    selectedToolsLookup,
     agentToolConfigLookup,
-    toolLookup,
   ]);
 
   const showBackButton = useMemo(() => {

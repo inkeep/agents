@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
-import type { MCPTool } from '@/lib/types/tools';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
@@ -19,24 +18,18 @@ import type { AgentToolConfigLookup } from '../../graph';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
-  selectedToolsLookup: Record<string, Record<string, string[]>>;
   agentToolConfigLookup: AgentToolConfigLookup;
-  toolLookup: Record<string, MCPTool>;
 }
 
 export function MCPServerNodeEditor({
   selectedNode,
-  selectedToolsLookup,
   agentToolConfigLookup,
-  toolLookup,
 }: MCPServerNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-
-  // All hooks must be called before any early returns
   const markUnsaved = useGraphStore((state) => state.markUnsaved);
 
   // Get current headers for this tool from all agents
@@ -66,6 +59,8 @@ export function MCPServerNodeEditor({
   }, [getCurrentHeaders]);
 
   // Only use toolLookup - single source of truth
+  const toolLookup = useGraphStore((state) => state.toolLookup);
+  const selectedToolsLookup = useGraphStore((state) => state.selectedToolsLookup);
   const toolData = toolLookup[selectedNode.data.toolId];
 
   const availableTools = toolData?.availableTools;
@@ -85,7 +80,6 @@ export function MCPServerNodeEditor({
       </div>
     );
   }
-
   const selectedTools = getCurrentSelectedToolsForNode(selectedNode, selectedToolsLookup);
 
   // Find orphaned tools - tools that are selected but no longer available in activeTools
