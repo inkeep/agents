@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.7.0
+
+### Minor Changes
+
+- 77bd54d: Changing available tools implementation
+
+### Patch Changes
+
+- Updated dependencies [77bd54d]
+  - @inkeep/agents-core@0.7.0
+  - @inkeep/agents-manage-api@0.7.0
+  - @inkeep/agents-run-api@0.7.0
+
 ## 0.6.6
 
 ### Patch Changes

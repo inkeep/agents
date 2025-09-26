@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.7.0
+
+### Minor Changes
+
+- 77bd54d: Changing available tools implementation
+
 ## 0.6.6
 
 ## 0.6.5
