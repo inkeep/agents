@@ -35,7 +35,7 @@ function ActiveToolBadge({ toolName, isAvailable }: { toolName: string; isAvaila
       <Tooltip>
         <TooltipTrigger asChild>{badge}</TooltipTrigger>
         <TooltipContent>
-          <p>This tool is not available in the current server configuration</p>
+          <p>This tool is not available in the MCP server.</p>
         </TooltipContent>
       </Tooltip>
     );

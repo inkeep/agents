@@ -115,8 +115,6 @@ export function serializeGraphData(
       // Build canUse array from edges connecting this agent to MCP nodes
       const canUse: Array<{ toolId: string; toolSelection?: string[] | null }> = [];
 
-      console.log('edges serializeGraphData', edges);
-
       // Find edges from this agent to MCP nodes
       const agentToMcpEdges = edges.filter(
         (edge) =>
@@ -200,10 +198,6 @@ export function serializeGraphData(
       }
 
       agents[agentId] = agent;
-    } else if (node.type === NodeType.MCP) {
-      // Note: Tools are now project-scoped and not processed during graph serialization
-      // Tool nodes in the UI are handled separately at the project level
-      console.log('Skipping MCP tool node during graph serialization (tools are project-scoped)');
     }
   }
 
