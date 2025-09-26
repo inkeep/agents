@@ -64,13 +64,8 @@ export function ProjectForm({
     },
   });
 
-  const { isSubmitting, errors, isValid } = form.formState;
+  const { isSubmitting } = form.formState;
   const router = useRouter();
-
-  // Debug logging for validation errors
-  console.log('Form errors:', errors);
-  console.log('Form is valid:', isValid);
-  console.log('Form values:', form.watch());
 
   // Auto-prefill ID based on name field (only for new components)
   useAutoPrefillId({
@@ -81,10 +76,7 @@ export function ProjectForm({
   });
 
   const onSubmit = async (data: ProjectFormData) => {
-    console.log('🚀 Submit handler called with data:', data);
     const serializedData = serializeData(data);
-
-    console.log('serializedData', serializedData);
 
     try {
       if (projectId) {
@@ -117,16 +109,6 @@ export function ProjectForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
-
-  const handleButtonClick = () => {
-    console.log('🔘 Submit button clicked');
-    console.log('Current form state:', {
-      isValid,
-      errors,
-      isDirty: form.formState.isDirty,
-      isSubmitting,
-    });
   };
 
   return (
@@ -172,20 +154,7 @@ export function ProjectForm({
               Cancel
             </Button>
           )}
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              console.log('🐛 Manual form validation triggered');
-              form.trigger().then((isValid) => {
-                console.log('Manual validation result:', isValid);
-                console.log('Validation errors:', form.formState.errors);
-              });
-            }}
-          >
-            Debug Form
-          </Button>
-          <Button type="submit" disabled={isSubmitting} onClick={handleButtonClick}>
+          <Button type="submit" disabled={isSubmitting}>
             {projectId ? 'Update project' : 'Create project'}
           </Button>
         </div>

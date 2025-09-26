@@ -217,11 +217,6 @@ export class CredentialStuffer {
       contextConfigId
     );
 
-    console.log(
-      'getCredentialsFromRequestContext requestContext',
-      JSON.stringify(requestContext, null, 2)
-    );
-
     // Render any template variables in dynamic header values
     const resolvedHeaders: Record<string, string> = {};
     for (const [key, value] of Object.entries(headers)) {
@@ -252,11 +247,6 @@ export class CredentialStuffer {
     if (context.contextConfigId && context.conversationId && headers) {
       credentialsFromRequestContext = await this.getCredentialsFromRequestContext(context, headers);
     }
-
-    console.log(
-      'getCredentialHeaders credentialsFromRequestContext',
-      JSON.stringify(credentialsFromRequestContext, null, 2)
-    );
 
     // Resolve headers from credential store if we have a store reference
     let credentialStoreHeaders: CredentialData | null = null;

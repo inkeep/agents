@@ -271,8 +271,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
     // Get validated context from middleware (falls back to body.context if no validation)
     const validatedContext = (c as any).get('validatedContext') || body.requestContext || {};
 
-    console.log('validatedContext in /chat', JSON.stringify(validatedContext, null, 2));
-
     const credentialStores = c.get('credentialStores');
 
     // Context resolution with intelligent conversation state detection

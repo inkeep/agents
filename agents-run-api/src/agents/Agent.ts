@@ -631,11 +631,6 @@ export class Agent {
         retrievalParams: credentialReference.retrievalParams || {},
       };
 
-      console.log(
-        'credentialReferenceId && this.credentialStuffer',
-        JSON.stringify(credentialReferenceId, null, 2)
-      );
-
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -648,8 +643,6 @@ export class Agent {
         selectedTools
       );
     } else if (tool.headers && this.credentialStuffer) {
-      console.log('tool.headers && this.credentialStuffer', JSON.stringify(tool.headers, null, 2));
-
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -663,7 +656,6 @@ export class Agent {
       );
     } else {
       // No credentials - build basic config
-      console.log('No credentials - build basic config');
       serverConfig = {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
         url: tool.config.mcp.server.url,
@@ -682,8 +674,6 @@ export class Agent {
       },
       'Built MCP server config with credentials'
     );
-
-    console.log('serverConfig', JSON.stringify(serverConfig, null, 2));
 
     // Create and connect MCP client
     const client = new McpClient({
@@ -916,8 +906,6 @@ Key requirements:
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    console.log('buildSystemPrompt resolvedContext', JSON.stringify(resolvedContext, null, 2));
-
     // Process agent prompt with context
     let processedPrompt = this.config.agentPrompt;
     if (resolvedContext) {
@@ -937,8 +925,6 @@ Key requirements:
         processedPrompt = this.config.agentPrompt;
       }
     }
-
-    console.log('buildSystemPrompt processedPrompt', JSON.stringify(processedPrompt, null, 2));
 
     // Get MCP tools, function tools, and relational tools
     const streamRequestId = runtimeContext?.metadata?.streamRequestId;
@@ -984,8 +970,6 @@ Key requirements:
 
     // Get graph prompt for additional context
     let graphPrompt = await this.getGraphPrompt();
-
-    console.log('buildSystemPrompt graphPrompt', JSON.stringify(graphPrompt, null, 2));
 
     // Process graph prompt with context variables
     if (graphPrompt && resolvedContext) {
