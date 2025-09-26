@@ -244,6 +244,7 @@ app.openapi(
       projectId,
       id: validatedBody.id || nanoid(),
       name: validatedBody.name,
+      description: validatedBody.description,
       defaultAgentId: validatedBody.defaultAgentId,
       contextConfigId: validatedBody.contextConfigId ?? undefined,
     });
@@ -291,6 +292,7 @@ app.openapi(
       data: {
         defaultAgentId: validatedBody.defaultAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
+        description: validatedBody.description,
       },
     });
 
