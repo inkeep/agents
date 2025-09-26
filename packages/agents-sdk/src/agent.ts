@@ -594,7 +594,7 @@ export class Agent implements AgentInterface {
         await tool.init();
       }
 
-      // Create the agent-tool relation with credential reference, selected tools, and headers
+      // Create the agent-tool relation with selected tools, and headers
       await this.createAgentToolRelation(tool.getId(), selectedTools, headers);
 
       logger.info(
