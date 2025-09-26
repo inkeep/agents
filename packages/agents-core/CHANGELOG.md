@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.6.5
+
+### Patch Changes
+
+- 936b7f7: Generate dts
+
 ## 0.6.4
 
 ## 0.6.3

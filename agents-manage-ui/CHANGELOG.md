@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.6.5
+
+### Patch Changes
+
+- bb7a3cd: - fix bug with tool lookup
+- Updated dependencies [936b7f7]
+  - @inkeep/agents-core@0.6.5
+  - @inkeep/agents-manage-api@0.6.5
+  - @inkeep/agents-run-api@0.6.5
+
 ## 0.6.4
 
 ### Patch Changes
