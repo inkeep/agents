@@ -99,6 +99,16 @@ const styleOverrides = `
   color: var(--ikp-color-white-alpha-950);
 }
 
+.ikp-markdown-code {
+  background-color: var(--ikp-color-gray-100);
+  color: var(--ikp-color-gray-900);
+}
+
+[data-theme=dark] .ikp-markdown-code {
+  background-color: var(--ikp-color-white-alpha-100);
+  color: var(--ikp-color-white-alpha-950);
+}
+
 /* Dark mode styles for chat containers */
 [data-theme=dark] .ikp-sidebar-chat__close-button {
   color: var(--ikp-color-gray-50);
