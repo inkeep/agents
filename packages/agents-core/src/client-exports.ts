@@ -14,6 +14,7 @@ import { CredentialStoreType, MCPTransportType } from './types';
 import {
   type AgentStopWhen,
   AgentStopWhenSchema,
+  type ApiKeyApiUpdateSchema,
   FullGraphAgentInsertSchema,
   type GraphStopWhen,
   GraphStopWhenSchema,
@@ -171,6 +172,8 @@ export const ExternalAgentApiInsertSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   baseUrl: z.string(),
+  headers: z.record(z.string(), z.string()).nullable().optional(),
+  credentialReferenceId: z.string().nullable().optional(),
   type: z.literal('external').optional(),
 });
 
@@ -255,6 +258,7 @@ export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
+export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;
 export type DataComponentApiInsert = z.infer<typeof DataComponentApiInsertSchema>;
 export type ArtifactComponentApiInsert = z.infer<typeof ArtifactComponentApiInsertSchema>;

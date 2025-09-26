@@ -1,32 +1,35 @@
 import type { Node } from '@xyflow/react';
 import { useCallback } from 'react';
+import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-graph-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import type { Credential } from '@/lib/api/credentials';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
+import { CredentialSelector } from './credential-selector';
 import { InputField, TextareaField } from './form-fields';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
+  credentialLookup: Record<string, Credential>;
   errorHelpers?: ErrorHelpers;
 }
 
 export function ExternalAgentNodeEditor({
   selectedNode,
+  credentialLookup,
   errorHelpers,
 }: ExternalAgentNodeEditorProps) {
-  const { handleInputChange, getFieldError, setFieldRef } = useNodeEditor({
+  const { handleInputChange, getFieldError, setFieldRef, updateField } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
   });
 
   const handleIdChange = useCallback(
     (generatedId: string) => {
-      handleInputChange({
-        target: { name: 'id', value: generatedId },
-      } as React.ChangeEvent<HTMLInputElement>);
+      updateField('id', generatedId);
     },
-    [handleInputChange]
+    [updateField]
   );
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
@@ -90,6 +93,25 @@ export function ExternalAgentNodeEditor({
         placeholder="https://api.example.com/agent"
         error={getFieldError('baseUrl')}
         tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted graphs defined with the agent-framework this would be: http://localhost:3002/tenants/:tenantId/projects/:projectId/agents/:graphId"
+      />
+      <ExpandableJsonEditor
+        name="headers"
+        label="Headers"
+        value={selectedNode.data.headers}
+        onChange={(value) => updateField('headers', value)}
+        placeholder="{}"
+        className=""
+      />
+      <CredentialSelector
+        label="Credential"
+        credentialLookup={credentialLookup}
+        value={
+          typeof selectedNode.data.credentialReferenceId === 'string'
+            ? selectedNode.data.credentialReferenceId
+            : null
+        }
+        onValueChange={(value) => updateField('credentialReferenceId', value || '')}
+        placeholder="Select a credential"
       />
     </div>
   );

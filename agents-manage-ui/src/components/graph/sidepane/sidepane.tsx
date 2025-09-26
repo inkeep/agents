@@ -4,6 +4,7 @@ import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
@@ -30,6 +31,7 @@ interface SidePaneProps {
   isOpen: boolean;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
+  credentialLookup: Record<string, Credential>;
   selectedToolsLookup: Record<string, Record<string, string[]>>;
 }
 
@@ -41,6 +43,7 @@ export function SidePane({
   isOpen,
   dataComponentLookup,
   artifactComponentLookup,
+  credentialLookup,
   selectedToolsLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -99,6 +102,7 @@ export function SidePane({
           return (
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
+              credentialLookup={credentialLookup}
               errorHelpers={errorHelpers}
             />
           );

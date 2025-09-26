@@ -442,6 +442,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: agent.baseUrl,
+          headers: agent.headers,
+          credentialReferenceId: agent.credentialReferenceId,
+          type: 'external',
         };
       })
     );
@@ -465,6 +468,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: (agent as any).baseUrl,
+          credentialReferenceId: agent.credentialReferenceId,
+          headers: agent.headers,
+          type: 'external',
         };
       } else {
         // Internal agent - already processed with tools as IDs
@@ -493,22 +499,18 @@ export const getFullGraphDefinition =
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)(
-        { tenantId, projectId },
-        agentIds,
-        {
-          relationTable: agentDataComponents,
-          componentTable: dataComponents,
-          relationIdField: agentDataComponents.dataComponentId,
-          componentIdField: dataComponents.id,
-          selectFields: {
-            id: dataComponents.id,
-            name: dataComponents.name,
-            description: dataComponents.description,
-            props: dataComponents.props,
-          },
-        }
-      );
+      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
+        relationTable: agentDataComponents,
+        componentTable: dataComponents,
+        relationIdField: agentDataComponents.dataComponentId,
+        componentIdField: dataComponents.id,
+        selectFields: {
+          id: dataComponents.id,
+          name: dataComponents.name,
+          description: dataComponents.description,
+          props: dataComponents.props,
+        },
+      });
     } catch (error) {
       // Don't fail the entire request if dataComponents retrieval fails
       console.warn('Failed to retrieve dataComponents:', error);
@@ -521,23 +523,19 @@ export const getFullGraphDefinition =
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)(
-        { tenantId, projectId },
-        agentIds,
-        {
-          relationTable: agentArtifactComponents,
-          componentTable: artifactComponents,
-          relationIdField: agentArtifactComponents.artifactComponentId,
-          componentIdField: artifactComponents.id,
-          selectFields: {
-            id: artifactComponents.id,
-            name: artifactComponents.name,
-            description: artifactComponents.description,
-            summaryProps: artifactComponents.summaryProps,
-            fullProps: artifactComponents.fullProps,
-          },
-        }
-      );
+      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
+        relationTable: agentArtifactComponents,
+        componentTable: artifactComponents,
+        relationIdField: agentArtifactComponents.artifactComponentId,
+        componentIdField: artifactComponents.id,
+        selectFields: {
+          id: artifactComponents.id,
+          name: artifactComponents.name,
+          description: artifactComponents.description,
+          summaryProps: artifactComponents.summaryProps,
+          fullProps: artifactComponents.fullProps,
+        },
+      });
     } catch (error) {
       // Don't fail the entire request if artifactComponents retrieval fails
       console.warn('Failed to retrieve artifactComponents:', error);
