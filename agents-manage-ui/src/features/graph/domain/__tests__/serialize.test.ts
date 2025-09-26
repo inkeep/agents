@@ -27,7 +27,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toBeUndefined();
     });
@@ -52,7 +52,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toBeUndefined();
     });
@@ -77,7 +77,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: { model: 'gpt-4' },
@@ -106,7 +106,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: undefined,
@@ -135,7 +135,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: undefined,
@@ -164,7 +164,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: { model: 'gpt-4' },
@@ -189,7 +189,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toBeUndefined();
     });
@@ -229,7 +229,7 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).canUse).toBeDefined();
       expect((result.agents.agent1 as any).canUse).toHaveLength(1);
@@ -273,7 +273,7 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
       expect((result.agents.agent1 as any).canUse).toBeDefined();
@@ -317,7 +317,7 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).canUse).toBeDefined();
       expect((result.agents.agent1 as any).canUse).toHaveLength(1);
@@ -360,7 +360,7 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {}, {});
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       // selectedTools should not be created if tempSelectedTools is undefined
       expect((result.agents.agent1 as any).selectedTools).toBeUndefined();
