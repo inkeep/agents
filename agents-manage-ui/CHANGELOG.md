@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.7.2
+
+### Patch Changes
+
+- bab9a32: conversation ordering fix
+  - @inkeep/agents-manage-api@0.7.2
+  - @inkeep/agents-run-api@0.7.2
+  - @inkeep/agents-core@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes

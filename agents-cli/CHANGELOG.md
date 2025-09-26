@@ -1,5 +1,13 @@
 # @inkeep/agents-cli
 
+## 0.7.2
+
+### Patch Changes
+
+- Updated dependencies [bab9a32]
+  - @inkeep/agents-manage-ui@0.7.2
+  - @inkeep/agents-core@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes
