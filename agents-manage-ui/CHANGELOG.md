@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.8.2
+
+### Patch Changes
+
+- 0f6e19b: - Display tools on mcp node
+  - @inkeep/agents-manage-api@0.8.2
+  - @inkeep/agents-run-api@0.8.2
+  - @inkeep/agents-core@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes
