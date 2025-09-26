@@ -46,7 +46,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-api": "workspace:^",
     "@inkeep/agents-run-api": "workspace:^",
-    "@inkeep/cxkit-react-oss": "0.5.104",
+    "@inkeep/cxkit-react-oss": "0.5.105",
     "@lezer/highlight": "^1.2.1",
     "@nangohq/frontend": "^0.66.0",
     "@nangohq/node": "^0.66.0",
