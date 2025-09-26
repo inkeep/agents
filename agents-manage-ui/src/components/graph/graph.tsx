@@ -25,7 +25,6 @@ import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useGraphShortcuts } from '@/features/graph/ui/use-graph-shortcuts';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
-import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { saveGraph } from '@/lib/services/save-graph';
