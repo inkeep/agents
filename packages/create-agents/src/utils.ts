@@ -363,7 +363,6 @@ async function createInkeepConfig(config: FileConfig) {
     tenantId: "${config.tenantId}",
     agentsManageApiUrl: 'http://localhost:3002',
     agentsRunApiUrl: 'http://localhost:3003',
-    modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
   });
       
   export default config;`;
@@ -377,6 +376,7 @@ export const myProject = project({
   name: "${config.projectId}",
   description: "",
   graphs: () => [],
+  model: ${JSON.stringify(config.modelSettings, null, 2)},
 });`;
     await fs.writeFile(`src/${config.projectId}/index.ts`, customIndexContent);
   }
