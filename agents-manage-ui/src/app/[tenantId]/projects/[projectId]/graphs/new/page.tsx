@@ -17,8 +17,13 @@ async function NewGraphPage({
     fetchToolsAction(tenantId, projectId),
   ]);
 
-  if (!dataComponents.success || !artifactComponents.success) {
-    console.error('Failed to fetch components:', dataComponents.error, artifactComponents.error);
+  if (!dataComponents.success || !artifactComponents.success || !tools.success) {
+    console.error(
+      'Failed to fetch components:',
+      dataComponents.error,
+      artifactComponents.error,
+      tools.error
+    );
   }
 
   const dataComponentLookup = createLookup(
