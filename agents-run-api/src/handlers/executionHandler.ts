@@ -5,6 +5,7 @@ import {
   getActiveAgentForConversation,
   getFullGraph,
   getTask,
+  type Part,
   type SendMessageResponse,
   setSpanWithError,
   updateTask,
@@ -247,22 +248,29 @@ export class ExecutionHandler {
         }
 
         // Build message parts - use original messageParts for first iteration, text-only for transfers
-        let messageParts_A2A: Array<{ kind: string; text?: string; data?: string | Record<string, unknown> }>;
+        let messageParts_A2A: Part[];
         
         if ((iterations === 1 || !fromAgentId) && messageParts && messageParts.length > 0) {
           // First iteration OR retry (not a transfer): use the original message parts (including images)
-          messageParts_A2A = messageParts.map(part => ({
-            kind: part.kind,
-            text: part.text,
-            data: part.data
-          }));
+          messageParts_A2A = messageParts.map(part => {
+            if (part.kind === 'text') {
+              return { kind: 'text', text: part.text || '' } as Part;
+            } else if (part.kind === 'image') {
+              return { kind: 'image', data: part.data as string } as Part;
+            } else if (part.kind === 'data') {
+              return { kind: 'data', data: part.data as { [key: string]: any } } as Part;
+            } else {
+              // Default to text for unknown kinds
+              return { kind: 'text', text: part.text || '' } as Part;
+            }
+          });
         } else {
           // Agent transfers: use current text message only
           messageParts_A2A = [
             {
               kind: 'text',
               text: currentMessage,
-            },
+            } as Part,
           ];
         }
 

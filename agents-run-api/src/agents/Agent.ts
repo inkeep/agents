@@ -1235,7 +1235,7 @@ Key requirements:
                     // Extract base64 from data URL
                     const base64Match = part.data.match(/^data:image\/[^;]+;base64,(.+)$/);
                     if (!base64Match) {
-                      logger.warn('Invalid image data URL format, skipping image');
+                      logger.warn('Invalid image data URL format, skipping image', 'Invalid image data URL format, skipping image');
                       continue;
                     }
                     base64Data = base64Match[1];
@@ -1257,7 +1257,7 @@ Key requirements:
                     image: imageBuffer
                   });
                 } else {
-                  logger.warn('Unsupported image data type, skipping image');
+                  logger.warn('Unsupported image data type, skipping image', 'Unsupported image data type, skipping image');
                   continue;
                 }
               } catch (error) {
