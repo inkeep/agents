@@ -169,13 +169,61 @@ app.openapi(chatDataStreamRoute, async (c) => {
       credentialStores,
     });
 
-    // Store last user message
+    // Store last user message and extract content properly
     const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
+    
+    // Extract text content for basic processing
     const userText =
       typeof lastUserMessage?.content === 'string'
         ? lastUserMessage.content
-        : lastUserMessage?.parts?.map((p: any) => p.text).join('') || '';
-    logger.info({ userText, lastUserMessage }, 'userText');
+        : lastUserMessage?.parts?.map((p: any) => p.text).filter(Boolean).join('') || '';
+    
+    // Extract all parts including images for proper message storage
+    let messageParts: Array<{
+      kind: string;
+      text?: string;
+      data?: string | Record<string, unknown>;
+      metadata?: Record<string, unknown>;
+    }> = [];
+
+    if (lastUserMessage?.parts && lastUserMessage.parts.length > 0) {
+      // Multi-part message (text + images + other content)
+      messageParts = lastUserMessage.parts.map((part: any) => {
+        const mappedPart: any = {
+          kind: part.type || 'text', // Map 'type' to 'kind' for consistency
+        };
+        
+        if (part.text) {
+          mappedPart.text = part.text;
+        }
+        
+        // Handle image data - check multiple possible locations
+        if (part.type === 'image') {
+          if (part.source) {
+            // Handle nested source object structure
+            if (typeof part.source === 'object' && part.source.data) {
+              mappedPart.data = part.source.data;
+            } else if (typeof part.source === 'string') {
+              mappedPart.data = part.source;
+            } else {
+              mappedPart.data = part.source;
+            }
+          } else if (part.text) {
+            mappedPart.data = part.text;
+          } else if (part.data) {
+            mappedPart.data = part.data;
+          } else if (part.image_url) {
+            mappedPart.data = part.image_url;
+          }
+          mappedPart.kind = 'image';
+        }
+        
+        return mappedPart;
+      });
+    } else if (typeof lastUserMessage?.content === 'string') {
+      // Simple text message
+      messageParts = [{ kind: 'text', text: lastUserMessage.content }];
+    }
     const messageSpan = trace.getActiveSpan();
     if (messageSpan) {
       messageSpan.setAttributes({
@@ -190,7 +238,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       projectId,
       conversationId,
       role: 'user',
-      content: { text: userText },
+      content: { 
+        text: userText,
+        parts: messageParts.length > 0 ? messageParts : undefined
+      },
       visibility: 'user-facing',
       messageType: 'chat',
     });
@@ -212,6 +263,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage: userText,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
             initialAgentId: agentId,
             requestId: `chatds-${Date.now()}`,
             sseHelper: streamHelper,

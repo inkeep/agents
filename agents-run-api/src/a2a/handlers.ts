@@ -101,7 +101,7 @@ async function handleMessageSend(
         parts: params.message.parts.map((part) => ({
           kind: part.kind,
           text: part.kind === 'text' ? part.text : undefined,
-          data: part.kind === 'data' ? part.data : undefined,
+          data: (part.kind === 'data' || part.kind === 'image') ? part.data : undefined,
         })),
       },
       context: {
@@ -213,6 +213,14 @@ async function handleMessageSend(
         .map((part) => (part as any).text)
         .join(' ');
 
+      // Convert message parts to the database format
+      const messageParts = params.message.parts.map((part) => ({
+        kind: part.kind,
+        text: part.kind === 'text' ? part.text : undefined,
+        data: (part.kind === 'data' || part.kind === 'image') ? 
+          (typeof part.data === 'string' ? part.data : JSON.stringify(part.data)) : undefined,
+      }));
+
       try {
         const messageData: any = {
           id: nanoid(),
@@ -222,6 +230,7 @@ async function handleMessageSend(
           role: 'agent',
           content: {
             text: messageText,
+            parts: messageParts.length > 0 ? messageParts : undefined,
           },
           visibility: params.message.metadata?.fromExternalAgentId ? 'external' : 'internal',
           messageType: 'a2a-request',
@@ -428,7 +437,7 @@ async function handleMessageStream(
         parts: params.message.parts.map((part) => ({
           kind: part.kind,
           text: part.kind === 'text' ? part.text : undefined,
-          data: part.kind === 'data' ? part.data : undefined,
+          data: (part.kind === 'data' || part.kind === 'image') ? part.data : undefined,
         })),
       },
       context: {
