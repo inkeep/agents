@@ -1,7 +1,7 @@
 import { getLogger } from '../logger';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
+import type { StreamHelper } from '../utils/stream-helpers';
 import { graphSessionManager } from './GraphSession';
-import type { StreamHelper } from './stream-helpers';
 
 const logger = getLogger('IncrementalStreamParser');
 

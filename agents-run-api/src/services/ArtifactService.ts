@@ -532,7 +532,10 @@ export class ArtifactService {
           extracted[propName] = this.cleanEscapedContent(rawValue);
         }
       } catch (error) {
-        logger.warn({ propName, selector, error: error.message }, 'Failed to extract property');
+        logger.warn(
+          { propName, selector, error: error instanceof Error ? error.message : 'Unknown error' },
+          'Failed to extract property'
+        );
         const fallbackValue = item[propName];
         if (fallbackValue !== null && fallbackValue !== undefined) {
           extracted[propName] = this.cleanEscapedContent(fallbackValue);

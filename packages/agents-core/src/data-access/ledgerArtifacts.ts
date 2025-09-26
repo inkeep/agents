@@ -11,21 +11,25 @@ function validateArtifactData(artifact: Artifact, index: number): void {
   if (!artifact.artifactId?.trim()) {
     throw new Error(`Artifact at index ${index} missing required artifactId`);
   }
-  
+
   // Validate that JSON-serializable fields don't contain problematic values
   if (artifact.parts) {
     try {
       JSON.stringify(artifact.parts);
     } catch (error) {
-      throw new Error(`Artifact ${artifact.artifactId} has invalid parts data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Artifact ${artifact.artifactId} has invalid parts data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
-  
+
   if (artifact.metadata) {
     try {
       JSON.stringify(artifact.metadata);
     } catch (error) {
-      throw new Error(`Artifact ${artifact.artifactId} has invalid metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Artifact ${artifact.artifactId} has invalid metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }
@@ -38,32 +42,32 @@ function determineMimeTypes(artifact: Artifact): string[] {
   // Extract unique 'kind' values from parts
   if (artifact.parts && artifact.parts.length > 0) {
     const kinds = new Set<string>();
-    
+
     for (const part of artifact.parts) {
       if (part.kind) {
         kinds.add(part.kind);
       }
     }
-    
+
     // Return unique kinds as MIME types
     if (kinds.size > 0) {
       return Array.from(kinds);
     }
   }
-  
+
   // Fallback: infer from artifact type
   if (artifact.type?.toLowerCase().includes('document')) {
     return ['text'];
   }
-  
+
   if (artifact.type?.toLowerCase().includes('image')) {
     return ['image'];
   }
-  
+
   if (artifact.type?.toLowerCase().includes('code')) {
     return ['text'];
   }
-  
+
   // Default fallback
   return ['data'];
 }
@@ -86,14 +90,17 @@ function sanitizeArtifactForDatabase(artifact: Artifact): Artifact {
 /**
  * Fallback insert strategy for when normal insert fails
  */
-async function tryFallbackInsert(db: DatabaseClient, rows: any[], _originalError: any): Promise<void> {
+async function tryFallbackInsert(
+  db: DatabaseClient,
+  rows: any[],
+  _originalError: any
+): Promise<void> {
   // Try inserting one row at a time to isolate problematic data
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
       await db.insert(ledgerArtifacts).values([row]);
     } catch (_fallbackError: any) {
-      
       // Try with minimal data as last resort
       try {
         const minimalRow = {
@@ -116,7 +123,7 @@ async function tryFallbackInsert(db: DatabaseClient, rows: any[], _originalError
           createdAt: row.createdAt,
           updatedAt: row.updatedAt,
         };
-        
+
         await db.insert(ledgerArtifacts).values([minimalRow]);
       } catch (_finalError: any) {
         // Don't throw here - we want to continue with other artifacts
@@ -138,13 +145,13 @@ export const upsertLedgerArtifact =
     artifact: Artifact;
   }): Promise<{ created: boolean; existing?: any }> => {
     const { scopes, contextId, taskId, toolCallId = null, artifact } = params;
-    
+
     // Validate artifact data
     validateArtifactData(artifact, 0);
-    
+
     const sanitizedArt = sanitizeArtifactForDatabase(artifact);
     const now = new Date().toISOString();
-    
+
     const artifactRow = {
       id: sanitizedArt.artifactId ?? nanoid(),
       tenantId: scopes.tenantId,
@@ -186,7 +193,7 @@ export const upsertLedgerArtifact =
             )
           )
           .limit(1);
-          
+
         if (existing.length > 0) {
           return { created: false, existing: existing[0] };
         }
@@ -220,9 +227,10 @@ export const addLedgerArtifacts =
     const rows = artifacts.map((art) => {
       // Sanitize the artifact data first
       const sanitizedArt = sanitizeArtifactForDatabase(art);
-      
+
       // Resolve taskId precedence: explicit param -> artifact.taskId -> metadata.taskId
-      const resolvedTaskId = taskId ?? sanitizedArt.taskId ?? (sanitizedArt.metadata as any)?.taskId ?? null;
+      const resolvedTaskId =
+        taskId ?? sanitizedArt.taskId ?? (sanitizedArt.metadata as any)?.taskId ?? null;
 
       return {
         id: sanitizedArt.artifactId ?? nanoid(),
@@ -255,19 +263,17 @@ export const addLedgerArtifacts =
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-
         await db.insert(ledgerArtifacts).values(rows);
-        
+
         // Success - no need to retry
         return;
-
       } catch (error: any) {
         lastError = error;
-        
+
         // Store error for potential retry or fallback
 
         // Check if this is a retryable error
-        const isRetryable = 
+        const isRetryable =
           error.code === 'SQLITE_BUSY' ||
           error.code === 'SQLITE_LOCKED' ||
           error.message?.includes('database is locked') ||
@@ -282,7 +288,7 @@ export const addLedgerArtifacts =
 
         // Wait before retrying (exponential backoff)
         const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 5000);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
     }
 
