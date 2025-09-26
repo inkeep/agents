@@ -1,6 +1,7 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
+
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';

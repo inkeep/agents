@@ -24,7 +24,12 @@ async function GraphPage({ params }: GraphPageProps) {
 
   if (!graph.success) throw new Error(graph.error);
   if (!dataComponents.success || !artifactComponents.success || !tools.success) {
-    console.error('Failed to fetch components:', dataComponents.error, artifactComponents.error, tools.error);
+    console.error(
+      'Failed to fetch components:',
+      dataComponents.error,
+      artifactComponents.error,
+      tools.error
+    );
   }
 
   const dataComponentLookup = createLookup(
@@ -35,12 +40,7 @@ async function GraphPage({ params }: GraphPageProps) {
     artifactComponents.success ? artifactComponents.data : undefined
   );
 
-  const toolLookup = createLookup(
-    tools.success ? tools.data : undefined
-  );
-
-  // Ensure the toolLookup is serializable
-  const serializedToolLookup = JSON.parse(JSON.stringify(toolLookup));
+  const toolLookup = createLookup(tools.success ? tools.data : undefined);
 
   return (
     <BodyTemplate
@@ -53,7 +53,7 @@ async function GraphPage({ params }: GraphPageProps) {
         graph={graph?.data}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
-        toolLookup={serializedToolLookup}
+        toolLookup={toolLookup}
       />
     </BodyTemplate>
   );

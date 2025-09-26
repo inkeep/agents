@@ -73,35 +73,15 @@ function Flow({
   graph,
   dataComponentLookup = {},
   artifactComponentLookup = {},
-  toolLookup: initialToolLookup = {},
+  toolLookup = {},
 }: GraphProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
-  const [toolLookup, setToolLookup] = useState<Record<string, MCPTool>>(initialToolLookup);
 
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-
-  // Fetch tools on client side if not provided
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render otherwise it will fetch tools in an infinite loop
-  useEffect(() => {
-    if (Object.keys(toolLookup).length === 0 && tenantId && projectId) {
-      fetchToolsAction(tenantId, projectId)
-        .then((res) => {
-          const data = res.data;
-          if (data) {
-            const lookup = data.reduce((acc: Record<string, MCPTool>, tool: MCPTool) => {
-              acc[tool.id] = tool;
-              return acc;
-            }, {});
-            setToolLookup(lookup);
-          }
-        })
-        .catch((err) => console.error('Failed to fetch tools:', err));
-    }
-  }, [tenantId, projectId]);
 
   const initialNodes = useMemo<Node[]>(
     () => [
@@ -599,13 +579,19 @@ function Flow({
   );
 }
 
-export function Graph({ graph, dataComponentLookup, artifactComponentLookup }: GraphProps) {
+export function Graph({
+  graph,
+  dataComponentLookup,
+  artifactComponentLookup,
+  toolLookup,
+}: GraphProps) {
   return (
     <ReactFlowProvider>
       <Flow
         graph={graph}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
+        toolLookup={toolLookup}
       />
     </ReactFlowProvider>
   );
