@@ -1,5 +1,6 @@
 import { getLogger } from '../logger';
-import { ArtifactParser, type StreamPart } from './artifact-parser';
+import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
+import { graphSessionManager } from './GraphSession';
 import type { StreamHelper } from './stream-helpers';
 
 const logger = getLogger('IncrementalStreamParser');
@@ -30,6 +31,7 @@ export class IncrementalStreamParser {
   // Memory management constants
   private static readonly MAX_SNAPSHOT_SIZE = 100; // Max number of snapshots to keep
   private static readonly MAX_STREAMED_SIZE = 1000; // Max number of streamed component IDs to track
+  private static readonly MAX_COLLECTED_PARTS = 10000; // Max number of collected parts to prevent unbounded growth
 
   constructor(
     streamHelper: StreamHelper,
@@ -46,6 +48,20 @@ export class IncrementalStreamParser {
   ) {
     this.streamHelper = streamHelper;
     this.contextId = contextId;
+
+    // Get the shared ArtifactParser from GraphSession
+    if (artifactParserOptions?.streamRequestId) {
+      const sessionParser = graphSessionManager.getArtifactParser(
+        artifactParserOptions.streamRequestId
+      );
+
+      if (sessionParser) {
+        this.artifactParser = sessionParser;
+        return;
+      }
+    }
+
+    // Fallback: create new parser if session parser not available (for tests, etc.)
     this.artifactParser = new ArtifactParser(tenantId, {
       ...artifactParserOptions,
       contextId,
@@ -59,10 +75,13 @@ export class IncrementalStreamParser {
   async initializeArtifactMap(): Promise<void> {
     try {
       this.artifactMap = await this.artifactParser.getContextArtifacts(this.contextId);
-      logger.debug({
-        contextId: this.contextId,
-        artifactMapSize: this.artifactMap.size,
-      }, 'Initialized artifact map for streaming');
+      logger.debug(
+        {
+          contextId: this.contextId,
+          artifactMapSize: this.artifactMap.size,
+        },
+        'Initialized artifact map for streaming'
+      );
     } catch (error) {
       logger.warn({ error, contextId: this.contextId }, 'Failed to initialize artifact map');
       this.artifactMap = new Map();
@@ -221,6 +240,12 @@ export class IncrementalStreamParser {
       dataComponents: [component],
     });
 
+    // Ensure parts is an array before iterating
+    if (!Array.isArray(parts)) {
+      console.warn('parseObject returned non-array:', parts);
+      return;
+    }
+
     for (const part of parts) {
       await this.streamPart(part);
     }
@@ -260,7 +285,9 @@ export class IncrementalStreamParser {
       (component.props.artifact_id && (component.props.tool_call_id || component.props.task_id));
 
     if (isArtifact) {
-      return Boolean(component.props.artifact_id && (component.props.tool_call_id || component.props.task_id));
+      return Boolean(
+        component.props.artifact_id && (component.props.tool_call_id || component.props.task_id)
+      );
     }
 
     // For regular components, just need id, name, and props object
@@ -451,8 +478,15 @@ export class IncrementalStreamParser {
    * Stream a formatted part (text or data) with smart buffering
    */
   private async streamPart(part: StreamPart): Promise<void> {
-    // Collect for final response
+    // Collect for final response with size limit enforcement
     this.collectedParts.push({ ...part });
+
+    // Enforce size limit to prevent memory leaks
+    if (this.collectedParts.length > IncrementalStreamParser.MAX_COLLECTED_PARTS) {
+      // Remove oldest parts (keep last N parts)
+      const excess = this.collectedParts.length - IncrementalStreamParser.MAX_COLLECTED_PARTS;
+      this.collectedParts.splice(0, excess);
+    }
 
     if (!this.hasStartedRole) {
       await this.streamHelper.writeRole('assistant');

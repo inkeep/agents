@@ -237,14 +237,24 @@ THE summary AND full PROPERTIES MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DAT
 - These selectors are evaluated against the tool result to extract the actual values
 - NEVER put literal values like "Inkeep" or "2023" - always use selectors like "metadata.company" or "founded_year"
 
-CRITICAL JMESPATH SYNTAX RULES:
-✅ CORRECT: [?contains(text, 'Founder')] - Use contains(haystack, needle) format
-✅ CORRECT: [?title=='API Guide'] - Use SINGLE quotes for string literals
-✅ CORRECT: source.content[?contains(text, 'Founder')].text 
-❌ WRONG: [?title=="API Guide"] - Do NOT use double quotes in JMESPath filters
-❌ WRONG: [?text ~ contains(@, "Founder")] - No ~ operator or @ usage
-❌ WRONG: Any usage of ~ operator in JMESPath
-❌ WRONG: contains(@, "text") pattern
+🚫 FORBIDDEN JMESPATH PATTERNS:
+❌ NEVER: [?title~'.*text.*'] (regex patterns with ~ operator)
+❌ NEVER: [?field~'pattern.*'] (any ~ operator usage)
+❌ NEVER: [?title~'Slack.*Discord.*'] (regex wildcards)
+❌ NEVER: [?name~'https://.*'] (regex in URL matching)
+❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
+❌ NEVER: contains(@, 'text') (@ operator usage)
+❌ NEVER: [?field=="value"] (double quotes in filters)
+❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
+
+✅ CORRECT JMESPATH SYNTAX:
+✅ [?contains(title, 'text')] (contains function)
+✅ [?title=='exact match'] (exact string matching)
+✅ [?contains(title, 'Slack') && contains(title, 'Discord')] (compound conditions)
+✅ [?starts_with(url, 'https://')] (starts_with function)
+✅ [?type=='doc' && status=='active'] (single filter with &&)
+✅ [?contains(text, 'Founder')] (contains haystack, needle format)
+✅ source.content[?contains(text, 'Founder')].text (correct filter usage)
 
 🚨 CRITICAL: EXAMINE TOOL RESULTS BEFORE CREATING SELECTORS! 🚨
 

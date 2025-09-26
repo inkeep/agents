@@ -20,6 +20,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
+import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
 
@@ -276,6 +277,18 @@ export const createTaskHandler = (
           { agentId: config.agentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
+
+        // Ensure ToolSession exists for delegated agents
+        // Use streamRequestId as sessionId to match the parent GraphSession
+        if (streamRequestId && config.tenantId && config.projectId) {
+          toolSessionManager.ensureGraphSession(
+            streamRequestId,
+            config.tenantId,
+            config.projectId,
+            contextId,
+            task.id
+          );
+        }
       }
 
       const response = await agent.generate(userMessage, {

@@ -4,10 +4,13 @@
 export function stripJsonCodeBlocks(text: string): string {
   return text
     .trim()
-    // Remove ```json and ``` blocks
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/, '')
-    .replace(/\s*```$/i, '')
+    // Remove ```json and ``` blocks - handle multiline with dotall flag
+    .replace(/^```json\s*/is, '')
+    .replace(/^```\s*/s, '')
+    .replace(/\s*```$/s, '')
+    // Also handle cases where the entire response is wrapped
+    .replace(/^```json\s*([\s\S]*?)\s*```$/i, '$1')
+    .replace(/^```\s*([\s\S]*?)\s*```$/i, '$1')
     .trim();
 }
 

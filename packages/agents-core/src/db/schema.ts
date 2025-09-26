@@ -571,7 +571,7 @@ export const ledgerArtifacts = sqliteTable(
     id: text('id').notNull(),
 
     // Links
-    taskId: text('task_id'),
+    taskId: text('task_id').notNull(),
     toolCallId: text('tool_call_id'), // Added for traceability to the specific tool execution
     contextId: text('context_id').notNull(),
 
@@ -594,7 +594,7 @@ export const ledgerArtifacts = sqliteTable(
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id, table.taskId] }),
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],

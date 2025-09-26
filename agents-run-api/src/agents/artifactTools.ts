@@ -4,7 +4,7 @@ import jmespath from 'jmespath';
 import { nanoid } from 'nanoid';
 import z from 'zod';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../utils/graph-session';
+import { graphSessionManager } from '../services/GraphSession';
 import { parseEmbeddedJson } from '../utils/json-parser';
 import { toolSessionManager } from './ToolSessionManager';
 

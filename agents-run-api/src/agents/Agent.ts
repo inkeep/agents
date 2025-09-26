@@ -43,13 +43,13 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { graphSessionManager } from '../services/GraphSession';
+import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import { ResponseFormatter } from '../services/ResponseFormatter';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
-import { graphSessionManager } from '../utils/graph-session';
-import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
 import { parseEmbeddedJson } from '../utils/json-parser';
-import { ResponseFormatter } from '../utils/response-formatter';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -544,6 +544,7 @@ export class Agent {
               const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
 
               // Record the enhanced result in the session manager
+
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
@@ -872,7 +873,6 @@ export class Agent {
     });
   }
 
-
   private async buildSystemPrompt(
     runtimeContext?: {
       contextId: string;
@@ -936,14 +936,15 @@ export class Agent {
 
     // Get artifacts that match the conversation history scope
     const { getConversationScopedArtifacts } = await import('../data/conversations');
-    const historyConfig = this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
+    const historyConfig =
+      this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
 
     const referenceArtifacts: Artifact[] = await getConversationScopedArtifacts({
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
+      tenantId: this.config.tenantId,
+      projectId: this.config.projectId,
       conversationId: runtimeContext?.contextId || '',
       historyConfig,
-      });
+    });
 
     // Use component dataComponents for system prompt (artifacts already separated in constructor)
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
@@ -975,7 +976,7 @@ export class Agent {
     }
 
     // When excludeDataComponents = true (Phase 1 of two-phase), don't include artifact components
-    // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components  
+    // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
     // Check if any agent in the graph has artifact components (for referencing guidance)
@@ -1103,7 +1104,7 @@ export class Agent {
 
     const findAllPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
       if (depth > 8) return []; // Allow deeper exploration
-      
+
       const paths: string[] = [];
 
       if (Array.isArray(obj)) {
@@ -1139,13 +1140,13 @@ export class Agent {
               paths.push(`${currentPath}[array]`);
             } else {
               paths.push(`${currentPath}[object]`);
-        }
+            }
             // Recurse into nested structures
             paths.push(...findAllPaths(value, currentPath, depth + 1));
           } else {
             // Terminal field
             paths.push(`${currentPath}[${typeof value}]`);
-      }
+          }
         });
       }
 
@@ -1154,7 +1155,7 @@ export class Agent {
 
     const findCommonFields = (obj: any, depth = 0): Set<string> => {
       if (depth > 5) return new Set();
-      
+
       const fields = new Set<string>();
       if (Array.isArray(obj)) {
         // Check first few items for common field patterns
@@ -1307,6 +1308,22 @@ export class Agent {
               '🔑 For structures with repeated keys (like result.content.data.content.items.content), use full paths with filtering at each level',
             filterTips:
               "💡 Use compound filters for precision: [?type=='document' && category=='api']",
+            forbiddenSyntax:
+              '🚫 FORBIDDEN JMESPATH PATTERNS:\n' +
+              "❌ NEVER: [?title~'.*text.*'] (regex patterns with ~ operator)\n" +
+              "❌ NEVER: [?field~'pattern.*'] (any ~ operator usage)\n" +
+              "❌ NEVER: [?title~'Slack.*Discord.*'] (regex wildcards)\n" +
+              "❌ NEVER: [?name~'https://.*'] (regex in URL matching)\n" +
+              "❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)\n" +
+              "❌ NEVER: contains(@, 'text') (@ operator usage)\n" +
+              '❌ NEVER: [?field=="value"] (double quotes in filters)\n' +
+              "❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)\n" +
+              '✅ USE INSTEAD:\n' +
+              "✅ [?contains(title, 'text')] (contains function)\n" +
+              "✅ [?title=='exact match'] (exact string matching)\n" +
+              "✅ [?contains(title, 'Slack') && contains(title, 'Discord')] (compound conditions)\n" +
+              "✅ [?starts_with(url, 'https://')] (starts_with function)\n" +
+              "✅ [?type=='doc' && status=='active'] (single filter with &&)",
             pathDepth: `📏 This structure goes ${Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length))} levels deep - use full paths to avoid ambiguity`,
           },
           note: `Comprehensive structure analysis: ${allPaths.length} paths found, ${Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length))} levels deep. Use specific filtering for precise selection.`,
@@ -1353,19 +1370,18 @@ export class Agent {
     }
   ) {
     return tracer.startActiveSpan('agent.generate', async (span) => {
-      // Create tool session for this execution outside try blocks
+      // Use the ToolSession created by GraphSession
+      // All agents in this execution share the same session
       const contextId = runtimeContext?.contextId || 'default';
       const taskId = runtimeContext?.metadata?.taskId || 'unknown';
-      const sessionId = toolSessionManager.createSession(
-        this.config.tenantId,
-        this.config.projectId,
-        contextId,
-        taskId
-      );
+      const streamRequestId = runtimeContext?.metadata?.streamRequestId;
+      const sessionId = streamRequestId || 'fallback-session';
+
+      // Note: ToolSession is now created by GraphSession, not by agents
+      // This ensures proper lifecycle management and session coordination
 
       try {
         // Set streaming helper from registry if available
-        const streamRequestId = runtimeContext?.metadata?.streamRequestId;
         this.streamRequestId = streamRequestId;
         this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
         const conversationId = runtimeContext?.metadata?.conversationId;
@@ -1572,8 +1588,8 @@ export class Agent {
             agentId: this.config.id,
           };
           const parser = new IncrementalStreamParser(
-            streamHelper, 
-            this.config.tenantId, 
+            streamHelper,
+            this.config.tenantId,
             contextId,
             artifactParserOptions
           );
@@ -1765,6 +1781,8 @@ ${hints.commonFields?.map((field: string) => `  • ${field}`).join('\n') || '  
 **Structure Stats:** ${hints.totalPathsFound || 0} total paths, ${hints.maxDepthFound || 0} levels deep
 
 **Note:** ${hints.note || 'Use these paths for artifact base selectors.'}
+
+**Forbidden Syntax:** ${hints.forbiddenSyntax || 'Use these paths for artifact base selectors.'}
 `;
                       }
 
@@ -1920,28 +1938,30 @@ ${output}${structureHintsFormatted}`;
             } else {
               // Non-streaming Phase 2: Use generateObject as fallback
               const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
-              
-              const structuredResponse = await generateObject(withJsonPostProcessing({
-                ...structuredModelSettings,
-                messages: [
-                  { role: 'system', content: await this.buildPhase2SystemPrompt() },
-                  { role: 'user', content: userMessage },
-                  ...reasoningFlow,
-                ],
-                schema: z.object({
-                  dataComponents: z.array(dataComponentsSchema),
-                }),
-                experimental_telemetry: {
-                  isEnabled: true,
-                  functionId: this.config.id,
-                  recordInputs: true,
-                  recordOutputs: true,
-                  metadata: {
-                    phase: 'structured_generation',
+
+              const structuredResponse = await generateObject(
+                withJsonPostProcessing({
+                  ...structuredModelSettings,
+                  messages: [
+                    { role: 'system', content: await this.buildPhase2SystemPrompt() },
+                    { role: 'user', content: userMessage },
+                    ...reasoningFlow,
+                  ],
+                  schema: z.object({
+                    dataComponents: z.array(dataComponentsSchema),
+                  }),
+                  experimental_telemetry: {
+                    isEnabled: true,
+                    functionId: this.config.id,
+                    recordInputs: true,
+                    recordOutputs: true,
+                    metadata: {
+                      phase: 'structured_generation',
+                    },
                   },
-                },
-                abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-              }));
+                  abortSignal: AbortSignal.timeout(phase2TimeoutMs),
+                })
+              );
 
               // Merge structured output into response
               response = {
@@ -2013,13 +2033,12 @@ ${output}${structureHintsFormatted}`;
           });
         }
 
-        // Clean up session after completion
-        toolSessionManager.endSession(sessionId);
+        // Don't clean up ToolSession here - let ToolSessionManager handle timeout-based cleanup
+        // The ToolSession might still be needed by other agents in the graph execution
 
         return formattedResponse;
       } catch (error) {
-        // Clean up session on error
-        toolSessionManager.endSession(sessionId);
+        // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
 
         // Record exception and mark span as error
         setSpanWithError(span, error);

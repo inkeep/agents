@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "86ff8854-e872-4304-841a-362028cef6cc",
+  "id": "a9a07fd6-12d4-4779-83d7-5091bd858e4d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -1654,7 +1654,7 @@
           "name": "task_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "tool_call_id": {
@@ -1779,13 +1779,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "ledger_artifacts_tenant_id_project_id_id_pk": {
+        "ledger_artifacts_tenant_id_project_id_id_task_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
-            "id"
+            "id",
+            "task_id"
           ],
-          "name": "ledger_artifacts_tenant_id_project_id_id_pk"
+          "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk"
         }
       },
       "uniqueConstraints": {},

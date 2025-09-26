@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { IncrementalStreamParser } from '../incremental-stream-parser';
+import { IncrementalStreamParser } from '../../services/IncrementalStreamParser';
 import type { StreamHelper } from '../stream-helpers';
-import { ArtifactParser } from '../artifact-parser';
+import { ArtifactParser } from '../../services/ArtifactParser';
 
 // Mock dependencies
-vi.mock('../artifact-parser');
+vi.mock('../../services/ArtifactParser');
 vi.mock('../logger', () => ({
   getLogger: () => ({
     debug: vi.fn(),
