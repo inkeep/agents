@@ -13,6 +13,7 @@ export default {
           ],
         },
         'concepts',
+        'troubleshooting',
       ],
     },
 
