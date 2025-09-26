@@ -160,9 +160,6 @@ export const useGraphStore = create<GraphState>()(
 
       set((state) => ({
         history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-      }));
-      set((state) => ({
-        history: [...state.history, { nodes: state.nodes, edges: state.edges }],
         edges: applyEdgeChanges(changes, state.edges),
         dirty: hasModifyingChange ? true : state.dirty,
       }));
