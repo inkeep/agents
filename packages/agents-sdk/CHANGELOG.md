@@ -1,5 +1,15 @@
 # @inkeep/agents-sdk
 
+## 0.8.2
+
+### Patch Changes
+
+- 3a95469: added default components for status
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+  - @inkeep/agents-core@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @inkeep/agents-run-api
 
+## 0.8.2
+
+### Patch Changes
+
+- 3a95469: changed artifact saving to be in-line
+- 3a95469: added default components for status
+- 3a95469: artifacts inline saving
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+  - @inkeep/agents-core@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes

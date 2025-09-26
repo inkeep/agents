@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.8.2
+
+### Patch Changes
+
+- 3a95469: added default components for status
+- 0f6e19b: - Display tools on mcp node
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+  - @inkeep/agents-core@0.8.2
+  - @inkeep/agents-manage-api@0.8.2
+  - @inkeep/agents-run-api@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes
