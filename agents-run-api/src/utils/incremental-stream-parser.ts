@@ -257,10 +257,10 @@ export class IncrementalStreamParser {
     // For artifacts, still require both required fields
     const isArtifact =
       component.name === 'Artifact' ||
-      (component.props.artifact_id && component.props.tool_call_id);
+      (component.props.artifact_id && (component.props.tool_call_id || component.props.task_id));
 
     if (isArtifact) {
-      return Boolean(component.props.artifact_id && component.props.tool_call_id);
+      return Boolean(component.props.artifact_id && (component.props.tool_call_id || component.props.task_id));
     }
 
     // For regular components, just need id, name, and props object

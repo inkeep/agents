@@ -7,7 +7,7 @@ import {
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../agents/Agent';
-import { V1Config } from '../../agents/versions/V1Config';
+import { Phase1Config } from '../../agents/versions/v1/Phase1Config';
 
 // Mock the AI SDK functions
 vi.mock('ai', () => ({
@@ -164,6 +164,12 @@ vi.mock('../../agents/ToolSessionManager.js', () => ({
       result: 'Thinking complete',
       args: {},
     }),
+    getSession: vi.fn().mockReturnValue({
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      contextId: 'test-context',
+      taskId: 'test-task-id',
+    }),
   },
 }));
 
@@ -264,6 +270,7 @@ vi.mock('../../data/conversations.js', () => ({
     maxOutputTokens: 4000,
   }),
   getFormattedConversationHistory: vi.fn().mockResolvedValue('Mock conversation history'),
+  getConversationScopedArtifacts: vi.fn().mockResolvedValue([]),
 }));
 
 // Import the mocked functions so we can reference them in tests
@@ -386,6 +393,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(result).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
+      graphPrompt: undefined,
       tools: [
         {
           name: 'search_database',
@@ -409,6 +417,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       ],
       dataComponents: [],
       artifacts: [],
+      artifactComponents: [],
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -426,9 +435,11 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
+      graphPrompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
+      artifactComponents: [],
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -446,9 +457,11 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
+      graphPrompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
+      artifactComponents: [],
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -477,9 +490,11 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
+      graphPrompt: undefined,
       tools: [], // Empty tools array since availableTools is undefined
       dataComponents: [],
       artifacts: [],
+      artifactComponents: [],
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -490,14 +505,14 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const agent = new Agent(mockAgentConfig);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
-    // Verify the SystemPromptBuilder was instantiated with 'v1' and V1Config
+    // Verify the SystemPromptBuilder was instantiated with 'v1' and Phase1Config
     expect(systemPromptBuilder).toBeDefined();
-    // The constructor should have been called with 'v1' and a V1Config instance
+    // The constructor should have been called with 'v1' and a Phase1Config instance
     // This is tested implicitly by the fact that the agent creates successfully
   });
 });
 
-describe('V1Config Tool Conversion', () => {
+describe('Phase1Config Tool Conversion', () => {
   test('should convert McpTool availableTools to ToolData format correctly', () => {
     const mockTools: McpTool[] = [
       {
@@ -546,7 +561,7 @@ describe('V1Config Tool Conversion', () => {
       } as McpTool,
     ];
 
-    const result = V1Config.convertMcpToolsToToolData(mockTools);
+    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -576,8 +591,8 @@ describe('V1Config Tool Conversion', () => {
   });
 
   test('should handle empty or undefined McpTool arrays', () => {
-    expect(V1Config.convertMcpToolsToToolData([])).toEqual([]);
-    expect(V1Config.convertMcpToolsToToolData(undefined)).toEqual([]);
+    expect(Phase1Config.convertMcpToolsToToolData([])).toEqual([]);
+    expect(Phase1Config.convertMcpToolsToToolData(undefined)).toEqual([]);
   });
 
   test('should handle McpTools without availableTools', () => {
@@ -605,7 +620,7 @@ describe('V1Config Tool Conversion', () => {
       } as McpTool,
     ];
 
-    const result = V1Config.convertMcpToolsToToolData(mockTools);
+    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
     expect(result).toEqual([]);
   });
 });
@@ -1457,7 +1472,6 @@ describe('Agent Conditional Tool Availability', () => {
 
     // Should have no artifact tools
     expect(tools.get_reference_artifact).toBeUndefined();
-    expect(tools.save_tool_result).toBeUndefined();
   });
 
   test('agent without artifact components in graph with components should have get_reference_artifact', async () => {
@@ -1487,12 +1501,11 @@ describe('Agent Conditional Tool Availability', () => {
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
 
-    // Should have get_reference_artifact but not save_tool_result
+    // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
-    expect(tools.save_tool_result).toBeUndefined();
   });
 
-  test('agent with artifact components should have both tools', async () => {
+  test('agent with artifact components should have get_reference_artifact tool', async () => {
     // Mock graphHasArtifactComponents to return true
     graphHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
@@ -1536,8 +1549,7 @@ describe('Agent Conditional Tool Availability', () => {
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
 
-    // Should have both tools
+    // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
-    expect(tools.save_tool_result).toBeDefined();
   });
 });

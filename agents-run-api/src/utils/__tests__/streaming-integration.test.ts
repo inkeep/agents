@@ -41,6 +41,10 @@ describe('Streaming Integration Tests', () => {
     mockArtifactParser = {
       parseObject: vi.fn().mockImplementation((obj) => {
         const component = obj.dataComponents[0];
+        // Handle case where component might be undefined or incomplete
+        if (!component || !component.id || !component.name) {
+          return Promise.resolve([]);
+        }
         return Promise.resolve([
           {
             kind: 'data',
