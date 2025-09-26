@@ -1,5 +1,4 @@
 import { Bot, BotMessageSquare, Hammer } from 'lucide-react';
-import type { MCPTool } from "@/lib/types/tools";;
 import { AgentNode } from '../nodes/agent-node';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { MCPNode } from '../nodes/mcp-node';
@@ -13,7 +12,12 @@ interface NodeData {
 
 import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
 
-export interface MCPNodeData extends MCPTool, Record<string, unknown> {}
+export interface MCPNodeData extends Record<string, unknown> {
+  toolId: string;
+  name?: string;
+  imageUrl?: string;
+  provider?: string;
+}
 
 // Re-export the shared type for consistency
 export type { AgentStopWhen };

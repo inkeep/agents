@@ -1,68 +1,68 @@
-import { type Node, useReactFlow } from '@xyflow/react'
-import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import { fetchMCPTools } from "@/lib/api/tools"
-import type { MCPTool } from "@/lib/types/tools";
-import { NodeType } from '../../../configuration/node-types'
-import { EmptyState } from '../empty-state'
-import { MCPSelectorLoading } from './loading'
-import { MCPServerItem } from './mcp-server-item'
+import { type Node, useReactFlow } from '@xyflow/react';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { fetchMCPTools } from '@/lib/api/tools';
+import type { MCPTool } from '@/lib/types/tools';
+import { NodeType } from '../../../configuration/node-types';
+import { EmptyState } from '../empty-state';
+import { MCPSelectorLoading } from './loading';
+import { MCPServerItem } from './mcp-server-item';
 
 interface MCPSelectorState {
-  tools: MCPTool[]
-  isLoading: boolean
-  error: string | null
+  tools: MCPTool[];
+  isLoading: boolean;
+  error: string | null;
 }
 
 const useFetchAvailableMCPs = (): MCPSelectorState => {
-  const [tools, setTools] = useState<MCPTool[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [tools, setTools] = useState<MCPTool[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { tenantId, projectId } = useParams<{
-    tenantId: string
-    projectId: string
-  }>()
+    tenantId: string;
+    projectId: string;
+  }>();
 
   useEffect(() => {
     const loadTools = async () => {
       try {
-        setIsLoading(true)
-        setError(null)
-        const mcpTools = await fetchMCPTools(tenantId, projectId)
-        setTools(mcpTools)
+        setIsLoading(true);
+        setError(null);
+        const mcpTools = await fetchMCPTools(tenantId, projectId);
+        setTools(mcpTools);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load MCP tools'
-        setError(errorMessage)
-        toast.error(errorMessage)
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load MCP tools';
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    loadTools()
-  }, [tenantId, projectId])
+    loadTools();
+  }, [tenantId, projectId]);
 
-  return { tools, isLoading, error }
-}
+  return { tools, isLoading, error };
+};
 
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
-  const { updateNode } = useReactFlow()
+  const { updateNode } = useReactFlow();
   const { tenantId, projectId } = useParams<{
-    tenantId: string
-    projectId: string
-  }>()
-  const { tools, isLoading, error } = useFetchAvailableMCPs()
+    tenantId: string;
+    projectId: string;
+  }>();
+  const { tools, isLoading, error } = useFetchAvailableMCPs();
 
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
-      data: { ...mcp },
-    })
-  }
+      data: { toolId: mcp.id },
+    });
+  };
 
   if (isLoading) {
-    return <MCPSelectorLoading title="Select MCP server" />
+    return <MCPSelectorLoading title="Select MCP server" />;
   }
 
   if (error) {
@@ -72,7 +72,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
         actionText="Create MCP server"
         actionHref={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
       />
-    )
+    );
   }
 
   if (!tools?.length) {
@@ -82,7 +82,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
         actionText="Create MCP server"
         actionHref={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
       />
-    )
+    );
   }
 
   return (
@@ -96,5 +96,5 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

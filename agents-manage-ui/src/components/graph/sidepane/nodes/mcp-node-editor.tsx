@@ -1,5 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { Check } from 'lucide-react';
+import { Check, CircleAlert } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -9,17 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import type { MCPTool } from '@/lib/types/tools';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
+import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
   selectedToolsLookup: Record<string, Record<string, string[]>>;
+  toolLookup: Record<string, MCPTool>;
 }
 
 export function MCPServerNodeEditor({
   selectedNode,
   selectedToolsLookup,
+  toolLookup,
 }: MCPServerNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
   const { tenantId, projectId } = useParams<{
@@ -27,63 +31,37 @@ export function MCPServerNodeEditor({
     projectId: string;
   }>();
 
-  const activeTools = getActiveTools({
-    availableTools: selectedNode.data.availableTools,
-    activeTools: selectedNode.data.config?.mcp?.activeTools,
-  });
-
+  // All hooks must be called before any early returns
   const markUnsaved = useGraphStore((state) => state.markUnsaved);
 
-  const getCurrentSelectedTools = (): string[] | null => {
-    // First check if we have temporary selections stored on the node (from recent clicks)
-    if ((selectedNode.data as any).tempSelectedTools !== undefined) {
-      return (selectedNode.data as any).tempSelectedTools;
-    }
+  // Only use toolLookup - single source of truth
+  const toolData = toolLookup[selectedNode.data.toolId];
 
-    // Otherwise, get from the database/initial state
-    const allSelectedTools = new Set<string>();
-    let hasAnyData = false;
-    let hasEmptyArray = false;
-    let hasNullValue = false;
+  const availableTools = toolData?.availableTools;
 
-    Object.values(selectedToolsLookup).forEach((agentTools) => {
-      const toolsForThisMCP = agentTools[selectedNode.data.id];
-      if (toolsForThisMCP !== undefined) {
-        hasAnyData = true;
-        if (Array.isArray(toolsForThisMCP) && toolsForThisMCP.length === 0) {
-          // Empty array = NONE selected
-          hasEmptyArray = true;
-        } else if (toolsForThisMCP === null) {
-          // null = ALL selected
-          hasNullValue = true;
-        } else if (Array.isArray(toolsForThisMCP)) {
-          // Specific tools selected
-          toolsForThisMCP.forEach((tool) => {
-            allSelectedTools.add(tool);
-          });
-        }
-      }
-    });
+  const activeTools = getActiveTools({
+    availableTools: availableTools,
+    activeTools: toolData?.config?.mcp?.activeTools,
+  });
 
-    // If we found a null value, return null (all selected)
-    if (hasNullValue) {
-      return null;
-    }
+  // Handle missing tool data
+  if (!toolData) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="text-sm text-muted-foreground">
+          Tool data not found for {selectedNode.data.toolId}
+        </div>
+      </div>
+    );
+  }
 
-    // If we found an empty array, return empty array
-    if (hasEmptyArray) {
-      return [];
-    }
+  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, selectedToolsLookup);
 
-    // If no data exists (undefined), default to ALL selected (null)
-    if (!hasAnyData) {
-      return null;
-    }
-
-    return Array.from(allSelectedTools);
-  };
-
-  const selectedTools = getCurrentSelectedTools();
+  // Find orphaned tools - tools that are selected but no longer available in activeTools
+  const orphanedTools =
+    selectedTools && Array.isArray(selectedTools)
+      ? selectedTools.filter((toolName) => !activeTools?.some((tool) => tool.name === toolName))
+      : [];
 
   const toggleToolSelection = (toolName: string) => {
     // Handle null case (all tools selected) - convert to array of all tool names
@@ -128,35 +106,35 @@ export function MCPServerNodeEditor({
 
   let provider = null;
   try {
-    provider = getToolTypeAndName(selectedNode.data).type;
+    provider = toolData ? getToolTypeAndName(toolData).type : null;
   } catch (error) {
     console.error(error);
   }
 
   return (
     <div className="space-y-8">
-      {selectedNode.data.imageUrl && (
+      {toolData?.imageUrl && (
         <div className="flex items-center gap-2">
           <MCPToolImage
-            imageUrl={selectedNode.data.imageUrl}
-            name={selectedNode.data.name}
+            imageUrl={toolData.imageUrl}
+            name={toolData.name}
             provider={provider || undefined}
             size={32}
             className="rounded-lg"
           />
-          <span className="font-medium text-sm truncate">{selectedNode.data.name}</span>
+          <span className="font-medium text-sm truncate">{toolData.name}</span>
         </div>
       )}
       <div className="space-y-2">
         <Label htmlFor="node-id">Id</Label>
-        <Input id="node-id" value={selectedNode.data.id} disabled />
+        <Input id="node-id" value={selectedNode.data.toolId} disabled />
       </div>
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
         <Input
           id="name"
           name="name"
-          value={selectedNode.data.name || ''}
+          value={toolData?.name || ''}
           onChange={handleInputChange}
           placeholder="MCP server"
           className="w-full"
@@ -168,20 +146,20 @@ export function MCPServerNodeEditor({
         <Input
           id="url"
           name="url"
-          value={selectedNode.data.config?.mcp?.server?.url || ''}
+          value={toolData?.config?.mcp?.server?.url || ''}
           onChange={handleInputChange}
           placeholder="https://mcp.inkeep.com"
           disabled
           className="w-full"
         />
       </div>
-      {selectedNode.data.imageUrl && (
+      {toolData?.imageUrl && (
         <div className="space-y-2">
           <Label htmlFor="imageUrl">Image URL</Label>
           <Input
             id="imageUrl"
             name="imageUrl"
-            value={selectedNode.data.imageUrl || ''}
+            value={toolData.imageUrl || ''}
             onChange={handleInputChange}
             placeholder="https://example.com/icon.png"
             disabled
@@ -199,16 +177,15 @@ export function MCPServerNodeEditor({
             {
               selectedTools === null
                 ? (activeTools?.length ?? 0) // All tools selected
-                : selectedTools.filter((toolName) =>
-                    activeTools?.some((tool) => tool.name === toolName)
-                  ).length // Only count selected tools that are currently active
+                : selectedTools.length // Count all selected tools (including orphaned ones)
             }
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground mb-1.5">Click to select/deselect</p>
-        {activeTools && activeTools.length > 0 && (
+        {(activeTools && activeTools.length > 0) || orphanedTools.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {activeTools.map((tool) => {
+            {/* Active tools */}
+            {activeTools?.map((tool) => {
               const isSelected =
                 selectedTools === null
                   ? true // If null, all tools are selected
@@ -239,12 +216,36 @@ export function MCPServerNodeEditor({
                 </Tooltip>
               );
             })}
+
+            {/* Orphaned tools (selected but no longer available) */}
+            {orphanedTools.map((toolName) => (
+              <Tooltip key={`orphaned-${toolName}`}>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="warning"
+                    className="flex items-center gap-1 cursor-pointer transition-colors hover:bg-primary/10 normal-case"
+                    onClick={() => toggleToolSelection(toolName)}
+                  >
+                    {toolName}
+                    <span className="text-xs">
+                      <CircleAlert className="w-2.5 h-2.5" />
+                    </span>
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-sm">
+                  <div className="line-clamp-4">
+                    This tool was selected but is not available in the MCP server. Click to remove
+                    it from the selection.
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ))}
           </div>
-        )}
+        ) : null}
       </div>
 
       <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.id}/edit`}
+        href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}
       >
         Edit MCP Server
       </ExternalLink>

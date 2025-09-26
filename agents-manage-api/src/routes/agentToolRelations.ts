@@ -13,14 +13,12 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
-  getToolsForAgent,
   IdParamsSchema,
   ListResponseSchema,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectGraphParamsSchema,
-  TenantProjectParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
@@ -146,50 +144,6 @@ app.openapi(
     }
 
     return c.json({ data: agentToolRelation });
-  }
-);
-
-// Get tools for a specific agent (with tool details)
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/agent/{agentId}/tools',
-    summary: 'Get Tools for Agent',
-    operationId: 'get-tools-for-agent',
-    tags: ['Agent Tool Relations'],
-    request: {
-      params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
-      }),
-      query: PaginationQueryParamsSchema,
-    },
-    responses: {
-      200: {
-        description: 'Tools for agent retrieved successfully',
-        content: {
-          'application/json': {
-            schema: ListResponseSchema(AgentToolRelationApiSelectSchema),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
-    const { page, limit } = c.req.valid('query');
-
-    const dbResult = await getToolsForAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
-      pagination: { page, limit },
-    });
-
-    const result = {
-      data: dbResult.data,
-      pagination: dbResult.pagination,
-    };
-
-    return c.json(result);
   }
 );
 

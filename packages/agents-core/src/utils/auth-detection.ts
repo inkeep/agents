@@ -2,7 +2,6 @@
  * Centralized authentication detection utilities for MCP tools
  */
 
-import type { McpTool } from '../types/entities';
 import type { PinoLogger } from './logger';
 
 /**
@@ -119,26 +118,30 @@ export const discoverOAuthEndpoints = async (
 /**
  * Detect if OAuth 2.1/PKCE authentication is specifically required for a tool
  */
-export const detectAuthenticationRequired = async (
-  tool: McpTool,
-  error: Error,
-  logger?: PinoLogger
-): Promise<boolean> => {
-  const serverUrl = tool.config.mcp.server.url;
-
+export const detectAuthenticationRequired = async ({
+  serverUrl,
+  toolId,
+  error,
+  logger,
+}: {
+  serverUrl: string;
+  toolId: string;
+  error: Error;
+  logger?: PinoLogger;
+}): Promise<boolean> => {
   // 1. First, try OAuth 2.1/PKCE endpoint discovery (most reliable for our use case)
   let hasOAuthEndpoints = false;
   try {
-    hasOAuthEndpoints = await checkForOAuthEndpoints(serverUrl);
+    hasOAuthEndpoints = await checkForOAuthEndpoints(serverUrl, logger);
     if (hasOAuthEndpoints) {
       logger?.info(
-        { toolId: tool.id, serverUrl },
+        { toolId, serverUrl },
         'OAuth 2.1/PKCE support confirmed via endpoint discovery'
       );
       return true; // Server supports OAuth 2.1/PKCE, prioritize this
     }
   } catch (discoveryError) {
-    logger?.debug({ toolId: tool.id, discoveryError }, 'OAuth endpoint discovery failed');
+    logger?.debug({ toolId, discoveryError }, 'OAuth endpoint discovery failed');
   }
 
   // 2. Check for 401 with OAuth-specific WWW-Authenticate header
@@ -165,21 +168,21 @@ export const detectAuthenticationRequired = async (
           wwwAuth.toLowerCase().includes('authorization_uri'))
       ) {
         logger?.info(
-          { toolId: tool.id, wwwAuth },
+          { toolId, wwwAuth },
           'OAuth authentication detected via WWW-Authenticate header'
         );
         return true;
       }
     }
   } catch (fetchError) {
-    logger?.debug({ toolId: tool.id, fetchError }, 'Direct fetch authentication check failed');
+    logger?.debug({ toolId, fetchError }, 'Direct fetch authentication check failed');
   }
 
   // 3. Check if 401 error message AND OAuth endpoints exist together
   if (error.message.includes('401') || error.message.toLowerCase().includes('unauthorized')) {
     if (hasOAuthEndpoints) {
       logger?.info(
-        { toolId: tool.id, error: error.message },
+        { toolId, error: error.message },
         'OAuth required: 401 error + OAuth endpoints detected'
       );
       return true; // Only return true if BOTH 401 AND OAuth endpoints exist
@@ -188,9 +191,6 @@ export const detectAuthenticationRequired = async (
 
   // If none of the OAuth-specific checks pass, return false
   // (This means we won't trigger OAuth flow for Basic Auth, API keys, etc.)
-  logger?.debug(
-    { toolId: tool.id, error: error.message },
-    'No OAuth authentication requirement detected'
-  );
+  logger?.debug({ toolId, error: error.message }, 'No OAuth authentication requirement detected');
   return false;
 };

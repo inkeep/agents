@@ -1423,13 +1423,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         }
       }
 
-      // These can be strings or undefined
-      if (firstTool.lastHealthCheck) {
-        expect(typeof firstTool.lastHealthCheck).toBe('string');
-      }
-      if (firstTool.lastToolsSync) {
-        expect(typeof firstTool.lastToolsSync).toBe('string');
-      }
       if (firstTool.lastError) {
         expect(typeof firstTool.lastError).toBe('string');
       }
@@ -1501,22 +1494,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         expect(tool.capabilities === null || typeof tool.capabilities === 'object').toBe(true);
       }
 
-      if (tool.lastHealthCheck !== undefined) {
-        expect(tool.lastHealthCheck === null || typeof tool.lastHealthCheck === 'string').toBe(
-          true
-        );
-      }
-
       if (tool.lastError !== undefined) {
         expect(tool.lastError === null || typeof tool.lastError === 'string').toBe(true);
       }
 
       if (tool.availableTools !== undefined) {
         expect(tool.availableTools === null || Array.isArray(tool.availableTools)).toBe(true);
-      }
-
-      if (tool.lastToolsSync !== undefined) {
-        expect(tool.lastToolsSync === null || typeof tool.lastToolsSync === 'string').toBe(true);
       }
     });
   });
@@ -1580,17 +1563,13 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(createdTool).toHaveProperty('config');
       expect(createdTool).toHaveProperty('status');
       expect(createdTool).toHaveProperty('capabilities');
-      expect(createdTool).toHaveProperty('lastHealthCheck');
       expect(createdTool).toHaveProperty('lastError');
       expect(createdTool).toHaveProperty('availableTools');
-      expect(createdTool).toHaveProperty('lastToolsSync');
 
       // The values should be null/default since they're read-only
       expect(createdTool.status).toBe('unknown');
       expect(createdTool.availableTools).toBeNull();
-      expect(createdTool.lastToolsSync).toBeNull();
       expect(createdTool.capabilities).toBeNull();
-      expect(createdTool.lastHealthCheck).toBeNull();
     });
 
     it('should preserve tool full schema fields on graph retrieval', async () => {
@@ -1625,15 +1604,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         // Verify all ToolApiFullSchema fields are present
         expect(tool).toHaveProperty('status');
         expect(tool).toHaveProperty('capabilities');
-        expect(tool).toHaveProperty('lastHealthCheck');
         expect(tool).toHaveProperty('lastError');
         expect(tool).toHaveProperty('availableTools');
-        expect(tool).toHaveProperty('lastToolsSync');
 
         // The createTestToolData helper includes these fields, so they should have values
         expect(tool.status).toBe('unknown');
         expect(tool.capabilities).toEqual({ tools: true });
-        expect(tool.lastHealthCheck).toBeDefined();
         expect(tool.availableTools).toBeDefined();
       }
     });
@@ -1867,10 +1843,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       for (const tool of tools) {
         expect(tool).toHaveProperty('status');
         expect(tool).toHaveProperty('capabilities');
-        expect(tool).toHaveProperty('lastHealthCheck');
         expect(tool).toHaveProperty('lastError');
         expect(tool).toHaveProperty('availableTools');
-        expect(tool).toHaveProperty('lastToolsSync');
       }
     });
 
@@ -1969,10 +1943,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const tool = body.data.tools[toolId];
       expect(tool).toHaveProperty('status');
       expect(tool).toHaveProperty('capabilities');
-      expect(tool).toHaveProperty('lastHealthCheck');
       expect(tool).toHaveProperty('lastError');
       expect(tool).toHaveProperty('availableTools');
-      expect(tool).toHaveProperty('lastToolsSync');
     });
   });
 });

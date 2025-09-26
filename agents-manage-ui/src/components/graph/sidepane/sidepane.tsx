@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import type { MCPTool } from '@/lib/types/tools';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
@@ -31,6 +32,7 @@ interface SidePaneProps {
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   selectedToolsLookup: Record<string, Record<string, string[]>>;
+  toolLookup: Record<string, MCPTool>;
 }
 
 export function SidePane({
@@ -42,6 +44,7 @@ export function SidePane({
   dataComponentLookup,
   artifactComponentLookup,
   selectedToolsLookup,
+  toolLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
@@ -111,6 +114,7 @@ export function SidePane({
             <MCPServerNodeEditor
               selectedNode={selectedNode as Node<MCPNodeData>}
               selectedToolsLookup={selectedToolsLookup}
+              toolLookup={toolLookup}
             />
           );
         }
@@ -131,6 +135,7 @@ export function SidePane({
     getFieldErrorMessage,
     getFirstErrorField,
     selectedToolsLookup,
+    toolLookup,
   ]);
 
   const showBackButton = useMemo(() => {

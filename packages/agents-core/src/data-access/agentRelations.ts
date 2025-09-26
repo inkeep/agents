@@ -650,11 +650,12 @@ export const getToolsForAgent =
             createdAt: tools.createdAt,
             updatedAt: tools.updatedAt,
             capabilities: tools.capabilities,
-            lastHealthCheck: tools.lastHealthCheck,
-            lastToolsSync: tools.lastToolsSync,
             lastError: tools.lastError,
-            availableTools: tools.availableTools,
             credentialReferenceId: tools.credentialReferenceId,
+            tenantId: tools.tenantId,
+            projectId: tools.projectId,
+            headers: tools.headers,
+            imageUrl: tools.imageUrl,
           },
         })
         .from(agentToolRelations)

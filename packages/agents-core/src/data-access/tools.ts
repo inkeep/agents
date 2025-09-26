@@ -1,46 +1,222 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { ContextResolver } from '../context';
+import type { CredentialStoreRegistry } from '../credential-stores';
+import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
 import { agentToolRelations, tools } from '../db/schema';
-import type {
-  AgentScopeConfig,
-  GraphScopeConfig,
-  McpTool,
-  McpToolStatus,
-  PaginationConfig,
-  ProjectScopeConfig,
-  ToolInsert,
-  ToolSelect,
-  ToolUpdate,
+import {
+  type GraphScopeConfig,
+  MCPServerType,
+  type MCPToolConfig,
+  MCPTransportType,
+  type McpTool,
+  type McpToolDefinition,
+  type PaginationConfig,
+  type ProjectScopeConfig,
+  type ToolInsert,
+  type ToolSelect,
+  type ToolUpdate,
 } from '../types/index';
+import { detectAuthenticationRequired } from '../utils';
+import { getLogger } from '../utils/logger';
+import { McpClient, type McpServerConfig } from '../utils/mcp-client';
 import { updateAgentToolRelation } from './agentRelations';
+import { getCredentialReference } from './credentialReferences';
+
+const logger = getLogger('tools');
+
+/**
+ * Extract input schema from MCP tool definition, handling multiple formats
+ * Different MCP servers may use different schema structures:
+ * - inputSchema (direct) - e.g., Notion MCP
+ * - parameters.properties - e.g., some other MCP servers
+ * - parameters (direct) - alternative format
+ * - schema - another possible location
+ */
+function extractInputSchema(toolDef: any): any {
+  // Try different possible locations for the input schema
+  if (toolDef.inputSchema) {
+    return toolDef.inputSchema;
+  }
+
+  if (toolDef.parameters?.properties) {
+    return toolDef.parameters.properties;
+  }
+
+  if (toolDef.parameters && typeof toolDef.parameters === 'object') {
+    return toolDef.parameters;
+  }
+
+  if (toolDef.schema) {
+    return toolDef.schema;
+  }
+
+  // If none found, return empty object
+  return {};
+}
+
+// Helper function to convert McpTool to MCPToolConfig format for CredentialStuffer
+const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
+  return {
+    id: tool.id,
+    name: tool.name,
+    description: tool.name, // Use name as description fallback
+    serverUrl: tool.config.mcp.server.url,
+    mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
+      ? MCPServerType.nango
+      : MCPServerType.generic,
+    transport: tool.config.mcp.transport,
+    headers: tool.headers,
+  };
+};
+
+// Tool discovery, meant to discover available tools and not take into account "active" / "selected" tools.
+const discoverToolsFromServer = async (
+  tool: ToolSelect,
+  dbClient: DatabaseClient,
+  credentialStoreRegistry?: CredentialStoreRegistry
+): Promise<McpToolDefinition[]> => {
+  try {
+    const credentialReferenceId = tool.credentialReferenceId;
+    let serverConfig: McpServerConfig;
+
+    // Build server config with credentials if available
+    if (credentialReferenceId) {
+      // Get credential store configuration
+      const credentialReference = await getCredentialReference(dbClient)({
+        scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
+        id: credentialReferenceId,
+      });
+
+      if (!credentialReference) {
+        throw new Error(`Credential store not found: ${credentialReferenceId}`);
+      }
+
+      const storeReference = {
+        credentialStoreId: credentialReference.credentialStoreId,
+        retrievalParams: credentialReference.retrievalParams || {},
+      };
+
+      // Use CredentialStuffer to build proper config with auth headers
+      if (!credentialStoreRegistry) {
+        throw new Error('CredentialStoreRegistry is required for authenticated tools');
+      }
+      const contextResolver = new ContextResolver(
+        tool.tenantId,
+        tool.projectId,
+        dbClient,
+        credentialStoreRegistry
+      );
+      const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
+      serverConfig = await credentialStuffer.buildMcpServerConfig(
+        { tenantId: tool.tenantId, projectId: tool.projectId },
+        convertToMCPToolConfig(tool),
+        storeReference
+      );
+    } else {
+      // No credentials - build basic config
+      const transportType = tool.config.mcp.transport?.type || MCPTransportType.streamableHttp;
+      if (transportType === MCPTransportType.sse) {
+        serverConfig = {
+          type: MCPTransportType.sse,
+          url: tool.config.mcp.server.url,
+          eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
+        };
+      } else {
+        serverConfig = {
+          type: MCPTransportType.streamableHttp,
+          url: tool.config.mcp.server.url,
+          requestInit: tool.config.mcp.transport?.requestInit,
+          eventSourceInit: tool.config.mcp.transport?.eventSourceInit,
+          reconnectionOptions: tool.config.mcp.transport?.reconnectionOptions,
+          sessionId: tool.config.mcp.transport?.sessionId,
+        };
+      }
+    }
+
+    const client = new McpClient({
+      name: tool.name,
+      server: serverConfig,
+    });
+
+    await client.connect();
+
+    // Get tools from the MCP client
+    const serverTools = await client.tools();
+
+    await client.disconnect();
+
+    // Convert to our format
+    const toolDefinitions: McpToolDefinition[] = Object.entries(serverTools).map(
+      ([name, toolDef]) => ({
+        name,
+        description: (toolDef as any).description || '',
+        inputSchema: extractInputSchema(toolDef as any),
+      })
+    );
+
+    return toolDefinitions;
+  } catch (error) {
+    logger.error({ toolId: tool.id, error }, 'Tool discovery failed');
+    throw error;
+  }
+};
 
 // Helper function to convert database result to McpTool
-export const dbResultToMcpTool = (dbResult: ToolSelect): McpTool => {
-  const {
-    headers,
-    capabilities,
-    credentialReferenceId,
-    lastError,
-    availableTools,
-    imageUrl,
-    lastHealthCheck,
-    lastToolsSync,
-    createdAt,
-    updatedAt,
-    ...rest
-  } = dbResult;
+export const dbResultToMcpTool = async (
+  dbResult: ToolSelect,
+  dbClient: DatabaseClient,
+  credentialStoreRegistry?: CredentialStoreRegistry
+): Promise<McpTool> => {
+  const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
+  let availableTools: McpToolDefinition[] = [];
+  let status: McpTool['status'] = 'unknown';
+  let lastErrorComputed: string | null;
+
+  try {
+    availableTools = await discoverToolsFromServer(dbResult, dbClient, credentialStoreRegistry);
+    status = 'healthy';
+    lastErrorComputed = null;
+  } catch (error) {
+    const toolNeedsAuth =
+      error instanceof Error &&
+      (await detectAuthenticationRequired({
+        serverUrl: dbResult.config.mcp.server.url,
+        toolId: dbResult.id,
+        error,
+        logger,
+      }));
+
+    status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
+
+    lastErrorComputed = toolNeedsAuth
+      ? 'Authentication required - OAuth login needed'
+      : error instanceof Error
+        ? error.message
+        : 'Tool discovery failed';
+  }
+
+  const now = new Date().toISOString();
+
+  await updateTool(dbClient)({
+    scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+    toolId: dbResult.id,
+    data: {
+      updatedAt: now,
+      lastError: lastErrorComputed,
+    },
+  });
+
   return {
     ...rest,
-    status: dbResult.status as McpToolStatus,
+    status,
+    availableTools,
     capabilities: capabilities || undefined,
     credentialReferenceId: credentialReferenceId || undefined,
-    lastHealthCheck: lastHealthCheck ? new Date(lastHealthCheck) : undefined,
-    lastToolsSync: lastToolsSync ? new Date(lastToolsSync) : undefined,
     createdAt: new Date(createdAt),
-    updatedAt: new Date(updatedAt),
-    lastError: lastError || undefined,
-    availableTools: availableTools || undefined,
+    updatedAt: new Date(now),
+    lastError: lastErrorComputed,
     headers: headers || undefined,
     imageUrl: imageUrl || undefined,
   };
@@ -70,7 +246,7 @@ export const listTools =
       eq(tools.projectId, params.scopes.projectId)
     );
 
-    const [query, totalResult] = await Promise.all([
+    const [toolsDbResults, totalResult] = await Promise.all([
       db
         .select()
         .from(tools)
@@ -85,36 +261,9 @@ export const listTools =
     const pages = Math.ceil(total / limit);
 
     return {
-      data: query,
+      data: toolsDbResults,
       pagination: { page, limit, total, pages },
     };
-  };
-
-export const getToolsByStatus =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; status: string }) => {
-    return db
-      .select()
-      .from(tools)
-      .where(
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(tools.status, params.status)
-        )
-      );
-  };
-
-export const listToolsByStatus =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; status: McpToolStatus }) => {
-    const toolsList = await db.query.tools.findMany({
-      where: and(
-        eq(tools.tenantId, params.scopes.tenantId),
-        eq(tools.status, params.status),
-        eq(tools.projectId, params.scopes.projectId)
-      ),
-      orderBy: desc(tools.createdAt),
-    });
-    return toolsList;
   };
 
 export const createTool = (db: DatabaseClient) => async (params: ToolInsert) => {
@@ -257,26 +406,6 @@ export const upsertAgentToolRelation =
     });
   };
 
-export const updateToolStatus =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    toolId: string;
-    status: string;
-    lastHealthCheck?: string;
-    lastError?: string;
-  }) => {
-    return updateTool(db)({
-      scopes: params.scopes,
-      toolId: params.toolId,
-      data: {
-        status: params.status,
-        lastHealthCheck: params.lastHealthCheck || new Date().toISOString(),
-        lastError: params.lastError,
-      },
-    });
-  };
-
 /**
  * Upsert a tool (create if it doesn't exist, update if it does)
  */
@@ -306,28 +435,3 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
     return await createTool(db)(params.data);
   }
 };
-
-// Get healthy tools for agent execution
-export const getHealthyToolsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
-    const healthyTools = await db
-      .select({
-        tool: tools,
-      })
-      .from(tools)
-      .innerJoin(
-        agentToolRelations,
-        and(
-          eq(tools.tenantId, params.scopes.tenantId),
-          eq(tools.projectId, params.scopes.projectId),
-          eq(agentToolRelations.tenantId, params.scopes.tenantId),
-          eq(agentToolRelations.projectId, params.scopes.projectId),
-          eq(agentToolRelations.graphId, params.scopes.graphId),
-          eq(agentToolRelations.agentId, params.scopes.agentId),
-          eq(tools.id, agentToolRelations.toolId)
-        )
-      )
-      .where(eq(tools.status, 'healthy'));
-
-    return healthyTools.map((row) => row.tool);
-  };

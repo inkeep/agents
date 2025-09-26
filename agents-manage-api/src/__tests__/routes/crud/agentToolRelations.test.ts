@@ -26,6 +26,29 @@ vi.mock('../../../tools/mcp-client.js', () => ({
   })),
 }));
 
+// Mock dbResultToMcpTool to avoid network calls during tests
+vi.mock('@inkeep/agents-core', async () => {
+  const actual = await vi.importActual('@inkeep/agents-core');
+  return {
+    ...actual,
+    dbResultToMcpTool: vi.fn().mockImplementation((tool) =>
+      Promise.resolve({
+        ...tool,
+        status: 'healthy',
+        availableTools: [],
+        createdAt: new Date(tool.createdAt),
+        updatedAt: new Date(tool.updatedAt),
+        // Transform null to undefined for optional fields (matches real behavior)
+        credentialReferenceId: tool.credentialReferenceId || undefined,
+        headers: tool.headers || undefined,
+        capabilities: tool.capabilities || undefined,
+        lastError: tool.lastError || undefined,
+        imageUrl: tool.imageUrl || undefined,
+      })
+    ),
+  };
+});
+
 describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
@@ -416,43 +439,6 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/non-existent-id`
       );
       expect(res.status).toBe(404);
-    });
-  });
-
-  describe('GET /agent/{agentId}/tools', () => {
-    it('should get tools for a specific agent', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-get-tools-for-agent');
-      await ensureTestProject(tenantId, 'default');
-      const { agentId, graphId } = await createTestAgent({ tenantId });
-      const { toolId: toolId1 } = await createTestTool({ tenantId, suffix: ' 1' });
-      const { toolId: toolId2 } = await createTestTool({ tenantId, suffix: ' 2' });
-
-      // Create relations
-      await createTestAgentToolRelation({ tenantId, agentId, toolId: toolId1, graphId });
-      await createTestAgentToolRelation({ tenantId, agentId, toolId: toolId2, graphId });
-
-      const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/agent/${agentId}/tools`
-      );
-      expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.data).toHaveLength(2);
-      expect(body.data.every((relation: any) => relation.agentId === agentId)).toBe(true);
-    });
-
-    it('should return empty array when agent has no tools', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-get-tools-empty');
-      await ensureTestProject(tenantId, 'default');
-      const { agentId, graphId } = await createTestAgent({ tenantId });
-
-      const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/agent/${agentId}/tools`
-      );
-      expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.data).toHaveLength(0);
     });
   });
 

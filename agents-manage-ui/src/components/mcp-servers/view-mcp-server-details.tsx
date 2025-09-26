@@ -4,15 +4,45 @@ import { Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
+
 import { cn } from '@/lib/utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Button } from '../ui/button';
+import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 import { AvailableToolsCard } from './available-tools-card';
 import { MCPToolImage } from './mcp-tool-image';
+
+// Helper component to render active tool badges with availability status
+function ActiveToolBadge({ toolName, isAvailable }: { toolName: string; isAvailable: boolean }) {
+  const badge = (
+    <Badge
+      variant={isAvailable ? 'primary' : 'warning'}
+      className={cn(
+        isAvailable ? '' : 'opacity-75 border-yellow-500 text-yellow-700 bg-yellow-50 normal-case'
+      )}
+    >
+      {toolName}
+    </Badge>
+  );
+
+  if (!isAvailable) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{badge}</TooltipTrigger>
+        <TooltipContent>
+          <p>This tool is not available in the current server configuration</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return badge;
+}
 
 export function ViewMCPServerDetails({
   tool,
@@ -147,33 +177,7 @@ export function ViewMCPServerDetails({
 
       {/* Basic Information */}
       <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 space-y-8">
-          <div className="space-y-2">
-            <ItemLabel>Name</ItemLabel>
-            <ItemValue>{tool.name}</ItemValue>
-          </div>
-          <div className="space-y-2">
-            <ItemLabel>Status</ItemLabel>
-            <ItemValue className="items-center">
-              {tool.status === 'needs_auth' ? (
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleOAuthLogin(tool.id);
-                  }}
-                >
-                  Click to Login
-                </Badge>
-              ) : (
-                <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
-                  {tool.status}
-                </Badge>
-              )}
-            </ItemValue>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
             <ItemValue>
@@ -197,6 +201,37 @@ export function ViewMCPServerDetails({
             <ItemValue>
               {tool.imageUrl.startsWith('data:image/') ? 'Base64 encoded image' : tool.imageUrl}
             </ItemValue>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <ItemLabel>Status</ItemLabel>
+          <ItemValue className="items-center">
+            {tool.status === 'needs_auth' ? (
+              <Badge
+                variant="outline"
+                className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleOAuthLogin(tool.id);
+                }}
+              >
+                Click to Login
+              </Badge>
+            ) : (
+              <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
+                {tool.status}
+              </Badge>
+            )}
+          </ItemValue>
+        </div>
+
+        {/* Last Error */}
+        {tool.lastError && (
+          <div className="space-y-2">
+            <ItemLabel>Last Error</ItemLabel>
+            <CopyableMultiLineCode code={tool.lastError} />
           </div>
         )}
 
@@ -258,22 +293,26 @@ export function ViewMCPServerDetails({
               tool.availableTools && tool.availableTools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {tool.availableTools.map((toolInfo) => (
-                    <Badge key={toolInfo.name} className="" variant="primary">
-                      {toolInfo.name}
-                    </Badge>
+                    <ActiveToolBadge
+                      key={toolInfo.name}
+                      toolName={toolInfo.name}
+                      isAvailable={true} // All available tools are shown, so they're all available
+                    />
                   ))}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">No tools available</div>
               )
             ) : tool.config.mcp.activeTools && tool.config.mcp.activeTools.length > 0 ? (
-              // Specific tools are active
+              // Specific tools are active - check availability
               <div className="flex flex-wrap gap-2">
-                {tool.config.mcp.activeTools.map((toolName) => (
-                  <Badge key={toolName} className="" variant="primary">
-                    {toolName}
-                  </Badge>
-                ))}
+                {tool.config.mcp.activeTools.map((toolName) => {
+                  const isAvailable =
+                    tool.availableTools?.some((t) => t.name === toolName) ?? false;
+                  return (
+                    <ActiveToolBadge key={toolName} toolName={toolName} isAvailable={isAvailable} />
+                  );
+                })}
               </div>
             ) : (
               // No tools are active (empty array)

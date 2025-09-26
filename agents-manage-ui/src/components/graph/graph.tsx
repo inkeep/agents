@@ -32,6 +32,8 @@ import type { FullGraphDefinition } from '@/lib/types/graph-full';
 import type { MCPTool } from '@/lib/types/tools';
 import { formatJsonField } from '@/lib/utils';
 import { getErrorSummaryMessage, parseGraphValidationErrors } from '@/lib/utils/graph-error-parser';
+import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
+import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import type { ContextConfig } from './configuration/graph-types';
 import {
@@ -95,20 +97,59 @@ function Flow({
     []
   );
 
+  // Helper to enrich MCP nodes with tool data
+  const enrichNodes = useCallback(
+    (nodes: Node[]): Node[] => {
+      return nodes.map((node) => {
+        if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
+          const tool = toolLookup[node.data.toolId as string];
+          if (tool) {
+            let provider = null;
+            provider = getToolTypeAndName(tool).type;
+
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                name: tool.name,
+                imageUrl: tool.imageUrl,
+                provider,
+              },
+            };
+          }
+        }
+        return node;
+      });
+    },
+    [toolLookup]
+  );
+
   const { nodes: graphNodes, edges: graphEdges } = useMemo(() => {
-    return graph
-      ? deserializeGraphData(graph, toolLookup)
+    const result = graph
+      ? deserializeGraphData(graph)
       : { nodes: initialNodes, edges: initialEdges };
-  }, [graph, toolLookup, initialNodes]);
+    return {
+      ...result,
+      nodes: enrichNodes(result.nodes),
+    };
+  }, [graph, enrichNodes, initialNodes]);
 
   // Create selectedTools lookup from graph data
   const selectedToolsLookup = useMemo((): Record<string, Record<string, string[]>> => {
     if (!graph?.agents) return {} as Record<string, Record<string, string[]>>;
 
     const lookup: Record<string, Record<string, string[]>> = {};
-    Object.entries(graph.agents).forEach(([agentId, agent]) => {
-      if ('selectedTools' in agent && agent.selectedTools) {
-        lookup[agentId] = agent.selectedTools as Record<string, string[]>;
+    Object.entries(graph.agents).forEach(([agentId, agentData]) => {
+      if ('canUse' in agentData && agentData.canUse) {
+        const toolsMap: Record<string, string[]> = {};
+        agentData.canUse.forEach((tool) => {
+          if (tool.toolSelection) {
+            toolsMap[tool.toolId] = tool.toolSelection;
+          }
+        });
+        if (Object.keys(toolsMap).length > 0) {
+          lookup[agentId] = toolsMap;
+        }
       }
     });
     return lookup;
@@ -116,7 +157,7 @@ function Flow({
 
   const { screenToFlowPosition } = useReactFlow();
   const {
-    nodes,
+    nodes: storeNodes,
     edges,
     setNodes,
     setEdges,
@@ -129,6 +170,9 @@ function Flow({
     clearSelection,
     markUnsaved,
   } = useGraphStore();
+
+  // Always use enriched nodes for ReactFlow
+  const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
   const { nodeId, edgeId, setQueryState, openGraphPane, isOpen } = useSidePane();
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useGraphErrors();
 
@@ -444,12 +488,23 @@ function Flow({
   );
 
   const onSubmit = useCallback(async () => {
+    // Check for orphaned tools before saving
+    const warningMessage = detectOrphanedToolsAndGetWarning(nodes, selectedToolsLookup, toolLookup);
+
+    if (warningMessage) {
+      toast.warning(warningMessage, {
+        closeButton: true,
+        duration: 6000,
+      });
+    }
+
     const serializedData = serializeGraphData(
       nodes,
       edges,
       metadata,
       dataComponentLookup,
-      artifactComponentLookup
+      artifactComponentLookup,
+      selectedToolsLookup
     );
 
     const res = await saveGraph(
@@ -499,6 +554,8 @@ function Flow({
     projectId,
     clearErrors,
     setErrors,
+    selectedToolsLookup,
+    toolLookup,
   ]);
 
   return (
@@ -565,6 +622,7 @@ function Flow({
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         selectedToolsLookup={selectedToolsLookup}
+        toolLookup={toolLookup}
       />
       {showPlayground && graph?.id && (
         <Playground

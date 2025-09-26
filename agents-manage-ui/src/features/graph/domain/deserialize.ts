@@ -14,7 +14,7 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '@/lib/types/graph-full';
-import type { MCPTool } from '@/lib/types/tools';
+
 import { formatJsonField } from '@/lib/utils';
 
 interface TransformResult {
@@ -101,10 +101,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeGraphData(
-  data: FullGraphDefinition,
-  toolLookup?: Record<string, MCPTool>
-): TransformResult {
+export function deserializeGraphData(data: FullGraphDefinition): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
@@ -213,7 +210,7 @@ export function deserializeGraphData(
             id: toolNodeId,
             type: NodeType.MCP,
             position: { x: 0, y: 0 },
-            data: { id: tool.id, ...tool },
+            data: { toolId: tool.id },
           };
           nodes.push(toolNode);
 
@@ -228,33 +225,15 @@ export function deserializeGraphData(
           edges.push(agentToToolEdge);
         }
       } else {
-        // Tools are project-scoped, use the tool lookup if available
+        // Tools are project-scoped - just store the tool ID
         for (const canUseItem of agent.canUse) {
           const toolId = canUseItem.toolId;
-          const tool = toolLookup?.[toolId];
           const toolNodeId = nanoid();
           const toolNode: Node = {
             id: toolNodeId,
             type: NodeType.MCP,
             position: { x: 0, y: 0 },
-            data: tool
-              ? {
-                  id: tool.id,
-                  name: tool.name,
-                  description: '', // MCPTool doesn't have a description field at top level
-                  type: 'mcp',
-                  config: tool.config || {},
-                  status: tool.status,
-                  availableTools: tool.availableTools,
-                  selectedTools: canUseItem.toolSelection, // Use toolSelection from canUseItem
-                }
-              : {
-                  id: toolId,
-                  name: toolId,
-                  description: 'Project-scoped tool',
-                  type: 'project-scoped',
-                  config: {},
-                },
+            data: { toolId },
           };
           nodes.push(toolNode);
 

@@ -1,21 +1,16 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
-import type { MCPTool } from '@/lib/types/tools';
 
-import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
-import { mcpNodeHandleId } from '../configuration/node-types';
+import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
-export function MCPNode(props: NodeProps & { data: MCPTool }) {
+export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
-  const { name, imageUrl } = data;
-  let provider = null;
-  try {
-    provider = getToolTypeAndName(data).type;
-  } catch (error) {
-    console.error(error);
-  }
+
+  const name = data.name || `Tool: ${data.toolId}`;
+  const imageUrl = data.imageUrl;
+  const provider = data.provider;
 
   return (
     <BaseNode

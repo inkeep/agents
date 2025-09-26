@@ -114,8 +114,10 @@ app.openapi(
       // Exchange authorization code for access token using OAuth service
       logger.info({ toolId }, 'Exchanging authorization code for access token');
 
+      const credentialStores = c.get('credentialStores');
+
       // Convert database result to McpTool (using helper function)
-      const mcpTool = dbResultToMcpTool(tool);
+      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
 
       const { tokens } = await oauthService.exchangeCodeForTokens({
         code,
@@ -130,7 +132,6 @@ app.openapi(
       );
 
       // Store access token in keychain
-      const credentialStores = c.get('credentialStores');
       const keychainStore = credentialStores.get('keychain-default');
       const keychainKey = `oauth_token_${toolId}`;
       await keychainStore?.set(keychainKey, JSON.stringify(tokens));

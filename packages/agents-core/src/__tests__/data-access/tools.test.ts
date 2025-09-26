@@ -4,11 +4,9 @@ import {
   createTool,
   deleteTool,
   getToolById,
-  getToolsByStatus,
   listTools,
   removeToolFromAgent,
   updateTool,
-  updateToolStatus,
 } from '../../data-access/tools';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
@@ -168,39 +166,6 @@ describe('Tools Data Access', () => {
         data: expectedTools,
         pagination: { page: 1, limit: 10, total: 0, pages: 0 },
       });
-    });
-  });
-
-  describe('getToolsByStatus', () => {
-    it('should retrieve tools by status', async () => {
-      const expectedTools = [
-        {
-          id: 'tool-1',
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          name: 'Active Tool',
-          status: 'active',
-        },
-      ];
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(expectedTools),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await getToolsByStatus(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        status: 'active',
-      });
-
-      expect(mockSelect).toHaveBeenCalled();
-      expect(result).toEqual(expectedTools);
     });
   });
 
@@ -444,72 +409,6 @@ describe('Tools Data Access', () => {
 
       expect(mockDelete).toHaveBeenCalled();
       expect(result).toEqual(expectedRelation);
-    });
-  });
-
-  describe('updateToolStatus', () => {
-    it('should update tool status using updateTool', async () => {
-      const expectedTool = {
-        id: testToolId,
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        status: 'inactive',
-        lastHealthCheck: expect.any(String),
-        lastError: 'Connection failed',
-        updatedAt: expect.any(String),
-      };
-
-      const mockUpdate = vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([expectedTool]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        update: mockUpdate,
-      } as any;
-
-      const result = await updateToolStatus(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        toolId: testToolId,
-        status: 'inactive',
-        lastError: 'Connection failed',
-      });
-
-      expect(mockUpdate).toHaveBeenCalled();
-      expect(result).toEqual(expectedTool);
-    });
-
-    it('should use current timestamp for lastHealthCheck when not provided', async () => {
-      const expectedTool = {
-        id: testToolId,
-        status: 'active',
-        lastHealthCheck: expect.any(String),
-      };
-
-      const mockUpdate = vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([expectedTool]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        update: mockUpdate,
-      } as any;
-
-      const result = await updateToolStatus(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId },
-        toolId: testToolId,
-        status: 'active',
-      });
-
-      expect(result.lastHealthCheck).toBeDefined();
     });
   });
 });

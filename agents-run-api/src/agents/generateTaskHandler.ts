@@ -2,6 +2,7 @@ import {
   type AgentApiSelect,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
+  dbResultToMcpTool,
   getAgentById,
   getAgentGraphById,
   getArtifactComponentsForAgent,
@@ -134,7 +135,11 @@ export const createTaskHandler = (
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
               const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
-                scopes: { tenantId: config.tenantId, projectId: config.projectId, graphId: config.graphId },
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  graphId: config.graphId,
+                },
                 agentId: relation.id,
               });
 
@@ -157,6 +162,13 @@ export const createTaskHandler = (
       const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
+
+      const toolsForAgentResult: McpTool[] =
+        (await Promise.all(
+          toolsForAgent.data.map(
+            async (item) => await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry)
+          )
+        )) ?? [];
 
       const agent = new Agent(
         {
@@ -234,22 +246,7 @@ export const createTaskHandler = (
               },
             })),
           ],
-          tools:
-            toolsForAgent.data.map(
-              (item) =>
-                ({
-                  ...item.tool,
-                  capabilities: item.tool.capabilities || undefined,
-                  lastHealthCheck: item.tool.lastHealthCheck
-                    ? new Date(item.tool.lastHealthCheck)
-                    : undefined,
-                  lastToolsSync: item.tool.lastToolsSync
-                    ? new Date(item.tool.lastToolsSync)
-                    : undefined,
-                  createdAt: new Date(item.tool.createdAt),
-                  updatedAt: new Date(item.tool.updatedAt),
-                }) as McpTool
-            ) ?? [],
+          tools: toolsForAgentResult,
           functionTools: [], // All tools are now handled via MCP servers
           dataComponents: dataComponents,
           artifactComponents: artifactComponents,

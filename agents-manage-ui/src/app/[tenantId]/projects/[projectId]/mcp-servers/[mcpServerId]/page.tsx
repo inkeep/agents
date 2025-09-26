@@ -1,18 +1,18 @@
-import { notFound } from 'next/navigation'
-import { BodyTemplate } from '@/components/layout/body-template'
-import { MainContent } from '@/components/layout/main-content'
-import { ViewMCPServerDetails } from '@/components/mcp-servers/view-mcp-server-details'
-import { syncMCPTool } from '@/lib/api/tools'
+import { notFound } from 'next/navigation';
+import { BodyTemplate } from '@/components/layout/body-template';
+import { MainContent } from '@/components/layout/main-content';
+import { ViewMCPServerDetails } from '@/components/mcp-servers/view-mcp-server-details';
+import { fetchMCPTool } from '@/lib/api/tools';
 
 interface MCPPageProps {
-  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>
+  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
 }
 
 async function MCPPage({ params }: MCPPageProps) {
-  const { mcpServerId, tenantId, projectId } = await params
+  const { mcpServerId, tenantId, projectId } = await params;
 
   try {
-    const tool = await syncMCPTool(tenantId, projectId, mcpServerId)
+    const tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
 
     return (
       <BodyTemplate
@@ -31,11 +31,11 @@ async function MCPPage({ params }: MCPPageProps) {
           <ViewMCPServerDetails tool={tool} tenantId={tenantId} projectId={projectId} />
         </MainContent>
       </BodyTemplate>
-    )
+    );
   } catch (error) {
-    console.error('Failed to load MCP server:', error)
-    notFound()
+    console.error('Failed to load MCP server:', error);
+    notFound();
   }
 }
 
-export default MCPPage
+export default MCPPage;

@@ -26,6 +26,39 @@ vi.mock('../../../tools/mcp-client.js', () => ({
   })),
 }));
 
+// Mock dbResultToMcpTool to avoid external dependencies and provide consistent test data
+vi.mock('@inkeep/agents-core', async () => {
+  const actual = await vi.importActual('@inkeep/agents-core');
+  return {
+    ...actual,
+    dbResultToMcpTool: vi.fn().mockImplementation(async (dbResult) => ({
+      // Return the database result with computed fields
+      ...dbResult,
+      // Add computed fields that dbResultToMcpTool would normally add
+      status: 'unknown' as const,
+      availableTools: [
+        {
+          name: 'test-function',
+          description: 'Test function from MCP server',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'Query parameter' },
+            },
+            required: ['query'],
+          },
+        },
+      ],
+      createdAt: new Date(dbResult.createdAt),
+      updatedAt: new Date(dbResult.updatedAt),
+      capabilities: undefined,
+      lastError: undefined,
+      headers: undefined,
+      imageUrl: undefined,
+    })),
+  };
+});
+
 describe('Tools CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
@@ -108,9 +141,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolData, toolId } = await createTestTool({ tenantId });
 
-      const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
-      );
+      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`);
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data.id).toBe(toolId);
@@ -172,13 +203,10 @@ describe('Tools CRUD Routes - Integration Tests', () => {
         description: 'Updated description',
       };
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify(updateData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      });
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -207,12 +235,9 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-delete-success');
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
-      const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
+        method: 'DELETE',
+      });
       expect(res.status).toBe(204);
 
       const getRes = await app.request(
@@ -229,158 +254,6 @@ describe('Tools CRUD Routes - Integration Tests', () => {
         {
           method: 'DELETE',
         }
-      );
-      expect(res.status).toBe(404);
-    });
-  });
-
-  describe('POST /{id}/health-check', () => {
-    it('should check tool health', async () => {
-      const tenantId = createTestTenantId('tools-health-check');
-      await ensureTestProject(tenantId, projectId);
-      const { toolId } = await createTestTool({ tenantId });
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/health-check`,
-        {
-          method: 'POST',
-        }
-      );
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.data.tool.id).toBe(toolId);
-      expect(body.data.healthCheck.status).toMatch(/healthy|unhealthy/);
-    });
-
-    it('should return 404 for non-existent tool health check', async () => {
-      const tenantId = createTestTenantId('tools-health-check-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id/health-check`,
-        { method: 'POST' }
-      );
-      expect(res.status).toBe(404);
-    });
-  });
-
-  describe('POST /health-check-all', () => {
-    it('should check health of all tools', async () => {
-      const tenantId = createTestTenantId('tools-health-check-all');
-      await ensureTestProject(tenantId, projectId);
-      await createTestTool({ tenantId, suffix: ' 1' });
-      await createTestTool({ tenantId, suffix: ' 2' });
-
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/health-check-all`,
-        {
-          method: 'POST',
-        }
-      );
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.data.total).toBe(2);
-      expect(body.data.results).toHaveLength(2);
-    });
-
-    it('should handle empty tool list', async () => {
-      const tenantId = createTestTenantId('tools-health-check-all-empty');
-      await ensureTestProject(tenantId, projectId);
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/health-check-all`,
-        {
-          method: 'POST',
-        }
-      );
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.data.total).toBe(0);
-    });
-  });
-
-  describe('PATCH /{id}/status', () => {
-    it('should update tool status', async () => {
-      const tenantId = createTestTenantId('tools-patch-status');
-      await ensureTestProject(tenantId, projectId);
-      const { toolId } = await createTestTool({ tenantId });
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/status`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'disabled' }),
-        }
-      );
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.data.status).toBe('disabled');
-    });
-
-    it('should validate status enum values', async () => {
-      const tenantId = createTestTenantId('tools-patch-status-invalid');
-      await ensureTestProject(tenantId, projectId);
-      const { toolId } = await createTestTool({ tenantId });
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/status`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'invalid-status' }),
-        }
-      );
-      expect(res.status).toBe(400);
-    });
-  });
-
-  describe('POST /{id}/sync', () => {
-    it('should sync tool definitions', async () => {
-      const tenantId = createTestTenantId('tools-sync');
-      await ensureTestProject(tenantId, projectId);
-      const { toolId } = await createTestTool({ tenantId });
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/sync`,
-        {
-          method: 'POST',
-        }
-      );
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.data.id).toBe(toolId);
-      expect(body.data.lastToolsSync).toBeDefined();
-    });
-
-    it('should return 404 for non-existent tool sync', async () => {
-      const tenantId = createTestTenantId('tools-sync-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id/sync`,
-        {
-          method: 'POST',
-        }
-      );
-      expect(res.status).toBe(404);
-    });
-  });
-
-  describe('GET /{id}/available-tools', () => {
-    it('should get available tools', async () => {
-      const tenantId = createTestTenantId('tools-get-available');
-      await ensureTestProject(tenantId, projectId);
-      const { toolId } = await createTestTool({ tenantId });
-      const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/available-tools`
-      );
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.data.availableTools).toBeDefined();
-    });
-
-    it('should return 404 when tool not found', async () => {
-      const tenantId = createTestTenantId('tools-get-available-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
-        `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id/available-tools`
       );
       expect(res.status).toBe(404);
     });
@@ -409,39 +282,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       );
       expect(updateRes.status).toBe(200);
 
-      // 4. Health check
-      const healthRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/health-check`,
-        { method: 'POST' }
-      );
-      expect(healthRes.status).toBe(200);
-
-      // 5. Sync definitions
-      const syncRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/sync`,
-        {
-          method: 'POST',
-        }
-      );
-      expect(syncRes.status).toBe(200);
-
-      // 6. Update status
-      const statusRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}/status`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'healthy' }),
-        }
-      );
-      expect(statusRes.status).toBe(200);
-
-      // 7. List tools (should include our tool)
+      // 4. List tools (should include our tool)
       const listRes = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools`);
       expect(listRes.status).toBe(200);
       const listBody = await listRes.json();
       expect(listBody.data).toHaveLength(1);
 
-      // 8. Delete tool
+      // 5. Delete tool
       const deleteRes = await app.request(
         `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
@@ -450,7 +297,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       );
       expect(deleteRes.status).toBe(204);
 
-      // 9. Verify deletion
+      // 6. Verify deletion
       const finalGetRes = await app.request(
         `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );

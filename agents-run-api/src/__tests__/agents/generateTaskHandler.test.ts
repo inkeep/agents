@@ -19,6 +19,7 @@ const {
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
   getProjectMock,
+  dbResultToMcpToolMock,
 } = vi.hoisted(() => {
   const getRelatedAgentsForGraphMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
@@ -85,6 +86,53 @@ const {
     })
   );
 
+  const dbResultToMcpToolMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      // Core tool fields
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      id: 'tool-1',
+      name: 'Test Tool',
+      config: {
+        type: 'mcp' as const,
+        mcp: {
+          server: {
+            url: 'http://localhost:3000/mcp',
+            timeout: 30000,
+          },
+          transport: {
+            type: 'http' as const,
+          },
+        },
+      },
+
+      // Optional fields that can be undefined
+      credentialReferenceId: undefined,
+      headers: undefined,
+      imageUrl: undefined,
+      capabilities: undefined,
+      lastError: undefined,
+
+      // Computed fields from dbResultToMcpTool
+      status: 'healthy' as const,
+      availableTools: [
+        {
+          name: 'test_tool_function',
+          description: 'A test tool function',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'Query parameter' },
+            },
+            required: ['query'],
+          },
+        },
+      ],
+      createdAt: new Date('2024-01-15T09:00:00Z'),
+      updatedAt: new Date('2024-01-15T10:00:00Z'),
+    })
+  );
+
   const getDataComponentsForAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue([
       {
@@ -131,6 +179,7 @@ const {
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
     getProjectMock,
+    dbResultToMcpToolMock,
   };
 });
 
@@ -143,6 +192,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
   getProject: getProjectMock,
+  dbResultToMcpTool: dbResultToMcpToolMock,
   getLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -505,7 +555,9 @@ describe('generateTaskHandler', () => {
       expect(result.status.message).toBe('Transfer requested to refund-agent');
       expect((result.artifacts?.[0].parts[0] as any).data.type).toBe('transfer');
       expect((result.artifacts?.[0].parts[0] as any).data.target).toBe('refund-agent');
-      expect((result.artifacts?.[0].parts[0] as any).data.reason).toBe('Transferring to refund agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.reason).toBe(
+        'Transferring to refund agent'
+      );
     });
 
     it('should extract contextId from task ID when missing', async () => {

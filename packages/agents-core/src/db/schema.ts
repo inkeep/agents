@@ -14,7 +14,6 @@ import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
   ConversationMetadata,
-  McpToolDefinition,
   MessageContent,
   MessageMetadata,
   Models,
@@ -438,14 +437,7 @@ export const tools = sqliteTable(
     // Server capabilities and status
     capabilities: blob('capabilities', { mode: 'json' }).$type<ToolServerCapabilities>(),
 
-    // Connection health and monitoring
-    status: text('status').notNull().default('unknown'),
-    lastHealthCheck: text('last_health_check'),
     lastError: text('last_error'),
-
-    // Tool discovery cache
-    availableTools: blob('available_tools', { mode: 'json' }).$type<Array<McpToolDefinition>>(),
-    lastToolsSync: text('last_tools_sync'),
 
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),

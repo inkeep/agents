@@ -367,7 +367,10 @@ export const createFullGraphServerSide =
                   });
                   logger.info({ agentId, toolId }, 'Agent-tool relation processed successfully');
                 } catch (error) {
-                  logger.error({ agentId, toolId: canUseItem.toolId, error }, 'Failed to create agent-tool relation');
+                  logger.error(
+                    { agentId, toolId: canUseItem.toolId, error },
+                    'Failed to create agent-tool relation'
+                  );
                   // Don't throw - allow partial success for relations
                 }
               })()
@@ -734,12 +737,11 @@ export const updateFullGraphServerSide =
                 existingGraphModels?.[modelType]?.model &&
                 agentModels[modelType].model === existingGraphModels[modelType].model &&
                 graphModels[modelType] &&
-                (
-                  // Model name changed
-                  graphModels[modelType].model !== existingGraphModels[modelType].model ||
+                // Model name changed
+                (graphModels[modelType].model !== existingGraphModels[modelType].model ||
                   // OR providerOptions changed
-                  JSON.stringify(graphModels[modelType].providerOptions) !== JSON.stringify(existingGraphModels[modelType].providerOptions)
-                )
+                  JSON.stringify(graphModels[modelType].providerOptions) !==
+                    JSON.stringify(existingGraphModels[modelType].providerOptions))
               ) {
                 // Agent was inheriting from graph, cascade the new value (including providerOptions)
                 cascadedModels[modelType] = graphModels[modelType];
@@ -868,7 +870,10 @@ export const updateFullGraphServerSide =
 
                   logger.info({ agentId, toolId }, 'Agent-tool relation created');
                 } catch (error) {
-                  logger.error({ agentId, toolId: canUseItem.toolId, error }, 'Failed to create agent-tool relation');
+                  logger.error(
+                    { agentId, toolId: canUseItem.toolId, error },
+                    'Failed to create agent-tool relation'
+                  );
                   // Don't throw - allow partial success for relations
                 }
               })()
