@@ -6,56 +6,54 @@ import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
-// Mock the MCP client to avoid external dependencies
-vi.mock('../../../tools/mcp-client.js', () => ({
-  McpClient: vi.fn().mockImplementation(() => ({
-    connect: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn().mockResolvedValue(undefined),
-    tools: vi.fn().mockResolvedValue([
-      {
-        name: 'test-function',
-        description: 'Test function from MCP server',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: { type: 'string' },
-          },
-        },
-      },
-    ]),
-  })),
-}));
-
-// Mock dbResultToMcpTool to avoid external dependencies and provide consistent test data
+// Mock the entire agents-core module to avoid external dependencies
 vi.mock('@inkeep/agents-core', async () => {
   const actual = await vi.importActual('@inkeep/agents-core');
   return {
     ...actual,
-    dbResultToMcpTool: vi.fn().mockImplementation(async (dbResult) => ({
-      // Return the database result with computed fields
-      ...dbResult,
-      // Add computed fields that dbResultToMcpTool would normally add
-      status: 'unknown' as const,
-      availableTools: [
-        {
+    McpClient: vi.fn().mockImplementation(() => ({
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      tools: vi.fn().mockResolvedValue({
+        'test-function': {
           name: 'test-function',
           description: 'Test function from MCP server',
           inputSchema: {
             type: 'object',
             properties: {
-              query: { type: 'string', description: 'Query parameter' },
+              query: { type: 'string' },
             },
-            required: ['query'],
           },
         },
-      ],
-      createdAt: new Date(dbResult.createdAt),
-      updatedAt: new Date(dbResult.updatedAt),
-      capabilities: undefined,
-      lastError: undefined,
-      headers: undefined,
-      imageUrl: undefined,
+      }),
     })),
+    dbResultToMcpTool: vi.fn().mockImplementation(async (dbResult) => {
+      return {
+        // Return the database result with computed fields
+        ...dbResult,
+        // Add computed fields that dbResultToMcpTool would normally add
+        status: 'unknown' as const,
+        availableTools: [
+          {
+            name: 'test-function',
+            description: 'Test function from MCP server',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: 'Query parameter' },
+              },
+              required: ['query'],
+            },
+          },
+        ],
+        createdAt: new Date(dbResult.createdAt),
+        updatedAt: new Date(dbResult.updatedAt),
+        capabilities: undefined,
+        lastError: undefined,
+        headers: undefined,
+        imageUrl: undefined,
+      };
+    }),
   };
 });
 
@@ -64,7 +62,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test tool data
   const createToolData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
-    id: nanoid(),
+    id: nanoid(16),
     name: `Test MCP Tool${suffix}`,
     config: {
       type: 'mcp' as const,
