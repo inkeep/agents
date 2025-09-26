@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-api
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [853d431]
+  - @inkeep/agents-core@0.8.0
+
 ## 0.7.2
 
 ### Patch Changes
