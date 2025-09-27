@@ -54,6 +54,9 @@ importers:
       '@inkeep/agents-manage-ui':
         specifier: workspace:^
         version: link:../agents-manage-ui
+      '@inkeep/agents-sdk':
+        specifier: workspace:^
+        version: link:../packages/agents-sdk
       '@libsql/client':
         specifier: ^0.15.7
         version: 0.15.15
