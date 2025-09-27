@@ -5,6 +5,9 @@ import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { ModelSettings } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import {
+  BUILDER_EXAMPLES,
+} from '@inkeep/agents-sdk';
+import {
   calculateTokenSavings,
   createPlaceholders,
   restorePlaceholders,
@@ -42,6 +45,81 @@ function createModel(config: ModelSettings) {
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
+}
+
+/**
+ * Generate comprehensive builder function type information for LLM context
+ */
+function generateBuilderTypeContext(): string {
+  return `
+BUILDER FUNCTION TYPES AND SIGNATURES:
+
+The agents-sdk provides these builder functions for creating agents, graphs, tools, and components:
+
+${Object.entries(BUILDER_EXAMPLES).map(([functionName, example]) => `
+${functionName.toUpperCase()} BUILDER:
+${example}
+`).join('\n')}
+
+CONFIGURATION TYPE STRUCTURES:
+
+AgentConfig:
+- id: string (required, stable ID for deployments)
+- name: string
+- description?: string
+- prompt: string (agent instructions)
+- canUse?: () => Tool[] (tools this agent can use)
+- canTransferTo?: () => AgentInterface[] (agents this can transfer to)
+- canDelegateTo?: () => AllAgentInterface[] (agents this can delegate to)
+- models?: { base?: ModelSettings; structuredOutput?: ModelSettings; summarizer?: ModelSettings }
+- stopWhen?: AgentStopWhen
+- dataComponents?: () => DataComponentInterface[]
+- artifactComponents?: () => ArtifactComponentInterface[]
+
+GraphConfig:
+- id: string (required)
+- name: string
+- description?: string
+- defaultAgent?: AgentInterface (entry point agent)
+- agents?: () => AllAgentInterface[] (all agents in graph)
+- models?: { base?: ModelSettings; structuredOutput?: ModelSettings; summarizer?: ModelSettings }
+- stopWhen?: GraphStopWhen
+- graphPrompt?: string
+
+MCPToolConfig:
+- id: string
+- name: string
+- serverUrl: string (required)
+- description?: string
+- credential?: CredentialReferenceApiInsert
+- activeTools?: string[]
+- headers?: Record<string, string>
+- transport?: McpTransportConfig
+
+DataComponentConfig:
+- id?: string (auto-generated from name if not provided)
+- name: string (required)
+- description: string
+- props: Record<string, unknown> (data structure definition)
+
+ArtifactComponentConfig:
+- id?: string (auto-generated from name if not provided)
+- name: string (required)
+- description: string
+- summaryProps: Record<string, unknown> (summary view properties)
+- fullProps: Record<string, unknown> (full view properties)
+
+ProjectConfig:
+- id: string (required)
+- name: string
+- description?: string
+- graphs?: () => GraphInterface[] (project graphs)
+- models?: { base?: ModelSettings; structuredOutput?: ModelSettings; summarizer?: ModelSettings }
+- stopWhen?: { transferCountIs?: number; stepCountIs?: number }
+- tools?: () => Tool[] (project-level tools)
+- dataComponents?: () => DataComponentInterface[]
+- artifactComponents?: () => ArtifactComponentInterface[]
+`;
 }
 
 /**
@@ -197,6 +275,8 @@ export async function generateIndexFile(
 PROJECT DATA:
 {{DATA}}
 
+${generateBuilderTypeContext()}
+
 ${NAMING_CONVENTION_RULES}
 
 CRITICAL IMPORT PATTERNS FOR INDEX.TS:
@@ -286,6 +366,8 @@ GRAPH DATA:
 {{DATA}}
 
 GRAPH ID: ${graphId}
+
+${generateBuilderTypeContext()}
 
 IMPORTANT CONTEXT:
 - Tools are defined at the project level and imported from '../tools' directory
@@ -509,6 +591,8 @@ TOOL DATA:
 
 TOOL ID: ${toolId}
 
+${generateBuilderTypeContext()}
+
 ${NAMING_CONVENTION_RULES}
 
 REQUIREMENTS:
@@ -609,6 +693,8 @@ DATA COMPONENT DATA:
 
 COMPONENT ID: ${componentId}
 
+${generateBuilderTypeContext()}
+
 ${NAMING_CONVENTION_RULES}
 
 REQUIREMENTS:
@@ -675,6 +761,8 @@ ARTIFACT COMPONENT DATA:
 {{DATA}}
 
 COMPONENT ID: ${componentId}
+
+${generateBuilderTypeContext()}
 
 ${NAMING_CONVENTION_RULES}
 

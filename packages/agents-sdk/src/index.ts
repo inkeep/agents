@@ -39,3 +39,7 @@ export {
 export { Runner, raceGraphs, run, stream } from './runner';
 export { Tool } from './tool';
 export type * from './types';
+
+// Export builder types for tooling and LLM generation
+export type * from './builder-types';
+export { BUILDER_EXAMPLES } from './builder-types';
