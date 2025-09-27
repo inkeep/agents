@@ -1,0 +1,130 @@
+---
+title: Create MCP Servers
+description: Learn how to create and deploy MCP servers
+icon: "LuServer"
+---
+
+MCP servers enable your agents to fetch real-time information and take action on your systems, services, and applications. This guide covers multiple approaches to creating and deploying MCP servers for your agents.
+
+## Out-of-the-box servers
+
+The fastest way to get started is by connecting to existing MCP servers provided directly by SaaS providers that offer them.
+
+### MCPs with OAuth 2.1/PKCE support
+
+These servers often implement OAuth 2.1 with PKCE for secure authentication that allow for "1-click" authentication without the need to manually create API keys or credentials.
+
+<Snippet file="mcp/popular-oauth-servers.mdx" />
+
+To add them to your Inkeep Project, use the [Visual Builder](/visual-builder/credentials).
+
+## Build Your Own
+
+Creating custom MCP servers gives you complete control over functionality and integration with your internal systems.
+
+### Using Vercel Template
+
+Vercel provides a [Next.js MCP template](https://vercel.com/templates/next.js/model-context-protocol-mcp-with-next-js) that makes it easy to deploy MCP servers with serverless functions.
+
+Vercel's template provides:
+- **Easy to deploy** staging environments
+- **Serverless deployment** for automatic scaling with Vercel Functions
+- **SSE transport** for eal-time streaming (requires Redis for state management)
+- **Next.js integration** so MCPs can be added as part of existing Next.js apps
+
+#### Quick start
+```bash
+# Clone the template
+git clone https://github.com/vercel-labs/mcp-for-next.js
+cd mcp-for-next.js
+
+# Install dependencies
+pnpm install
+
+# Configure your tools in app/[transport]/route.ts
+# Deploy to Vercel
+vercel deploy
+```
+
+<Note>
+Enable Fluid compute and set `maxDuration` to 800 in `app/route.ts` if you're on a Pro or Enterprise plan and have long-running operations.
+</Note>
+
+### Using Gram
+
+[Speakeasy Gram](https://www.speakeasy.com/product/gram) provides a lightweight open source framework for repurposing and remixing existing APIs into MCP Servers.
+
+
+### Using Anthropic's MCP SDKs
+
+See [Anthropic's official MCP SDKs](https://github.com/modelcontextprotocol) for low-level building blocks for creating MCP servers in multiple languages like TypeScript, Python and Go.
+
+#### TypeScript example
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
+
+const server = new McpServer({
+  name: 'custom-mcp-server',
+  version: '1.0.0',
+});
+
+server.registerTool(
+  'custom_tool',
+  {
+    title: 'Custom Tool',
+    description: 'A custom tool for your specific needs',
+    inputSchema: { input: z.string() },
+  },
+  async ({ input }) => ({
+    content: [{ type: 'text', text: `Processed: ${input}` }],
+  }),
+);
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+## Use MCP Server Libraries
+
+For rapid development, leverage existing MCP server libraries that provide pre-built integrations.
+
+### Composio
+
+[Composio](https://composio.dev/) offers a platform for building and managing MCP servers with access to 10,000+ pre-built tools and integrations.
+
+#### Quick integration
+
+Follow Composio's MCP Gateway setup to obtain your MCP server URL and credentials. Then register it as a tool in your project:
+
+```typescript
+import { mcpTool } from '@inkeep/agents-sdk';
+
+const composioTool = mcpTool({
+  id: 'composio-tools',
+  name: 'Composio Integration',
+  description: 'Access popular SaaS tools via Composio',
+  serverUrl: 'YOUR_COMPOSIO_MCP_URL', // From Composio dashboard
+  // Optionally: credentialReferenceId: 'your-credential-id',
+});
+```
+
+## Next Steps
+Once you create your MCP server, register it and manage its credentials:
+
+<Cards>
+  <Card title="Visual Builder - MCP Servers" icon="LuServer" href="/visual-builder/mcp-servers">
+    Configure and manage MCP servers in the Visual Builder.
+  </Card>
+  <Card title="Visual Builder - Credentials" icon="LuKey" href="/visual-builder/credentials">
+    Add and manage credentials, including OAuth 2.1/PKCE.
+  </Card>
+  <Card title="TypeScript SDK - MCP Servers" icon="LuHammer" href="/typescript-sdk/tools-and-mcp-servers">
+    Register and use MCP servers programmatically.
+  </Card>
+  <Card title="TypeScript SDK - Credentials" icon="LuKey" href="/typescript-sdk/credentials">
+    Reference credentials in code for secure access.
+  </Card>
+</Cards>
