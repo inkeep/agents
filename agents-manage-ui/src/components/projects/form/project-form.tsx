@@ -25,27 +25,59 @@ interface ProjectFormProps {
 }
 
 const serializeData = (data: ProjectFormData) => {
+  const cleanProviderOptions = (options: any) => {
+    // Convert null, empty object, or falsy values to undefined
+    if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
+      return undefined;
+    }
+    return options;
+  };
+
+  const cleanStopWhen = (stopWhen: any) => {
+    // If stopWhen is null, undefined, or empty object, return undefined
+    if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
+      return undefined;
+    }
+
+    // Clean the individual properties - remove null/undefined values
+    const cleaned: any = {};
+    if (stopWhen.transferCountIs !== null && stopWhen.transferCountIs !== undefined) {
+      cleaned.transferCountIs = stopWhen.transferCountIs;
+    }
+    if (stopWhen.stepCountIs !== null && stopWhen.stepCountIs !== undefined) {
+      cleaned.stepCountIs = stopWhen.stepCountIs;
+    }
+
+    // If no valid properties, return undefined
+    if (Object.keys(cleaned).length === 0) {
+      return undefined;
+    }
+
+    return cleaned;
+  };
+
   return {
     ...data,
     models: {
       ...data.models,
       base: {
         model: data.models.base.model,
-        providerOptions: data.models.base.providerOptions,
+        providerOptions: cleanProviderOptions(data.models.base.providerOptions),
       },
       structuredOutput: data.models?.structuredOutput?.model
         ? {
             model: data.models.structuredOutput.model,
-            providerOptions: data.models.structuredOutput.providerOptions,
+            providerOptions: cleanProviderOptions(data.models.structuredOutput.providerOptions),
           }
         : undefined,
       summarizer: data.models?.summarizer?.model
         ? {
             model: data.models.summarizer.model,
-            providerOptions: data.models.summarizer.providerOptions,
+            providerOptions: cleanProviderOptions(data.models.summarizer.providerOptions),
           }
         : undefined,
     },
+    stopWhen: cleanStopWhen(data.stopWhen),
   };
 };
 

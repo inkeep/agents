@@ -3,6 +3,7 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { type Control, useController, useWatch } from 'react-hook-form';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { ModelSelector } from '@/components/graph/sidepane/nodes/model-selector';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -16,10 +17,6 @@ interface ProjectModelsSectionProps {
 }
 
 function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
-  const { field: modelField } = useController({
-    control,
-    name: 'models.base.model',
-  });
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.base.providerOptions',
@@ -27,17 +24,23 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <ModelSelector
-          label="Base model"
-          placeholder="Select base model"
-          value={modelField.value || ''}
-          onValueChange={modelField.onChange}
-          isRequired
-          canClear={false}
-        />
-        <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
-      </div>
+      <FormFieldWrapper
+        control={control}
+        name="models.base.model"
+        label="Base model"
+        description="Primary model for general agent responses"
+        isRequired
+      >
+        {(field) => (
+          <ModelSelector
+            label=""
+            placeholder="Select base model"
+            value={field.value || ''}
+            onValueChange={field.onChange}
+            canClear={false}
+          />
+        )}
+      </FormFieldWrapper>
       <ExpandableJsonEditor
         name="models.base.providerOptions"
         label="Provider options"
@@ -66,10 +69,6 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
 }
 
 function StructuredOutputModelSection({ control }: { control: Control<ProjectFormData> }) {
-  const { field: modelField } = useController({
-    control,
-    name: 'models.structuredOutput.model',
-  });
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.structuredOutput.providerOptions',
@@ -80,19 +79,23 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <ModelSelector
-          label="Structured output model"
-          placeholder="Select structured output model (optional)"
-          value={modelField.value || ''}
-          onValueChange={modelField.onChange}
-          inheritedValue={baseModel}
-          canClear={true}
-        />
-        <p className="text-xs text-muted-foreground">
-          Model for structured outputs and data components (defaults to base model)
-        </p>
-      </div>
+      <FormFieldWrapper
+        control={control}
+        name="models.structuredOutput.model"
+        label="Structured output model"
+        description="Model for structured outputs and data components (defaults to base model)"
+      >
+        {(field) => (
+          <ModelSelector
+            label=""
+            placeholder="Select structured output model (optional)"
+            value={field.value || ''}
+            onValueChange={field.onChange}
+            inheritedValue={baseModel}
+            canClear={true}
+          />
+        )}
+      </FormFieldWrapper>
       <ExpandableJsonEditor
         name="models.structuredOutput.providerOptions"
         label="Provider options"
@@ -121,10 +124,6 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
 }
 
 function SummarizerModelSection({ control }: { control: Control<ProjectFormData> }) {
-  const { field: modelField } = useController({
-    control,
-    name: 'models.summarizer.model',
-  });
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.summarizer.providerOptions',
@@ -135,19 +134,23 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <ModelSelector
-          label="Summarizer model"
-          placeholder="Select summarizer model (optional)"
-          value={modelField.value || ''}
-          onValueChange={modelField.onChange}
-          inheritedValue={baseModel}
-          canClear={true}
-        />
-        <p className="text-xs text-muted-foreground">
-          Model for summarization tasks (defaults to base model)
-        </p>
-      </div>
+      <FormFieldWrapper
+        control={control}
+        name="models.summarizer.model"
+        label="Summarizer model"
+        description="Model for summarization tasks (defaults to base model)"
+      >
+        {(field) => (
+          <ModelSelector
+            label=""
+            placeholder="Select summarizer model (optional)"
+            value={field.value || ''}
+            onValueChange={field.onChange}
+            inheritedValue={baseModel}
+            canClear={true}
+          />
+        )}
+      </FormFieldWrapper>
       <ExpandableJsonEditor
         name="models.summarizer.providerOptions"
         label="Provider options"
