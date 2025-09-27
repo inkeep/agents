@@ -92,12 +92,16 @@ export class McpClient {
   private async connectSSE(config: McpSSEConfig) {
     const url = typeof config.url === 'string' ? config.url : config.url.toString();
 
-    this.transport = new SSEClientTransport(new URL(url), {
-      eventSourceInit: config.eventSourceInit,
-      requestInit: {
-        headers: config.headers || {},
-      },
-    });
+    // Use DOM URL type to satisfy SDK typings (avoids Node URL vs DOM URL mismatch)
+    this.transport = new SSEClientTransport(
+      new globalThis.URL(url) as unknown as ConstructorParameters<typeof SSEClientTransport>[0],
+      {
+        eventSourceInit: config.eventSourceInit,
+        requestInit: {
+          headers: config.headers || {},
+        },
+      }
+    );
 
     await this.client.connect(this.transport, {
       timeout: config.timeout ?? this.timeout,
@@ -115,18 +119,22 @@ export class McpClient {
       },
     };
 
-    const urlObj = new URL(url);
-    this.transport = new StreamableHTTPClientTransport(urlObj, {
-      requestInit: mergedRequestInit,
-      reconnectionOptions: {
-        maxRetries: 3,
-        maxReconnectionDelay: 30000,
-        initialReconnectionDelay: 1000,
-        reconnectionDelayGrowFactor: 1.5,
-        ...config.reconnectionOptions,
-      },
-      sessionId: config.sessionId,
-    });
+    // Use DOM URL type to satisfy SDK typings (avoids Node URL vs DOM URL mismatch)
+    const urlObj = new globalThis.URL(typeof url === 'string' ? url : url.toString());
+    this.transport = new StreamableHTTPClientTransport(
+      urlObj as unknown as ConstructorParameters<typeof StreamableHTTPClientTransport>[0],
+      {
+        requestInit: mergedRequestInit,
+        reconnectionOptions: {
+          maxRetries: 3,
+          maxReconnectionDelay: 30000,
+          initialReconnectionDelay: 1000,
+          reconnectionDelayGrowFactor: 1.5,
+          ...config.reconnectionOptions,
+        },
+        sessionId: config.sessionId,
+      }
+    );
     await this.client.connect(this.transport, { timeout: 3000 });
   }
 

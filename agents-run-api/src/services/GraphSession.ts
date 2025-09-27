@@ -138,7 +138,7 @@ export class GraphSession {
   private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
   private readonly MAX_ARTIFACT_RETRIES = 3;
   private readonly MAX_PENDING_ARTIFACTS = 100; // Prevent unbounded growth
-  private scheduledTimeouts?: Set<NodeJS.Timeout>; // Track scheduled timeouts for cleanup
+  private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
   private artifactParser?: any; // Session-scoped ArtifactParser instance
