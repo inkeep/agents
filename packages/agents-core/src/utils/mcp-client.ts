@@ -94,7 +94,8 @@ export class McpClient {
 
     // TS 5.6+ typing mismatch: Node WHATWG `URL` vs DOM `URL` expected by MCP transports.
     // Safe at runtime in Node; remove once types converge upstream.
-    // @ts-expect-error: Suppress DOM vs Node URL type mismatch at this boundary
+    // biome-ignore lint: Intentional TS suppression at SDK boundary
+    // @ts-ignore: Suppress DOM vs Node URL type mismatch at this boundary
     this.transport = new SSEClientTransport(new URL(url), {
       eventSourceInit: config.eventSourceInit,
       requestInit: {
@@ -120,7 +121,8 @@ export class McpClient {
 
     const urlString = typeof url === 'string' ? url : url.toString();
     // See note above — Node WHATWG `URL` vs DOM `URL` typing mismatch.
-    // @ts-expect-error: Suppress DOM vs Node URL type mismatch at this boundary
+    // biome-ignore lint: Intentional TS suppression at SDK boundary
+    // @ts-ignore: Suppress DOM vs Node URL type mismatch at this boundary
     this.transport = new StreamableHTTPClientTransport(new URL(urlString), {
       requestInit: mergedRequestInit,
       reconnectionOptions: {
