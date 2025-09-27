@@ -1,3 +1,4 @@
+import { URL } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
@@ -92,16 +93,12 @@ export class McpClient {
   private async connectSSE(config: McpSSEConfig) {
     const url = typeof config.url === 'string' ? config.url : config.url.toString();
 
-    // Use DOM URL type to satisfy SDK typings (avoids Node URL vs DOM URL mismatch)
-    this.transport = new SSEClientTransport(
-      new globalThis.URL(url) as unknown as ConstructorParameters<typeof SSEClientTransport>[0],
-      {
-        eventSourceInit: config.eventSourceInit,
-        requestInit: {
-          headers: config.headers || {},
-        },
-      }
-    );
+    this.transport = new SSEClientTransport(new URL(url) as any, {
+      eventSourceInit: config.eventSourceInit,
+      requestInit: {
+        headers: config.headers || {},
+      },
+    });
 
     await this.client.connect(this.transport, {
       timeout: config.timeout ?? this.timeout,
@@ -119,22 +116,18 @@ export class McpClient {
       },
     };
 
-    // Use DOM URL type to satisfy SDK typings (avoids Node URL vs DOM URL mismatch)
-    const urlObj = new globalThis.URL(typeof url === 'string' ? url : url.toString());
-    this.transport = new StreamableHTTPClientTransport(
-      urlObj as unknown as ConstructorParameters<typeof StreamableHTTPClientTransport>[0],
-      {
-        requestInit: mergedRequestInit,
-        reconnectionOptions: {
-          maxRetries: 3,
-          maxReconnectionDelay: 30000,
-          initialReconnectionDelay: 1000,
-          reconnectionDelayGrowFactor: 1.5,
-          ...config.reconnectionOptions,
-        },
-        sessionId: config.sessionId,
-      }
-    );
+    const urlString = typeof url === 'string' ? url : url.toString();
+    this.transport = new StreamableHTTPClientTransport(new URL(urlString) as any, {
+      requestInit: mergedRequestInit,
+      reconnectionOptions: {
+        maxRetries: 3,
+        maxReconnectionDelay: 30000,
+        initialReconnectionDelay: 1000,
+        reconnectionDelayGrowFactor: 1.5,
+        ...config.reconnectionOptions,
+      },
+      sessionId: config.sessionId,
+    });
     await this.client.connect(this.transport, { timeout: 3000 });
   }
 
