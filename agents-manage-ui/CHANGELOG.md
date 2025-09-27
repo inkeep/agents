@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.8.3
+
+### Patch Changes
+
+- de4ffac: - Fix bug with project form validation
+  - @inkeep/agents-manage-api@0.8.3
+  - @inkeep/agents-run-api@0.8.3
+  - @inkeep/agents-core@0.8.3
+
 ## 0.8.2
 
 ### Patch Changes
