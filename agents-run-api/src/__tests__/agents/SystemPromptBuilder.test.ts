@@ -2,7 +2,7 @@ import type { McpTool } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SystemPromptBuilder } from '../../agents/SystemPromptBuilder';
 import type { SystemPromptV1 } from '../../agents/types';
-import { V1Config } from '../../agents/versions/V1Config';
+import { Phase1Config } from '../../agents/versions/v1/Phase1Config';
 
 // Helper to create mock McpTool
 function createMockMcpTool(name: string, availableTools: any[]): McpTool {
@@ -23,11 +23,11 @@ describe('SystemPromptBuilder', () => {
 
   describe('Generic Builder Functionality', () => {
     test('should successfully create builder with version config', () => {
-      expect(() => new SystemPromptBuilder('v1', new V1Config())).not.toThrow();
+      expect(() => new SystemPromptBuilder('v1', new Phase1Config())).not.toThrow();
     });
 
     test('should successfully load templates on first buildSystemPrompt call', () => {
-      const builder = new SystemPromptBuilder('v1', new V1Config());
+      const builder = new SystemPromptBuilder('v1', new Phase1Config());
       const config: SystemPromptV1 = {
         corePrompt: 'Test instructions',
         tools: [],
@@ -43,7 +43,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle invalid configuration', () => {
-      const builder = new SystemPromptBuilder('v1', new V1Config());
+      const builder = new SystemPromptBuilder('v1', new Phase1Config());
 
       expect(() => builder.buildSystemPrompt(null as any)).toThrow(
         'Configuration object is required'
@@ -57,7 +57,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle version parameter correctly', () => {
-      const builder = new SystemPromptBuilder('v2', new V1Config());
+      const builder = new SystemPromptBuilder('v2', new Phase1Config());
       expect(builder.isLoaded()).toBe(false);
     });
   });
@@ -66,7 +66,7 @@ describe('SystemPromptBuilder', () => {
     let builder: SystemPromptBuilder<SystemPromptV1>;
 
     beforeEach(() => {
-      builder = new SystemPromptBuilder('v1', new V1Config());
+      builder = new SystemPromptBuilder('v1', new Phase1Config());
     });
 
     test('should generate basic system prompt with no tools', () => {

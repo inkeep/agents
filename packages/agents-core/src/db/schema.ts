@@ -572,7 +572,8 @@ export const ledgerArtifacts = sqliteTable(
     id: text('id').notNull(),
 
     // Links
-    taskId: text('task_id'),
+    taskId: text('task_id').notNull(),
+    toolCallId: text('tool_call_id'), // Added for traceability to the specific tool execution
     contextId: text('context_id').notNull(),
 
     // Core Artifact fields
@@ -594,7 +595,7 @@ export const ledgerArtifacts = sqliteTable(
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id, table.taskId] }),
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
@@ -663,6 +664,9 @@ export const credentialReferences = sqliteTable(
 // Indexes & Constraints for ledger artifacts
 export const ledgerArtifactsTaskIdIdx = index('ledger_artifacts_task_id_idx').on(
   ledgerArtifacts.taskId
+);
+export const ledgerArtifactsToolCallIdIdx = index('ledger_artifacts_tool_call_id_idx').on(
+  ledgerArtifacts.toolCallId
 );
 export const ledgerArtifactsContextIdIdx = index('ledger_artifacts_context_id_idx').on(
   ledgerArtifacts.contextId

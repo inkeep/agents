@@ -156,6 +156,7 @@ export interface Artifact {
   type?: string; // placeholder for now, will be replaced with a more specific types but for now it will always be 'source'
   parts: Part[];
   taskId?: string;
+  toolCallId?: string; // Added for traceability to the specific tool execution
   metadata?: { [key: string]: any };
 }
 

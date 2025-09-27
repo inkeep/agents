@@ -1,5 +1,6 @@
 import {
   type AgentConversationHistoryConfig,
+  type Artifact,
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
@@ -296,4 +297,96 @@ export async function getFormattedConversationHistory({
     .join('\n');
 
   return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;
+}
+
+/**
+ * Get artifacts that are within the scope of the conversation history
+ * Only returns artifacts from messages that are actually visible to the LLM
+ * Uses the same scoping logic as getFormattedConversationHistory
+ */
+export async function getConversationScopedArtifacts(params: {
+  tenantId: string;
+  projectId: string;
+  conversationId: string;
+  historyConfig: AgentConversationHistoryConfig;
+}): Promise<Artifact[]> {
+  const { tenantId, projectId, conversationId, historyConfig } = params;
+
+  if (!conversationId) {
+    return [];
+  }
+
+  try {
+    // If history mode is 'none', no artifacts should be shown
+    if (historyConfig.mode === 'none') {
+      return [];
+    }
+
+    // Get the visible messages using the same logic as getFormattedConversationHistory
+    const visibleMessages = await getScopedHistory({
+      tenantId,
+      projectId,
+      conversationId,
+      options: historyConfig,
+    });
+
+    if (visibleMessages.length === 0) {
+      return [];
+    }
+
+    // Extract message IDs from visible messages (skip truncation summaries)
+    const visibleMessageIds = visibleMessages
+      .filter(msg => !(msg.messageType === 'system' && msg.content?.text?.includes('Previous conversation history truncated')))
+      .map(msg => msg.id);
+
+    if (visibleMessageIds.length === 0) {
+      return [];
+    }
+
+    // Get task IDs from these visible messages by querying messages table
+    const { getLedgerArtifacts } = await import('@inkeep/agents-core');
+    const dbClient = (await import('../data/db/dbClient')).default;
+
+    // Get task IDs directly from the visible messages
+    const visibleTaskIds = visibleMessages
+      .map(msg => msg.taskId)
+      .filter((taskId): taskId is string => Boolean(taskId)); // Filter out null/undefined taskIds
+
+    // Get artifacts only from these visible tasks
+    const referenceArtifacts: Artifact[] = [];
+    for (const taskId of visibleTaskIds) {
+      const artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId, projectId },
+        taskId: taskId,
+      });
+      referenceArtifacts.push(...artifacts);
+    }
+
+    const logger = (await import('../logger')).getLogger('conversations');
+    logger.debug(
+      {
+        conversationId,
+        visibleMessages: visibleMessages.length,
+        visibleTasks: visibleTaskIds.length,
+        artifacts: referenceArtifacts.length,
+        historyMode: historyConfig.mode,
+      },
+      'Loaded conversation-scoped artifacts'
+    );
+
+    return referenceArtifacts;
+  } catch (error) {
+    const logger = (await import('../logger')).getLogger('conversations');
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        conversationId,
+      },
+      'Failed to get conversation-scoped artifacts'
+    );
+    
+    // Return empty array on error rather than falling back to all artifacts
+    // This is safer - better to have no artifacts than incorrect ones
+    return [];
+  }
 }
