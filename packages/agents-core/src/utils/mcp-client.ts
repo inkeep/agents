@@ -1,4 +1,3 @@
-import { URL } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
@@ -93,7 +92,10 @@ export class McpClient {
   private async connectSSE(config: McpSSEConfig) {
     const url = typeof config.url === 'string' ? config.url : config.url.toString();
 
-    this.transport = new SSEClientTransport(new URL(url) as any, {
+    // TS 5.6+ typing mismatch: Node WHATWG `URL` vs DOM `URL` expected by MCP transports.
+    // Safe at runtime in Node; remove once types converge upstream.
+    // @ts-expect-error: Suppress DOM vs Node URL type mismatch at this boundary
+    this.transport = new SSEClientTransport(new URL(url), {
       eventSourceInit: config.eventSourceInit,
       requestInit: {
         headers: config.headers || {},
@@ -117,7 +119,9 @@ export class McpClient {
     };
 
     const urlString = typeof url === 'string' ? url : url.toString();
-    this.transport = new StreamableHTTPClientTransport(new URL(urlString) as any, {
+    // See note above — Node WHATWG `URL` vs DOM `URL` typing mismatch.
+    // @ts-expect-error: Suppress DOM vs Node URL type mismatch at this boundary
+    this.transport = new StreamableHTTPClientTransport(new URL(urlString), {
       requestInit: mergedRequestInit,
       reconnectionOptions: {
         maxRetries: 3,
