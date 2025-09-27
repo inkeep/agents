@@ -17,7 +17,7 @@ export default defineConfig({
     'pino-pretty',
   ],
   // Bundle workspace packages
-  noExternal: ['@inkeep/agents-core'],
+  noExternal: ['@inkeep/agents-core', '@inkeep/agents-sdk'],
   banner: {
     js: '#!/usr/bin/env node',
   },

@@ -13,7 +13,9 @@
     "baseUrl": ".",
     "paths": {
       "@inkeep/agents-core": ["../packages/agents-core/src/index.ts"],
-      "@inkeep/agents-core/*": ["../packages/agents-core/src/*"]
+      "@inkeep/agents-core/*": ["../packages/agents-core/src/*"],
+      "@inkeep/agents-sdk": ["../packages/agents-sdk/src/index.ts"],
+      "@inkeep/agents-sdk/*": ["../packages/agents-sdk/src/*"]
     }
   },
   "include": ["src/**/*"],
