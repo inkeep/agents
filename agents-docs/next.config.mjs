@@ -17,7 +17,14 @@ const config = {
   // Increase timeout for static page generation in CI environments
   staticPageGenerationTimeout: 180, // 3 minutes instead of default 60 seconds
   async redirects() {
-    return redirects.map((item) => ({ ...item, permanent: isProd }));
+    return [
+      ...redirects.map((item) => ({ ...item, permanent: isProd })),
+      {
+        source: '/cloud',
+        destination: '/cloud/overview/ai-for-customers',
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     return [
