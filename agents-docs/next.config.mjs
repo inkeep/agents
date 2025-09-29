@@ -22,6 +22,10 @@ const config = {
   async rewrites() {
     return [
       {
+        source: '/cloud/:path*',
+        destination: 'https://rag-docs.inkeep.com/cloud/:path*',
+      },
+      {
         source: '/:path*.mdx',
         destination: '/llms.mdx/:path*',
       },
