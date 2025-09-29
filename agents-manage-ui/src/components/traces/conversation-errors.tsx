@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ConversationErrorsProps {
@@ -98,6 +99,13 @@ export function ConversationErrors({ conversationId, onBack }: ConversationError
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{error || 'Conversation not found'}</p>
+          {error && (
+            <div className="mt-3">
+              <ExternalLink href="https://docs.inkeep.com/quick-start/observability">
+                View observability setup guide
+              </ExternalLink>
+            </div>
+          )}
           {onBack && (
             <Button onClick={onBack} variant="outline" className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
