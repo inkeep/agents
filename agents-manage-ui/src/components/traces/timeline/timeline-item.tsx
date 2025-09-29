@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   CheckCircle,
@@ -381,6 +382,31 @@ export function TimelineItem({
               <Badge variant="code">{activity.agentName}</Badge>
             </div>
           )}
+
+          {/* OTEL status for failed agent.generate spans */}
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION &&
+            activity.name === 'agent.generate' &&
+            activity.hasError &&
+            (activity.otelStatusCode || activity.otelStatusDescription) && (
+              <div className="mt-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    {activity.otelStatusCode && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Status Code:</span>{' '}
+                        <span className="font-mono">{activity.otelStatusCode}</span>
+                      </div>
+                    )}
+                    {activity.otelStatusDescription && (
+                      <CodeBubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                        {activity.otelStatusDescription}
+                      </CodeBubble>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"

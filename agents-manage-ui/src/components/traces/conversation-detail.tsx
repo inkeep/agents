@@ -1,6 +1,12 @@
 'use client';
 
-import { Activity, ArrowLeft, MessageSquare, TriangleAlert } from 'lucide-react';
+import {
+  Activity,
+  ArrowLeft,
+  ExternalLink as ExternalLinkIcon,
+  MessageSquare,
+  TriangleAlert,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { formatDateTime, formatDuration } from '@/app/utils/format-date';
@@ -13,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ConversationErrors } from './conversation-errors';
+import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
@@ -27,7 +33,6 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showErrorsPage, setShowErrorsPage] = useState(false);
   const { tenantId, projectId } = useParams();
 
   useEffect(() => {
@@ -35,10 +40,13 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch conversation details
         const response = await fetch(`/api/signoz/conversations/${conversationId}`);
         if (!response.ok) throw new Error('Failed to fetch conversation details');
         const data = await response.json();
         if (typeof data.totalErrors === 'undefined') data.totalErrors = 0;
+
         setConversation(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -86,12 +94,6 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
     );
   }
 
-  if (showErrorsPage) {
-    return (
-      <ConversationErrors conversationId={conversationId} onBack={() => setShowErrorsPage(false)} />
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -121,40 +123,36 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4 flex-shrink-0">
-        {/* Errors */}
-        <Card
-          className={`shadow-none bg-background ${conversation.totalErrors > 0 ? 'cursor-pointer hover:bg-destructive/5 dark:hover:bg-destructive/10 transition-colors' : ''}`}
-          onClick={() => {
-            if (conversation.totalErrors > 0) setShowErrorsPage(true);
-          }}
-        >
+        {/* Warnings */}
+        <Card className="shadow-none bg-background">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Errors</CardTitle>
+            <CardTitle className="text-sm font-medium text-foreground">Warnings</CardTitle>
             <TriangleAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${conversation.totalErrors > 0 ? 'text-red-600' : 'text-green-600'}`}
+              className={`text-2xl font-bold ${(conversation.spansWithErrorsCount ?? 0) > 0 ? 'text-red-600' : 'text-green-600'}`}
             >
-              {conversation.totalErrors}
+              {conversation.spansWithErrorsCount ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              {conversation.totalErrors === 0
-                ? 'No errors detected'
-                : (() => {
-                    const mcp = conversation.mcpToolErrors?.length || 0;
-                    const ctx = conversation.contextErrors?.length || 0;
-                    const agent = conversation.agentGenerationErrors?.length || 0;
-                    if (mcp || ctx || agent) {
-                      const parts = [];
-                      if (mcp) parts.push(`${mcp} MCP tool`);
-                      if (ctx) parts.push(`${ctx} context`);
-                      if (agent) parts.push(`${agent} agent generation`);
-                      return `${parts.join(', ')} errors - Click to view details and logs`;
-                    }
-                    return 'Errors in conversation';
-                  })()}
+              {(conversation.spansWithErrorsCount ?? 0) === 0
+                ? 'No spans with exceptions'
+                : 'Spans with exceptions'}
             </p>
+            {(conversation.spansWithErrorsCount ?? 0) > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 w-full flex items-center justify-center gap-1"
+                onClick={() => {
+                  window.open(getSignozTracesExplorerUrl(conversationId as string), '_blank');
+                }}
+              >
+                <ExternalLinkIcon className="h-3 w-3" />
+                View exceptions in SigNoz
+              </Button>
+            )}
           </CardContent>
         </Card>
 

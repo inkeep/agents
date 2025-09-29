@@ -175,12 +175,13 @@ export function TimelineWrapper({
 
   // Memoize activities calculation to prevent expensive operations on every render
   const activities = useMemo(() => {
-    if (conversation?.activities && conversation.activities.length > 0) {
-      return conversation.activities;
-    }
+    const allActivities: ActivityItem[] = [];
 
-    return (
-      conversation?.toolCalls?.map((tc: ActivityItem) => ({
+    // Add all regular activities including agent.generate spans
+    if (conversation?.activities && conversation.activities.length > 0) {
+      allActivities.push(...conversation.activities);
+    } else if (conversation?.toolCalls) {
+      const toolCallActivities = conversation.toolCalls.map((tc: ActivityItem) => ({
         ...tc, // keep saveResultSaved, saveSummaryData, etc.
         id: tc.id ?? `tool-call-${Date.now()}`,
         type: 'tool_call' as const,
@@ -188,8 +189,11 @@ export function TimelineWrapper({
         timestamp: new Date(tc.timestamp).toISOString(),
         agentName: tc.agentName || 'AI Agent',
         toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
-      })) || []
-    );
+      }));
+      allActivities.push(...toolCallActivities);
+    }
+
+    return allActivities;
   }, [conversation?.activities, conversation?.toolCalls]);
 
   // Memoize sorted activities to prevent re-sorting on every render

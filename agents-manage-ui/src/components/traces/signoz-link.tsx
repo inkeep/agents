@@ -137,14 +137,14 @@ interface SignozSpanLinkProps {
 export function SignozLink({ conversationId }: SignozLinkProps) {
   const { SIGNOZ_URL } = useRuntimeConfig();
   return (
-    <ExternalLink href={makeTracesUrl(SIGNOZ_URL, conversationId)}>View in SigNoz</ExternalLink>
+    <ExternalLink href={makeTracesUrl(SIGNOZ_URL, conversationId)}>View Conversation in SigNoz</ExternalLink>
   );
 }
 
 export function SignozSpanLink({ traceId, spanId }: SignozSpanLinkProps) {
   const { SIGNOZ_URL } = useRuntimeConfig();
   return (
-    <ExternalLink href={makeSpanUrl(SIGNOZ_URL, traceId, spanId)}>View in SigNoz</ExternalLink>
+    <ExternalLink href={makeSpanUrl(SIGNOZ_URL, traceId, spanId)}>View span in SigNoz</ExternalLink>
   );
 }
 

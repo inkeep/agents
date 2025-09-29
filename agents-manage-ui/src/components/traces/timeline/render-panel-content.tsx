@@ -121,6 +121,17 @@ export function renderPanelContent({
                 </CodeBubble>
               </LabeledBlock>
             )}
+            {/* Show error message if there's an error */}
+            {a.hasError && a.otelStatusDescription && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.hasError && a.otelStatusCode && (
+              <Info label="Status code" value={a.otelStatusCode} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
