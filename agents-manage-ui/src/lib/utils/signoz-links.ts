@@ -49,5 +49,5 @@ export function getSignozTracesExplorerUrl(conversationId: string): string {
   );
   const signozUrl = process.env.SIGNOZ_URL || 'http://localhost:3080';
 
-  return `${signozUrl}/traces-explorer?compositeQuery=${encodedCompositeQuery}&relativeTime=1w`;
+  return `${signozUrl}/traces-explorer?compositeQuery=${encodedCompositeQuery}&relativeTime=1month`;
 }
