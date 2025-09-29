@@ -247,6 +247,8 @@ export const QUERY_EXPRESSIONS = {
   AI_STREAMING_TEXT: 'aiStreamingText',
   CONTEXT_FETCHERS: 'contextFetchers',
   DURATION_SPANS: 'durationSpans',
+  AGENT_GENERATIONS: 'agentGenerations',
+  SPANS_WITH_ERRORS: 'spansWithErrors',
 } as const;
 
 /** Query Reduce Operations */

@@ -40,13 +40,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       try {
         setLoading(true);
         setError(null);
-
-        // Fetch conversation details
         const response = await fetch(`/api/signoz/conversations/${conversationId}`);
         if (!response.ok) throw new Error('Failed to fetch conversation details');
         const data = await response.json();
-        if (typeof data.totalErrors === 'undefined') data.totalErrors = 0;
-
         setConversation(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');

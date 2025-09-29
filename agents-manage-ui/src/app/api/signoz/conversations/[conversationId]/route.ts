@@ -356,9 +356,8 @@ function buildConversationListPayload(
           ]
         ),
 
-        // Get ALL agent.generate spans (both successful and failed)
         agentGenerations: listQuery(
-          'agentGenerations',
+          QUERY_EXPRESSIONS.AGENT_GENERATIONS,
           [
             {
               key: {
@@ -403,7 +402,7 @@ function buildConversationListPayload(
 
         // Count spans with errors
         spansWithErrors: listQuery(
-          'spansWithErrors',
+          QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
           [
             {
               key: {
@@ -744,8 +743,8 @@ export async function GET(
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
     const contextHandleSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_HANDLE);
-    const agentGenerationSpans = parseList(resp, 'agentGenerations'); // ALL agent.generate spans
-    const spansWithErrorsList = parseList(resp, 'spansWithErrors');
+    const agentGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATIONS);
+    const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
     const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
     const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
@@ -1055,7 +1054,6 @@ export async function GET(
       });
     }
 
-    // agent.generate spans (ALL of them, both successful and failed)
     for (const span of agentGenerationSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
@@ -1210,7 +1208,7 @@ export async function GET(
         return count;
       })(),
       totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
-      totalErrors: 0, // Deprecated, use spansWithErrorsCount instead
+      totalErrors: 0,
       totalOpenAICalls: openAICallsCount,
     };
 
