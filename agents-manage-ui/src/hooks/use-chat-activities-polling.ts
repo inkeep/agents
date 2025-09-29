@@ -10,6 +10,7 @@ interface UseChatActivitiesPollingReturn {
   chatActivities: ConversationDetail | null;
   isPolling: boolean;
   error: string | null;
+  errorData: { helpUrl?: string; helpText?: string } | null;
   startPolling: () => void;
   stopPolling: () => void;
   retryConnection: () => void;
@@ -18,11 +19,12 @@ interface UseChatActivitiesPollingReturn {
 
 export const useChatActivitiesPolling = ({
   conversationId,
-  pollingInterval = 1000,
+  pollingInterval = 100,
 }: UseChatActivitiesPollingOptions): UseChatActivitiesPollingReturn => {
   const [chatActivities, setChatActivities] = useState<ConversationDetail | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorData, setErrorData] = useState<{ helpUrl?: string; helpText?: string } | null>(null);
   const [lastActivityCount, setLastActivityCount] = useState(0);
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -32,6 +34,7 @@ export const useChatActivitiesPolling = ({
   const fetchChatActivities = useCallback(async (): Promise<ConversationDetail | null> => {
     try {
       setError(null);
+      setErrorData(null);
 
       // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
@@ -49,15 +52,23 @@ export const useChatActivitiesPolling = ({
 
         // Try to get the actual error message from the response
         let errorMessage = 'Failed to fetch chat activities';
+        let helpData: { helpUrl?: string; helpText?: string } | null = null;
         try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
+          const errorResponse = await response.json();
+          if (errorResponse.error) {
+            errorMessage = errorResponse.error;
+            helpData = {
+              helpUrl: errorResponse.helpUrl,
+              helpText: errorResponse.helpText,
+            };
           }
         } catch {
           // If we can't parse the error response, use the default message
         }
 
+        if (isComponentMountedRef.current) {
+          setErrorData(helpData);
+        }
         throw new Error(errorMessage);
       }
 
@@ -134,6 +145,7 @@ export const useChatActivitiesPolling = ({
   // Retry connection - clears error and restarts polling
   const retryConnection = useCallback(() => {
     setError(null);
+    setErrorData(null);
     stopPolling();
     startPolling();
   }, [startPolling, stopPolling]);
@@ -164,6 +176,7 @@ export const useChatActivitiesPolling = ({
       setChatActivities(null);
       setLastActivityCount(0);
       setError(null);
+      setErrorData(null);
 
       // Stop polling for old conversation
       if (pollingIntervalRef.current) {
@@ -184,6 +197,7 @@ export const useChatActivitiesPolling = ({
     chatActivities,
     isPolling,
     error,
+    errorData,
     startPolling,
     stopPolling,
     retryConnection,

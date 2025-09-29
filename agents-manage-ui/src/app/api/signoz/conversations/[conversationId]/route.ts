@@ -67,7 +67,7 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
   // Check if API key is configured
   if (!SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === '') {
     throw new Error(
-      'SIGNOZ_API_KEY is not configured. Please set the SIGNOZ_API_KEY environment variable.'
+      'SIGNOZ_API_KEY is not configured. Please set the SIGNOZ_API_KEY environment variable. For setup instructions, see: https://docs.inkeep.com/quick-start/observability'
     );
   }
 
@@ -94,23 +94,37 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
     // Re-throw the error with more context for proper error handling
     if (axios.isAxiosError(e)) {
       if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' || e.code === 'ETIMEDOUT') {
-        throw new Error(`SigNoz service unavailable: ${e.message}`);
+        throw new Error(
+          `SigNoz service unavailable: ${e.message}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+        );
       }
       if (e.response?.status === 401 || e.response?.status === 403) {
-        throw new Error(`SigNoz authentication failed: ${e.response.statusText}`);
+        throw new Error(
+          `SigNoz authentication failed: ${e.response.statusText}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+        );
       }
       if (e.response?.status === 400) {
-        throw new Error(`Invalid SigNoz query: ${e.response.statusText}`);
+        throw new Error(
+          `Invalid SigNoz query: ${e.response.statusText}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+        );
       }
       if (e.response?.status === 429) {
-        throw new Error(`SigNoz rate limit exceeded: ${e.response.statusText}`);
+        throw new Error(
+          `SigNoz rate limit exceeded: ${e.response.statusText}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+        );
       }
       if (e.response?.status && e.response.status >= 500) {
-        throw new Error(`SigNoz server error: ${e.response.statusText}`);
+        throw new Error(
+          `SigNoz server error: ${e.response.statusText}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+        );
       }
-      throw new Error(`SigNoz request failed: ${e.message}`);
+      throw new Error(
+        `SigNoz request failed: ${e.message}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+      );
     }
-    throw new Error(`SigNoz query failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    throw new Error(
+      `SigNoz query failed: ${e instanceof Error ? e.message : 'Unknown error'}. For setup instructions, see: https://docs.inkeep.com/quick-start/observability`
+    );
   }
 }
 
@@ -1208,23 +1222,72 @@ export async function GET(
       error instanceof Error ? error.message : 'Failed to fetch conversation details';
 
     if (errorMessage.includes('SIGNOZ_API_KEY is not configured')) {
-      return NextResponse.json({ error: errorMessage }, { status: 501 });
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+          helpText: 'View Setup Guide',
+        },
+        { status: 501 }
+      );
     }
     if (errorMessage.includes('SigNoz service unavailable')) {
-      return NextResponse.json({ error: errorMessage }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+          helpText: 'View Setup Guide',
+        },
+        { status: 503 }
+      );
     }
     if (errorMessage.includes('SigNoz authentication failed')) {
-      return NextResponse.json({ error: errorMessage }, { status: 502 });
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+          helpText: 'View Setup Guide',
+        },
+        { status: 502 }
+      );
     }
     if (errorMessage.includes('Invalid SigNoz query')) {
-      return NextResponse.json({ error: errorMessage }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+          helpText: 'View Setup Guide',
+        },
+        { status: 400 }
+      );
     }
     if (errorMessage.includes('SigNoz rate limit exceeded')) {
-      return NextResponse.json({ error: errorMessage }, { status: 429 });
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+          helpText: 'View Setup Guide',
+        },
+        { status: 429 }
+      );
     }
     if (errorMessage.includes('SigNoz server error')) {
-      return NextResponse.json({ error: errorMessage }, { status: 502 });
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+          helpText: 'View Setup Guide',
+        },
+        { status: 502 }
+      );
     }
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: errorMessage,
+        helpUrl: 'https://docs.inkeep.com/quick-start/observability',
+        helpText: 'View Setup Guide',
+      },
+      { status: 500 }
+    );
   }
 }

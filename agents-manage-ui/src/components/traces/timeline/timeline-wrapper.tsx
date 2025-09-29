@@ -52,6 +52,7 @@ interface TimelineWrapperProps {
   enableAutoScroll?: boolean;
   isPolling?: boolean;
   error?: string | null;
+  errorData?: { helpUrl?: string; helpText?: string } | null;
   retryConnection?: () => void;
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
@@ -61,10 +62,12 @@ interface TimelineWrapperProps {
 function EmptyTimeline({
   isPolling,
   error,
+  errorData,
   retryConnection,
 }: {
   isPolling: boolean;
   error?: string | null;
+  errorData?: { helpUrl?: string; helpText?: string } | null;
   retryConnection?: () => void;
 }) {
   if (error) {
@@ -79,17 +82,34 @@ function EmptyTimeline({
           </AlertTitle>
           <AlertDescription>
             {isMissingApiKey ? (
-              <div>
+              <div className="space-y-3">
                 <p>
                   The SIGNOZ_API_KEY environment variable is not configured. Please set this
-                  environment variable to the enable activity timeline.
+                  environment variable to enable the activity timeline.
                 </p>
-                <ExternalLink href={`https://docs.inkeep.com/visual-builder/graphs`}>
-                  Learn more
-                </ExternalLink>
+                <div className="flex items-center gap-2">
+                  <ExternalLink
+                    href="https://docs.inkeep.com/quick-start/observability"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                  >
+                    📖 View Setup Guide
+                  </ExternalLink>
+                </div>
               </div>
             ) : (
-              error
+              <div className="space-y-3">
+                <p>{error}</p>
+                {errorData?.helpUrl && errorData?.helpText && (
+                  <div className="flex items-center gap-2">
+                    <ExternalLink
+                      href={errorData.helpUrl}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                    >
+                      📖 {errorData.helpText}
+                    </ExternalLink>
+                  </div>
+                )}
+              </div>
             )}
           </AlertDescription>
         </Alert>
@@ -128,6 +148,7 @@ export function TimelineWrapper({
   enableAutoScroll = false,
   isPolling = false,
   error,
+  errorData,
   retryConnection,
   refreshOnce,
   showConversationTracesLink = false,
@@ -339,6 +360,7 @@ export function TimelineWrapper({
               <EmptyTimeline
                 isPolling={isPolling}
                 error={error}
+                errorData={errorData}
                 retryConnection={retryConnection}
               />
             ) : enableAutoScroll ? (

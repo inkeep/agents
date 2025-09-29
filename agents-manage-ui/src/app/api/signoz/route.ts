@@ -100,10 +100,16 @@ export async function POST(request: NextRequest) {
       { error, stack: error instanceof Error ? error.stack : undefined },
       'Error proxying to SigNoz'
     );
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isConfigError = !SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === '';
+
     return NextResponse.json(
       {
         error: 'Failed to connect to SigNoz',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: errorMessage,
+        helpUrl: isConfigError ? 'https://docs.inkeep.com/quick-start/observability' : undefined,
+        helpText: isConfigError ? 'View Setup Guide' : undefined,
       },
       { status: 500 }
     );
@@ -111,8 +117,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  const isConfigured = !!SIGNOZ_URL && !!SIGNOZ_API_KEY;
+
   return NextResponse.json({
     status: 'ok',
-    configured: !!SIGNOZ_URL && !!SIGNOZ_API_KEY,
+    configured: isConfigured,
+    helpUrl: !isConfigured ? 'https://docs.inkeep.com/quick-start/observability' : undefined,
+    helpText: !isConfigured ? 'View Setup Guide' : undefined,
   });
 }

@@ -27,6 +27,7 @@ export const Playground = ({
     chatActivities,
     isPolling,
     error,
+    errorData,
     startPolling,
     stopPolling,
     retryConnection,
@@ -65,6 +66,7 @@ export const Playground = ({
             conversation={chatActivities}
             enableAutoScroll={true}
             error={error}
+            errorData={errorData}
             retryConnection={retryConnection}
             refreshOnce={refreshOnce}
             showConversationTracesLink={true}
