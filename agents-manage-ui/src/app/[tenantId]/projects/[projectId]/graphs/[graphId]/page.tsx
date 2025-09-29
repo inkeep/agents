@@ -6,7 +6,6 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { getFullGraphAction } from '@/lib/actions/graph-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
-
 export const dynamic = 'force-dynamic';
 
 interface GraphPageProps {
@@ -16,7 +15,7 @@ interface GraphPageProps {
 async function GraphPage({ params }: GraphPageProps) {
   const { graphId, tenantId, projectId } = await params;
 
-  const [graph, dataComponents, artifactComponents, tools, credentials] = await Promise.all([
+  const [graph, dataComponents, artifactComponents, credentials, tools] = await Promise.all([
     getFullGraphAction(tenantId, projectId, graphId),
     fetchDataComponentsAction(tenantId, projectId),
     fetchArtifactComponentsAction(tenantId, projectId),
