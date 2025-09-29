@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.8.5
+
+### Patch Changes
+
+- 84989b4: observability linked
+- Updated dependencies [3c93e9e]
+- Updated dependencies [1e7cd99]
+  - @inkeep/agents-core@0.8.5
+  - @inkeep/agents-manage-api@0.8.5
+  - @inkeep/agents-run-api@0.8.5
+
 ## 0.8.4
 
 ### Patch Changes
