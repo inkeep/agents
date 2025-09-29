@@ -136,7 +136,7 @@ export function TimelineWrapper({
   retryConnection,
   refreshOnce,
   showConversationTracesLink = false,
-  conversationId,
+  conversationId
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
