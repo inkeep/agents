@@ -41,35 +41,14 @@ const agent = agent({
   canTransferTo: () => [agent1], // Agents this can hand off to
   canDelegateTo: () => [agent2], // Agents this can delegate to
 
-  // Optional - AI Model Settings (Vercel AI SDK v5)
+  // Optional - AI Model Settings
+  // See Model Settings documentation for complete details
   models: {
     base: {
       model: "anthropic/claude-sonnet-4-20250514",
       providerOptions: {
         temperature: 0.7,
-        maxOutputTokens: 2048,   // Maximum tokens to generate
-        maxDuration: 30,          // Timeout in seconds
-        topP: 0.95,               // Nucleus sampling
-        topK: 40,                 // Top-k sampling
-        frequencyPenalty: 0.0,    // Reduce repetition
-        presencePenalty: 0.0,     // Encourage new topics
-        stopSequences: ["\n\n"], // Stop generation at sequences
-        seed: 12345,              // For deterministic output
-      },
-    },
-    structuredOutput: {
-      model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output
-      providerOptions: {
-        temperature: 0.1,
-        maxOutputTokens: 1024,
-        experimental_reasoning: true,  // Enable reasoning mode (if supported)
-      },
-    },
-    summarizer: {
-      model: "openai/gpt-4.1-nano-2025-04-14", // For summaries
-      providerOptions: {
-        temperature: 0.5,
-        maxOutputTokens: 1000,
+        maxOutputTokens: 2048,
       },
     },
   },
@@ -126,195 +105,13 @@ const agent = agent({
 | `name`               | string   | Yes      | Human-readable name for the agent                                                                                                                                       |
 | `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the agent                                                                                                            |
 | `description`        | string   | No      | Brief description of the agent's purpose and capabilities                                                                                                               |
-| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.                                                                              |
-| `models.base`        | object   | No       | Primary model for conversational text generation and reasoning                                                                                                          |
-| `models.structuredOutput` | object | No       | Model used for structured JSON output only (falls back to base if not configured)                                                                                    |
-| `models.summarizer`  | object   | No       | Model used for summaries and status updates (falls back to base if not configured)                                                                                     |
+| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. If not specified, inherits from graph/project. See [Model Settings](/typescript-sdk/model-settings) for details. |
 | `canUse`              | object   | No       | MCP tools that the agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details                                                                  |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/data-components) for details                                        |
 | `artifactComponents` | array    | No       | Components for handling tool or agent outputs. See [Artifact Components](/typescript-sdk/artifact-components) for details                                               |
 | `canTransferTo`      | function | No       | Function returning array of agents this agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details     |
 | `canDelegateTo`      | function | No       | Function returning array of agents this agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) for details |
 
-## Model Settings
-
-The `models` object allows you to configure different models for different tasks, each with their own provider options:
-
-```typescript
-models: {
-  base: {
-    model: "anthropic/claude-sonnet-4-20250514", // Primary model for text generation
-    providerOptions: {
-      temperature: 0.7,
-      maxOutputTokens: 2048  // AI SDK v5 uses maxOutputTokens
-    }
-  },
-  structuredOutput: {
-    model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output only
-    providerOptions: {
-      temperature: 0.1,
-      maxOutputTokens: 1024,
-      experimental_reasoning: true  // Enable reasoning for better structured outputs
-    }
-  },
-  summarizer: {
-    model: "anthropic/claude-3-5-haiku-20241022", // For summaries and status updates
-    providerOptions: {
-      temperature: 0.5,
-      maxOutputTokens: 1000
-    }
-  }
-}
-```
-
-### Model Types
-
-- **`base`**: Primary model used for conversational text generation and reasoning
-- **`structuredOutput`**: Model used for structured JSON output only (falls back to base if not configured and nothing to inherit)
-- **`summarizer`**: Model used for summaries and status updates (falls back to base if not configured and nothing to inherit)
-
-### Supported Providers
-
-The framework currently supports models from:
-
-- **Anthropic**: `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, etc.
-- **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
-- **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
-
-## Provider Options
-
-All models support `providerOptions` to customize their behavior. These include both generic parameters that work across all providers and provider-specific features like reasoning.
-
-### Generic Parameters
-
-These parameters work with all supported providers and go directly in `providerOptions`:
-
-```typescript
-models: {
-  base: {
-    model: "anthropic/claude-sonnet-4-20250514",
-    providerOptions: {
-      maxOutputTokens: 4096,        // Maximum tokens to generate (AI SDK v5)
-      temperature: 0.7,             // Controls randomness (0.0-1.0)
-      topP: 0.95,                   // Nucleus sampling (0.0-1.0)
-      topK: 40,                     // Top-k sampling (integer)
-      frequencyPenalty: 0.0,        // Reduce repetition (-2.0 to 2.0)
-      presencePenalty: 0.0,         // Encourage new topics (-2.0 to 2.0)
-      stopSequences: ["\n\n"],     // Stop generation at sequences
-      seed: 12345,                  // For deterministic output
-      maxDuration: 30,              // Timeout in seconds (not milliseconds)
-      maxRetries: 2,                // Maximum retry attempts
-    }
-  }
-}
-```
-
-### Provider-Specific Features
-
-Advanced features like reasoning require provider-specific configuration wrapped in the provider name:
-
-#### OpenAI Reasoning
-```typescript
-models: {
-  base: {
-    model: "openai/o3-mini",
-    providerOptions: {
-      maxOutputTokens: 4096,
-      temperature: 0.7,
-      openai: {
-        reasoningEffort: 'medium'  // 'low' | 'medium' | 'high'
-      }
-    }
-  }
-}
-```
-
-#### Anthropic Thinking
-```typescript
-models: {
-  base: {
-    model: "anthropic/claude-3-7-sonnet-20250219",
-    providerOptions: {
-      maxOutputTokens: 4096,
-      temperature: 0.7,
-      anthropic: {
-        thinking: { 
-          type: 'enabled', 
-          budgetTokens: 8000  // Tokens allocated for reasoning
-        }
-      }
-    }
-  }
-}
-```
-
-#### Google Gemini Thinking
-```typescript
-models: {
-  base: {
-    model: "google/gemini-2-5-flash",
-    providerOptions: {
-      maxOutputTokens: 4096,
-      temperature: 0.7,
-      google: {
-        thinkingConfig: {
-          thinkingBudget: 8192,     // 0 disables thinking
-          includeThoughts: true     // Return thought summary
-        }
-      }
-    }
-  }
-}
-```
-
-## Model Providers
-
-### Built-in Providers
-
-The framework supports these providers directly:
-
-- **Anthropic**: `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, etc.
-- **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
-- **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
-
-### Accessing Other Models
-
-For models not directly supported, use these proxy providers:
-
-- **OpenRouter**: Access any model via `openrouter/model-id` format (e.g., `openrouter/anthropic/claude-sonnet-4`, `openrouter/meta-llama/llama-3.1-405b`)
-- **Vercel AI SDK Gateway**: Access models through your gateway via `gateway/model-id` format (e.g., `gateway/anthropic/claude-sonnet-4`)
-
-```typescript
-models: {
-  base: {
-    model: "openrouter/anthropic/claude-sonnet-4",
-    providerOptions: {
-      temperature: 0.7,
-      maxOutputTokens: 2048
-    }
-  },
-  structuredOutput: {
-    model: "gateway/openai/gpt-4.1-mini",
-    providerOptions: {
-      maxOutputTokens: 1024
-    }
-  }
-}
-```
-
-### Required API Keys
-
-You need the appropriate API key for your chosen provider:
-
-- `ANTHROPIC_API_KEY` for Anthropic models
-- `OPENAI_API_KEY` for OpenAI models  
-- `GOOGLE_GENERATIVE_AI_API_KEY` for Google models
-- `OPENROUTER_API_KEY` for OpenRouter models
-- `AI_GATEWAY_API_KEY` for Vercel AI SDK Gateway models
-
-### Inheritance
-
-If no `models` settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.
 
 ## Graph Prompt Integration
 
@@ -332,4 +129,9 @@ Follow company policies and escalate complex issues appropriately.`,
 
 The `graphPrompt` is injected into each agent's system prompt, providing consistent context and behavior guidelines across all agents in the graph.
 
-<Note>`openai/gpt-5-2025-08-07` and `openai/gpt-4.1-mini-2025-04-14` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
+## Related Documentation
+
+- [Model Settings](/typescript-sdk/model-settings) - Detailed model configuration and inheritance
+- [Agent Relationships](/typescript-sdk/agent-relationships) - Transfer and delegation between agents
+- [Data Components](/typescript-sdk/data-components) - Structured output components
+- [MCP Servers](/typescript-sdk/tools-and-mcp-servers) - Tool integration

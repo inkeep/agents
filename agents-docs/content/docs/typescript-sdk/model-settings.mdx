@@ -1,0 +1,340 @@
+---
+title: Model Settings
+description: Configure AI models and their parameters for your agents
+icon: "LuBrain"
+---
+
+Configure AI models that power your agents with a flexible three-level inheritance system: Project → Graph → Agent.
+
+## Model Inheritance Hierarchy
+
+Models are inherited from parent configurations when not explicitly defined:
+
+```
+Project Configuration (required base model)
+    ↓
+Graph Configuration (inherits missing models)
+    ↓
+Agent Configuration (inherits missing models)
+```
+
+**Important**: Models are inherited as complete units. If you override a model at any level, you must provide the complete configuration including providerOptions.
+
+## Required vs Optional Models
+
+| Model Type | Required | Purpose |
+|------------|----------|---------|
+| `base` | ✅ Required at project level | Primary model for conversations and reasoning |
+| `structuredOutput` | Highly recommended | JSON generation for data components (falls back to base if not configured) |
+| `summarizer` | Highly recommended | Cost-effective summarization (falls back to base if not configured) |
+
+<Warning>
+The application will fail to start without a `base` model configured at the project level.
+</Warning>
+
+## Configuration Examples
+
+### Project Level (Required)
+
+```typescript
+// inkeep.config.ts
+import { InkeepConfig } from "@inkeep/agents-sdk";
+
+const config: InkeepConfig = {
+  project: {
+    id: "my-project",
+    name: "My Project",
+    models: {
+      base: {  // REQUIRED
+        model: "anthropic/claude-sonnet-4-20250514",
+        providerOptions: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        },
+      },
+      structuredOutput: {  // Highly recommended
+        model: "openai/gpt-4.1-mini-2025-04-14",
+        providerOptions: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        },
+      },
+      summarizer: {  // Highly recommended
+        model: "anthropic/claude-3-5-haiku-20241022",
+        providerOptions: {
+          temperature: 0.5,
+          maxOutputTokens: 1000,
+        },
+      },
+    },
+  },
+};
+
+export default config;
+```
+
+### Graph Level (Override)
+
+```typescript
+export const supportGraph = agentGraph({
+  id: "support",
+  name: "Support Graph",
+  models: {
+    base: {
+      // Complete override - must include all settings
+      model: "anthropic/claude-opus-4-20250514",
+      providerOptions: {
+        temperature: 0.6,
+        maxOutputTokens: 3000,
+      },
+    },
+    // structuredOutput and summarizer inherited from project
+  },
+  agents: () => [supportAgent],
+  defaultAgent: supportAgent,
+});
+```
+
+### Agent Level (Override)
+
+```typescript
+const technicalAgent = agent({
+  id: "technical",
+  name: "Technical Support",
+  prompt: "Provide technical assistance...",
+  models: {
+    base: {
+      // Complete override for this agent
+      model: "anthropic/claude-opus-4-20250514",
+      providerOptions: {
+        temperature: 0.5,
+        maxOutputTokens: 4000,
+        anthropic: {
+          thinking: { 
+            type: 'enabled', 
+            budgetTokens: 8000
+          }
+        }
+      },
+    },
+    // Other models inherited from graph/project
+  },
+});
+```
+
+## Provider Options
+
+All models support `providerOptions` to customize their behavior. These include both generic parameters that work across all providers and provider-specific features.
+
+### Generic Parameters
+
+These parameters work with all supported providers and go directly in `providerOptions`:
+
+```typescript
+providerOptions: {
+  maxOutputTokens: 4096,        // Maximum tokens to generate
+  temperature: 0.7,             // Controls randomness (0.0-2.0)
+  topP: 0.95,                   // Nucleus sampling (0.0-1.0)
+  topK: 40,                     // Top-k sampling (integer)
+  frequencyPenalty: 0.0,        // Reduce repetition (-2.0 to 2.0)
+  presencePenalty: 0.0,         // Encourage new topics (-2.0 to 2.0)
+  stopSequences: ["\n\n"],      // Stop generation at sequences
+  seed: 12345,                  // For deterministic output
+  maxDuration: 30,              // Timeout in seconds
+  maxRetries: 2,                // Maximum retry attempts
+}
+```
+
+### Provider-Specific Features
+
+Advanced features require provider-specific configuration wrapped in the provider name:
+
+#### OpenAI Reasoning
+```typescript
+models: {
+  base: {
+    model: "openai/gpt-5-2025-08-07",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      openai: {
+        reasoningEffort: 'medium'  // 'low' | 'medium' | 'high'
+      }
+    }
+  }
+}
+```
+
+#### Anthropic Thinking
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-3-7-sonnet-20250219",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      anthropic: {
+        thinking: { 
+          type: 'enabled', 
+          budgetTokens: 8000  // Tokens allocated for reasoning
+        }
+      }
+    }
+  }
+}
+```
+
+#### Google Gemini Thinking
+```typescript
+models: {
+  base: {
+    model: "google/gemini-2-5-flash",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 8192,     // 0 disables thinking
+          includeThoughts: true     // Return thought summary
+        }
+      }
+    }
+  }
+}
+```
+
+## Practical Example
+
+```typescript
+// inkeep.config.ts - Project defaults
+const config = {
+  project: {
+    models: {
+      base: {  // Required
+        model: "anthropic/claude-sonnet-4-20250514",
+        providerOptions: { 
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        },
+      },
+      structuredOutput: {  // Highly recommended
+        model: "openai/gpt-4.1-mini-2025-04-14",
+        providerOptions: { 
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        },
+      },
+    },
+  },
+};
+
+// legal.graph.ts - Legal department needs consistency
+export const legalGraph = agentGraph({
+  id: "legal",
+  models: {
+    base: {
+      model: "anthropic/claude-opus-4-20250514",  // More capable
+      providerOptions: {
+        temperature: 0.2,  // More consistent
+        maxOutputTokens: 3000,
+        anthropic: {
+          thinking: { 
+            type: 'enabled',
+            budgetTokens: 10000  // Complex legal reasoning
+          }
+        }
+      },
+    },
+    // Inherits structuredOutput from project
+  },
+});
+
+// compliance.agent.ts - Maximum precision
+const complianceAgent = agent({
+  id: "compliance",
+  models: {
+    base: {
+      model: "anthropic/claude-opus-4-20250514",
+      providerOptions: {
+        temperature: 0.0,  // Deterministic
+        maxOutputTokens: 5000,  // Long documents
+        seed: 42,
+      },
+    },
+  },
+});
+```
+
+## Temperature Guidelines
+
+| Range | Use Case | Example |
+|-------|----------|---------|
+| 0.0-0.3 | Deterministic, factual | Legal documents, calculations |
+| 0.4-0.7 | Balanced | General conversation, support |
+| 0.8-1.2 | Creative | Sales, marketing, brainstorming |
+
+## Supported Models
+
+### Anthropic
+- `anthropic/claude-opus-4-20250514` - Maximum capability
+- `anthropic/claude-sonnet-4-20250514` - Balanced performance
+- `anthropic/claude-3-5-haiku-20241022` - Fast and efficient
+
+### OpenAI
+- `openai/gpt-5-2025-08-07` - Latest GPT-5
+- `openai/gpt-5-mini-2025-08-07` - Smaller GPT-5
+- `openai/gpt-5-nano-2025-08-07` - Lightweight GPT-5
+- `openai/gpt-4.1-2025-04-14` - Latest GPT-4.1
+- `openai/gpt-4.1-mini-2025-04-14` - Smaller GPT-4.1
+- `openai/gpt-4.1-nano-2025-04-14` - Lightweight GPT-4.1
+
+### Google
+- `google/gemini-2.5-pro` - Most capable
+- `google/gemini-2.5-flash` - Fast and balanced
+- `google/gemini-2.5-flash-lite` - Lightweight
+
+### Accessing Other Models
+
+For models not directly supported, use proxy providers:
+
+- **OpenRouter**: `openrouter/model-id` (e.g., `openrouter/anthropic/claude-sonnet-4`)
+- **Vercel AI SDK Gateway**: `gateway/model-id` (e.g., `gateway/openai/gpt-4.1-mini-2025-04-14`)
+
+```typescript
+models: {
+  base: {
+    model: "openrouter/anthropic/claude-sonnet-4",
+    providerOptions: {
+      temperature: 0.7,
+      maxOutputTokens: 2048
+    }
+  }
+}
+```
+
+## Environment Setup
+
+```bash
+# .env
+ANTHROPIC_API_KEY=your-key
+OPENAI_API_KEY=your-key
+GOOGLE_GENERATIVE_AI_API_KEY=your-key
+OPENROUTER_API_KEY=your-key
+AI_GATEWAY_API_KEY=your-key
+```
+
+## Debugging
+
+1. **Trace Viewer**: Shows actual models used per agent
+2. **Debug Logging**: `LOG_LEVEL=debug` shows inheritance resolution
+3. **Visual Builder**: Push project to inspect model settings
+
+<Note>
+`openai/gpt-5-2025-08-07` and `openai/gpt-4.1-mini-2025-04-14` require a verified OpenAI organization.
+</Note>
+
+## Related Documentation
+
+- [Agent Settings](/typescript-sdk/agent-settings) - Complete agent configuration
+- [Configuration](/typescript-sdk/configuration) - Project-level setup
+- [Data Components](/typescript-sdk/data-components) - Structured outputs using structuredOutput model

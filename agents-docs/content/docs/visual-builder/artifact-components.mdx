@@ -1,68 +1,158 @@
 ---
 title: Artifact Components
-description: Artifact components are used to add artifacts to the graph.
+description: Save data from tools so agents can share and reference it later
 icon: "TbInputSpark"
 ---
 
-<Snippet file="multi-agent-framework/artifacts.mdx" />
+Artifact components let agents save information from tool calls so it can be referenced later by the same agent or other agents in the graph.
 
-## How to create an artifact component
+## What Are Artifacts?
 
-1. Go to the Artifact Components tab in the left sidebar. Then select "New artifact component".
-2. Add in an id, name, description, and enter in a JSON schema for both summary props and full props. These are required fields.
-3. Click "Submit".
+When an agent uses a tool (like web search), the tool returns information. Instead of losing this information after the response, artifacts save it for future use.
 
-To visually add the artifact component to the graph, see the [Graphs](/visual-builder/graphs#adding-artifact-components) page for details.
+**Think of artifacts like bookmarks with content** - they store both a summary (for quick reference) and the full details (for deep analysis).
 
-## Artifact Name & Description Generation
+## Why Use Artifacts?
 
-**Important**: Artifact names and descriptions are automatically generated at the **agent level** using that specific agent's configured **summarizer model**.
+- **Share data between agents**: Research agent finds sources, writing agent uses them for citations
+- **Reference tool results**: Keep search results, API responses, or file contents for later use  
+- **Maintain sources**: Track where information came from for transparency
 
-### How It Works
+## Creating Artifact Components
 
-When an agent creates an artifact during tool execution or data processing:
+### Step 1: Create the Component
 
-1. **Agent Creates Artifact**: During tool execution or data processing
-2. **Summarizer Analysis**: The agent's summarizer model analyzes:
-   - The artifact content and structure
-   - Recent conversation context
-   - The user's original question or request
-3. **Name Generation**: Creates a concise, descriptive name (max 50 characters)
-4. **Description Generation**: Provides context about relevance and content (max 150 characters)
+1. Go to **Artifact Components** in the left sidebar
+2. Click **"New artifact component"**
+3. Fill out the form:
+   - **ID**: Unique identifier (e.g., `web-source`)
+   - **Name**: Display name (e.g., `Web Source`)
+   - **Description**: What this artifact stores (e.g., `Information found from web searches`)
 
-### Model Settings for Artifacts
+### Step 2: Define the Schema
 
-Each agent uses its configured summarizer model for artifact generation:
+You need to define two JSON schemas:
 
-```typescript
-// Agent with custom summarizer for artifact generation
-const researchAgent = agent({
-  id: "research-agent",
-  name: "Research Agent",
-  prompt: "You are a research agent that can generate artifact names and descriptions",
-  models: {
-    base: { model: "claude-sonnet-4" },
-    summarizer: {
-      model: "gpt-4.1-mini", // This model generates artifact names/descriptions
-      providerOptions: {
-        temperature: 0.2, // Lower temperature for consistent naming
-        maxTokens: 512,
-      },
+#### Summary Props (Required)
+Quick info shown to agents - keep this simple:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string", 
+      "description": "Page title"
     },
+    "url": {
+      "type": "string", 
+      "description": "Page URL"
+    }
   },
-});
+  "required": ["title", "url"]
+}
 ```
 
-### Inheritance and Fallback
+#### Full Props (Required)  
+Complete details stored in database:
 
-Artifact generation follows the same model inheritance rules:
+```json
+{
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string", 
+      "description": "Full page content"
+    },
+    "author": {
+      "type": "string", 
+      "description": "Author name"
+    },
+    "date": {
+      "type": "string", 
+      "description": "Publication date"
+    }
+  },
+  "required": ["content"]
+}
+```
 
-- **Default**: Agent uses graph's summarizer model (if configured)
-- **Fallback**: If no summarizer configured at project/graph level, falls back to agent's base model
-- **Override**: Agent can specify its own summarizer model
+### Step 3: Add to Graph
 
-### Best Practices
+After creating the artifact component, add it to your agents:
 
-- **Consistent Models**: Use the same summarizer model across related agents for consistent artifact naming
-- **Appropriate Models**: Choose models good at summarization (GPT-4o-mini, claude-3.5-haiku work well)
-- **Temperature Settings**: Lower temperatures (0.1-0.3) provide more consistent naming patterns
+1. Go to **Graphs** in the left sidebar
+2. Edit your graph
+3. Select your agents and add the artifact component
+4. Save the graph
+
+## Example: Research Sources
+
+Here's a complete example for saving research sources:
+
+**Artifact Component Settings:**
+- **ID**: `research-source`
+- **Name**: `Research Source`
+- **Description**: `Sources found during research with citations`
+
+**Summary Props:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "url": { "type": "string" },
+    "relevance": { 
+      "type": "string", 
+      "enum": ["high", "medium", "low"] 
+    }
+  },
+  "required": ["title", "url", "relevance"]
+}
+```
+
+**Full Props:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "content": { 
+      "type": "string", 
+      "description": "Full article text" 
+    },
+    "key_points": { 
+      "type": "array", 
+      "items": { "type": "string" },
+      "description": "Main points from the article"
+    },
+    "author": { "type": "string" },
+    "publication_date": { "type": "string" }
+  },
+  "required": ["content"]
+}
+```
+
+## How It Works
+
+1. **User asks**: "Research renewable energy trends"
+
+2. **Research agent**: 
+   - Uses web search tool
+   - Tool returns data matching your artifact schema
+   - Artifact gets created automatically
+   - Agent can reference it: "I found good information about solar panels [artifact-123]"
+
+3. **Writing agent**: 
+   - Sees the same artifacts in its context
+   - Can use them in responses: "According to my research [artifact-123], solar adoption is increasing..."
+
+## Automatic Naming
+
+The framework automatically generates names and descriptions for artifacts using the agent's summarizer model. You don't need to manually name each artifact - they get descriptive names like "Solar Energy Adoption Study" based on their content.
+
+## Key Points
+
+- **Shared**: All agents in the graph can access the same artifacts
+- **Automatic**: Created when tools return matching data
+- **Traceable**: Every piece of information links back to its source
+- **Persistent**: Saved for the entire conversation

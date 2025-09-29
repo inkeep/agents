@@ -1,61 +1,58 @@
 ---
 title: Artifact Components
-description: Learn how to use artifact components to store and retrieve data from the agent
+description: Learn how to use artifact components to store and retrieve data from tools
 icon: "TbInputSpark"
 ---
 
-<Snippet file="multi-agent-framework/artifacts.mdx" />
+Artifact components let agents save information from tool calls so it can be referenced later by the same agent or other agents in the graph.
 
-## Defining Artifact Components
+## What Are Artifacts?
 
-Artifact components are defined when creating an agent using the `artifactComponents` property:
+When an agent uses a tool (like web search), the tool returns information. Instead of losing this information after the response, artifacts save it for future use.
+
+**Think of artifacts like bookmarks with content** - they store both a summary (for quick reference) and the full details (for deep analysis).
+
+## Why Use Artifacts?
+
+- **Share data between agents**: Research agent finds sources, writing agent uses them for citations
+- **Reference tool results**: Keep search results, API responses, or file contents for later use  
+- **Maintain sources**: Track where information came from for transparency
+
+## Basic Example
+
+Here's a simple artifact component for saving web search results:
 
 ```typescript
-const agent = agent({
-  // ... other agent config
+const searchAgent = agent({
+  id: "search-agent",
+  name: "Search Agent",
+  prompt: "Search the web and save useful sources as artifacts",
+  
+  canUse: () => [webSearchTool],
+  
   artifactComponents: [
     {
-      id: "document-artifact",
-      name: "Document Artifact",
-      description:
-        "Structured factual information extracted from search results",
+      id: "web-source",
+      name: "Web Source",
+      description: "Information found from web searches",
+      
+      // Summary: Quick info shown to agents
       summaryProps: {
         type: "object",
         properties: {
-          title: {
-            type: "string",
-            description: "Title of the source document",
-          },
-          url: { type: "string", description: "URL of the source document" },
-          record_type: {
-            type: "string",
-            description: "Type of record (documentation, blog, guide, etc.)",
-          },
+          title: { type: "string", description: "Page title" },
+          url: { type: "string", description: "Page URL" },
         },
-        required: ["title", "url", "record_type"],
+        required: ["title", "url"],
       },
+      
+      // Full content: Complete details stored in database
       fullProps: {
-        type: "object",
+        type: "object", 
         properties: {
-          content: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                type: {
-                  type: "string",
-                  description: "Type of content (text, image, video, etc.)",
-                },
-                text: {
-                  type: "string",
-                  description: "The actual text content",
-                },
-              },
-              required: ["type", "text"],
-            },
-            description:
-              "Array of structured content blocks extracted from the document",
-          },
+          content: { type: "string", description: "Full page content" },
+          author: { type: "string", description: "Author name" },
+          date: { type: "string", description: "Publication date" },
         },
         required: ["content"],
       },
@@ -64,54 +61,111 @@ const agent = agent({
 });
 ```
 
-The `summaryProps` is used in the agent's context. The `fullProps` is used to store extra information about the artifact, stored in the database.
+## How Artifacts Work
 
-## Automatic Artifact Creation
+### 1. Tool Returns Data
+When `webSearchTool` finds a webpage, it returns structured data matching your artifact schema.
 
-When an agent uses a tool or delegates to another agent:
+### 2. Artifact Gets Created
+The framework automatically creates an artifact with:
+- **Summary**: Title and URL (quick reference)
+- **Full details**: Complete content, author, date (stored for later)
 
-1. The tool/agent processes the request and returns a response
-2. The response is automatically parsed according to the artifact component schema
-3. An artifact is created containing the parsed information
-4. The artifact is associated with any data components (facts, clarifying questions, etc.) that use this information
+### 3. Agent References Artifact
+The agent can mention the artifact in its response: "I found this information about AI trends [artifact-123]"
 
-## Using Artifacts with Data Components
+### 4. Other Agents Access Artifacts
+Other agents in the same graph can see and use these artifacts in their own responses.
 
-Artifacts work hand-in-hand with data components to maintain traceability. For example:
+## Complete Example: Research and Writing
 
-1. An agent uses a tool to fetch information
-2. The response is automatically captured as an artifact
-3. The agent creates a fact component using this information
-4. The artifact is automatically linked to the fact component
-
-This creates a clear chain of evidence showing where each piece of information originated.
-
-## Example Flow
+Here's how two agents can work together using artifacts:
 
 ```typescript
-// Example of how artifacts are created and used
-const factsAgent = agent({
-  id: "facts",
-  canUse: () => [inkeepFactsTool],
-  prompt: "Use the inkeepFactsTool to fetch information and create a fact component followed by an artifact component.",
+// Agent 1: Finds information and creates artifacts
+const researchAgent = agent({
+  id: "researcher", 
+  name: "Research Agent",
+  prompt: "Search for information and save sources as artifacts",
+  
+  canUse: () => [webSearchTool],
+  
   artifactComponents: [
     {
-      id: "document-artifact",
-      // ... artifact schema definition
-    },
-  ],
-  dataComponents: [
-    {
-      id: "fact",
-      // ... fact component definition that will be linked to artifacts
+      id: "source",
+      name: "Source",
+      description: "Research source with citation info",
+      summaryProps: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          url: { type: "string" },
+          relevance: { type: "string", enum: ["high", "medium", "low"] },
+        },
+        required: ["title", "url", "relevance"],
+      },
+      fullProps: {
+        type: "object",
+        properties: {
+          content: { type: "string", description: "Full article text" },
+          key_points: { 
+            type: "array", 
+            items: { type: "string" },
+            description: "Main points from the article"
+          },
+        },
+        required: ["content"],
+      },
     },
   ],
 });
+
+// Agent 2: Uses artifacts from research agent to write reports  
+const writerAgent = agent({
+  id: "writer",
+  name: "Writing Agent", 
+  prompt: "Write reports using sources found by the research agent. Include citations.",
+  
+  // Same artifact component - can access artifacts created by research agent
+  artifactComponents: [
+    {
+      id: "source", // Same ID as research agent
+      name: "Source",
+      description: "Research source with citation info",
+      // ... same schema as above
+    },
+  ],
+});
+
+// Graph connecting the agents
+export const researchGraph = agentGraph({
+  id: "research-graph",
+  agents: () => [researchAgent, writerAgent],
+  defaultAgent: researchAgent,
+});
+
+// Allow research agent to delegate to writer
+researchAgent.config.canDelegateTo = () => [writerAgent];
 ```
 
-In this example, when the `facts_tool` is used:
+## Usage Flow
 
-1. The tool returns information
-2. An artifact is automatically created with the response
-3. The agent can create fact components using this information
-4. The facts are automatically linked to their source artifacts
+1. **User**: "Write a report about renewable energy trends"
+
+2. **Research Agent**: 
+   - Uses `webSearchTool` to find articles
+   - Creates artifacts for each source found
+   - Delegates to writing agent: "I found 3 good sources about renewable energy. Please write a report."
+
+3. **Writing Agent**:
+   - Sees artifacts created by research agent in its context
+   - Writes report referencing the artifacts: "According to recent research [source-1], solar adoption has increased..."
+
+4. **User gets**: A complete report with proper citations, where each citation links to the full source content.
+
+## Key Points
+
+- **Shared**: Artifacts are shared across all agents in the same graph
+- **Automatic**: Created automatically when tools return matching data
+- **Structured**: Use JSON schema to define what data to capture
+- **Traceable**: Every piece of information can be traced back to its source
