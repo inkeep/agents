@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-api
 
+## 0.8.5
+
+### Patch Changes
+
+- 1e7cd99: fixes optional DB_FILE_NAME
+  - @inkeep/agents-core@0.8.5
+
 ## 0.8.4
 
 ### Patch Changes
