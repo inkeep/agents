@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.8.4
+
+### Patch Changes
+
+- 9eebd7f: External Agent UI Enhancements
+
 ## 0.8.3
 
 ## 0.8.2

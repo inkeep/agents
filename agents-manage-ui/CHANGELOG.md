@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.8.4
+
+### Patch Changes
+
+- 9eebd7f: External Agent UI Enhancements
+- Updated dependencies [9eebd7f]
+  - @inkeep/agents-core@0.8.4
+  - @inkeep/agents-manage-api@0.8.4
+  - @inkeep/agents-run-api@0.8.4
+
 ## 0.8.3
 
 ### Patch Changes
