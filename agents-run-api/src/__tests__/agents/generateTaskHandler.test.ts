@@ -5,10 +5,10 @@ import {
   createTaskHandler,
   createTaskHandlerConfig,
   deserializeTaskHandlerConfig,
-  parseEmbeddedJson,
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../agents/generateTaskHandler';
+import { parseEmbeddedJson } from '../../utils/json-parser';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {

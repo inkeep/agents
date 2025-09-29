@@ -1,4 +1,3 @@
-
 export interface InkeepConfig {
   tenantId: string;
   agentsManageApiUrl: string;

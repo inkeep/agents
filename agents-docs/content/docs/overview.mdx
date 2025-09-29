@@ -4,20 +4,32 @@ sidebarTitle: Overview
 icon: "LuBookOpen"
 ---
 
-With Inkeep, you can create and manage Agents with a **No-Code Visual Builder** or a **TypeScript Developer SDK**. With the **2-way sync**, both technical and non-technical teams can create and edit Agents collaboratively in either format.
+With Inkeep, you can create and manage Agents with a **No-Code Visual Builder** or a **TypeScript Developer SDK**. With **full 2-way sync**, both technical and non-technical teams can create and edit Agents collaboratively in either format.
 
-Inkeep Agents can get work done as:
-- A **Customer-facing Agent** that you embed as an support assistant in your help center, copilot in your app, or chatbot on your marketing site.
-- An **Internal Agent** accessible from Slack, Zendesk, Claude, ChatGPT, Cursor, and other apps your team uses.
+Inkeep Agents are often rolled out as:
+- A **Customer-facing Agent** that you embed as a support assistant in your help center, copilot in your app, or chatbot on your marketing site.
+- An **Internal Agent** accessible from Slack, Zendesk, Claude, ChatGPT, Cursor, and other apps your teams uses.
 - A **Workflow Agent** used to automate repetitive tasks at scale, like updating docs, creating blog posts, summarizing sales calls, and more.
 
-Agents are flexible and customizable - they can take on the role you need them to. All powered by the same knowledge of your product and company, and with access to tools that integrate with your systems so they can take action.
+Agents are flexible and customizable - they can take on the role you need them with access to tools that integrate with your systems so they can take action.
 
-To get started, you can try the **open-source** edition (this docs site), or to learn about Inkeep Cloud and Managed Agents for Customer Experience, see [here](https://inkeep.com/get-started).
+## Inkeep Open Source
 
-## Two ways to build your agents
+Inkeep **Open Source** (this docs site) includes:
+- A Visual Builder & TypeScript SDK with 2-way sync
+- Multi-Agent Architecture (Teams of Agents)
+- MCP Tools with Credential Management
+- A Chat UI Component Library
+- Chat with Agents in MCP, A2A, or Vercel SDK formats
+- Observability via Traces UI & OpenTelemetry
 
-1. **Agent Visual Builder**: A no-code interface designed to let both technical and non-technical teams create and manage agents.
+For cloud hosting, managed data connectors & RAG, integration with Slack and support platforms, and more, learn about [Inkeep Cloud](https://inkeep.com/get-started).
+
+## Two ways to build Agents
+
+### No-Code Visual Builder
+
+A no-code interface designed to let both technical and non-technical teams create and manage agents.
 
 <img
   src="/gifs/visual-builder.gif"
@@ -26,7 +38,9 @@ To get started, you can try the **open-source** edition (this docs site), or to 
   style={{ borderRadius: "10px" }}
 />
 
-2. **TypeScript Agents SDK**: A code-first approach for building and managing agents and multi-agent systems, allowing you to build complex agent systems with the tools your engineering team expects.
+### TypeScript Agents SDK
+
+A code-first approach for building and managing agents and multi-agent systems, allowing you to build complex agent systems with the tools your engineering team expects.
 
    ```typescript
    import { agent, agentGraph } from "@inkeep/agents-sdk";

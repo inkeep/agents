@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "77dc6bf8-47c3-4632-a7db-91aeb7261a44",
+  "id": "34699ad1-ce8d-44a7-a838-12b0cec48569",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -503,6 +503,13 @@
         },
         "selected_tools": {
           "name": "selected_tools",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "headers": {
+          "name": "headers",
           "type": "blob",
           "primaryKey": false,
           "notNull": false,
@@ -1654,6 +1661,13 @@
           "name": "task_id",
           "type": "text",
           "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tool_call_id": {
+          "name": "tool_call_id",
+          "type": "text",
+          "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
@@ -1772,13 +1786,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "ledger_artifacts_tenant_id_project_id_id_pk": {
+        "ledger_artifacts_tenant_id_project_id_id_task_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
-            "id"
+            "id",
+            "task_id"
           ],
-          "name": "ledger_artifacts_tenant_id_project_id_id_pk"
+          "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk"
         }
       },
       "uniqueConstraints": {},

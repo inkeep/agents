@@ -1,7 +1,8 @@
-import type { ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
+import type { ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
+import { SchemaProcessor } from './SchemaProcessor';
 
 const _logger = getLogger('ArtifactComponentSchema');
 
@@ -104,15 +105,15 @@ export class ArtifactReferenceSchema {
       artifact_id: {
         type: 'string',
         description:
-          'The EXACT artifact_id from save_tool_result tool output. NEVER invent or make up IDs.',
+          'The artifact_id from your artifact:create tag. Must match exactly.',
       },
-      task_id: {
+      tool_call_id: {
         type: 'string',
         description:
-          'The EXACT task_id from save_tool_result tool output. NEVER invent or make up IDs.',
+          'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
       },
     },
-    required: ['artifact_id', 'task_id'],
+    required: ['artifact_id', 'tool_call_id'],
   };
 
   /**
@@ -131,13 +132,115 @@ export class ArtifactReferenceSchema {
    */
   static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
     return {
-      id: 'The EXACT artifact_id from save_tool_result tool output. NEVER invent or make up IDs.',
+      id: 'The artifact_id from your artifact:create tag. Must match exactly.',
       tenantId: tenantId,
       projectId: projectId,
       name: 'Artifact',
       description:
-        'Reference to saved content from tool results that grounds information in verifiable sources.',
+        'Reference to artifacts created from tool results that grounds information in verifiable sources.',
       props: ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA,
     };
+  }
+}
+
+/**
+ * Standard artifact creation component schema for data components
+ */
+export class ArtifactCreateSchema {
+  /**
+   * Generate artifact create schemas - one for each artifact component type
+   * @param artifactComponents - The available artifact components to generate schemas for
+   * @returns Array of Zod schemas, one for each artifact component
+   */
+  static getSchemas(artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>): z.ZodType<any>[] {
+    return artifactComponents.map(component => {
+      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
+      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
+      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+
+      const propsSchema = {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+          },
+          tool_call_id: {
+            type: 'string',
+            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+          },
+          type: {
+            type: 'string',
+            enum: [component.name],
+            description: `Artifact type - must be "${component.name}"`,
+          },
+          base_selector: {
+            type: 'string',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+          },
+          summary_props: enhancedSummaryProps,
+          full_props: enhancedFullProps,
+        },
+        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+      };
+
+      return z.object({
+        id: z.string(),
+        name: z.literal(`ArtifactCreate_${component.name}`),
+        props: jsonSchemaToZod(propsSchema),
+      });
+    });
+  }
+
+  /**
+   * Get DataComponents for artifact creation - one for each artifact component type
+   * @param artifactComponents - The available artifact components to generate schemas for
+   * @returns Array of DataComponent definitions, one for each artifact component
+   */
+  static getDataComponents(
+    tenantId: string,
+    projectId: string = '',
+    artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
+  ): DataComponentInsert[] {
+    return artifactComponents.map(component => {
+      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
+      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
+      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+
+      const propsSchema = {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+          },
+          tool_call_id: {
+            type: 'string',
+            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+          },
+          type: {
+            type: 'string',
+            enum: [component.name],
+            description: `Artifact type - must be "${component.name}"`,
+          },
+          base_selector: {
+            type: 'string',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+          },
+          summary_props: enhancedSummaryProps,
+          full_props: enhancedFullProps,
+        },
+        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+      };
+
+      return {
+        id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
+        tenantId: tenantId,
+        projectId: projectId,
+        name: `ArtifactCreate_${component.name}`,
+        description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
+        props: propsSchema,
+      };
+    });
   }
 }

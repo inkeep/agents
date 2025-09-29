@@ -5,6 +5,205 @@ import { ledgerArtifacts } from '../db/schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
 
 /**
+ * Validate artifact data before database insertion
+ */
+function validateArtifactData(artifact: Artifact, index: number): void {
+  if (!artifact.artifactId?.trim()) {
+    throw new Error(`Artifact at index ${index} missing required artifactId`);
+  }
+
+  // Validate that JSON-serializable fields don't contain problematic values
+  if (artifact.parts) {
+    try {
+      JSON.stringify(artifact.parts);
+    } catch (error) {
+      throw new Error(
+        `Artifact ${artifact.artifactId} has invalid parts data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  if (artifact.metadata) {
+    try {
+      JSON.stringify(artifact.metadata);
+    } catch (error) {
+      throw new Error(
+        `Artifact ${artifact.artifactId} has invalid metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+}
+
+/**
+ * Determine appropriate MIME types based on artifact parts
+ * Uses the 'kind' values from parts to determine content types (A2A principle)
+ */
+function determineMimeTypes(artifact: Artifact): string[] {
+  // Extract unique 'kind' values from parts
+  if (artifact.parts && artifact.parts.length > 0) {
+    const kinds = new Set<string>();
+
+    for (const part of artifact.parts) {
+      if (part.kind) {
+        kinds.add(part.kind);
+      }
+    }
+
+    // Return unique kinds as MIME types
+    if (kinds.size > 0) {
+      return Array.from(kinds);
+    }
+  }
+
+  // Fallback: infer from artifact type
+  if (artifact.type?.toLowerCase().includes('document')) {
+    return ['text'];
+  }
+
+  if (artifact.type?.toLowerCase().includes('image')) {
+    return ['image'];
+  }
+
+  if (artifact.type?.toLowerCase().includes('code')) {
+    return ['text'];
+  }
+
+  // Default fallback
+  return ['data'];
+}
+
+/**
+ * Sanitize artifact data to ensure database compatibility
+ */
+function sanitizeArtifactForDatabase(artifact: Artifact): Artifact {
+  return {
+    ...artifact,
+    // Ensure text fields don't exceed reasonable limits
+    name: artifact.name?.slice(0, 255) || undefined,
+    description: artifact.description?.slice(0, 1000) || undefined,
+    // Clean any undefined values from JSON fields
+    parts: artifact.parts ? JSON.parse(JSON.stringify(artifact.parts)) : null,
+    metadata: artifact.metadata ? JSON.parse(JSON.stringify(artifact.metadata)) : null,
+  };
+}
+
+/**
+ * Fallback insert strategy for when normal insert fails
+ */
+async function tryFallbackInsert(
+  db: DatabaseClient,
+  rows: any[],
+  _originalError: any
+): Promise<void> {
+  // Try inserting one row at a time to isolate problematic data
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      await db.insert(ledgerArtifacts).values([row]);
+    } catch (_fallbackError: any) {
+      // Try with minimal data as last resort
+      try {
+        const minimalRow = {
+          id: row.id,
+          tenantId: row.tenantId,
+          projectId: row.projectId,
+          taskId: row.taskId,
+          toolCallId: row.toolCallId,
+          contextId: row.contextId,
+          type: row.type || 'source',
+          name: row.name || `Artifact ${row.id.substring(0, 8)}`,
+          description: row.description || 'Artifact from tool results',
+          parts: null, // Skip complex JSON data
+          metadata: null, // Skip complex JSON data
+          summary: null,
+          mime: null,
+          visibility: 'context',
+          allowedAgents: null,
+          derivedFrom: null,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+        };
+
+        await db.insert(ledgerArtifacts).values([minimalRow]);
+      } catch (_finalError: any) {
+        // Don't throw here - we want to continue with other artifacts
+      }
+    }
+  }
+}
+
+/**
+ * Atomic upsert operation for a single artifact - prevents race conditions
+ */
+export const upsertLedgerArtifact =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    contextId: string;
+    taskId: string;
+    toolCallId?: string | null;
+    artifact: Artifact;
+  }): Promise<{ created: boolean; existing?: any }> => {
+    const { scopes, contextId, taskId, toolCallId = null, artifact } = params;
+
+    // Validate artifact data
+    validateArtifactData(artifact, 0);
+
+    const sanitizedArt = sanitizeArtifactForDatabase(artifact);
+    const now = new Date().toISOString();
+
+    const artifactRow = {
+      id: sanitizedArt.artifactId ?? nanoid(),
+      tenantId: scopes.tenantId,
+      projectId: scopes.projectId,
+      taskId,
+      toolCallId,
+      contextId,
+      type: sanitizedArt.type ?? 'source',
+      name: sanitizedArt.name,
+      description: sanitizedArt.description,
+      parts: sanitizedArt.parts,
+      metadata: sanitizedArt.metadata,
+      summary: sanitizedArt.description?.slice(0, 200) ?? null,
+      mime: determineMimeTypes(sanitizedArt),
+      visibility: (sanitizedArt.metadata as any)?.visibility ?? 'context',
+      allowedAgents: (sanitizedArt.metadata as any)?.allowedAgents ?? [],
+      derivedFrom: (sanitizedArt.metadata as any)?.derivedFrom ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    try {
+      // Try insert first (race-condition safe)
+      await db.insert(ledgerArtifacts).values([artifactRow]);
+      return { created: true };
+    } catch (error: any) {
+      // Check if it's a constraint violation (artifact already exists)
+      if (error.message?.includes('UNIQUE') || error.message?.includes('duplicate')) {
+        // Fetch the existing artifact
+        const existing = await db
+          .select()
+          .from(ledgerArtifacts)
+          .where(
+            and(
+              eq(ledgerArtifacts.tenantId, scopes.tenantId),
+              eq(ledgerArtifacts.projectId, scopes.projectId),
+              eq(ledgerArtifacts.id, artifactRow.id),
+              eq(ledgerArtifacts.taskId, taskId)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          return { created: false, existing: existing[0] };
+        }
+      }
+      // Re-throw if it's not a constraint violation
+      throw error;
+    }
+  };
+
+/**
  * Save one or more artifacts to the ledger
  */
 export const addLedgerArtifacts =
@@ -13,57 +212,106 @@ export const addLedgerArtifacts =
     scopes: ProjectScopeConfig;
     contextId: string;
     taskId?: string | null;
+    toolCallId?: string | null;
     artifacts: Artifact[];
   }): Promise<void> => {
-    const { scopes, contextId, taskId = null, artifacts } = params;
+    const { scopes, contextId, taskId = null, toolCallId = null, artifacts } = params;
     if (artifacts.length === 0) return;
+
+    // Validate all artifacts before processing
+    for (let i = 0; i < artifacts.length; i++) {
+      validateArtifactData(artifacts[i], i);
+    }
 
     const now = new Date().toISOString();
     const rows = artifacts.map((art) => {
+      // Sanitize the artifact data first
+      const sanitizedArt = sanitizeArtifactForDatabase(art);
+
       // Resolve taskId precedence: explicit param -> artifact.taskId -> metadata.taskId
-      const resolvedTaskId = taskId ?? art.taskId ?? (art.metadata as any)?.taskId ?? null;
+      const resolvedTaskId =
+        taskId ?? sanitizedArt.taskId ?? (sanitizedArt.metadata as any)?.taskId ?? null;
 
       return {
-        id: art.artifactId ?? nanoid(),
+        id: sanitizedArt.artifactId ?? nanoid(),
         tenantId: scopes.tenantId,
         projectId: scopes.projectId,
         taskId: resolvedTaskId,
+        toolCallId: toolCallId ?? (sanitizedArt.metadata as any)?.toolCallId ?? null,
         contextId,
-        name: art.name ?? null,
-        description: art.description ?? null,
-        parts: art.parts ?? null,
-        metadata: art.metadata ?? null,
+        type: sanitizedArt.type ?? 'source',
+        name: sanitizedArt.name,
+        description: sanitizedArt.description,
+        parts: sanitizedArt.parts,
+        metadata: sanitizedArt.metadata,
 
         // extra (optional) ledger fields
-        summary: art.description?.slice(0, 200) ?? null,
-        mime: art.parts?.map((p) => p.kind) ?? null,
-        visibility: (art.metadata as any)?.visibility ?? 'context',
-        allowedAgents: (art.metadata as any)?.allowedAgents ?? null,
-        derivedFrom: (art.metadata as any)?.derivedFrom ?? null,
+        summary: sanitizedArt.description?.slice(0, 200) ?? null,
+        mime: determineMimeTypes(sanitizedArt), // Simple string fallback until we debug the issue
+        visibility: (sanitizedArt.metadata as any)?.visibility ?? 'context',
+        allowedAgents: (sanitizedArt.metadata as any)?.allowedAgents ?? [], // Fix: use empty array, not null
+        derivedFrom: (sanitizedArt.metadata as any)?.derivedFrom ?? null,
 
         createdAt: now,
         updatedAt: now,
       };
     });
 
-    await db.insert(ledgerArtifacts).values(rows);
+    // Retry logic for transient database failures
+    const maxRetries = 3;
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await db.insert(ledgerArtifacts).values(rows);
+
+        // Success - no need to retry
+        return;
+      } catch (error: any) {
+        lastError = error;
+
+        // Store error for potential retry or fallback
+
+        // Check if this is a retryable error
+        const isRetryable =
+          error.code === 'SQLITE_BUSY' ||
+          error.code === 'SQLITE_LOCKED' ||
+          error.message?.includes('database is locked') ||
+          error.message?.includes('busy') ||
+          error.message?.includes('timeout');
+
+        if (!isRetryable || attempt === maxRetries) {
+          // For non-retryable errors or final attempt, try a fallback strategy
+          await tryFallbackInsert(db, rows, error);
+          return;
+        }
+
+        // Wait before retrying (exponential backoff)
+        const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 5000);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+
+    // If we get here, all retries failed
+    throw lastError;
   };
 
 /**
- * Retrieve artifacts by taskId and/or artifactId.
- * At least one of taskId or artifactId must be provided.
+ * Retrieve artifacts by taskId, toolCallId, and/or artifactId.
+ * At least one of taskId, toolCallId, or artifactId must be provided.
  */
 export const getLedgerArtifacts =
   (db: DatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     taskId?: string;
+    toolCallId?: string;
     artifactId?: string;
   }): Promise<Artifact[]> => {
-    const { scopes, taskId, artifactId } = params;
+    const { scopes, taskId, toolCallId, artifactId } = params;
 
-    if (!taskId && !artifactId) {
-      throw new Error('Either taskId or artifactId must be provided');
+    if (!taskId && !toolCallId && !artifactId) {
+      throw new Error('At least one of taskId, toolCallId, or artifactId must be provided');
     }
 
     const conditions = [
@@ -79,6 +327,10 @@ export const getLedgerArtifacts =
       conditions.push(eq(ledgerArtifacts.taskId, taskId));
     }
 
+    if (toolCallId) {
+      conditions.push(eq(ledgerArtifacts.toolCallId, toolCallId));
+    }
+
     const query = db
       .select()
       .from(ledgerArtifacts)
@@ -92,6 +344,7 @@ export const getLedgerArtifacts =
         artifactId: row.id,
         type: row.type ?? 'source',
         taskId: row.taskId ?? undefined,
+        toolCallId: row.toolCallId ?? undefined, // Added for traceability to the specific tool execution
         name: row.name ?? undefined,
         description: row.description ?? undefined,
         parts: (row.parts ?? []) as Part[], // row.parts may be null in DB

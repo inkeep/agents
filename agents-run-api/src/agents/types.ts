@@ -17,6 +17,7 @@ export interface SystemPromptV1 {
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
+  hasGraphArtifactComponents?: boolean; // Whether any agent in the graph has artifact components
   isThinkingPreparation?: boolean; // Flag for thinking/preparation mode (first pass of 2-phase generation)
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities

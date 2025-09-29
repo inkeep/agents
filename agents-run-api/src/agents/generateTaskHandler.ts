@@ -13,27 +13,14 @@ import {
   type Part,
   TaskState,
 } from '@inkeep/agents-core';
-import destr from 'destr'; // safe JSON.parse-if-JSON
 import { nanoid } from 'nanoid';
-import traverse from 'traverse'; // tiny object walker
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
-
-/** Turn any string value that is valid JSON into an object/array (in place). */
-export function parseEmbeddedJson<T>(data: T): T {
-  return traverse(data).map(function (x) {
-    if (typeof x === 'string') {
-      const v = destr(x); // returns original string if not JSON
-      if (v !== x && (Array.isArray(v) || (v && typeof v === 'object'))) {
-        this.update(v); // replace the string with the parsed value
-      }
-    }
-  });
-}
+import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
 
@@ -290,6 +277,18 @@ export const createTaskHandler = (
           { agentId: config.agentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
+
+        // Ensure ToolSession exists for delegated agents
+        // Use streamRequestId as sessionId to match the parent GraphSession
+        if (streamRequestId && config.tenantId && config.projectId) {
+          toolSessionManager.ensureGraphSession(
+            streamRequestId,
+            config.tenantId,
+            config.projectId,
+            contextId,
+            task.id
+          );
+        }
       }
 
       const response = await agent.generate(userMessage, {

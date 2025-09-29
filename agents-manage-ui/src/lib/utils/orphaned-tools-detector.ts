@@ -34,7 +34,7 @@ export function detectOrphanedToolsAndGetWarning(
  * This replaces the duplicated logic between detector and MCP node editor
  */
 export function getCurrentSelectedToolsForNode(
-  node: Node<MCPNodeData>,
+  node: { data: MCPNodeData },
   selectedToolsLookup: Record<string, Record<string, string[]>>
 ): string[] | null {
   // First check if we have temporary selections stored on the node (from recent clicks)

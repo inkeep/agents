@@ -20,7 +20,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/graph/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/graph/commands/commands';
-import { deserializeGraphData, serializeGraphData } from '@/features/graph/domain';
+import {
+  deserializeGraphData,
+  type ExtendedFullGraphDefinition,
+  extractGraphMetadata,
+  serializeGraphData,
+} from '@/features/graph/domain';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useGraphShortcuts } from '@/features/graph/ui/use-graph-shortcuts';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
@@ -28,14 +33,43 @@ import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { saveGraph } from '@/lib/services/save-graph';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
 import type { MCPTool } from '@/lib/types/tools';
-import { formatJsonField } from '@/lib/utils';
 import { getErrorSummaryMessage, parseGraphValidationErrors } from '@/lib/utils/graph-error-parser';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+
+// Type for agent tool configuration lookup including both selection and headers
+export type AgentToolConfig = {
+  toolSelection?: string[];
+  headers?: Record<string, string>;
+};
+
+export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
+
+// Utility function to derive selectedToolsLookup from agentToolConfigLookup
+export function getSelectedToolsLookup(
+  agentToolConfigLookup: AgentToolConfigLookup
+): Record<string, Record<string, string[]>> {
+  const selectedToolsLookup: Record<string, Record<string, string[]>> = {};
+
+  Object.entries(agentToolConfigLookup).forEach(([agentId, toolsMap]) => {
+    const selectedToolsMap: Record<string, string[]> = {};
+
+    Object.entries(toolsMap).forEach(([toolId, config]) => {
+      if (config.toolSelection) {
+        selectedToolsMap[toolId] = config.toolSelection;
+      }
+    });
+
+    if (Object.keys(selectedToolsMap).length > 0) {
+      selectedToolsLookup[agentId] = selectedToolsMap;
+    }
+  });
+
+  return selectedToolsLookup;
+}
+
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
-import type { ContextConfig } from './configuration/graph-types';
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
@@ -59,12 +93,7 @@ function getEdgeId(a: string, b: string) {
 }
 
 interface GraphProps {
-  graph?: FullGraphDefinition & {
-    contextConfig?: Partial<Pick<ContextConfig, 'id' | 'name' | 'description'>> & {
-      contextVariables?: Record<string, any>;
-      requestContextSchema?: Record<string, any>;
-    };
-  };
+  graph?: ExtendedFullGraphDefinition;
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
@@ -134,17 +163,28 @@ function Flow({
     };
   }, [graph, enrichNodes, initialNodes]);
 
-  // Create selectedTools lookup from graph data
-  const selectedToolsLookup = useMemo((): Record<string, Record<string, string[]>> => {
-    if (!graph?.agents) return {} as Record<string, Record<string, string[]>>;
+  // Create agent tool configuration lookup from graph data
+  const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
+    if (!graph?.agents) return {} as AgentToolConfigLookup;
 
-    const lookup: Record<string, Record<string, string[]>> = {};
+    const lookup: AgentToolConfigLookup = {};
     Object.entries(graph.agents).forEach(([agentId, agentData]) => {
       if ('canUse' in agentData && agentData.canUse) {
-        const toolsMap: Record<string, string[]> = {};
+        const toolsMap: Record<string, AgentToolConfig> = {};
         agentData.canUse.forEach((tool) => {
+          const config: AgentToolConfig = {};
+
           if (tool.toolSelection) {
-            toolsMap[tool.toolId] = tool.toolSelection;
+            config.toolSelection = tool.toolSelection;
+          }
+
+          if (tool.headers) {
+            config.headers = tool.headers;
+          }
+
+          // Only add to map if we have either toolSelection or headers
+          if (config.toolSelection || config.headers) {
+            toolsMap[tool.toolId] = config;
           }
         });
         if (Object.keys(toolsMap).length > 0) {
@@ -169,6 +209,7 @@ function Flow({
     markSaved,
     clearSelection,
     markUnsaved,
+    selectedToolsLookup,
   } = useGraphStore();
 
   // Always use enriched nodes for ReactFlow
@@ -181,50 +222,11 @@ function Flow({
     setInitial(
       graphNodes,
       graphEdges,
-      {
-        id: graph?.id,
-        name: graph?.name ?? '',
-        description: graph?.description ?? '',
-        graphPrompt: graph?.graphPrompt,
-        models: graph?.models
-          ? {
-              base: graph.models.base
-                ? {
-                    model: graph.models.base.model,
-                    providerOptions: formatJsonField(graph.models.base.providerOptions),
-                  }
-                : undefined,
-              structuredOutput: graph.models.structuredOutput
-                ? {
-                    model: graph.models.structuredOutput.model,
-                    providerOptions: formatJsonField(graph.models.structuredOutput.providerOptions),
-                  }
-                : undefined,
-              summarizer: graph.models.summarizer
-                ? {
-                    model: graph.models.summarizer.model,
-                    providerOptions: formatJsonField(graph.models.summarizer.providerOptions),
-                  }
-                : undefined,
-            }
-          : undefined,
-        stopWhen: graph?.stopWhen,
-        statusUpdates: graph?.statusUpdates
-          ? {
-              ...graph.statusUpdates,
-              statusComponents: formatJsonField(graph.statusUpdates.statusComponents) || '',
-            }
-          : undefined,
-        contextConfig: {
-          id: graph?.contextConfig?.id ?? '',
-          name: graph?.contextConfig?.name ?? '',
-          description: graph?.contextConfig?.description ?? '',
-          contextVariables: formatJsonField(graph?.contextConfig?.contextVariables) || '',
-          requestContextSchema: formatJsonField(graph?.contextConfig?.requestContextSchema) || '',
-        },
-      },
+      extractGraphMetadata(graph),
       dataComponentLookup,
-      artifactComponentLookup
+      artifactComponentLookup,
+      toolLookup,
+      getSelectedToolsLookup(agentToolConfigLookup)
     );
   }, []);
 
@@ -504,7 +506,7 @@ function Flow({
       metadata,
       dataComponentLookup,
       artifactComponentLookup,
-      selectedToolsLookup
+      agentToolConfigLookup
     );
 
     const res = await saveGraph(
@@ -555,6 +557,7 @@ function Flow({
     clearErrors,
     setErrors,
     selectedToolsLookup,
+    agentToolConfigLookup,
     toolLookup,
   ]);
 
@@ -621,8 +624,7 @@ function Flow({
         backToGraph={backToGraph}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
-        selectedToolsLookup={selectedToolsLookup}
-        toolLookup={toolLookup}
+        agentToolConfigLookup={agentToolConfigLookup}
       />
       {showPlayground && graph?.id && (
         <Playground

@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { MCPTool } from '@/lib/types/tools';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
@@ -15,6 +14,7 @@ import {
   NodeType,
   nodeTypeMap,
 } from '../configuration/node-types';
+import type { AgentToolConfigLookup } from '../graph';
 import EdgeEditor from './edges/edge-editor';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
@@ -31,8 +31,7 @@ interface SidePaneProps {
   isOpen: boolean;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
-  selectedToolsLookup: Record<string, Record<string, string[]>>;
-  toolLookup: Record<string, MCPTool>;
+  agentToolConfigLookup: AgentToolConfigLookup;
 }
 
 export function SidePane({
@@ -43,8 +42,7 @@ export function SidePane({
   isOpen,
   dataComponentLookup,
   artifactComponentLookup,
-  selectedToolsLookup,
-  toolLookup,
+  agentToolConfigLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
@@ -113,8 +111,7 @@ export function SidePane({
           return (
             <MCPServerNodeEditor
               selectedNode={selectedNode as Node<MCPNodeData>}
-              selectedToolsLookup={selectedToolsLookup}
-              toolLookup={toolLookup}
+              agentToolConfigLookup={agentToolConfigLookup}
             />
           );
         }
@@ -134,8 +131,7 @@ export function SidePane({
     hasFieldError,
     getFieldErrorMessage,
     getFirstErrorField,
-    selectedToolsLookup,
-    toolLookup,
+    agentToolConfigLookup,
   ]);
 
   const showBackButton = useMemo(() => {

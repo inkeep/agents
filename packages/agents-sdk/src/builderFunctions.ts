@@ -173,7 +173,9 @@ export function mcpServer(config: MCPServerConfig): Tool {
     activeTools: config.activeTools,
     headers: config.headers,
     imageUrl: config.imageUrl,
-    transport: config.transport ? { type: config.transport as 'streamable_http' | 'sse' } : undefined,
+    transport: config.transport
+      ? { type: config.transport as 'streamable_http' | 'sse' }
+      : undefined,
   });
 }
 /**
@@ -281,5 +283,6 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
   return {
     server: config.server,
     selectedTools: config.selectedTools,
+    headers: config.headers,
   };
 }

@@ -129,22 +129,21 @@ export const detectAuthenticationRequired = async ({
   error: Error;
   logger?: PinoLogger;
 }): Promise<boolean> => {
-  // 1. First, try OAuth 2.1/PKCE endpoint discovery (most reliable for our use case)
-  let hasOAuthEndpoints = false;
+  // 1. Primary check: OAuth 2.1/PKCE endpoint discovery (most reliable)
   try {
-    hasOAuthEndpoints = await checkForOAuthEndpoints(serverUrl, logger);
+    const hasOAuthEndpoints = await checkForOAuthEndpoints(serverUrl, logger);
     if (hasOAuthEndpoints) {
       logger?.info(
         { toolId, serverUrl },
         'OAuth 2.1/PKCE support confirmed via endpoint discovery'
       );
-      return true; // Server supports OAuth 2.1/PKCE, prioritize this
+      return true; // Server supports OAuth 2.1/PKCE
     }
   } catch (discoveryError) {
     logger?.debug({ toolId, discoveryError }, 'OAuth endpoint discovery failed');
   }
 
-  // 2. Check for 401 with OAuth-specific WWW-Authenticate header
+  // 2. Secondary check: Only for very specific OAuth patterns
   try {
     const response = await fetch(serverUrl, {
       method: 'POST',
@@ -157,40 +156,40 @@ export const detectAuthenticationRequired = async ({
       }),
     });
 
-    // Check for 401 with OAuth-specific WWW-Authenticate header
     if (response.status === 401) {
       const wwwAuth = response.headers.get('WWW-Authenticate');
-      // Only return true for OAuth-specific auth schemes (not Basic, API Key, etc.)
-      if (
-        wwwAuth &&
-        (wwwAuth.toLowerCase().includes('bearer') ||
-          wwwAuth.toLowerCase().includes('oauth') ||
-          wwwAuth.toLowerCase().includes('authorization_uri'))
-      ) {
-        logger?.info(
-          { toolId, wwwAuth },
-          'OAuth authentication detected via WWW-Authenticate header'
-        );
-        return true;
+      if (wwwAuth) {
+        // Only trigger OAuth for very specific patterns that indicate actual OAuth flows
+        const authLower = wwwAuth.toLowerCase();
+        const hasActiveOAuthFlow =
+          authLower.includes('authorization_uri') ||
+          authLower.includes('as_uri=') ||
+          (authLower.includes('bearer') &&
+            (authLower.includes('scope=') || authLower.includes('error_uri=')));
+
+        if (hasActiveOAuthFlow) {
+          logger?.info(
+            { toolId, wwwAuth },
+            'Active OAuth flow detected via WWW-Authenticate parameters'
+          );
+          return true;
+        } else {
+          logger?.debug(
+            { toolId, wwwAuth },
+            'Bearer authentication detected - likely simple token auth, not OAuth'
+          );
+        }
       }
     }
   } catch (fetchError) {
     logger?.debug({ toolId, fetchError }, 'Direct fetch authentication check failed');
   }
 
-  // 3. Check if 401 error message AND OAuth endpoints exist together
-  if (error.message.includes('401') || error.message.toLowerCase().includes('unauthorized')) {
-    if (hasOAuthEndpoints) {
-      logger?.info(
-        { toolId, error: error.message },
-        'OAuth required: 401 error + OAuth endpoints detected'
-      );
-      return true; // Only return true if BOTH 401 AND OAuth endpoints exist
-    }
-  }
-
-  // If none of the OAuth-specific checks pass, return false
-  // (This means we won't trigger OAuth flow for Basic Auth, API keys, etc.)
-  logger?.debug({ toolId, error: error.message }, 'No OAuth authentication requirement detected');
+  // If no OAuth-specific patterns are found, return false
+  // This prevents simple bearer token auth from triggering OAuth flows
+  logger?.debug(
+    { toolId, error: error.message },
+    'No OAuth 2.1/PKCE authentication requirement detected'
+  );
   return false;
 };

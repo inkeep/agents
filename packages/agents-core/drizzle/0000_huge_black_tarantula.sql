@@ -65,6 +65,7 @@ CREATE TABLE `agent_tool_relations` (
 	`id` text NOT NULL,
 	`tool_id` text NOT NULL,
 	`selected_tools` blob,
+	`headers` blob,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `id`),
@@ -219,7 +220,8 @@ CREATE TABLE `ledger_artifacts` (
 	`tenant_id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`id` text NOT NULL,
-	`task_id` text,
+	`task_id` text NOT NULL,
+	`tool_call_id` text,
 	`context_id` text NOT NULL,
 	`type` text DEFAULT 'source' NOT NULL,
 	`name` text,
@@ -233,7 +235,7 @@ CREATE TABLE `ledger_artifacts` (
 	`derived_from` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
+	PRIMARY KEY(`tenant_id`, `project_id`, `id`, `task_id`),
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint

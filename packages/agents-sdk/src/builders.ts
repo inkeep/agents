@@ -1,4 +1,4 @@
-import type { CredentialReferenceApiInsert, } from '@inkeep/agents-core';
+import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { Agent } from './agent';
 import type { Tool } from './tool';
@@ -76,7 +76,8 @@ export const TransferConfigSchema = z.object({
 
 export type AgentMcpConfig = {
   server: Tool;
-  selectedTools: string[];
+  selectedTools?: string[];
+  headers?: Record<string, string>;
 };
 // ============================================================================
 // Transfer Builders
