@@ -60,14 +60,13 @@ export function TextareaWithSuggestions() {
     return getContextSuggestions({ requestContextSchema, contextVariables });
   }, [contextConfig]);
 
-  // Which trigger are we handling? For demo, only "@" (mentions)
-  const suggestions = useMemo(() => {
-    if (!range) return [] as typeof list;
-    const token = value.slice(range.start, range.end); // e.g. "@al"
-    if (!token.startsWith('@')) return [] as typeof list;
+  // Which trigger are we handling? For demo, only "{" (mentions)
+  const suggestions = useMemo<string[]>(() => {
+    if (!range) return [];
+    const token = value.slice(range.start, range.end); // e.g. "{{foo"
+    if (!token.startsWith('{')) return [];
     const q = token.slice(1).toLowerCase();
-    const filtered = list.filter((p) => p.toLowerCase().includes(q));
-    return filtered;
+    return list.filter((p) => p.toLowerCase().includes(q));
   }, [range, value, list]);
 
   // Recompute on input, caret move, scroll, or resize
@@ -77,7 +76,7 @@ export function TextareaWithSuggestions() {
       const ta = textareaRef.current;
       if (!ta) return;
       const caret = ta.selectionStart ?? 0;
-      const tokenInfo = getTriggerToken(value, caret, ['@']); // only @ for this demo
+      const tokenInfo = getTriggerToken(value, caret, ['{']); // only { for this demo
       if (!tokenInfo) {
         setOpen(false);
         setRange(null);
@@ -120,7 +119,7 @@ export function TextareaWithSuggestions() {
 
   const onSelect = (item: string) => {
     if (!range) return;
-    const replacement = `@${item} `; // trailing space to finish the mention
+    const replacement = `{${item} `; // trailing space to finish the mention
     const { next, nextCaret } = replaceRange(value, range.start, range.end, replacement);
     setValue(next);
     requestAnimationFrame(() => {
@@ -159,7 +158,7 @@ export function TextareaWithSuggestions() {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Try typing: @di"
+        placeholder="Try typing: {{req"
         className="min-h-[140px] pr-10"
       />
 
@@ -197,8 +196,8 @@ export function TextareaWithSuggestions() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Tips: Type <kbd className="rounded border bg-muted px-1">@</kbd> to open the list, use ↑/↓
-        to navigate, <kbd className="rounded border bg-muted px-1">Enter</kbd> to insert, and{' '}
+        Tips: Type <kbd className="rounded border bg-muted px-1">&#123;</kbd> to open the list, use
+        ↑/↓ to navigate, <kbd className="rounded border bg-muted px-1">Enter</kbd> to insert, and{' '}
         <kbd className="rounded border bg-muted px-1">Esc</kbd> to close.
       </p>
     </div>
