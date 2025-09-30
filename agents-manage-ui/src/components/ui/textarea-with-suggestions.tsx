@@ -24,6 +24,12 @@ function getTriggerToken(text: string, caret: number, triggers = ['@', '/', '#']
 
   // Check for single or double brace triggers
   if (token.startsWith('{')) {
+    // Don't trigger if we're inside a complete variable expression like {{variable}}
+    // Check if the token looks like a complete variable (starts with {{ and ends with }})
+    if (token.startsWith('{{') && token.endsWith('}}') && token.length > 4) {
+      return null; // Don't trigger inside complete variables
+    }
+    
     return {
       token,
       start,
@@ -136,16 +142,8 @@ export function TextareaWithSuggestions() {
   const onSelect = (item: string) => {
     if (!range) return;
 
-    // Determine if we started with single or double braces
-    const token = textareaRef.current.value.slice(range.start, range.end);
-    console.log({ token });
-    let replacement = '';
-
-    if (token.startsWith('{{')) {
-      replacement = `{{${item}}}`; // Wrap in double braces
-    } else if (token.startsWith('{')) {
-      replacement = `{${item}}`; // Wrap in single braces
-    }
+    // Always use double braces for variables
+    const replacement = `{{${item}}}`;
 
     const { next, nextCaret } = replaceRange(
       textareaRef.current.value,
@@ -157,13 +155,15 @@ export function TextareaWithSuggestions() {
     // Update the textarea value
     textareaRef.current.value = next;
 
+    // Close dropdown immediately
+    setOpen(false);
+    setRange(null);
+
     requestAnimationFrame(() => {
       const ta = textareaRef.current;
       ta.focus();
       ta.setSelectionRange(nextCaret, nextCaret);
     });
-    setOpen(false);
-    setRange(null);
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
@@ -197,13 +197,14 @@ export function TextareaWithSuggestions() {
       setRange(null);
     }
   };
+  console.log({ open, anchor });
 
   return (
     <div className="relative max-w-2xl space-y-2">
       <Textarea
         ref={textareaRef}
         onKeyDown={handleKeyDown}
-        placeholder="Try typing: {req"
+        placeholder="Try typing: {{req"
         className="min-h-[140px] pr-10"
       />
 
@@ -236,7 +237,8 @@ export function TextareaWithSuggestions() {
       <p className="text-xs text-muted-foreground">
         Tips: Type <kbd className="rounded border bg-muted px-1">&#123;</kbd> or{' '}
         <kbd className="rounded border bg-muted px-1">&#123;&#123;</kbd> to open the list, use ↑/↓
-        to navigate, <kbd className="rounded border bg-muted px-1">Enter</kbd> to insert, and{' '}
+        to navigate, <kbd className="rounded border bg-muted px-1">Enter</kbd> to insert as{' '}
+        <code>&#123;&#123;variable&#125;&#125;</code>, and{' '}
         <kbd className="rounded border bg-muted px-1">Esc</kbd> to close.
       </p>
     </div>
