@@ -133,6 +133,8 @@ export interface ConversationDetail {
   graphId?: string;
   graphName?: string;
   spansWithErrorsCount?: number;
+  errorCount?: number;
+  warningCount?: number;
   allSpanAttributes?: Array<{
     spanId: string;
     traceId: string;

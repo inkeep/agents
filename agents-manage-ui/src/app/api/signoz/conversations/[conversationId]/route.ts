@@ -410,6 +410,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SPAN_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
+            {
+              key: SPAN_KEYS.NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
           ]
         ),
 
@@ -743,6 +747,33 @@ export async function GET(
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
+
+    // Categorize spans with errors into critical errors vs warnings
+    const CRITICAL_ERROR_SPAN_NAMES = [
+      'execution_handler.execute',
+      'agent.load_tools',
+      'context.handle_context_resolution',
+      'context.resolve',
+      'agent.generate',
+      'context-resolver.resolve_single_fetch_definition',
+      'graph_session.generate_structured_update',
+      'graph_session.process_artifact',
+      'graph_session.generate_artifact_metadata',
+      'response.format_object_response',
+      'response.format_response',
+    ];
+
+    let errorCount = 0;
+    let warningCount = 0;
+
+    for (const span of spansWithErrorsList) {
+      const spanName = getString(span, SPAN_KEYS.NAME, '');
+      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
+        errorCount++;
+      } else {
+        warningCount++;
+      }
+    }
 
     let graphId: string | null = null;
     let graphName: string | null = null;
@@ -1224,6 +1255,8 @@ export async function GET(
       graphName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
+      errorCount,
+      warningCount,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');
