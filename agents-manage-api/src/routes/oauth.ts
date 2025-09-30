@@ -73,6 +73,14 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('oauth-callback');
 
+/**
+ * Extract base URL from request context
+ */
+function getBaseUrlFromRequest(c: any): string {
+  const url = new URL(c.req.url);
+  return `${url.protocol}//${url.host}`;
+}
+
 // OAuth login endpoint schema
 const OAuthLoginQuerySchema = z.object({
   tenantId: z.string().min(1, 'Tenant ID is required'),
@@ -147,11 +155,13 @@ app.openapi(
       const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
 
       // 2. Initiate OAuth flow using centralized service
+      const baseUrl = getBaseUrlFromRequest(c);
       const { redirectUrl } = await oauthService.initiateOAuthFlow({
         tool: mcpTool,
         tenantId,
         projectId,
         toolId,
+        baseUrl,
       });
 
       // 3. Immediate redirect
@@ -244,11 +254,13 @@ app.openapi(
       // Convert database result to McpTool (using helper function)
       const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
 
+      const baseUrl = getBaseUrlFromRequest(c);
       const { tokens } = await oauthService.exchangeCodeForTokens({
         code,
         codeVerifier,
         clientId,
         tool: mcpTool,
+        baseUrl,
       });
 
       logger.info(
