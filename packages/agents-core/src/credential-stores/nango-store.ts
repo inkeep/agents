@@ -1,4 +1,5 @@
 import { type AllAuthCredentials, type AuthModeType, Nango } from '@nangohq/node';
+import type { ApiKeyCredentials, ApiPublicIntegration } from '@nangohq/types';
 import { z } from 'zod';
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
@@ -73,14 +74,35 @@ export class NangoCredentialStore implements CredentialStore {
       return null;
     }
 
+    const extractAccessTokenForBearerType = (
+      tokenString: string | undefined
+    ): string | undefined => {
+      // Token is always a string, but might be a stringified JSON object
+      if (tokenString && typeof tokenString === 'string') {
+        try {
+          const parsedToken = JSON.parse(tokenString);
+          if (parsedToken.access_token && typeof parsedToken.access_token === 'string') {
+            return parsedToken.access_token;
+          }
+        } catch {}
+        return tokenString;
+      }
+
+      return undefined;
+    };
+
     switch (type) {
       case 'API_KEY':
         return {
-          token: (credentials as any).apiKey || (credentials as any).api_key,
+          token: extractAccessTokenForBearerType(
+            (credentials as any).apiKey || (credentials as any).api_key
+          ),
         };
       case 'APP':
         return {
-          token: (credentials as any).accessToken || (credentials as any).access_token,
+          token: extractAccessTokenForBearerType(
+            (credentials as any).accessToken || (credentials as any).access_token
+          ),
         };
       case 'BASIC':
         return {
@@ -91,7 +113,7 @@ export class NangoCredentialStore implements CredentialStore {
         return credentials.raw;
       case 'JWT':
         return {
-          token: credentials.token,
+          token: extractAccessTokenForBearerType(credentials.token),
         };
       case 'OAUTH1':
         return {
@@ -100,12 +122,12 @@ export class NangoCredentialStore implements CredentialStore {
         };
       case 'OAUTH2':
         return {
-          token: credentials.access_token,
+          token: extractAccessTokenForBearerType(credentials.access_token),
           refresh_token: credentials.refresh_token,
         };
       case 'OAUTH2_CC':
         return {
-          token: credentials.token,
+          token: extractAccessTokenForBearerType(credentials.token),
           client_certificate: credentials.client_certificate,
           client_id: credentials.client_id,
           client_private_key: credentials.client_private_key,
@@ -131,6 +153,166 @@ export class NangoCredentialStore implements CredentialStore {
       }
     }
     return result;
+  }
+
+  /**
+   * Fetch a specific Nango integration
+   */
+  private async fetchNangoIntegration(
+    uniqueKey: string
+  ): Promise<(ApiPublicIntegration & { areCredentialsSet: boolean }) | null> {
+    try {
+      const response = await this.nangoClient.getIntegration(
+        { uniqueKey },
+        { include: ['credentials'] }
+      );
+      const integration = response.data;
+
+      // Determine if credentials are set (server-side only)
+      let areCredentialsSet = false;
+
+      if (
+        integration.credentials?.type === 'OAUTH2' ||
+        integration.credentials?.type === 'OAUTH1' ||
+        integration.credentials?.type === 'TBA'
+      ) {
+        areCredentialsSet = !!(
+          integration.credentials?.client_id && integration.credentials?.client_secret
+        );
+      } else if (integration.credentials?.type === 'APP') {
+        areCredentialsSet = !!(
+          integration.credentials?.app_id && integration.credentials?.app_link
+        );
+      } else {
+        areCredentialsSet = true;
+      }
+
+      // Strip credentials before returning to frontend
+      const { credentials: _credentials, ...integrationWithoutCredentials } = integration;
+
+      return {
+        ...integrationWithoutCredentials,
+        areCredentialsSet,
+      };
+    } catch (error) {
+      // Check if this is a 404 (integration not found) - return null for this case
+      if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+        return null;
+      }
+
+      console.error(`Failed to fetch integration ${uniqueKey}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create an API key credential by setting up Nango integration and importing the connection
+   */
+  private async createNangoApiKeyConnection({
+    name,
+    apiKeyToSet,
+    metadata,
+  }: {
+    name: string;
+    apiKeyToSet: string;
+    metadata: Record<string, string>;
+  }): Promise<void> {
+    const provider = 'private-api-bearer';
+
+    try {
+      // Step 1: Ensure Nango integration exists
+      let integration: ApiPublicIntegration | undefined;
+
+      /*
+       * SAFE PATTERN: Optimistic creation for external API with atomic constraints
+       *
+       * This is NOT a race condition because:
+       * 1. Nango API enforces uniqueKey constraints atomically in their database
+       * 2. Multiple concurrent requests will get deterministic results:
+       *    - One request succeeds (creates the integration)
+       *    - All others get 400 duplicate error (safe to handle)
+       * 3. The fetchNangoIntegration fallback is idempotent
+       *
+       * This pattern is recommended for external APIs vs local database operations
+       * where true race conditions could occur.
+       */
+      try {
+        // Optimistic creation - assume integration doesn't exist
+        const response = await this.nangoClient.createIntegration({
+          provider,
+          unique_key: name,
+          display_name: name,
+        });
+
+        integration = response.data;
+      } catch (error: any) {
+        // Handle Nango's atomic duplicate key rejection (400 status)
+        if (
+          error.cause &&
+          typeof error.cause === 'object' &&
+          'status' in error.cause &&
+          error.cause.status === 400
+        ) {
+          // Safe fallback: fetch the existing integration (idempotent operation)
+          const existingIntegration = await this.fetchNangoIntegration(name);
+          if (existingIntegration) {
+            integration = existingIntegration;
+          } else {
+            // Edge case: 400 error wasn't about duplicate key
+            console.log(`Integration creation failed for unexpected reasons`, error);
+          }
+        } else {
+          // Non-duplicate error (network, auth, etc.)
+          console.log(`Failed to create or retrieve integration '${name}'`, error);
+        }
+      }
+
+      if (!integration) {
+        throw new Error(`Integration '${name}' not found`);
+      }
+
+      // Step 2: Import the connection to Nango
+      const importConnectionUrl = `${process.env.NANGO_SERVER_URL || 'https://api.nango.dev'}/connections`;
+
+      const credentials: ApiKeyCredentials = {
+        type: 'API_KEY',
+        apiKey: apiKeyToSet,
+      };
+
+      const body = {
+        provider_config_key: integration.unique_key,
+        connection_id: name,
+        metadata,
+        credentials,
+      };
+
+      const response = await fetch(importConnectionUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.NANGO_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to import connection: HTTP ${response.status} - ${response.statusText}`
+        );
+      }
+    } catch (error) {
+      console.error('Unexpected error creating API key credential:', error);
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          name,
+        },
+        `Unexpected error creating API key credential '${name}'`
+      );
+      throw new Error(
+        `Failed to create API key credential '${name}': ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   /**
@@ -237,8 +419,12 @@ export class NangoCredentialStore implements CredentialStore {
   /**
    * Set credentials - not supported for Nango (OAuth flow handles this)
    */
-  async set(_key: string, _value: string): Promise<void> {
-    throw new Error('Setting credentials not supported for Nango store - use OAuth flow instead');
+  async set(key: string, value: string): Promise<void> {
+    await this.createNangoApiKeyConnection({
+      name: key,
+      apiKeyToSet: value,
+      metadata: {},
+    });
   }
 
   /**

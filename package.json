@@ -77,10 +77,5 @@
   "packageManager": "pnpm@10.10.0",
   "engines": {
     "node": ">=22.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "keytar"
-    ]
   }
 }

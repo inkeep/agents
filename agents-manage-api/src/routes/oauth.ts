@@ -11,19 +11,59 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  type CredentialReferenceApiInsert,
+  CredentialReferenceApiSelectSchema,
   type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
   dbResultToMcpTool,
-  getCredentialReference,
+  getCredentialReferenceWithTools,
   getToolById,
   type ServerConfig,
-  updateCredentialReference,
   updateTool,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
+
+/**
+ * Find existing credential or create a new one (idempotent operation)
+ */
+async function findOrCreateCredential(
+  tenantId: string,
+  projectId: string,
+  credentialData: CredentialReferenceApiInsert
+) {
+  try {
+    // Try to find existing credential first
+    const existingCredential = await getCredentialReferenceWithTools(dbClient)({
+      scopes: { tenantId, projectId },
+      id: credentialData.id,
+    });
+
+    if (existingCredential) {
+      const validatedCredential = CredentialReferenceApiSelectSchema.parse(existingCredential);
+      return validatedCredential;
+    }
+  } catch {
+    // Credential not found, continue with creation
+  }
+
+  // Create new credential
+  try {
+    const credential = await createCredentialReference(dbClient)({
+      ...credentialData,
+      tenantId,
+      projectId,
+    });
+
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    return validatedCredential;
+  } catch (error) {
+    console.error('Failed to save credential to database:', error);
+    throw new Error(`Failed to save credential '${credentialData.id}' to database`);
+  }
+}
 
 type AppVariables = {
   serverConfig: ServerConfig;
@@ -131,60 +171,34 @@ app.openapi(
         'Token exchange successful'
       );
 
-      // Store access token in keychain
-      const keychainStore = credentialStores.get('keychain-default');
-      const keychainKey = `oauth_token_${toolId}`;
-      await keychainStore?.set(keychainKey, JSON.stringify(tokens));
+      // Store access token in nango
+      const nangoStore = credentialStores.get('nango-default');
+      const credentialTokenKey = `oauth_token_${toolId}`;
 
-      const credentialId = tool.name;
+      await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
 
-      const existingCredential = await getCredentialReference(dbClient)({
-        scopes: { tenantId, projectId },
-        id: credentialId,
-      });
-
-      const credentialData = {
-        type: CredentialStoreType.keychain,
-        credentialStoreId: 'keychain-default',
+      const newCredential = await findOrCreateCredential(tenantId, projectId, {
+        id: credentialTokenKey,
+        type: CredentialStoreType.nango,
+        credentialStoreId: 'nango-default',
         retrievalParams: {
-          key: keychainKey,
+          connectionId: credentialTokenKey,
+          providerConfigKey: credentialTokenKey,
+          provider: 'private-api-bearer',
+          authMode: 'API_KEY',
         },
-      };
-
-      let credential: any;
-      if (existingCredential) {
-        // Update existing credential
-        logger.info({ credentialId: existingCredential.id }, 'Updating existing credential');
-        credential = await updateCredentialReference(dbClient)({
-          scopes: { tenantId, projectId },
-          id: existingCredential.id,
-          data: credentialData,
-        });
-      } else {
-        // Create new credential
-        logger.info({ credentialId }, 'Creating new credential');
-        credential = await createCredentialReference(dbClient)({
-          tenantId,
-          projectId,
-          id: credentialId,
-          ...credentialData,
-        });
-      }
-
-      if (!credential) {
-        throw new Error('Failed to create or update credential');
-      }
+      });
 
       // Update MCP tool to link the credential
       await updateTool(dbClient)({
         scopes: { tenantId, projectId },
         toolId,
         data: {
-          credentialReferenceId: credential.id,
+          credentialReferenceId: newCredential.id,
         },
       });
 
-      logger.info({ toolId, credentialId: credential.id }, 'OAuth flow completed successfully');
+      logger.info({ toolId, credentialId: newCredential.id }, 'OAuth flow completed successfully');
 
       // Show simple success page that auto-closes the tab
       const successPage = `
