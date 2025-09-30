@@ -4,4 +4,98 @@ description: Deploy the Inkeep Agent Framework to Vercel
 icon: "LuRocket"
 ---
 
-## Coming soon
+### Prerequisites
+
+Sign up for a cloud hosted deployment for these services.
+
+1. [**Turso on Vercel Marketplace**](https://vercel.com/marketplace/tursocloud) or directly at [**Turso Cloud**](https://app.turso.tech/)
+```
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
+```
+
+2. [**SigNoz**](https://signoz.io/)
+```
+SIGNOZ_URL=
+SIGNOZ_API_KEY=
+
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
+OTEL_EXPORTER_OTLP_TRACES_HEADERS=signoz-ingestion-key=<your-ingestion-key>
+```
+
+3. [**Nango**](https://www.nango.dev/)
+```
+NANGO_SECRET_KEY=
+```
+
+### Create a GitHub repo with your project
+
+[Follow these steps in the docs](https://docs.inkeep.com/quick-start/start-development) with the `npx @inkeep/create-agents` CLI command to create a project.
+
+Then push your reposistory to GitHub.
+
+## Create Vercel projects for each service
+
+From the monorepo in GitHub, you will create three seperate projects in Vercel.
+
+### 1. Manage API
+Generate a secret using `openssl rand -hex 32` in a terminal. Keep this secret and note this for `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET`.
+
+Required environment variables for Manage API:
+```
+ENVIRONMENT=production
+
+INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
+
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
+
+NANGO_SECRET_KEY=
+NANGO_SERVER_URL=https://api.nango.dev
+```
+
+### 2. Run API
+Generate another secret using `openssl rand -hex 32` in a terminal. Keep this secret and note this for `INKEEP_AGENTS_RUN_API_BYPASS_SECRET`.
+
+Required environment variables for Run API:
+```
+ENVIRONMENT=production
+
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+
+INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
+
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
+
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
+OTEL_EXPORTER_OTLP_TRACES_HEADERS=signoz-ingestion-key=<your-ingestion-key>
+
+NANGO_SECRET_KEY=
+NANGO_SERVER_URL=https://api.nango.dev
+```
+
+### 3. Manage UI
+
+After you have deployed (1) Manage API and (2) Run API, you will have a Vercel deployment url for both of them. These will be `INKEEP_AGENTS_MANAGE_API_URL` and `INKEEP_AGENTS_RUN_API_URL`.
+
+Required environment variables for Manage UI:
+```
+ENVIRONMENT=production
+
+INKEEP_AGENTS_MANAGE_API_URL=
+INKEEP_AGENTS_RUN_API_URL=
+
+INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
+INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
+
+SIGNOZ_URL=
+SIGNOZ_API_KEY=
+
+NANGO_SECRET_KEY=
+NANGO_SERVER_URL=https://api.nango.dev
+```
+
+## Push your graph
