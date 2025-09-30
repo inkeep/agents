@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, not } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { agents, agentToolRelations, projects } from '../db/schema';
@@ -857,32 +857,46 @@ export const updateFullGraphServerSide =
       }
 
       // Delete relationships that are not in the incoming set (for agents in this graph)
+      // Use atomic deletion to avoid race conditions
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
-        const existingRelationships = await db.query.agentToolRelations.findMany({
-          where: and(
-            eq(agentToolRelations.tenantId, tenantId),
-            eq(agentToolRelations.projectId, projectId),
-            eq(agentToolRelations.graphId, finalGraphId),
-            eq(agentToolRelations.agentId, agentId)
-          ),
-          columns: { id: true },
-        });
+        try {
+          let deletedCount = 0;
 
-        for (const existingRel of existingRelationships) {
-          if (!incomingRelationshipIds.has(existingRel.id)) {
-            try {
-              await db.delete(agentToolRelations).where(eq(agentToolRelations.id, existingRel.id));
-              logger.info(
-                { agentId, relationId: existingRel.id },
-                'Deleted orphaned agent-tool relation'
+          if (incomingRelationshipIds.size === 0) {
+            // Delete all relationships for this agent if no incoming IDs
+            const result = await db
+              .delete(agentToolRelations)
+              .where(
+                and(
+                  eq(agentToolRelations.tenantId, tenantId),
+                  eq(agentToolRelations.projectId, projectId),
+                  eq(agentToolRelations.graphId, finalGraphId),
+                  eq(agentToolRelations.agentId, agentId)
+                )
               );
-            } catch (error) {
-              logger.error(
-                { agentId, relationId: existingRel.id, error },
-                'Failed to delete orphaned agent-tool relation'
+            deletedCount = result.rowsAffected || 0;
+          } else {
+            // Delete relationships not in the incoming set
+            const result = await db
+              .delete(agentToolRelations)
+              .where(
+                and(
+                  eq(agentToolRelations.tenantId, tenantId),
+                  eq(agentToolRelations.projectId, projectId),
+                  eq(agentToolRelations.graphId, finalGraphId),
+                  eq(agentToolRelations.agentId, agentId),
+                  not(inArray(agentToolRelations.id, Array.from(incomingRelationshipIds)))
+                )
               );
-            }
+            deletedCount = result.rowsAffected || 0;
           }
+
+          if (deletedCount > 0) {
+            logger.info({ agentId, deletedCount }, 'Deleted orphaned agent-tool relations');
+          }
+        } catch (error) {
+          logger.error({ agentId, error }, 'Failed to delete orphaned agent-tool relations');
+          // Don't throw - allow partial success for relations
         }
       }
 
