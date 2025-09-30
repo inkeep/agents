@@ -10,6 +10,14 @@ vi.mock('../templates');
 vi.mock('@clack/prompts');
 vi.mock('child_process');
 vi.mock('util');
+vi.mock('../errorTracking', () => ({
+  addBreadcrumb: vi.fn(),
+  captureError: vi.fn(),
+  captureMessage: vi.fn(),
+  getTelemetryConfig: vi.fn().mockReturnValue({ enabled: true, askedConsent: true }),
+  saveTelemetryConfig: vi.fn(),
+  disableTelemetry: vi.fn(),
+}));
 
 // Setup default mocks
 const mockSpinner = {
