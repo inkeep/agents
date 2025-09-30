@@ -72,6 +72,7 @@ interface TimelineItemProps {
   activity: ActivityItem;
   isLast: boolean;
   onSelect: () => void;
+  isSelected?: boolean;
   isAiMessageCollapsed?: boolean;
   onToggleAiMessageCollapse?: (activityId: string) => void;
 }
@@ -80,6 +81,7 @@ export function TimelineItem({
   activity,
   isLast,
   onSelect,
+  isSelected = false,
   isAiMessageCollapsed = false,
   onToggleAiMessageCollapse,
 }: TimelineItemProps) {
@@ -99,7 +101,13 @@ export function TimelineItem({
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
   return (
-    <div className="flex flex-col text-muted-foreground relative text-xs">
+    <div 
+      className={`flex flex-col text-muted-foreground relative text-xs transition-all duration-200 rounded-lg ${
+        isSelected 
+          ? 'bg-primary/5 -mx-3 px-3 py-2 ring-2 ring-primary/20' 
+          : 'py-2'
+      }`}
+    >
       <div className="flex items-start">
         <div className="mr-4 pt-[1px]">
           <Icon className={`w-4 h-4 ${className}`} />
