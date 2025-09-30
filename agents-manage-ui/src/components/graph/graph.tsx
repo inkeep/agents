@@ -41,40 +41,20 @@ import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-det
 
 // Type for agent tool configuration lookup including both selection and headers
 export type AgentToolConfig = {
+  toolId: string;
   toolSelection?: string[];
   headers?: Record<string, string>;
 };
 
+// AgentToolConfigLookup: agentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
-
-// Utility function to derive selectedToolsLookup from agentToolConfigLookup
-export function getSelectedToolsLookup(
-  agentToolConfigLookup: AgentToolConfigLookup
-): Record<string, Record<string, string[]>> {
-  const selectedToolsLookup: Record<string, Record<string, string[]>> = {};
-
-  Object.entries(agentToolConfigLookup).forEach(([agentId, toolsMap]) => {
-    const selectedToolsMap: Record<string, string[]> = {};
-
-    Object.entries(toolsMap).forEach(([toolId, config]) => {
-      if (config.toolSelection) {
-        selectedToolsMap[toolId] = config.toolSelection;
-      }
-    });
-
-    if (Object.keys(selectedToolsMap).length > 0) {
-      selectedToolsLookup[agentId] = selectedToolsMap;
-    }
-  });
-
-  return selectedToolsLookup;
-}
 
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
   externalAgentNodeTargetHandleId,
+  type MCPNodeData,
   mcpNodeHandleId,
   NodeType,
   newNodeDefaults,
@@ -175,19 +155,20 @@ function Flow({
       if ('canUse' in agentData && agentData.canUse) {
         const toolsMap: Record<string, AgentToolConfig> = {};
         agentData.canUse.forEach((tool) => {
-          const config: AgentToolConfig = {};
+          if (tool.agentToolRelationId) {
+            const config: AgentToolConfig = {
+              toolId: tool.toolId,
+            };
 
-          if (tool.toolSelection) {
-            config.toolSelection = tool.toolSelection;
-          }
+            if (tool.toolSelection) {
+              config.toolSelection = tool.toolSelection;
+            }
 
-          if (tool.headers) {
-            config.headers = tool.headers;
-          }
+            if (tool.headers) {
+              config.headers = tool.headers;
+            }
 
-          // Only add to map if we have either toolSelection or headers
-          if (config.toolSelection || config.headers) {
-            toolsMap[tool.toolId] = config;
+            toolsMap[tool.agentToolRelationId] = config;
           }
         });
         if (Object.keys(toolsMap).length > 0) {
@@ -198,7 +179,7 @@ function Flow({
     return lookup;
   }, [graph?.agents]);
 
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, updateNodeData } = useReactFlow();
   const {
     nodes: storeNodes,
     edges,
@@ -212,7 +193,6 @@ function Flow({
     markSaved,
     clearSelection,
     markUnsaved,
-    selectedToolsLookup,
   } = useGraphStore();
 
   // Always use enriched nodes for ReactFlow
@@ -229,7 +209,7 @@ function Flow({
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
-      getSelectedToolsLookup(agentToolConfigLookup)
+      agentToolConfigLookup
     );
   }, []);
 
@@ -335,6 +315,22 @@ function Flow({
           },
         },
       };
+    }
+
+    // Update MCP node agentId when connecting agent to MCP tool
+    if (
+      targetHandle === mcpNodeHandleId &&
+      (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId)
+    ) {
+      const targetNode = nodes.find((n) => n.id === params.target);
+      if (targetNode && targetNode.type === NodeType.MCP) {
+        const agentId = params.source;
+        updateNodeData(targetNode.id, {
+          ...targetNode.data,
+          agentId,
+          relationshipId: null, // Will be set after saving to database
+        });
+      }
     }
 
     requestAnimationFrame(() => {
@@ -494,7 +490,11 @@ function Flow({
 
   const onSubmit = useCallback(async () => {
     // Check for orphaned tools before saving
-    const warningMessage = detectOrphanedToolsAndGetWarning(nodes, selectedToolsLookup, toolLookup);
+    const warningMessage = detectOrphanedToolsAndGetWarning(
+      nodes,
+      agentToolConfigLookup,
+      toolLookup
+    );
 
     if (warningMessage) {
       toast.warning(warningMessage, {
@@ -526,6 +526,54 @@ function Flow({
         closeButton: true,
       });
       markSaved();
+
+      // Update MCP nodes with new relationshipIds from backend response
+      if (res.data) {
+        // Create a map to track which relationships were processed
+        const processedRelationships = new Set<string>();
+
+        // Update nodes with the new relationshipIds
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => {
+            if (node.type === NodeType.MCP) {
+              const mcpNode = node as Node & { data: MCPNodeData };
+              if (mcpNode.data.agentId && mcpNode.data.toolId) {
+                // If node already has a relationshipId, keep it (it's an existing relationship)
+                if (mcpNode.data.relationshipId) {
+                  return node;
+                }
+
+                // For new nodes (relationshipId is null), find the first unprocessed relationship
+                // that matches this agent and tool
+                const agentId = mcpNode.data.agentId;
+                const toolId = mcpNode.data.toolId;
+
+                if ('canUse' in res.data.agents[agentId] && res.data.agents[agentId].canUse) {
+                  const matchingRelationship = res.data.agents[agentId].canUse.find(
+                    (tool: any) =>
+                      tool.toolId === toolId &&
+                      tool.agentToolRelationId &&
+                      !processedRelationships.has(tool.agentToolRelationId)
+                  );
+
+                  if (matchingRelationship?.agentToolRelationId) {
+                    processedRelationships.add(matchingRelationship.agentToolRelationId);
+                    return {
+                      ...node,
+                      data: {
+                        ...node.data,
+                        relationshipId: matchingRelationship.agentToolRelationId,
+                      },
+                    };
+                  }
+                }
+              }
+            }
+            return node;
+          })
+        );
+      }
+
       if (!graph?.id && res.data?.id) {
         setMetadata('id', res.data.id);
         router.push(`/${tenantId}/projects/${projectId}/graphs/${res.data.id}`);
@@ -553,13 +601,13 @@ function Flow({
     artifactComponentLookup,
     markSaved,
     setMetadata,
+    setNodes,
     router,
     graph?.id,
     tenantId,
     projectId,
     clearErrors,
     setErrors,
-    selectedToolsLookup,
     agentToolConfigLookup,
     toolLookup,
   ]);
@@ -636,6 +684,7 @@ function Flow({
           projectId={projectId}
           tenantId={tenantId}
           setShowPlayground={setShowPlayground}
+          closeSidePane={closeSidePane}
         />
       )}
     </div>

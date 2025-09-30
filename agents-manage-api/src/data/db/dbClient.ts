@@ -16,6 +16,12 @@ const getDbConfig = () => {
     };
   }
 
+  if (!env.DB_FILE_NAME) {
+    throw new Error(
+      'Database configuration error: DB_FILE_NAME must be set if Turso is not configured.'
+    );
+  }
+
   // Otherwise, fallback to file (must be explicitly set)
   return {
     url: env.DB_FILE_NAME,

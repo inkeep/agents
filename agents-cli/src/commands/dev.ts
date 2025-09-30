@@ -14,6 +14,7 @@ export interface DevOptions {
   build: boolean;
   outputDir: string;
   path: boolean;
+  export: boolean;
 }
 
 function resolveWebRuntime(isRoot = false) {
@@ -166,12 +167,126 @@ Make sure to set these in your Vercel project settings:
   }
 }
 
+async function exportNextApp({ outputDir }: { outputDir: string }) {
+  console.log('');
+  const spinner = ora('Exporting Next.js project...').start();
+
+  try {
+    const pkg = require.resolve('@inkeep/agents-manage-ui/package.json');
+    const root = dirname(pkg);
+
+    // Check if the source project exists
+    if (!existsSync(root)) {
+      spinner.fail('Source project not found');
+      console.error(chalk.red('The @inkeep/agents-manage-ui package was not found.'));
+      process.exit(1);
+    }
+
+    // Remove existing output directory if it exists
+    if (existsSync(outputDir)) {
+      await fs.remove(outputDir);
+    }
+
+    // Create output directory
+    await fs.ensureDir(outputDir);
+
+    // Copy all files except .next folder
+    const items = await fs.readdir(root);
+    for (const item of items) {
+      const srcPath = join(root, item);
+      const destPath = join(outputDir, item);
+
+      // Skip .next folder and other build artifacts
+      if (item === '.next' || item === 'node_modules' || item === 'dist') {
+        continue;
+      }
+
+      const stat = await fs.stat(srcPath);
+      if (stat.isDirectory()) {
+        await fs.copy(srcPath, destPath);
+      } else {
+        await fs.copy(srcPath, destPath);
+      }
+    }
+
+    // Create a README for the exported project
+    const readme = `# Inkeep Dashboard
+
+This is an exported copy of the Inkeep Dashboard UI.
+
+## Getting Started
+
+1. Install dependencies:
+   \`\`\`bash
+   npm install
+   # or
+   pnpm install
+   \`\`\`
+
+2. Start the development server:
+   \`\`\`bash
+   npm run dev
+   # or
+   pnpm dev
+   \`\`\`
+
+3. Build for production:
+   \`\`\`bash
+   npm run build
+   # or
+   pnpm build
+   \`\`\`
+
+## Environment Variables
+
+Make sure to set these environment variables:
+- \`INKEEP_API_URL\` - Your Inkeep API URL
+- \`INKEEP_TENANT_ID\` - Your tenant ID
+- Any other variables from your .env file
+
+## Deployment
+
+This project can be deployed to any platform that supports Next.js:
+- Vercel
+- Netlify
+- AWS Amplify
+- Railway
+- And more...
+`;
+
+    await fs.writeFile(join(outputDir, 'README.md'), readme);
+
+    spinner.succeed(`Project exported to ${outputDir}/`);
+
+    console.log('');
+    console.log(chalk.green('✅ Export completed successfully!'));
+    console.log('');
+    console.log(chalk.blue('📁 To get started:'));
+    console.log(chalk.gray('  cd'), chalk.white(outputDir));
+    console.log(chalk.gray('  npm install'));
+    console.log(chalk.gray('  npm run dev'));
+    console.log('');
+    console.log(chalk.yellow('📖 See README.md for more instructions'));
+    console.log('');
+  } catch (error) {
+    spinner.fail('Failed to export project');
+    console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
+    throw error;
+  }
+}
+
 export async function devCommand(options: DevOptions) {
-  const { port, host, build, outputDir, path } = options;
+  const { port, host, build, outputDir, path, export: exportFlag } = options;
 
   if (path) {
     const rt = resolveWebRuntime(true);
+    // THIS IS INTENTIONAL, WE NEED TO READ PATH FROM STDOUT
     console.log(rt);
+    return;
+  }
+
+  if (exportFlag) {
+    await exportNextApp({ outputDir });
     return;
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.8.3",
+  "version": "0.8.7",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -18,9 +18,9 @@
     "index.js",
     "index.d.ts",
     "package.json",
-    ".next/standalone",
-    "!.next/standalone/**/node_modules",
-    "!.next/standalone/node_modules"
+    ".next/standalone/agents-manage-ui",
+    ".next/standalone/packages",
+    ".next/standalone/package.json"
   ],
   "publishConfig": {
     "access": "public",

@@ -381,33 +381,24 @@ export const upsertAgentToolRelation =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    relationId?: string; // Optional: if provided, update specific relationship
   }) => {
-    // Check if relation already exists
-    const existing = await db.query.agentToolRelations.findFirst({
-      where: and(
-        eq(agentToolRelations.tenantId, params.scopes.tenantId),
-        eq(agentToolRelations.projectId, params.scopes.projectId),
-        eq(agentToolRelations.graphId, params.scopes.graphId),
-        eq(agentToolRelations.agentId, params.agentId),
-        eq(agentToolRelations.toolId, params.toolId)
-      ),
-    });
-
-    if (!existing) {
-      // Create the relation if it doesn't exist
-      return await addToolToAgent(db)(params);
+    // If relationId is provided, update that specific relationship
+    if (params.relationId) {
+      return await updateAgentToolRelation(db)({
+        scopes: params.scopes,
+        relationId: params.relationId,
+        data: {
+          agentId: params.agentId,
+          toolId: params.toolId,
+          selectedTools: params.selectedTools,
+          headers: params.headers,
+        },
+      });
     }
 
-    return await updateAgentToolRelation(db)({
-      scopes: params.scopes,
-      relationId: existing.id,
-      data: {
-        agentId: params.agentId,
-        toolId: params.toolId,
-        selectedTools: params.selectedTools,
-        headers: params.headers,
-      },
-    });
+    // No relationId provided - always create a new relationship
+    return await addToolToAgent(db)(params);
   };
 
 /**

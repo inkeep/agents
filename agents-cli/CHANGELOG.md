@@ -1,5 +1,38 @@
 # @inkeep/agents-cli
 
+## 0.8.7
+
+### Patch Changes
+
+- f4e1a88: Add export flag to `inkeep dev`
+  - @inkeep/agents-manage-ui@0.8.7
+  - @inkeep/agents-core@0.8.7
+
+## 0.8.6
+
+### Patch Changes
+
+- Updated dependencies [2484a6c]
+  - @inkeep/agents-core@0.8.6
+  - @inkeep/agents-manage-ui@0.8.6
+
+## 0.8.5
+
+### Patch Changes
+
+- Updated dependencies [3c93e9e]
+- Updated dependencies [84989b4]
+  - @inkeep/agents-core@0.8.5
+  - @inkeep/agents-manage-ui@0.8.5
+
+## 0.8.4
+
+### Patch Changes
+
+- Updated dependencies [9eebd7f]
+  - @inkeep/agents-core@0.8.4
+  - @inkeep/agents-manage-ui@0.8.4
+
 ## 0.8.3
 
 ### Patch Changes

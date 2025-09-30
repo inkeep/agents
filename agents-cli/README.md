@@ -188,7 +188,7 @@ inkeep pull --project my-project-id --config ./my-config.ts
 
 ### `inkeep dev`
 
-Start the Inkeep dashboard server or build for production.
+Start the Inkeep dashboard server, build for production, or export the Next.js project.
 
 ```bash
 # Start development server
@@ -197,8 +197,11 @@ inkeep dev
 # Start on custom port and host
 inkeep dev --port 3001 --host 0.0.0.0
 
-# Build for production
+# Build for production (packages standalone build)
 inkeep dev --build --output-dir ./build
+
+# Export Next.js project source files
+inkeep dev --export --output-dir ./my-dashboard
 
 # Get dashboard path for deployment
 DASHBOARD_PATH=$(inkeep dev --path)

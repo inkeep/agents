@@ -12,7 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
-import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
+import {
+  getCurrentHeadersForNode,
+  getCurrentSelectedToolsForNode,
+} from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
 import type { AgentToolConfigLookup } from '../../graph';
 
@@ -32,35 +35,24 @@ export function MCPServerNodeEditor({
   }>();
   const markUnsaved = useGraphStore((state) => state.markUnsaved);
 
-  // Get current headers for this tool from all agents
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    // First check if we have temporary headers stored on the node
-    if ((selectedNode.data as any).tempHeaders !== undefined) {
-      return (selectedNode.data as any).tempHeaders;
-    }
+  // Only use toolLookup - single source of truth
+  const toolLookup = useGraphStore((state) => state.toolLookup);
+  const edges = useGraphStore((state) => state.edges);
 
-    // Otherwise, get from the database/initial state - find any agent that has headers for this tool
-    for (const agentId in agentToolConfigLookup) {
-      const toolConfig = agentToolConfigLookup[agentId]?.[selectedNode.data.toolId];
-      if (toolConfig?.headers) {
-        return toolConfig.headers;
-      }
-    }
-    return {};
-  }, [agentToolConfigLookup, selectedNode.data]);
+  const getCurrentHeaders = useCallback((): Record<string, string> => {
+    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
+  }, [selectedNode, agentToolConfigLookup, edges]);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
 
-  // Sync input value when external headers change
+  // Sync input value when node changes (but not on every data change)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally omit getCurrentHeaders to prevent reset loops
   useEffect(() => {
     const newHeaders = getCurrentHeaders();
     setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
-  }, [getCurrentHeaders]);
+  }, [selectedNode.id]);
 
-  // Only use toolLookup - single source of truth
-  const toolLookup = useGraphStore((state) => state.toolLookup);
-  const selectedToolsLookup = useGraphStore((state) => state.selectedToolsLookup);
   const toolData = toolLookup[selectedNode.data.toolId];
 
   const availableTools = toolData?.availableTools;
@@ -80,7 +72,7 @@ export function MCPServerNodeEditor({
       </div>
     );
   }
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, selectedToolsLookup);
+  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
 
   // Find orphaned tools - tools that are selected but no longer available in activeTools
   const orphanedTools =

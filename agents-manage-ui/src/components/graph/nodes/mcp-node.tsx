@@ -11,7 +11,8 @@ import { Handle } from './handle';
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
   const toolLookup = useGraphStore((state) => state.toolLookup);
-  const selectedToolsLookup = useGraphStore((state) => state.selectedToolsLookup);
+  const agentToolConfigLookup = useGraphStore((state) => state.agentToolConfigLookup);
+  const edges = useGraphStore((state) => state.edges);
 
   const name = data.name || `Tool: ${data.toolId}`;
   const imageUrl = data.imageUrl;
@@ -25,7 +26,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     activeTools: toolData?.config?.mcp?.activeTools,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props, selectedToolsLookup);
+  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup, edges);
 
   // Format the tool display
   const getToolDisplay = () => {

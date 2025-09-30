@@ -73,6 +73,7 @@ export default {
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
         'talk-to-your-agents/api',
+        'talk-to-your-agents/vercel-ai-sdk',
         'talk-to-your-agents/a2a',
         {
           group: 'React UI Components',
@@ -138,7 +139,12 @@ export default {
     {
       group: 'Self-Hosting',
       icon: 'LuServer',
-      pages: ['self-hosting/add-sentry', 'self-hosting/add-datadog-apm'],
+      pages: [
+        'self-hosting/vercel',
+        'self-hosting/docker',
+        'self-hosting/add-sentry',
+        'self-hosting/add-datadog-apm',
+      ],
     },
     {
       group: 'Community',

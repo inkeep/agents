@@ -633,6 +633,7 @@ export const StatusUpdateSchema = z.object({
 });
 
 export const CanUseItemSchema = z.object({
+  agentToolRelationId: z.string().optional(),
   toolId: z.string(),
   toolSelection: z.array(z.string()).nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
