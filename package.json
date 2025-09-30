@@ -41,6 +41,7 @@
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
     "db:push": "pnpm --filter @inkeep/agents-core db:push",
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
+    "db:drop": "pnpm --filter @inkeep/agents-core db:drop",
     "db:studio": "pnpm --filter @inkeep/agents-core db:studio",
     "db:clean": "pnpm --filter @inkeep/agents-core db:clean",
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
@@ -59,7 +60,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
     "@changesets/cli": "^2.29.6",
-    "drizzle-kit": "^0.31.4",
+    "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
     "turbo": "^2.5.5"
