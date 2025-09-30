@@ -53,7 +53,6 @@ import { parseEmbeddedJson } from '../utils/json-parser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { createSaveToolResultTool } from './artifactTools';
 import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';

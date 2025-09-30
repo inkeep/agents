@@ -368,6 +368,8 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
   projectId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  fullProps: z.record(z.string(), z.unknown()).optional(),
 });
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema

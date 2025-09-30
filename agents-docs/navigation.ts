@@ -22,6 +22,7 @@ export default {
       icon: 'LuCode',
       pages: [
         'typescript-sdk/agent-settings',
+        'typescript-sdk/model-settings',
         'typescript-sdk/agent-relationships',
         'typescript-sdk/tools-and-mcp-servers',
         'typescript-sdk/create-mcp-servers',

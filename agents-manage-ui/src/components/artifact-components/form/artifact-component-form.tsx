@@ -128,9 +128,8 @@ export function ArtifactComponentForm({
         <JsonSchemaInput
           control={form.control}
           name="fullProps"
-          label="Full props (JSON schema)"
+          label="Full props (JSON schema) (optional)"
           placeholder="Enter a valid JSON Schema..."
-          isRequired
         />
         <Button type="submit" disabled={isSubmitting}>
           Save
