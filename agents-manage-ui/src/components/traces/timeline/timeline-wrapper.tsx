@@ -139,7 +139,6 @@ export function TimelineWrapper({
   conversationId
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -162,7 +161,6 @@ export function TimelineWrapper({
     useEffect(() => {
       if (conversationId) {
         setSelected(null);
-        setSelectedActivityId(null);
       }
     }, [conversationId]);
 
@@ -257,7 +255,6 @@ export function TimelineWrapper({
     setPanelVisible(false);
     setTimeout(() => {
       setSelected(null);
-      setSelectedActivityId(null);
     }, 300);
   };
 
@@ -365,9 +362,8 @@ export function TimelineWrapper({
                         type: determinePanelType(activity),
                         item: activity,
                       });
-                      setSelectedActivityId(activity.id);
                     }}
-                    selectedActivityId={selectedActivityId}
+                    selectedActivityId={selected?.item?.id}
                     collapsedAiMessages={collapsedAiMessages}
                     onToggleAiMessageCollapse={toggleAiMessageCollapse}
                   />
@@ -400,9 +396,8 @@ export function TimelineWrapper({
                       type: determinePanelType(activity),
                       item: activity,
                     });
-                    setSelectedActivityId(activity.id);
                   }}
-                  selectedActivityId={selectedActivityId}
+                  selectedActivityId={selected?.item?.id}
                   collapsedAiMessages={collapsedAiMessages}
                   onToggleAiMessageCollapse={toggleAiMessageCollapse}
                 />

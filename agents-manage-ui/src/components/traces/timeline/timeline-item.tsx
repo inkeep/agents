@@ -104,7 +104,7 @@ export function TimelineItem({
     <div 
       className={`flex flex-col text-muted-foreground relative text-xs transition-all duration-200 rounded-lg ${
         isSelected 
-          ? 'bg-primary/5 -mx-3 px-3 py-2 ring-2 ring-primary/20' 
+          ? 'bg-primary/5 dark:bg-primary/15 px-3 py-2 ring-2 ring-primary/20 dark:ring-primary/40' 
           : 'py-2'
       }`}
     >
