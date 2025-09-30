@@ -39,7 +39,9 @@ export const Playground = ({
   });
 
   return (
-    <div className={`bg-background z-10 flex flex-col border-l ${showTraces ? 'w-full' : 'w-1/3'}`}>
+    <div
+      className={`bg-background z-10 flex flex-col border-l ${showTraces ? 'w-full' : 'w-1/3 min-w-96'}`}
+    >
       <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b flex-shrink-0">
         <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
         <div className="flex items-center gap-2">
