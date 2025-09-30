@@ -12,7 +12,9 @@
     "format": "biome format --write",
     "format:check": "biome format",
     "postinstall": "fumadocs-mdx",
+    "fetch-openapi": "node scripts/fetch-openapi-specs.mjs",
     "generate-openapi": "node scripts/generate-openapi-docs.mjs",
+    "update-api-docs": "pnpm fetch-openapi && pnpm generate-openapi",
     "validate-link": "node scripts/validate-link.mjs"
   },
   "dependencies": {

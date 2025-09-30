@@ -31,8 +31,14 @@ inkeep push agent-configurations/graph.graph.ts
 inkeep chat
 
 # Documentation development (from agents-docs directory)
-pnpm dev              # Start documentation site (port 3000)
+pnpm dev              # Start documentation site (port 3010)
 pnpm build           # Build documentation for production
+
+# API Reference documentation (requires both APIs running)
+pnpm dev:apis        # Start both Run API (3003) and Manage API (3002) from root
+pnpm fetch-openapi   # Fetch latest OpenAPI specs from running APIs
+pnpm generate-openapi # Generate static docs from OpenAPI specs
+pnpm update-api-docs # Combined: fetch + generate in one command
 ```
 
 

@@ -1,0 +1,1081 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Inkeep Agents Run API",
+    "version": "1.0.0",
+    "description": "Chat completions, MCP, and A2A run endpoints in the Inkeep Agent Framework."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3003",
+      "description": "Development server"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "A short, human-readable summary of the problem type.",
+            "example": "Resource Not Found"
+          },
+          "status": {
+            "type": "integer",
+            "description": "The HTTP status code.",
+            "example": 404
+          },
+          "detail": {
+            "type": "string",
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "example": "The requested resource was not found."
+          },
+          "instance": {
+            "type": "string",
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "example": "/conversations/123"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "A unique identifier for the request, useful for troubleshooting.",
+            "example": "req_1234567890"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "bad_request",
+              "unauthorized",
+              "forbidden",
+              "not_found",
+              "conflict",
+              "internal_server_error",
+              "unprocessable_entity"
+            ],
+            "description": "A short code indicating the error code returned.",
+            "example": "not_found"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "detail",
+          "code"
+        ]
+      },
+      "BadRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Bad Request"
+              },
+              "status": {
+                "type": "number",
+                "enum": [
+                  400
+                ],
+                "description": "The HTTP status code.",
+                "example": 400
+              },
+              "detail": {
+                "type": "string",
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Bad Request"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "bad_request"
+                ],
+                "description": "A short code indicating the error code returned.",
+                "example": "bad_request"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "bad_request"
+                    ],
+                    "description": "A short code indicating the error code returned.",
+                    "example": "bad_request"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Bad Request"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "description": "Legacy error format for backward compatibility."
+              }
+            },
+            "required": [
+              "error"
+            ]
+          }
+        ]
+      },
+      "Unauthorized": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Unauthorized"
+              },
+              "status": {
+                "type": "number",
+                "enum": [
+                  401
+                ],
+                "description": "The HTTP status code.",
+                "example": 401
+              },
+              "detail": {
+                "type": "string",
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Unauthorized"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "unauthorized"
+                ],
+                "description": "A short code indicating the error code returned.",
+                "example": "unauthorized"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "unauthorized"
+                    ],
+                    "description": "A short code indicating the error code returned.",
+                    "example": "unauthorized"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Unauthorized"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "description": "Legacy error format for backward compatibility."
+              }
+            },
+            "required": [
+              "error"
+            ]
+          }
+        ]
+      },
+      "Forbidden": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Forbidden"
+              },
+              "status": {
+                "type": "number",
+                "enum": [
+                  403
+                ],
+                "description": "The HTTP status code.",
+                "example": 403
+              },
+              "detail": {
+                "type": "string",
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Forbidden"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "forbidden"
+                ],
+                "description": "A short code indicating the error code returned.",
+                "example": "forbidden"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "forbidden"
+                    ],
+                    "description": "A short code indicating the error code returned.",
+                    "example": "forbidden"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Forbidden"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "description": "Legacy error format for backward compatibility."
+              }
+            },
+            "required": [
+              "error"
+            ]
+          }
+        ]
+      },
+      "NotFound": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Not Found"
+              },
+              "status": {
+                "type": "number",
+                "enum": [
+                  404
+                ],
+                "description": "The HTTP status code.",
+                "example": 404
+              },
+              "detail": {
+                "type": "string",
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Not Found"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "not_found"
+                ],
+                "description": "A short code indicating the error code returned.",
+                "example": "not_found"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "not_found"
+                    ],
+                    "description": "A short code indicating the error code returned.",
+                    "example": "not_found"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Not Found"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "description": "Legacy error format for backward compatibility."
+              }
+            },
+            "required": [
+              "error"
+            ]
+          }
+        ]
+      },
+      "UnprocessableEntity": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Unprocessable Entity"
+              },
+              "status": {
+                "type": "number",
+                "enum": [
+                  422
+                ],
+                "description": "The HTTP status code.",
+                "example": 422
+              },
+              "detail": {
+                "type": "string",
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Unprocessable Entity"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "unprocessable_entity"
+                ],
+                "description": "A short code indicating the error code returned.",
+                "example": "unprocessable_entity"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "unprocessable_entity"
+                    ],
+                    "description": "A short code indicating the error code returned.",
+                    "example": "unprocessable_entity"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Unprocessable Entity"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "description": "Legacy error format for backward compatibility."
+              }
+            },
+            "required": [
+              "error"
+            ]
+          }
+        ]
+      },
+      "InternalServerError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Internal Server Error"
+              },
+              "status": {
+                "type": "number",
+                "enum": [
+                  500
+                ],
+                "description": "The HTTP status code.",
+                "example": 500
+              },
+              "detail": {
+                "type": "string",
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Internal Server Error"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "internal_server_error"
+                ],
+                "description": "A short code indicating the error code returned.",
+                "example": "internal_server_error"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "internal_server_error"
+                    ],
+                    "description": "A short code indicating the error code returned.",
+                    "example": "internal_server_error"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Internal Server Error"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "description": "Legacy error format for backward compatibility."
+              }
+            },
+            "required": [
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check",
+        "description": "Check if the execution service is healthy",
+        "responses": {
+          "204": {
+            "description": "Service is healthy"
+          }
+        }
+      }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Create chat completion",
+        "description": "Creates a new chat completion with streaming SSE response using the configured agent graph",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "The model to use for the completion"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "system",
+                            "user",
+                            "assistant",
+                            "function",
+                            "tool"
+                          ],
+                          "description": "The role of the message"
+                        },
+                        "content": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          ],
+                          "description": "The message content"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the message sender"
+                        }
+                      },
+                      "required": [
+                        "role",
+                        "content"
+                      ]
+                    },
+                    "description": "The conversation messages"
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "description": "Controls randomness (0-1)"
+                  },
+                  "top_p": {
+                    "type": "number",
+                    "description": "Controls nucleus sampling"
+                  },
+                  "n": {
+                    "type": "number",
+                    "description": "Number of completions to generate"
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "description": "Whether to stream the response"
+                  },
+                  "max_tokens": {
+                    "type": "number",
+                    "description": "Maximum tokens to generate"
+                  },
+                  "presence_penalty": {
+                    "type": "number",
+                    "description": "Presence penalty (-2 to 2)"
+                  },
+                  "frequency_penalty": {
+                    "type": "number",
+                    "description": "Frequency penalty (-2 to 2)"
+                  },
+                  "logit_bias": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    },
+                    "description": "Token logit bias"
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "User identifier"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "Conversation ID for multi-turn chat"
+                  },
+                  "tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Available tools"
+                  },
+                  "runConfig": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "Run configuration"
+                  },
+                  "requestContext": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "Context data for template processing (validated against context config schema)"
+                  }
+                },
+                "required": [
+                  "model",
+                  "messages"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Streaming chat completion response in Server-Sent Events format",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "default": "text/event-stream"
+                },
+                "required": false
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "default": "no-cache"
+                },
+                "required": false
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string",
+                  "default": "keep-alive"
+                },
+                "required": false
+              }
+            },
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream with chat completion chunks"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request context or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent graph or agent not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Chat (Vercel Streaming Protocol)",
+        "description": "Chat completion endpoint streaming with Vercel data stream protocol.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "system",
+                            "user",
+                            "assistant",
+                            "function",
+                            "tool"
+                          ]
+                        },
+                        "content": {
+                          "nullable": true
+                        },
+                        "parts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "text",
+                                      "image",
+                                      "audio",
+                                      "video",
+                                      "file"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "pattern": "^data-"
+                                  }
+                                ]
+                              },
+                              "text": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "role"
+                      ]
+                    }
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "requestContext": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "Context data for template processing"
+                  }
+                },
+                "required": [
+                  "messages"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Streamed chat completion",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "default": "text/plain; charset=utf-8"
+                },
+                "required": false
+              },
+              "x-vercel-ai-data-stream": {
+                "schema": {
+                  "type": "string",
+                  "default": "v1"
+                },
+                "required": false
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mcp": {
+      "post": {
+        "tags": [
+          "MCP"
+        ],
+        "summary": "MCP Protocol",
+        "description": "Handles Model Context Protocol (MCP) JSON-RPC requests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Tenant identifier",
+              "example": "tenant_123"
+            },
+            "required": false,
+            "description": "Tenant identifier",
+            "name": "x-inkeep-tenant-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Project identifier",
+              "example": "project_456"
+            },
+            "required": false,
+            "description": "Project identifier",
+            "name": "x-inkeep-project-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Graph identifier",
+              "example": "graph_789"
+            },
+            "required": false,
+            "description": "Graph identifier",
+            "name": "x-inkeep-graph-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MCP response"
+          },
+          "401": {
+            "description": "Unauthorized - API key authentication required"
+          },
+          "404": {
+            "description": "Not Found - Agent graph not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/agents/.well-known/agent.json": {
+      "get": {
+        "tags": [
+          "a2a"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Tenant identifier",
+              "example": "tenant_123"
+            },
+            "required": false,
+            "description": "Tenant identifier",
+            "name": "x-inkeep-tenant-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Project identifier",
+              "example": "project_456"
+            },
+            "required": false,
+            "description": "Project identifier",
+            "name": "x-inkeep-project-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Graph identifier",
+              "example": "graph_789"
+            },
+            "required": false,
+            "description": "Graph identifier",
+            "name": "x-inkeep-graph-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent Card for A2A discovery",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "defaultInputModes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "defaultOutputModes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "url",
+                    "version",
+                    "defaultInputModes",
+                    "defaultOutputModes",
+                    "skills"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found"
+          }
+        }
+      }
+    }
+  }
+}

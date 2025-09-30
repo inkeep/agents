@@ -1,82 +1,5 @@
 ---
-title: API Reference Overview
-icon: "LuBookOpen"
-description: Overview of Inkeep Agent Framework APIs
----
-
-The Inkeep Agent Framework provides two separate APIs for different purposes:
-
-## Run API
-
-The **Run API** is the runtime execution API for interacting with your agents. It provides:
-
-- **Chat Completions** - OpenAI-compatible streaming chat completions endpoint
-- **A2A Protocol** - Agent-to-Agent communication following Google's A2A specification
-- **MCP Integration** - Model Context Protocol for agent capabilities
-- **Vercel AI SDK** - Data stream protocol for real-time updates
-
-**Base URL:** `http://localhost:3003` (development)
-
-[View Run API Reference →](/api-reference/run-api)
-
-[Run API Authentication →](/api-reference/authentication/run-api)
-
-## Manage API
-
-The **Manage API** is the management/configuration API for building and maintaining your agent graphs. It provides:
-
-- **CRUD Operations** - Full management of projects, agents, graphs, tools, and relationships
-- **Graph Management** - Create and update complete agent graphs with all dependencies
-- **Tool Management** - Register and configure MCP servers and external tools
-- **OAuth Integration** - Handle OAuth flows for MCP tools requiring authentication
-- **API Key Management** - Generate and manage API keys for the Run API
-
-**Base URL:** `http://localhost:3002` (development)
-
-[View Manage API Reference →](/api-reference/manage-api)
-
-[Manage API Authentication →](/api-reference/authentication/manage-api)
-
-## Quick Start
-
-1. **Development Setup**
-   ```bash
-   # Start both APIs
-   pnpm dev:apis
-   ```
-
-2. **Use Run API** for runtime agent interactions
-   ```bash
-   curl -X POST http://localhost:3003/v1/chat/completions \
-     -H "x-inkeep-tenant-id: your-tenant" \
-     -H "x-inkeep-project-id: your-project" \
-     -H "x-inkeep-graph-id: your-graph" \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Hello!"}]}'
-   ```
-
-3. **Use Manage API** for configuration
-   ```bash
-   curl http://localhost:3002/tenants/your-tenant/crud/projects
-   ```
-
----
-
-<Callout type="info">
-**Old API Reference**
-
-The previous combined API reference at this URL has been split into separate documentation for the Run API and Manage API. Please use the links above to access the specific API documentation you need.
-</Callout>
-
-{/* Old generated content removed - see run-api.mdx and manage-api.mdx instead */}
-
----
-
-OLD_CONTENT_BELOW_DO_NOT_MODIFY
-
----
-title: Inkeep Chat API (DEPRECATED - DO NOT USE)
-icon: "LuBookOpen"
+title: Inkeep Agents Manage API
 full: true
 _openapi:
   toc:
@@ -161,9 +84,6 @@ _openapi:
     - depth: 2
       title: Update Agent Tool Relation
       url: '#update-agent-tool-relation'
-    - depth: 2
-      title: Get Tools for Agent
-      url: '#get-tools-for-agent'
     - depth: 2
       title: Get Agents for Tool
       url: '#get-agents-for-tool'
@@ -288,21 +208,6 @@ _openapi:
       title: Update Tool
       url: '#update-tool'
     - depth: 2
-      title: Check Tool Health
-      url: '#check-tool-health'
-    - depth: 2
-      title: Check All Tools Health
-      url: '#check-all-tools-health'
-    - depth: 2
-      title: Sync Tool Definitions
-      url: '#sync-tool-definitions'
-    - depth: 2
-      title: Get Available Tools
-      url: '#get-available-tools'
-    - depth: 2
-      title: Update Tool Status
-      url: '#update-tool-status'
-    - depth: 2
       title: Initiate OAuth login for MCP tool
       url: '#initiate-oauth-login-for-mcp-tool'
     - depth: 2
@@ -332,6 +237,18 @@ _openapi:
     - depth: 2
       title: Update Full Graph
       url: '#update-full-graph'
+    - depth: 2
+      title: Create Full Project
+      url: '#create-full-project'
+    - depth: 2
+      title: Get Full Project
+      url: '#get-full-project'
+    - depth: 2
+      title: Delete Full Project
+      url: '#delete-full-project'
+    - depth: 2
+      title: Update Full Project
+      url: '#update-full-project'
     - depth: 2
       title: OAuth authorization callback
       url: '#oauth-authorization-callback'
@@ -391,8 +308,6 @@ _openapi:
         id: delete-agent-tool-relation
       - content: Update Agent Tool Relation
         id: update-agent-tool-relation
-      - content: Get Tools for Agent
-        id: get-tools-for-agent
       - content: Get Agents for Tool
         id: get-agents-for-tool
       - content: Get Artifact Components for Agent
@@ -475,16 +390,6 @@ _openapi:
         id: delete-tool
       - content: Update Tool
         id: update-tool
-      - content: Check Tool Health
-        id: check-tool-health
-      - content: Check All Tools Health
-        id: check-all-tools-health
-      - content: Sync Tool Definitions
-        id: sync-tool-definitions
-      - content: Get Available Tools
-        id: get-available-tools
-      - content: Update Tool Status
-        id: update-tool-status
       - content: Initiate OAuth login for MCP tool
         id: initiate-oauth-login-for-mcp-tool
       - content: List API Keys
@@ -505,14 +410,18 @@ _openapi:
         id: delete-full-graph
       - content: Update Full Graph
         id: update-full-graph
+      - content: Create Full Project
+        id: create-full-project
+      - content: Get Full Project
+        id: get-full-project
+      - content: Delete Full Project
+        id: delete-full-project
+      - content: Update Full Project
+        id: update-full-project
       - content: OAuth authorization callback
         id: oauth-authorization-callback
     contents:
-      - content: Check if the service is healthy and running
-      - content: >-
-          Creates a new chat completion with streaming SSE response using the
-          configured agent graph
-      - content: Chat completion endpoint streaming with Vercel data stream protocol.
+      - content: Check if the management service is healthy
       - content: List all projects within a tenant with pagination
         heading: list-projects
       - content: Create a new project
@@ -554,6 +463,22 @@ _openapi:
           relationships from JSON definition
         heading: update-full-graph
       - content: >-
+          Create a complete project with all graphs, agents, tools, and
+          relationships from JSON definition
+        heading: create-full-project
+      - content: >-
+          Retrieve a complete project definition with all graphs, agents, tools,
+          and relationships
+        heading: get-full-project
+      - content: >-
+          Delete a complete project and cascade to all related entities (graphs,
+          agents, tools, relationships)
+        heading: delete-full-project
+      - content: >-
+          Update or create a complete project with all graphs, agents, tools,
+          and relationships from JSON definition
+        heading: update-full-project
+      - content: >-
           Handles OAuth authorization codes and completes the authentication
           flow
         heading: oauth-authorization-callback
@@ -561,6 +486,6 @@ _openapi:
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
 
-Complete REST API for Inkeep Chat application including chat completions, A2A agent communication, and comprehensive CRUD operations for all entities
+REST API for the management of the Inkeep Agent Framework.
 
-<APIPage document={"./src/lib/index.json"} operations={[{"path":"/health","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/v1/chat/completions","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{graphId}/{agentId}/.well-known/agent.json","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{graphId}/.well-known/agent.json","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/api/chat","method":"post"},{"path":"/tenants/{tenantId}/crud/projects","method":"get"},{"path":"/tenants/{tenantId}/crud/projects","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{id}","method":"patch"},{"path":"/tenants/{tenantId}/crud/projects/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agents","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agents","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-relations","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-relations","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{graphId}/agents/{agentId}/related","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{graphId}/full","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/agent/{agentId}/tools","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/tool/{toolId}/agents","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:agentId","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/component/:artifactComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:agentId/component/:artifactComponentId","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:agentId/component/:artifactComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:agentId","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/component/:dataComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:agentId/component/:dataComponentId","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:agentId/component/:dataComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/artifact-components","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/artifact-components","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/artifact-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/artifact-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/artifact-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/context-configs","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/context-configs","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/context-configs/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/context-configs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/context-configs/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/credentials","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/credentials","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/credentials/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/credentials/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/credentials/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/data-components","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/data-components","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/data-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/data-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/data-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/external-agents","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/external-agents","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/external-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/external-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/external-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}/health-check","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/health-check-all","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}/sync","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}/available-tools","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}/status","method":"patch"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/tools/{id}/oauth-login","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/api-keys","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/api-keys","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/api-keys/{id}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/api-keys/{id}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/api-keys/{id}","method":"put"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/graph","method":"post"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/graph/{graphId}","method":"get"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/graph/{graphId}","method":"delete"},{"path":"/tenants/{tenantId}/crud/projects/{projectId}/graph/{graphId}","method":"put"},{"path":"/oauth/callback","method":"get"}]} webhooks={[]} hasHead={true} />
+<APIPage document={"./src/lib/manage-api.json"} operations={[{"path":"/health","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"post"},{"path":"/tenants/{tenantId}/projects/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{id}","method":"patch"},{"path":"/tenants/{tenantId}/projects/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs/{graphId}/agents/{agentId}/related","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent-graphs/{graphId}/full","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-tool-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-tool-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-tool-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-tool-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-tool-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-tool-relations/tool/{toolId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-artifact-components/agent/:agentId","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-artifact-components/component/:artifactComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-artifact-components/agent/:agentId/component/:artifactComponentId","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-artifact-components/agent/:agentId/component/:artifactComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-data-components/agent/:agentId","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-data-components/component/:dataComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-data-components/agent/:agentId/component/:dataComponentId","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/agent-data-components/agent/:agentId/component/:dataComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/context-configs","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/context-configs","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/context-configs/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/context-configs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/context-configs/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/external-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/external-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/external-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/external-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graphs/{graphId}/external-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}/oauth-login","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/graph","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/graph/{graphId}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/graph/{graphId}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/graph/{graphId}","method":"put"},{"path":"/tenants/{tenantId}/project-full","method":"post"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"get"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"delete"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"put"},{"path":"/oauth/callback","method":"get"}]} webhooks={[]} hasHead={true} />
