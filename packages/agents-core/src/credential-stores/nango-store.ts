@@ -246,24 +246,13 @@ export class NangoCredentialStore implements CredentialStore {
 
         integration = response.data;
       } catch (error: any) {
-        // Handle Nango's atomic duplicate key rejection (400 status)
-        if (
-          error.cause &&
-          typeof error.cause === 'object' &&
-          'status' in error.cause &&
-          error.cause.status === 400
-        ) {
-          // Safe fallback: fetch the existing integration (idempotent operation)
-          const existingIntegration = await this.fetchNangoIntegration(name);
-          if (existingIntegration) {
-            integration = existingIntegration;
-          } else {
-            // Edge case: 400 error wasn't about duplicate key
-            console.log(`Integration creation failed for unexpected reasons`, error);
-          }
+        // Safe fallback: fetch the existing integration (idempotent operation)
+        const existingIntegration = await this.fetchNangoIntegration(name);
+        if (existingIntegration) {
+          integration = existingIntegration;
         } else {
-          // Non-duplicate error (network, auth, etc.)
-          console.log(`Failed to create or retrieve integration '${name}'`, error);
+          // Edge case: 400 error wasn't about duplicate key
+          console.log(`Integration creation failed for unexpected reasons`, error);
         }
       }
 

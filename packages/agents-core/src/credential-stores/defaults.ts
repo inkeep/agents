@@ -1,4 +1,5 @@
 import type { CredentialStore } from '../types/server';
+import { createKeyChainStore } from './keychain-store';
 import { InMemoryCredentialStore } from './memory-store';
 import { createNangoCredentialStore } from './nango-store';
 
@@ -20,6 +21,8 @@ export function createDefaultCredentialStores(): CredentialStore[] {
       })
     );
   }
+
+  stores.push(createKeyChainStore('keychain-default'));
 
   return stores;
 }

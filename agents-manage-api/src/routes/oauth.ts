@@ -171,23 +171,48 @@ app.openapi(
         'Token exchange successful'
       );
 
-      // Store access token in nango
-      const nangoStore = credentialStores.get('nango-default');
+      // Store access token in keychain, or fall back to nango
       const credentialTokenKey = `oauth_token_${toolId}`;
+      let newCredentialData: CredentialReferenceApiInsert | undefined;
 
-      await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
+      const keychainStore = credentialStores.get('keychain-default');
+      if (keychainStore) {
+        try {
+          await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
+          newCredentialData = {
+            id: mcpTool.name,
+            type: CredentialStoreType.keychain,
+            credentialStoreId: 'keychain-default',
+            retrievalParams: {
+              key: credentialTokenKey,
+            },
+          };
+        } catch {
+          // Fall through to Nango fallback
+        }
+      }
 
-      const newCredential = await findOrCreateCredential(tenantId, projectId, {
-        id: credentialTokenKey,
-        type: CredentialStoreType.nango,
-        credentialStoreId: 'nango-default',
-        retrievalParams: {
-          connectionId: credentialTokenKey,
-          providerConfigKey: credentialTokenKey,
-          provider: 'private-api-bearer',
-          authMode: 'API_KEY',
-        },
-      });
+      if (!newCredentialData && process.env.NANGO_SECRET_KEY) {
+        const nangoStore = credentialStores.get('nango-default');
+        await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
+        newCredentialData = {
+          id: mcpTool.name,
+          type: CredentialStoreType.nango,
+          credentialStoreId: 'nango-default',
+          retrievalParams: {
+            connectionId: credentialTokenKey,
+            providerConfigKey: credentialTokenKey,
+            provider: 'private-api-bearer',
+            authMode: 'API_KEY',
+          },
+        };
+      }
+
+      if (!newCredentialData) {
+        throw new Error('No credential store found');
+      }
+
+      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
 
       // Update MCP tool to link the credential
       await updateTool(dbClient)({

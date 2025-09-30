@@ -12,4 +12,7 @@ export default defineConfig({
   server: {
     port: 3003,
   },
+  optimizeDeps: {
+    exclude: ['keytar'],
+  },
 });

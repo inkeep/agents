@@ -11,7 +11,7 @@ export default defineConfig({
   dts: process.env.MODE !== 'watch',
   bundle: true,
   // Minimal external list - just problematic packages
-  external: ['pino', 'pino-pretty'],
+  external: ['keytar', 'pino', 'pino-pretty'],
   // Bundle workspace packages
   noExternal: ['@inkeep/agents-core'],
   banner: {
