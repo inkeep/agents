@@ -116,7 +116,6 @@ export function AgentNodeEditor({
         <ExpandableTextArea
           ref={(el) => setFieldRef('prompt', el)}
           id="prompt"
-          name="prompt"
           value={selectedNode.data.prompt || ''}
           onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."

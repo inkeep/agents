@@ -127,7 +127,6 @@ function MetadataEditor() {
       <div className="space-y-2">
         <ExpandableTextArea
           id="graph-prompt"
-          name="graph-prompt"
           label="Graph prompt"
           value={graphPrompt || ''}
           onChange={(value) => updateMetadata('graphPrompt', value)}
