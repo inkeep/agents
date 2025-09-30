@@ -204,6 +204,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TOOL_CALL_RESULT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_TOOL_CALL_ARGS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
@@ -795,6 +799,8 @@ export async function GET(
       // tool specifics
       toolType?: string;
       toolPurpose?: string;
+      toolCallArgs?: string;
+      toolCallResult?: string;
       // delegation/transfer
       delegationFromAgentId?: string;
       delegationToAgentId?: string;
@@ -833,11 +839,13 @@ export async function GET(
       const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
       const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_AGENT_ID, '');
 
+      // Extract tool call args and result for ALL tool calls
+      const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
+      const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
+
       // Parse save_tool_result JSON if present
       let saveFields: any = {};
       if (name === TOOL_NAMES.SAVE_TOOL_RESULT) {
-        const toolResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
-        const toolArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
         const operationId = getString(span, SPAN_KEYS.AI_OPERATION_ID, '');
         const toolCallId = getString(span, SPAN_KEYS.AI_TOOL_CALL_ID, '');
         const functionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
@@ -845,14 +853,14 @@ export async function GET(
         // Parse tool arguments
         let parsedArgs: any = {};
         try {
-          parsedArgs = JSON.parse(toolArgs);
+          parsedArgs = JSON.parse(toolCallArgs);
         } catch (_e) {
           // Keep empty if parsing fails
         }
 
         // Parse tool result
         try {
-          const parsed = JSON.parse(toolResult);
+          const parsed = JSON.parse(toolCallResult);
           // Extract first artifact info if available
           const firstArtifact = parsed.artifacts
             ? (Object.values(parsed.artifacts)[0] as any)
@@ -898,6 +906,8 @@ export async function GET(
         delegationToAgentId: delegationToAgentId || undefined,
         transferFromAgentId: transferFromAgentId || undefined,
         transferToAgentId: transferToAgentId || undefined,
+        toolCallArgs: toolCallArgs || undefined,
+        toolCallResult: toolCallResult || undefined,
         ...saveFields, // Include save_tool_result specific fields
       });
     }

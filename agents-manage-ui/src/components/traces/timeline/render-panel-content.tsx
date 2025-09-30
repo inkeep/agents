@@ -221,7 +221,20 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -253,7 +266,20 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -286,7 +312,20 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -315,7 +354,20 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
