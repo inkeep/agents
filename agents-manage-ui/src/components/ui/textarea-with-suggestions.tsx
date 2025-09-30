@@ -4,20 +4,12 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command'; // shadcn/ui
-import { Textarea } from '@/components/ui/textarea'; // shadcn/ui
-
-// Demo data – replace with your own async fetch if needed
-const PEOPLE = [
-  { id: '1', handle: 'alice', name: 'Alice Johnson' },
-  { id: '2', handle: 'bob', name: 'Bob Smith' },
-  { id: '3', handle: 'charlie', name: 'Charlie P.' },
-  { id: '4', handle: 'dima', name: 'Dimitri Postolov' },
-  { id: '5', handle: 'eve', name: 'Eve Torres' },
-];
+} from '@/components/ui/command';
+import { Textarea } from '@/components/ui/textarea';
+import { getContextSuggestions } from '@/lib/context-suggestions';
+import { useGraphStore } from '@/features/graph/state/use-graph-store';
 
 // Utility: returns the trigger token (e.g. "@ali") before the caret, or null
 function getTriggerToken(text: string, caret: number, triggers = ['@', '/', '#']) {
@@ -60,44 +52,48 @@ export function TextareaWithSuggestions() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
+  const contextConfig = useGraphStore((state) => state.metadata.contextConfig);
+
+  const list = useMemo(() => {
+    const contextVariables = JSON.parse(contextConfig.contextVariables || '{}');
+    const requestContextSchema = JSON.parse(contextConfig.requestContextSchema || '{}');
+    return getContextSuggestions({ requestContextSchema, contextVariables });
+  }, [contextConfig]);
+
   // Which trigger are we handling? For demo, only "@" (mentions)
   const suggestions = useMemo(() => {
-    if (!range) return [] as typeof PEOPLE;
+    if (!range) return [] as typeof list;
     const token = value.slice(range.start, range.end); // e.g. "@al"
-    if (!token.startsWith('@')) return [] as typeof PEOPLE;
+    if (!token.startsWith('@')) return [] as typeof list;
     const q = token.slice(1).toLowerCase();
-    const filtered = PEOPLE.filter(
-      (p) => p.handle.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
-    ).slice(0, 8);
+    const filtered = list.filter((p) => p.toLowerCase().includes(q));
     return filtered;
-  }, [range, value]);
-
-  // Compute floating panel position at the current caret
-  const updateAnchorFromCaret = () => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const caret = ta.selectionStart ?? 0;
-    const tokenInfo = getTriggerToken(value, caret, ['@']); // only @ for this demo
-    if (!tokenInfo) {
-      setOpen(false);
-      setRange(null);
-      return;
-    }
-
-    const coords = getCaretCoordinates(ta, tokenInfo.end); // relative to the textarea
-    const rect = ta.getBoundingClientRect();
-
-    // Position the panel near the caret, accounting for scroll
-    const top = ta.scrollTop + coords.top + 24; // put list below the caret
-    const left = ta.scrollLeft + coords.left;
-
-    setAnchor({ top, left });
-    setRange({ start: tokenInfo.start, end: tokenInfo.end });
-    setOpen(true);
-  };
+  }, [range, value, list]);
 
   // Recompute on input, caret move, scroll, or resize
   useEffect(() => {
+    // Compute floating panel position at the current caret
+    const updateAnchorFromCaret = () => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const caret = ta.selectionStart ?? 0;
+      const tokenInfo = getTriggerToken(value, caret, ['@']); // only @ for this demo
+      if (!tokenInfo) {
+        setOpen(false);
+        setRange(null);
+        return;
+      }
+
+      const coords = getCaretCoordinates(ta, tokenInfo.end); // relative to the textarea
+
+      // Position the panel near the caret, accounting for scroll
+      const top = ta.scrollTop + coords.top + 24; // put list below the caret
+      const left = ta.scrollLeft + coords.left;
+
+      setAnchor({ top, left });
+      setRange({ start: tokenInfo.start, end: tokenInfo.end });
+      setOpen(true);
+    };
     const ta = textareaRef.current;
     if (!ta) return;
 
@@ -122,9 +118,9 @@ export function TextareaWithSuggestions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  const onSelect = (item: { handle: string; name: string }) => {
+  const onSelect = (item: string) => {
     if (!range) return;
-    const replacement = `@${item.handle} `; // trailing space to finish the mention
+    const replacement = `@${item} `; // trailing space to finish the mention
     const { next, nextCaret } = replaceRange(value, range.start, range.end, replacement);
     setValue(next);
     requestAnimationFrame(() => {
@@ -158,8 +154,6 @@ export function TextareaWithSuggestions() {
 
   return (
     <div className="relative max-w-2xl space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">Type "@" to mention</label>
-
       <Textarea
         ref={textareaRef}
         value={value}
@@ -177,14 +171,13 @@ export function TextareaWithSuggestions() {
           style={{ top: anchor.top, left: anchor.left }}
         >
           <Command>
-            <CommandInput placeholder="Search people…" className="h-9" />
             <CommandList>
               <CommandEmpty>No results.</CommandEmpty>
-              <CommandGroup heading="People">
+              <CommandGroup>
                 {suggestions.map((p, idx) => (
                   <CommandItem
-                    key={p.id}
-                    value={p.handle}
+                    key={p}
+                    value={p}
                     onSelect={() => onSelect(p)}
                     className={
                       idx === activeIndex
@@ -193,13 +186,7 @@ export function TextareaWithSuggestions() {
                     }
                   >
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border text-sm">
-                        @{p.handle[0].toUpperCase()}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium">@{p.handle}</span>
-                        <span className="text-xs text-muted-foreground">{p.name}</span>
-                      </div>
+                      <span className="font-medium">{p}</span>
                     </div>
                   </CommandItem>
                 ))}
