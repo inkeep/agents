@@ -1,5 +1,19 @@
 # @inkeep/agents-cli
 
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
+### Patch Changes
+
+- 7801b2c: improve credential store use for cloud deployments
+- Updated dependencies [7801b2c]
+- Updated dependencies [d7fdb5c]
+  - @inkeep/agents-core@0.10.0
+  - @inkeep/agents-manage-ui@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes

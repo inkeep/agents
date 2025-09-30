@@ -1,5 +1,17 @@
 # @inkeep/agents-sdk
 
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
+### Patch Changes
+
+- Updated dependencies [7801b2c]
+- Updated dependencies [d7fdb5c]
+  - @inkeep/agents-core@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes

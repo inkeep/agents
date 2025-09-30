@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
 ## 0.9.0
 
 ## 0.8.7
