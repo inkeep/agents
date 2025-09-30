@@ -120,6 +120,7 @@ export function serializeGraphData(
         toolId: string;
         toolSelection?: string[] | null;
         headers?: Record<string, string>;
+        agentToolRelationId?: string;
       }> = [];
 
       // Find edges from this agent to MCP nodes
@@ -140,6 +141,9 @@ export function serializeGraphData(
             const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
             let toolSelection: string[] | null = null;
 
+            // Get the relationshipId from the MCP node first
+            const relationshipId = (mcpNode.data as any).relationshipId;
+
             if (tempSelectedTools !== undefined) {
               // User has made changes to tool selection in the UI
               if (Array.isArray(tempSelectedTools)) {
@@ -149,9 +153,11 @@ export function serializeGraphData(
               }
             } else {
               // No changes made to tool selection - preserve existing selection
-              if (agentToolConfigLookup?.[agentId]?.[toolId]?.toolSelection) {
-                // Get existing selection from saved data
-                toolSelection = agentToolConfigLookup[agentId][toolId].toolSelection;
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.toolSelection) {
+                toolSelection = existingConfig.toolSelection;
               } else {
                 // Default to all tools selected when no existing data found
                 toolSelection = null;
@@ -171,9 +177,11 @@ export function serializeGraphData(
               }
             } else {
               // No changes made to headers - preserve existing headers
-              if (agentToolConfigLookup?.[agentId]?.[toolId]?.headers) {
-                // Get existing headers from saved data
-                toolHeaders = agentToolConfigLookup[agentId][toolId].headers;
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.headers) {
+                toolHeaders = existingConfig.headers;
               }
             }
 
@@ -181,6 +189,7 @@ export function serializeGraphData(
               toolId,
               toolSelection,
               headers: toolHeaders,
+              ...(relationshipId && { agentToolRelationId: relationshipId }),
             });
           }
         }

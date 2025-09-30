@@ -57,7 +57,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
-      data: { toolId: mcp.id },
+      data: { toolId: mcp.id, agentId: null, relationshipId: null },
     });
   };
 

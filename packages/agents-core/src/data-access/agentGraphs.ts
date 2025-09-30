@@ -369,6 +369,7 @@ export const getFullGraphDefinition =
             imageUrl: tools.imageUrl,
             selectedTools: agentToolRelations.selectedTools,
             headers: agentToolRelations.headers,
+            agentToolRelationId: agentToolRelations.id,
           })
           .from(agentToolRelations)
           .innerJoin(
@@ -410,6 +411,7 @@ export const getFullGraphDefinition =
 
         // Construct canUse array from agentTools
         const canUse = agentTools.map((tool) => ({
+          agentToolRelationId: tool.agentToolRelationId,
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
           headers: tool.headers || null,
