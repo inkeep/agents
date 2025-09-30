@@ -15,6 +15,7 @@ export type SelectedPanel =
 export const ACTIVITY_TYPES = {
   TOOL_CALL: 'tool_call',
   AI_GENERATION: 'ai_generation',
+  AGENT_GENERATION: 'agent_generation',
   CONTEXT_FETCH: 'context_fetch',
   CONTEXT_RESOLUTION: 'context_resolution',
   USER_MESSAGE: 'user_message',

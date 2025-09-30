@@ -389,14 +389,6 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.AI_AGENT_NAME,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
           ]
         ),
 
@@ -765,6 +757,7 @@ export async function GET(
       type:
         | 'tool_call'
         | 'ai_generation'
+        | 'agent_generation'
         | 'context_fetch'
         | 'context_resolution'
         | 'user_message'
@@ -824,7 +817,6 @@ export async function GET(
       saveFacts?: string;
       saveToolArgs?: Record<string, any>;
       saveFullResult?: Record<string, any>;
-      // error information
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
@@ -1056,26 +1048,23 @@ export async function GET(
 
     for (const span of agentGenerationSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
-      const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const statusMessage =
         getString(span, SPAN_KEYS.STATUS_MESSAGE) ||
         getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
-      const otelStatusCode = getString(span, 'otel.status_code', '');
-      const otelStatusDescription = getString(span, 'otel.status_description', '');
+      const otelStatusCode = getString(span, SPAN_KEYS.OTEL_STATUS_CODE, '');
+      const otelStatusDescription = getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
 
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
-        type: ACTIVITY_TYPES.AI_GENERATION,
+        type: ACTIVITY_TYPES.AGENT_GENERATION,
         name: 'agent.generate',
         description: hasError ? 'Agent generation failed' : 'Agent generation',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME, 'Agent'),
         result: hasError
           ? statusMessage || 'Agent generation failed'
-          : `Agent generated successfully (${durMs.toFixed(2)}ms)`,
+          : 'Agent generation completed',
         hasError,
-        // Add OTEL status attributes for error display
         otelStatusCode: hasError ? otelStatusCode : undefined,
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
       });

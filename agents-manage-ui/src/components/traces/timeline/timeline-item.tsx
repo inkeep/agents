@@ -5,6 +5,7 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronRight,
+  Cpu,
   Database,
   Hammer,
   Settings,
@@ -46,6 +47,7 @@ function statusIcon(
   const base: Record<string, { Icon: any; cls: string }> = {
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
+    agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
     ai_assistant_message: { Icon: Sparkles, cls: 'text-primary' },
     ai_model_streamed_text: { Icon: Sparkles, cls: 'text-primary' },
     context_fetch: { Icon: Settings, cls: 'text-indigo-400' },
