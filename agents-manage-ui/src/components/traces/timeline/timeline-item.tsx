@@ -21,6 +21,7 @@ import {
   type ActivityKind,
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
+import { Badge } from '@/components/ui/badge';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -367,6 +368,15 @@ export function TimelineItem({
                 Artifact not saved
               </CodeBubble>
             )}
+
+          {/* agent name for AI generation */}
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
+            <div className="mb-1">
+              <Badge variant="code">
+                {activity.agentName}
+              </Badge>
+            </div>
+          )}
 
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"

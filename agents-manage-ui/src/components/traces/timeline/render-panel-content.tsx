@@ -88,6 +88,13 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <Info label="Agent" value={a.agentName || '-'} />
+            {a.aiResponseText && (
+              <LabeledBlock label="Response text">
+                <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+                  {a.aiResponseText}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -393,11 +400,6 @@ export function renderPanelContent({
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-            <LabeledBlock label="Streamed text content">
-              <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
-                {a.aiStreamTextContent || 'No content available'}
-              </Bubble>
-            </LabeledBlock>
           </Section>
           <Divider />
           {SignozButton}

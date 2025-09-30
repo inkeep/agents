@@ -4,7 +4,7 @@ import type { CredentialStoreRegistry } from '../credential-stores/CredentialSto
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
 import { getLogger } from '../utils';
-import { tracer, setSpanWithError } from '../utils/tracer';
+import { setSpanWithError, tracer } from '../utils/tracer';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';
 
@@ -297,8 +297,52 @@ export class ContextResolver {
     requestHash: string,
     result: ContextResolutionResult
   ): Promise<void> {
-    // Create parent span for individual context variable resolution
-    return tracer.startActiveSpan(
+    // Check cache first
+    const cachedEntry = await this.cache.get({
+      conversationId: options.conversationId,
+      contextConfigId: contextConfig.id,
+      contextVariableKey: templateKey,
+      requestHash,
+    });
+
+    if (cachedEntry) {
+      result.resolvedContext[templateKey] = cachedEntry.value;
+      result.cacheHits.push(definition.id);
+
+      logger.debug(
+        {
+          definitionId: definition.id,
+          templateKey,
+          conversationId: options.conversationId,
+        },
+        'Cache hit for context variable'
+      );
+      return;
+    }
+
+    // Cache miss - fetch the data
+    result.cacheMisses.push(definition.id);
+
+    logger.debug(
+      {
+        definitionId: definition.id,
+        templateKey,
+        conversationId: options.conversationId,
+      },
+      'Cache miss for context variable, fetching data'
+    );
+
+    // Fetch the data with conversationId in the fetch config
+    const definitionWithConversationId = {
+      ...definition,
+      fetchConfig: {
+        ...definition.fetchConfig,
+        conversationId: options.conversationId,
+      },
+    };
+
+    // Create span only for the fetch operation
+    const fetchedData = await tracer.startActiveSpan(
       'context-resolver.resolve_single_fetch_definition',
       {
         attributes: {
@@ -309,105 +353,53 @@ export class ContextResolver {
           'context.trigger': definition.trigger,
         },
       },
-      async (parentSpan: Span) => {
+      async (fetchSpan: Span) => {
         try {
-          // Check cache first
-          const cachedEntry = await this.cache.get({
-            conversationId: options.conversationId,
-            contextConfigId: contextConfig.id,
-            contextVariableKey: templateKey,
-            requestHash,
-          });
-
-          if (cachedEntry) {
-            result.resolvedContext[templateKey] = cachedEntry.value;
-            result.cacheHits.push(definition.id);
-
-            // Mark span as successful (cache hit)
-            parentSpan.setStatus({ code: SpanStatusCode.OK });
-            parentSpan.addEvent('context.cache_hit', {
-              definition_id: definition.id,
-              template_key: templateKey,
-            });
-
-            logger.debug(
-              {
-                definitionId: definition.id,
-                templateKey,
-                conversationId: options.conversationId,
-              },
-              'Cache hit for context variable'
-            );
-            return;
-          }
-
-          // Cache miss - fetch the data
-          result.cacheMisses.push(definition.id);
-          parentSpan.addEvent('context.cache_miss', {
-            definition_id: definition.id,
-            template_key: templateKey,
-          });
-
-          logger.debug(
-            {
-              definitionId: definition.id,
-              templateKey,
-              conversationId: options.conversationId,
-            },
-            'Cache miss for context variable, fetching data'
-          );
-
-          // Fetch the data with conversationId in the fetch config
-          const definitionWithConversationId = {
-            ...definition,
-            fetchConfig: {
-              ...definition.fetchConfig,
-              conversationId: options.conversationId,
-            },
-          };
-          const fetchedData = await this.fetcher.fetch(
+          const data = await this.fetcher.fetch(
             definitionWithConversationId,
             result.resolvedContext
           );
 
-          // Store in resolved context
-          result.resolvedContext[templateKey] = fetchedData;
-          result.fetchedDefinitions.push(definition.id);
-
-          // Cache the result (unified cache)
-          await this.cache.set({
-            contextConfigId: contextConfig.id,
-            contextVariableKey: templateKey,
-            conversationId: options.conversationId,
-            value: fetchedData,
-            requestHash,
-            tenantId: this.tenantId,
-          });
-
           // Mark span as successful
-          parentSpan.setStatus({ code: SpanStatusCode.OK });
-          parentSpan.addEvent('context.fetch_success', {
+          fetchSpan.setStatus({ code: SpanStatusCode.OK });
+          fetchSpan.addEvent('context.fetch_success', {
             definition_id: definition.id,
             template_key: templateKey,
             source: definition.fetchConfig.url,
           });
 
-          logger.debug(
-            {
-              definitionId: definition.id,
-              templateKey,
-              conversationId: options.conversationId,
-            },
-            'Context variable resolved and cached'
-          );
+          return data;
         } catch (error) {
           // Use helper function for consistent error handling
-          setSpanWithError(parentSpan, error);
+          setSpanWithError(fetchSpan, error);
           throw error;
         } finally {
-          parentSpan.end();
+          fetchSpan.end();
         }
       }
+    );
+
+    // Store in resolved context
+    result.resolvedContext[templateKey] = fetchedData;
+    result.fetchedDefinitions.push(definition.id);
+
+    // Cache the result (unified cache)
+    await this.cache.set({
+      contextConfigId: contextConfig.id,
+      contextVariableKey: templateKey,
+      conversationId: options.conversationId,
+      value: fetchedData,
+      requestHash,
+      tenantId: this.tenantId,
+    });
+
+    logger.debug(
+      {
+        definitionId: definition.id,
+        templateKey,
+        conversationId: options.conversationId,
+      },
+      'Context variable resolved and cached'
     );
   }
 
