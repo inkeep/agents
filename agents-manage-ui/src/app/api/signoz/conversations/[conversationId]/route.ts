@@ -583,6 +583,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TEXT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -787,6 +791,7 @@ export async function GET(
       serviceTier?: string;
       aiResponseContent?: string;
       aiResponseTimestamp?: string;
+      aiResponseText?: string;
       // user
       messageContent?: string;
       // context resolution
@@ -1050,6 +1055,7 @@ export async function GET(
         aiModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
       });
     }
 

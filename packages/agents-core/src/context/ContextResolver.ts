@@ -353,7 +353,7 @@ export class ContextResolver {
           'context.trigger': definition.trigger,
         },
       },
-      async (fetchSpan: Span) => {
+      async (parentSpan: Span) => {
         try {
           const data = await this.fetcher.fetch(
             definitionWithConversationId,
@@ -361,8 +361,8 @@ export class ContextResolver {
           );
 
           // Mark span as successful
-          fetchSpan.setStatus({ code: SpanStatusCode.OK });
-          fetchSpan.addEvent('context.fetch_success', {
+          parentSpan.setStatus({ code: SpanStatusCode.OK });
+          parentSpan.addEvent('context.fetch_success', {
             definition_id: definition.id,
             template_key: templateKey,
             source: definition.fetchConfig.url,
@@ -371,10 +371,10 @@ export class ContextResolver {
           return data;
         } catch (error) {
           // Use helper function for consistent error handling
-          setSpanWithError(fetchSpan, error);
+          setSpanWithError(parentSpan, error);
           throw error;
         } finally {
-          fetchSpan.end();
+          parentSpan.end();
         }
       }
     );
