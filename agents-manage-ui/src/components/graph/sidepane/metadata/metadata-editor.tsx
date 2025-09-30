@@ -130,7 +130,7 @@ function MetadataEditor() {
           name="graph-prompt"
           label="Graph prompt"
           value={graphPrompt || ''}
-          onChange={(e) => updateMetadata('graphPrompt', e.target.value)}
+          onChange={(value) => updateMetadata('graphPrompt', value)}
           placeholder="System-level instructions for this graph..."
           className="max-h-96"
         />
