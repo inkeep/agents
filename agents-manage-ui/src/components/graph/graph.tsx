@@ -179,7 +179,7 @@ function Flow({
     return lookup;
   }, [graph?.agents]);
 
-  const { screenToFlowPosition, updateNodeData } = useReactFlow();
+  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
   const {
     nodes: storeNodes,
     edges,
@@ -258,6 +258,28 @@ function Flow({
       }));
     }
   }, []);
+
+  // Auto-center graph when sidepane opens/closes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on isOpen changes
+  useEffect(() => {
+    // Delay to allow CSS transition to complete (300ms transition + 50ms buffer)
+    const timer = setTimeout(() => {
+      fitView({ maxZoom: 1, duration: 200 });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, fitView]);
+
+  // Auto-center graph when playground opens/closes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on showPlayground changes
+  useEffect(() => {
+    // Delay to allow CSS transition to complete
+    const timer = setTimeout(() => {
+      fitView({ maxZoom: 1, duration: 200 });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [showPlayground, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped = useCallback((params: Connection) => {
