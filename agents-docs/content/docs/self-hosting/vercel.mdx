@@ -41,6 +41,8 @@ From the monorepo in GitHub, you will create three seperate projects in Vercel.
 ### 1. Manage API
 Generate a secret using `openssl rand -hex 32` in a terminal. Keep this secret and note this for `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET`.
 
+![Vercel New Project - Manage API](/images/vercel-new-project-manage-api-hono.png)
+
 Required environment variables for Manage API:
 ```
 ENVIRONMENT=production
@@ -56,6 +58,8 @@ NANGO_SERVER_URL=https://api.nango.dev
 
 ### 2. Run API
 Generate another secret using `openssl rand -hex 32` in a terminal. Keep this secret and note this for `INKEEP_AGENTS_RUN_API_BYPASS_SECRET`.
+
+![Vercel New Project - Run API](/images/vercel-new-project-run-api-hono.png)
 
 Required environment variables for Run API:
 ```
@@ -80,6 +84,8 @@ NANGO_SERVER_URL=https://api.nango.dev
 ### 3. Manage UI
 
 After you have deployed (1) Manage API and (2) Run API, you will have a Vercel deployment url for both of them. These will be `INKEEP_AGENTS_MANAGE_API_URL` and `INKEEP_AGENTS_RUN_API_URL`.
+
+![Vercel New Project - Manage UI](/images/vercel-new-project-manage-ui-nextjs.png)
 
 Required environment variables for Manage UI:
 ```
