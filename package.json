@@ -39,7 +39,6 @@
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
-    "db:push": "pnpm --filter @inkeep/agents-core db:push",
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:drop": "pnpm --filter @inkeep/agents-core db:drop",
     "db:studio": "pnpm --filter @inkeep/agents-core db:studio",

@@ -1,7 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
+<<<<<<< HEAD
   "id": "3653b27c-e728-45cf-8814-0ca0835ad3df",
+=======
+  "id": "7bc24c25-3dd6-4b6b-a8ae-cf83b8064b73",
+>>>>>>> b63341d5 (Remove db:push in favor of db:migrate workflow)
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {

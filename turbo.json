@@ -126,10 +126,6 @@
       "inputs": ["drizzle.config.ts", "src/db/schema.ts"],
       "outputs": ["drizzle/**"]
     },
-    "db:push": {
-      "cache": false,
-      "inputs": ["drizzle.config.ts", "src/db/schema.ts"]
-    },
     "db:migrate": {
       "cache": false,
       "inputs": ["drizzle/**", "src/db/schema.ts"]

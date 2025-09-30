@@ -180,15 +180,11 @@ When working on this codebase:
 
 ## DATABASE MIGRATION PRACTICES
 
-### Standard Workflow (Production)
+### Standard Workflow
 1. Edit `packages/agents-core/src/db/schema.ts`
 2. Run `pnpm db:generate` to create migration files in `drizzle/`
 3. (Optional) Make minor edits to the newly generated SQL file if needed due to drizzle-kit limitations
 4. Run `pnpm db:migrate` to apply the migration to the database
-
-### Development Workflow (Quick iteration)
-1. Edit `packages/agents-core/src/db/schema.ts`
-2. Run `pnpm db:push` to directly update the database without creating migrations
 
 ### Critical Migration Rules
 - ⚠️ **NEVER manually edit files in `drizzle/meta/`** - these are managed by drizzle-kit

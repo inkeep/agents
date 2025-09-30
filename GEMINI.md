@@ -50,14 +50,6 @@ pnpm install
 
 ### Database Setup
 
-For development (quick iteration without migrations):
-
-```bash
-pnpm db:push
-```
-
-For production (with migration files):
-
 ```bash
 pnpm db:generate  # Generate migration from schema.ts changes
 pnpm db:migrate   # Apply migrations to database
