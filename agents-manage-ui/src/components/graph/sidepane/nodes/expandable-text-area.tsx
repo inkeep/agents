@@ -1,28 +1,18 @@
 import { ExpandableField } from '@/components/form/expandable-field';
-import { Textarea } from '@/components/ui/textarea';
-import { useCursorToEnd } from '@/hooks/use-cursor-to-end';
 import { Button } from '@/components/ui/button';
 import { Braces } from 'lucide-react';
 import { TooltipTrigger, Tooltip, TooltipContent } from '@/components/ui/tooltip';
+import { PromptEditor } from '@/components/form/prompt-editor';
 
-function ExpandedTextArea({ ...props }) {
-  const textareaRef = useCursorToEnd<HTMLTextAreaElement>();
-
-  return (
-    <Textarea
-      {...props}
-      ref={textareaRef}
-      className="w-full max-h-full resize-none h-full"
-      autoFocus
-    />
-  );
-}
+const ExpandedTextArea: typeof PromptEditor = (props) => {
+  return <PromptEditor {...props} autoFocus className="[&>.cm-editor]:h-full" />;
+};
 
 export function ExpandableTextArea({
   label,
   isRequired = false,
   ...props
-}: { label: string; isRequired?: boolean } & React.ComponentProps<typeof Textarea>) {
+}: { label: string; isRequired?: boolean } & React.ComponentProps<typeof PromptEditor>) {
   return (
     <ExpandableField
       name={props.id || 'expandable-textarea'}
@@ -30,7 +20,7 @@ export function ExpandableTextArea({
       isRequired={isRequired}
       compactView={
         <>
-          <Textarea {...props} />
+          <PromptEditor {...props} />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
