@@ -11,5 +11,6 @@ export default defineConfig({
     'src/validation/index.ts',
     'src/client-exports.ts',
   ],
+  external: ['keytar'],
   async onSuccess() {},
 });
