@@ -313,7 +313,7 @@ inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-ap
 
 ### `inkeep dev`
 
-Start the Inkeep dashboard server or build for production.
+Start the Inkeep dashboard server, build for production, or export the Next.js project.
 
 ```bash
 inkeep dev
@@ -323,8 +323,9 @@ inkeep dev
 
 - `--port <port>` - Port to run the server on (default: 3000)
 - `--host <host>` - Host to bind the server to (default: localhost)
-- `--build` - Build the Dashboard UI for production
-- `--output-dir <dir>` - Output directory for build files (default: ./vercel-build)
+- `--build` - Build the Dashboard UI for production (packages standalone build)
+- `--export` - Export the Next.js project source files
+- `--output-dir <dir>` - Output directory for build files (default: ./inkeep-dev)
 - `--path` - Output the path to the Dashboard UI
 
 **Examples:**
@@ -336,8 +337,11 @@ inkeep dev
 # Start on custom port and host
 inkeep dev --port 3001 --host 0.0.0.0
 
-# Build for production
+# Build for production (packages standalone build)
 inkeep dev --build --output-dir ./build
+
+# Export Next.js project source files
+inkeep dev --export --output-dir ./my-dashboard
 
 # Get dashboard path for deployment
 DASHBOARD_PATH=$(inkeep dev --path)

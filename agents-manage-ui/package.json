@@ -18,9 +18,9 @@
     "index.js",
     "index.d.ts",
     "package.json",
-    ".next/standalone",
-    "!.next/standalone/**/node_modules",
-    "!.next/standalone/node_modules"
+    ".next/standalone/agents-manage-ui",
+    ".next/standalone/packages",
+    ".next/standalone/package.json"
   ],
   "publishConfig": {
     "access": "public",
