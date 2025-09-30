@@ -1,12 +1,67 @@
 import { type FC, useMemo } from 'react';
 import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete';
-import { keymap } from '@codemirror/view';
+import { keymap, Decoration, ViewPlugin, EditorView, type DecorationSet } from '@codemirror/view';
 import { duotoneDark, duotoneLight } from '@uiw/codemirror-theme-duotone';
-import CodeMirror, { type ReactCodeMirrorProps } from '@uiw/react-codemirror';
+import CodeMirror, { type ReactCodeMirrorProps, type Range } from '@uiw/react-codemirror';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
+
+// Decoration for template variables
+const templateVariableDecoration = Decoration.mark({
+  class: 'cm-template-variable',
+});
+
+// Plugin to highlight template variables
+const templateVariablePlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+
+    constructor(view: EditorView) {
+      this.decorations = this.buildDecorations(view);
+    }
+
+    update(update: any) {
+      if (update.docChanged) {
+        this.decorations = this.buildDecorations(update.view);
+      }
+    }
+
+    buildDecorations(view: EditorView): DecorationSet {
+      const decorations: Range<Decoration>[] = [];
+      const regex = /\{\{([^}]+)}}/g;
+
+      for (let i = 0; i < view.state.doc.lines; i++) {
+        const line = view.state.doc.line(i + 1);
+        const text = line.text;
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(text)) !== null) {
+          const from = line.from + match.index;
+          const to = line.from + match.index + match[0].length;
+          decorations.push(templateVariableDecoration.range(from, to));
+        }
+      }
+
+      return Decoration.set(decorations);
+    }
+  },
+  {
+    decorations: (v) => v.decorations,
+  }
+);
+
+// Theme for template variables
+const templateVariableTheme = EditorView.theme({
+  '& .cm-template-variable': {
+    color: '#e67e22', // Orange color for variables
+    fontWeight: 'bold',
+  },
+  '&.cm-dark .cm-template-variable': {
+    color: '#f39c12', // Lighter orange for dark theme
+  },
+});
 
 // Create autocomplete source for context variables
 function createContextAutocompleteSource(suggestions: string[]): CompletionSource {
@@ -33,10 +88,7 @@ function createContextAutocompleteSource(suggestions: string[]): CompletionSourc
   };
 }
 
-export interface TextareaWithSuggestionsProps
-  extends Omit<ReactCodeMirrorProps, 'value' | 'onChange'> {
-  value: string;
-  onChange: (value: string) => void;
+export interface TextareaWithSuggestionsProps extends ReactCodeMirrorProps {
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
@@ -64,6 +116,8 @@ export const TextareaWithSuggestions: FC<TextareaWithSuggestionsProps> = ({
         override: [createContextAutocompleteSource(suggestions)],
       }),
       keymap.of(completionKeymap),
+      templateVariablePlugin,
+      templateVariableTheme,
     ];
   }, [contextConfig]);
 
