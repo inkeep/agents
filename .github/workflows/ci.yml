@@ -75,9 +75,13 @@ jobs:
       - name: Run CI checks
         id: ci-check
         run: |
-          # Run all checks in parallel using Turborepo's dependency graph
-          # This will build once and cache, then run lint, typecheck, and test in parallel
-          pnpm check
+          # Skip docs and manage-ui builds (they have separate deploy workflows)
+          # This significantly speeds up CI by avoiding 45s+ Next.js builds
+          pnpm build:ci
+          # Then run lint, typecheck, and test
+          pnpm lint
+          pnpm typecheck
+          pnpm test
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo

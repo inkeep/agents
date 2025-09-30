@@ -14,6 +14,10 @@ const config = {
   reactStrictMode: true,
   // Enable Turbopack for faster builds
   turbopack: {},
+  // Use SWC minifier (faster than Terser)
+  swcMinify: true,
+  // Disable source maps in production for faster builds
+  productionBrowserSourceMaps: false,
   // Increase timeout for static page generation in CI environments
   staticPageGenerationTimeout: 180, // 3 minutes instead of default 60 seconds
   async redirects() {

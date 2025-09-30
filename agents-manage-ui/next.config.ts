@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // Enable Turbopack for faster builds
   turbopack: {},
+  // Use SWC minifier (faster than Terser)
+  swcMinify: true,
+  // Disable source maps in production for faster builds
+  productionBrowserSourceMaps: false,
+  // Optimize package imports
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
   eslint: {
     // Disable ESLint during builds on Vercel to avoid deployment failures
     ignoreDuringBuilds: true,
