@@ -1260,7 +1260,7 @@ Make it specific and relevant.`;
                   'No model configuration available for artifact name generation, will use fallback names'
                 );
                 // Skip name generation and use fallback
-                modelToUse = null;
+                modelToUse = undefined;
               }
             } else {
               modelToUse = this.statusUpdateState.baseModel;
