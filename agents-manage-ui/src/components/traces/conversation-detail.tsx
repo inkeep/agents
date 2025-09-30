@@ -247,7 +247,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       )}
                        {warnings > 0 && (
                          <div className="flex items-baseline gap-2">
-                           <span className="text-2xl font-bold font-mono text-yellow-400">{warnings}</span>
+                           <span className="text-2xl font-bold font-mono text-yellow-500">{warnings}</span>
                            <span className="text-sm text-muted-foreground">warning{warnings > 1 ? 's' : ''}</span>
                          </div>
                        )}
