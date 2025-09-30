@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { createMDX } from 'fumadocs-mdx/next';
-import { fetchCloudRedirects } from './src/lib/redirects';
+import { fetchCloudRedirects } from './src/lib/redirects.js';
 
 const withMDX = createMDX();
 
