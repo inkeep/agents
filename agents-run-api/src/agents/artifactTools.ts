@@ -330,9 +330,24 @@ Please use Error Messages to Debug when there is an error in the tool call.`,
 
       try {
         const parsedResult = parseEmbeddedJson(toolResult);
+        
+        logger.debug({
+          toolCallId,
+          baseSelector,
+          parsedResultKeys: Object.keys(parsedResult),
+          parsedResultSample: JSON.stringify(parsedResult).substring(0, 500)
+        }, 'Artifact creation - parsed tool result');
 
         // Use baseSelector to get to the main data
         const baseData = jmespath.search(parsedResult, baseSelector);
+        
+        logger.debug({
+          toolCallId,
+          baseSelector,
+          baseDataType: Array.isArray(baseData) ? 'array' : typeof baseData,
+          baseDataLength: Array.isArray(baseData) ? baseData.length : undefined,
+          baseDataSample: JSON.stringify(baseData).substring(0, 300)
+        }, 'Artifact creation - base data extracted');
         if (!baseData || (Array.isArray(baseData) && baseData.length === 0)) {
           // Enhanced debugging for failed selectors
           const debugInfo = analyzeSelectorFailure(parsedResult, baseSelector);
@@ -371,15 +386,53 @@ Please use Error Messages to Debug when there is an error in the tool call.`,
         const extractProps = (items: any[], schema: any, context: string = 'default') => {
           const failedSelectors: string[] = [];
 
-          const extractedItems = items.map((item, _index) => {
+          logger.debug({
+            toolCallId,
+            context,
+            itemCount: items.length,
+            schemaProperties: Object.keys(schema?.properties || {}),
+            propSelectors,
+            itemSample: JSON.stringify(items[0]).substring(0, 200)
+          }, 'Artifact extraction - starting prop extraction');
+
+          const extractedItems = items.map((item, itemIndex) => {
             const extractedItem: Record<string, any> = {};
             const schemaProperties = schema?.properties || {};
+
+            logger.debug({
+              toolCallId,
+              context,
+              itemIndex,
+              itemKeys: Object.keys(item || {}),
+              itemType: typeof item
+            }, 'Artifact extraction - processing item');
 
             for (const [propName, _propSchema] of Object.entries(schemaProperties)) {
               const propSelector = propSelectors[propName];
               if (propSelector) {
+                logger.debug({
+                  toolCallId,
+                  context,
+                  itemIndex,
+                  propName,
+                  propSelector,
+                }, 'Artifact extraction - attempting prop extraction');
+
                 try {
                   const propValue = jmespath.search(item, propSelector);
+                  
+                  logger.debug({
+                    toolCallId,
+                    context,
+                    itemIndex,
+                    propName,
+                    propSelector,
+                    propValueType: typeof propValue,
+                    propValueSample: JSON.stringify(propValue).substring(0, 100),
+                    propValueNull: propValue === null,
+                    propValueUndefined: propValue === undefined
+                  }, 'Artifact extraction - prop extraction result');
+
                   if (propValue !== null && propValue !== undefined) {
                     extractedItem[propName] = propValue;
                   } else {
@@ -393,6 +446,14 @@ Please use Error Messages to Debug when there is an error in the tool call.`,
                       );
                     } else {
                       failedSelectors.push(`${propName}: "${propSelector}"`);
+                      logger.debug({
+                        toolCallId,
+                        context,
+                        itemIndex,
+                        propName,
+                        propSelector,
+                        fallbackValue
+                      }, 'Artifact extraction - prop extraction failed, no fallback');
                     }
                   }
                 } catch (error) {
@@ -406,12 +467,45 @@ Please use Error Messages to Debug when there is an error in the tool call.`,
                     );
                   } else {
                     failedSelectors.push(`${propName}: "${propSelector}" (syntax error)`);
+                    logger.debug({
+                      toolCallId,
+                      context,
+                      itemIndex,
+                      propName,
+                      propSelector,
+                      error: (error as Error).message,
+                      fallbackValue
+                    }, 'Artifact extraction - prop extraction syntax error');
                   }
                 }
+              } else {
+                logger.debug({
+                  toolCallId,
+                  context,
+                  itemIndex,
+                  propName,
+                }, 'Artifact extraction - no prop selector provided for property');
               }
             }
+
+            logger.debug({
+              toolCallId,
+              context,
+              itemIndex,
+              extractedKeys: Object.keys(extractedItem),
+              extractedItem: JSON.stringify(extractedItem).substring(0, 200)
+            }, 'Artifact extraction - item extraction complete');
+
             return extractedItem;
           });
+
+          logger.debug({
+            toolCallId,
+            context,
+            extractedItemCount: extractedItems.length,
+            failedSelectorsCount: failedSelectors.length,
+            failedSelectors
+          }, 'Artifact extraction - prop extraction complete');
 
           // Return both the extracted items and any failed selectors for error reporting
           return { extractedItems, failedSelectors };
@@ -530,6 +624,16 @@ Please use Error Messages to Debug when there is an error in the tool call.`,
           },
           {} as Record<string, any>
         );
+
+        logger.debug({
+          toolCallId,
+          artifactType,
+          artifactCount: artifactDataItems.length,
+          summaryDataSample: JSON.stringify(summaryData).substring(0, 300),
+          fullDataSample: JSON.stringify(fullData).substring(0, 300),
+          warnings,
+          artifactIds: artifactDataItems.map(item => item.artifactId)
+        }, 'Artifact creation - final result');
 
         return {
           saved: true,
