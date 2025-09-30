@@ -407,6 +407,7 @@ export function TimelineWrapper({
       {selected && (
         <ResizablePanel order={3}>
           <ActivityDetailsSidePane
+            key={selected.item.id}
             title={panelTitle(selected)}
             open={panelVisible}
             onClose={closePanel}
