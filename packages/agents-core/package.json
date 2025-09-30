@@ -34,7 +34,6 @@
     "db:reset": "pnpm db:delete && pnpm db:push",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check",
-    "db:reset-schema": "rm -rf drizzle/* && echo 'All migration files removed, generating new schema' && drizzle-kit generate",
     "prepack": "clean-package",
     "postpack": "clean-package restore"
   },

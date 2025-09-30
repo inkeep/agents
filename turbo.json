@@ -145,10 +145,6 @@
       "cache": false,
       "inputs": ["drizzle.config.ts", "src/db/schema.ts"]
     },
-    "db:reset-schema": {
-      "cache": false,
-      "outputs": ["drizzle/**"]
-    },
     "docs#dev": {
       "cache": false,
       "persistent": true

@@ -17,13 +17,31 @@ pnpm lint            # Run Biome linter
 pnpm format          # Format code with Biome
 
 # Database operations (run from monorepo root)
-pnpm db:generate     # Generate Drizzle migrations
-pnpm db:push         # Push schema changes to SQLite (shared database at ./local.db)
-pnpm db:migrate      # Run database migrations
+pnpm db:generate     # Generate Drizzle migrations from schema.ts changes
+pnpm db:push         # Push schema changes to SQLite (shared database at ./local.db) - development only
+pnpm db:migrate      # Apply generated migrations to database
+pnpm db:drop         # Drop migration files (use this to remove migrations, don't manually delete)
 pnpm db:studio       # Open Drizzle Studio for database inspection
 pnpm db:clean        # Clean database
 pnpm db:check        # Check database schema
-pnpm db:reset-schema # Reset database schema
+
+## Database Migration Workflow
+
+### Standard Workflow (Production)
+1. Edit `packages/agents-core/src/db/schema.ts`
+2. Run `pnpm db:generate` to create migration files in `drizzle/`
+3. (Optional) Make minor edits to the newly generated SQL file if needed due to drizzle-kit limitations
+4. Run `pnpm db:migrate` to apply the migration to the database
+
+### Development Workflow (Quick iteration)
+1. Edit `packages/agents-core/src/db/schema.ts`
+2. Run `pnpm db:push` to directly update the database without creating migrations
+
+### Important Rules
+- ⚠️ **NEVER manually edit files in `drizzle/meta/`** - these are managed by drizzle-kit
+- ⚠️ **NEVER edit existing migration SQL files after they've been applied** - create new migrations instead
+- ⚠️ **To remove migrations, use `pnpm db:drop`** - don't manually delete migration files
+- ✅ **Only edit newly generated migrations** before first application (if drizzle-kit has limitations)
 
 # Running examples (from the examples directory)
 # Note: Use the globally installed inkeep CLI, not npx

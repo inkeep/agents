@@ -178,6 +178,24 @@ When working on this codebase:
 - Ensure proper context preservation across agents
 - Implement proper cleanup mechanisms
 
+## DATABASE MIGRATION PRACTICES
+
+### Standard Workflow (Production)
+1. Edit `packages/agents-core/src/db/schema.ts`
+2. Run `pnpm db:generate` to create migration files in `drizzle/`
+3. (Optional) Make minor edits to the newly generated SQL file if needed due to drizzle-kit limitations
+4. Run `pnpm db:migrate` to apply the migration to the database
+
+### Development Workflow (Quick iteration)
+1. Edit `packages/agents-core/src/db/schema.ts`
+2. Run `pnpm db:push` to directly update the database without creating migrations
+
+### Critical Migration Rules
+- ⚠️ **NEVER manually edit files in `drizzle/meta/`** - these are managed by drizzle-kit
+- ⚠️ **NEVER edit existing migration SQL files after they've been applied** - create new migrations instead
+- ⚠️ **To remove migrations, use `pnpm db:drop`** - don't manually delete migration files
+- ✅ **Only edit newly generated migrations** before first application (if drizzle-kit has limitations)
+
 ## ERROR MESSAGES
 
 When encountering issues, provide clear guidance:
