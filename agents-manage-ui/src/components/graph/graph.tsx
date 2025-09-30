@@ -636,6 +636,7 @@ function Flow({
           projectId={projectId}
           tenantId={tenantId}
           setShowPlayground={setShowPlayground}
+          closeSidePane={closeSidePane}
         />
       )}
     </div>

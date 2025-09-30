@@ -85,8 +85,8 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+        <Button variant="ghost" size="sm" className="h-6">
+          {numHeaders > 0 ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
           Custom Headers
           {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}
         </Button>
