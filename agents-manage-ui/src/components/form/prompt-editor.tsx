@@ -128,7 +128,7 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
       onChange={onChange}
       extensions={extensions}
       theme={isDark ? duotoneDark : duotoneLight}
-      placeholder={placeholder || 'Try typing: {{req'}
+      placeholder={placeholder}
       editable={!disabled && !readOnly}
       basicSetup={{
         lineNumbers: false,
