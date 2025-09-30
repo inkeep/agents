@@ -72,6 +72,7 @@ export default {
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
         'talk-to-your-agents/api',
+        'talk-to-your-agents/vercel-ai-sdk',
         'talk-to-your-agents/a2a',
         {
           group: 'React UI Components',
