@@ -182,6 +182,7 @@ export function ModelSelector({
                       value="__openrouter__"
                       onSelect={() => {
                         setShowCustomInput('openrouter');
+                        setOpen(false);
                         setCustomModelInput('');
                       }}
                     >
@@ -192,6 +193,7 @@ export function ModelSelector({
                       value="__gateway__"
                       onSelect={() => {
                         setShowCustomInput('gateway');
+                        setOpen(false);
                         setCustomModelInput('');
                       }}
                     >
@@ -209,6 +211,8 @@ export function ModelSelector({
                           onSelect={(currentValue) => {
                             onValueChange?.(currentValue === value ? '' : currentValue);
                             setOpen(false);
+                            setCustomModelInput('');
+                            setShowCustomInput(null);
                           }}
                         >
                           {model.label}
@@ -239,7 +243,7 @@ export function ModelSelector({
                     ? 'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct'
                     : 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <input
                     className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={

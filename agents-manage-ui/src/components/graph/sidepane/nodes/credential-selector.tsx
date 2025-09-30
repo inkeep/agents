@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -15,6 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Credential } from '@/lib/api/credentials';
+import { EmptyState } from './empty-state';
 
 // Header component - shows label and status
 interface CredentialHeaderProps {
@@ -44,6 +45,10 @@ function CredentialDropdown({
   placeholder = 'Select credential...',
 }: CredentialDropdownProps) {
   const [open, setOpen] = useState(false);
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
 
   return (
     <div className="flex w-full">
@@ -80,7 +85,14 @@ function CredentialDropdown({
           <Command>
             <CommandInput placeholder="Search credentials..." />
             <CommandList>
-              <CommandEmpty>No credentials found.</CommandEmpty>
+              <CommandEmpty>
+                {' '}
+                <EmptyState
+                  message={'No credentials found.'}
+                  actionText={'Create credential'}
+                  actionHref={`/${tenantId}/projects/${projectId}/credentials/new`}
+                />
+              </CommandEmpty>
               <CommandGroup>
                 {/* No Authentication option */}
                 <CommandItem
@@ -96,11 +108,7 @@ function CredentialDropdown({
                       <div className="font-medium">No Authentication</div>
                       <div className="text-xs text-muted-foreground">Unsecured connection</div>
                     </div>
-                    {selectedCredentialId === null && (
-                      <Badge variant="success" className="text-[10px]">
-                        Selected
-                      </Badge>
-                    )}
+                    {selectedCredentialId === null && <Check className="ml-2 h-4 w-4" />}
                   </div>
                 </CommandItem>
 
@@ -120,11 +128,7 @@ function CredentialDropdown({
                         <div className="font-medium">{credential.id}</div>
                         <div className="text-xs text-muted-foreground">{credential.type}</div>
                       </div>
-                      {selectedCredentialId === credential.id && (
-                        <Badge variant="success" className="text-[10px]">
-                          Selected
-                        </Badge>
-                      )}
+                      {selectedCredentialId === credential.id && <Check className="ml-2 h-4 w-4" />}
                     </div>
                   </CommandItem>
                 ))}

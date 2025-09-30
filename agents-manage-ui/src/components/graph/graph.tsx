@@ -670,7 +670,7 @@ function Flow({
             <Toolbar
               onSubmit={onSubmit}
               isPreviewDisabled={!graph?.id}
-              toggleSidePane={isOpen ? closeSidePane : openGraphPane}
+              toggleSidePane={isOpen ? backToGraph : openGraphPane}
               setShowPlayground={() => {
                 closeSidePane();
                 setShowPlayground(true);

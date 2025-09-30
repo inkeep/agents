@@ -102,19 +102,17 @@ export function TimelineItem({
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
   return (
-    <div 
-      className={`flex flex-col text-muted-foreground relative text-xs transition-all duration-200 rounded-lg ${
-        isSelected 
-          ? 'bg-primary/5 dark:bg-primary/15 px-3 py-2 ring-2 ring-primary/20 dark:ring-primary/40' 
-          : 'py-2'
-      }`}
-    >
+    <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
-        <div className="mr-4 pt-[1px]">
+        <div className="mr-2 py-2">
           <Icon className={`w-4 h-4 ${className}`} />
         </div>
 
-        <div className="space-y-1.5">
+        <div
+          className={`space-y-1.5 px-3 py-2 w-full transition-all duration-200 rounded-lg ${
+            isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
+          }`}
+        >
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -380,9 +378,7 @@ export function TimelineItem({
           {/* agent name for AI generation */}
           {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
             <div className="mb-1">
-              <Badge variant="code">
-                {activity.agentName}
-              </Badge>
+              <Badge variant="code">{activity.agentName}</Badge>
             </div>
           )}
 
@@ -396,7 +392,7 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && <div className="absolute top-6 left-[7px] border-l border-border h-full" />}
+      {!isLast && <div className="absolute top-8 left-[7px] border-l border-border h-full" />}
     </div>
   );
 }

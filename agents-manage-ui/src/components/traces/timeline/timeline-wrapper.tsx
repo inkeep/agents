@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {
@@ -84,14 +85,22 @@ function EmptyTimeline({
                   The SIGNOZ_API_KEY environment variable is not configured. Please set this
                   environment variable to the enable activity timeline.
                 </p>
-                <ExternalLink href={`https://docs.inkeep.com/visual-builder/graphs`}>
+                <ExternalLink
+                  className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200 ml-0 mt-1"
+                  iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
+                  href={`${DOCS_BASE_URL}/visual-builder/graphs`}
+                >
                   Learn more
                 </ExternalLink>
               </div>
             ) : (
               <div>
                 <p>{error}</p>
-                <ExternalLink href="https://docs.inkeep.com/quick-start/observability">
+                <ExternalLink
+                  className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200 ml-0 mt-1"
+                  iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
+                  href={`${DOCS_BASE_URL}/quick-start/observability`}
+                >
                   View observability setup guide
                 </ExternalLink>
               </div>
@@ -136,7 +145,7 @@ export function TimelineWrapper({
   retryConnection,
   refreshOnce,
   showConversationTracesLink = false,
-  conversationId
+  conversationId,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -157,12 +166,12 @@ export function TimelineWrapper({
     }
   }, [selected]);
 
-    // Clear selected panel when conversation changes
-    useEffect(() => {
-      if (conversationId) {
-        setSelected(null);
-      }
-    }, [conversationId]);
+  // Clear selected panel when conversation changes
+  useEffect(() => {
+    if (conversationId) {
+      setSelected(null);
+    }
+  }, [conversationId]);
 
   // Memoize activities calculation to prevent expensive operations on every render
   const activities = useMemo(() => {
@@ -295,7 +304,7 @@ export function TimelineWrapper({
 
   return (
     <>
-      <ResizablePanel order={2}>
+      <ResizablePanel id="activity-timeline" order={2}>
         <div className="bg-background h-full flex flex-col py-4">
           <div className="flex-shrink-0">
             <div className="flex items-center justify-between px-6 pb-4">
@@ -409,7 +418,7 @@ export function TimelineWrapper({
       <ResizableHandle />
       {/* Side Panel */}
       {selected && (
-        <ResizablePanel order={3}>
+        <ResizablePanel id="activity-details-sidepane" order={3}>
           <ActivityDetailsSidePane
             key={selected.item.id}
             title={panelTitle(selected)}

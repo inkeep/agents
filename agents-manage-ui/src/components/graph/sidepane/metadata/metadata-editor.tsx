@@ -147,7 +147,7 @@ function MetadataEditor() {
           title="Default models"
           description="Set default models that will be inherited by agents that don't have their own models configured."
         />
-        <div className="relative">
+        <div className="relative space-y-2">
           <ModelSelector
             value={models?.base?.model || ''}
             inheritedValue={project?.models?.base?.model}
@@ -176,8 +176,8 @@ function MetadataEditor() {
                 />
               </div>
             }
-            tooltip="Primary model for general agent responses"
           />
+          <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
         </div>
 
         <Collapsible
@@ -195,7 +195,7 @@ function MetadataEditor() {
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-8 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-            <div className="relative">
+            <div className="relative space-y-2">
               <ModelSelector
                 value={models?.structuredOutput?.model || ''}
                 inheritedValue={
@@ -228,10 +228,12 @@ function MetadataEditor() {
                     />
                   </div>
                 }
-                tooltip="Model for structured outputs and data components (defaults to base model)"
               />
+              <p className="text-xs text-muted-foreground">
+                Model for structured outputs and data components (defaults to base model)
+              </p>
             </div>
-            <div className="relative">
+            <div className="relative space-y-2">
               <ModelSelector
                 value={models?.summarizer?.model || ''}
                 inheritedValue={
@@ -264,8 +266,10 @@ function MetadataEditor() {
                     />
                   </div>
                 }
-                tooltip="Model for summarization tasks (defaults to base model)"
               />
+              <p className="text-xs text-muted-foreground">
+                Model for summarization tasks (defaults to base model)
+              </p>
             </div>
           </CollapsibleContent>
         </Collapsible>
