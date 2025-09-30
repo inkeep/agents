@@ -70,7 +70,7 @@ function ExpandedJsonEditor({
         value={value || ''}
         onChange={onChange}
         placeholder={placeholder}
-        className="[&>.cm-editor]:max-h-full"
+        className="[&>.cm-editor]:h-full"
       />
       {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </div>
