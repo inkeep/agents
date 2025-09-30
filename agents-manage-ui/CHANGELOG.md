@@ -1,5 +1,20 @@
 # @inkeep/agents-manage-ui
 
+## 0.9.0
+
+### Minor Changes
+
+- 44178fc: Improve Visual Builder agent-tool relations, and bug fixes
+
+### Patch Changes
+
+- 898e18b: Add chat as sidebar unless traces are showing
+- Updated dependencies [6fb1e3d]
+- Updated dependencies [44178fc]
+  - @inkeep/agents-core@0.9.0
+  - @inkeep/agents-manage-api@0.9.0
+  - @inkeep/agents-run-api@0.9.0
+
 ## 0.8.7
 
 ### Patch Changes

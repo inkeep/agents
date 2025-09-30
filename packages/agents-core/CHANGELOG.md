@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.9.0
+
+### Minor Changes
+
+- 44178fc: Improve Visual Builder agent-tool relations, and bug fixes
+
+### Patch Changes
+
+- 6fb1e3d: fixes drizzle load from turso
+
 ## 0.8.7
 
 ## 0.8.6

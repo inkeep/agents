@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-api
 
+## 0.9.0
+
+### Minor Changes
+
+- 44178fc: Improve Visual Builder agent-tool relations, and bug fixes
+
+### Patch Changes
+
+- Updated dependencies [6fb1e3d]
+- Updated dependencies [44178fc]
+  - @inkeep/agents-core@0.9.0
+
 ## 0.8.7
 
 ### Patch Changes
