@@ -94,7 +94,7 @@ export interface TextareaWithSuggestionsProps extends ReactCodeMirrorProps {
   readOnly?: boolean;
 }
 
-export const TextareaWithSuggestions: FC<TextareaWithSuggestionsProps> = ({
+export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
   className,
   value,
   onChange,
@@ -134,11 +134,6 @@ export const TextareaWithSuggestions: FC<TextareaWithSuggestionsProps> = ({
         lineNumbers: false,
         foldGutter: false,
         highlightActiveLine: false,
-        // dropCursor: false,
-        // allowMultipleSelections: false,
-        // bracketMatching: true,
-        // closeBrackets: true,
-        // autocompletion: true,
       }}
       data-disabled={disabled ? '' : undefined}
       data-read-only={readOnly ? '' : undefined}
