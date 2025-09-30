@@ -22,7 +22,16 @@ export function createDefaultCredentialStores(): CredentialStore[] {
     );
   }
 
-  stores.push(createKeyChainStore('keychain-default'));
+  if (process.env.ENABLE_KEYCHAIN_STORE === 'true') {
+    try {
+      stores.push(createKeyChainStore('keychain-default'));
+    } catch (error) {
+      console.warn(
+        'Failed to create keychain store:',
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
 
   return stores;
 }

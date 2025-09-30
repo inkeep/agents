@@ -73,6 +73,13 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('oauth-callback');
 
+// OAuth login endpoint schema
+const OAuthLoginQuerySchema = z.object({
+  tenantId: z.string().min(1, 'Tenant ID is required'),
+  projectId: z.string().min(1, 'Project ID is required'),
+  toolId: z.string().min(1, 'Tool ID is required'),
+});
+
 // OAuth callback endpoint schema
 const OAuthCallbackQuerySchema = z.object({
   code: z.string().min(1, 'Authorization code is required'),
@@ -80,6 +87,84 @@ const OAuthCallbackQuerySchema = z.object({
   error: z.string().optional(),
   error_description: z.string().optional(),
 });
+
+// OAuth login initiation endpoint (public - no API key required)
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/login',
+    summary: 'Initiate OAuth login for MCP tool',
+    description:
+      'Detects OAuth requirements and redirects to authorization server (public endpoint)',
+    operationId: 'initiate-oauth-login-public',
+    tags: ['OAuth'],
+    request: {
+      query: OAuthLoginQuerySchema,
+    },
+    responses: {
+      302: {
+        description: 'Redirect to OAuth authorization server',
+      },
+      400: {
+        description: 'OAuth not supported or configuration error',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+      404: {
+        description: 'Tool not found',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+      500: {
+        description: 'Internal server error',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, toolId } = c.req.valid('query');
+
+    try {
+      // 1. Get the tool
+      const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
+
+      if (!tool) {
+        logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
+        return c.text('Tool not found', 404);
+      }
+
+      const credentialStores = c.get('credentialStores');
+      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
+
+      // 2. Initiate OAuth flow using centralized service
+      const { redirectUrl } = await oauthService.initiateOAuthFlow({
+        tool: mcpTool,
+        tenantId,
+        projectId,
+        toolId,
+      });
+
+      // 3. Immediate redirect
+      return c.redirect(redirectUrl, 302);
+    } catch (error) {
+      logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to initiate OAuth login';
+      return c.text(`OAuth Error: ${errorMessage}`, 500);
+    }
+  }
+);
 
 // OAuth callback endpoint
 app.openapi(

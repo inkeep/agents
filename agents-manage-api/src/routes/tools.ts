@@ -24,7 +24,6 @@ import {
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { oauthService } from '../utils/oauth-service';
 
 const logger = getLogger('tools');
 
@@ -317,93 +316,6 @@ app.openapi(
     }
 
     return c.body(null, 204);
-  }
-);
-
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/{id}/oauth-login',
-    summary: 'Initiate OAuth login for MCP tool',
-    description: 'Detects OAuth requirements and redirects to authorization server',
-    operationId: 'initiate-oauth-login',
-    tags: ['Tools'],
-    request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
-    },
-    responses: {
-      302: {
-        description: 'Redirect to OAuth authorization server',
-      },
-      400: {
-        description: 'OAuth not supported or configuration error',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
-      404: {
-        description: 'Tool not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
-      500: {
-        description: 'Internal server error',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-
-    try {
-      // 1. Get the tool
-      const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
-
-      if (!tool) {
-        throw createApiError({
-          code: 'not_found',
-          message: 'Tool not found',
-        });
-      }
-
-      const credentialStores = c.get('credentialStores');
-
-      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
-
-      // 2. Initiate OAuth flow using centralized service
-      const { redirectUrl } = await oauthService.initiateOAuthFlow({
-        tool: mcpTool,
-        tenantId,
-        projectId,
-        toolId: id,
-      });
-
-      // 4. Immediate redirect
-      return c.redirect(redirectUrl, 302);
-    } catch (error) {
-      logger.error({ toolId: id, error }, 'OAuth login failed');
-
-      if (error && typeof error === 'object' && 'code' in error) {
-        const apiError = error as any;
-        return c.json({ error: apiError.message }, apiError.code === 'not_found' ? 404 : 400);
-      }
-
-      return c.json(
-        {
-          error: 'Failed to initiate OAuth login',
-        },
-        500
-      );
-    }
   }
 );
 
