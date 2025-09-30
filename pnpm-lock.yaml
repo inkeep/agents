@@ -21,6 +21,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.29.6
         version: 2.29.7(@types/node@24.5.2)
+      drizzle-kit:
+        specifier: ^0.31.4
+        version: 0.31.4
       husky:
         specifier: ^9.1.6
         version: 9.1.7
@@ -919,9 +922,6 @@ importers:
       clean-package:
         specifier: ^2.2.0
         version: 2.2.0
-      drizzle-kit:
-        specifier: ^0.31.4
-        version: 0.31.4
       tsx:
         specifier: ^4.19.2
         version: 4.20.5
