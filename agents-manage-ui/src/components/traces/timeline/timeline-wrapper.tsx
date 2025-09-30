@@ -89,7 +89,12 @@ function EmptyTimeline({
                 </ExternalLink>
               </div>
             ) : (
-              error
+              <div>
+                <p>{error}</p>
+                <ExternalLink href="https://docs.inkeep.com/quick-start/observability">
+                  View observability setup guide
+                </ExternalLink>
+              </div>
             )}
           </AlertDescription>
         </Alert>

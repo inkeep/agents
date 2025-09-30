@@ -14,7 +14,6 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '@/lib/types/graph-full';
-import type { MCPTool } from '@/lib/types/tools';
 import { formatJsonField } from '@/lib/utils';
 
 interface TransformResult {
@@ -101,10 +100,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeGraphData(
-  data: FullGraphDefinition,
-  toolLookup?: Record<string, MCPTool>
-): TransformResult {
+export function deserializeGraphData(data: FullGraphDefinition): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
@@ -121,7 +117,9 @@ export function deserializeGraphData(
           name: agent.name,
           description: agent.description,
           baseUrl: (agent as ExternalAgentDefinition).baseUrl,
+          headers: formatJsonField(agent.headers) || '{}',
           type: agent.type,
+          credentialReferenceId: agent.credentialReferenceId,
         }
       : (() => {
           const internalAgent = agent as InternalAgentDefinition;
@@ -165,7 +163,7 @@ export function deserializeGraphData(
               ? { stepCountIs: internalAgent.stopWhen.stepCountIs }
               : undefined,
             type: agent.type,
-            // Convert canUse back to tools and selectedTools for UI
+            // Convert canUse back to tools, selectedTools, headers for UI
             tools: internalAgent.canUse ? internalAgent.canUse.map((item) => item.toolId) : [],
             selectedTools: internalAgent.canUse
               ? internalAgent.canUse.reduce(
@@ -176,6 +174,17 @@ export function deserializeGraphData(
                     return acc;
                   },
                   {} as Record<string, string[]>
+                )
+              : undefined,
+            headers: internalAgent.canUse
+              ? internalAgent.canUse.reduce(
+                  (acc, item) => {
+                    if (item.headers) {
+                      acc[item.toolId] = item.headers;
+                    }
+                    return acc;
+                  },
+                  {} as Record<string, Record<string, string>>
                 )
               : undefined,
           };
@@ -197,77 +206,28 @@ export function deserializeGraphData(
     const agent = data.agents[agentId];
     // Check if agent has canUse property (internal agents)
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
-      // Only create tool nodes if tools data is available in graph (backward compatibility)
-      const toolsData = (data as any).tools;
-      if (toolsData) {
-        for (const canUseItem of agent.canUse) {
-          const toolId = canUseItem.toolId;
-          const tool = toolsData[toolId];
-          if (!tool) {
-            // eslint-disable-next-line no-console
-            console.warn(`Tool with ID ${toolId} not found in tools object`);
-            continue;
-          }
-          const toolNodeId = nanoid();
-          const toolNode: Node = {
-            id: toolNodeId,
-            type: NodeType.MCP,
-            position: { x: 0, y: 0 },
-            data: { id: tool.id, ...tool },
-          };
-          nodes.push(toolNode);
+      // Tools are project-scoped - create nodes from canUse items
+      for (const canUseItem of agent.canUse) {
+        const toolId = canUseItem.toolId;
+        const toolNodeId = nanoid();
+        const relationshipId = canUseItem.agentToolRelationId;
+        const toolNode: Node = {
+          id: toolNodeId,
+          type: NodeType.MCP,
+          position: { x: 0, y: 0 },
+          data: { toolId, agentId, relationshipId },
+        };
+        nodes.push(toolNode);
 
-          const agentToToolEdge: Edge = {
-            id: `edge-${toolNodeId}-${agentId}`,
-            type: EdgeType.Default,
-            source: agentId,
-            sourceHandle: agentNodeSourceHandleId,
-            target: toolNodeId,
-            targetHandle: mcpNodeHandleId,
-          };
-          edges.push(agentToToolEdge);
-        }
-      } else {
-        // Tools are project-scoped, use the tool lookup if available
-        for (const canUseItem of agent.canUse) {
-          const toolId = canUseItem.toolId;
-          const tool = toolLookup?.[toolId];
-          const toolNodeId = nanoid();
-          const toolNode: Node = {
-            id: toolNodeId,
-            type: NodeType.MCP,
-            position: { x: 0, y: 0 },
-            data: tool
-              ? {
-                  id: tool.id,
-                  name: tool.name,
-                  description: '', // MCPTool doesn't have a description field at top level
-                  type: 'mcp',
-                  config: tool.config || {},
-                  status: tool.status,
-                  availableTools: tool.availableTools,
-                  selectedTools: canUseItem.toolSelection, // Use toolSelection from canUseItem
-                }
-              : {
-                  id: toolId,
-                  name: toolId,
-                  description: 'Project-scoped tool',
-                  type: 'project-scoped',
-                  config: {},
-                },
-          };
-          nodes.push(toolNode);
-
-          const agentToToolEdge: Edge = {
-            id: `edge-${toolNodeId}-${agentId}`,
-            type: EdgeType.Default,
-            source: agentId,
-            sourceHandle: agentNodeSourceHandleId,
-            target: toolNodeId,
-            targetHandle: mcpNodeHandleId,
-          };
-          edges.push(agentToToolEdge);
-        }
+        const agentToToolEdge: Edge = {
+          id: `edge-${toolNodeId}-${agentId}`,
+          type: EdgeType.Default,
+          source: agentId,
+          sourceHandle: agentNodeSourceHandleId,
+          target: toolNodeId,
+          targetHandle: mcpNodeHandleId,
+        };
+        edges.push(agentToToolEdge);
       }
     }
   }

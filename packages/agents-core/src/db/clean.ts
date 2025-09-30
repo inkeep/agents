@@ -22,9 +22,16 @@ import { sql } from 'drizzle-orm';
 import { env } from '../env';
 import { createDatabaseClient } from './client';
 
-const dbClient = createDatabaseClient({
-  url: env.DB_FILE_NAME ?? 'local.db',
-});
+const dbClient = createDatabaseClient(
+  env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN
+    ? {
+        url: env.TURSO_DATABASE_URL,
+        authToken: env.TURSO_AUTH_TOKEN,
+      }
+    : {
+        url: env.DB_FILE_NAME ?? 'local.db',
+      }
+);
 
 /**
  * Truncates all tables in the database, respecting foreign key constraints

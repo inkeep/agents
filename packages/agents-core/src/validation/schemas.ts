@@ -489,6 +489,7 @@ export const CredentialReferenceApiSelectSchema = createApiSchema(
   CredentialReferenceSelectSchema
 ).extend({
   type: z.enum(CredentialStoreType),
+  tools: z.array(ToolSelectSchema).optional(),
 });
 export const CredentialReferenceApiInsertSchema = createApiInsertSchema(
   CredentialReferenceInsertSchema
@@ -501,12 +502,11 @@ export const CredentialReferenceApiUpdateSchema = createApiUpdateSchema(
   type: z.enum(CredentialStoreType).optional(),
 });
 
-// === MCP  Tool Schemas ===
+// === MCP Tool Schemas ===
 export const McpToolSchema = ToolInsertSchema.extend({
   imageUrl: imageUrlSchema,
+  availableTools: z.array(McpToolDefinitionSchema).optional(),
   status: ToolStatusSchema.default('unknown'),
-  lastHealthCheck: z.date().optional(),
-  lastToolsSync: z.date().optional(),
   version: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -518,8 +518,6 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   tenantId: true,
   projectId: true,
   status: true,
-  lastHealthCheck: true,
-  lastToolsSync: true,
   version: true,
   createdAt: true,
   updatedAt: true,
@@ -587,6 +585,7 @@ export const AgentToolRelationInsertSchema = createInsertSchema(agentToolRelatio
   agentId: resourceIdSchema,
   toolId: resourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
+  headers: z.record(z.string(), z.string()).nullish(),
 });
 
 export const AgentToolRelationUpdateSchema = AgentToolRelationInsertSchema.partial();
@@ -632,8 +631,10 @@ export const StatusUpdateSchema = z.object({
 });
 
 export const CanUseItemSchema = z.object({
+  agentToolRelationId: z.string().optional(),
   toolId: z.string(),
-  toolSelection: z.array(z.string()).nullable().optional(),
+  toolSelection: z.array(z.string()).nullish(),
+  headers: z.record(z.string(), z.string()).nullish(),
 });
 
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
@@ -662,7 +663,7 @@ export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.exten
     z.string(),
     z.discriminatedUnion('type', [
       FullGraphAgentInsertSchema,
-      ExternalAgentApiInsertSchema.extend({ type: z.literal('external') })
+      ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
     ])
   ),
   models: ModelSchema.optional(),

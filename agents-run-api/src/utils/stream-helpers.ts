@@ -274,7 +274,7 @@ export class VercelDataStreamHelper implements StreamHelper {
   private readonly TEXT_GAP_THRESHOLD = 2000; // milliseconds - if gap between text sequences is less than this, queue operations
 
   // Connection management and forced cleanup
-  private connectionDropTimer?: NodeJS.Timeout;
+  private connectionDropTimer?: ReturnType<typeof setTimeout>;
   private readonly MAX_LIFETIME_MS = 600_000; // 10 minutes max lifetime
 
   constructor(private writer: VercelUIWriter) {

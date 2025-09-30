@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StatusUpdateSettings, ModelSettings, StatusComponent } from '@inkeep/agents-core';
-import { GraphSession, graphSessionManager } from '../../utils/graph-session';
+import { GraphSession, graphSessionManager } from '../GraphSession';
 import type { StreamHelper } from '../../utils/stream-helpers';
 
 // Mock the AI SDK

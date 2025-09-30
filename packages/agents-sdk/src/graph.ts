@@ -179,29 +179,21 @@ export class AgentGraph implements GraphInterface {
         // Convert tools to the expected format (agent.tools should be an array of tool IDs)
         const tools: string[] = [];
         const selectedToolsMapping: Record<string, string[]> = {};
+        const headersMapping: Record<string, Record<string, string>> = {};
         const agentTools = internalAgent.getTools();
 
         for (const [_toolName, toolInstance] of Object.entries(agentTools)) {
-          if (toolInstance && typeof toolInstance === 'object') {
-            let toolId: string;
+          const toolId = toolInstance.getId();
 
-            // Get tool ID
-            toolId = (toolInstance as any).getId?.() || (toolInstance as any).id;
-
-            // Check if this tool instance has selectedTools (from AgentMcpConfig processing)
-            if (
-              'selectedTools' in toolInstance &&
-              (toolInstance as any).selectedTools !== undefined
-            ) {
-              logger.info(
-                { toolId, selectedTools: (toolInstance as any).selectedTools },
-                'Selected tools'
-              );
-              selectedToolsMapping[toolId] = (toolInstance as any).selectedTools;
-            }
-
-            tools.push(toolId);
+          if (toolInstance.selectedTools) {
+            selectedToolsMapping[toolId] = toolInstance.selectedTools;
           }
+
+          if (toolInstance.headers) {
+            headersMapping[toolId] = toolInstance.headers;
+          }
+
+          tools.push(toolId);
         }
 
         // Convert dataComponents to the expected format (agent.dataComponents should be an array of dataComponent IDs)
@@ -231,6 +223,7 @@ export class AgentGraph implements GraphInterface {
         const canUse = tools.map((toolId) => ({
           toolId,
           toolSelection: selectedToolsMapping[toolId] || null,
+          headers: headersMapping[toolId] || null,
         }));
 
         agentsObject[internalAgent.getId()] = {

@@ -213,15 +213,7 @@ export interface ProjectResourceCounts {
   externalAgents: number;
 }
 
-export type toolStatus = 'healthy' | 'unhealthy' | 'unknown';
-
-export const TOOL_STATUS_VALUES = [
-  'healthy',
-  'unhealthy',
-  'unknown',
-  'disabled',
-  'needs_auth',
-] as const;
+export const TOOL_STATUS_VALUES = ['healthy', 'unhealthy', 'unknown', 'needs_auth'] as const;
 
 export const VALID_RELATION_TYPES = ['transfer', 'delegate'] as const;
 
@@ -240,8 +232,6 @@ export const CredentialStoreType = {
   keychain: 'keychain',
   nango: 'nango',
 } as const;
-
-export type McpToolStatus = (typeof TOOL_STATUS_VALUES)[number];
 
 export interface CreateApiKeyParams {
   tenantId: string;

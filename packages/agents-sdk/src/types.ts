@@ -22,7 +22,8 @@ import type { Tool } from './tool';
  * Tool instance that may have additional metadata attached during agent processing
  */
 export type AgentTool = Tool & {
-  selectedTools?: string[]; // Added when tool comes from AgentMcpConfig
+  selectedTools?: string[];
+  headers?: Record<string, string>;
 };
 
 // Core message types following OpenAI pattern

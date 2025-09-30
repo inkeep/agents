@@ -359,14 +359,17 @@ export const getFullGraphDefinition =
             id: tools.id,
             name: tools.name,
             config: tools.config,
-            imageUrl: tools.imageUrl,
-            status: tools.status,
+            createdAt: tools.createdAt,
+            updatedAt: tools.updatedAt,
             capabilities: tools.capabilities,
-            lastHealthCheck: tools.lastHealthCheck,
             lastError: tools.lastError,
-            availableTools: tools.availableTools,
-            lastToolsSync: tools.lastToolsSync,
+            credentialReferenceId: tools.credentialReferenceId,
+            tenantId: tools.tenantId,
+            projectId: tools.projectId,
+            imageUrl: tools.imageUrl,
             selectedTools: agentToolRelations.selectedTools,
+            headers: agentToolRelations.headers,
+            agentToolRelationId: agentToolRelations.id,
           })
           .from(agentToolRelations)
           .innerJoin(
@@ -408,8 +411,10 @@ export const getFullGraphDefinition =
 
         // Construct canUse array from agentTools
         const canUse = agentTools.map((tool) => ({
+          agentToolRelationId: tool.agentToolRelationId,
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
+          headers: tool.headers || null,
         }));
 
         return {
@@ -423,7 +428,7 @@ export const getFullGraphDefinition =
           canDelegateTo,
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
-          canUse, // Use the new canUse structure
+          canUse,
         };
       })
     );
@@ -442,6 +447,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: agent.baseUrl,
+          headers: agent.headers,
+          credentialReferenceId: agent.credentialReferenceId,
+          type: 'external',
         };
       })
     );
@@ -465,6 +473,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: (agent as any).baseUrl,
+          credentialReferenceId: agent.credentialReferenceId,
+          headers: agent.headers,
+          type: 'external',
         };
       } else {
         // Internal agent - already processed with tools as IDs
@@ -493,22 +504,18 @@ export const getFullGraphDefinition =
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)(
-        { tenantId, projectId },
-        agentIds,
-        {
-          relationTable: agentDataComponents,
-          componentTable: dataComponents,
-          relationIdField: agentDataComponents.dataComponentId,
-          componentIdField: dataComponents.id,
-          selectFields: {
-            id: dataComponents.id,
-            name: dataComponents.name,
-            description: dataComponents.description,
-            props: dataComponents.props,
-          },
-        }
-      );
+      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
+        relationTable: agentDataComponents,
+        componentTable: dataComponents,
+        relationIdField: agentDataComponents.dataComponentId,
+        componentIdField: dataComponents.id,
+        selectFields: {
+          id: dataComponents.id,
+          name: dataComponents.name,
+          description: dataComponents.description,
+          props: dataComponents.props,
+        },
+      });
     } catch (error) {
       // Don't fail the entire request if dataComponents retrieval fails
       console.warn('Failed to retrieve dataComponents:', error);
@@ -521,23 +528,19 @@ export const getFullGraphDefinition =
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)(
-        { tenantId, projectId },
-        agentIds,
-        {
-          relationTable: agentArtifactComponents,
-          componentTable: artifactComponents,
-          relationIdField: agentArtifactComponents.artifactComponentId,
-          componentIdField: artifactComponents.id,
-          selectFields: {
-            id: artifactComponents.id,
-            name: artifactComponents.name,
-            description: artifactComponents.description,
-            summaryProps: artifactComponents.summaryProps,
-            fullProps: artifactComponents.fullProps,
-          },
-        }
-      );
+      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
+        relationTable: agentArtifactComponents,
+        componentTable: artifactComponents,
+        relationIdField: agentArtifactComponents.artifactComponentId,
+        componentIdField: artifactComponents.id,
+        selectFields: {
+          id: artifactComponents.id,
+          name: artifactComponents.name,
+          description: artifactComponents.description,
+          summaryProps: artifactComponents.summaryProps,
+          fullProps: artifactComponents.fullProps,
+        },
+      });
     } catch (error) {
       // Don't fail the entire request if artifactComponents retrieval fails
       console.warn('Failed to retrieve artifactComponents:', error);

@@ -1,5 +1,99 @@
 # @inkeep/agents-cli
 
+## 0.8.7
+
+### Patch Changes
+
+- f4e1a88: Add export flag to `inkeep dev`
+  - @inkeep/agents-manage-ui@0.8.7
+  - @inkeep/agents-core@0.8.7
+
+## 0.8.6
+
+### Patch Changes
+
+- Updated dependencies [2484a6c]
+  - @inkeep/agents-core@0.8.6
+  - @inkeep/agents-manage-ui@0.8.6
+
+## 0.8.5
+
+### Patch Changes
+
+- Updated dependencies [3c93e9e]
+- Updated dependencies [84989b4]
+  - @inkeep/agents-core@0.8.5
+  - @inkeep/agents-manage-ui@0.8.5
+
+## 0.8.4
+
+### Patch Changes
+
+- Updated dependencies [9eebd7f]
+  - @inkeep/agents-core@0.8.4
+  - @inkeep/agents-manage-ui@0.8.4
+
+## 0.8.3
+
+### Patch Changes
+
+- Updated dependencies [de4ffac]
+  - @inkeep/agents-manage-ui@0.8.3
+  - @inkeep/agents-core@0.8.3
+
+## 0.8.2
+
+### Patch Changes
+
+- Updated dependencies [3a95469]
+- Updated dependencies [3a95469]
+- Updated dependencies [0f6e19b]
+- Updated dependencies [3a95469]
+  - @inkeep/agents-core@0.8.2
+  - @inkeep/agents-manage-ui@0.8.2
+
+## 0.8.1
+
+### Patch Changes
+
+- dc19f1a: @inkeep/create-agents creates inkeep.config.ts in the correct location; model choice of user is respected and user choice replaces any model config from template; model config is done at project level instead of inkeep.config.ts which is reserved for tenant level settings
+- Updated dependencies [dc19f1a]
+- Updated dependencies [2589d96]
+  - @inkeep/agents-manage-ui@0.8.1
+  - @inkeep/agents-core@0.8.1
+
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [853d431]
+  - @inkeep/agents-core@0.8.0
+  - @inkeep/agents-manage-ui@0.8.0
+
+## 0.7.2
+
+### Patch Changes
+
+- Updated dependencies [bab9a32]
+  - @inkeep/agents-manage-ui@0.7.2
+  - @inkeep/agents-core@0.7.2
+
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [78e71e9]
+  - @inkeep/agents-manage-ui@0.7.1
+  - @inkeep/agents-core@0.7.1
+
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies [77bd54d]
+  - @inkeep/agents-core@0.7.0
+  - @inkeep/agents-manage-ui@0.7.0
+
 ## 0.6.6
 
 ### Patch Changes

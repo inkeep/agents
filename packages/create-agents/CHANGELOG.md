@@ -1,5 +1,31 @@
 # @inkeep/create-agents
 
+## 0.8.7
+
+## 0.8.6
+
+## 0.8.5
+
+## 0.8.4
+
+## 0.8.3
+
+## 0.8.2
+
+## 0.8.1
+
+### Patch Changes
+
+- dc19f1a: @inkeep/create-agents creates inkeep.config.ts in the correct location; model choice of user is respected and user choice replaces any model config from template; model config is done at project level instead of inkeep.config.ts which is reserved for tenant level settings
+
+## 0.8.0
+
+## 0.7.2
+
+## 0.7.1
+
+## 0.7.0
+
 ## 0.6.6
 
 ## 0.6.5

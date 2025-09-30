@@ -201,14 +201,14 @@ export async function validateConfiguration(
     if (actualConfigFile) {
       throw new Error(
         `Tenant ID is missing from configuration file: ${actualConfigFile}\n` +
-        'Please ensure your config file exports a valid configuration with tenantId.'
+          'Please ensure your config file exports a valid configuration with tenantId.'
       );
     } else {
       throw new Error(
         'No configuration found. Please use one of:\n' +
-        '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
-        '  2. Provide --config to specify a config file\n' +
-        '  3. Provide --tenant-id, --agents-manage-api-url and --agents-run-api-url flags'
+          '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
+          '  2. Provide --config to specify a config file\n' +
+          '  3. Provide --tenant-id, --agents-manage-api-url and --agents-run-api-url flags'
       );
     }
   }
@@ -216,18 +216,18 @@ export async function validateConfiguration(
   if (!agentsManageApiUrl) {
     throw new Error(
       'Agents Management API URL is missing. Please either:\n' +
-      '  1. Provide --agents-manage-api-url flag\n' +
-      '  2. Set INKEEP_AGENTS_MANAGE_API_URL environment variable\n' +
-      '  3. Add agentsManageApiUrl to your configuration file'
+        '  1. Provide --agents-manage-api-url flag\n' +
+        '  2. Set INKEEP_AGENTS_MANAGE_API_URL environment variable\n' +
+        '  3. Add agentsManageApiUrl to your configuration file'
     );
   }
 
   if (!agentsRunApiUrl) {
     throw new Error(
       'Agents Run API URL is missing. Please either:\n' +
-      '  1. Provide --agents-run-api-url flag\n' +
-      '  2. Set INKEEP_AGENTS_RUN_API_URL environment variable\n' +
-      '  3. Add agentsRunApiUrl to your configuration file'
+        '  1. Provide --agents-run-api-url flag\n' +
+        '  2. Set INKEEP_AGENTS_RUN_API_URL environment variable\n' +
+        '  3. Add agentsRunApiUrl to your configuration file'
     );
   }
 

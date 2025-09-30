@@ -4,19 +4,25 @@ import type { A2AEdgeData } from '@/components/graph/configuration/edge-types';
 import { EdgeType } from '@/components/graph/configuration/edge-types';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
 import { NodeType } from '@/components/graph/configuration/node-types';
+import type { AgentToolConfigLookup } from '@/components/graph/graph';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { FullGraphDefinition } from '@/lib/types/graph-full';
 
 // Extract the internal agent type from the union
-type InternalAgent = Extract<FullGraphDefinition['agents'][string], { canUse: Array<{ toolId: string; toolSelection?: string[] | null }> }>;
+type InternalAgent = Extract<
+  FullGraphDefinition['agents'][string],
+  { canUse: Array<{ toolId: string; toolSelection?: string[] | null }> }
+>;
 
 type ExternalAgent = {
   id: string;
   name: string;
   description: string;
   baseUrl: string;
+  headers?: Record<string, string> | null;
   type: 'external';
+  credentialReferenceId?: string | null;
 };
 
 export type ExtendedAgent =
@@ -82,7 +88,8 @@ export function serializeGraphData(
   edges: Edge[],
   metadata?: GraphMetadata,
   dataComponentLookup?: Record<string, DataComponent>,
-  artifactComponentLookup?: Record<string, ArtifactComponent>
+  artifactComponentLookup?: Record<string, ArtifactComponent>,
+  agentToolConfigLookup?: AgentToolConfigLookup
 ): FullGraphDefinition {
   const agents: Record<string, ExtendedAgent> = {};
   // Note: Tools are now project-scoped and not included in graph serialization
@@ -108,13 +115,85 @@ export function serializeGraphData(
 
       const stopWhen = (node.data as any).stopWhen;
 
-      // Convert tools and selectedTools to canUse array
-      const tools = (node.data as any).tools || [];
-      const selectedTools = (node.data as any).selectedTools || {};
-      const canUse = tools.map((toolId: string) => ({
-        toolId,
-        toolSelection: selectedTools[toolId] || null
-      }));
+      // Build canUse array from edges connecting this agent to MCP nodes
+      const canUse: Array<{
+        toolId: string;
+        toolSelection?: string[] | null;
+        headers?: Record<string, string>;
+        agentToolRelationId?: string;
+      }> = [];
+
+      // Find edges from this agent to MCP nodes
+      const agentToMcpEdges = edges.filter(
+        (edge) =>
+          edge.source === node.id &&
+          nodes.some((n) => n.id === edge.target && n.type === NodeType.MCP)
+      );
+
+      for (const edge of agentToMcpEdges) {
+        const mcpNode = nodes.find((n) => n.id === edge.target);
+
+        if (mcpNode && mcpNode.type === NodeType.MCP) {
+          const toolId = (mcpNode.data as any).toolId;
+
+          if (toolId) {
+            // Get selected tools from MCP node's tempSelectedTools
+            const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
+            let toolSelection: string[] | null = null;
+
+            // Get the relationshipId from the MCP node first
+            const relationshipId = (mcpNode.data as any).relationshipId;
+
+            if (tempSelectedTools !== undefined) {
+              // User has made changes to tool selection in the UI
+              if (Array.isArray(tempSelectedTools)) {
+                toolSelection = tempSelectedTools;
+              } else if (tempSelectedTools === null) {
+                toolSelection = null; // All tools selected
+              }
+            } else {
+              // No changes made to tool selection - preserve existing selection
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.toolSelection) {
+                toolSelection = existingConfig.toolSelection;
+              } else {
+                // Default to all tools selected when no existing data found
+                toolSelection = null;
+              }
+            }
+
+            const tempHeaders = (mcpNode.data as any).tempHeaders;
+            let toolHeaders: Record<string, string> = {};
+
+            if (tempHeaders !== undefined) {
+              if (
+                typeof tempHeaders === 'object' &&
+                tempHeaders !== null &&
+                !Array.isArray(tempHeaders)
+              ) {
+                toolHeaders = tempHeaders;
+              }
+            } else {
+              // No changes made to headers - preserve existing headers
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.headers) {
+                toolHeaders = existingConfig.headers;
+              }
+            }
+
+            canUse.push({
+              toolId,
+              toolSelection,
+              headers: toolHeaders,
+              ...(relationshipId && { agentToolRelationId: relationshipId }),
+            });
+          }
+        }
+      }
 
       const agent: ExtendedAgent = {
         id: agentId,
@@ -138,12 +217,18 @@ export function serializeGraphData(
       agents[agentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const agentId = (node.data.id as string) || node.id;
+
+      // Parse headers from JSON string to object
+      const parsedHeaders = safeJsonParse(node.data.headers as string);
+
       const agent: ExternalAgent = {
         id: agentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         baseUrl: node.data.baseUrl as string,
+        headers: parsedHeaders || null,
         type: 'external',
+        credentialReferenceId: (node.data.credentialReferenceId as string) || null,
       };
 
       if ((node.data as any).isDefault) {
@@ -151,10 +236,6 @@ export function serializeGraphData(
       }
 
       agents[agentId] = agent;
-    } else if (node.type === NodeType.MCP) {
-      // Note: Tools are now project-scoped and not processed during graph serialization
-      // Tool nodes in the UI are handled separately at the project level
-      console.log('Skipping MCP tool node during graph serialization (tools are project-scoped)');
     }
   }
 
@@ -207,45 +288,6 @@ export function serializeGraphData(
         }
         if (relationships.delegateTargetToSource) {
           addRelationship(targetAgent, 'canDelegateTo', sourceAgentId);
-        }
-      }
-    } else if (edge.type === EdgeType.Default) {
-      const sourceAgentNode = nodes.find((node) => node.id === edge.source);
-      const sourceAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
-      const sourceAgent: ExtendedAgent = agents[sourceAgentId];
-      const targetToolNode = nodes.find((node) => node.id === edge.target);
-      if (sourceAgent && targetToolNode && sourceAgent.type === 'internal') {
-        const toolId = (targetToolNode.data as any).id as string;
-        const internalAgent = sourceAgent as InternalAgent & {
-          dataComponents: string[];
-          artifactComponents: string[];
-          models?: GraphMetadata['models'];
-          type: 'internal';
-        };
-
-        // Check if tool is already in canUse array
-        const existingCanUse = internalAgent.canUse.find(item => item.toolId === toolId);
-        if (!existingCanUse) {
-          internalAgent.canUse.push({
-            toolId,
-            toolSelection: null
-          });
-        }
-
-        // Only override toolSelection if user made changes in the UI for this specific tool
-        const userSelectedTools = (targetToolNode.data as any).tempSelectedTools;
-        if (userSelectedTools !== undefined) {
-          // User has made selections in the UI for this tool
-          const canUseItem = internalAgent.canUse.find(item => item.toolId === toolId);
-          if (canUseItem) {
-            if (userSelectedTools === null) {
-              // User selected all tools - set to null (null = all)
-              canUseItem.toolSelection = null;
-            } else {
-              // User selected specific tools (including empty array for "none selected")
-              canUseItem.toolSelection = userSelectedTools;
-            }
-          }
         }
       }
     }

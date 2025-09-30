@@ -135,15 +135,10 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     await ensureTestProject(tenantId, projectId);
 
     const credentialData = createCredentialData({ suffix });
-    const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/credentials`,
-      {
-        method: 'POST',
-        body: JSON.stringify(credentialData),
-      }
-    );
-
-    console.log('createRes', createRes);
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
+      method: 'POST',
+      body: JSON.stringify(credentialData),
+    });
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();

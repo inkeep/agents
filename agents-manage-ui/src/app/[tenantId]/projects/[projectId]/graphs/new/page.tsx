@@ -1,6 +1,7 @@
 import { Graph } from '@/components/graph/graph';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
+import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
@@ -11,10 +12,11 @@ async function NewGraphPage({
   params: Promise<{ tenantId: string; projectId: string }>;
 }) {
   const { tenantId, projectId } = await params;
-  const [dataComponents, artifactComponents, tools] = await Promise.all([
+  const [dataComponents, artifactComponents, tools, credentials] = await Promise.all([
     fetchDataComponentsAction(tenantId, projectId),
     fetchArtifactComponentsAction(tenantId, projectId),
     fetchToolsAction(tenantId, projectId),
+    fetchCredentialsAction(tenantId, projectId),
   ]);
 
   if (!dataComponents.success || !artifactComponents.success || !tools.success) {
@@ -35,6 +37,8 @@ async function NewGraphPage({
   );
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
 
+  const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
+
   return (
     <BodyTemplate
       breadcrumbs={[
@@ -46,6 +50,7 @@ async function NewGraphPage({
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={toolLookup}
+        credentialLookup={credentialLookup}
       />
     </BodyTemplate>
   );

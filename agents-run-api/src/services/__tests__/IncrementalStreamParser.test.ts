@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
-import { IncrementalStreamParser } from '../incremental-stream-parser';
-import type { StreamHelper } from '../stream-helpers';
-import { ArtifactParser } from '../artifact-parser';
+import { beforeEach, describe, expect, it, type MockedFunction, vi } from 'vitest';
+import type { StreamHelper } from '../../utils/stream-helpers';
+import { ArtifactParser } from '../ArtifactParser';
+import { IncrementalStreamParser } from '../IncrementalStreamParser';
 
 // Mock dependencies
-vi.mock('../artifact-parser');
-vi.mock('../logger', () => ({
+vi.mock('../ArtifactParser');
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -29,7 +29,7 @@ describe('IncrementalStreamParser', () => {
       writeData: vi.fn(),
     } as any;
 
-    // Mock ArtifactParser
+    // Create the mock instance for direct access
     mockArtifactParser = {
       parseObject: vi.fn().mockResolvedValue([
         {
@@ -40,7 +40,8 @@ describe('IncrementalStreamParser', () => {
       hasIncompleteArtifact: vi.fn().mockReturnValue(false),
     } as any;
 
-    (ArtifactParser as any).mockImplementation(() => mockArtifactParser);
+    // Create mock constructor that returns the same mock instance
+    vi.mocked(ArtifactParser).mockImplementation(() => mockArtifactParser);
 
     parser = new IncrementalStreamParser(mockStreamHelper, 'test-tenant', 'test-context');
   });
@@ -48,9 +49,7 @@ describe('IncrementalStreamParser', () => {
   describe('processObjectDelta', () => {
     it('should stream complete components once when stable', async () => {
       const delta1 = {
-        dataComponents: [
-          { id: 'comp1', name: 'Component 1', props: { value: 'test' } },
-        ],
+        dataComponents: [{ id: 'comp1', name: 'Component 1', props: { value: 'test' } }],
       };
 
       const delta2 = {
@@ -134,9 +133,7 @@ describe('IncrementalStreamParser', () => {
 
     it('should prevent duplicate streaming of same component', async () => {
       const delta1 = {
-        dataComponents: [
-          { id: 'comp1', name: 'Component 1', props: { value: 'test' } },
-        ],
+        dataComponents: [{ id: 'comp1', name: 'Component 1', props: { value: 'test' } }],
       };
 
       const delta2 = {
@@ -268,15 +265,11 @@ describe('IncrementalStreamParser', () => {
   describe('Text component handling', () => {
     it('should stream Text components incrementally as text', async () => {
       const delta1 = {
-        dataComponents: [
-          { id: 'text1', name: 'Text', props: { text: 'Hello' } },
-        ],
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'Hello' } }],
       };
 
       const delta2 = {
-        dataComponents: [
-          { id: 'text1', name: 'Text', props: { text: 'Hello world' } },
-        ],
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'Hello world' } }],
       };
 
       await parser.processObjectDelta(delta1);
@@ -318,10 +311,14 @@ describe('IncrementalStreamParser', () => {
       await parser.processObjectDelta({ dataComponents: [{}] });
       await parser.processObjectDelta({ dataComponents: [{ id: 'test' }] });
       await parser.processObjectDelta({ dataComponents: [{ id: 'test', name: 'Test' }] });
-      
+
       // Test complete component that becomes stable
-      const completeComponent1 = { dataComponents: [{ id: 'test', name: 'Test', props: { value: 'data' } }] };
-      const completeComponent2 = { dataComponents: [{ id: 'test', name: 'Test', props: { value: 'data' } }] }; // Same = stable
+      const completeComponent1 = {
+        dataComponents: [{ id: 'test', name: 'Test', props: { value: 'data' } }],
+      };
+      const completeComponent2 = {
+        dataComponents: [{ id: 'test', name: 'Test', props: { value: 'data' } }],
+      }; // Same = stable
 
       await parser.processObjectDelta(completeComponent1);
       await parser.processObjectDelta(completeComponent2);
@@ -335,26 +332,30 @@ describe('IncrementalStreamParser', () => {
       await parser.processObjectDelta({
         dataComponents: [{ id: 'art1', name: 'Artifact', props: {} }],
       });
-      
+
       await parser.processObjectDelta({
         dataComponents: [{ id: 'art2', name: 'Artifact', props: { artifact_id: 'art123' } }],
       });
 
       // Test complete artifact that becomes stable
       const completeArtifact1 = {
-        dataComponents: [{
-          id: 'art3',
-          name: 'Artifact',
-          props: { artifact_id: 'art123', task_id: 'task456' },
-        }],
+        dataComponents: [
+          {
+            id: 'art3',
+            name: 'Artifact',
+            props: { artifact_id: 'art123', task_id: 'task456' },
+          },
+        ],
       };
 
       const completeArtifact2 = {
-        dataComponents: [{
-          id: 'art3',
-          name: 'Artifact',
-          props: { artifact_id: 'art123', task_id: 'task456' }, // Same = stable
-        }],
+        dataComponents: [
+          {
+            id: 'art3',
+            name: 'Artifact',
+            props: { artifact_id: 'art123', task_id: 'task456' }, // Same = stable
+          },
+        ],
       };
 
       await parser.processObjectDelta(completeArtifact1);
@@ -372,9 +373,7 @@ describe('IncrementalStreamParser', () => {
       // Process many deltas
       for (let i = 0; i < 1000; i++) {
         await parser.processObjectDelta({
-          dataComponents: [
-            { id: `comp${i}`, name: `Component ${i}`, props: { value: i } },
-          ],
+          dataComponents: [{ id: `comp${i}`, name: `Component ${i}`, props: { value: i } }],
         });
       }
 

@@ -160,6 +160,9 @@ export function MCPToolItem({
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
+            {(tool.status === 'unhealthy' || tool.status === 'unknown') && (
+              <Badge variant="error">{tool.status}</Badge>
+            )}
             {tool.status === 'needs_auth' ? (
               <div className="flex items-center gap-2">
                 <Badge variant="warning">Needs Login</Badge>

@@ -5,16 +5,18 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
 } from '@inkeep/agents-core';
-import { defaultStatusSchemas } from './default-status-schemas';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
+import { toolSessionManager } from '../agents/ToolSessionManager';
 import { getFormattedConversationHistory } from '../data/conversations';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { getStreamHelper } from './stream-registry';
-import { setSpanWithError, tracer } from './tracer';
+import { defaultStatusSchemas } from '../utils/default-status-schemas';
+import { getStreamHelper } from '../utils/stream-registry';
+import { setSpanWithError, tracer } from '../utils/tracer';
+import { ArtifactParser } from './ArtifactParser';
+import { ArtifactService } from './ArtifactService';
 
 const logger = getLogger('GraphSession');
 
@@ -89,6 +91,7 @@ export interface DelegationReturnedData {
 export interface ArtifactSavedData {
   artifactId: string;
   taskId: string;
+  toolCallId?: string;
   artifactType: string;
   summaryData?: Record<string, any>;
   fullData?: Record<string, any>;
@@ -135,16 +138,53 @@ export class GraphSession {
   private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
   private readonly MAX_ARTIFACT_RETRIES = 3;
   private readonly MAX_PENDING_ARTIFACTS = 100; // Prevent unbounded growth
-  private scheduledTimeouts?: Set<NodeJS.Timeout>; // Track scheduled timeouts for cleanup
+  private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
+  private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
+  private artifactService?: any; // Session-scoped ArtifactService instance
+  private artifactParser?: any; // Session-scoped ArtifactParser instance
 
   constructor(
     public readonly sessionId: string,
     public readonly messageId: string,
     public readonly graphId?: string,
     public readonly tenantId?: string,
-    public readonly projectId?: string
+    public readonly projectId?: string,
+    public readonly contextId?: string
   ) {
     logger.debug({ sessionId, messageId, graphId }, 'GraphSession created');
+
+    // Initialize session-scoped services if we have required context
+    if (tenantId && projectId) {
+      // Create the shared ToolSession for this graph execution
+      // All agents in this execution will use this same session
+
+      toolSessionManager.createSessionWithId(
+        sessionId,
+        tenantId,
+        projectId,
+        contextId || 'default',
+        `task_${contextId}-${messageId}` // Create a taskId based on context and message
+      );
+
+      // Create ArtifactService that uses this ToolSession
+      this.artifactService = new ArtifactService({
+        tenantId,
+        projectId,
+        sessionId: sessionId, // Same ID as ToolSession
+        contextId,
+        taskId: `task_${contextId}-${messageId}`,
+        streamRequestId: sessionId,
+      });
+
+      // Create ArtifactParser that uses the session-scoped ArtifactService
+      this.artifactParser = new ArtifactParser(tenantId, {
+        projectId,
+        sessionId: sessionId,
+        contextId,
+        taskId: `task_${contextId}-${messageId}`,
+        streamRequestId: sessionId,
+      });
+    }
   }
 
   /**
@@ -445,12 +485,30 @@ export class GraphSession {
     this.pendingArtifacts.clear();
     this.artifactProcessingErrors.clear();
 
+    // Clear artifact cache for this session
+    this.artifactCache.clear();
+
+    // Clean up the ToolSession that this GraphSession created
+    if (this.sessionId) {
+      toolSessionManager.endSession(this.sessionId);
+    }
+
     // Clear any scheduled timeouts to prevent race conditions
     if (this.scheduledTimeouts) {
       for (const timeoutId of this.scheduledTimeouts) {
         clearTimeout(timeoutId);
       }
       this.scheduledTimeouts.clear();
+    }
+
+    // Clear static caches from ArtifactService to prevent memory leaks
+    if (this.artifactService) {
+      // Use the session-scoped instance
+      this.artifactService.constructor.clearCaches();
+      this.artifactService = undefined;
+    } else {
+      // Fallback to static class if session service wasn't initialized
+      ArtifactService.clearCaches();
     }
   }
 
@@ -1105,7 +1163,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           span.setAttributes({ 'validation.passed': true });
 
-          const { getFormattedConversationHistory } = await import('../data/conversations.js');
+          let mainSaveSucceeded = false;
+
+          // getFormattedConversationHistory is already imported at the top
           const conversationHistory = await getFormattedConversationHistory({
             tenantId: artifactData.tenantId,
             projectId: artifactData.projectId,
@@ -1162,14 +1222,13 @@ Make it specific and relevant.`;
           const model = ModelFactory.createModel(modelToUse);
 
           const schema = z.object({
-            name: z.string().max(50).describe('Concise, descriptive name for the artifact'),
+            name: z.string().describe('Concise, descriptive name for the artifact'),
             description: z
               .string()
-              .max(150)
               .describe("Brief description of the artifact's relevance to the user's question"),
           });
 
-          // Add nested span for LLM generation
+          // Add nested span for LLM generation with retry logic
           const { object: result } = await tracer.startActiveSpan(
             'graph_session.generate_artifact_metadata',
             {
@@ -1181,89 +1240,159 @@ Make it specific and relevant.`;
               },
             },
             async (generationSpan) => {
-              try {
-                const result = await generateObject({
-                  model,
-                  prompt,
-                  schema,
-                  experimental_telemetry: {
-                    isEnabled: true,
-                    functionId: `artifact_processing_${artifactData.artifactId}`,
-                    recordInputs: true,
-                    recordOutputs: true,
-                    metadata: {
-                      operation: 'artifact_name_description_generation',
-                      sessionId: this.sessionId,
+              const maxRetries = 3;
+              let lastError: Error | null = null;
+
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                  const result = await generateObject({
+                    model,
+                    prompt,
+                    schema,
+                    experimental_telemetry: {
+                      isEnabled: true,
+                      functionId: `artifact_processing_${artifactData.artifactId}`,
+                      recordInputs: true,
+                      recordOutputs: true,
+                      metadata: {
+                        operation: 'artifact_name_description_generation',
+                        sessionId: this.sessionId,
+                        attempt,
+                      },
                     },
-                  },
-                });
+                  });
 
-                generationSpan.setAttributes({
-                  'generation.name_length': result.object.name.length,
-                  'generation.description_length': result.object.description.length,
-                });
+                  generationSpan.setAttributes({
+                    'generation.name_length': result.object.name.length,
+                    'generation.description_length': result.object.description.length,
+                    'generation.attempts': attempt,
+                  });
 
-                generationSpan.setStatus({ code: SpanStatusCode.OK });
-                return result;
-              } catch (error) {
-                setSpanWithError(generationSpan, error);
-                throw error;
-              } finally {
-                generationSpan.end();
+                  generationSpan.setStatus({ code: SpanStatusCode.OK });
+                  return result;
+                } catch (error) {
+                  lastError = error instanceof Error ? error : new Error(String(error));
+
+                  logger.warn(
+                    {
+                      sessionId: this.sessionId,
+                      artifactId: artifactData.artifactId,
+                      attempt,
+                      maxRetries,
+                      error: lastError.message,
+                    },
+                    `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
+                  );
+
+                  // If this isn't the last attempt, wait before retrying
+                  if (attempt < maxRetries) {
+                    const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
+                    await new Promise((resolve) => setTimeout(resolve, backoffMs));
+                  }
+                }
               }
+
+              // All retries failed
+              setSpanWithError(generationSpan, lastError);
+              throw new Error(
+                `Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`
+              );
             }
           );
 
-          // Now save the artifact to the ledger with the generated name and description
-          const { addLedgerArtifacts } = await import('@inkeep/agents-core');
-
-          const artifactToSave: Artifact = {
-            artifactId: artifactData.artifactId,
-            name: result.name,
-            description: result.description,
-            type: 'source',
-            taskId: artifactData.taskId,
-            parts: [
-              {
-                kind: 'data',
-                data: {
-                  summary: artifactData.summaryProps || {},
-                  full: artifactData.fullProps || {},
-                },
-              },
-            ],
-            metadata: artifactData.metadata || {},
-          };
-
-          await addLedgerArtifacts(dbClient)({
-            scopes: {
-              tenantId: artifactData.tenantId,
-              projectId: artifactData.projectId,
-            },
+          // Now save the artifact using ArtifactService
+          const artifactService = new ArtifactService({
+            tenantId: artifactData.tenantId,
+            projectId: artifactData.projectId,
             contextId: artifactData.contextId,
             taskId: artifactData.taskId,
-            artifacts: [artifactToSave],
+            sessionId: this.sessionId,
           });
 
-          logger.info(
-            {
-              sessionId: this.sessionId,
+          try {
+            await artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
-            },
-            'Artifact successfully saved to ledger with generated name and description'
-          );
+              type: artifactData.artifactType || 'source',
+              summaryProps: artifactData.summaryProps || {},
+              fullProps: artifactData.fullProps || {},
+              metadata: artifactData.metadata || {},
+            });
 
-          // Mark main span as successful
-          span.setAttributes({
-            'artifact.name': result.name,
-            'artifact.description': result.description,
-            'processing.success': true,
-          });
-          span.setStatus({ code: SpanStatusCode.OK });
+            mainSaveSucceeded = true;
+
+            // Mark main span as successful
+            span.setAttributes({
+              'artifact.name': result.name,
+              'artifact.description': result.description,
+              'processing.success': true,
+            });
+            span.setStatus({ code: SpanStatusCode.OK });
+          } catch (saveError) {
+            logger.error(
+              {
+                sessionId: this.sessionId,
+                artifactId: artifactData.artifactId,
+                error: saveError instanceof Error ? saveError.message : 'Unknown error',
+              },
+              'Main artifact save failed, will attempt fallback'
+            );
+            // Don't throw here - let the fallback handle it
+          }
+          // Only attempt fallback save if main save failed
+          if (!mainSaveSucceeded) {
+            try {
+              if (artifactData.tenantId && artifactData.projectId) {
+                const artifactService = new ArtifactService({
+                  tenantId: artifactData.tenantId,
+                  projectId: artifactData.projectId,
+                  contextId: artifactData.contextId || 'unknown',
+                  taskId: artifactData.taskId,
+                  sessionId: this.sessionId,
+                });
+
+                await artifactService.saveArtifact({
+                  artifactId: artifactData.artifactId,
+                  name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
+                  description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
+                  type: artifactData.artifactType || 'source',
+                  summaryProps: artifactData.summaryProps || {},
+                  fullProps: artifactData.fullProps || {},
+                  metadata: artifactData.metadata || {},
+                });
+
+                logger.info(
+                  {
+                    sessionId: this.sessionId,
+                    artifactId: artifactData.artifactId,
+                  },
+                  'Saved artifact with fallback name/description after main save failed'
+                );
+              }
+            } catch (fallbackError) {
+              // Check if this is a duplicate key error - if so, artifact may have been saved by another process
+              const isDuplicateError =
+                fallbackError instanceof Error &&
+                (fallbackError.message?.includes('UNIQUE') ||
+                  fallbackError.message?.includes('duplicate'));
+
+              if (isDuplicateError) {
+                // Duplicate key - artifact already exists, no action needed
+              } else {
+                logger.error(
+                  {
+                    sessionId: this.sessionId,
+                    artifactId: artifactData.artifactId,
+                    error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
+                  },
+                  'Failed to save artifact even with fallback'
+                );
+              }
+            }
+          }
         } catch (error) {
-          // Handle span error
+          // Handle span error (this is for name/description generation errors)
           setSpanWithError(span, error);
           logger.error(
             {
@@ -1271,65 +1400,45 @@ Make it specific and relevant.`;
               artifactId: artifactData.artifactId,
               error: error instanceof Error ? error.message : 'Unknown error',
             },
-            'Failed to process artifact'
+            'Failed to process artifact (name/description generation failed)'
           );
-
-          // Fallback: save artifact with basic info
-          try {
-            const { addLedgerArtifacts } = await import('@inkeep/agents-core');
-
-            const fallbackArtifact: Artifact = {
-              artifactId: artifactData.artifactId,
-              name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
-              description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
-              taskId: artifactData.taskId,
-              parts: [
-                {
-                  kind: 'data',
-                  data: {
-                    summary: artifactData.summaryProps || {},
-                    full: artifactData.fullProps || {},
-                  },
-                },
-              ],
-              metadata: artifactData.metadata || {},
-            };
-
-            if (artifactData.tenantId && artifactData.projectId) {
-              await addLedgerArtifacts(dbClient)({
-                scopes: {
-                  tenantId: artifactData.tenantId,
-                  projectId: artifactData.projectId,
-                },
-                contextId: artifactData.contextId || 'unknown',
-                taskId: artifactData.taskId,
-                artifacts: [fallbackArtifact],
-              });
-
-              logger.info(
-                {
-                  sessionId: this.sessionId,
-                  artifactId: artifactData.artifactId,
-                },
-                'Saved artifact with fallback name/description after processing error'
-              );
-            }
-          } catch (fallbackError) {
-            logger.error(
-              {
-                sessionId: this.sessionId,
-                artifactId: artifactData.artifactId,
-                error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
-              },
-              'Failed to save artifact even with fallback'
-            );
-          }
         } finally {
           // Always end the main span
           span.end();
         }
       }
     );
+  }
+
+  /**
+   * Cache an artifact in this session for immediate access
+   */
+  setArtifactCache(key: string, artifact: any): void {
+    this.artifactCache.set(key, artifact);
+    logger.debug({ sessionId: this.sessionId, key }, 'Artifact cached in session');
+  }
+
+  /**
+   * Get session-scoped ArtifactService instance
+   */
+  getArtifactService(): any | null {
+    return this.artifactService || null;
+  }
+
+  /**
+   * Get session-scoped ArtifactParser instance
+   */
+  getArtifactParser(): any | null {
+    return this.artifactParser || null;
+  }
+
+  /**
+   * Get an artifact from this session cache
+   */
+  getArtifactCache(key: string): any | null {
+    const artifact = this.artifactCache.get(key);
+    logger.debug({ sessionId: this.sessionId, key, found: !!artifact }, 'Artifact cache lookup');
+    return artifact || null;
   }
 }
 
@@ -1346,13 +1455,17 @@ export class GraphSessionManager {
     messageId: string,
     graphId?: string,
     tenantId?: string,
-    projectId?: string
+    projectId?: string,
+    contextId?: string
   ): string {
     const sessionId = messageId; // Use messageId directly as sessionId
-    const session = new GraphSession(sessionId, messageId, graphId, tenantId, projectId);
+    const session = new GraphSession(sessionId, messageId, graphId, tenantId, projectId, contextId);
     this.sessions.set(sessionId, session);
 
-    logger.info({ sessionId, messageId, graphId, tenantId, projectId }, 'GraphSession created');
+    logger.info(
+      { sessionId, messageId, graphId, tenantId, projectId, contextId },
+      'GraphSession created'
+    );
     return sessionId;
   }
 
@@ -1446,6 +1559,40 @@ export class GraphSessionManager {
       messageId: session.messageId,
       eventCount: session.getEvents().length,
     }));
+  }
+
+  /**
+   * Cache an artifact in the specified session
+   */
+  async setArtifactCache(sessionId: string, key: string, artifact: any): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.setArtifactCache(key, artifact);
+    }
+  }
+
+  /**
+   * Get an artifact from the specified session cache
+   */
+  async getArtifactCache(sessionId: string, key: string): Promise<any | null> {
+    const session = this.sessions.get(sessionId);
+    return session ? session.getArtifactCache(key) : null;
+  }
+
+  /**
+   * Get session-scoped ArtifactService instance
+   */
+  getArtifactService(sessionId: string): any | null {
+    const session = this.sessions.get(sessionId);
+    return session ? session.getArtifactService() : null;
+  }
+
+  /**
+   * Get session-scoped ArtifactParser instance
+   */
+  getArtifactParser(sessionId: string): any | null {
+    const session = this.sessions.get(sessionId);
+    return session ? session.getArtifactParser() : null;
   }
 }
 

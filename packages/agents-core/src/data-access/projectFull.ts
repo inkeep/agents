@@ -5,7 +5,7 @@
  */
 
 import type { DatabaseClient } from '../db/client';
-import type { FullProjectDefinition, ProjectSelect } from '../types/entities';
+import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
@@ -654,6 +654,44 @@ export const updateFullProjectServerSide =
         );
       }
 
+      // Step 6a: Delete graphs that are no longer in the project definition
+      const incomingGraphIds = new Set(Object.keys(typed.graphs || {}));
+
+      // Get existing graphs for this project
+      const existingGraphs = await listAgentGraphs(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      // Delete graphs not in incoming set
+      let deletedGraphCount = 0;
+      for (const graph of existingGraphs) {
+        if (!incomingGraphIds.has(graph.id)) {
+          try {
+            await deleteFullGraph(db, logger)({
+              scopes: { tenantId, projectId: typed.id, graphId: graph.id },
+            });
+            deletedGraphCount++;
+            logger.info({ graphId: graph.id }, 'Deleted orphaned graph from project');
+          } catch (error) {
+            logger.error(
+              { graphId: graph.id, error },
+              'Failed to delete orphaned graph from project'
+            );
+            // Don't throw - continue with other deletions
+          }
+        }
+      }
+
+      if (deletedGraphCount > 0) {
+        logger.info(
+          {
+            deletedGraphCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned graphs from project'
+        );
+      }
+
       // Step 7: Update all graphs if they exist
       if (typed.graphs && Object.keys(typed.graphs).length > 0) {
         logger.info(
@@ -766,7 +804,7 @@ export const getFullProject =
       );
 
       // Step 3: Get all tools for this project
-      const projectTools: Record<string, any> = {};
+      const projectTools: Record<string, ToolApiInsert> = {};
       try {
         const toolsList = await listTools(db)({
           scopes: { tenantId, projectId },
@@ -780,8 +818,10 @@ export const getFullProject =
             config: tool.config,
             credentialReferenceId: tool.credentialReferenceId || undefined,
             imageUrl: tool.imageUrl || undefined,
+            capabilities: tool.capabilities || undefined,
+            lastError: tool.lastError || undefined,
             // Don't include runtime fields in configuration
-            // status, capabilities, lastHealthCheck, lastError, availableTools, activeTools, lastToolsSync are all runtime
+            // status, lastHealthCheck, availableTools, activeTools, lastToolsSync are all runtime
           };
         }
         logger.info(

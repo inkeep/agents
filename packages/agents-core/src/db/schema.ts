@@ -14,7 +14,6 @@ import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
   ConversationMetadata,
-  McpToolDefinition,
   MessageContent,
   MessageMetadata,
   Models,
@@ -438,14 +437,7 @@ export const tools = sqliteTable(
     // Server capabilities and status
     capabilities: blob('capabilities', { mode: 'json' }).$type<ToolServerCapabilities>(),
 
-    // Connection health and monitoring
-    status: text('status').notNull().default('unknown'),
-    lastHealthCheck: text('last_health_check'),
     lastError: text('last_error'),
-
-    // Tool discovery cache
-    availableTools: blob('available_tools', { mode: 'json' }).$type<Array<McpToolDefinition>>(),
-    lastToolsSync: text('last_tools_sync'),
 
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -470,6 +462,7 @@ export const agentToolRelations = sqliteTable(
     id: text('id').notNull(),
     toolId: text('tool_id').notNull(),
     selectedTools: blob('selected_tools', { mode: 'json' }).$type<string[] | null>(),
+    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -579,7 +572,8 @@ export const ledgerArtifacts = sqliteTable(
     id: text('id').notNull(),
 
     // Links
-    taskId: text('task_id'),
+    taskId: text('task_id').notNull(),
+    toolCallId: text('tool_call_id'), // Added for traceability to the specific tool execution
     contextId: text('context_id').notNull(),
 
     // Core Artifact fields
@@ -601,7 +595,7 @@ export const ledgerArtifacts = sqliteTable(
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id, table.taskId] }),
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
@@ -670,6 +664,9 @@ export const credentialReferences = sqliteTable(
 // Indexes & Constraints for ledger artifacts
 export const ledgerArtifactsTaskIdIdx = index('ledger_artifacts_task_id_idx').on(
   ledgerArtifacts.taskId
+);
+export const ledgerArtifactsToolCallIdIdx = index('ledger_artifacts_tool_call_id_idx').on(
+  ledgerArtifacts.toolCallId
 );
 export const ledgerArtifactsContextIdIdx = index('ledger_artifacts_context_id_idx').on(
   ledgerArtifacts.contextId

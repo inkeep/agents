@@ -1,7 +1,8 @@
 import type { MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { ArtifactParser, type StreamPart } from './artifact-parser';
-import { tracer, setSpanWithError } from './tracer';
+import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
+import { tracer, setSpanWithError } from '../utils/tracer';
+import { graphSessionManager } from '../services/GraphSession';
 
 const logger = getLogger('ResponseFormatter');
 
@@ -12,8 +13,30 @@ const logger = getLogger('ResponseFormatter');
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
 
-  constructor(tenantId: string) {
-    this.artifactParser = new ArtifactParser(tenantId);
+  constructor(
+    tenantId: string,
+    artifactParserOptions?: {
+      sessionId?: string;
+      taskId?: string;
+      projectId?: string;
+      contextId?: string;
+      artifactComponents?: any[];
+      streamRequestId?: string;
+      agentId?: string;
+    }
+  ) {
+    // Get the shared ArtifactParser from GraphSession
+    if (artifactParserOptions?.streamRequestId) {
+      const sessionParser = graphSessionManager.getArtifactParser(artifactParserOptions.streamRequestId);
+      
+      if (sessionParser) {
+        this.artifactParser = sessionParser;
+        return;
+      }
+    }
+    
+    // Fallback: create new parser if session parser not available (for tests, etc.)
+    this.artifactParser = new ArtifactParser(tenantId, artifactParserOptions);
   }
 
   /**

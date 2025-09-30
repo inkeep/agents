@@ -405,7 +405,12 @@ export const createAgentToolRelation =
   async (params: {
     scopes: GraphScopeConfig;
     relationId?: string;
-    data: { agentId: string; toolId: string; selectedTools?: string[] | null };
+    data: {
+      agentId: string;
+      toolId: string;
+      selectedTools?: string[] | null;
+      headers?: Record<string, string> | null;
+    };
   }) => {
     const finalRelationId = params.relationId ?? nanoid();
 
@@ -419,6 +424,7 @@ export const createAgentToolRelation =
         agentId: params.data.agentId,
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
+        headers: params.data.headers,
       })
       .returning();
 
@@ -641,6 +647,7 @@ export const getToolsForAgent =
           agentId: agentToolRelations.agentId,
           toolId: agentToolRelations.toolId,
           selectedTools: agentToolRelations.selectedTools,
+          headers: agentToolRelations.headers,
           createdAt: agentToolRelations.createdAt,
           updatedAt: agentToolRelations.updatedAt,
           tool: {
@@ -650,11 +657,12 @@ export const getToolsForAgent =
             createdAt: tools.createdAt,
             updatedAt: tools.updatedAt,
             capabilities: tools.capabilities,
-            lastHealthCheck: tools.lastHealthCheck,
-            lastToolsSync: tools.lastToolsSync,
             lastError: tools.lastError,
-            availableTools: tools.availableTools,
             credentialReferenceId: tools.credentialReferenceId,
+            tenantId: tools.tenantId,
+            projectId: tools.projectId,
+            headers: tools.headers,
+            imageUrl: tools.imageUrl,
           },
         })
         .from(agentToolRelations)
@@ -714,6 +722,7 @@ export const getAgentsForTool =
           agentId: agentToolRelations.agentId,
           toolId: agentToolRelations.toolId,
           selectedTools: agentToolRelations.selectedTools,
+          headers: agentToolRelations.headers,
           createdAt: agentToolRelations.createdAt,
           updatedAt: agentToolRelations.updatedAt,
           agent: {

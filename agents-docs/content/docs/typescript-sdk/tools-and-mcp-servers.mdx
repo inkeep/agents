@@ -6,7 +6,9 @@ icon: "LuHammer"
 
 MCP tools connect to external servers that implement the MCP standard. This allows you to integrate with a wide ecosystem of existing tools and services.
 
-### Basic MCP Server
+<Snippet file="mcp/intro-create-and-add.mdx" />
+
+### Registring an MCP Server
 
 ```typescript
 import { agent, mcpTool } from "@inkeep/agents-sdk";
@@ -22,7 +24,7 @@ const qaAgent = agent({
   id: "qa-agent",
   name: "QA Agent",
   description: "Responsible for answering questions about the company knowledge base.",
-  prompt: `You are a QA agent that can answer questions about the company knowledge base.
+  prompt: `You are a Question-Answer agent that can answer questions about the company knowledge base.
   You have access to the knowledge base tool to search for information.`,
   canUse: () => [knowledgeBaseTool],
 });
@@ -39,7 +41,7 @@ MCP servers support various authentication methods (via credentials):
 - **Bearer Token** - For JWT or similar token-based authentication
 - **Token Authentication** - For custom token schemes
 - **OAuth Flows** - For standard OAuth 2.0 authentication
-- **OAuth 2.1 Flows** - For modern OAuth 2.1 authentication
+- **OAuth 2.1 Flows** - For modern OAuth 2.1 "1-click" authentication
 
 For OAuth flows and OAuth 2.1 flows, it's recommended to use the [Visual Builder](/visual-builder/credentials) for easier configuration.
 
@@ -82,9 +84,9 @@ const selectiveTool = mcpTool({
 });
 ```
 
-### Using agentMCP for Tool Selection
+### Using agentMcp for Tool Selection
 
-While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `agentMCP`. This allows different agents to use different subsets of tools from the same MCP server.
+While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `agentMcp`. This allows different agents to use different subsets of tools from the same MCP server.
 
 ```typescript
 import { agent, mcpTool, agentMcp } from "@inkeep/agents-sdk";

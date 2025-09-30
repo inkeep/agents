@@ -1,6 +1,7 @@
 import { getLogger } from '../logger';
-import { ArtifactParser, type StreamPart } from './artifact-parser';
-import type { StreamHelper } from './stream-helpers';
+import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
+import type { StreamHelper } from '../utils/stream-helpers';
+import { graphSessionManager } from './GraphSession';
 
 const logger = getLogger('IncrementalStreamParser');
 
@@ -25,15 +26,66 @@ export class IncrementalStreamParser {
   private componentAccumulator: any = {};
   private lastStreamedComponents = new Map<string, any>();
   private componentSnapshots = new Map<string, string>();
-  
+  private artifactMap?: Map<string, any>;
+
   // Memory management constants
   private static readonly MAX_SNAPSHOT_SIZE = 100; // Max number of snapshots to keep
   private static readonly MAX_STREAMED_SIZE = 1000; // Max number of streamed component IDs to track
+  private static readonly MAX_COLLECTED_PARTS = 10000; // Max number of collected parts to prevent unbounded growth
 
-  constructor(streamHelper: StreamHelper, tenantId: string, contextId: string) {
+  constructor(
+    streamHelper: StreamHelper,
+    tenantId: string,
+    contextId: string,
+    artifactParserOptions?: {
+      sessionId?: string;
+      taskId?: string;
+      projectId?: string;
+      artifactComponents?: any[];
+      streamRequestId?: string;
+      agentId?: string;
+    }
+  ) {
     this.streamHelper = streamHelper;
     this.contextId = contextId;
-    this.artifactParser = new ArtifactParser(tenantId);
+
+    // Get the shared ArtifactParser from GraphSession
+    if (artifactParserOptions?.streamRequestId) {
+      const sessionParser = graphSessionManager.getArtifactParser(
+        artifactParserOptions.streamRequestId
+      );
+
+      if (sessionParser) {
+        this.artifactParser = sessionParser;
+        return;
+      }
+    }
+
+    // Fallback: create new parser if session parser not available (for tests, etc.)
+    this.artifactParser = new ArtifactParser(tenantId, {
+      ...artifactParserOptions,
+      contextId,
+    });
+  }
+
+  /**
+   * Initialize artifact map for artifact:ref lookups during streaming
+   * Should be called before processing chunks
+   */
+  async initializeArtifactMap(): Promise<void> {
+    try {
+      this.artifactMap = await this.artifactParser.getContextArtifacts(this.contextId);
+      logger.debug(
+        {
+          contextId: this.contextId,
+          artifactMapSize: this.artifactMap.size,
+        },
+        'Initialized artifact map for streaming'
+      );
+    } catch (error) {
+      logger.warn({ error, contextId: this.contextId }, 'Failed to initialize artifact map');
+      this.artifactMap = new Map();
+    }
   }
 
   /**
@@ -84,7 +136,9 @@ export class IncrementalStreamParser {
       Array.isArray(this.componentAccumulator.dataComponents)
     ) {
       const components = this.componentAccumulator.dataComponents;
-      const currentComponentIds = new Set(components.filter((c: any) => c?.id).map((c: any) => c.id));
+      const currentComponentIds = new Set(
+        components.filter((c: any) => c?.id).map((c: any) => c.id)
+      );
 
       // Check for new components - stream any previous components that are ready
       for (const [componentId, snapshot] of this.componentSnapshots.entries()) {
@@ -120,7 +174,7 @@ export class IncrementalStreamParser {
 
         // Update snapshot with size limit enforcement
         this.componentSnapshots.set(componentKey, currentSnapshot);
-        
+
         // Enforce size limit - remove oldest entries if exceeded
         if (this.componentSnapshots.size > IncrementalStreamParser.MAX_SNAPSHOT_SIZE) {
           const firstKey = this.componentSnapshots.keys().next().value;
@@ -186,13 +240,19 @@ export class IncrementalStreamParser {
       dataComponents: [component],
     });
 
+    // Ensure parts is an array before iterating
+    if (!Array.isArray(parts)) {
+      console.warn('parseObject returned non-array:', parts);
+      return;
+    }
+
     for (const part of parts) {
       await this.streamPart(part);
     }
 
     // Mark as streamed
     this.lastStreamedComponents.set(component.id, true);
-    
+
     // Enforce size limit for streamed components map
     if (this.lastStreamedComponents.size > IncrementalStreamParser.MAX_STREAMED_SIZE) {
       const firstKey = this.lastStreamedComponents.keys().next().value;
@@ -200,7 +260,7 @@ export class IncrementalStreamParser {
         this.lastStreamedComponents.delete(firstKey);
       }
     }
-    
+
     // Clean up snapshot after streaming
     this.componentSnapshots.delete(component.id);
   }
@@ -221,10 +281,13 @@ export class IncrementalStreamParser {
 
     // For artifacts, still require both required fields
     const isArtifact =
-      component.name === 'Artifact' || (component.props.artifact_id && component.props.task_id);
+      component.name === 'Artifact' ||
+      (component.props.artifact_id && (component.props.tool_call_id || component.props.task_id));
 
     if (isArtifact) {
-      return Boolean(component.props.artifact_id && component.props.task_id);
+      return Boolean(
+        component.props.artifact_id && (component.props.tool_call_id || component.props.task_id)
+      );
     }
 
     // For regular components, just need id, name, and props object
@@ -289,7 +352,7 @@ export class IncrementalStreamParser {
           }
 
           this.lastStreamedComponents.set(componentKey, true);
-          
+
           // Enforce size limit for streamed components map
           if (this.lastStreamedComponents.size > IncrementalStreamParser.MAX_STREAMED_SIZE) {
             const firstKey = this.lastStreamedComponents.keys().next().value;
@@ -297,7 +360,7 @@ export class IncrementalStreamParser {
               this.lastStreamedComponents.delete(firstKey);
             }
           }
-          
+
           // Clean up snapshot after streaming
           this.componentSnapshots.delete(componentKey);
         }
@@ -333,7 +396,7 @@ export class IncrementalStreamParser {
       }
       this.pendingTextBuffer = '';
     }
-    
+
     // Clean up all Maps to prevent memory leaks
     this.componentSnapshots.clear();
     this.lastStreamedComponents.clear();
@@ -363,7 +426,7 @@ export class IncrementalStreamParser {
       if (safeEnd > 0) {
         const safeText = workingBuffer.slice(0, safeEnd);
         // Parse the safe portion for complete artifacts
-        const parts = await this.artifactParser.parseText(safeText);
+        const parts = await this.artifactParser.parseText(safeText, this.artifactMap);
         completeParts.push(...parts);
 
         return {
@@ -380,7 +443,7 @@ export class IncrementalStreamParser {
     }
 
     // No incomplete artifacts, parse the entire buffer
-    const parts = await this.artifactParser.parseText(workingBuffer);
+    const parts = await this.artifactParser.parseText(workingBuffer, this.artifactMap);
 
     // Check last part - if it's text, it might be incomplete
     if (parts.length > 0 && parts[parts.length - 1].kind === 'text') {
@@ -415,8 +478,15 @@ export class IncrementalStreamParser {
    * Stream a formatted part (text or data) with smart buffering
    */
   private async streamPart(part: StreamPart): Promise<void> {
-    // Collect for final response
+    // Collect for final response with size limit enforcement
     this.collectedParts.push({ ...part });
+
+    // Enforce size limit to prevent memory leaks
+    if (this.collectedParts.length > IncrementalStreamParser.MAX_COLLECTED_PARTS) {
+      // Remove oldest parts (keep last N parts)
+      const excess = this.collectedParts.length - IncrementalStreamParser.MAX_COLLECTED_PARTS;
+      this.collectedParts.splice(0, excess);
+    }
 
     if (!this.hasStartedRole) {
       await this.streamHelper.writeRole('assistant');
@@ -460,7 +530,7 @@ export class IncrementalStreamParser {
       }
 
       // Determine if this is an artifact or regular data component
-      const isArtifact = part.data.artifactId && part.data.taskId;
+      const isArtifact = part.data.artifactId && part.data.toolCallId;
 
       if (isArtifact) {
         await this.streamHelper.writeData('data-artifact', part.data);

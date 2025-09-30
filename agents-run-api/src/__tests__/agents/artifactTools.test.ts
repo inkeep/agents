@@ -16,7 +16,7 @@ vi.mock('jmespath', () => ({
 }));
 
 import { createSaveToolResultTool } from '../../agents/artifactTools';
-import { parseEmbeddedJson } from '../../agents/generateTaskHandler';
+import { parseEmbeddedJson } from '../../utils/json-parser';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
 
 // Mock the logger

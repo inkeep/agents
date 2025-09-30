@@ -23,8 +23,5 @@ export const defaultValues: ProjectFormData = {
       providerOptions: undefined,
     },
   },
-  stopWhen: {
-    transferCountIs: undefined,
-    stepCountIs: undefined,
-  },
+  stopWhen: undefined,
 };

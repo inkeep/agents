@@ -4,7 +4,7 @@ export default {
       pages: [
         'overview',
         {
-          group: 'Quick Start',
+          group: 'Get Started',
           icon: 'LuZap',
           pages: [
             'quick-start/start-development',
@@ -13,6 +13,7 @@ export default {
           ],
         },
         'concepts',
+        'troubleshooting',
       ],
     },
 
@@ -23,6 +24,7 @@ export default {
         'typescript-sdk/agent-settings',
         'typescript-sdk/agent-relationships',
         'typescript-sdk/tools-and-mcp-servers',
+        'typescript-sdk/create-mcp-servers',
         'typescript-sdk/credentials',
         'typescript-sdk/request-context',
         'typescript-sdk/context-fetchers',
@@ -70,6 +72,7 @@ export default {
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
         'talk-to-your-agents/api',
+        'talk-to-your-agents/vercel-ai-sdk',
         'talk-to-your-agents/a2a',
         {
           group: 'React UI Components',

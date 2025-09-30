@@ -318,6 +318,140 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(body.title).toBe('Bad Request');
       expect(body.detail).toContain('ID mismatch');
     });
+
+    it('should delete graphs that are removed from the project definition', async () => {
+      const tenantId = createTestTenantId();
+      const projectId = `project-${nanoid()}`;
+
+      // Create a project with 3 graphs
+      const graph1Id = `graph-${projectId}-1`;
+      const graph2Id = `graph-${projectId}-2`;
+      const graph3Id = `graph-${projectId}-3`;
+
+      const originalDefinition = createTestProjectDefinition(projectId);
+      originalDefinition.graphs = {
+        [graph1Id]: createTestGraphDefinition(
+          graph1Id,
+          `agent-${graph1Id}`,
+          `tool-${graph1Id}`,
+          ' 1'
+        ),
+        [graph2Id]: createTestGraphDefinition(
+          graph2Id,
+          `agent-${graph2Id}`,
+          `tool-${graph2Id}`,
+          ' 2'
+        ),
+        [graph3Id]: createTestGraphDefinition(
+          graph3Id,
+          `agent-${graph3Id}`,
+          `tool-${graph3Id}`,
+          ' 3'
+        ),
+      };
+
+      // Create the project
+      const createRes = await makeRequest(`/tenants/${tenantId}/project-full`, {
+        method: 'POST',
+        body: JSON.stringify(originalDefinition),
+      });
+      expect(createRes.status).toBe(201);
+
+      // Verify all 3 graphs exist
+      const getInitialRes = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'GET',
+      });
+      expect(getInitialRes.status).toBe(200);
+      const initialBody = await getInitialRes.json();
+      expect(Object.keys(initialBody.data.graphs)).toHaveLength(3);
+
+      // Update project to only include 1 graph (remove 2 graphs)
+      const updatedDefinition = {
+        ...originalDefinition,
+        graphs: {
+          [graph1Id]: originalDefinition.graphs[graph1Id],
+        },
+      };
+
+      const updateRes = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updatedDefinition),
+      });
+
+      expect(updateRes.status).toBe(200);
+      const updateBody = await updateRes.json();
+
+      // Verify only 1 graph remains
+      expect(Object.keys(updateBody.data.graphs)).toHaveLength(1);
+      expect(updateBody.data.graphs).toHaveProperty(graph1Id);
+      expect(updateBody.data.graphs).not.toHaveProperty(graph2Id);
+      expect(updateBody.data.graphs).not.toHaveProperty(graph3Id);
+
+      // Verify by fetching the project again
+      const getFinalRes = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'GET',
+      });
+      expect(getFinalRes.status).toBe(200);
+      const finalBody = await getFinalRes.json();
+      expect(Object.keys(finalBody.data.graphs)).toHaveLength(1);
+      expect(finalBody.data.graphs).toHaveProperty(graph1Id);
+    });
+
+    it('should handle removing all graphs from a project', async () => {
+      const tenantId = createTestTenantId();
+      const projectId = `project-${nanoid()}`;
+
+      // Create a project with 2 graphs
+      const graph1Id = `graph-${projectId}-1`;
+      const graph2Id = `graph-${projectId}-2`;
+
+      const originalDefinition = createTestProjectDefinition(projectId);
+      originalDefinition.graphs = {
+        [graph1Id]: createTestGraphDefinition(
+          graph1Id,
+          `agent-${graph1Id}`,
+          `tool-${graph1Id}`,
+          ' 1'
+        ),
+        [graph2Id]: createTestGraphDefinition(
+          graph2Id,
+          `agent-${graph2Id}`,
+          `tool-${graph2Id}`,
+          ' 2'
+        ),
+      };
+
+      // Create the project
+      await makeRequest(`/tenants/${tenantId}/project-full`, {
+        method: 'POST',
+        body: JSON.stringify(originalDefinition),
+      });
+
+      // Update project to have no graphs
+      const updatedDefinition = {
+        ...originalDefinition,
+        graphs: {},
+      };
+
+      const updateRes = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updatedDefinition),
+      });
+
+      expect(updateRes.status).toBe(200);
+      const updateBody = await updateRes.json();
+
+      // Verify no graphs remain
+      expect(Object.keys(updateBody.data.graphs)).toHaveLength(0);
+
+      // Verify by fetching the project again
+      const getFinalRes = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
+        method: 'GET',
+      });
+      expect(getFinalRes.status).toBe(200);
+      const finalBody = await getFinalRes.json();
+      expect(Object.keys(finalBody.data.graphs)).toHaveLength(0);
+    });
   });
 
   describe('DELETE /project-full/{projectId}', () => {
