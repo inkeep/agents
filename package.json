@@ -61,7 +61,8 @@
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
-    "turbo": "^2.5.5"
+    "turbo": "^2.5.5",
+    "drizzle-kit": "^0.31.5"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": [
