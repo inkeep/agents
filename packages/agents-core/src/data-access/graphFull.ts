@@ -28,7 +28,7 @@ import {
   deleteAgentToolRelationByAgent,
   upsertAgentRelation,
 } from './agentRelations';
-import { upsertAgent } from './agents';
+import { deleteAgent, listAgents, upsertAgent } from './agents';
 import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
@@ -40,7 +40,11 @@ import {
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
 } from './dataComponents';
-import { upsertExternalAgent } from './externalAgents';
+import {
+  deleteExternalAgent,
+  listExternalAgents,
+  upsertExternalAgent,
+} from './externalAgents';
 import { upsertAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
@@ -824,6 +828,66 @@ export const updateFullGraphServerSide =
         ([_, agentData]) => isExternalAgent(agentData)
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
+
+      // Step 8a: Delete agents that are no longer in the graph definition
+      const incomingAgentIds = new Set(Object.keys(typedGraphDefinition.agents));
+
+      // Get existing internal agents for this graph
+      const existingInternalAgents = await listAgents(db)({
+        scopes: { tenantId, projectId, graphId: finalGraphId },
+      });
+
+      // Get existing external agents for this graph
+      const existingExternalAgents = await listExternalAgents(db)({
+        scopes: { tenantId, projectId, graphId: finalGraphId },
+      });
+
+      // Delete internal agents not in incoming set
+      let deletedInternalCount = 0;
+      for (const agent of existingInternalAgents) {
+        if (!incomingAgentIds.has(agent.id)) {
+          try {
+            await deleteAgent(db)({
+              scopes: { tenantId, projectId, graphId: finalGraphId },
+              agentId: agent.id,
+            });
+            deletedInternalCount++;
+            logger.info({ agentId: agent.id }, 'Deleted orphaned internal agent');
+          } catch (error) {
+            logger.error({ agentId: agent.id, error }, 'Failed to delete orphaned internal agent');
+            // Don't throw - continue with other deletions
+          }
+        }
+      }
+
+      // Delete external agents not in incoming set
+      let deletedExternalCount = 0;
+      for (const agent of existingExternalAgents) {
+        if (!incomingAgentIds.has(agent.id)) {
+          try {
+            await deleteExternalAgent(db)({
+              scopes: { tenantId, projectId, graphId: finalGraphId },
+              agentId: agent.id,
+            });
+            deletedExternalCount++;
+            logger.info({ agentId: agent.id }, 'Deleted orphaned external agent');
+          } catch (error) {
+            logger.error({ agentId: agent.id, error }, 'Failed to delete orphaned external agent');
+            // Don't throw - continue with other deletions
+          }
+        }
+      }
+
+      if (deletedInternalCount > 0 || deletedExternalCount > 0) {
+        logger.info(
+          {
+            deletedInternalCount,
+            deletedExternalCount,
+            totalDeleted: deletedInternalCount + deletedExternalCount,
+          },
+          'Deleted orphaned agents from graph'
+        );
+      }
 
       // Step 8: Update the graph metadata
       await updateAgentGraph(db)({
