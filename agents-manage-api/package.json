@@ -29,11 +29,13 @@
     "drizzle-orm": "^0.44.4",
     "hono": "^4.9.7",
     "hono-pino": "^0.10.1",
-    "keytar": "^7.9.0",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
     "pino": "^9.7.0",
     "zod": "^4.1.5"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.20.1",
