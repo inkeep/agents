@@ -139,8 +139,8 @@ export default {
       group: 'Self-Hosting',
       icon: 'LuServer',
       pages: [
-        'self-hosting/docker',
         'self-hosting/vercel',
+        'self-hosting/docker',
         'self-hosting/add-sentry',
         'self-hosting/add-datadog-apm',
       ],
