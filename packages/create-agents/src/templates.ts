@@ -1,6 +1,7 @@
 import path from 'node:path';
 import degit from 'degit';
 import fs from 'fs-extra';
+import { addBreadcrumb, captureError } from './errorTracking.js';
 
 export interface ContentReplacement {
   /** Relative file path within the cloned template */
@@ -20,13 +21,22 @@ export async function cloneTemplate(
   const templatePathSuffix = templatePath.replace('https://github.com/', '');
   const emitter = degit(templatePathSuffix);
   try {
+    addBreadcrumb('Cloning template', { templatePath: templatePathSuffix });
     await emitter.clone(targetPath);
 
     // Apply content replacements if provided
     if (replacements && replacements.length > 0) {
+      addBreadcrumb('Applying content replacements', { count: replacements.length });
       await replaceContentInFiles(targetPath, replacements);
     }
-  } catch (_error) {
+  } catch (error) {
+    addBreadcrumb('Template cloning failed', { templatePath: templatePathSuffix });
+    if (error instanceof Error) {
+      captureError(error, {
+        phase: 'template_clone',
+        templatePath: templatePathSuffix,
+      });
+    }
     process.exit(1);
   }
 }

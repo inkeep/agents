@@ -43,6 +43,7 @@ pnpm create-agents my-agent-directory --project-id my-project-id --anthropic-key
 - `--project-id <project-id>` - Project identifier for your agents
 - `--openai-key <openai-key>` - OpenAI API key (optional)
 - `--anthropic-key <anthropic-key>` - Anthropic API key (recommended)
+- `--disable-telemetry` - Disable anonymous error tracking
 
 ## What's Created
 
@@ -149,6 +150,43 @@ LOG_LEVEL=debug
 - `apps/manage-api/.env` - Manage API configuration
 - `apps/run-api/.env` - Run API configuration  
 - `src/<project-id>/.env` - CLI configuration
+
+## Telemetry
+
+`create-agents` collects anonymous error reports to help us improve the tool. On first run, you'll be asked for consent.
+
+### What We Collect
+- Anonymous error reports and stack traces
+- Template usage (e.g., "weather-project")
+- Success/failure status
+
+### What We Do NOT Collect
+- File contents or code
+- API keys or credentials
+- Personal information
+- Usernames or file paths (automatically scrubbed)
+
+### Opt Out
+
+You can disable telemetry in several ways:
+
+**1. Command line flag:**
+```bash
+npx create-agents --disable-telemetry
+```
+
+**2. Environment variable:**
+```bash
+DO_NOT_TRACK=1 npx create-agents
+```
+
+**3. During first run:**
+When prompted, select "No" to disable telemetry
+
+Your telemetry preferences are saved to `~/.inkeep/telemetry-config.json`
+
+### Privacy Policy
+For more information, see our [Privacy Policy](https://inkeep.com/privacy)
 
 ## Learn More
 

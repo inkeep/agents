@@ -5,6 +5,14 @@ import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import color from 'picocolors';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
+import {
+  addBreadcrumb,
+  captureError,
+  captureMessage,
+  getTelemetryConfig,
+  saveTelemetryConfig,
+  disableTelemetry,
+} from './errorTracking.js';
 
 const execAsync = promisify(exec);
 
@@ -101,6 +109,14 @@ export const createAgents = async (
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
+
+  // Show telemetry notice on first run
+  await showTelemetryNoticeIfNeeded();
+
+  addBreadcrumb('Starting create-agents', {
+    hasTemplate: !!template,
+    hasCustomProjectId: !!customProjectId,
+  });
 
   // Prompt for directory name if not provided
   if (!dirName) {
@@ -209,6 +225,8 @@ export const createAgents = async (
   s.start('Creating directory structure...');
 
   try {
+    addBreadcrumb('Cloning templates', { templateName, projectId });
+
     const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
 
     const projectTemplateRepo = templateName
@@ -298,6 +316,9 @@ export const createAgents = async (
     await setupProjectInDatabase(config);
     s.message('Project setup complete!');
 
+    addBreadcrumb('Project creation completed successfully');
+    captureMessage('Project created successfully', 'info');
+
     s.stop();
 
     // Success message with next steps
@@ -323,6 +344,21 @@ export const createAgents = async (
     );
   } catch (error) {
     s.stop();
+
+    // Capture error with context
+    if (error instanceof Error) {
+      addBreadcrumb('Error creating project', {
+        errorMessage: error.message,
+        phase: 'project_creation',
+      });
+      captureError(error, {
+        projectId,
+        templateName,
+        hasTemplate: !!templateName,
+        hasCustomProjectId: !!customProjectId,
+      });
+    }
+
     p.cancel(
       `Error creating directory: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -443,13 +479,74 @@ async function setupProjectInDatabase(config: FileConfig) {
 
 async function setupDatabase() {
   try {
+    addBreadcrumb('Setting up database');
     // Run drizzle-kit push to create database file and apply schema
     await execAsync('pnpm db:push');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
+    addBreadcrumb('Database setup failed', { error: error instanceof Error ? error.message : 'Unknown' });
+    if (error instanceof Error) {
+      captureError(error, { phase: 'database_setup' });
+    }
     throw new Error(
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  }
+}
+
+/**
+ * Show telemetry notice on first run and ask for consent
+ */
+async function showTelemetryNoticeIfNeeded(): Promise<void> {
+  const config = getTelemetryConfig();
+
+  // If user has already been asked, skip
+  if (config.askedConsent) {
+    return;
+  }
+
+  // If telemetry is disabled via flag or env var, skip
+  if (process.argv.includes('--disable-telemetry') || process.env.DO_NOT_TRACK === '1') {
+    disableTelemetry();
+    return;
+  }
+
+  // Show notice
+  p.note(
+    `${color.cyan('Anonymous error tracking')} helps us improve create-agents.\n\n` +
+      `${color.dim('What we collect:')}\n` +
+      `  • Anonymous error reports and stack traces\n` +
+      `  • Template usage (e.g., "weather-project")\n` +
+      `  • Success/failure status\n\n` +
+      `${color.dim('What we do NOT collect:')}\n` +
+      `  • File contents or code\n` +
+      `  • API keys or credentials\n` +
+      `  • Personal information\n\n` +
+      `${color.dim('You can opt out anytime with:')} ${color.bold('--disable-telemetry')}\n` +
+      `${color.dim('Or set:')} ${color.bold('DO_NOT_TRACK=1')}\n\n` +
+      `${color.dim('Privacy policy:')} https://inkeep.com/privacy`,
+    'Telemetry Notice'
+  );
+
+  const consent = await p.confirm({
+    message: 'Enable anonymous error tracking?',
+    initialValue: true,
+  });
+
+  if (p.isCancel(consent)) {
+    // User cancelled, disable telemetry
+    disableTelemetry();
+    return;
+  }
+
+  // Save consent
+  const newConfig = getTelemetryConfig();
+  newConfig.enabled = consent === true;
+  newConfig.askedConsent = true;
+  saveTelemetryConfig(newConfig);
+
+  if (!consent) {
+    p.log.info('Telemetry disabled. You can re-enable it later if you change your mind.');
   }
 }
 
