@@ -46,7 +46,7 @@ export const Playground = ({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 text-xs"
+            className="h-6"
             onClick={() => {
               setShowTraces(!showTraces);
               if (!showTraces) {
