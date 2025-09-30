@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.10.1
+
+### Patch Changes
+
+- 4fab007: bug fix for advanced span attributes
+- 3dc946c: highlighting items
+- 974992c: context fetching span and ui trace improvements
+- Updated dependencies [974992c]
+  - @inkeep/agents-core@0.10.1
+  - @inkeep/agents-manage-api@0.10.1
+  - @inkeep/agents-run-api@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes

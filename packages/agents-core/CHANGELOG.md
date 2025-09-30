@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.10.1
+
+### Patch Changes
+
+- 974992c: context fetching span and ui trace improvements
+
 ## 0.10.0
 
 ### Minor Changes
