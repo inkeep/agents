@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.8.6
+
+### Patch Changes
+
+- 2484a6c: Fix FetchDefiniton Credential References
+
+## 0.8.5
+
+### Patch Changes
+
+- 3c93e9e: configures drizzle with turso option
+
 ## 0.8.4
 
 ### Patch Changes

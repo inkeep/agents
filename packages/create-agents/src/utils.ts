@@ -412,7 +412,9 @@ async function setupProjectInDatabase(config: FileConfig) {
   // Run inkeep push
   try {
     // Suppress all output
-    await execAsync(`pnpm inkeep push --project src/${config.projectId}`);
+    await execAsync(
+      `pnpm inkeep push --project src/${config.projectId} --config src/inkeep.config.ts`
+    );
   } catch (_error) {
     //Continue despite error - user can setup project manually
   } finally {

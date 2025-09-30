@@ -141,15 +141,21 @@ export class ContextConfigBuilder<
       for (const [key, definition] of Object.entries(options.contextVariables)) {
         // Convert builderFetchDefinition to ContextFetchDefinition format
         const { credentialReference, ...rest } = definition;
+
+        // Handle both direct credentialReference and pre-processed credentialReferenceId
+        const credentialReferenceId =
+          credentialReference?.id || (rest as any).credentialReferenceId;
+
         processedContextVariables[key] = {
           ...rest,
           responseSchema: convertZodToJsonSchema(definition.responseSchema),
-          credentialReferenceId: credentialReference?.id,
+          credentialReferenceId,
         };
         logger.debug(
           {
             contextVariableKey: key,
             originalSchema: definition.responseSchema,
+            credentialReferenceId,
           },
           'Converting contextVariable responseSchema to JSON Schema for database storage'
         );
