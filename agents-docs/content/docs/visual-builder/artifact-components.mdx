@@ -31,10 +31,10 @@ When an agent uses a tool (like web search), the tool returns information. Inste
 
 ### Step 2: Define the Schema
 
-You need to define two JSON schemas:
+You need to define at least the Summary Props schema:
 
 #### Summary Props (Required)
-Quick info shown to agents - keep this simple:
+Quick info shown to agents - keep this simple. This is required for all artifact components:
 
 ```json
 {
@@ -53,8 +53,8 @@ Quick info shown to agents - keep this simple:
 }
 ```
 
-#### Full Props (Required)  
-Complete details stored in database:
+#### Full Props (Optional)  
+Complete details stored in database. This is optional - only include if you need to store additional details beyond the summary:
 
 ```json
 {

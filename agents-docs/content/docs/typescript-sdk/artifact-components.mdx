@@ -36,7 +36,7 @@ const searchAgent = agent({
       name: "Web Source",
       description: "Information found from web searches",
       
-      // Summary: Quick info shown to agents
+      // Summary: Quick info shown to agents (Required)
       summaryProps: {
         type: "object",
         properties: {
@@ -46,7 +46,7 @@ const searchAgent = agent({
         required: ["title", "url"],
       },
       
-      // Full content: Complete details stored in database
+      // Full content: Complete details stored in database (Optional)
       fullProps: {
         type: "object", 
         properties: {

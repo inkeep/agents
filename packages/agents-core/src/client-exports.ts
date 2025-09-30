@@ -154,7 +154,7 @@ export const ArtifactComponentApiInsertSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   summaryProps: z.record(z.string(), z.unknown()),
-  fullProps: z.record(z.string(), z.unknown()),
+  fullProps: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Context Config API schemas (inline definitions)

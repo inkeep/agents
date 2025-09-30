@@ -276,6 +276,38 @@ export const createAgents = async (
       ];
 
       await cloneTemplate(projectTemplateRepo, templateTargetPath, contentReplacements);
+      
+      // After cloning template, update the index.ts to include citation artifact
+      const indexPath = path.join(templateTargetPath, 'index.ts');
+      if (await fs.pathExists(indexPath)) {
+        let indexContent = await fs.readFile(indexPath, 'utf-8');
+        
+        // Add import for citation artifact at the top
+        const importLine = "import { citationArtifact } from './artifact-components/citation';";
+        if (!indexContent.includes(importLine)) {
+          // Find the last import statement and add after it
+          const lastImportIndex = indexContent.lastIndexOf('import ');
+          const nextLineIndex = indexContent.indexOf('\n', lastImportIndex);
+          indexContent = indexContent.slice(0, nextLineIndex + 1) + importLine + '\n' + indexContent.slice(nextLineIndex + 1);
+        }
+        
+        // Add artifactComponents to the project if not already there
+        if (!indexContent.includes('artifactComponents:')) {
+          // Find the closing of the project configuration
+          const projectMatch = indexContent.match(/project\s*\(\s*{[\s\S]*?\n}\s*\)/);
+          if (projectMatch) {
+            const projectConfig = projectMatch[0];
+            // Add artifactComponents before the closing brace
+            const lastClosingBrace = projectConfig.lastIndexOf('}');
+            const beforeBrace = projectConfig.slice(0, lastClosingBrace);
+            const afterBrace = projectConfig.slice(lastClosingBrace);
+            const updatedProjectConfig = beforeBrace + '  artifactComponents: () => [citationArtifact],\n' + afterBrace;
+            indexContent = indexContent.replace(projectMatch[0], updatedProjectConfig);
+          }
+        }
+        
+        await fs.writeFile(indexPath, indexContent);
+      }
     } else {
       s.message('Creating empty project folder...');
       await fs.ensureDir(`src/${projectId}`);
@@ -379,8 +411,64 @@ async function createInkeepConfig(config: FileConfig) {
   export default config;`;
   await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
+  // Create default citation artifact component file
+  const citationArtifactContent = `import { artifactComponent } from '@inkeep/agents-sdk';
+
+// Default citation artifact for saving sources and references
+export const citationArtifact = artifactComponent({
+  id: 'citation-artifact',
+  name: 'Citation',
+  description: 'Source information for citations and references',
+  summaryProps: {
+    type: 'object',
+    properties: {
+      title: {
+        type: 'string',
+        description: 'Title or name of the source',
+      },
+      url: {
+        type: 'string',
+        description: 'URL or location of the source',
+      },
+      type: {
+        type: 'string',
+        description: 'Type of source (article, documentation, website, etc.)',
+      },
+    },
+    required: ['title'],
+  },
+  fullProps: {
+    type: 'object',
+    properties: {
+      content: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: { 
+              type: 'string', 
+              description: 'Type of content (text, image, video, etc.)' 
+            },
+            text: { 
+              type: 'string', 
+              description: 'The actual text content' 
+            },
+          },
+          required: ['type', 'text'],
+        },
+        description: 'Array of structured content blocks extracted from the source',
+      },
+    },
+    required: ['content'],
+  },
+});
+`;
+  await fs.ensureDir(`src/${config.projectId}/artifact-components`);
+  await fs.writeFile(`src/${config.projectId}/artifact-components/citation.ts`, citationArtifactContent);
+
   if (config.customProject) {
     const customIndexContent = `import { project } from '@inkeep/agents-sdk';
+import { citationArtifact } from './artifact-components/citation';
 
 export const myProject = project({
   id: "${config.projectId}",
@@ -388,6 +476,7 @@ export const myProject = project({
   description: "",
   graphs: () => [],
   models: ${JSON.stringify(config.modelSettings, null, 2)},
+  artifactComponents: () => [citationArtifact],
 });`;
     await fs.writeFile(`src/${config.projectId}/index.ts`, customIndexContent);
   }
