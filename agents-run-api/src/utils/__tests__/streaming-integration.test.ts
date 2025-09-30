@@ -182,9 +182,13 @@ describe('Streaming Integration Tests', () => {
       }
 
       // comp1 should stream when stable, comp2 might stream when it disappears if complete
-      expect(mockArtifactParser.parseObject).toHaveBeenCalledWith({
-        dataComponents: [{ id: 'comp1', name: 'Test', props: { value: 'test1' } }],
-      });
+      expect(mockArtifactParser.parseObject).toHaveBeenCalledWith(
+        {
+          dataComponents: [{ id: 'comp1', name: 'Test', props: { value: 'test1' } }],
+        },
+        expect.any(Map), // artifactMap
+        expect.any(String) // agentId
+      );
     });
   });
 

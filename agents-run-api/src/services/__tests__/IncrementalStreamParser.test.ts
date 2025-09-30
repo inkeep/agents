@@ -215,15 +215,19 @@ describe('IncrementalStreamParser', () => {
       await parser.processObjectDelta(delta4); // Make it stable
 
       // Should merge props and stream once when stable
-      expect(mockArtifactParser.parseObject).toHaveBeenCalledWith({
-        dataComponents: [
-          {
-            id: 'comp1',
-            name: 'Component 1',
-            props: { temp: '20', humidity: '80%' },
-          },
-        ],
-      });
+      expect(mockArtifactParser.parseObject).toHaveBeenCalledWith(
+        {
+          dataComponents: [
+            {
+              id: 'comp1',
+              name: 'Component 1',
+              props: { temp: '20', humidity: '80%' },
+            },
+          ],
+        },
+        expect.any(Map), // artifactMap
+        expect.any(String) // agentId
+      );
     });
 
     it('should handle large component payloads efficiently', async () => {
