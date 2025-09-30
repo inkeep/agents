@@ -44,14 +44,12 @@ function replaceRange(
 }
 
 export function TextareaWithSuggestions() {
-  const [value, setValue] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
   const [range, setRange] = useState<{ start: number; end: number } | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null!);
   const panelRef = useRef<HTMLDivElement | null>(null);
-
   const contextConfig = useGraphStore((state) => state.metadata.contextConfig);
 
   const list = useMemo(() => {
@@ -63,20 +61,22 @@ export function TextareaWithSuggestions() {
   // Which trigger are we handling? For demo, only "{" (mentions)
   const suggestions = useMemo<string[]>(() => {
     if (!range) return [];
-    const token = value.slice(range.start, range.end); // e.g. "{{foo"
+    const ta = textareaRef.current;
+    const token = ta.value.slice(range.start, range.end); // e.g. "{{foo"
     if (!token.startsWith('{')) return [];
     const q = token.slice(1).toLowerCase();
     return list.filter((p) => p.toLowerCase().includes(q));
-  }, [range, value, list]);
+  }, [range, list]);
+
+  console.log(suggestions);
 
   // Recompute on input, caret move, scroll, or resize
   useEffect(() => {
+    const ta = textareaRef.current;
     // Compute floating panel position at the current caret
     const updateAnchorFromCaret = () => {
-      const ta = textareaRef.current;
-      if (!ta) return;
       const caret = ta.selectionStart ?? 0;
-      const tokenInfo = getTriggerToken(value, caret, ['{']); // only { for this demo
+      const tokenInfo = getTriggerToken(ta.value, caret, ['{']); // only { for this demo
       if (!tokenInfo) {
         setOpen(false);
         setRange(null);
@@ -93,8 +93,6 @@ export function TextareaWithSuggestions() {
       setRange({ start: tokenInfo.start, end: tokenInfo.end });
       setOpen(true);
     };
-    const ta = textareaRef.current;
-    if (!ta) return;
 
     const handleInput = () => updateAnchorFromCaret();
     const handleKeyUp = () => updateAnchorFromCaret();
@@ -115,48 +113,51 @@ export function TextareaWithSuggestions() {
       window.removeEventListener('resize', handleScroll);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, []);
 
   const onSelect = (item: string) => {
     if (!range) return;
     const replacement = `{${item} `; // trailing space to finish the mention
-    const { next, nextCaret } = replaceRange(value, range.start, range.end, replacement);
-    setValue(next);
+    const { next, nextCaret } = replaceRange(
+      textareaRef.current.value,
+      range.start,
+      range.end,
+      replacement
+    );
     requestAnimationFrame(() => {
       const ta = textareaRef.current;
-      if (ta) {
-        ta.focus();
-        ta.setSelectionRange(nextCaret, nextCaret);
-      }
+      ta.focus();
+      ta.setSelectionRange(nextCaret, nextCaret);
     });
     setOpen(false);
     setRange(null);
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    const { key } = e;
     if (!open) return;
-    if (e.key === 'ArrowDown') {
+    if (key === 'ArrowDown') {
       e.preventDefault();
       setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
+    } else if (key === 'ArrowUp') {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter') {
+    } else if (key === 'Enter') {
       // Accept the active suggestion only if list is open
       e.preventDefault();
       const item = suggestions[activeIndex];
       if (item) onSelect(item);
-    } else if (e.key === 'Escape') {
+    } else if (key === 'Escape') {
       setOpen(false);
     }
   };
+
+  console.log({ activeIndex });
 
   return (
     <div className="relative max-w-2xl space-y-2">
       <Textarea
         ref={textareaRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Try typing: {{req"
         className="min-h-[140px] pr-10"
@@ -171,13 +172,13 @@ export function TextareaWithSuggestions() {
         >
           <Command>
             <CommandList>
-              <CommandEmpty>No results.</CommandEmpty>
+              <CommandEmpty>No variables were found.</CommandEmpty>
               <CommandGroup>
                 {suggestions.map((p, idx) => (
                   <CommandItem
                     key={p}
                     value={p}
-                    onSelect={() => onSelect(p)}
+                    onSelect={onSelect}
                     className={
                       idx === activeIndex
                         ? 'aria-selected:bg-accent aria-selected:text-accent-foreground'
