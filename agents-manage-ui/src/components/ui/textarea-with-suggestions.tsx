@@ -1,5 +1,5 @@
 import { type FC, useMemo } from 'react';
-import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
+import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete';
 import { keymap } from '@codemirror/view';
 import { duotoneDark, duotoneLight } from '@uiw/codemirror-theme-duotone';
 import CodeMirror, { type ReactCodeMirrorProps } from '@uiw/react-codemirror';
@@ -9,8 +9,8 @@ import { getContextSuggestions } from '@/lib/context-suggestions';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
 
 // Create autocomplete source for context variables
-function createContextAutocompleteSource(suggestions: string[]) {
-  return (context: any) => {
+function createContextAutocompleteSource(suggestions: string[]): CompletionSource {
+  return (context) => {
     const { state, pos } = context;
     const line = state.doc.lineAt(pos);
     const textBefore = line.text.slice(0, pos - line.from);
@@ -27,8 +27,7 @@ function createContextAutocompleteSource(suggestions: string[]) {
       to: pos,
       options: filteredSuggestions.map((suggestion) => ({
         label: suggestion,
-        type: 'variable',
-        apply: `{{${suggestion}}}`,
+        apply: `{${suggestion}}`,
       })),
     };
   };
@@ -56,21 +55,17 @@ export const TextareaWithSuggestions: FC<TextareaWithSuggestionsProps> = ({
   const isDark = resolvedTheme === 'dark';
   const contextConfig = useGraphStore((state) => state.metadata.contextConfig);
 
-  const suggestions = useMemo(() => {
+  const extensions = useMemo(() => {
     const contextVariables = JSON.parse(contextConfig.contextVariables || '{}');
     const requestContextSchema = JSON.parse(contextConfig.requestContextSchema || '{}');
-    return getContextSuggestions({ requestContextSchema, contextVariables });
-  }, [contextConfig]);
-
-  const extensions = useMemo(
-    () => [
+    const suggestions = getContextSuggestions({ requestContextSchema, contextVariables });
+    return [
       autocompletion({
         override: [createContextAutocompleteSource(suggestions)],
       }),
       keymap.of(completionKeymap),
-    ],
-    [suggestions]
-  );
+    ];
+  }, [contextConfig]);
 
   return (
     <CodeMirror
@@ -84,11 +79,12 @@ export const TextareaWithSuggestions: FC<TextareaWithSuggestionsProps> = ({
       basicSetup={{
         lineNumbers: false,
         foldGutter: false,
-        dropCursor: false,
-        allowMultipleSelections: false,
-        bracketMatching: true,
-        closeBrackets: true,
-        autocompletion: true,
+        highlightActiveLine: false,
+        // dropCursor: false,
+        // allowMultipleSelections: false,
+        // bracketMatching: true,
+        // closeBrackets: true,
+        // autocompletion: true,
       }}
       data-disabled={disabled ? '' : undefined}
       data-read-only={readOnly ? '' : undefined}
