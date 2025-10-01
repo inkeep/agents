@@ -127,14 +127,31 @@ describe('getContextSuggestions', () => {
       ]);
     });
 
-    // it('handles optional and nullable fields', () => {
-    //   const optionalSchema = z.object({
-    //     required: z.string(),
-    //     optional: z.string().optional(),
-    //     nullable: z.string().nullable(),
-    //     nullish: z.string().nullish(),
-    //   });
-    // });
+    it('handles optional and nullable fields', () => {
+      const optionalSchema = z.object({
+        required: z.string(),
+        optional: z.string().optional(),
+        nullable: z.string().nullable(),
+        nullish: z.string().nullish(),
+      });
+
+      const suggestions = getContextSuggestions({
+        contextVariables: {
+          opt: {
+            id: 'test',
+            name: 'Test',
+            responseSchema: z.toJSONSchema(optionalSchema),
+          },
+        },
+      });
+      expect(suggestions).toStrictEqual([
+        'opt',
+        'opt.required',
+        'opt.optional',
+        'opt.nullable',
+        'opt.nullish',
+      ]);
+    });
     //
     // it('handles union types', () => {
     //   const unionSchema = z.union([
