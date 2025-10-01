@@ -170,11 +170,37 @@ describe('getContextSuggestions', () => {
       });
       expect(suggestions).toStrictEqual(['entity', 'entity.name', 'entity.role', 'entity.type']);
     });
-    //
-    // it('handles multiple context variables', () => {
-    //   const userSchema = z.object({ id: z.string(), name: z.string() });
-    //   const settingsSchema = z.object({ theme: z.string(), locale: z.string() });
-    // });
+
+    it('handles multiple context variables', () => {
+      const userSchema = z.object({ id: z.string(), name: z.string() });
+      const settingsSchema = z.object({ theme: z.string(), locale: z.string() });
+      const suggestions = getContextSuggestions({
+        contextVariables: {
+          user: {
+            id: 'user',
+            name: 'User',
+            responseSchema: z.toJSONSchema(userSchema),
+          },
+          settings: {
+            id: 'settings',
+            name: 'Settings',
+            responseSchema: z.toJSONSchema(settingsSchema),
+          },
+        },
+        requestContextSchema: z.toJSONSchema(z.object({ apiKey: z.string() })),
+      });
+      expect(suggestions).toMatchInlineSnapshot(`
+        [
+          "requestContext.apiKey",
+          "settings",
+          "settings.locale",
+          "settings.theme",
+          "user",
+          "user.id",
+          "user.name",
+        ]
+      `);
+    });
     //
     // it('handles empty path', () => {
     //   const schema = z.object({ value: z.string() });
