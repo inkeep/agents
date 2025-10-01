@@ -1,5 +1,13 @@
 # @inkeep/agents-cli
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [de7afa3]
+  - @inkeep/agents-manage-ui@0.11.1
+  - @inkeep/agents-core@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes
