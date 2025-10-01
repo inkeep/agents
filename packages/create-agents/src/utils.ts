@@ -444,6 +444,7 @@ async function setupProjectInDatabase(config: FileConfig) {
 async function setupDatabase() {
   try {
     // Run drizzle-kit migrate to apply migrations to database
+    await execAsync('pnpm db:generate');
     await execAsync('pnpm db:migrate');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
