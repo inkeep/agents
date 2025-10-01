@@ -17,10 +17,12 @@ const projectModelsSchema = z.object({
 });
 
 // Use the shared StopWhen schema with optional and nullable modifiers
-const projectStopWhenSchema = z.object({
-  transferCountIs: z.number().min(1).max(100).optional().nullable(),
-  stepCountIs: z.number().min(1).max(1000).optional().nullable(),
-});
+const projectStopWhenSchema = z
+  .object({
+    transferCountIs: z.number().min(1).max(100).optional().nullable(),
+    stepCountIs: z.number().min(1).max(1000).optional().nullable(),
+  })
+  .optional();
 
 export const projectSchema = z.object({
   id: z
