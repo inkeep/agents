@@ -1,5 +1,7 @@
 # @inkeep/create-agents
 
+## 0.12.0
+
 ## 0.11.3
 
 ### Patch Changes
