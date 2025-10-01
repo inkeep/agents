@@ -152,13 +152,24 @@ describe('getContextSuggestions', () => {
         'opt.nullish',
       ]);
     });
-    //
-    // it('handles union types', () => {
-    //   const unionSchema = z.union([
-    //     z.object({ type: z.literal('user'), name: z.string() }),
-    //     z.object({ type: z.literal('admin'), role: z.string() }),
-    //   ]);
-    // });
+
+    it('handles union types', () => {
+      const unionSchema = z.union([
+        z.object({ type: z.literal('user'), name: z.string() }),
+        z.object({ type: z.literal('admin'), role: z.string() }),
+      ]);
+
+      const suggestions = getContextSuggestions({
+        contextVariables: {
+          entity: {
+            id: 'test',
+            name: 'Test',
+            responseSchema: z.toJSONSchema(unionSchema),
+          },
+        },
+      });
+      expect(suggestions).toStrictEqual(['entity', 'entity.type', 'entity.name', 'entity.role']);
+    });
     //
     // it('handles multiple context variables', () => {
     //   const userSchema = z.object({ id: z.string(), name: z.string() });
