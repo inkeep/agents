@@ -8,15 +8,18 @@ export interface ContextSchema {
     properties?: Record<string, any>;
     required?: string[];
   };
-  contextVariables?: Record<string, {
-    id: string;
-    name?: string;
-    responseSchema?: {
-      type: string;
-      properties?: Record<string, any>;
-      required?: string[];
-    };
-  }>;
+  contextVariables?: Record<
+    string,
+    {
+      id: string;
+      name?: string;
+      responseSchema?: {
+        type: string;
+        properties?: Record<string, any>;
+        required?: string[];
+      };
+    }
+  >;
 }
 
 /**
@@ -24,28 +27,28 @@ export interface ContextSchema {
  */
 function extractPathsFromSchema(
   schema: any,
-  prefix: string = '',
-  maxDepth: number = 5,
-  currentDepth: number = 0
+  prefix = '',
+  maxDepth = 5,
+  currentDepth = 0
 ): string[] {
   if (currentDepth >= maxDepth || !schema || typeof schema !== 'object') {
     return [];
   }
 
   const paths: string[] = [];
-  
+
   if (schema.type === 'object' && schema.properties) {
     for (const [key, value] of Object.entries(schema.properties)) {
       const newPath = prefix ? `${prefix}.${key}` : key;
       paths.push(newPath);
-      
+
       // Recursively get nested paths
       if (typeof value === 'object' && value !== null) {
         paths.push(...extractPathsFromSchema(value, newPath, maxDepth, currentDepth + 1));
       }
     }
   }
-  
+
   return paths;
 }
 
@@ -55,18 +58,22 @@ function extractPathsFromSchema(
  */
 export function getContextSuggestions(contextSchema: ContextSchema): string[] {
   const suggestions: string[] = [];
-  
-  // Add requestContext properties
+
+  // Add requestContext properties (but not the top-level object)
   if (contextSchema.requestContextSchema?.properties) {
     const requestContextPaths = extractPathsFromSchema(contextSchema.requestContextSchema);
     for (const path of requestContextPaths) {
       suggestions.push(`requestContext.${path}`);
     }
   }
-  
-  // Add context variable properties
+
+  // Add context variable names and their properties
   if (contextSchema.contextVariables) {
     for (const [variableName, variable] of Object.entries(contextSchema.contextVariables)) {
+      // Add the top-level variable name
+      suggestions.push(variableName);
+
+      // Add nested properties if responseSchema exists
       if (variable.responseSchema?.properties) {
         const responsePaths = extractPathsFromSchema(variable.responseSchema);
         for (const path of responsePaths) {
@@ -75,13 +82,13 @@ export function getContextSuggestions(contextSchema: ContextSchema): string[] {
       }
     }
   }
-  
+
   return suggestions;
 }
 
 /**
  * Example usage:
- * 
+ *
  * const contextSchema = {
  *   requestContextSchema: {
  *     type: 'object',
@@ -117,15 +124,16 @@ export function getContextSuggestions(contextSchema: ContextSchema): string[] {
  *     }
  *   }
  * };
- * 
+ *
  * const suggestions = getContextSuggestions(contextSchema);
  * // Returns: [
  * //   'requestContext.user_id',
- * //   'requestContext.auth_token', 
+ * //   'requestContext.auth_token',
  * //   'requestContext.org_name',
  * //   'requestContext.profile',
  * //   'requestContext.profile.name',
  * //   'requestContext.profile.email',
+ * //   'userName',
  * //   'userName.name',
  * //   'userName.preferences',
  * //   'userName.preferences.theme',

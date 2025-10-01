@@ -37,6 +37,7 @@ describe('context-suggestions', () => {
   it('should generate suggestions from requestContextSchema', () => {
     const suggestions = getContextSuggestions(mockContextSchema);
     
+    expect(suggestions).not.toContain('requestContext');
     expect(suggestions).toContain('requestContext.user_id');
     expect(suggestions).toContain('requestContext.auth_token');
     expect(suggestions).toContain('requestContext.org_name');
@@ -45,6 +46,7 @@ describe('context-suggestions', () => {
   it('should generate suggestions from contextVariables', () => {
     const suggestions = getContextSuggestions(mockContextSchema);
     
+    expect(suggestions).toContain('userName');
     expect(suggestions).toContain('userName.name');
     expect(suggestions).toContain('userName.preferences');
     expect(suggestions).toContain('userName.preferences.theme');
@@ -58,6 +60,7 @@ describe('context-suggestions', () => {
       'requestContext.user_id',
       'requestContext.auth_token',
       'requestContext.org_name',
+      'userName',
       'userName.name',
       'userName.preferences',
       'userName.preferences.theme',
@@ -104,6 +107,6 @@ describe('context-suggestions', () => {
     };
     
     const suggestions = getContextSuggestions(schema);
-    expect(suggestions).toEqual(['userName.name']);
+    expect(suggestions).toEqual(['userName', 'userName.name']);
   });
 });
