@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.11.3
+
+### Patch Changes
+
+- 3382ff2: fixes migration in create script
+
 ## 0.11.2
 
 ## 0.11.1

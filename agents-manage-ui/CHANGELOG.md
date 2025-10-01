@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.11.3
+
+### Patch Changes
+
+- ff6ef79: exceptions added to ui
+- dc13c2c: render in span details
+  - @inkeep/agents-manage-api@0.11.3
+  - @inkeep/agents-run-api@0.11.3
+  - @inkeep/agents-core@0.11.3
+
 ## 0.11.2
 
 ### Patch Changes
