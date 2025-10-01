@@ -116,6 +116,7 @@ describe('API Key Authentication Middleware', () => {
     it('should accept valid API keys and set execution context', async () => {
       const mockApiKey: ApiKeySelect = {
         id: 'key_123',
+        name: 'test-api-key',
         tenantId: 'tenant_123',
         projectId: 'project_123',
         graphId: 'graph_123',
@@ -221,6 +222,7 @@ describe('API Key Authentication Middleware', () => {
     it('should validate API key against database when token does not match bypass secret', async () => {
       const mockApiKey: ApiKeySelect = {
         id: 'key_456',
+        name: 'test-api-key',
         tenantId: 'tenant_456',
         projectId: 'project_456',
         graphId: 'graph_456',
@@ -318,6 +320,7 @@ describe('API Key Authentication Middleware', () => {
     it('should validate API key when header is present', async () => {
       const mockApiKey: ApiKeySelect = {
         id: 'key_123',
+        name: 'test-api-key',
         tenantId: 'tenant_123',
         projectId: 'project_123',
         graphId: 'graph_123',

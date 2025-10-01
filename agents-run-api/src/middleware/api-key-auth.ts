@@ -1,9 +1,9 @@
 import { type ExecutionContext, validateAndGetApiKey } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
+import { getLogger } from '../logger';
 import { createExecutionContext } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
@@ -38,6 +38,7 @@ export const apiKeyAuth = () =>
       if (authHeader?.startsWith('Bearer ')) {
         try {
           executionContext = await extractContextFromApiKey(authHeader.substring(7));
+          executionContext.agentId = agentId;
           logger.info({}, 'Development/test environment - API key authenticated successfully');
         } catch {
           // If API key extraction fails, fallback to default context

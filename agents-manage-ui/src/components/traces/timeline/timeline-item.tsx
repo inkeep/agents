@@ -1,9 +1,11 @@
 import {
+  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   CheckCircle,
   ChevronDown,
   ChevronRight,
+  Cpu,
   Database,
   Hammer,
   Settings,
@@ -21,6 +23,7 @@ import {
   type ActivityKind,
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
+import { Badge } from '@/components/ui/badge';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -44,6 +47,7 @@ function statusIcon(
   const base: Record<string, { Icon: any; cls: string }> = {
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
+    agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
     ai_assistant_message: { Icon: Sparkles, cls: 'text-primary' },
     ai_model_streamed_text: { Icon: Sparkles, cls: 'text-primary' },
     context_fetch: { Icon: Settings, cls: 'text-indigo-400' },
@@ -72,6 +76,7 @@ interface TimelineItemProps {
   activity: ActivityItem;
   isLast: boolean;
   onSelect: () => void;
+  isSelected?: boolean;
   isAiMessageCollapsed?: boolean;
   onToggleAiMessageCollapse?: (activityId: string) => void;
 }
@@ -80,6 +85,7 @@ export function TimelineItem({
   activity,
   isLast,
   onSelect,
+  isSelected = false,
   isAiMessageCollapsed = false,
   onToggleAiMessageCollapse,
 }: TimelineItemProps) {
@@ -98,26 +104,36 @@ export function TimelineItem({
   const formattedDateTime = formatDateTime(activity.timestamp);
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
+  // Determine text color based on status
+  const textColorClass =
+    activity.status === 'error'
+      ? 'text-red-500 hover:text-red-700'
+        : 'text-foreground hover:text-primary';
+
   return (
-    <div className="flex flex-col text-muted-foreground relative text-xs">
+    <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
-        <div className="mr-4 pt-[1px]">
+        <div className="mr-2 py-2">
           <Icon className={`w-4 h-4 ${className}`} />
         </div>
 
-        <div className="space-y-1.5">
+        <div
+          className={`space-y-1.5 px-3 py-2 w-full transition-all duration-200 rounded-lg ${
+            isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
+          }`}
+        >
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onSelect}
-              className="flex items-center gap-1 group cursor-pointer hover:text-primary transition-colors text-foreground duration-200"
+              className={`flex items-center gap-1 group cursor-pointer transition-colors duration-200 ${textColorClass}`}
               title="Click to view details"
             >
               <span className="font-medium">
                 <Streamdown>{activity.description}</Streamdown>
               </span>
               <ArrowUpRight
-                className="h-4 w-4 text-muted-foreground group-hover:text-primary"
+                className={`h-4 w-4 transition-colors ${activity.status === 'error' ? 'text-red-700 group-hover:text-red-800' : 'text-muted-foreground group-hover:text-primary'}`}
                 aria-hidden="true"
               />
             </button>
@@ -189,30 +205,6 @@ export function TimelineItem({
           {/* context fetch url */}
           {activity.type === 'context_fetch' && activity.toolResult && (
             <Bubble className="break-all">{truncateChars(activity.toolResult, 50)}</Bubble>
-          )}
-
-          {/* context resolution summary */}
-          {activity.type === 'context_resolution' && activity.status !== 'error' && (
-            <div className="mt-2 p-3 rounded-lg max-w-4xl">
-              <div className="space-y-2 text-sm">
-                {activity.contextConfigId && TagRow('Config', activity.contextConfigId)}
-                {activity.contextAgentGraphId && TagRow('Graph', activity.contextAgentGraphId)}
-                {activity.contextStatusDescription && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        activity.status === 'success'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                      }`}
-                    >
-                      {activity.contextStatusDescription}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
           )}
 
           {/* context resolution URL */}
@@ -392,6 +384,38 @@ export function TimelineItem({
               </CodeBubble>
             )}
 
+          {/* agent name for AI generation */}
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
+            <div className="mb-1">
+              <Badge variant="code">{activity.agentName}</Badge>
+            </div>
+          )}
+
+          {/* OTEL status for failed agent.generate spans */}
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION &&
+            activity.name === 'agent.generate' &&
+            activity.hasError &&
+            (activity.otelStatusCode || activity.otelStatusDescription) && (
+              <div className="mt-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    {activity.otelStatusCode && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Status Code:</span>{' '}
+                        <span className="font-mono">{activity.otelStatusCode}</span>
+                      </div>
+                    )}
+                    {activity.otelStatusDescription && (
+                      <CodeBubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                        {activity.otelStatusDescription}
+                      </CodeBubble>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"
             dateTime={isoDateTime}
@@ -402,7 +426,7 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && <div className="absolute top-6 left-[7px] border-l border-border h-full" />}
+      {!isLast && <div className="absolute top-8 left-[7px] border-l border-border h-full" />}
     </div>
   );
 }

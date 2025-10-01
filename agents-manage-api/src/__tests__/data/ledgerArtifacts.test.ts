@@ -1,7 +1,7 @@
 import {
   addLedgerArtifacts,
-  agents,
   agentGraph,
+  agents,
   conversations,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
@@ -67,6 +67,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: taskId,
       tenantId,
       projectId,
+      graphId,
       contextId,
       status: 'completed',
       agentId,
@@ -221,7 +222,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     // Intentionally passing an invalid param to trigger validation error
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await expect(getLedgerArtifacts(dbClient)({} as any)).rejects.toThrow(
-      'Either taskId or artifactId must be provided'
+      'At least one of taskId, toolCallId, or artifactId must be provided'
     );
   });
 

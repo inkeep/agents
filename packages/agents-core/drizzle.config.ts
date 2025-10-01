@@ -38,13 +38,30 @@ const getDatabaseUrl = () => {
   }
 };
 
-const dbUrl = getDatabaseUrl();
+
+const getDbConfig = () => {
+  // Prefer Turso if both URL + token are set
+  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+    return {
+      dialect: 'turso' as const,
+      dbCredentials: {
+        url: process.env.TURSO_DATABASE_URL,
+        authToken: process.env.TURSO_AUTH_TOKEN,
+      }
+    }
+  }
+
+  // Otherwise, fallback to file (must be explicitly set)
+  return {
+    dialect: 'sqlite' as const,
+    dbCredentials: {
+      url: getDatabaseUrl(),
+    },
+  }
+};
 
 export default defineConfig({
   out: './drizzle',
   schema: './src/db/schema.ts',
-  dialect: 'sqlite',
-  dbCredentials: {
-    url: dbUrl,
-  },
+  ...getDbConfig(),
 });

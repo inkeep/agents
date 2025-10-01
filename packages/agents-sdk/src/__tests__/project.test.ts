@@ -55,7 +55,6 @@ describe('Project', () => {
       id: 'test-project',
       name: 'Test Project',
       description: 'A test project',
-      tenantId: 'test-tenant',
       models: {
         base: { model: 'gpt-4o-mini' },
         structuredOutput: { model: 'gpt-4o' },
@@ -78,6 +77,8 @@ describe('Project', () => {
   describe('constructor', () => {
     it('should create a project with basic configuration', () => {
       const project = new Project(projectConfig);
+      // Set config to provide tenantId
+      project.setConfig('test-tenant', 'http://localhost:3002');
 
       expect(project.getId()).toBe('test-project');
       expect(project.getName()).toBe('Test Project');
@@ -116,8 +117,9 @@ describe('Project', () => {
 
       expect(project.getGraphs()).toHaveLength(1);
       expect(project.getGraph('test-graph')).toBe(mockGraph);
+      // Graphs are initially set with defaults, setConfig is called with 'default' tenantId
       expect(mockGraph.setConfig).toHaveBeenCalledWith(
-        'test-tenant',
+        'default',
         'test-project',
         'http://localhost:3002'
       );
@@ -180,6 +182,8 @@ describe('Project', () => {
   describe('init', () => {
     it('should initialize project and create it in backend', async () => {
       const project = new Project(projectConfig);
+      // Set config to provide tenantId
+      project.setConfig('test-tenant', 'http://localhost:3002');
 
       // Mock successful full project API call
       mockFetch.mockResolvedValueOnce({
@@ -202,6 +206,8 @@ describe('Project', () => {
 
     it('should update existing project in backend', async () => {
       const project = new Project(projectConfig);
+      // Set config to provide tenantId
+      project.setConfig('test-tenant', 'http://localhost:3002');
 
       // Mock successful full project API call
       mockFetch.mockResolvedValueOnce({
@@ -303,6 +309,8 @@ describe('Project', () => {
 
     beforeEach(() => {
       project = new Project(projectConfig);
+      // Set config to provide tenantId
+      project.setConfig('test-tenant', 'http://localhost:3002');
     });
 
     it('should add a graph to the project', () => {
@@ -378,13 +386,15 @@ describe('Project', () => {
       };
 
       const project = new Project(configWithGraphs);
+      // Set config to provide tenantId
+      project.setConfig('test-tenant', 'http://localhost:3002');
       const stats = project.getStats();
 
       expect(stats).toEqual({
-        projectId: 'test-project',
-        tenantId: 'test-tenant',
         graphCount: 1,
         initialized: false,
+        projectId: 'test-project',
+        tenantId: 'test-tenant',
       });
     });
   });
@@ -470,29 +480,27 @@ describe('Project', () => {
   });
 
   describe('API format conversion', () => {
-    it('should convert project configuration to API format', () => {
+    it('should include project configuration in full definition', async () => {
       const project = new Project(projectConfig);
 
-      // Access private method through type assertion for testing
-      const apiFormat = (project as any).toApiFormat();
+      // Test through the public toFullProjectDefinition method
+      const fullDef = await (project as any).toFullProjectDefinition();
 
-      expect(apiFormat).toEqual({
-        id: 'test-project',
-        name: 'Test Project',
-        description: 'A test project',
-        models: projectConfig.models,
-        stopWhen: projectConfig.stopWhen,
-      });
+      expect(fullDef.id).toBe('test-project');
+      expect(fullDef.name).toBe('Test Project');
+      expect(fullDef.description).toBe('A test project');
+      expect(fullDef.models).toEqual(projectConfig.models);
+      expect(fullDef.stopWhen).toEqual(projectConfig.stopWhen);
     });
 
-    it('should handle missing description in API format', () => {
+    it('should handle missing description in full definition', async () => {
       const configWithoutDescription = { ...projectConfig };
       delete configWithoutDescription.description;
 
       const project = new Project(configWithoutDescription);
-      const apiFormat = (project as any).toApiFormat();
+      const fullDef = await (project as any).toFullProjectDefinition();
 
-      expect(apiFormat.description).toBe('');
+      expect(fullDef.description).toBe('');
     });
   });
 

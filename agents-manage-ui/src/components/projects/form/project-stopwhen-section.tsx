@@ -22,7 +22,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
   return (
     <div className="space-y-4">
       <div>
-        <Label className="text-sm font-medium">Execution Limits</Label>
+        <Label className="text-sm font-medium">Execution limits</Label>
         <p className="text-sm text-muted-foreground mt-1">
           Set default execution limits that will be inherited by graphs and agents in this project
         </p>
@@ -48,7 +48,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
                 control={control}
                 name="stopWhen.transferCountIs"
                 description="Maximum number of agent transfers per conversation (graph-level, default: 10)"
-                label="Max Transfers"
+                label="Max transfers"
                 type="number"
                 placeholder="10"
                 min="1"
@@ -60,7 +60,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
               <GenericInput
                 control={control}
                 name="stopWhen.stepCountIs"
-                label="Max Steps"
+                label="Max steps"
                 type="number"
                 placeholder="50"
                 min="1"

@@ -7,8 +7,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     env: {
       ENVIRONMENT: 'test',
-      NODE_ENV: 'test',
-      DB_FILE_NAME: 'test.db',
+      DB_FILE_NAME: ':memory:',
       INKEEP_AGENTS_MANAGE_API_URL: 'http://localhost:3002',
       INKEEP_AGENTS_RUN_API_URL: 'http://localhost:3003',
     },

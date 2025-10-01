@@ -1,0 +1,8 @@
+<artifact>
+  <name>{{ARTIFACT_NAME}}</name>
+  <description>{{ARTIFACT_DESCRIPTION}}</description>
+  <task_id>{{TASK_ID}}</task_id>
+  <artifact_id>{{ARTIFACT_ID}}</artifact_id>
+  <tool_call_id>{{TOOL_CALL_ID}}</tool_call_id>
+  <summary_data>{{ARTIFACT_SUMMARY}}</summary_data>
+</artifact> 

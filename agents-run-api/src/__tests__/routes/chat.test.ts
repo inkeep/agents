@@ -278,9 +278,6 @@ describe('Chat Routes', () => {
       });
 
       expect(response.status).toBe(404);
-
-      const result = await response.json();
-      expect(result.error).toContain('Agent graph not found');
     });
 
     // Additional tests can be added here for specific functionality

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "66e37a24-8c6f-409f-b212-ec204fffab73",
+  "id": "9e2624c6-0f39-49d3-b4cf-649f24246088",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
@@ -9,6 +9,13 @@
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -30,13 +37,6 @@
         },
         "agent_id": {
           "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -122,6 +122,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "project_id": {
           "name": "project_id",
           "type": "text",
@@ -138,13 +145,6 @@
         },
         "agent_id": {
           "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -228,15 +228,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -356,6 +356,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "project_id": {
           "name": "project_id",
           "type": "text",
@@ -365,13 +372,6 @@
         },
         "graph_id": {
           "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -466,6 +466,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "project_id": {
           "name": "project_id",
           "type": "text",
@@ -487,13 +494,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "tool_id": {
           "name": "tool_id",
           "type": "text",
@@ -503,6 +503,13 @@
         },
         "selected_tools": {
           "name": "selected_tools",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "headers": {
+          "name": "headers",
           "type": "blob",
           "primaryKey": false,
           "notNull": false,
@@ -588,6 +595,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "project_id": {
           "name": "project_id",
           "type": "text",
@@ -597,13 +611,6 @@
         },
         "graph_id": {
           "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -705,15 +712,15 @@
     "api_keys": {
       "name": "api_keys",
       "columns": {
-        "id": {
-          "name": "id",
+        "tenant_id": {
+          "name": "tenant_id",
           "type": "text",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "tenant_id": {
-          "name": "tenant_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -752,6 +759,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "last_used_at": {
@@ -864,15 +878,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -964,15 +978,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1102,15 +1116,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1202,15 +1216,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1309,15 +1323,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1402,15 +1416,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1495,6 +1509,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "project_id": {
           "name": "project_id",
           "type": "text",
@@ -1504,13 +1525,6 @@
         },
         "graph_id": {
           "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1629,13 +1643,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "id": {
           "name": "id",
           "type": "text",
@@ -1643,8 +1650,22 @@
           "notNull": true,
           "autoincrement": false
         },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "task_id": {
           "name": "task_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tool_call_id": {
+          "name": "tool_call_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1746,7 +1767,38 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "ledger_artifacts_task_id_idx": {
+          "name": "ledger_artifacts_task_id_idx",
+          "columns": [
+            "task_id"
+          ],
+          "isUnique": false
+        },
+        "ledger_artifacts_tool_call_id_idx": {
+          "name": "ledger_artifacts_tool_call_id_idx",
+          "columns": [
+            "tool_call_id"
+          ],
+          "isUnique": false
+        },
+        "ledger_artifacts_context_id_idx": {
+          "name": "ledger_artifacts_context_id_idx",
+          "columns": [
+            "context_id"
+          ],
+          "isUnique": false
+        },
+        "ledger_artifacts_task_context_name_unique": {
+          "name": "ledger_artifacts_task_context_name_unique",
+          "columns": [
+            "task_id",
+            "context_id",
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "ledger_artifacts_project_fk": {
           "name": "ledger_artifacts_project_fk",
@@ -1765,13 +1817,14 @@
         }
       },
       "compositePrimaryKeys": {
-        "ledger_artifacts_tenant_id_project_id_id_pk": {
+        "ledger_artifacts_tenant_id_project_id_id_task_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
-            "id"
+            "id",
+            "task_id"
           ],
-          "name": "ledger_artifacts_tenant_id_project_id_id_pk"
+          "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -1787,15 +1840,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2042,15 +2095,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2136,6 +2189,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "project_id": {
           "name": "project_id",
           "type": "text",
@@ -2143,8 +2203,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "graph_id": {
+          "name": "graph_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "agent_id": {
+          "name": "agent_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2171,13 +2238,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -2197,16 +2257,20 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "tasks_project_fk": {
-          "name": "tasks_project_fk",
+        "tasks_agent_fk": {
+          "name": "tasks_agent_fk",
           "tableFrom": "tasks",
-          "tableTo": "projects",
+          "tableTo": "agents",
           "columnsFrom": [
             "tenant_id",
-            "project_id"
+            "project_id",
+            "graph_id",
+            "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
+            "project_id",
+            "graph_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -2236,15 +2300,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2292,37 +2356,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'unknown'"
-        },
-        "last_health_check": {
-          "name": "last_health_check",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "last_error": {
           "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "available_tools": {
-          "name": "available_tools",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_tools_sync": {
-          "name": "last_tools_sync",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

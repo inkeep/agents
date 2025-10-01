@@ -35,7 +35,7 @@ export async function fetchArtifactComponents(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components`
+    `tenants/${tenantId}/projects/${projectId}/artifact-components`
   );
 
   // Transform the response to ensure props are non-nullable
@@ -50,7 +50,7 @@ export async function fetchArtifactComponents(
 }
 
 /**
- * Fetch a single artifact component by ID
+ * Fetch a single artifact by ID
  */
 export async function fetchArtifactComponent(
   tenantId: string,
@@ -61,7 +61,7 @@ export async function fetchArtifactComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components/${artifactComponentId}`
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
 
   // Transform the response to ensure props are non-nullable
@@ -73,7 +73,7 @@ export async function fetchArtifactComponent(
 }
 
 /**
- * Create a new artifact component
+ * Create a new artifact
  */
 export async function createArtifactComponent(
   tenantId: string,
@@ -84,7 +84,7 @@ export async function createArtifactComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components`,
+    `tenants/${tenantId}/projects/${projectId}/artifact-components`,
     {
       method: 'POST',
       body: JSON.stringify(artifactComponent),
@@ -100,7 +100,7 @@ export async function createArtifactComponent(
 }
 
 /**
- * Update an existing artifact component
+ * Update an existing artifact
  */
 export async function updateArtifactComponent(
   tenantId: string,
@@ -111,7 +111,7 @@ export async function updateArtifactComponent(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components/${artifactComponent.id}`,
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponent.id}`,
     {
       method: 'PUT',
       body: JSON.stringify(artifactComponent),
@@ -127,7 +127,7 @@ export async function updateArtifactComponent(
 }
 
 /**
- * Delete an artifact component
+ * Delete an artifact
  */
 export async function deleteArtifactComponent(
   tenantId: string,
@@ -138,7 +138,7 @@ export async function deleteArtifactComponent(
   validateProjectId(projectId);
 
   await makeManagementApiRequest(
-    `tenants/${tenantId}/crud/projects/${projectId}/artifact-components/${artifactComponentId}`,
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
     {
       method: 'DELETE',
     }

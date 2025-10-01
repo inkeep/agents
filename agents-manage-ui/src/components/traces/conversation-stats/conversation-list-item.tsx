@@ -86,14 +86,14 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                 </TooltipContent>
               </Tooltip>
             )}
-            <Badge variant="code" className="text-xs">
-              {graphName ? `${graphName} (${graphId})` : graphId}
-            </Badge>
             {hasErrors && (
               <Badge variant="error" className="flex items-center gap-1">
                 {totalErrors} Error{totalErrors > 1 ? 's' : ''}
               </Badge>
             )}
+            <Badge variant="code" className="text-xs">
+              {graphName ? `${graphName} (${graphId})` : graphId}
+            </Badge>
           </div>
         </div>
       </div>

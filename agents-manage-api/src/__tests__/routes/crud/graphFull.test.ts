@@ -18,6 +18,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     tools: [] as any[],
     dataComponents: [] as string[],
     artifactComponents: [] as string[],
+    canUse: [] as { toolId: string }[],
     type: 'internal' as const,
   });
 
@@ -170,9 +171,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     agent1.canDelegateTo = [agentId2];
     agent2.canTransferTo = [agentId1];
 
-    // Add tool IDs to agents (not the tool objects)
-    agent1.tools = [tool1.id];
-    agent2.tools = [tool2.id];
+    // Add tool IDs to agents via canUse field
+    agent1.canUse = [{ toolId: tool1.id }];
+    agent2.canUse = [{ toolId: tool2.id }];
 
     const graphData: any = {
       id,
@@ -248,7 +249,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     graphData?: ReturnType<typeof createFullGraphData>
   ) => {
     const testGraphData = graphData || createFullGraphData();
-    const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
       method: 'POST',
       body: JSON.stringify(testGraphData),
     });
@@ -264,7 +265,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('graph-create');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -291,9 +292,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(defaultAgent.canDelegateTo).toContain(Object.keys(graphData.agents)[1]);
 
       // Verify tools were created and linked
-      expect(defaultAgent.tools).toHaveLength(1);
+      expect(defaultAgent.canUse).toHaveLength(1);
       expect(body.data.tools).toBeDefined();
-      const toolId = defaultAgent.tools[0];
+      const toolId = defaultAgent.canUse[0];
       expect(body.data.tools[toolId]).toMatchObject({
         name: expect.stringContaining('Test Tool'),
         status: 'unknown',
@@ -323,7 +324,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -334,7 +335,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.agents).toHaveProperty(agentId);
       expect(body.data.agents[agentId].canTransferTo).toHaveLength(0);
       expect(body.data.agents[agentId].canDelegateTo).toHaveLength(0);
-      expect(body.data.agents[agentId].tools).toHaveLength(0);
+      expect(body.data.agents[agentId].canUse).toHaveLength(0);
     });
 
     it('should return 400 for invalid graph data', async () => {
@@ -347,7 +348,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         agents: {},
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(invalidGraphData),
       });
@@ -393,7 +394,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -411,7 +412,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Also verify via GET endpoint
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
         {
           method: 'GET',
         }
@@ -477,7 +478,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -496,7 +497,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Also verify via GET endpoint
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
         {
           method: 'GET',
         }
@@ -521,7 +522,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const { graphData } = await createTestGraph(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -548,7 +549,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const nonExistentId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${nonExistentId}`,
         {
           method: 'GET',
         }
@@ -572,7 +573,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedGraphData),
@@ -592,7 +593,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graphData = createFullGraphData();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(graphData),
@@ -616,7 +617,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const differentId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${differentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${differentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(graphData),
@@ -645,7 +646,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       updatedGraphData.agents[graphData.defaultAgentId].canTransferTo.push(newAgentId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedGraphData),
@@ -659,6 +660,139 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.agents).toHaveProperty(newAgentId);
       expect(body.data.agents[graphData.defaultAgentId].canTransferTo).toContain(newAgentId);
     });
+
+    it('should delete agents that are removed from the graph definition', async () => {
+      const tenantId = createTestTenantId('graph-remove-agents');
+      await ensureTestProject(tenantId, projectId);
+
+      // Create a graph with external agent included
+      const initialGraphData = createFullGraphData(undefined, {
+        includeExternalAgent: true,
+      });
+      const { graphData } = await createTestGraph(tenantId, initialGraphData);
+
+      // Verify initial state - should have 2 internal agents + 1 external agent = 3 total
+      const getInitialRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
+        {
+          method: 'GET',
+        }
+      );
+      expect(getInitialRes.status).toBe(200);
+      const initialBody = await getInitialRes.json();
+      expect(Object.keys(initialBody.data.agents)).toHaveLength(3);
+
+      // Get agent IDs to verify which are internal vs external
+      const allAgentIds = Object.keys(initialBody.data.agents);
+      const defaultAgentId = graphData.defaultAgentId;
+
+      // Update graph to only include the default agent (remove 1 internal + 1 external agent)
+      const updatedGraphData = {
+        ...graphData,
+        agents: {
+          [defaultAgentId]: graphData.agents[defaultAgentId],
+        },
+      };
+
+      // Clear relationships since other agents are removed
+      updatedGraphData.agents[defaultAgentId].canTransferTo = [];
+      updatedGraphData.agents[defaultAgentId].canDelegateTo = [];
+
+      const updateRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(updatedGraphData),
+        }
+      );
+
+      expect(updateRes.status).toBe(200);
+      const updateBody = await updateRes.json();
+
+      // Verify only 1 agent remains
+      expect(Object.keys(updateBody.data.agents)).toHaveLength(1);
+      expect(updateBody.data.agents).toHaveProperty(defaultAgentId);
+
+      // Verify the removed agents are no longer present
+      for (const agentId of allAgentIds) {
+        if (agentId !== defaultAgentId) {
+          expect(updateBody.data.agents).not.toHaveProperty(agentId);
+        }
+      }
+
+      // Verify by fetching the graph again
+      const getFinalRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
+        {
+          method: 'GET',
+        }
+      );
+      expect(getFinalRes.status).toBe(200);
+      const finalBody = await getFinalRes.json();
+      expect(Object.keys(finalBody.data.agents)).toHaveLength(1);
+      expect(finalBody.data.agents).toHaveProperty(defaultAgentId);
+    });
+
+    it('should handle removing all agents except default agent', async () => {
+      const tenantId = createTestTenantId('graph-remove-all-but-one');
+      await ensureTestProject(tenantId, projectId);
+      const { graphData } = await createTestGraph(tenantId);
+
+      // Add more agents to make it interesting
+      const agent3Id = `agent-${graphData.id}-3`;
+      const agent4Id = `agent-${graphData.id}-4`;
+      const expandedGraphData = {
+        ...graphData,
+        agents: {
+          ...graphData.agents,
+          [agent3Id]: createTestAgentData(agent3Id, ' Agent 3'),
+          [agent4Id]: createTestAgentData(agent4Id, ' Agent 4'),
+        },
+      };
+
+      // Update to add agents
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(expandedGraphData),
+      });
+
+      // Verify we have 4 agents
+      const getRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
+        {
+          method: 'GET',
+        }
+      );
+      const getBody = await getRes.json();
+      expect(Object.keys(getBody.data.agents)).toHaveLength(4);
+
+      // Now remove all but the default agent
+      const minimalGraphData = {
+        ...graphData,
+        agents: {
+          [graphData.defaultAgentId]: {
+            ...graphData.agents[graphData.defaultAgentId],
+            canTransferTo: [],
+            canDelegateTo: [],
+          },
+        },
+      };
+
+      const updateRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(minimalGraphData),
+        }
+      );
+
+      expect(updateRes.status).toBe(200);
+      const updateBody = await updateRes.json();
+
+      // Verify only 1 agent remains
+      expect(Object.keys(updateBody.data.agents)).toHaveLength(1);
+      expect(updateBody.data.agents).toHaveProperty(graphData.defaultAgentId);
+    });
   });
 
   describe('DELETE /{graphId}', () => {
@@ -668,7 +802,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const { graphData } = await createTestGraph(tenantId);
 
       const deleteRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'DELETE',
         }
@@ -678,7 +812,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Verify graph is deleted by trying to get it
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -693,7 +827,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const nonExistentId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${nonExistentId}`,
         {
           method: 'DELETE',
         }
@@ -737,7 +871,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -745,9 +879,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
       const body = await res.json();
 
-      expect(body.data.agents[agentId].tools).toHaveLength(2);
-      expect(body.data.agents[agentId].tools).toContain(tool1Id);
-      expect(body.data.agents[agentId].tools).toContain(tool2Id);
+      expect(body.data.agents[agentId].canUse).toHaveLength(2);
+      expect(body.data.agents[agentId].canUse).toContain(tool1Id);
+      expect(body.data.agents[agentId].canUse).toContain(tool2Id);
       expect(body.data.tools).toBeDefined();
       expect(body.data.tools[tool1Id]).toBeDefined();
       expect(body.data.tools[tool2Id]).toBeDefined();
@@ -784,7 +918,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -828,7 +962,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -856,11 +990,11 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Create graphs concurrently
       const [res1, res2] = await Promise.all([
-        makeRequest(`/tenants/${tenant1}/crud/projects/${projectId}/graph`, {
+        makeRequest(`/tenants/${tenant1}/projects/${projectId}/graph`, {
           method: 'POST',
           body: JSON.stringify(graph1Data),
         }),
-        makeRequest(`/tenants/${tenant2}/crud/projects/${projectId}/graph`, {
+        makeRequest(`/tenants/${tenant2}/projects/${projectId}/graph`, {
           method: 'POST',
           body: JSON.stringify(graph2Data),
         }),
@@ -884,7 +1018,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(undefined, { includeDataComponents: true });
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -924,7 +1058,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(undefined, { includeArtifactComponents: true });
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -973,7 +1107,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1017,7 +1151,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1060,7 +1194,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1087,7 +1221,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const defaultAgent = body.data.agents[graphData.defaultAgentId];
       expect(defaultAgent.canTransferTo).toHaveLength(1); // 1 internal
       expect(defaultAgent.canDelegateTo).toHaveLength(2); // 1 internal + 1 external
-      expect(defaultAgent.tools).toHaveLength(1);
+      expect(defaultAgent.canUse).toHaveLength(1);
       expect(defaultAgent.dataComponents).toHaveLength(1);
       expect(defaultAgent.artifactComponents).toHaveLength(1);
     });
@@ -1099,7 +1233,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Create initial graph with basic features
       const initialGraphData = createFullGraphData();
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(initialGraphData),
       });
@@ -1119,7 +1253,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${initialGraphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${initialGraphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedGraphData),
@@ -1146,7 +1280,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1163,7 +1297,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       // External agents should not have internal relationships or tools fields
       expect((externalAgent as any).canTransferTo).toBeUndefined();
       expect((externalAgent as any).canDelegateTo).toBeUndefined();
-      expect((externalAgent as any).tools).toBeUndefined();
+      expect((externalAgent as any).canUse).toBeUndefined();
 
       // Internal agents should be able to transfer to external agents
       const defaultAgent = body.data.agents[graphData.defaultAgentId];
@@ -1186,7 +1320,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1203,7 +1337,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -1226,7 +1360,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1242,7 +1376,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -1265,7 +1399,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1282,7 +1416,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -1310,7 +1444,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         graphData.contextConfig.contextVariables = {};
       }
 
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1331,7 +1465,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the graph first
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1347,14 +1481,14 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`, {
         method: 'PUT',
         body: JSON.stringify(updateData),
       });
 
       // Retrieve and verify null values
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -1381,7 +1515,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
 
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1422,13 +1556,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         }
       }
 
-      // These can be strings or undefined
-      if (firstTool.lastHealthCheck) {
-        expect(typeof firstTool.lastHealthCheck).toBe('string');
-      }
-      if (firstTool.lastToolsSync) {
-        expect(typeof firstTool.lastToolsSync).toBe('string');
-      }
       if (firstTool.lastError) {
         expect(typeof firstTool.lastError).toBe('string');
       }
@@ -1474,7 +1601,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1500,22 +1627,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         expect(tool.capabilities === null || typeof tool.capabilities === 'object').toBe(true);
       }
 
-      if (tool.lastHealthCheck !== undefined) {
-        expect(tool.lastHealthCheck === null || typeof tool.lastHealthCheck === 'string').toBe(
-          true
-        );
-      }
-
       if (tool.lastError !== undefined) {
         expect(tool.lastError === null || typeof tool.lastError === 'string').toBe(true);
       }
 
       if (tool.availableTools !== undefined) {
         expect(tool.availableTools === null || Array.isArray(tool.availableTools)).toBe(true);
-      }
-
-      if (tool.lastToolsSync !== undefined) {
-        expect(tool.lastToolsSync === null || typeof tool.lastToolsSync === 'string').toBe(true);
       }
     });
   });
@@ -1561,7 +1678,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       // Create the graph
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1570,7 +1687,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const createBody = await createRes.json();
 
       // Verify that the tool has all the expected fields in the response
-      const createdTool = createBody.data.tools[toolId];
+      const createdTool = createBody.data.canUse[toolId];
       expect(createdTool).toBeDefined();
 
       // Check that all ToolApiFullSchema fields are present
@@ -1579,17 +1696,13 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(createdTool).toHaveProperty('config');
       expect(createdTool).toHaveProperty('status');
       expect(createdTool).toHaveProperty('capabilities');
-      expect(createdTool).toHaveProperty('lastHealthCheck');
       expect(createdTool).toHaveProperty('lastError');
       expect(createdTool).toHaveProperty('availableTools');
-      expect(createdTool).toHaveProperty('lastToolsSync');
 
       // The values should be null/default since they're read-only
       expect(createdTool.status).toBe('unknown');
       expect(createdTool.availableTools).toBeNull();
-      expect(createdTool.lastToolsSync).toBeNull();
       expect(createdTool.capabilities).toBeNull();
-      expect(createdTool.lastHealthCheck).toBeNull();
     });
 
     it('should preserve tool full schema fields on graph retrieval', async () => {
@@ -1598,7 +1711,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graphData = createFullGraphData();
 
       // Create the graph
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1607,7 +1720,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Retrieve the graph
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'GET',
         }
@@ -1624,15 +1737,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         // Verify all ToolApiFullSchema fields are present
         expect(tool).toHaveProperty('status');
         expect(tool).toHaveProperty('capabilities');
-        expect(tool).toHaveProperty('lastHealthCheck');
         expect(tool).toHaveProperty('lastError');
         expect(tool).toHaveProperty('availableTools');
-        expect(tool).toHaveProperty('lastToolsSync');
 
         // The createTestToolData helper includes these fields, so they should have values
         expect(tool.status).toBe('unknown');
         expect(tool.capabilities).toEqual({ tools: true });
-        expect(tool.lastHealthCheck).toBeDefined();
         expect(tool.availableTools).toBeDefined();
       }
     });
@@ -1691,7 +1801,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1763,7 +1873,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1818,7 +1928,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1838,7 +1948,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graphData = createFullGraphData();
 
       // Create the graph
-      const createRes = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1851,7 +1961,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphData.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/graph/${graphData.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(updatedData),
@@ -1866,10 +1976,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       for (const tool of tools) {
         expect(tool).toHaveProperty('status');
         expect(tool).toHaveProperty('capabilities');
-        expect(tool).toHaveProperty('lastHealthCheck');
         expect(tool).toHaveProperty('lastError');
         expect(tool).toHaveProperty('availableTools');
-        expect(tool).toHaveProperty('lastToolsSync');
       }
     });
 
@@ -1908,7 +2016,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1956,7 +2064,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/graph`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
@@ -1968,10 +2076,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const tool = body.data.tools[toolId];
       expect(tool).toHaveProperty('status');
       expect(tool).toHaveProperty('capabilities');
-      expect(tool).toHaveProperty('lastHealthCheck');
       expect(tool).toHaveProperty('lastError');
       expect(tool).toHaveProperty('availableTools');
-      expect(tool).toHaveProperty('lastToolsSync');
     });
   });
 });

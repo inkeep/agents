@@ -31,7 +31,7 @@ app.openapi(
     summary: 'List API Keys',
     description: 'List all API keys for a tenant with optional pagination',
     operationId: 'list-api-keys',
-    tags: ['CRUD API Keys'],
+    tags: ['API Keys'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -78,7 +78,7 @@ app.openapi(
     summary: 'Get API Key',
     description: 'Get a specific API key by ID (does not return the actual key)',
     operationId: 'get-api-key-by-id',
-    tags: ['CRUD API Keys'],
+    tags: ['API Keys'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },
@@ -128,7 +128,7 @@ app.openapi(
     summary: 'Create API Key',
     description: 'Create a new API key for a graph. Returns the full key (shown only once).',
     operationId: 'create-api-key',
-    tags: ['CRUD API Keys'],
+    tags: ['API Keys'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -160,6 +160,7 @@ app.openapi(
     const insertData = {
       tenantId,
       projectId,
+      name: body.name,
       graphId: body.graphId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
@@ -205,7 +206,7 @@ app.openapi(
     summary: 'Update API Key',
     description: 'Update an API key (currently only expiration date can be changed)',
     operationId: 'update-api-key',
-    tags: ['CRUD API Keys'],
+    tags: ['API Keys'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
       body: {
@@ -237,6 +238,7 @@ app.openapi(
       id,
       data: {
         expiresAt: body.expiresAt,
+        name: body.name,
       },
     });
 
@@ -267,7 +269,7 @@ app.openapi(
     summary: 'Delete API Key',
     description: 'Delete an API key permanently',
     operationId: 'delete-api-key',
-    tags: ['CRUD API Keys'],
+    tags: ['API Keys'],
     request: {
       params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },

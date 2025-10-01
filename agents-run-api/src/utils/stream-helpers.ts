@@ -1,6 +1,6 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
 import { parsePartialJson } from 'ai';
-import type { OperationEvent, ErrorEvent } from './agent-operations';
+import type { ErrorEvent, OperationEvent } from './agent-operations';
 
 // Common interface for all stream helpers
 export interface StreamHelper {
@@ -271,10 +271,10 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   // Timing tracking for text sequences (text-end to text-start gap)
   private lastTextEndTimestamp: number = 0;
-  private readonly TEXT_GAP_THRESHOLD = 50; // milliseconds - if gap between text sequences is less than this, queue operations
+  private readonly TEXT_GAP_THRESHOLD = 2000; // milliseconds - if gap between text sequences is less than this, queue operations
 
   // Connection management and forced cleanup
-  private connectionDropTimer?: NodeJS.Timeout;
+  private connectionDropTimer?: ReturnType<typeof setTimeout>;
   private readonly MAX_LIFETIME_MS = 600_000; // 10 minutes max lifetime
 
   constructor(private writer: VercelUIWriter) {

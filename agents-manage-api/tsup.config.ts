@@ -3,5 +3,6 @@ import rootConfig from '../tsup.config';
 
 export default defineConfig({
   ...rootConfig,
+  external: ['keytar'],
   async onSuccess() {},
 });

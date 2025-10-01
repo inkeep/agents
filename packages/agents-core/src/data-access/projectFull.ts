@@ -5,7 +5,7 @@
  */
 
 import type { DatabaseClient } from '../db/client';
-import type { FullProjectDefinition, ProjectSelect } from '../types/entities';
+import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
@@ -270,7 +270,6 @@ export const createFullProjectServerSide =
               );
               await upsertArtifactComponent(db)({
                 data: {
-                  id: componentId,
                   ...componentData,
                   tenantId,
                   projectId: typed.id,
@@ -626,7 +625,6 @@ export const updateFullProjectServerSide =
               );
               await upsertArtifactComponent(db)({
                 data: {
-                  id: componentId,
                   ...componentData,
                   tenantId,
                   projectId: typed.id,
@@ -653,6 +651,44 @@ export const updateFullProjectServerSide =
             count: Object.keys(typed.artifactComponents).length,
           },
           'All project artifactComponents updated successfully'
+        );
+      }
+
+      // Step 6a: Delete graphs that are no longer in the project definition
+      const incomingGraphIds = new Set(Object.keys(typed.graphs || {}));
+
+      // Get existing graphs for this project
+      const existingGraphs = await listAgentGraphs(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      // Delete graphs not in incoming set
+      let deletedGraphCount = 0;
+      for (const graph of existingGraphs) {
+        if (!incomingGraphIds.has(graph.id)) {
+          try {
+            await deleteFullGraph(db, logger)({
+              scopes: { tenantId, projectId: typed.id, graphId: graph.id },
+            });
+            deletedGraphCount++;
+            logger.info({ graphId: graph.id }, 'Deleted orphaned graph from project');
+          } catch (error) {
+            logger.error(
+              { graphId: graph.id, error },
+              'Failed to delete orphaned graph from project'
+            );
+            // Don't throw - continue with other deletions
+          }
+        }
+      }
+
+      if (deletedGraphCount > 0) {
+        logger.info(
+          {
+            deletedGraphCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned graphs from project'
         );
       }
 
@@ -768,7 +804,7 @@ export const getFullProject =
       );
 
       // Step 3: Get all tools for this project
-      const projectTools: Record<string, any> = {};
+      const projectTools: Record<string, ToolApiInsert> = {};
       try {
         const toolsList = await listTools(db)({
           scopes: { tenantId, projectId },
@@ -780,20 +816,12 @@ export const getFullProject =
             id: tool.id,
             name: tool.name,
             config: tool.config,
+            credentialReferenceId: tool.credentialReferenceId || undefined,
             imageUrl: tool.imageUrl || undefined,
-            status: tool.status,
             capabilities: tool.capabilities || undefined,
-            lastHealthCheck:
-              tool.lastHealthCheck && !Number.isNaN(new Date(tool.lastHealthCheck).getTime())
-                ? new Date(tool.lastHealthCheck).toISOString()
-                : undefined,
             lastError: tool.lastError || undefined,
-            availableTools: tool.availableTools || undefined,
-            activeTools: (tool.config as any)?.mcp?.activeTools || undefined,
-            lastToolsSync:
-              tool.lastToolsSync && !Number.isNaN(new Date(tool.lastToolsSync).getTime())
-                ? new Date(tool.lastToolsSync).toISOString()
-                : undefined,
+            // Don't include runtime fields in configuration
+            // status, lastHealthCheck, availableTools, activeTools, lastToolsSync are all runtime
           };
         }
         logger.info(

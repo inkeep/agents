@@ -1,33 +1,23 @@
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { ProjectModels } from '@inkeep/agents-core';
-import dotenv from 'dotenv';
 import { importWithTypeScriptSupport } from './tsx-loader';
-
-// Load .env file from current directory if it exists
-dotenv.config({ quiet: true });
 
 export interface InkeepConfig {
   tenantId?: string;
-  projectId?: string;
   agentsManageApiUrl?: string;
   agentsRunApiUrl?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: ProjectModels;
 }
 
 export interface ValidatedConfiguration {
   tenantId: string;
-  projectId: string;
   agentsManageApiUrl: string;
   agentsRunApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
-  modelSettings?: ProjectModels;
   sources: {
     tenantId: string;
-    projectId: string;
     agentsManageApiUrl: string;
     agentsRunApiUrl: string;
     configFile?: string;
@@ -112,6 +102,7 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
   }
 
   // Override with environment variables if present
+  // Note: We check process.env directly here for dynamic runtime configuration
   if (process.env.INKEEP_AGENTS_MANAGE_API_URL) {
     config.agentsManageApiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL;
   }
@@ -127,9 +118,9 @@ export async function getTenantId(configPath?: string): Promise<string | undefin
   return config.tenantId;
 }
 
-export async function getProjectId(configPath?: string): Promise<string> {
-  const config = await loadConfig(configPath);
-  return config.projectId || 'default';
+export async function getProjectId(_configPath?: string): Promise<string> {
+  // Always return 'default' as projectId is no longer part of the config
+  return 'default';
 }
 
 export async function getAgentsManageApiUrl(
@@ -159,139 +150,65 @@ export async function getAgentsRunApiUrl(
 }
 
 /**
- * Validates configuration according to these rules:
- * 1. If --config-file-path is provided, use it (cannot be combined with --tenant-id)
- * 2. If --tenant-id AND --agents-manage-api-url AND --agents-run-api-url are provided, use them (cannot be combined with --config-file-path)
- * 3. If only --agents-manage-api-url and --agents-run-api-url are provided, it overrides the agentsManageApiUrl and agentsRunApiUrl from default config
- * 4. Otherwise, look for default config file (inkeep.config.ts)
+ * Validates configuration with the following priority hierarchy:
+ * 1. Command-line flags (--tenant-id, --agents-manage-api-url, etc.) - highest priority
+ * 2. Specified config file (--config path/to/config.ts)
+ * 3. Auto-discovered config file (inkeep.config.ts in current or parent directories)
+ * 4. Environment variables
+ * 5. Default values - lowest priority
  *
  * @param tenantIdFlag - tenantId from command line flag
  * @param agentsManageApiUrlFlag - agentsManageApiUrl from command line flag
  * @param agentsRunApiUrlFlag - agentsRunApiUrl from command line flag
- * @param configFilePath - explicit path to config file
+ * @param configPath - explicit path to config file (from --config parameter)
  * @returns configuration with tenantId, agentsManageApiUrl, and sources used
  */
 export async function validateConfiguration(
   tenantIdFlag?: string,
   agentsManageApiUrlFlag?: string,
   agentsRunApiUrlFlag?: string,
-  configFilePath?: string
+  configPath?: string
 ): Promise<ValidatedConfiguration> {
-  // Validation: Cannot combine --config-file-path with --tenant-id
-  if (configFilePath && tenantIdFlag) {
-    throw new Error(
-      'Invalid configuration combination:\n' +
-        'Cannot use --config-file-path with --tenant-id.\n' +
-        'Please use either:\n' +
-        '  1. --config-file-path alone\n' +
-        '  2. --tenant-id with --agents-manage-api-url and --agents-run-api-url\n' +
-        '  3. Default config file (inkeep.config.ts)'
-    );
-  }
+  // Load config from file (either specified or auto-discovered)
+  const config = await loadConfig(configPath);
 
-  // Case 1: Explicit config file path provided
-  if (configFilePath) {
-    const config = await loadConfig(configFilePath);
-    const tenantId = config.tenantId;
-    const projectId = config.projectId || 'default';
-    const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl; // Allow ---agents-manage-api-url to override
-    const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl; // Allow --agents-run-api-url to override
+  // Apply override hierarchy: CLI flags > config file > environment > defaults
+  const tenantId = tenantIdFlag || config.tenantId;
+  const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl;
+  const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl;
 
-    if (!tenantId) {
-      throw new Error(
-        `Tenant ID is missing from configuration file: ${configFilePath}\n` +
-          'Please ensure your config file exports a valid configuration with tenantId.'
-      );
-    }
+  // Determine the config file that was actually used
+  const actualConfigFile = configPath || findConfigFile();
 
-    if (!agentsManageApiUrl) {
-      throw new Error(
-        `Agents Manage API URL is missing from configuration file: ${configFilePath}\n` +
-          'Please ensure your config file exports a valid configuration with agentsManageApiUrl.'
-      );
-    }
-    if (!agentsRunApiUrl) {
-      throw new Error(
-        `Agents Run API URL is missing from configuration file: ${configFilePath}\n` +
-          'Please ensure your config file exports a valid configuration with agentsRunApiUrl.'
-      );
-    }
-
-    const sources = {
-      tenantId: `config file (${configFilePath})`,
-      projectId: config.projectId ? `config file (${configFilePath})` : 'default',
-      agentsManageApiUrl: agentsManageApiUrlFlag
-        ? 'command-line flag (--agents-manage-api-url)'
-        : `config file (${configFilePath})`,
-      agentsRunApiUrl: agentsRunApiUrlFlag
-        ? 'command-line flag (--agents-run-api-url)'
-        : `config file (${configFilePath})`,
-      configFile: configFilePath,
-    };
-
-    return {
-      tenantId,
-      projectId,
-      agentsManageApiUrl,
-      agentsRunApiUrl,
-      manageUiUrl: config.manageUiUrl,
-      modelSettings: config.modelSettings || undefined,
-      sources,
-    };
-  }
-
-  // Case 2: Both --tenant-id and --agents-manage-api-url and --agents-run-api-url provided
+  // Special case: if all required flags are provided, we don't need a config file
   if (tenantIdFlag && agentsManageApiUrlFlag && agentsRunApiUrlFlag) {
     const sources = {
       tenantId: 'command-line flag (--tenant-id)',
-      projectId: 'default',
       agentsManageApiUrl: 'command-line flag (--agents-manage-api-url)',
       agentsRunApiUrl: 'command-line flag (--agents-run-api-url)',
     };
     return {
       tenantId: tenantIdFlag,
-      projectId: 'default',
       agentsManageApiUrl: agentsManageApiUrlFlag,
       agentsRunApiUrl: agentsRunApiUrlFlag,
-      manageUiUrl: undefined,
-      modelSettings: undefined,
+      manageUiUrl: config.manageUiUrl,
       sources,
     };
   }
 
-  // Case 3: Only --tenant-id provided (invalid)
-  if (tenantIdFlag && !agentsManageApiUrlFlag && !agentsRunApiUrlFlag) {
-    throw new Error(
-      'Invalid configuration:\n' +
-        '--tenant-id requires --agents-manage-api-url and --agents-run-api-url to be provided as well.\n' +
-        'Please provide both --tenant-id and --agents-manage-api-url and --agents-run-api-url together.'
-    );
-  }
-
-  // Case 4: Try to load from default config file
-  const config = await loadConfig();
-  const tenantId = config.tenantId;
-  const projectId = config.projectId || 'default';
-  const agentsManageApiUrl = agentsManageApiUrlFlag || config.agentsManageApiUrl; // Allow --agents-manage-api-url to override
-  const agentsRunApiUrl = agentsRunApiUrlFlag || config.agentsRunApiUrl; // Allow --agents-run-api-url to override
-
+  // Validate required fields
   if (!tenantId) {
-    // Check if a default config file exists
-    const configFile = findConfigFile();
-    if (!configFile) {
+    if (actualConfigFile) {
       throw new Error(
-        'No configuration found. Please use one of:\n' +
-          '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
-          '  2. Provide --config-file-path to specify a config file\n' +
-          '  3. Provide both --tenant-id and --agents-manage-api-url and --agents-run-api-url flags\n' +
-          '  4. Set INKEEP_AGENTS_MANAGE_API_URL and INKEEP_AGENTS_RUN_API_URL environment variables'
+        `Tenant ID is missing from configuration file: ${actualConfigFile}\n` +
+          'Please ensure your config file exports a valid configuration with tenantId.'
       );
     } else {
       throw new Error(
-        `Tenant ID is missing from configuration file: ${configFile}\n` +
-          'Please either:\n' +
-          '  1. Update your configuration file with a tenantId\n' +
-          '  2. Provide both --tenant-id and --agents-manage-api-url and --agents-run-api-url flags\n'
+        'No configuration found. Please use one of:\n' +
+          '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
+          '  2. Provide --config to specify a config file\n' +
+          '  3. Provide --tenant-id, --agents-manage-api-url and --agents-run-api-url flags'
       );
     }
   }
@@ -314,45 +231,38 @@ export async function validateConfiguration(
     );
   }
 
-  // Determine sources for Case 4
-  const configFile = findConfigFile();
-  let agentsManageApiUrlSource = configFile ? `config file (${configFile})` : 'default';
-  let agentsRunApiUrlSource = configFile ? `config file (${configFile})` : 'default';
-
-  if (agentsManageApiUrlFlag) {
-    agentsManageApiUrlSource = 'command-line flag (--agents-manage-api-url)';
-  } else if (process.env.INKEEP_AGENTS_MANAGE_API_URL === agentsManageApiUrl) {
-    agentsManageApiUrlSource = 'environment variable (INKEEP_AGENTS_MANAGE_API_URL)';
-  } else if (agentsManageApiUrl === 'http://localhost:3002' && !configFile) {
-    agentsManageApiUrlSource = 'default value';
-  }
-  if (agentsRunApiUrlFlag) {
-    agentsRunApiUrlSource = 'command-line flag (--agents-run-api-url)';
-  } else if (process.env.INKEEP_AGENTS_RUN_API_URL === agentsRunApiUrl) {
-    agentsRunApiUrlSource = 'environment variable (INKEEP_AGENTS_RUN_API_URL)';
-  } else if (agentsRunApiUrl === 'http://localhost:3003' && !configFile) {
-    agentsRunApiUrlSource = 'default value';
-  }
-
-  const sources = {
-    tenantId: `config file (${configFile})`,
-    projectId: config.projectId
-      ? configFile
-        ? `config file (${configFile})`
-        : 'config'
-      : 'default',
-    agentsManageApiUrl: agentsManageApiUrlSource,
-    agentsRunApiUrl: agentsRunApiUrlSource,
-    configFile: configFile || undefined,
+  // Build sources for debugging
+  const sources: any = {
+    tenantId: tenantIdFlag
+      ? 'command-line flag (--tenant-id)'
+      : actualConfigFile
+        ? `config file (${actualConfigFile})`
+        : 'default',
+    agentsManageApiUrl: agentsManageApiUrlFlag
+      ? 'command-line flag (--agents-manage-api-url)'
+      : process.env.INKEEP_AGENTS_MANAGE_API_URL === agentsManageApiUrl
+        ? 'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
+        : actualConfigFile
+          ? `config file (${actualConfigFile})`
+          : 'default value',
+    agentsRunApiUrl: agentsRunApiUrlFlag
+      ? 'command-line flag (--agents-run-api-url)'
+      : process.env.INKEEP_AGENTS_RUN_API_URL === agentsRunApiUrl
+        ? 'environment variable (INKEEP_AGENTS_RUN_API_URL)'
+        : actualConfigFile
+          ? `config file (${actualConfigFile})`
+          : 'default value',
   };
+
+  if (actualConfigFile) {
+    sources.configFile = actualConfigFile;
+  }
 
   return {
     tenantId,
-    projectId,
     agentsManageApiUrl,
     agentsRunApiUrl,
     manageUiUrl: config.manageUiUrl,
-    modelSettings: config.modelSettings || undefined,
     sources,
   };
 }

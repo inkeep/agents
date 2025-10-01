@@ -137,7 +137,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         canDelegateTo: [],
         dataComponents: [],
         artifactComponents: [],
-        tools: [],
+        canUse: [],
       });
     });
 
@@ -346,7 +346,9 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
-      expect((result?.agents['agent-1'] as any).tools).toEqual(['tool-1']);
+      expect((result?.agents['agent-1'] as any).canUse).toEqual([
+        { toolId: 'tool-1', toolSelection: null, headers: null },
+      ]);
     });
 
     it('should include model settings when present', async () => {

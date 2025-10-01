@@ -34,8 +34,9 @@ inkeep init [path]
 **Options:**
 
 - `--no-interactive` - Skip interactive path selection
+- `--config <path>` - Path to use as template for new configuration
 
-**Example:**
+**Examples:**
 
 ```bash
 # Interactive initialization
@@ -46,6 +47,9 @@ inkeep init ./my-project
 
 # Non-interactive mode
 inkeep init --no-interactive
+
+# Use specific config as template
+inkeep init --config ./template-config.ts
 ```
 
 ### `inkeep push`
@@ -58,9 +62,12 @@ inkeep push
 
 **Options:**
 
-- `--project <project-path>` - Specify project directory by path or ID (defaults to current directory or searches for `inkeep.config.ts`)
+- `--project <project-id>` - Project ID or path to project directory
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
+- `--config <path>` - Override config file path (bypasses automatic config discovery)
+- `--tenant-id <id>` - Override tenant ID
 - `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--agents-run-api-url <url>` - Override agents run API URL
 - `--json` - Generate project data as JSON file instead of pushing to server
 
 **Examples:**
@@ -78,8 +85,15 @@ inkeep push --env development
 # Generate project JSON without pushing
 inkeep push --json
 
-# Override API URL
+# Override tenant ID
+inkeep push --tenant-id my-tenant
+
+# Override API URLs
 inkeep push --agents-manage-api-url https://api.example.com
+inkeep push --agents-run-api-url https://run.example.com
+
+# Use specific config file
+inkeep push --config ./custom-config/inkeep.config.ts
 ```
 
 **Environment Credentials:**
@@ -107,9 +121,55 @@ export const development = registerEnvironmentSettings({
 });
 ```
 
-#### Push behavior
+#### Project Discovery and Structure
 
-When pushing, the CLI deploys your entire project (graphs, agents, tools) defined by your `index.ts` and configuration. After a successful push, it prints a short summary.
+The `inkeep push` command follows this discovery process:
+
+1. **Config File Discovery**: Searches for `inkeep.config.ts` using this pattern:
+
+   - Starts from current working directory
+   - Traverses **upward** through parent directories until found
+   - Can be overridden by providing a path to the config file with the `--config` flag
+
+2. **Workspace Structure**: Expects this directory layout:
+
+   ```
+   workspace-root/
+   ├── package.json              # Workspace package.json
+   ├── tsconfig.json             # Workspace TypeScript config
+   ├── inkeep.config.ts          # Inkeep configuration file
+   ├── my-project/               # Individual project directory
+   │   ├── index.ts              # Project entry point
+   │   ├── graphs/               # Agent graph definitions
+   │   │   └── *.ts
+   │   ├── tools/                # Tool definitions
+   │   │   └── *.ts
+   │   ├── data-components/      # Data component definitions
+   │   │   └── *.ts
+   │   └── environments/         # Environment-specific configs
+   │       ├── development.env.ts
+   │       └── production.env.ts
+   └── another-project/          # Additional projects
+       └── index.ts
+   ```
+
+3. **Resource Compilation**: Automatically discovers and compiles:
+   - All project directories containing `index.ts`
+   - All TypeScript files within each project directory
+   - Categorizes files by type (graphs, agents, tools, data components)
+   - Resolves dependencies and relationships within each project
+
+#### Push Behavior
+
+When pushing, the CLI:
+
+- Finds and loads configuration from `inkeep.config.ts` at workspace root
+- Discovers all project directories containing `index.ts`
+- Applies environment-specific settings if `--env` is specified
+- Compiles all project resources defined in each project's `index.ts`
+- Validates agent relationships and tool configurations across all projects
+- Deploys all projects to the management API
+- Prints deployment summary with resource counts per project
 
 ### `inkeep pull`
 
@@ -121,10 +181,12 @@ inkeep pull
 
 **Options:**
 
-- `--project <project-path>` - Specify project directory by path or ID (defaults to current directory or searches for `inkeep.config.ts`)
+- `--project <project-id>` - Project ID or path to project directory
+- `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--agents-manage-api-url <url>` - Override the management API URL from config
-- `--env <environment>` - Override tenant ID when using custom API URL
+- `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
 - `--json` - Save project data as JSON file instead of updating TypeScript files
+- `--debug` - Enable debug logging for LLM generation
 
 **How it Works:**
 
@@ -162,8 +224,14 @@ inkeep pull --json
 # Pull with custom API endpoint
 inkeep pull --agents-manage-api-url https://api.example.com
 
+# Enable debug logging
+inkeep pull --debug
+
 # Override tenant ID when using custom API URL
 inkeep pull --agents-manage-api-url https://api.example.com --env production
+
+# Use specific config file
+inkeep pull --config ./custom-config/inkeep.config.ts
 ```
 
 #### Model Configuration
@@ -192,7 +260,11 @@ inkeep chat [graph-id]
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--tenant-id <tenant-id>` - Tenant ID
+- `--agents-manage-api-url <url>` - Agents manage API URL
+- `--agents-run-api-url <url>` - Agents run API URL
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -204,34 +276,44 @@ inkeep chat
 inkeep chat my-graph-id
 
 # Use a specific config file
-inkeep chat --config-file-path ./inkeep.config.ts
+inkeep chat --config ./inkeep.config.ts
+
+# Override tenant and API URLs
+inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep list-graphs`
 
-List all available graphs for the current tenant.
+List all available graphs for a specific project.
 
 ```bash
-inkeep list-graphs
+inkeep list-graphs --project <project-id>
 ```
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--project <project-id>` - **Required.** Project ID to list graphs for
+- `--tenant-id <tenant-id>` - Tenant ID
+- `--agents-manage-api-url <url>` - Agents manage API URL
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
 ```bash
-# List graphs using config file
-inkeep list-graphs
+# List graphs for a specific project
+inkeep list-graphs --project my-project
 
 # List graphs using a specific config file
-inkeep list-graphs --config-file-path ./inkeep.config.ts
+inkeep list-graphs --project my-project --config ./inkeep.config.ts
+
+# Override tenant and API URL
+inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep dev`
 
-Start the Inkeep dashboard server.
+Start the Inkeep dashboard server, build for production, or export the Next.js project.
 
 ```bash
 inkeep dev
@@ -241,18 +323,38 @@ inkeep dev
 
 - `--port <port>` - Port to run the server on (default: 3000)
 - `--host <host>` - Host to bind the server to (default: localhost)
+- `--build` - Build the Dashboard UI for production (packages standalone build)
+- `--export` - Export the Next.js project source files
+- `--output-dir <dir>` - Output directory for build files (default: ./inkeep-dev)
+- `--path` - Output the path to the Dashboard UI
 
 **Examples:**
 
 ```bash
-# Start with defaults
+# Start development server
 inkeep dev
 
-# Custom port
-inkeep dev --port 3001
+# Start on custom port and host
+inkeep dev --port 3001 --host 0.0.0.0
 
-# Bind to all interfaces
-inkeep dev --host 0.0.0.0
+# Build for production (packages standalone build)
+inkeep dev --build --output-dir ./build
+
+# Export Next.js project source files
+inkeep dev --export --output-dir ./my-dashboard
+
+# Get dashboard path for deployment
+DASHBOARD_PATH=$(inkeep dev --path)
+echo "Dashboard built at: $DASHBOARD_PATH"
+
+# Use with Vercel
+vercel --cwd $(inkeep dev --path) -Q .vercel build
+
+# Use with Docker
+docker build -t inkeep-dashboard $(inkeep dev --path)
+
+# Use with other deployment tools
+rsync -av $(inkeep dev --path)/ user@server:/var/www/dashboard/
 ```
 
 ### `inkeep config`
@@ -271,7 +373,8 @@ inkeep config get [key]
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -293,7 +396,8 @@ inkeep config set <key> <value>
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 **Examples:**
 
@@ -312,26 +416,33 @@ inkeep config list
 
 **Options:**
 
-- `--config-file-path <path>` - Path to configuration file
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
 
 ### `inkeep add`
 
-Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/templates).
+Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/template-projects).
 
 ```bash
-inkeep add [template-name]
+inkeep add [template]
 ```
 
 **Options:**
 
-- Pass no template name to list all available templates
 - `--target-path <path>` - Target path to add the template to
+- `--config <path>` - Path to configuration file
 
 **Examples:**
 
 ```bash
-inkeep add weather-graph
-inkeep add weather-graph --target-path ./my-project-directory
+# Add a template
+inkeep add weather-project
+
+# Add template to specific path
+inkeep add weather-project --target-path ./src/templates
+
+# Using specific config file
+inkeep add weather-project --config ./my-config.ts
 ```
 
 ## Configuration File
@@ -343,7 +454,6 @@ import { defineConfig } from "@inkeep/agents-cli/config";
 
 export default defineConfig({
   tenantId: "your-tenant-id",
-  projectId: "your-project-id",
   agentsManageApiUrl: "http://localhost:3002",
   agentsRunApiUrl: "http://localhost:3003",
 });
@@ -361,6 +471,7 @@ Effective resolution order:
 
 The CLI and SDK respect the following environment variables:
 
+- `INKEEP_TENANT_ID` - Tenant identifier
 - `INKEEP_AGENTS_MANAGE_API_URL` - Management API base URL
 - `INKEEP_AGENTS_RUN_API_URL` - Run API base URL
 - `INKEEP_ENV` - Environment name for credentials loading during `inkeep push`
@@ -371,8 +482,8 @@ The CLI and SDK respect the following environment variables:
 
 **Project Not Found:**
 
-- Ensure your `projectId` in `inkeep.config.ts` matches an existing project
-- `inkeep push` will create the project automatically if it does not exist
+- Projects are automatically managed based on your tenantId
+- `inkeep push` will create resources as needed
 
 ### Getting Help
 

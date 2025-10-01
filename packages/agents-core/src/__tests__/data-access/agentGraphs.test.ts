@@ -254,6 +254,7 @@ describe('Agent Graph Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Graph',
+        description: 'Test description',
         defaultAgentId: 'agent-1',
       };
 

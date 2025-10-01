@@ -27,7 +27,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toBeUndefined();
     });
@@ -52,7 +52,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toBeUndefined();
     });
@@ -77,7 +77,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: { model: 'gpt-4' },
@@ -106,7 +106,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: undefined,
@@ -135,7 +135,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: undefined,
@@ -164,7 +164,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toEqual({
         base: { model: 'gpt-4' },
@@ -189,7 +189,7 @@ describe('serializeGraphData', () => {
       ];
       const edges: Edge[] = [];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       expect((result.agents.agent1 as any).models).toBeUndefined();
     });
@@ -213,15 +213,9 @@ describe('serializeGraphData', () => {
           type: NodeType.MCP,
           position: { x: 200, y: 0 },
           data: {
-            id: 'mcp1',
+            toolId: 'mcp1',
             name: 'Test MCP Server',
-            config: { type: 'mcp', mcp: { server: { url: 'test://server' } } },
             tempSelectedTools: ['tool1', 'tool2'],
-            tenantId: 'test-tenant',
-            projectId: 'test-project',
-            status: 'unknown',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           } as MCPNodeData,
         },
       ];
@@ -235,10 +229,15 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
-      expect((result.agents.agent1 as any).selectedTools.mcp1).toEqual(['tool1', 'tool2']);
+      expect((result.agents.agent1 as any).canUse).toBeDefined();
+      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: ['tool1', 'tool2'],
+        headers: {},
+      });
     });
 
     it('should handle null tempSelectedTools (all tools selected) by removing from selectedTools', () => {
@@ -259,15 +258,9 @@ describe('serializeGraphData', () => {
           type: NodeType.MCP,
           position: { x: 200, y: 0 },
           data: {
-            id: 'mcp1',
+            toolId: 'mcp1',
             name: 'Test MCP Server',
-            config: { type: 'mcp', mcp: { server: { url: 'test://server' } } },
             tempSelectedTools: null, // null means all tools selected
-            tenantId: 'test-tenant',
-            projectId: 'test-project',
-            status: 'unknown',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           } as MCPNodeData,
         },
       ];
@@ -281,11 +274,16 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      // When tempSelectedTools is null, the tool ID should be removed from selectedTools
-      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
-      expect((result.agents.agent1 as any).selectedTools.mcp1).toBeUndefined();
+      // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
+      expect((result.agents.agent1 as any).canUse).toBeDefined();
+      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: null,
+        headers: {},
+      });
     });
 
     it('should handle empty array tempSelectedTools (no tools selected)', () => {
@@ -305,15 +303,9 @@ describe('serializeGraphData', () => {
           type: NodeType.MCP,
           position: { x: 200, y: 0 },
           data: {
-            id: 'mcp1',
+            toolId: 'mcp1',
             name: 'Test MCP Server',
-            config: { type: 'mcp', mcp: { server: { url: 'test://server' } } },
             tempSelectedTools: [], // empty array means no tools selected
-            tenantId: 'test-tenant',
-            projectId: 'test-project',
-            status: 'unknown',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           } as MCPNodeData,
         },
       ];
@@ -327,10 +319,15 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
-      expect((result.agents.agent1 as any).selectedTools.mcp1).toEqual([]);
+      expect((result.agents.agent1 as any).canUse).toBeDefined();
+      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: [],
+        headers: {},
+      });
     });
 
     it('should not modify selectedTools when tempSelectedTools is undefined', () => {
@@ -350,15 +347,9 @@ describe('serializeGraphData', () => {
           type: NodeType.MCP,
           position: { x: 200, y: 0 },
           data: {
-            id: 'mcp1',
+            toolId: 'mcp1',
             name: 'Test MCP Server',
-            config: { type: 'mcp', mcp: { server: { url: 'test://server' } } },
             // no tempSelectedTools property
-            tenantId: 'test-tenant',
-            projectId: 'test-project',
-            status: 'unknown',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           } as MCPNodeData,
         },
       ];
@@ -372,7 +363,7 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       // selectedTools should not be created if tempSelectedTools is undefined
       expect((result.agents.agent1 as any).selectedTools).toBeUndefined();
@@ -397,15 +388,9 @@ describe('serializeGraphData', () => {
           type: NodeType.MCP,
           position: { x: 200, y: 0 },
           data: {
-            id: 'mcp1',
+            toolId: 'mcp1',
             name: 'Test MCP Server',
-            config: { type: 'mcp', mcp: { server: { url: 'test://server' } } },
             // tempSelectedTools is undefined (user didn't interact with UI)
-            tenantId: 'test-tenant',
-            projectId: 'test-project',
-            status: 'unknown',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           } as MCPNodeData,
         },
       ];
@@ -419,11 +404,17 @@ describe('serializeGraphData', () => {
         },
       ];
 
-      const result = serializeGraphData(nodes, edges);
+      const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      // Should preserve existing selectedTools from database
-      expect((result.agents.agent1 as any).selectedTools).toBeDefined();
-      expect((result.agents.agent1 as any).selectedTools.mcp1).toEqual(['existing-tool1']);
+      // When tempSelectedTools is undefined and there's an edge to MCP tool,
+      // the toolSelection will be null (all tools selected by default)
+      expect((result.agents.agent1 as any).canUse).toBeDefined();
+      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: null, // null means all tools are selected
+        headers: {},
+      });
     });
   });
 });

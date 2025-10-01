@@ -62,7 +62,7 @@ describe('projectFull data access', () => {
               prompt: 'You are a helpful assistant.',
               type: 'internal', // Add type field for discriminated union
               canDelegateTo: [],
-              tools: [toolId], // Reference tool by ID
+              canUse: [{ toolId, toolSelection: null }], // Use new canUse structure
               dataComponents: [],
               artifactComponents: [],
             },
@@ -83,10 +83,6 @@ describe('projectFull data access', () => {
               },
             },
           },
-          status: 'unknown',
-          capabilities: { tools: true },
-          lastHealthCheck: new Date().toISOString(),
-          availableTools: [],
         },
       },
       createdAt: new Date().toISOString(),

@@ -23,7 +23,7 @@ export const createFullGraph = async (
 
   try {
     const baseUrl = env.AGENTS_MANAGE_API_URL;
-    const endpoint = `${baseUrl}/tenants/${tenantId}/crud/graph`;
+    const endpoint = `${baseUrl}/tenants/${tenantId}/graph`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -89,7 +89,7 @@ export const updateFullGraph = async (
 
   try {
     const baseUrl = env.AGENTS_MANAGE_API_URL;
-    const endpoint = `${baseUrl}/tenants/${tenantId}/crud/graph/${graphId}`;
+    const endpoint = `${baseUrl}/tenants/${tenantId}/graph/${graphId}`;
 
     const response = await fetch(endpoint, {
       method: 'PUT',

@@ -21,7 +21,7 @@ export function ArtifactComponentItem({
   tenantId,
   projectId,
 }: ArtifactComponent & { tenantId: string; projectId: string }) {
-  const linkPath = `/${tenantId}/projects/${projectId}/artifact-components/${id}`;
+  const linkPath = `/${tenantId}/projects/${projectId}/artifacts/${id}`;
 
   return (
     <ItemCardRoot>

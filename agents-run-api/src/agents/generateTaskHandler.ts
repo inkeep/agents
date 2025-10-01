@@ -2,6 +2,7 @@ import {
   type AgentApiSelect,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
+  dbResultToMcpTool,
   getAgentById,
   getAgentGraphById,
   getArtifactComponentsForAgent,
@@ -12,27 +13,14 @@ import {
   type Part,
   TaskState,
 } from '@inkeep/agents-core';
-import destr from 'destr'; // safe JSON.parse-if-JSON
 import { nanoid } from 'nanoid';
-import traverse from 'traverse'; // tiny object walker
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
-
-/** Turn any string value that is valid JSON into an object/array (in place). */
-export function parseEmbeddedJson<T>(data: T): T {
-  return traverse(data).map(function (x) {
-    if (typeof x === 'string') {
-      const v = destr(x); // returns original string if not JSON
-      if (v !== x && (Array.isArray(v) || (v && typeof v === 'object'))) {
-        this.update(v); // replace the string with the parsed value
-      }
-    }
-  });
-}
+import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
 
@@ -134,7 +122,11 @@ export const createTaskHandler = (
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
               const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
-                scopes: { tenantId: config.tenantId, projectId: config.projectId, graphId: config.graphId },
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  graphId: config.graphId,
+                },
                 agentId: relation.id,
               });
 
@@ -157,6 +149,13 @@ export const createTaskHandler = (
       const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
+
+      const toolsForAgentResult: McpTool[] =
+        (await Promise.all(
+          toolsForAgent.data.map(
+            async (item) => await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry)
+          )
+        )) ?? [];
 
       const agent = new Agent(
         {
@@ -234,22 +233,7 @@ export const createTaskHandler = (
               },
             })),
           ],
-          tools:
-            toolsForAgent.data.map(
-              (item) =>
-                ({
-                  ...item.tool,
-                  capabilities: item.tool.capabilities || undefined,
-                  lastHealthCheck: item.tool.lastHealthCheck
-                    ? new Date(item.tool.lastHealthCheck)
-                    : undefined,
-                  lastToolsSync: item.tool.lastToolsSync
-                    ? new Date(item.tool.lastToolsSync)
-                    : undefined,
-                  createdAt: new Date(item.tool.createdAt),
-                  updatedAt: new Date(item.tool.updatedAt),
-                }) as McpTool
-            ) ?? [],
+          tools: toolsForAgentResult,
           functionTools: [], // All tools are now handled via MCP servers
           dataComponents: dataComponents,
           artifactComponents: artifactComponents,
@@ -293,6 +277,18 @@ export const createTaskHandler = (
           { agentId: config.agentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
+
+        // Ensure ToolSession exists for delegated agents
+        // Use streamRequestId as sessionId to match the parent GraphSession
+        if (streamRequestId && config.tenantId && config.projectId) {
+          toolSessionManager.ensureGraphSession(
+            streamRequestId,
+            config.tenantId,
+            config.projectId,
+            contextId,
+            task.id
+          );
+        }
       }
 
       const response = await agent.generate(userMessage, {

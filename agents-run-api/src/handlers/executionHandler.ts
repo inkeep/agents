@@ -15,8 +15,8 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
+import { graphSessionManager } from '../services/GraphSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
-import { graphSessionManager } from '../utils/graph-session.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
@@ -67,8 +67,12 @@ export class ExecutionHandler {
     registerStreamHelper(requestId, sseHelper);
 
     // Create GraphSession for this entire message execution using requestId as the session ID
-    graphSessionManager.createSession(requestId, graphId, tenantId, projectId);
-    logger.info({ sessionId: requestId, graphId }, 'Created GraphSession for message execution');
+
+    graphSessionManager.createSession(requestId, graphId, tenantId, projectId, conversationId);
+    logger.info(
+      { sessionId: requestId, graphId, conversationId },
+      'Created GraphSession for message execution'
+    );
 
     // Initialize status updates if configured
     let graphConfig: any = null;
@@ -116,6 +120,7 @@ export class ExecutionHandler {
           id: taskId,
           tenantId,
           projectId,
+          graphId,
           agentId: currentAgentId,
           contextId: conversationId,
           status: 'pending',
@@ -517,7 +522,9 @@ export class ExecutionHandler {
 
       // Stream error operation
       // Send error operation for execution exception
-      await sseHelper.writeOperation(errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system'));
+      await sseHelper.writeOperation(
+        errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system')
+      );
 
       // Mark task as failed
       if (task) {

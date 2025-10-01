@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import fs from 'fs-extra';
 import ora from 'ora';
-import { addCommand, type AddOptions } from '../../commands/add';
-import { getAvailableTemplates, cloneTemplate } from '../../utils/templates';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type AddOptions, addCommand } from '../../commands/add';
+import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
 // Mock external dependencies
 vi.mock('fs-extra');
@@ -22,7 +22,7 @@ describe('Add Command', () => {
       succeed: vi.fn().mockReturnThis(),
       stop: vi.fn().mockReturnThis(),
     };
-    vi.mocked(ora).mockImplementation((message) => mockSpinner);
+    vi.mocked(ora).mockImplementation((_message) => mockSpinner);
 
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -74,7 +74,7 @@ describe('Add Command', () => {
 
       const options: AddOptions = {
         template: 'non-existent-template',
-        list: false
+        list: false,
       };
 
       await expect(addCommand(options)).rejects.toThrow('process.exit called');
@@ -93,7 +93,7 @@ describe('Add Command', () => {
 
       const options: AddOptions = {
         template: 'weather',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
@@ -116,7 +116,7 @@ describe('Add Command', () => {
 
       const options: AddOptions = {
         template: 'weather',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
@@ -124,10 +124,12 @@ describe('Add Command', () => {
       // The implementation uses process.cwd() + template name when no target path is specified
       const expectedPath = `${process.cwd()}/weather`;
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         expectedPath
       );
-      expect(mockSpinner.succeed).toHaveBeenCalledWith(`Template "weather" added to ${expectedPath}`);
+      expect(mockSpinner.succeed).toHaveBeenCalledWith(
+        `Template "weather" added to ${expectedPath}`
+      );
     });
 
     it('should create template in specified target path', async () => {
@@ -137,16 +139,18 @@ describe('Add Command', () => {
       const options: AddOptions = {
         template: 'weather',
         targetPath: './projects',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
 
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './projects/weather'
       );
-      expect(mockSpinner.succeed).toHaveBeenCalledWith('Template "weather" added to ./projects/weather');
+      expect(mockSpinner.succeed).toHaveBeenCalledWith(
+        'Template "weather" added to ./projects/weather'
+      );
     });
 
     it('should prevent overwriting existing template directory', async () => {
@@ -155,12 +159,14 @@ describe('Add Command', () => {
       const options: AddOptions = {
         template: 'weather',
         targetPath: './projects',
-        list: false
+        list: false,
       };
 
       await expect(addCommand(options)).rejects.toThrow('process.exit called');
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('❌ Directory "./projects/weather" already exists');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '❌ Directory "./projects/weather" already exists'
+      );
       expect(processExitSpy).toHaveBeenCalledWith(1);
       expect(cloneTemplate).not.toHaveBeenCalled();
     });
@@ -174,14 +180,14 @@ describe('Add Command', () => {
       const options: AddOptions = {
         template: 'weather',
         targetPath: './new-projects',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
 
       expect(fs.mkdir).toHaveBeenCalledWith('./new-projects', { recursive: true });
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         './new-projects/weather'
       );
     });
@@ -195,13 +201,15 @@ describe('Add Command', () => {
       const options: AddOptions = {
         template: 'weather',
         targetPath: './restricted',
-        list: false
+        list: false,
       };
 
       await expect(addCommand(options)).rejects.toThrow('process.exit called');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ Failed to create target directory "./restricted": Permission denied')
+        expect.stringContaining(
+          '❌ Failed to create target directory "./restricted": Permission denied'
+        )
       );
       expect(processExitSpy).toHaveBeenCalledWith(1);
     });
@@ -219,7 +227,7 @@ describe('Add Command', () => {
 
       const options: AddOptions = {
         template: 'weather',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
@@ -228,10 +236,12 @@ describe('Add Command', () => {
       expect(mockSpinner.start).toHaveBeenCalled();
       const expectedPath = `${process.cwd()}/weather`;
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/weather',
+        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
         expectedPath
       );
-      expect(mockSpinner.succeed).toHaveBeenCalledWith(`Template "weather" added to ${expectedPath}`);
+      expect(mockSpinner.succeed).toHaveBeenCalledWith(
+        `Template "weather" added to ${expectedPath}`
+      );
     });
 
     it('should handle cloning errors', async () => {
@@ -239,7 +249,7 @@ describe('Add Command', () => {
 
       const options: AddOptions = {
         template: 'weather',
-        list: false
+        list: false,
       };
 
       await expect(addCommand(options)).rejects.toThrow('Git clone failed');
@@ -261,13 +271,13 @@ describe('Add Command', () => {
       const options: AddOptions = {
         template: 'chatbot',
         targetPath: './my-agents',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
 
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/chatbot',
+        'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
         './my-agents/chatbot'
       );
     });
@@ -281,7 +291,7 @@ describe('Add Command', () => {
 
       const options: AddOptions = {
         template: 'weather',
-        list: false
+        list: false,
       };
 
       await expect(addCommand(options)).rejects.toThrow('Filesystem error');
@@ -292,13 +302,13 @@ describe('Add Command', () => {
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
       vi.mocked(fs.pathExists)
         .mockResolvedValueOnce(false as any) // Template directory check passes
-        .mockResolvedValueOnce(true as any);  // Base directory exists
+        .mockResolvedValueOnce(true as any); // Base directory exists
       vi.mocked(cloneTemplate).mockRejectedValue(new Error('Network timeout'));
 
       const options: AddOptions = {
         template: 'weather',
         targetPath: './existing-dir',
-        list: false
+        list: false,
       };
 
       await expect(addCommand(options)).rejects.toThrow('Network timeout');
@@ -321,14 +331,14 @@ describe('Add Command', () => {
     it('should handle template names with hyphens', async () => {
       const options: AddOptions = {
         template: 'my-complex-template',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
 
       const expectedPath = `${process.cwd()}/my-complex-template`;
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/my-complex-template',
+        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
         expectedPath
       );
     });
@@ -342,13 +352,13 @@ describe('Add Command', () => {
       const options: AddOptions = {
         template: 'my-complex-template',
         targetPath: './deep/nested/path',
-        list: false
+        list: false,
       };
 
       await addCommand(options);
 
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/templates/my-complex-template',
+        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
         './deep/nested/path/my-complex-template'
       );
     });

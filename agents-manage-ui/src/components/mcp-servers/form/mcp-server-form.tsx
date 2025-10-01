@@ -11,7 +11,8 @@ import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import type { Credential } from '@/lib/api/credentials';
-import { createMCPTool, type MCPTool, syncMCPTool, updateMCPTool } from '@/lib/api/tools';
+import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
+import type { MCPTool } from '@/lib/types/tools';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { type MCPToolFormData, mcpToolSchema } from './validation';
 
@@ -62,6 +63,14 @@ export function MCPServerForm({
 
   const { isSubmitting } = form.formState;
 
+  // Helper function to filter active tools against available tools
+  const getActiveTools = (toolsConfig: MCPToolFormData['config']['mcp']['toolsConfig']) => {
+    if (toolsConfig.type === 'all') return undefined;
+
+    const availableToolNames = tool?.availableTools?.map((t) => t.name) || [];
+    return toolsConfig.tools.filter((toolName) => availableToolNames.includes(toolName));
+  };
+
   const onSubmit = async (data: MCPToolFormData) => {
     try {
       // Transform form data to API format
@@ -72,20 +81,14 @@ export function MCPServerForm({
         config: {
           ...data.config,
           mcp: {
-            server: data.config.mcp.server,
-            transport: data.config.mcp.transport,
-            // Convert discriminated union to API format: type='all' → activeTools=undefined
-            activeTools:
-              data.config.mcp.toolsConfig.type === 'all'
-                ? undefined
-                : data.config.mcp.toolsConfig.tools,
+            ...data.config.mcp,
+            activeTools: getActiveTools(data.config.mcp.toolsConfig),
           },
         },
       };
 
       if (mode === 'update' && tool) {
         await updateMCPTool(tenantId, projectId, tool.id, transformedData);
-        await syncMCPTool(tenantId, projectId, tool.id);
         toast.success('MCP server updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`);
       } else {
@@ -93,7 +96,6 @@ export function MCPServerForm({
           ...transformedData,
           id: nanoid(),
         });
-        await syncMCPTool(tenantId, projectId, newTool.id);
         toast.success('MCP server created successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       }
@@ -110,7 +112,7 @@ export function MCPServerForm({
           control={form.control}
           name="name"
           label="Name"
-          placeholder="MCP Server"
+          placeholder="MCP server"
           isRequired
         />
         <GenericInput
@@ -122,8 +124,9 @@ export function MCPServerForm({
         />
         <GenericSelect
           control={form.control}
+          selectTriggerClassName="w-full"
           name="config.mcp.transport.type"
-          label="Transport Type"
+          label="Transport type"
           placeholder="Select transport type"
           options={[
             {
@@ -141,6 +144,7 @@ export function MCPServerForm({
         />
         <GenericSelect
           control={form.control}
+          selectTriggerClassName="w-full"
           name="credentialReferenceId"
           label="Credential"
           placeholder="Select a credential"

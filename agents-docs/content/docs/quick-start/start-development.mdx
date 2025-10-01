@@ -1,6 +1,6 @@
 ---
-title: Start Development
-description: Start developing your agents with the Inkeep Agent Framework
+title: Quick Start
+description: Start developing your agents with the Inkeep Agent Platform
 icon: "LuRocket"    
 ---
 
@@ -12,7 +12,7 @@ icon: "LuRocket"
 ### Step 1: Create a new agents project
 
 ```bash
-npx @inkeep/create-agents
+npx @inkeep/create-agents my-agent-directory 
 cd my-agent-directory
 ```
 
@@ -24,8 +24,23 @@ pnpm dev
 
 The Visual Builder will open automatically at http://localhost:3000.
 
-### Step 3: Chat with your agent
+### Step 3: Install the Inkeep CLI
 
-Navigate to the weather graph project that was automatically created, click into the weather graph, and then click the "Try It" button to start chatting with the agent.
+```bash
+npm install -g @inkeep/agents-cli
+```
+
+### Step 4: Push your project
+
+Running this command will push the code you defined your agents and tools with to the Visual Builder.
+
+```bash
+cd src/weather-project
+inkeep push
+```
+
+### Step 5: Chat with your agent
+
+Open the Visual Builder at http://localhost:3000, click into the weather graph, and then click the "Try It" button to start chatting with the agent.
 
 Next, we recommend setting up observability to see live traces of your agent. See [Observability](/quick-start/observability) for more information.

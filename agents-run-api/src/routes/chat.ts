@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   contextValidationMiddleware,
+  createApiError,
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
@@ -21,8 +22,8 @@ import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import type { ContentItem, Message } from '../types/chat';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { errorOp } from '../utils/agent-operations';
+import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -218,13 +219,19 @@ app.openapi(chatCompletionsRoute, async (c) => {
         scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {
-        return c.json({ error: 'Agent graph not found' }, 404);
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent graph not found',
+        });
       }
       defaultAgentId = agentGraph.defaultAgentId || '';
     }
 
     if (!defaultAgentId) {
-      return c.json({ error: 'No default agent found in graph' }, 404);
+      throw createApiError({
+        code: 'not_found',
+        message: 'No default agent found in graph',
+      });
     }
 
     // Get or create conversation with the default agent
@@ -255,11 +262,15 @@ app.openapi(chatCompletionsRoute, async (c) => {
     });
 
     if (!agentInfo) {
-      return c.json({ error: 'Agent not found' }, 404);
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
+      });
     }
 
     // Get validated context from middleware (falls back to body.context if no validation)
     const validatedContext = (c as any).get('validatedContext') || body.requestContext || {};
+
     const credentialStores = c.get('credentialStores');
 
     // Context resolution with intelligent conversation state detection
@@ -328,53 +339,87 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
     // Use Hono's streamSSE helper for proper SSE formatting
     return streamSSE(c, async (stream) => {
-      // Create SSE stream helper
-      const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+      try {
+        // Create SSE stream helper
+        const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
 
-      // Start with the role
-      await sseHelper.writeRole();
+        // Start with the role
+        await sseHelper.writeRole();
 
-      logger.info({ agentId }, 'Starting execution');
+        logger.info({ agentId }, 'Starting execution');
 
-      // Use the execution handler
-      const executionHandler = new ExecutionHandler();
-      const result = await executionHandler.execute({
-        executionContext,
-        conversationId,
-        userMessage,
-        initialAgentId: agentId,
-        requestId,
-        sseHelper,
-      });
+        // Use the execution handler
+        const executionHandler = new ExecutionHandler();
+        const result = await executionHandler.execute({
+          executionContext,
+          conversationId,
+          userMessage,
+          initialAgentId: agentId,
+          requestId,
+          sseHelper,
+        });
 
-      logger.info(
-        { result },
-        `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
-      );
-
-      if (!result.success) {
-        // If execution failed and no error was already streamed, send a default error
-        await sseHelper.writeOperation(
-          errorOp('Sorry, I was unable to process your request at this time. Please try again.', 'system')
+        logger.info(
+          { result },
+          `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
         );
-      }
 
-      // Complete the stream
-      await sseHelper.complete();
+        if (!result.success) {
+          // If execution failed and no error was already streamed, send a default error
+          await sseHelper.writeOperation(
+            errorOp(
+              'Sorry, I was unable to process your request at this time. Please try again.',
+              'system'
+            )
+          );
+        }
+
+        // Complete the stream
+        await sseHelper.complete();
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error.message : error,
+            stack: error instanceof Error ? error.stack : undefined,
+          },
+          'Error during streaming execution'
+        );
+
+        try {
+          // Try to send error as stream content if possible
+          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+          await sseHelper.writeOperation(
+            errorOp(
+              'Sorry, I was unable to process your request at this time. Please try again.',
+              'system'
+            )
+          );
+          await sseHelper.complete();
+        } catch (streamError) {
+          // If we can't write to stream, just log it
+          logger.error({ streamError }, 'Failed to write error to stream');
+        }
+      }
     });
   } catch (error) {
-    console.error('❌ Error in chat completions endpoint:', {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-
-    return c.json(
+    logger.error(
       {
-        error: 'Failed to process chat completion',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
       },
-      500
+      'Error in chat completions endpoint before streaming'
     );
+
+    // Re-throw if already an API error
+    if (error && typeof error === 'object' && 'status' in error) {
+      throw error;
+    }
+
+    // Convert other errors to API errors
+    throw createApiError({
+      code: 'internal_server_error',
+      message: error instanceof Error ? error.message : 'Failed to process chat completion',
+    });
   }
 });
 

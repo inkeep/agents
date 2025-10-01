@@ -18,17 +18,17 @@ type NangoConnectInstance = {
 };
 
 export function useNangoConnect() {
-  const { NANGO_HOST, NANGO_CONNECT_BASE_URL } = useRuntimeConfig();
+  const { NANGO_SERVER_URL, NANGO_CONNECT_BASE_URL } = useRuntimeConfig();
 
   const openNangoConnect = useCallback(
     ({ sessionToken, onEvent, connectOptions }: OpenNangoConnectOptions): NangoConnectInstance => {
       const nango = new Nango({
-        host: NANGO_HOST || undefined,
+        host: NANGO_SERVER_URL || undefined,
       });
 
       const connect = nango.openConnectUI({
         baseURL: connectOptions?.baseURL || NANGO_CONNECT_BASE_URL || undefined,
-        apiURL: connectOptions?.apiURL || NANGO_HOST || undefined,
+        apiURL: connectOptions?.apiURL || NANGO_SERVER_URL || undefined,
         onEvent,
         detectClosedAuthWindow: true,
       });
@@ -37,7 +37,7 @@ export function useNangoConnect() {
 
       return connect as NangoConnectInstance;
     },
-    [NANGO_HOST, NANGO_CONNECT_BASE_URL]
+    [NANGO_SERVER_URL, NANGO_CONNECT_BASE_URL]
   );
 
   return openNangoConnect;

@@ -47,6 +47,19 @@ export class ToolSessionManager {
    */
   createSession(tenantId: string, projectId: string, contextId: string, taskId: string): string {
     const sessionId = nanoid();
+    return this.createSessionWithId(sessionId, tenantId, projectId, contextId, taskId);
+  }
+
+  /**
+   * Create a new tool session with a specific ID (for coordination with GraphSession)
+   */
+  createSessionWithId(
+    sessionId: string,
+    tenantId: string,
+    projectId: string,
+    contextId: string,
+    taskId: string
+  ): string {
     const session: ToolSession = {
       sessionId,
       tenantId,
@@ -58,8 +71,40 @@ export class ToolSessionManager {
     };
 
     this.sessions.set(sessionId, session);
-    logger.debug({ sessionId, tenantId, contextId, taskId }, 'Created tool session');
+    logger.debug(
+      {
+        sessionId,
+        tenantId,
+        contextId,
+        taskId,
+        totalSessions: this.sessions.size,
+      },
+      'Created tool session with ID'
+    );
     return sessionId;
+  }
+
+  /**
+   * Ensure a graph-scoped session exists (idempotent)
+   * All agents in the same graph execution share this session
+   */
+  ensureGraphSession(
+    sessionId: string,
+    tenantId: string,
+    projectId: string,
+    contextId: string,
+    taskId: string
+  ): string {
+    if (this.sessions.has(sessionId)) {
+      logger.debug({ sessionId }, 'Graph session already exists, reusing');
+      return sessionId;
+    }
+
+    logger.debug(
+      { sessionId, tenantId, contextId, taskId },
+      'Creating new graph-scoped tool session'
+    );
+    return this.createSessionWithId(sessionId, tenantId, projectId, contextId, taskId);
   }
 
   /**
@@ -69,13 +114,26 @@ export class ToolSessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) {
       logger.warn(
-        { sessionId, toolCallId: toolResult.toolCallId },
+        {
+          sessionId,
+          toolCallId: toolResult.toolCallId,
+          availableSessionIds: Array.from(this.sessions.keys()),
+          totalSessions: this.sessions.size,
+        },
         'Tool result recorded for unknown session'
       );
       return;
     }
 
     session.toolResults.set(toolResult.toolCallId, toolResult);
+    logger.debug(
+      {
+        sessionId,
+        toolCallId: toolResult.toolCallId,
+        toolName: toolResult.toolName,
+      },
+      'Tool result recorded successfully'
+    );
   }
 
   /**
@@ -84,7 +142,15 @@ export class ToolSessionManager {
   getToolResult(sessionId: string, toolCallId: string): ToolResultRecord | undefined {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      logger.warn({ sessionId, toolCallId }, 'Requested tool result for unknown session');
+      logger.warn(
+        {
+          sessionId,
+          toolCallId,
+          availableSessionIds: Array.from(this.sessions.keys()),
+          totalSessions: this.sessions.size,
+        },
+        'Requested tool result for unknown session'
+      );
       return undefined;
     }
 
@@ -95,8 +161,18 @@ export class ToolSessionManager {
           sessionId,
           toolCallId,
           availableToolResultIds: Array.from(session.toolResults.keys()),
+          totalToolResults: session.toolResults.size,
         },
         'Tool result not found'
+      );
+    } else {
+      logger.debug(
+        {
+          sessionId,
+          toolCallId,
+          toolName: result.toolName,
+        },
+        'Tool result found successfully'
       );
     }
 

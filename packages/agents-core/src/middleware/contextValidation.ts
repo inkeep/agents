@@ -6,6 +6,7 @@ import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect } from '../types/entities';
+import { createApiError } from '../utils/error';
 import { getRequestExecutionContext } from '../utils/execution';
 import { getLogger } from '../utils/logger';
 
@@ -17,7 +18,8 @@ const ajv = new Ajv({ allErrors: true, strict: false });
 export const HTTP_REQUEST_PARTS = ['headers'] as const;
 export type HttpRequestPart = (typeof HTTP_REQUEST_PARTS)[number];
 
-// Schema compilation cache for performance
+// Schema compilation cache for performance with LRU eviction
+const MAX_SCHEMA_CACHE_SIZE = 1000;
 const schemaCache = new Map<string, ValidateFunction>();
 
 export interface ContextValidationError {
@@ -41,17 +43,78 @@ export function isValidHttpRequest(obj: any): obj is ParsedHttpRequest {
   return obj != null && typeof obj === 'object' && !Array.isArray(obj) && 'headers' in obj;
 }
 
-// Cached schema compilation for performance
+// Cached schema compilation for performance with LRU eviction
 export function getCachedValidator(schema: Record<string, unknown>): ValidateFunction {
   const key = JSON.stringify(schema);
-  if (!schemaCache.has(key)) {
-    schemaCache.set(key, ajv.compile(schema));
+
+  // Check if schema exists in cache
+  if (schemaCache.has(key)) {
+    // LRU: Move to end by deleting and re-adding (marks as recently used)
+    const validator = schemaCache.get(key);
+    if (!validator) {
+      throw new Error('Unexpected: validator not found in cache after has() check');
+    }
+    schemaCache.delete(key);
+    schemaCache.set(key, validator);
+    return validator;
   }
-  const validator = schemaCache.get(key);
-  if (!validator) {
-    throw new Error('Failed to compile JSON schema');
+
+  // Evict oldest entry if cache is at size limit
+  if (schemaCache.size >= MAX_SCHEMA_CACHE_SIZE) {
+    const firstKey = schemaCache.keys().next().value;
+    if (firstKey) {
+      schemaCache.delete(firstKey);
+    }
   }
+
+  // Compile new schema
+  const permissiveSchema = makeSchemaPermissive(schema);
+
+  const validator = ajv.compile(permissiveSchema);
+  schemaCache.set(key, validator);
+
   return validator;
+}
+
+// Helper function to recursively make schemas permissive
+function makeSchemaPermissive(schema: any): any {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+
+  const permissiveSchema = { ...schema };
+
+  // For object schemas, set additionalProperties: true
+  if (permissiveSchema.type === 'object') {
+    permissiveSchema.additionalProperties = true;
+
+    // Recursively apply to nested object properties
+    if (permissiveSchema.properties && typeof permissiveSchema.properties === 'object') {
+      const newProperties: any = {};
+      for (const [key, value] of Object.entries(permissiveSchema.properties)) {
+        newProperties[key] = makeSchemaPermissive(value);
+      }
+      permissiveSchema.properties = newProperties;
+    }
+  }
+
+  // For array schemas, apply to items
+  if (permissiveSchema.type === 'array' && permissiveSchema.items) {
+    permissiveSchema.items = makeSchemaPermissive(permissiveSchema.items);
+  }
+
+  // Handle oneOf, anyOf, allOf
+  if (permissiveSchema.oneOf) {
+    permissiveSchema.oneOf = permissiveSchema.oneOf.map(makeSchemaPermissive);
+  }
+  if (permissiveSchema.anyOf) {
+    permissiveSchema.anyOf = permissiveSchema.anyOf.map(makeSchemaPermissive);
+  }
+  if (permissiveSchema.allOf) {
+    permissiveSchema.allOf = permissiveSchema.allOf.map(makeSchemaPermissive);
+  }
+
+  return permissiveSchema;
 }
 
 // Validation wrapper for testing purposes (now uses cache)
@@ -445,14 +508,11 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
           },
           'Request context validation failed'
         );
-
-        return c.json(
-          {
-            error: 'Invalid request context',
-            details: validationResult.errors,
-          },
-          400
-        );
+        const errorMessage = `Invalid request context: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
+        throw createApiError({
+          code: 'bad_request',
+          message: errorMessage,
+        });
       }
 
       // Store validated context for use in the main handler
@@ -475,14 +535,10 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
         },
         'Context validation middleware error'
       );
-
-      return c.json(
-        {
-          error: 'Context validation failed',
-          message: 'Internal validation error',
-        },
-        500
-      );
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Context validation failed',
+      });
     }
   };
 }

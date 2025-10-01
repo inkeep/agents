@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { Bug, X } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useState } from 'react';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
@@ -13,16 +13,19 @@ interface PlaygroundProps {
   projectId: string;
   tenantId: string;
   setShowPlayground: (show: boolean) => void;
+  closeSidePane: () => void;
 }
 
 export const Playground = ({
   graphId,
   projectId,
   tenantId,
+  closeSidePane,
   setShowPlayground,
 }: PlaygroundProps) => {
   const [conversationId, setConversationId] = useState<string>(nanoid());
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
+  const [showTraces, setShowTraces] = useState<boolean>(false);
   const {
     chatActivities,
     isPolling,
@@ -36,13 +39,36 @@ export const Playground = ({
   });
 
   return (
-    <div className="bg-background h-full w-full z-10 flex flex-col">
+    <div
+      className={`bg-background z-10 flex flex-col border-l ${showTraces ? 'w-full' : 'w-1/3 min-w-96'}`}
+    >
       <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b flex-shrink-0">
-        <Button variant="ghost" size="sm" className="h-6" onClick={() => setShowPlayground(false)}>
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to graph</span>
-        </Button>
         <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6"
+            onClick={() => {
+              setShowTraces(!showTraces);
+              if (!showTraces) {
+                closeSidePane();
+              }
+            }}
+          >
+            <Bug className="h-4 w-4" />
+            {showTraces ? 'Hide debug' : 'Debug'}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6"
+            onClick={() => setShowPlayground(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <div className="flex-1 min-h-0 w-full">
         <ResizablePanelGroup direction="horizontal">
@@ -59,16 +85,22 @@ export const Playground = ({
               key={JSON.stringify(customHeaders)}
             />
           </ResizablePanel>
-          <ResizableHandle />
-          <TimelineWrapper
-            isPolling={isPolling}
-            conversation={chatActivities}
-            enableAutoScroll={true}
-            error={error}
-            retryConnection={retryConnection}
-            refreshOnce={refreshOnce}
-            showConversationTracesLink={true}
-          />
+
+          {showTraces && (
+            <>
+              <ResizableHandle />
+              <TimelineWrapper
+                isPolling={isPolling}
+                conversation={chatActivities}
+                enableAutoScroll={true}
+                error={error}
+                retryConnection={retryConnection}
+                refreshOnce={refreshOnce}
+                showConversationTracesLink={true}
+                conversationId={conversationId}
+              />
+            </>
+          )}
         </ResizablePanelGroup>
       </div>
     </div>

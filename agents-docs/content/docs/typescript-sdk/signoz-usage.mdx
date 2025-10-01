@@ -9,66 +9,8 @@ icon: "brand/Signoz"
 SigNoz is a full-stack observability platform that provides distributed tracing so that you can track requests across multiple agents and services.
 
 ### Quick Start
+Before using SigNoz, ensure it's properly set up and running. For setup instructions, see the [Quick Start](/quick-start/observability) guide. 
 
-1. **Start the Complete Stack**:
-
-```bash
-# From the root directory of the agent framework
-docker compose up -d
-```
-
-This single command starts the entire observability and integration stack:
-
-**Agent Framework Components:**
-
-- OTEL Collector (ports 14317-14318)
-- Jaeger UI (port 16686)
-
-**SigNoz Components:**
-
-- SigNoz UI (port 3080)
-- SigNoz OTEL Collector (ports 4317-4318)
-- ClickHouse Database
-- Zookeeper
-
-### Architecture
-
-The observability setup uses a dual-routing OTEL Collector:
-
-```
-Application → OTEL Collector → Jaeger → Jaeger UI (http://localhost:16686)
-                             → SigNoz → SigNoz UI (http://localhost:3080)
-```
-
-### Application Configuration
-
-Configure your agent framework to send traces to the OTEL Collector:
-
-```
-// Recommended: Use OTEL Collector for dual routing to Jaeger + SigNoz
-process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "http://localhost:14318/v1/traces";
-process.env.OTEL_SERVICE_NAME = "inkeep-agents";
-
-// Alternative endpoints:
-// OTLP HTTP: http://localhost:14318/v1/traces (default)
-// OTLP gRPC: http://localhost:14317/v1/traces
-// Direct to Jaeger: http://localhost:24318 (Jaeger only)
-```
-
-### Accessing the UI
-
-Once the stack is running, access SigNoz at: **http://localhost:3080**
-
-You can also access:
-
-- **Jaeger UI**: http://localhost:16686
-
-### Stopping Services
-
-```bash
-# Stop the entire stack
-docker compose down
-```
 
 ## Using SigNoz UI
 
@@ -80,7 +22,7 @@ The SigNoz traces interface provides comprehensive visibility into your agent op
 
 <img
   src="/images/signoz-traces-ui.png"
-  alt="SigNoz Traces Explorer showing inkeep-chat service traces with timestamp, service name, operation name, duration, HTTP method, and response status code columns"
+  alt="SigNoz Traces Explorer showing inkeep-agents-run-api service traces with timestamp, service name, operation name, duration, HTTP method, and response status code columns"
   width="100%"
   style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
 />
@@ -88,7 +30,7 @@ The SigNoz traces interface provides comprehensive visibility into your agent op
 The traces explorer shows:
 
 - **Timestamp**: When each span occurred
-- **Service Name**: The service that generated the span (e.g., `inkeep-chat`)
+- **Service Name**: The service that generated the span (e.g., `inkeep-agents-run-api`)
 - **Operation Name**: Specific operations like `ai.generateObject`, `tls.connect`, `ai.toolCall`
 - **Duration**: How long each operation took (in milliseconds)
 - **HTTP Method**: For HTTP operations, shows the method (POST, GET, etc.)
@@ -109,7 +51,7 @@ Key features of the traces view:
 
 ```
 # Filter by service
-service_name = "inkeep-chat"
+service_name = "inkeep-agents-run-api"
 
 # Filter by operation
 operation = "agent.generate"
@@ -149,7 +91,7 @@ When you click on a specific trace from the list, you'll see the detailed trace 
 - **Error Spans**: Number of spans that encountered errors (e.g., 19)
 - **Trace Duration**: Total time for the entire trace (e.g., 5.2 mins)
 - **Timestamp**: When the trace occurred
-- **Service**: The primary service (e.g., `inkeep-chat`)
+- **Service**: The primary service (e.g., `inkeep-agents-run-api`)
 
 **Span Details Panel (Right Side):**
 

@@ -1,5 +1,5 @@
 export { Agent } from './agent';
-export { ArtifactComponent } from './artifact-component';
+export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {
   agent,
   agentGraph,
@@ -12,8 +12,15 @@ export {
   mcpTool,
   project,
 } from './builderFunctions';
+export {
+  credentialRef,
+  isCredentialReference,
+  type CredentialReference,
+  type ExtractCredentialIds,
+  type UnionCredentialIds,
+} from './credential-ref';
 export { transfer } from './builders';
-export { DataComponent } from './data-component';
+export { DataComponent, type DataComponentInterface } from './data-component';
 export {
   createEnvironmentSettings,
   registerEnvironmentSettings,

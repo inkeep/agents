@@ -3,8 +3,11 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
+import { mcpNodeHandleId, NodeType } from '@/components/graph/configuration/node-types';
+import type { AgentToolConfigLookup } from '@/components/graph/graph';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import type { MCPTool } from '@/lib/types/tools';
 import type { GraphErrorSummary } from '@/lib/utils/graph-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
@@ -15,6 +18,8 @@ type GraphStateData = {
   metadata: GraphMetadata;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  agentToolConfigLookup: AgentToolConfigLookup;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -28,10 +33,14 @@ type GraphState = GraphStateData & {
     edges: Edge[],
     metadata: GraphMetadata,
     dataComponentLookup?: Record<string, DataComponent>,
-    artifactComponentLookup?: Record<string, ArtifactComponent>
+    artifactComponentLookup?: Record<string, ArtifactComponent>,
+    toolLookup?: Record<string, MCPTool>,
+    agentToolConfigLookup?: AgentToolConfigLookup
   ): void;
   setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
   setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
+  setToolLookup(toolLookup: Record<string, MCPTool>): void;
+  setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
@@ -74,18 +83,30 @@ export const useGraphStore = create<GraphState>()(
     },
     dataComponentLookup: {},
     artifactComponentLookup: {},
+    toolLookup: {},
+    agentToolConfigLookup: {},
     dirty: false,
     history: [],
     future: [],
     errors: null,
     showErrors: false,
-    setInitial(nodes, edges, metadata, dataComponentLookup = {}, artifactComponentLookup = {}) {
+    setInitial(
+      nodes,
+      edges,
+      metadata,
+      dataComponentLookup = {},
+      artifactComponentLookup = {},
+      toolLookup = {},
+      agentToolConfigLookup = {}
+    ) {
       set({
         nodes,
         edges,
         metadata,
         dataComponentLookup,
         artifactComponentLookup,
+        toolLookup,
+        agentToolConfigLookup,
         dirty: false,
         history: [],
         future: [],
@@ -98,6 +119,12 @@ export const useGraphStore = create<GraphState>()(
     },
     setArtifactComponentLookup(artifactComponentLookup) {
       set({ artifactComponentLookup });
+    },
+    setToolLookup(toolLookup) {
+      set({ toolLookup });
+    },
+    setAgentToolConfigLookup(agentToolConfigLookup) {
+      set({ agentToolConfigLookup });
     },
     setNodes(updater) {
       set((state) => ({ nodes: updater(state.nodes) }));
@@ -133,14 +160,33 @@ export const useGraphStore = create<GraphState>()(
         (change) => change.type === 'remove' || change.type === 'add' || change.type === 'replace'
       );
 
-      set((state) => ({
-        history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-      }));
-      set((state) => ({
-        history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-        edges: applyEdgeChanges(changes, state.edges),
-        dirty: hasModifyingChange ? true : state.dirty,
-      }));
+      set((state) => {
+        // Check for edge removals that disconnect agent from MCP node
+        const removeChanges = changes.filter((change) => change.type === 'remove');
+        let updatedNodes = state.nodes;
+
+        for (const removeChange of removeChanges) {
+          const edgeToRemove = state.edges.find((e) => e.id === removeChange.id);
+          if (edgeToRemove && edgeToRemove.targetHandle === mcpNodeHandleId) {
+            // Find the target MCP node and clear its agentId
+            const mcpNode = state.nodes.find((n) => n.id === edgeToRemove.target);
+            if (mcpNode && mcpNode.type === NodeType.MCP) {
+              updatedNodes = updatedNodes.map((n) =>
+                n.id === mcpNode.id
+                  ? { ...n, data: { ...n.data, agentId: null, relationshipId: null } }
+                  : n
+              );
+            }
+          }
+        }
+
+        return {
+          history: [...state.history, { nodes: state.nodes, edges: state.edges }],
+          nodes: updatedNodes,
+          edges: applyEdgeChanges(changes, state.edges),
+          dirty: hasModifyingChange ? true : state.dirty,
+        };
+      });
     },
     onConnect(connection) {
       set((state) => ({ edges: addEdge(connection as any, state.edges) }));

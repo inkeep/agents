@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     tsconfigPaths(), // This will automatically read tsconfig.json paths from dependencies
     devServer({
-      entry: 'src/index.ts', // The Hono app entry point
+      entry: './index.ts', // The Hono app entry point
     }),
   ],
   server: {

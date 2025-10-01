@@ -204,6 +204,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TOOL_CALL_RESULT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_TOOL_CALL_ARGS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
@@ -352,9 +356,8 @@ function buildConversationListPayload(
           ]
         ),
 
-        // error categories
-        contextErrors: listQuery(
-          QUERY_EXPRESSIONS.CONTEXT_ERRORS,
+        agentGenerations: listQuery(
+          QUERY_EXPRESSIONS.AGENT_GENERATIONS,
           [
             {
               key: {
@@ -362,15 +365,7 @@ function buildConversationListPayload(
                 ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
               },
               op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.CONTEXT_HANDLE,
-            },
-            {
-              key: {
-                key: SPAN_KEYS.HAS_ERROR,
-                ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: true,
+              value: SPAN_NAMES.AGENT_GENERATION,
             },
           ],
           [
@@ -381,6 +376,10 @@ function buildConversationListPayload(
             {
               key: SPAN_KEYS.TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
             },
             {
               key: SPAN_KEYS.STATUS_MESSAGE,
@@ -392,17 +391,11 @@ function buildConversationListPayload(
             },
           ]
         ),
-        agentGenerationErrors: listQuery(
-          QUERY_EXPRESSIONS.AGENT_GENERATION_ERRORS,
+
+        // Count spans with errors
+        spansWithErrors: listQuery(
+          QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
           [
-            {
-              key: {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.AGENT_GENERATION,
-            },
             {
               key: {
                 key: SPAN_KEYS.HAS_ERROR,
@@ -418,16 +411,8 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
             {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              key: SPAN_KEYS.NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
           ]
         ),
@@ -578,6 +563,18 @@ function buildConversationListPayload(
             {
               key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TEXT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TOOL_CALLS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_PROMPT_MESSAGES,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
         ),
@@ -742,14 +739,41 @@ export async function GET(
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
     const contextHandleSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_HANDLE);
-    const contextErrorSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_ERRORS);
-    const agentGenErrorSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATION_ERRORS);
+    const agentGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATIONS);
+    const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
     const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
     const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
+
+    // Categorize spans with errors into critical errors vs warnings
+    const CRITICAL_ERROR_SPAN_NAMES = [
+      'execution_handler.execute',
+      'agent.load_tools',
+      'context.handle_context_resolution',
+      'context.resolve',
+      'agent.generate',
+      'context-resolver.resolve_single_fetch_definition',
+      'graph_session.generate_structured_update',
+      'graph_session.process_artifact',
+      'graph_session.generate_artifact_metadata',
+      'response.format_object_response',
+      'response.format_response',
+    ];
+
+    let errorCount = 0;
+    let warningCount = 0;
+
+    for (const span of spansWithErrorsList) {
+      const spanName = getString(span, SPAN_KEYS.NAME, '');
+      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
+        errorCount++;
+      } else {
+        warningCount++;
+      }
+    }
 
     let graphId: string | null = null;
     let graphName: string | null = null;
@@ -764,6 +788,7 @@ export async function GET(
       type:
         | 'tool_call'
         | 'ai_generation'
+        | 'agent_generation'
         | 'context_fetch'
         | 'context_resolution'
         | 'user_message'
@@ -783,6 +808,7 @@ export async function GET(
       serviceTier?: string;
       aiResponseContent?: string;
       aiResponseTimestamp?: string;
+      aiResponseText?: string;
       // user
       messageContent?: string;
       // context resolution
@@ -795,6 +821,8 @@ export async function GET(
       // tool specifics
       toolType?: string;
       toolPurpose?: string;
+      toolCallArgs?: string;
+      toolCallResult?: string;
       // delegation/transfer
       delegationFromAgentId?: string;
       delegationToAgentId?: string;
@@ -804,6 +832,9 @@ export async function GET(
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
       aiStreamTextOperationId?: string;
+      // ai generation specifics
+      aiResponseToolCalls?: string;
+      aiPromptMessages?: string;
       // save_tool_result specifics
       saveResultSaved?: boolean;
       saveArtifactType?: string;
@@ -817,6 +848,9 @@ export async function GET(
       saveFacts?: string;
       saveToolArgs?: Record<string, any>;
       saveFullResult?: Record<string, any>;
+      hasError?: boolean;
+      otelStatusCode?: string;
+      otelStatusDescription?: string;
     };
 
     const activities: Activity[] = [];
@@ -824,6 +858,12 @@ export async function GET(
     // tool calls → activities
     for (const span of toolCallSpans) {
       const name = getString(span, SPAN_KEYS.AI_TOOL_CALL_NAME, 'Unknown Tool');
+      
+      // Skip thinking_complete tool calls from the timeline
+      if (name === 'thinking_complete') {
+        continue;
+      }
+      
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
@@ -833,11 +873,13 @@ export async function GET(
       const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
       const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_AGENT_ID, '');
 
+      // Extract tool call args and result for ALL tool calls
+      const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
+      const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
+
       // Parse save_tool_result JSON if present
       let saveFields: any = {};
       if (name === TOOL_NAMES.SAVE_TOOL_RESULT) {
-        const toolResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
-        const toolArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
         const operationId = getString(span, SPAN_KEYS.AI_OPERATION_ID, '');
         const toolCallId = getString(span, SPAN_KEYS.AI_TOOL_CALL_ID, '');
         const functionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
@@ -845,14 +887,14 @@ export async function GET(
         // Parse tool arguments
         let parsedArgs: any = {};
         try {
-          parsedArgs = JSON.parse(toolArgs);
+          parsedArgs = JSON.parse(toolCallArgs);
         } catch (_e) {
           // Keep empty if parsing fails
         }
 
         // Parse tool result
         try {
-          const parsed = JSON.parse(toolResult);
+          const parsed = JSON.parse(toolCallResult);
           // Extract first artifact info if available
           const firstArtifact = parsed.artifacts
             ? (Object.values(parsed.artifacts)[0] as any)
@@ -898,6 +940,8 @@ export async function GET(
         delegationToAgentId: delegationToAgentId || undefined,
         transferFromAgentId: transferFromAgentId || undefined,
         transferToAgentId: transferToAgentId || undefined,
+        toolCallArgs: toolCallArgs || undefined,
+        toolCallResult: toolCallResult || undefined,
         ...saveFields, // Include save_tool_result specific fields
       });
     }
@@ -962,24 +1006,6 @@ export async function GET(
       });
     }
 
-    const contextErrors = contextErrorSpans.map((s) => ({
-      spanId: getString(s, SPAN_KEYS.SPAN_ID, ''),
-      timestamp: s.timestamp,
-      statusDescription:
-        getString(s, SPAN_KEYS.STATUS_MESSAGE) ||
-        getString(s, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '') ||
-        'No description available',
-    }));
-    const agentGenerationErrors = agentGenErrorSpans.map((s) => ({
-      spanId: getString(s, SPAN_KEYS.SPAN_ID, ''),
-      timestamp: s.timestamp,
-      statusDescription:
-        getString(s, SPAN_KEYS.STATUS_MESSAGE) ||
-        getString(s, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '') ||
-        'No description available',
-    }));
-    const errorCount = contextErrors.length + agentGenerationErrors.length;
-
     // user messages
     for (const span of userMessageSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
@@ -1025,6 +1051,11 @@ export async function GET(
     for (const span of aiGenerationSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      
+      // Extract ai.response.toolCalls and ai.prompt.messages for ai.generateText.doGenerate spans
+      const aiResponseToolCalls = getString(span, SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, '');
+      const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
+      
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.AI_GENERATION,
@@ -1040,6 +1071,33 @@ export async function GET(
         aiModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
+        aiResponseToolCalls: aiResponseToolCalls || undefined,
+        aiPromptMessages: aiPromptMessages || undefined,
+      });
+    }
+
+    for (const span of agentGenerationSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const statusMessage =
+        getString(span, SPAN_KEYS.STATUS_MESSAGE) ||
+        getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
+      const otelStatusCode = getString(span, SPAN_KEYS.OTEL_STATUS_CODE, '');
+      const otelStatusDescription = getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
+
+      activities.push({
+        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        type: ACTIVITY_TYPES.AGENT_GENERATION,
+        name: 'agent.generate',
+        description: hasError ? 'Agent generation failed' : 'Agent generation',
+        timestamp: span.timestamp,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        result: hasError
+          ? statusMessage || 'Agent generation failed'
+          : 'Agent generation completed',
+        hasError,
+        otelStatusCode: hasError ? otelStatusCode : undefined,
+        otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
       });
     }
 
@@ -1170,7 +1228,7 @@ export async function GET(
         return count;
       })(),
       totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
-      totalErrors: errorCount,
+      totalErrors: 0,
       totalOpenAICalls: openAICallsCount,
     };
 
@@ -1193,11 +1251,12 @@ export async function GET(
       totalInputTokens,
       totalOutputTokens,
       mcpToolErrors: [],
-      contextErrors,
-      agentGenerationErrors,
       graphId,
       graphName,
       allSpanAttributes,
+      spansWithErrorsCount: spansWithErrorsList.length,
+      errorCount,
+      warningCount,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');

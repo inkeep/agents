@@ -1,5 +1,99 @@
 # @inkeep/create-agents
 
+## 0.12.0
+
+## 0.11.3
+
+### Patch Changes
+
+- 3382ff2: fixes migration in create script
+
+## 0.11.2
+
+## 0.11.1
+
+## 0.11.0
+
+### Minor Changes
+
+- 9cbb2a5: DB management is maturing; management is now done with explicit drizzle migrations; it is no longer recommended to use drizzle-kit push for db schema updates; recommendation is to use drizzle-kit migrate which will make databases more stable
+
+## 0.10.2
+
+## 0.10.1
+
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
+## 0.9.0
+
+## 0.8.7
+
+## 0.8.6
+
+## 0.8.5
+
+## 0.8.4
+
+## 0.8.3
+
+## 0.8.2
+
+## 0.8.1
+
+### Patch Changes
+
+- dc19f1a: @inkeep/create-agents creates inkeep.config.ts in the correct location; model choice of user is respected and user choice replaces any model config from template; model config is done at project level instead of inkeep.config.ts which is reserved for tenant level settings
+
+## 0.8.0
+
+## 0.7.2
+
+## 0.7.1
+
+## 0.7.0
+
+## 0.6.6
+
+## 0.6.5
+
+## 0.6.4
+
+## 0.6.3
+
+## 0.6.2
+
+## 0.6.1
+
+## 0.6.0
+
+## 0.5.0
+
+## 0.4.0
+
+### Minor Changes
+
+- a379dec: Added env var loader to agents-cli package
+
+### Patch Changes
+
+- 0a8352f: Updates
+- 0a8352f: Added new providers
+
+## 0.3.0
+
+### Minor Changes
+
+- a7a5ca5: Proper assignment of agent framework resources to the correct project, graph, or agents scope
+
+### Patch Changes
+
+- 43054e7: Env updates
+- 024668f: Update templates folder
+
 ## 0.2.2
 
 ### Patch Changes

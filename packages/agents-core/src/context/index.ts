@@ -5,6 +5,7 @@ export {
   ContextConfigBuilder,
   contextConfig,
   fetchDefinition,
+  requestContextSchema,
 } from './ContextConfig';
 export type { FetchResult } from './ContextFetcher';
 export { ContextFetcher } from './ContextFetcher';
@@ -25,3 +26,4 @@ export type {
   TemplateRenderOptions,
 } from './TemplateEngine';
 export { TemplateEngine } from './TemplateEngine';
+export type { DotPaths } from './validation-helpers';

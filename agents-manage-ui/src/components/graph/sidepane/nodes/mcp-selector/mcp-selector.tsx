@@ -2,7 +2,8 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { fetchMCPTools, type MCPTool } from '@/lib/api/tools';
+import { fetchMCPTools } from '@/lib/api/tools';
+import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
 import { MCPSelectorLoading } from './loading';
@@ -56,12 +57,12 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {
       type: NodeType.MCP,
-      data: { ...mcp },
+      data: { toolId: mcp.id, agentId: null, relationshipId: null },
     });
   };
 
   if (isLoading) {
-    return <MCPSelectorLoading title="Select MCP Server" />;
+    return <MCPSelectorLoading title="Select MCP server" />;
   }
 
   if (error) {
@@ -87,7 +88,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
   return (
     <div>
       <div className="space-y-2">
-        <h3 className="text-sm font-medium mb-2">Select MCP Server</h3>
+        <h3 className="text-sm font-medium mb-2">Select MCP server</h3>
         <div className="flex flex-col gap-2 min-w-0 min-h-0">
           {tools.map((mcp: MCPTool) => (
             <MCPServerItem key={mcp.id} mcp={mcp} onClick={handleSelect} />

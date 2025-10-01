@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CredentialStoreType } from '../../index.js';
+import { CredentialStoreType } from '../../types/index.js';
 
 // Mock the keytar module
 const mockKeytar = {
@@ -198,7 +198,7 @@ describe('KeyChainStore without keytar', () => {
     expect(await store.delete('KEY')).toBe(false);
     expect(await store.findAllCredentials()).toEqual([]);
 
-    // Setting should throw
+    // Setting should throw when keytar is not available
     await expect(store.set('KEY', 'value')).rejects.toThrow(
       'Keytar not available - cannot store credentials in system keychain'
     );

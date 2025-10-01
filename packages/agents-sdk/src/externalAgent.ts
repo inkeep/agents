@@ -6,7 +6,6 @@ const logger = getLogger('external-agent-builder');
 
 export type ExternalAgentConfig = {
   type?: 'external'; // Discriminator for external agents
-  tenantId?: string;
   id: string;
   name: string;
   description: string;
@@ -24,14 +23,15 @@ export class ExternalAgent implements ExternalAgentInterface {
 
   constructor(config: ExternalAgentConfig) {
     this.config = { ...config, type: 'external' };
-    this.tenantId = config.tenantId || 'default';
+    // tenantId will be set by setContext method from external source
+    this.tenantId = 'default';
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
 
     logger.debug(
       {
         externalAgentName: this.config.name,
         baseUrl: this.config.baseUrl,
-        tenantId: this.config.tenantId,
+        tenantId: this.tenantId,
       },
       'External Agent constructor initialized'
     );
@@ -67,6 +67,11 @@ export class ExternalAgent implements ExternalAgentInterface {
     }
   }
 
+  // Set context (tenantId) from external source (graph, CLI, etc)
+  setContext(tenantId: string): void {
+    this.tenantId = tenantId;
+  }
+
   // Compute ID from name using a simple slug transformation
   getId(): string {
     return this.config.id;
@@ -85,7 +90,7 @@ export class ExternalAgent implements ExternalAgentInterface {
 
     // First try to update (in case external agent exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/crud/external-agents/${this.getId()}`,
+      `${this.baseURL}/tenants/${this.tenantId}/external-agents/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -115,7 +120,7 @@ export class ExternalAgent implements ExternalAgentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/external-agents`,
+        `${this.baseURL}/tenants/${this.tenantId}/external-agents`,
         {
           method: 'POST',
           headers: {

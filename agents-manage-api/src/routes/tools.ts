@@ -11,10 +11,8 @@ import {
   IdParamsSchema,
   ListResponseSchema,
   listTools,
-  listToolsByStatus,
   type McpTool,
   McpToolSchema,
-  type McpToolStatus,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
@@ -24,16 +22,10 @@ import {
   updateTool,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
-import {
-  checkAllToolsHealth,
-  checkToolHealth,
-  syncToolDefinitions,
-  updateToolHealth,
-} from '../data/tools';
 import { getLogger } from '../logger';
-import { oauthService } from '../utils/oauth-service';
+
+const logger = getLogger('tools');
 
 type AppVariables = {
   serverConfig: ServerConfig;
@@ -49,7 +41,7 @@ app.openapi(
     path: '/',
     summary: 'List Tools',
     operationId: 'list-tools',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -81,27 +73,36 @@ app.openapi(
         pages: number;
       };
     };
+    const credentialStores = c.get('credentialStores');
 
     // Filter by status if provided
     if (status) {
-      const tools = await listToolsByStatus(dbClient)({ scopes: { tenantId, projectId }, status });
-      result = {
-        data: tools.map((tool) => dbResultToMcpTool(tool)),
-        pagination: {
-          page: 1,
-          limit: tools.length,
-          total: tools.length,
-          pages: 1,
-        },
-      };
-    } else {
-      // Use paginated results from crud operations
       const dbResult = await listTools(dbClient)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
       });
       result = {
-        data: dbResult.data.map((tool) => dbResultToMcpTool(tool)),
+        data: (
+          await Promise.all(
+            dbResult.data.map(
+              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+            )
+          )
+        ).filter((tool) => tool.status === status),
+        pagination: dbResult.pagination,
+      };
+    } else {
+      // Use paginated results from operations
+      const dbResult = await listTools(dbClient)({
+        scopes: { tenantId, projectId },
+        pagination: { page, limit },
+      });
+      result = {
+        data: await Promise.all(
+          dbResult.data.map(
+            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+          )
+        ),
         pagination: dbResult.pagination,
       };
     }
@@ -117,7 +118,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Tool',
     operationId: 'get-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -136,7 +137,6 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
-
     if (!tool) {
       throw createApiError({
         code: 'not_found',
@@ -144,8 +144,10 @@ app.openapi(
       });
     }
 
+    const credentialStores = c.get('credentialStores');
+
     return c.json({
-      data: dbResultToMcpTool(tool),
+      data: await dbResultToMcpTool(tool, dbClient, credentialStores),
     });
   }
 );
@@ -157,7 +159,7 @@ app.openapi(
     path: '/',
     summary: 'Create Tool',
     operationId: 'create-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -183,8 +185,9 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
+    const credentialStores = c.get('credentialStores');
 
-    getLogger().info({ body }, 'body');
+    logger.info({ body }, 'body');
 
     const id = body.id || nanoid();
 
@@ -201,7 +204,7 @@ app.openapi(
 
     return c.json(
       {
-        data: dbResultToMcpTool(tool),
+        data: await dbResultToMcpTool(tool, dbClient, credentialStores),
       },
       201
     );
@@ -215,7 +218,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Tool',
     operationId: 'update-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
       body: {
@@ -241,6 +244,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
+    const credentialStores = c.get('credentialStores');
 
     // Check if there are any fields to update
     if (Object.keys(body).length === 0) {
@@ -270,7 +274,7 @@ app.openapi(
     }
 
     return c.json({
-      data: dbResultToMcpTool(updatedTool),
+      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores),
     });
   }
 );
@@ -282,7 +286,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Tool',
     operationId: 'delete-tool',
-    tags: ['CRUD Tools'],
+    tags: ['Tools'],
     request: {
       params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
     },
@@ -312,380 +316,6 @@ app.openapi(
     }
 
     return c.body(null, 204);
-  }
-);
-
-// Health check single tool
-app.openapi(
-  createRoute({
-    method: 'post',
-    path: '/{id}/health-check',
-    summary: 'Check Tool Health',
-    operationId: 'check-tool-health',
-    tags: ['CRUD Tools'],
-    request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
-    },
-    responses: {
-      200: {
-        description: 'Tool health check completed',
-        content: {
-          'application/json': {
-            schema: SingleResponseSchema(
-              z.object({
-                tool: McpToolSchema,
-                healthCheck: z.object({
-                  status: ToolStatusSchema,
-                  error: z.string().optional(),
-                }),
-              })
-            ),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
-
-    if (!tool) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Tool not found',
-      });
-    }
-
-    const credentialStores = c.get('credentialStores');
-    const healthResult = await checkToolHealth(dbResultToMcpTool(tool), credentialStores);
-
-    const updatedTool = await updateToolHealth({
-      tenantId,
-      projectId,
-      toolId: id,
-      status: healthResult.status,
-      error: healthResult.error,
-    });
-
-    return c.json({
-      data: {
-        tool: dbResultToMcpTool(updatedTool),
-        healthCheck: healthResult,
-      },
-    });
-  }
-);
-
-// Health check all tools for tenant
-app.openapi(
-  createRoute({
-    method: 'post',
-    path: '/health-check-all',
-    summary: 'Check All Tools Health',
-    operationId: 'check-all-tools-health',
-    tags: ['CRUD Tools'],
-    request: {
-      params: TenantProjectParamsSchema,
-    },
-    responses: {
-      200: {
-        description: 'All tools health check completed',
-        content: {
-          'application/json': {
-            schema: SingleResponseSchema(
-              z.object({
-                total: z.number(),
-                successful: z.number(),
-                failed: z.number(),
-                results: z.array(
-                  z.object({
-                    index: z.number(),
-                    status: z.enum(['fulfilled', 'rejected']),
-                    data: z.string().optional(),
-                    error: z.string().optional(),
-                  })
-                ),
-              })
-            ),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
-    const credentialStores = c.get('credentialStores');
-    const results = await checkAllToolsHealth(tenantId, projectId, credentialStores);
-
-    const summary = {
-      total: results.length,
-      successful: results.filter((r) => r.status === 'fulfilled').length,
-      failed: results.filter((r) => r.status === 'rejected').length,
-      results: results.map((result, index) => {
-        const baseResult = {
-          index,
-          status: result.status,
-        };
-
-        if (result.status === 'fulfilled') {
-          return {
-            ...baseResult,
-            data: `Tool ${index} health check completed`,
-          };
-        }
-
-        return {
-          ...baseResult,
-          error: result.reason?.message || 'Unknown error',
-        };
-      }),
-    };
-
-    return c.json({ data: summary });
-  }
-);
-
-// Sync tool definitions from MCP server
-app.openapi(
-  createRoute({
-    method: 'post',
-    path: '/{id}/sync',
-    summary: 'Sync Tool Definitions',
-    operationId: 'sync-tool-definitions',
-    tags: ['CRUD Tools'],
-    request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
-    },
-    responses: {
-      200: {
-        description: 'Tool definitions synchronized successfully',
-        content: {
-          'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-
-    // Check if tool exists first
-    const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
-    if (!tool) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Tool not found',
-      });
-    }
-
-    const credentialStores = c.get('credentialStores');
-    const updatedTool = await syncToolDefinitions({
-      tenantId,
-      projectId,
-      toolId: id,
-      credentialStoreRegistry: credentialStores,
-    });
-
-    return c.json({
-      data: dbResultToMcpTool(updatedTool),
-      message: 'Tool definitions synchronized successfully',
-    });
-  }
-);
-
-// Get available tools from MCP server (without storing)
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/{id}/available-tools',
-    summary: 'Get Available Tools',
-    operationId: 'get-available-tools',
-    tags: ['CRUD Tools'],
-    request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
-    },
-    responses: {
-      200: {
-        description: 'Available tools retrieved successfully',
-        content: {
-          'application/json': {
-            schema: SingleResponseSchema(
-              z.object({
-                availableTools: z.array(
-                  z.object({
-                    name: z.string(),
-                    description: z.string().optional(),
-                    inputSchema: z.record(z.string(), z.unknown()).optional(),
-                  })
-                ),
-                lastSync: z.string().optional(),
-                status: ToolStatusSchema,
-              })
-            ),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
-
-    if (!tool) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Tool not found',
-      });
-    }
-
-    return c.json({
-      data: {
-        availableTools: tool.availableTools || [],
-        lastSync: tool.lastToolsSync || undefined,
-        status: tool.status as McpToolStatus,
-      },
-    });
-  }
-);
-
-// Enable/disable tool
-app.openapi(
-  createRoute({
-    method: 'patch',
-    path: '/{id}/status',
-    summary: 'Update Tool Status',
-    operationId: 'update-tool-status',
-    tags: ['CRUD Tools'],
-    request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
-      body: {
-        content: {
-          'application/json': {
-            schema: z.object({
-              status: ToolStatusSchema,
-            }),
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Tool status updated successfully',
-        content: {
-          'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const { status } = c.req.valid('json');
-
-    const updatedTool = await updateToolHealth({
-      tenantId,
-      projectId,
-      toolId: id,
-      status: status,
-    });
-
-    return c.json({
-      data: dbResultToMcpTool(updatedTool),
-      message: `Tool status updated to ${status}`,
-    });
-  }
-);
-
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/{id}/oauth-login',
-    summary: 'Initiate OAuth login for MCP tool',
-    description: 'Detects OAuth requirements and redirects to authorization server',
-    operationId: 'initiate-oauth-login',
-    tags: ['Tools'],
-    request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
-    },
-    responses: {
-      302: {
-        description: 'Redirect to OAuth authorization server',
-      },
-      400: {
-        description: 'OAuth not supported or configuration error',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
-      404: {
-        description: 'Tool not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
-      500: {
-        description: 'Internal server error',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const logger = getLogger('oauth-login');
-
-    try {
-      // 1. Get the tool
-      const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
-
-      if (!tool) {
-        throw createApiError({
-          code: 'not_found',
-          message: 'Tool not found',
-        });
-      }
-
-      const mcpTool = dbResultToMcpTool(tool);
-
-      // 2. Initiate OAuth flow using centralized service
-      const { redirectUrl } = await oauthService.initiateOAuthFlow({
-        tool: mcpTool,
-        tenantId,
-        projectId,
-        toolId: id,
-      });
-
-      // 4. Immediate redirect
-      return c.redirect(redirectUrl, 302);
-    } catch (error) {
-      logger.error({ toolId: id, error }, 'OAuth login failed');
-
-      if (error && typeof error === 'object' && 'code' in error) {
-        const apiError = error as any;
-        return c.json({ error: apiError.message }, apiError.code === 'not_found' ? 404 : 400);
-      }
-
-      return c.json(
-        {
-          error: 'Failed to initiate OAuth login',
-        },
-        500
-      );
-    }
   }
 );
 

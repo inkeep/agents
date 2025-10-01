@@ -2,9 +2,6 @@
 
 import type { McpTool, ToolApiInsert } from '@inkeep/agents-core';
 
-// Export the core McpTool type for convenience
-export type { McpTool as MCPTool } from '@inkeep/agents-core';
-
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
@@ -45,7 +42,7 @@ export async function fetchMCPTools(
   }
 
   const response = await makeManagementApiRequest<ListResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools?${params}`
+    `tenants/${tenantId}/projects/${projectId}/tools?${params}`
   );
 
   return response.data;
@@ -63,7 +60,7 @@ export async function fetchMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}`
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}`
   );
 
   return response.data;
@@ -81,7 +78,7 @@ export async function createMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools`,
+    `tenants/${tenantId}/projects/${projectId}/tools`,
     {
       method: 'POST',
       body: JSON.stringify(data),
@@ -104,7 +101,7 @@ export async function updateMCPTool(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}`,
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
     {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -125,97 +122,7 @@ export async function deleteMCPTool(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest<void>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}`,
-    {
-      method: 'DELETE',
-    }
-  );
-}
-
-/**
- * Check health of an MCP tool
- */
-export async function checkMCPToolHealth(
-  tenantId: string,
-  projectId: string,
-  id: string
-): Promise<{
-  tool: McpTool;
-  healthCheck: {
-    status: McpTool['status'];
-    error?: string;
-  };
-}> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<
-    SingleResponse<{
-      tool: McpTool;
-      healthCheck: {
-        status: McpTool['status'];
-        error?: string;
-      };
-    }>
-  >(`tenants/${tenantId}/crud/projects/${projectId}/tools/${id}/health-check`, {
-    method: 'POST',
+  await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}/tools/${id}`, {
+    method: 'DELETE',
   });
-
-  return response.data;
-}
-
-/**
- * Get available tools from an MCP server
- */
-export async function getMCPToolAvailableTools(
-  tenantId: string,
-  projectId: string,
-  id: string
-): Promise<{
-  availableTools: Array<{
-    name: string;
-    description?: string;
-    inputSchema?: Record<string, unknown>;
-  }>;
-  lastSync?: string;
-  status: McpTool['status'];
-}> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<
-    SingleResponse<{
-      availableTools: Array<{
-        name: string;
-        description?: string;
-        inputSchema?: Record<string, unknown>;
-      }>;
-      lastSync?: string;
-      status: McpTool['status'];
-    }>
-  >(`tenants/${tenantId}/crud/projects/${projectId}/tools/${id}/available-tools`);
-
-  return response.data;
-}
-
-/**
- * Sync tool definitions from an MCP server
- */
-export async function syncMCPTool(
-  tenantId: string,
-  projectId: string,
-  id: string
-): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/tools/${id}/sync`,
-    {
-      method: 'POST',
-    }
-  );
-
-  return response.data;
 }

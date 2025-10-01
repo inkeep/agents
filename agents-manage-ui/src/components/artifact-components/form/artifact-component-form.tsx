@@ -67,22 +67,22 @@ export function ArtifactComponentForm({
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to update artifact component');
+          toast.error(res.error || 'Failed to update artifact.');
           return;
         }
-        toast.success('Artifact component updated');
+        toast.success('Artifact updated.');
       } else {
         const res = await createArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to create artifact component');
+          toast.error(res.error || 'Failed to create artifact');
           return;
         }
-        toast.success('Artifact component created');
-        router.push(`/${tenantId}/projects/${projectId}/artifact-components`);
+        toast.success('Artifact created.');
+        router.push(`/${tenantId}/projects/${projectId}/artifacts`);
       }
     } catch (error) {
-      console.error('Error submitting artifact component:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      console.error('Error submitting artifact:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
   };
@@ -101,13 +101,13 @@ export function ArtifactComponentForm({
           control={form.control}
           name="id"
           label="Id"
-          placeholder="my-artifact-component"
+          placeholder="my-artifact"
           disabled={!!id}
           isRequired
           description={
             id
               ? ''
-              : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
+              : 'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
           }
         />
         <GenericTextarea
@@ -121,14 +121,14 @@ export function ArtifactComponentForm({
         <JsonSchemaInput
           control={form.control}
           name="summaryProps"
-          label="Summary props (JSON Schema)"
+          label="Summary props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
           isRequired
         />
         <JsonSchemaInput
           control={form.control}
           name="fullProps"
-          label="Full props (JSON Schema)"
+          label="Full props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
           isRequired
         />

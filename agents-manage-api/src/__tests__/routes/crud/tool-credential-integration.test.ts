@@ -21,7 +21,7 @@ describe('Tool-Credential Integration Tests', () => {
       },
     };
 
-    const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
       method: 'POST',
       body: JSON.stringify(credentialData),
     });
@@ -55,7 +55,7 @@ describe('Tool-Credential Integration Tests', () => {
       },
     };
 
-    const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/tools`, {
+    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
       method: 'POST',
       body: JSON.stringify(toolData),
     });
@@ -103,7 +103,7 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Update tool to add credential
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'PUT',
           body: JSON.stringify({
@@ -127,7 +127,7 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Update tool to remove credential
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'PUT',
           body: JSON.stringify({
@@ -154,7 +154,7 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Update tool to use second credential
       const updateRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${toolId}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'PUT',
           body: JSON.stringify({
@@ -183,10 +183,10 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Verify both tools reference the same credential
       const tool1Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool1Id}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${tool1Id}`
       );
       const tool2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool2Id}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${tool2Id}`
       );
 
       expect(tool1Res.status).toBe(200);
@@ -210,7 +210,7 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Delete first tool
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool1Id}`,
+        `/tenants/${tenantId}/projects/${projectId}/tools/${tool1Id}`,
         {
           method: 'DELETE',
         }
@@ -219,7 +219,7 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Verify second tool still exists and references the credential
       const tool2Res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/tools/${tool2Id}`
+        `/tenants/${tenantId}/projects/${projectId}/tools/${tool2Id}`
       );
       expect(tool2Res.status).toBe(200);
       const tool2Body = await tool2Res.json();
@@ -227,7 +227,7 @@ describe('Tool-Credential Integration Tests', () => {
 
       // Verify credential still exists
       const credRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(credRes.status).toBe(200);
     });
@@ -244,7 +244,7 @@ describe('Tool-Credential Integration Tests', () => {
       await createTestTool(tenantId); // Tool without credential
 
       // List tools
-      const listRes = await app.request(`/tenants/${tenantId}/crud/projects/${projectId}/tools`);
+      const listRes = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools`);
       expect(listRes.status).toBe(200);
 
       const listBody = await listRes.json();
@@ -279,7 +279,7 @@ describe('Tool-Credential Integration Tests', () => {
         credentialReferenceId: '', // Empty string
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/tools`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
         method: 'POST',
         body: JSON.stringify(toolData),
       });
@@ -305,7 +305,7 @@ describe('Tool-Credential Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/tools`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
         method: 'POST',
         body: JSON.stringify(toolData),
       });

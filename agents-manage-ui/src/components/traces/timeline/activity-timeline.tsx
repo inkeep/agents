@@ -4,11 +4,13 @@ import type { ActivityItem } from '@/components/traces/timeline/types';
 export function ActivityTimeline({
   activities,
   onSelect,
+  selectedActivityId,
   collapsedAiMessages,
   onToggleAiMessageCollapse,
 }: {
   activities: ActivityItem[];
   onSelect: (a: ActivityItem) => void;
+  selectedActivityId?: string | null;
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
 }) {
@@ -21,6 +23,7 @@ export function ActivityTimeline({
             activity={activity}
             isLast={index === activities.length - 1}
             onSelect={() => onSelect(activity)}
+            isSelected={selectedActivityId === activity.id}
             isAiMessageCollapsed={collapsedAiMessages?.has(activity.id) || false}
             onToggleAiMessageCollapse={onToggleAiMessageCollapse}
           />

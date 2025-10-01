@@ -11,19 +11,59 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  type CredentialReferenceApiInsert,
+  CredentialReferenceApiSelectSchema,
   type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
   dbResultToMcpTool,
-  getCredentialReference,
+  getCredentialReferenceWithTools,
   getToolById,
   type ServerConfig,
-  updateCredentialReference,
   updateTool,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
+
+/**
+ * Find existing credential or create a new one (idempotent operation)
+ */
+async function findOrCreateCredential(
+  tenantId: string,
+  projectId: string,
+  credentialData: CredentialReferenceApiInsert
+) {
+  try {
+    // Try to find existing credential first
+    const existingCredential = await getCredentialReferenceWithTools(dbClient)({
+      scopes: { tenantId, projectId },
+      id: credentialData.id,
+    });
+
+    if (existingCredential) {
+      const validatedCredential = CredentialReferenceApiSelectSchema.parse(existingCredential);
+      return validatedCredential;
+    }
+  } catch {
+    // Credential not found, continue with creation
+  }
+
+  // Create new credential
+  try {
+    const credential = await createCredentialReference(dbClient)({
+      ...credentialData,
+      tenantId,
+      projectId,
+    });
+
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    return validatedCredential;
+  } catch (error) {
+    console.error('Failed to save credential to database:', error);
+    throw new Error(`Failed to save credential '${credentialData.id}' to database`);
+  }
+}
 
 type AppVariables = {
   serverConfig: ServerConfig;
@@ -33,6 +73,21 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('oauth-callback');
 
+/**
+ * Extract base URL from request context
+ */
+function getBaseUrlFromRequest(c: any): string {
+  const url = new URL(c.req.url);
+  return `${url.protocol}//${url.host}`;
+}
+
+// OAuth login endpoint schema
+const OAuthLoginQuerySchema = z.object({
+  tenantId: z.string().min(1, 'Tenant ID is required'),
+  projectId: z.string().min(1, 'Project ID is required'),
+  toolId: z.string().min(1, 'Tool ID is required'),
+});
+
 // OAuth callback endpoint schema
 const OAuthCallbackQuerySchema = z.object({
   code: z.string().min(1, 'Authorization code is required'),
@@ -40,6 +95,86 @@ const OAuthCallbackQuerySchema = z.object({
   error: z.string().optional(),
   error_description: z.string().optional(),
 });
+
+// OAuth login initiation endpoint (public - no API key required)
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/login',
+    summary: 'Initiate OAuth login for MCP tool',
+    description:
+      'Detects OAuth requirements and redirects to authorization server (public endpoint)',
+    operationId: 'initiate-oauth-login-public',
+    tags: ['OAuth'],
+    request: {
+      query: OAuthLoginQuerySchema,
+    },
+    responses: {
+      302: {
+        description: 'Redirect to OAuth authorization server',
+      },
+      400: {
+        description: 'OAuth not supported or configuration error',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+      404: {
+        description: 'Tool not found',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+      500: {
+        description: 'Internal server error',
+        content: {
+          'text/html': {
+            schema: z.string(),
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, toolId } = c.req.valid('query');
+
+    try {
+      // 1. Get the tool
+      const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
+
+      if (!tool) {
+        logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
+        return c.text('Tool not found', 404);
+      }
+
+      const credentialStores = c.get('credentialStores');
+      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
+
+      // 2. Initiate OAuth flow using centralized service
+      const baseUrl = getBaseUrlFromRequest(c);
+      const { redirectUrl } = await oauthService.initiateOAuthFlow({
+        tool: mcpTool,
+        tenantId,
+        projectId,
+        toolId,
+        baseUrl,
+      });
+
+      // 3. Immediate redirect
+      return c.redirect(redirectUrl, 302);
+    } catch (error) {
+      logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to initiate OAuth login';
+      return c.text(`OAuth Error: ${errorMessage}`, 500);
+    }
+  }
+);
 
 // OAuth callback endpoint
 app.openapi(
@@ -112,16 +247,20 @@ app.openapi(
       logger.info({ toolId, tenantId, projectId }, 'Processing OAuth callback');
 
       // Exchange authorization code for access token using OAuth service
-      logger.info('Exchanging authorization code for access token');
+      logger.info({ toolId }, 'Exchanging authorization code for access token');
+
+      const credentialStores = c.get('credentialStores');
 
       // Convert database result to McpTool (using helper function)
-      const mcpTool = dbResultToMcpTool(tool);
+      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
 
+      const baseUrl = getBaseUrlFromRequest(c);
       const { tokens } = await oauthService.exchangeCodeForTokens({
         code,
         codeVerifier,
         clientId,
         tool: mcpTool,
+        baseUrl,
       });
 
       logger.info(
@@ -129,61 +268,59 @@ app.openapi(
         'Token exchange successful'
       );
 
-      // Store access token in keychain
-      const credentialStores = c.get('credentialStores');
+      // Store access token in keychain, or fall back to nango
+      const credentialTokenKey = `oauth_token_${toolId}`;
+      let newCredentialData: CredentialReferenceApiInsert | undefined;
+
       const keychainStore = credentialStores.get('keychain-default');
-      const keychainKey = `oauth_token_${toolId}`;
-      await keychainStore?.set(keychainKey, JSON.stringify(tokens));
-
-      const credentialId = tool.name;
-
-      const existingCredential = await getCredentialReference(dbClient)({
-        scopes: { tenantId, projectId },
-        id: credentialId,
-      });
-
-      const credentialData = {
-        type: CredentialStoreType.keychain,
-        credentialStoreId: 'keychain-default',
-        retrievalParams: {
-          key: keychainKey,
-        },
-      };
-
-      let credential: any;
-      if (existingCredential) {
-        // Update existing credential
-        logger.info({ credentialId: existingCredential.id }, 'Updating existing credential');
-        credential = await updateCredentialReference(dbClient)({
-          scopes: { tenantId, projectId },
-          id: existingCredential.id,
-          data: credentialData,
-        });
-      } else {
-        // Create new credential
-        logger.info('Creating new credential');
-        credential = await createCredentialReference(dbClient)({
-          tenantId,
-          projectId,
-          id: credentialId,
-          ...credentialData,
-        });
+      if (keychainStore) {
+        try {
+          await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
+          newCredentialData = {
+            id: mcpTool.name,
+            type: CredentialStoreType.keychain,
+            credentialStoreId: 'keychain-default',
+            retrievalParams: {
+              key: credentialTokenKey,
+            },
+          };
+        } catch {
+          // Fall through to Nango fallback
+        }
       }
 
-      if (!credential) {
-        throw new Error('Failed to create or update credential');
+      if (!newCredentialData && process.env.NANGO_SECRET_KEY) {
+        const nangoStore = credentialStores.get('nango-default');
+        await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
+        newCredentialData = {
+          id: mcpTool.name,
+          type: CredentialStoreType.nango,
+          credentialStoreId: 'nango-default',
+          retrievalParams: {
+            connectionId: credentialTokenKey,
+            providerConfigKey: credentialTokenKey,
+            provider: 'private-api-bearer',
+            authMode: 'API_KEY',
+          },
+        };
       }
+
+      if (!newCredentialData) {
+        throw new Error('No credential store found');
+      }
+
+      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
 
       // Update MCP tool to link the credential
       await updateTool(dbClient)({
         scopes: { tenantId, projectId },
         toolId,
         data: {
-          credentialReferenceId: credential.id,
+          credentialReferenceId: newCredential.id,
         },
       });
 
-      logger.info({ toolId, credentialId: credential.id }, 'OAuth flow completed successfully');
+      logger.info({ toolId, credentialId: newCredential.id }, 'OAuth flow completed successfully');
 
       // Show simple success page that auto-closes the tab
       const successPage = `

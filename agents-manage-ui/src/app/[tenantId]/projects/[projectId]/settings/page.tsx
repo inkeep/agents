@@ -20,7 +20,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Project Settings',
+          label: 'Project settings',
         },
       ]}
     >

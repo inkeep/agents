@@ -13,7 +13,7 @@ import { fetchCredentials } from '@/lib/api/credentials';
 export const dynamic = 'force-dynamic';
 
 const credentialDescription =
-  'Create credentials that MCP Servers can use to access external services.';
+  'Create credentials that MCP servers can use to access external services.';
 
 async function CredentialsPage({
   params,
@@ -43,7 +43,7 @@ async function CredentialsPage({
                     className="flex items-center gap-2"
                   >
                     <Plus className="size-4" />
-                    New Credential
+                    New credential
                   </Link>
                 </Button>
               }

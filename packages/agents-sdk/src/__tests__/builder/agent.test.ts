@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../externalAgent';
+import { Tool } from '../../tool';
 import type { AgentConfig } from '../../types';
 
 // Mock dependencies
@@ -33,12 +34,11 @@ describe('Agent Builder', () => {
       text: () => Promise.resolve('Success'),
     } as Response);
 
-    mockTool = {
+    mockTool = new Tool({
       id: 'testTool',
       name: 'Test Tool',
       serverUrl: 'http://localhost:3000',
-      tenantId: 'test-tenant',
-    } as any;
+    });
   });
 
   describe('Constructor', () => {
@@ -48,7 +48,6 @@ describe('Agent Builder', () => {
         name: 'Test Agent',
         description: 'Test agent description',
         prompt: 'You are a helpful test agent',
-        tenantId: 'test-tenant',
       };
 
       const agent = new Agent(config);
@@ -117,7 +116,6 @@ describe('Agent Builder', () => {
         name: 'Test Agent',
         description: 'Test agent description',
         prompt: 'Test agent',
-        tenantId: 'test-tenant',
       });
     });
 
@@ -249,8 +247,8 @@ describe('Agent Builder', () => {
 
   describe('Description Methods', () => {
     let sourceAgent: Agent;
-    let transferAgent: Agent;
-    let delegateAgent: Agent;
+    let _transferAgent: Agent;
+    let _delegateAgent: Agent;
 
     beforeEach(() => {
       sourceAgent = new Agent({
@@ -260,14 +258,14 @@ describe('Agent Builder', () => {
         prompt: 'You are the main agent',
       });
 
-      transferAgent = new Agent({
+      _transferAgent = new Agent({
         id: 'transfer-agent',
         name: 'Transfer Agent',
         description: 'Specialized agent for transfers',
         prompt: 'You handle transfers',
       });
 
-      delegateAgent = new Agent({
+      _delegateAgent = new Agent({
         id: 'delegate-agent',
         name: 'Delegate Agent',
         description: 'Specialized agent for delegations',
@@ -286,8 +284,6 @@ describe('Agent Builder', () => {
         name: 'No Description Agent',
         description: '',
         prompt: 'No description provided',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
       });
 
       const description = agentWithoutDesc.getDescription();
@@ -299,20 +295,18 @@ describe('Agent Builder', () => {
     let agent: Agent;
 
     beforeEach(() => {
-      const testTool = {
-        id: 'testTool',
+      const testTool = new Tool({
+        id: 'test-tool',
         name: 'Test Tool',
+        description: 'A test tool for graph testing',
         serverUrl: 'http://localhost:3000',
-        tenantId: 'test-tenant',
-      } as any;
+      });
 
       agent = new Agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'Test instructions',
         description: 'Test description',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
         canUse: () => [testTool],
         dataComponents: () => [
           {
@@ -322,13 +316,15 @@ describe('Agent Builder', () => {
           },
         ],
       });
+      // Set context for the agent
+      agent.setContext('test-tenant', 'test-project');
     });
 
     it('should initialize agent and create backend entities', async () => {
       await agent.init();
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/tenants/test-tenant/crud/agents/test-agent'),
+        expect.stringContaining('/tenants/test-tenant/agents/test-agent'),
         expect.objectContaining({
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

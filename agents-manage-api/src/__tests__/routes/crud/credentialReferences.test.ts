@@ -135,15 +135,10 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     await ensureTestProject(tenantId, projectId);
 
     const credentialData = createCredentialData({ suffix });
-    const createRes = await makeRequest(
-      `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
-      {
-        method: 'POST',
-        body: JSON.stringify(credentialData),
-      }
-    );
-
-    console.log('createRes', createRes);
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
+      method: 'POST',
+      body: JSON.stringify(credentialData),
+    });
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
@@ -171,7 +166,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('credentials-list-empty');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -195,7 +190,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createMultipleCredentials({ tenantId, count: 3 });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -229,7 +224,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Test first page
       const page1 = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=2`
       );
       expect(page1.status).toBe(200);
       const page1Body = await page1.json();
@@ -243,7 +238,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2 = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/credentials?page=2&limit=2`
       );
       expect(page2.status).toBe(200);
       const page2Body = await page2.json();
@@ -257,7 +252,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Test third page
       const page3 = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials?page=3&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/credentials?page=3&limit=2`
       );
       expect(page3.status).toBe(200);
       const page3Body = await page3.json();
@@ -268,7 +263,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('credentials-max-limit');
       await ensureTestProject(tenantId, projectId);
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -287,12 +282,12 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createMultipleCredentials({ tenantId: tenantB, count: 3 });
 
       // Check tenant A sees only its credentials
-      const resA = await app.request(`/tenants/${tenantA}/crud/projects/${projectId}/credentials`);
+      const resA = await app.request(`/tenants/${tenantA}/projects/${projectId}/credentials`);
       const bodyA = await resA.json();
       expect(bodyA.data).toHaveLength(2);
 
       // Check tenant B sees only its credentials
-      const resB = await app.request(`/tenants/${tenantB}/crud/projects/${projectId}/credentials`);
+      const resB = await app.request(`/tenants/${tenantB}/projects/${projectId}/credentials`);
       const bodyB = await resB.json();
       expect(bodyB.data).toHaveLength(3);
     });
@@ -305,7 +300,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { credentialData, credentialId } = await createTestCredential({ tenantId });
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(res.status).toBe(200);
 
@@ -327,7 +322,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const nonExistentId = 'non-existent-credential-id';
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${nonExistentId}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${nonExistentId}`
       );
       expect(res.status).toBe(404);
 
@@ -347,7 +342,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Try to access from tenant B
       const res = await app.request(
-        `/tenants/${tenantB}/crud/projects/${projectId}/credentials/${credentialId}`
+        `/tenants/${tenantB}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(res.status).toBe(404);
     });
@@ -359,7 +354,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const credentialData = createCredentialData();
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         body: JSON.stringify(credentialData),
       });
@@ -388,7 +383,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         credentialStoreId: 'memory-store',
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         body: JSON.stringify(minimalData),
       });
@@ -412,7 +407,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         retrievalParams: { some: 'data' },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         body: JSON.stringify(invalidData),
       });
@@ -437,7 +432,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -469,7 +464,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'PUT',
           body: JSON.stringify(partialUpdate),
@@ -496,7 +491,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const updateData = { type: CredentialStoreType.nango };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${nonExistentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -521,7 +516,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Try to update from tenant B
       const updateData = { type: CredentialStoreType.memory };
       const res = await makeRequest(
-        `/tenants/${tenantB}/crud/projects/${projectId}/credentials/${credentialId}`,
+        `/tenants/${tenantB}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -540,13 +535,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential exists
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(getRes.status).toBe(200);
 
       // Delete the credential
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'DELETE',
         }
@@ -555,7 +550,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential is deleted
       const getAfterDeleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credentialId}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
     });
@@ -566,7 +561,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const nonExistentId = 'non-existent-credential-id';
 
       const res = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${nonExistentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${nonExistentId}`,
         {
           method: 'DELETE',
         }
@@ -585,7 +580,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Try to delete from tenant B
       const res = await app.request(
-        `/tenants/${tenantB}/crud/projects/${projectId}/credentials/${credentialId}`,
+        `/tenants/${tenantB}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'DELETE',
         }
@@ -595,7 +590,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential still exists for tenant A
       const getRes = await app.request(
-        `/tenants/${tenantA}/crud/projects/${projectId}/credentials/${credentialId}`
+        `/tenants/${tenantA}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(getRes.status).toBe(200);
     });
@@ -619,7 +614,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(complexCredentialData),
@@ -629,7 +624,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Delete the credential
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -638,7 +633,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify it's deleted
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -649,7 +644,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('credentials-malformed-json');
       await ensureTestProject(tenantId, projectId);
 
-      const res = await app.request(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -665,7 +660,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const credentialData = createCredentialData();
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         body: JSON.stringify(credentialData),
       });
@@ -688,7 +683,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         body: JSON.stringify(credentialData),
       });
@@ -713,7 +708,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         // retrievalParams omitted - should be set to null in database
       };
 
-      const res = await makeRequest(`/tenants/${tenantId}/crud/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         body: JSON.stringify(credentialData),
       });
@@ -759,7 +754,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(credentialData),
@@ -769,13 +764,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
       // Verify credential exists in database
       const getRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getRes.status).toBe(200);
 
       // Delete the credential
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -788,7 +783,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential is deleted from database
       const getAfterDeleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
     });
@@ -809,7 +804,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(credentialData),
@@ -820,7 +815,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Delete should still succeed even if external store fails
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -829,7 +824,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential is still deleted from database despite external store failure
       const getAfterDeleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
     });
@@ -849,7 +844,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(credentialData),
@@ -860,7 +855,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Delete should succeed even if credential store is not available
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -869,7 +864,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential is deleted from database
       const getAfterDeleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
     });
@@ -892,7 +887,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(credentialData),
@@ -903,7 +898,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Delete the credential
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -935,7 +930,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(credentialData),
@@ -946,7 +941,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Delete the credential
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -973,7 +968,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       };
 
       const createRes = await makeRequest(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials`,
         {
           method: 'POST',
           body: JSON.stringify(credentialData),
@@ -984,7 +979,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Delete the credential
       const deleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`,
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
         }
@@ -997,7 +992,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
       // Verify credential is deleted from database (happens after external store)
       const getAfterDeleteRes = await app.request(
-        `/tenants/${tenantId}/crud/projects/${projectId}/credentials/${credential.id}`
+        `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
     });

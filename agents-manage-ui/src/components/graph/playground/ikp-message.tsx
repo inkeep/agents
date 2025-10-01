@@ -72,8 +72,13 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
   };
 
   const getExpandedContent = () => {
-    // data-operation uses ctx
-    return operation.ctx || operation.details || {};
+    if (operation.type === 'data-summary') {
+      // data-summary uses details field
+      return operation.details || {};
+    } else {
+      // data-operation uses ctx
+      return operation.ctx || operation.details || {};
+    }
   };
 
   return (
@@ -99,9 +104,22 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
 
       {isExpanded && (
         <div className=" ml-6 pb-2 mt-2 rounded text-xs">
-          <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
-            {JSON.stringify(getExpandedContent(), null, 2)}
-          </pre>
+          {operation.type === 'data-summary' ? (
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="font-medium mb-1 text-gray-700 dark:text-gray-300">
+                {operation.label}
+              </div>
+              {operation.details && Object.keys(operation.details).length > 0 && (
+                <pre className="whitespace-pre-wrap font-mono">
+                  {JSON.stringify(operation.details, null, 2)}
+                </pre>
+              )}
+            </div>
+          ) : (
+            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
+              {JSON.stringify(getExpandedContent(), null, 2)}
+            </pre>
+          )}
         </div>
       )}
     </div>
@@ -174,7 +192,6 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
           }
         } else if (part.type === 'data-summary') {
           // Handle data-summary events as inline operations
-          // Add the inline summary
           processed.push({
             type: 'inline-operation',
             operation: { type: 'data-summary', ...part.data },
@@ -366,7 +383,7 @@ function useProcessedOperations(parts: Message['parts']) {
 export const IkpMessage: FC<IkpMessageProps> = ({
   message,
   isStreaming = false,
-  renderMarkdown,
+  renderMarkdown: _renderMarkdown,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
 
@@ -375,8 +392,8 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 
   if (message.role === 'user') {
     return (
-      <div className="flex justify-end mb-4">
-        <div className="max-w-3xl bg-gray-100 dark:bg-muted text-gray-700 dark:text-foreground rounded-3xl rounded-br-xs px-4 py-2">
+      <div className="">
+        <div className="">
           <p className="text-sm">{textContent}</p>
         </div>
       </div>
@@ -432,7 +449,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 
                   if (
                     part.type === 'text' ||
-                    part.type === 'data-artifact' ||  // Include artifacts in text groups!
+                    part.type === 'data-artifact' || // Include artifacts in text groups!
                     (part.type === 'data-component' && part.data.type === 'text')
                   ) {
                     currentTextGroup.push(part);
@@ -450,6 +467,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                 if (currentTextGroup.length > 0) {
                   groupedParts.push({ type: 'text-group', parts: currentTextGroup });
                 }
+
 
                 return groupedParts.map((group, index) => {
                   if (group.type === 'text-group') {
@@ -485,6 +503,13 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                     // Handle inline operations in order
                     return (
                       <div key={`operation-${index}`}>
+                        <StreamMarkdown parts={[group]} />
+                      </div>
+                    );
+                  } else if (group.type === 'data-summary') {
+                    // Handle inline summaries in order
+                    return (
+                      <div key={`summary-${index}`}>
                         <StreamMarkdown parts={[group]} />
                       </div>
                     );

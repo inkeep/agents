@@ -1,18 +1,25 @@
 'use client';
 
-import { Activity, ArrowLeft, MessageSquare, TriangleAlert } from 'lucide-react';
+import {
+  Activity,
+  ArrowLeft,
+  ExternalLink as ExternalLinkIcon,
+  MessageSquare,
+  TriangleAlert,
+} from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import type {
   ActivityItem,
   ConversationDetail as ConversationDetailType,
 } from '@/components/traces/timeline/types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ConversationErrors } from './conversation-errors';
+import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
@@ -26,7 +33,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showErrorsPage, setShowErrorsPage] = useState(false);
+  const { tenantId, projectId } = useParams();
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
@@ -36,7 +43,6 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         const response = await fetch(`/api/signoz/conversations/${conversationId}`);
         if (!response.ok) throw new Error('Failed to fetch conversation details');
         const data = await response.json();
-        if (typeof data.totalErrors === 'undefined') data.totalErrors = 0;
         setConversation(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -52,7 +58,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-4 mb-6">
-          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-8 w-24" />
           <Skeleton className="h-8 w-64" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -84,12 +90,6 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
     );
   }
 
-  if (showErrorsPage) {
-    return (
-      <ConversationErrors conversationId={conversationId} onBack={() => setShowErrorsPage(false)} />
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -102,59 +102,67 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             </Button>
           )}
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-light">Conversation Details</h3>
-            <Badge variant="code" className="text-xs">
-              {conversationId}
-            </Badge>
-            {(conversation.graphId || conversation.graphName) && (
-              <Badge variant="code" className="text-xs">
-                Graph:{' '}
-                {conversation.graphName
-                  ? `${conversation.graphName} (${conversation.graphId})`
-                  : conversation.graphId}
-              </Badge>
-            )}
+            <h3 className="text-xl font-light">Conversation details</h3>
           </div>
         </div>
-        <SignozLink conversationId={conversationId} />
+        <div className="flex items-center gap-2">
+          {(conversation.graphId || conversation.graphName) && (
+            <ExternalLink
+              href={`/${tenantId}/projects/${projectId}/graphs/${conversation.graphId}`}
+            >
+              {conversation.graphName ? `${conversation.graphName}` : conversation.graphId}
+            </ExternalLink>
+          )}
+          <SignozLink conversationId={conversationId} />
+        </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4 flex-shrink-0">
-        {/* Errors */}
+        {/* Duration */}
         <Card
-          className={`shadow-none bg-background ${conversation.totalErrors > 0 ? 'cursor-pointer hover:bg-destructive/5 dark:hover:bg-destructive/10 transition-colors' : ''}`}
-          onClick={() => {
-            if (conversation.totalErrors > 0) setShowErrorsPage(true);
-          }}
+          className="shadow-none bg-background"
+          title={
+            conversation.conversationStartTime && conversation.conversationEndTime
+              ? `Start: ${conversation.conversationStartTime}\nEnd: ${conversation.conversationEndTime}`
+              : 'Timing data not available'
+          }
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Errors</CardTitle>
-            <TriangleAlert className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">Duration</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div
-              className={`text-2xl font-bold ${conversation.totalErrors > 0 ? 'text-red-600' : 'text-green-600'}`}
-            >
-              {conversation.totalErrors}
+            <div className="space-y-2">
+              {conversation.conversationStartTime && conversation.conversationEndTime ? (
+                <>
+                  <div className="text-sm font-medium text-foreground">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">Start:</span>
+                      <span className="text-xs font-mono">
+                        {formatDateTime(conversation.conversationStartTime)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-muted-foreground">End:</span>
+                      <span className="text-xs font-mono">
+                        {formatDateTime(conversation.conversationEndTime)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    {conversation.conversationDuration && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Conversation Duration:</span>{' '}
+                        {formatDuration(conversation.conversationDuration)}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">Timing data not available</div>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {conversation.totalErrors === 0
-                ? 'No errors detected'
-                : (() => {
-                    const mcp = conversation.mcpToolErrors?.length || 0;
-                    const ctx = conversation.contextErrors?.length || 0;
-                    const agent = conversation.agentGenerationErrors?.length || 0;
-                    if (mcp || ctx || agent) {
-                      const parts = [];
-                      if (mcp) parts.push(`${mcp} MCP tool`);
-                      if (ctx) parts.push(`${ctx} context`);
-                      if (agent) parts.push(`${agent} agent generation`);
-                      return `${parts.join(', ')} errors - Click to view details`;
-                    }
-                    return 'Errors in conversation';
-                  })()}
-            </p>
           </CardContent>
         </Card>
 
@@ -215,50 +223,57 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           </CardContent>
         </Card>
 
-        {/* Duration */}
-        <Card
-          className="shadow-none bg-background"
-          title={
-            conversation.conversationStartTime && conversation.conversationEndTime
-              ? `Start: ${conversation.conversationStartTime}\nEnd: ${conversation.conversationEndTime}`
-              : 'Timing data not available'
-          }
-        >
+        {/* Alerts */}
+        <Card className="shadow-none bg-background">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Duration</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-foreground">Alerts</CardTitle>
+            <TriangleAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {conversation.conversationStartTime && conversation.conversationEndTime ? (
+            {(() => {
+              const errors = conversation.errorCount ?? 0;
+              const warnings = conversation.warningCount ?? 0;
+              const total = errors + warnings;
+
+              return (
                 <>
-                  <div className="text-sm font-medium text-foreground">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">Start:</span>
-                      <span className="text-xs font-mono">
-                        {formatDateTime(conversation.conversationStartTime)}
-                      </span>
+                  {total > 0 ? (
+                    <div className="space-y-1">
+                      {errors > 0 && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold font-mono text-red-600">{errors}</span>
+                          <span className="text-sm text-muted-foreground">error{errors > 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+                       {warnings > 0 && (
+                         <div className="flex items-baseline gap-2">
+                           <span className="text-2xl font-bold font-mono text-yellow-500">{warnings}</span>
+                           <span className="text-sm text-muted-foreground">warning{warnings > 1 ? 's' : ''}</span>
+                         </div>
+                       )}
                     </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-muted-foreground">End:</span>
-                      <span className="text-xs font-mono">
-                        {formatDateTime(conversation.conversationEndTime)}
-                      </span>
+                  ) : (
+                    <div>
+                      <div className="text-2xl font-bold font-mono text-green-600 mb-1">0</div>
+                      <p className="text-xs text-muted-foreground">No warnings or errors</p>
                     </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    {conversation.conversationDuration && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Conversation Duration:</span>{' '}
-                        {formatDuration(conversation.conversationDuration)}
-                      </div>
-                    )}
-                  </div>
+                  )}
+                  {total > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full flex items-center justify-center gap-1"
+                      onClick={() => {
+                        window.open(getSignozTracesExplorerUrl(conversationId as string), '_blank');
+                      }}
+                    >
+                      <ExternalLinkIcon className="h-3 w-3" />
+                      View in SigNoz
+                    </Button>
+                  )}
                 </>
-              ) : (
-                <div className="text-sm text-muted-foreground">Timing data not available</div>
-              )}
-            </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -269,7 +284,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           direction="horizontal"
           className="h-full border rounded-xl bg-background"
         >
-          <TimelineWrapper conversation={conversation} />
+          <TimelineWrapper conversation={conversation} conversationId={conversationId} />
         </ResizablePanelGroup>
       </div>
     </div>

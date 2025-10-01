@@ -4,8 +4,9 @@
  */
 
 import type { McpTool } from '@inkeep/agents-core';
+import { discoverOAuthEndpoints, type OAuthConfig } from '@inkeep/agents-core';
+import { env } from '../env';
 import { getLogger } from '../logger';
-import { discoverOAuthEndpoints, type OAuthConfig } from './auth-detection';
 
 const logger = getLogger('oauth-service');
 
@@ -104,8 +105,7 @@ class OAuthService {
         config.logoUri ||
         process.env.OAUTH_CLIENT_LOGO_URI ||
         'https://inkeep.com/images/logos/inkeep-logo-blue.svg',
-      redirectBaseUrl:
-        config.redirectBaseUrl || process.env.OAUTH_REDIRECT_BASE_URL || 'http://localhost:3002',
+      redirectBaseUrl: config.redirectBaseUrl || env.AGENTS_MANAGE_API_URL,
     };
   }
 
@@ -117,11 +117,12 @@ class OAuthService {
     tenantId: string;
     projectId: string;
     toolId: string;
+    baseUrl?: string; // Optional override for the base URL
   }): Promise<OAuthInitiationResult> {
-    const { tool, tenantId, projectId, toolId } = params;
+    const { tool, tenantId, projectId, toolId, baseUrl } = params;
 
     // 1. Detect OAuth requirements
-    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url);
+    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);
     if (!oAuthConfig) {
       throw new Error('OAuth not supported by this server');
     }
@@ -130,7 +131,8 @@ class OAuthService {
     const { codeVerifier, codeChallenge } = await this.generatePKCEInternal();
 
     // 3. Handle dynamic client registration if supported
-    const redirectUri = `${this.defaultConfig.redirectBaseUrl}/oauth/callback`;
+    const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
+    const redirectUri = `${redirectBaseUrl}/oauth/callback`;
     let clientId = this.defaultConfig.defaultClientId;
 
     if (oAuthConfig.supportsDynamicRegistration && oAuthConfig.registrationUrl) {
@@ -170,16 +172,18 @@ class OAuthService {
     codeVerifier: string;
     clientId: string;
     tool: McpTool;
+    baseUrl?: string; // Optional override for the base URL
   }): Promise<TokenExchangeResult> {
-    const { code, codeVerifier, clientId, tool } = params;
+    const { code, codeVerifier, clientId, tool, baseUrl } = params;
 
     // Discover OAuth server endpoints from MCP server
-    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url);
+    const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);
     if (!oAuthConfig?.tokenUrl) {
       throw new Error('Could not discover OAuth token endpoint');
     }
 
-    const redirectUri = `${this.defaultConfig.redirectBaseUrl}/oauth/callback`;
+    const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
+    const redirectUri = `${redirectBaseUrl}/oauth/callback`;
 
     let tokens: any;
 

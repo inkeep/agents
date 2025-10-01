@@ -201,17 +201,22 @@ export const getRelatedAgentsForGraph =
         relationType: agentRelations.relationType,
       })
       .from(agentRelations)
-      .innerJoin(agents, eq(agentRelations.targetAgentId, agents.id))
+      .innerJoin(
+        agents,
+        and(
+          eq(agentRelations.targetAgentId, agents.id),
+          eq(agentRelations.tenantId, agents.tenantId),
+          eq(agentRelations.projectId, agents.projectId),
+          eq(agentRelations.graphId, agents.graphId)
+        )
+      )
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
           eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
-          isNotNull(agentRelations.targetAgentId),
-          eq(agents.tenantId, params.scopes.tenantId),
-          eq(agents.projectId, params.scopes.projectId),
-          eq(agents.graphId, params.scopes.graphId)
+          isNotNull(agentRelations.targetAgentId)
         )
       );
 
@@ -228,17 +233,22 @@ export const getRelatedAgentsForGraph =
         },
       })
       .from(agentRelations)
-      .innerJoin(externalAgents, eq(agentRelations.externalAgentId, externalAgents.id))
+      .innerJoin(
+        externalAgents,
+        and(
+          eq(agentRelations.externalAgentId, externalAgents.id),
+          eq(agentRelations.tenantId, externalAgents.tenantId),
+          eq(agentRelations.projectId, externalAgents.projectId),
+          eq(agentRelations.graphId, externalAgents.graphId)
+        )
+      )
       .where(
         and(
           eq(agentRelations.tenantId, params.scopes.tenantId),
           eq(agentRelations.projectId, params.scopes.projectId),
           eq(agentRelations.graphId, params.scopes.graphId),
           eq(agentRelations.sourceAgentId, params.agentId),
-          isNotNull(agentRelations.externalAgentId),
-          eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.graphId, params.scopes.graphId)
+          isNotNull(agentRelations.externalAgentId)
         )
       );
 
@@ -395,7 +405,12 @@ export const createAgentToolRelation =
   async (params: {
     scopes: GraphScopeConfig;
     relationId?: string;
-    data: { agentId: string; toolId: string; selectedTools?: string[] | null };
+    data: {
+      agentId: string;
+      toolId: string;
+      selectedTools?: string[] | null;
+      headers?: Record<string, string> | null;
+    };
   }) => {
     const finalRelationId = params.relationId ?? nanoid();
 
@@ -409,6 +424,7 @@ export const createAgentToolRelation =
         agentId: params.data.agentId,
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
+        headers: params.data.headers,
       })
       .returning();
 
@@ -631,6 +647,7 @@ export const getToolsForAgent =
           agentId: agentToolRelations.agentId,
           toolId: agentToolRelations.toolId,
           selectedTools: agentToolRelations.selectedTools,
+          headers: agentToolRelations.headers,
           createdAt: agentToolRelations.createdAt,
           updatedAt: agentToolRelations.updatedAt,
           tool: {
@@ -640,15 +657,23 @@ export const getToolsForAgent =
             createdAt: tools.createdAt,
             updatedAt: tools.updatedAt,
             capabilities: tools.capabilities,
-            lastHealthCheck: tools.lastHealthCheck,
-            lastToolsSync: tools.lastToolsSync,
             lastError: tools.lastError,
-            availableTools: tools.availableTools,
             credentialReferenceId: tools.credentialReferenceId,
+            tenantId: tools.tenantId,
+            projectId: tools.projectId,
+            headers: tools.headers,
+            imageUrl: tools.imageUrl,
           },
         })
         .from(agentToolRelations)
-        .innerJoin(tools, eq(agentToolRelations.toolId, tools.id))
+        .innerJoin(
+          tools,
+          and(
+            eq(agentToolRelations.tenantId, tools.tenantId),
+            eq(agentToolRelations.projectId, tools.projectId),
+            eq(agentToolRelations.toolId, tools.id)
+          )
+        )
         .where(
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),
@@ -697,6 +722,7 @@ export const getAgentsForTool =
           agentId: agentToolRelations.agentId,
           toolId: agentToolRelations.toolId,
           selectedTools: agentToolRelations.selectedTools,
+          headers: agentToolRelations.headers,
           createdAt: agentToolRelations.createdAt,
           updatedAt: agentToolRelations.updatedAt,
           agent: {
@@ -712,7 +738,15 @@ export const getAgentsForTool =
           },
         })
         .from(agentToolRelations)
-        .innerJoin(agents, eq(agentToolRelations.agentId, agents.id))
+        .innerJoin(
+          agents,
+          and(
+            eq(agentToolRelations.agentId, agents.id),
+            eq(agentToolRelations.tenantId, agents.tenantId),
+            eq(agentToolRelations.projectId, agents.projectId),
+            eq(agentToolRelations.graphId, agents.graphId)
+          )
+        )
         .where(
           and(
             eq(agentToolRelations.tenantId, params.scopes.tenantId),

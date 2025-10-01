@@ -1,0 +1,98 @@
+---
+title: Troubleshooting Guide
+sidebarTitle: Troubleshooting
+description: Learn how to diagnose and resolve issues when something breaks in your Inkeep agent system.
+icon: LuWrench
+keywords: troubleshooting, debugging, errors, timeline, signoz, widget implementation
+---
+
+## Overview
+
+When something breaks in your Inkeep agent system, follow this systematic approach to identify and resolve the issue. This guide provides a structured methodology for debugging problems across different components of your agent infrastructure.
+
+## Step 1: Check the Timeline
+
+The timeline is your first stop for understanding what happened during a conversation or agent execution. Navigate to the **Traces** sections to view in depth details per conversation. Within each conversation, you'll find an **error card** that is clickable whenever something goes wrong during agent execution. 
+
+### What to Look For
+
+- **Execution flow**: Review the sequence of agent actions and tool calls
+- **Timing**: Check for delays or bottlenecks in the execution
+- **Agent transitions**: Verify that transfers and delegations happened as expected
+- **Tool usage**: Confirm that tools were called correctly and returned expected results
+- **Error cards**: Look for red error indicators in the timeline and click to view detailed error information
+
+### Error Cards in the Timeline
+
+Clicking on this error card reveals:
+
+- **Error type**: The specific category of error (e.g., "Agent Generation Error")
+- **Exception stacktrace**: The complete stack trace showing exactly where the error occurred in the code
+
+This detailed error information helps you pinpoint exactly what went wrong and where in your agent's execution chain.
+
+
+## Step 2: Check Signoz
+
+Signoz provides distributed tracing and observability for your agent system, offering deeper insights when the built-in timeline isn't sufficient.
+
+### Accessing Signoz from the Timeline
+
+You can easily access Signoz directly from the timeline view. In the **Traces** section, click on any activity in the conversation timeline to view its details. Within the activity details, you'll find a **"View in Signoz"** button that takes you directly to the corresponding span in Signoz for deeper analysis.
+
+### What Signoz Shows
+
+- **Distributed traces**: End-to-end request flows across services
+- **Performance metrics**: Response times, throughput, and error rates
+
+### Key Metrics to Monitor
+
+- **Agent response times**: How long each agent takes to process requests
+- **Tool execution times**: Performance of MCP servers and external APIs
+- **Error rates**: Frequency and types of failures
+
+## Common Configuration Issues
+
+### General Configuration Issues
+
+- **Missing environment variables**: Ensure all required env vars are set
+- **Incorrect API endpoints**: Verify you're using the right URLs
+- **Network connectivity**: Check firewall and proxy settings
+- **Version mismatches**: Ensure all packages are compatible
+
+### MCP Server Connection Issues
+
+- **MCP not able to connect**: 
+    - Check that the MCP server is running and accessible
+- **401 Unauthorized errors**:
+    - Verify that credentials are properly configured and valid
+- **Connection timeouts**:
+    - Ensure network connectivity and firewall settings allow connections
+
+### AI Provider Configuration Problems
+
+- **AI Provider key not defined or invalid**: 
+  - Ensure you have one of these environment variables set: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY`
+  - Verify the API key is valid and has sufficient credits
+  - Check that the key hasn't expired or been revoked
+
+- **GPT-5 access issues**: 
+  - Individual users cannot access GPT-5 as it requires organization verification
+  - Use GPT-4 or other available models instead
+  - Contact OpenAI support if you need GPT-5 access for your organization
+
+### Credit and Rate Limiting Issues
+
+- **Running out of credits**: 
+  - Monitor your OpenAI usage and billing
+  - Set up usage alerts to prevent unexpected charges
+
+- **Rate limiting by AI providers**: 
+  - Especially common with high-frequency operations like summarizers
+  - Monitor your API usage patterns and adjust accordingly
+
+### Context Fetcher Issues
+
+- **Context fetcher timeouts**: 
+  - Check that external services are responding within expected timeframes
+

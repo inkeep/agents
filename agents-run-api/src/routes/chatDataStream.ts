@@ -3,6 +3,7 @@ import {
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   contextValidationMiddleware,
+  createApiError,
   createMessage,
   getActiveAgentForConversation,
   getAgentById,
@@ -19,8 +20,8 @@ import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
-import { createVercelStreamHelper } from '../utils/stream-helpers';
 import { errorOp } from '../utils/agent-operations';
+import { createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -113,14 +114,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
       scopes: { tenantId, projectId, graphId },
     });
     if (!agentGraph) {
-      return c.json({ error: 'Agent graph not found' }, 404);
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent graph not found',
+      });
     }
 
     const defaultAgentId = agentGraph.defaultAgentId;
     const graphName = agentGraph.name;
 
     if (!defaultAgentId) {
-      return c.json({ error: 'Graph does not have a default agent configured' }, 400);
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Graph does not have a default agent configured',
+      });
     }
 
     const activeAgent = await getActiveAgentForConversation(dbClient)({
@@ -141,11 +148,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
       agentId: agentId as string,
     });
     if (!agentInfo) {
-      return c.json({ error: 'Agent not found' }, 404);
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
+      });
     }
 
     // Get validated context from middleware (falls back to body.context if no validation)
     const validatedContext = (c as any).get('validatedContext') || body.requestContext || {};
+
     const credentialStores = c.get('credentialStores');
 
     // Context resolution with intelligent conversation state detection
@@ -235,7 +246,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
     );
   } catch (error) {
     logger.error({ error }, 'chatDataStream error');
-    return c.json({ error: 'Failed to process chat completion' }, 500);
+    throw createApiError({
+      code: 'internal_server_error',
+      message: 'Failed to process chat completion',
+    });
   }
 });
 

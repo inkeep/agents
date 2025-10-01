@@ -34,7 +34,7 @@ export async function fetchCredentials(
   });
 
   const response = await makeManagementApiRequest<ListResponse<CredentialReferenceApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/credentials?${params}`
+    `tenants/${tenantId}/projects/${projectId}/credentials?${params}`
   );
 
   // Cast to Credential type (includes optional tools field)
@@ -53,7 +53,7 @@ export async function fetchCredential(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/credentials/${id}`
+    `tenants/${tenantId}/projects/${projectId}/credentials/${id}`
   );
 
   // Cast to Credential type (includes optional tools field)
@@ -72,7 +72,7 @@ export async function createCredential(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/credentials`,
+    `tenants/${tenantId}/projects/${projectId}/credentials`,
     {
       method: 'POST',
       body: JSON.stringify(data),
@@ -96,7 +96,7 @@ export async function updateCredential(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
-    `tenants/${tenantId}/crud/projects/${projectId}/credentials/${id}`,
+    `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
     {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -119,7 +119,7 @@ export async function deleteCredential(
   validateProjectId(projectId);
 
   await makeManagementApiRequest<void>(
-    `tenants/${tenantId}/crud/projects/${projectId}/credentials/${id}`,
+    `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
     {
       method: 'DELETE',
     }

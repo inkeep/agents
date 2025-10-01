@@ -1,5 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+inkeep-qa-project
 # dependencies
 node_modules
 /.pnp
@@ -47,8 +48,7 @@ yarn-error.log*
 # Keep env.example for easy setup
 !env.example
 
-# vercel
-.vercel
+
 
 # typescript
 *.tsbuildinfo
@@ -65,3 +65,4 @@ dist
 .hosted-tools/
 
 .playwright-mcp
+.vercel

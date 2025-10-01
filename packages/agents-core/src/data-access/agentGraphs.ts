@@ -359,19 +359,34 @@ export const getFullGraphDefinition =
             id: tools.id,
             name: tools.name,
             config: tools.config,
-            imageUrl: tools.imageUrl,
-            status: tools.status,
+            createdAt: tools.createdAt,
+            updatedAt: tools.updatedAt,
             capabilities: tools.capabilities,
-            lastHealthCheck: tools.lastHealthCheck,
             lastError: tools.lastError,
-            availableTools: tools.availableTools,
-            lastToolsSync: tools.lastToolsSync,
+            credentialReferenceId: tools.credentialReferenceId,
+            tenantId: tools.tenantId,
+            projectId: tools.projectId,
+            imageUrl: tools.imageUrl,
             selectedTools: agentToolRelations.selectedTools,
+            headers: agentToolRelations.headers,
+            agentToolRelationId: agentToolRelations.id,
           })
           .from(agentToolRelations)
-          .innerJoin(tools, eq(agentToolRelations.toolId, tools.id))
+          .innerJoin(
+            tools,
+            and(
+              eq(agentToolRelations.toolId, tools.id),
+              eq(agentToolRelations.tenantId, tools.tenantId),
+              eq(agentToolRelations.projectId, tools.projectId)
+            )
+          )
           .where(
-            and(eq(agentToolRelations.tenantId, tenantId), eq(agentToolRelations.agentId, agent.id))
+            and(
+              eq(agentToolRelations.tenantId, tenantId),
+              eq(agentToolRelations.projectId, projectId),
+              eq(agentToolRelations.graphId, graphId),
+              eq(agentToolRelations.agentId, agent.id)
+            )
           );
 
         // Get dataComponents for this agent
@@ -394,13 +409,13 @@ export const getFullGraphDefinition =
           (rel) => rel.artifactComponentId
         );
 
-        // Construct selectedTools Record from agentTools
-        const selectedTools: Record<string, string[]> = {};
-        agentTools.forEach((tool) => {
-          if (tool.selectedTools && Array.isArray(tool.selectedTools)) {
-            selectedTools[tool.id] = tool.selectedTools;
-          }
-        });
+        // Construct canUse array from agentTools
+        const canUse = agentTools.map((tool) => ({
+          agentToolRelationId: tool.agentToolRelationId,
+          toolId: tool.id,
+          toolSelection: tool.selectedTools || null,
+          headers: tool.headers || null,
+        }));
 
         return {
           id: agent.id,
@@ -413,26 +428,7 @@ export const getFullGraphDefinition =
           canDelegateTo,
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
-          ...(Object.keys(selectedTools).length > 0 && { selectedTools }),
-          tools: agentTools.map((tool) => ({
-            id: tool.id,
-            name: tool.name,
-            config: tool.config,
-            imageUrl: tool.imageUrl || undefined,
-            status: tool.status,
-            capabilities: tool.capabilities || undefined,
-            lastHealthCheck:
-              tool.lastHealthCheck && !Number.isNaN(new Date(tool.lastHealthCheck).getTime())
-                ? new Date(tool.lastHealthCheck).toISOString()
-                : undefined,
-            lastError: tool.lastError || undefined,
-            availableTools: tool.availableTools || undefined,
-            activeTools: (tool.config as any)?.mcp?.activeTools || undefined,
-            lastToolsSync:
-              tool.lastToolsSync && !Number.isNaN(new Date(tool.lastToolsSync).getTime())
-                ? new Date(tool.lastToolsSync).toISOString()
-                : undefined,
-          })),
+          canUse,
         };
       })
     );
@@ -451,6 +447,9 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: agent.baseUrl,
+          headers: agent.headers,
+          credentialReferenceId: agent.credentialReferenceId,
+          type: 'external',
         };
       })
     );
@@ -462,7 +461,7 @@ export const getFullGraphDefinition =
 
     // Convert agents array to object with agentId as key
     const agentsObject: Record<string, any> = {};
-    const toolsObject: Record<string, any> = {};
+    // No toolsObject needed - tools are defined at project level, not graph level
 
     for (const agent of validAgents) {
       // Check if this is an external agent (has baseUrl property)
@@ -474,27 +473,13 @@ export const getFullGraphDefinition =
           name: agent.name,
           description: agent.description,
           baseUrl: (agent as any).baseUrl,
+          credentialReferenceId: agent.credentialReferenceId,
+          headers: agent.headers,
+          type: 'external',
         };
       } else {
-        // Internal agent - extract tools and include all fields
-        const toolsData = (agent as any).tools || [];
-        const toolIds: string[] = [];
-        const agentSelectedTools: Record<string, string[]> = {};
-
-        // Build tools object and collect tool IDs for the agent
-        for (const tool of toolsData) {
-          toolsObject[tool.id] = tool;
-          toolIds.push(tool.id);
-          if (tool.selectedTools !== null && tool.selectedTools !== undefined) {
-            agentSelectedTools[tool.id] = tool.selectedTools;
-          }
-        }
-
-        agentsObject[agent.id] = {
-          ...agent,
-          tools: toolIds, // Replace tool objects with tool IDs
-          ...(Object.keys(agentSelectedTools).length > 0 && { selectedTools: agentSelectedTools }),
-        };
+        // Internal agent - already processed with tools as IDs
+        agentsObject[agent.id] = agent;
       }
     }
 
@@ -513,57 +498,49 @@ export const getFullGraphDefinition =
     }
 
     // Get dataComponents for all agents in this graph
-    let dataComponentsObject: Record<string, any> = {};
+    // let dataComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      dataComponentsObject = await fetchComponentRelationships(db)(
-        { tenantId, projectId },
-        agentIds,
-        {
-          relationTable: agentDataComponents,
-          componentTable: dataComponents,
-          relationIdField: agentDataComponents.dataComponentId,
-          componentIdField: dataComponents.id,
-          selectFields: {
-            id: dataComponents.id,
-            name: dataComponents.name,
-            description: dataComponents.description,
-            props: dataComponents.props,
-          },
-        }
-      );
+      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
+        relationTable: agentDataComponents,
+        componentTable: dataComponents,
+        relationIdField: agentDataComponents.dataComponentId,
+        componentIdField: dataComponents.id,
+        selectFields: {
+          id: dataComponents.id,
+          name: dataComponents.name,
+          description: dataComponents.description,
+          props: dataComponents.props,
+        },
+      });
     } catch (error) {
       // Don't fail the entire request if dataComponents retrieval fails
       console.warn('Failed to retrieve dataComponents:', error);
     }
 
     // Get artifactComponents for all agents in this graph
-    let artifactComponentsObject: Record<string, any> = {};
+    // let artifactComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
       const internalAgentIds = graphAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
-      artifactComponentsObject = await fetchComponentRelationships(db)(
-        { tenantId, projectId },
-        agentIds,
-        {
-          relationTable: agentArtifactComponents,
-          componentTable: artifactComponents,
-          relationIdField: agentArtifactComponents.artifactComponentId,
-          componentIdField: artifactComponents.id,
-          selectFields: {
-            id: artifactComponents.id,
-            name: artifactComponents.name,
-            description: artifactComponents.description,
-            summaryProps: artifactComponents.summaryProps,
-            fullProps: artifactComponents.fullProps,
-          },
-        }
-      );
+      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
+        relationTable: agentArtifactComponents,
+        componentTable: artifactComponents,
+        relationIdField: agentArtifactComponents.artifactComponentId,
+        componentIdField: artifactComponents.id,
+        selectFields: {
+          id: artifactComponents.id,
+          name: artifactComponents.name,
+          description: artifactComponents.description,
+          summaryProps: artifactComponents.summaryProps,
+          fullProps: artifactComponents.fullProps,
+        },
+      });
     } catch (error) {
       // Don't fail the entire request if artifactComponents retrieval fails
       console.warn('Failed to retrieve artifactComponents:', error);
@@ -575,7 +552,7 @@ export const getFullGraphDefinition =
       description: graph.description,
       defaultAgentId: graph.defaultAgentId,
       agents: agentsObject,
-      tools: toolsObject,
+      // No tools field - tools are defined at project level
       createdAt:
         graph.createdAt && !Number.isNaN(new Date(graph.createdAt).getTime())
           ? new Date(graph.createdAt).toISOString()
@@ -613,13 +590,8 @@ export const getFullGraphDefinition =
       };
     }
 
-    if (Object.keys(dataComponentsObject).length > 0) {
-      result.dataComponents = dataComponentsObject;
-    }
-
-    if (Object.keys(artifactComponentsObject).length > 0) {
-      result.artifactComponents = artifactComponentsObject;
-    }
+    // Don't include dataComponents or artifactComponents at graph level
+    // They are defined at project level and only referenced by ID in agents
 
     // Apply agent stepCountIs inheritance from project
     try {

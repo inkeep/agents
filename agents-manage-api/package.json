@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.2.2",
+  "version": "0.12.0",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsup",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
@@ -29,17 +29,18 @@
     "drizzle-orm": "^0.44.4",
     "hono": "^4.9.7",
     "hono-pino": "^0.10.1",
-    "keytar": "^7.9.0",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
     "pino": "^9.7.0",
     "zod": "^4.1.5"
   },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.20.1",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^2.0.0",
-    "drizzle-kit": "^0.31.4",
     "nodemon": "^3.1.0",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.7.1",

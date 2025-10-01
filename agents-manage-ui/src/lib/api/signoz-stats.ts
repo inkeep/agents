@@ -112,7 +112,7 @@ const asTypedFilterValue = (v: string): FilterValue => {
   }
 };
 
-const byMostRecent = (a: number = 0, b: number = 0) => b - a;
+const byFirstActivity = (a: number = 0, b: number = 0) => b - a;
 
 type Series = {
   labels?: Record<string, string>;
@@ -202,12 +202,12 @@ class SigNozStatsAPI {
         });
       }
 
-      // last seen map
-      const lastSeen = new Map<string, number>();
+      // first seen map
+      const firstSeen = new Map<string, number>();
       for (const s of lastActivitySeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
         if (!id) continue;
-        lastSeen.set(id, numberFromSeries(s));
+        firstSeen.set(id, numberFromSeries(s));
       }
 
       // first user message per conversation (min timestamp already grouped)
@@ -260,9 +260,9 @@ class SigNozStatsAPI {
         );
       }
 
-      // sort by last activity
+      // sort by first activity
       stats.sort((a, b) =>
-        byMostRecent(lastSeen.get(a.conversationId), lastSeen.get(b.conversationId))
+        byFirstActivity(firstSeen.get(a.conversationId), firstSeen.get(b.conversationId))
       );
 
       if (!pagination) return stats;
@@ -1004,7 +1004,7 @@ class SigNozStatsAPI {
           lastActivity: {
             dataSource: DATA_SOURCES.TRACES,
             queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            aggregateOperator: AGGREGATE_OPERATORS.MAX,
+            aggregateOperator: AGGREGATE_OPERATORS.MIN,
             aggregateAttribute: {
               key: SPAN_KEYS.TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
@@ -1017,7 +1017,7 @@ class SigNozStatsAPI {
               },
             ],
             expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            reduceTo: REDUCE_OPERATIONS.MAX,
+            reduceTo: REDUCE_OPERATIONS.MIN,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
             offset: QUERY_DEFAULTS.OFFSET,
@@ -1596,7 +1596,7 @@ class SigNozStatsAPI {
           lastActivity: {
             dataSource: DATA_SOURCES.TRACES,
             queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            aggregateOperator: AGGREGATE_OPERATORS.MAX,
+            aggregateOperator: AGGREGATE_OPERATORS.MIN,
             aggregateAttribute: {
               key: SPAN_KEYS.TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
@@ -1621,7 +1621,7 @@ class SigNozStatsAPI {
               },
             ],
             expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            reduceTo: REDUCE_OPERATIONS.MAX,
+            reduceTo: REDUCE_OPERATIONS.MIN,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
             offset: QUERY_DEFAULTS.OFFSET,

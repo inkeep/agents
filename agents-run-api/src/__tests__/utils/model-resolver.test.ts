@@ -7,12 +7,15 @@ vi.mock('../../data/db/dbClient', () => ({
   default: 'mock-db-client',
 }));
 
-// Mock the agents-core functions
-vi.mock('@inkeep/agents-core', () => ({
-  getAgentGraphById: vi.fn(),
-  getProject: vi.fn(),
-  agentGraph: {},  // Add the agentGraph export for other tests
-}));
+// Mock the agents-core functions - use importOriginal to preserve existing mocks
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    getAgentGraphById: vi.fn(),
+    getProject: vi.fn(),
+  };
+});
 
 // Import mocked functions
 const mockGetAgentGraphById = vi.mocked(await import('@inkeep/agents-core')).getAgentGraphById;
@@ -28,7 +31,12 @@ describe('resolveModelConfig', () => {
   } as AgentSelect;
 
   beforeEach(() => {
+    // Clear all mock calls and implementations
     vi.clearAllMocks();
+    
+    // Reset mock implementations to default
+    mockGetAgentGraphById.mockReset();
+    mockGetProject.mockReset();
 
     // Setup default mock implementations that return functions
     mockGetAgentGraphById.mockReturnValue(vi.fn());
@@ -36,7 +44,8 @@ describe('resolveModelConfig', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    // Clear mocks after each test
+    vi.clearAllMocks();
   });
 
   describe('when agent has base model defined', () => {

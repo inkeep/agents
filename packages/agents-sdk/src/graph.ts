@@ -1,10 +1,12 @@
-import type {
-  CredentialReferenceApiInsert,
-  FullGraphDefinition,
-  GraphStopWhen,
+import {
+  type CredentialReferenceApiInsert,
+  createDatabaseClient,
+  type FullGraphDefinition,
+  type GraphStopWhen,
+  getLogger,
+  getProject,
+  type StatusUpdateSettings,
 } from '@inkeep/agents-core';
-import { createDatabaseClient, getLogger, getProject } from '@inkeep/agents-core';
-import { ExternalAgent } from './externalAgent';
 import { updateFullGraphViaAPI } from './graphFullClient';
 import type {
   AgentInterface,
@@ -16,7 +18,6 @@ import type {
   MessageInput,
   ModelSettings,
   RunResult,
-  StatusUpdateSettings,
   StreamResponse,
 } from './types';
 
@@ -55,7 +56,8 @@ export class AgentGraph implements GraphInterface {
 
   constructor(config: GraphConfig) {
     this.defaultAgent = config.defaultAgent;
-    this.tenantId = config.tenantId || 'default';
+    // tenantId and projectId will be set by setConfig method from CLI or other sources
+    this.tenantId = 'default';
     this.projectId = 'default'; // Default project ID, will be overridden by setConfig
     this.graphId = config.id;
     this.graphName = config.name || this.graphId;
@@ -121,33 +123,31 @@ export class AgentGraph implements GraphInterface {
     this.projectId = projectId;
     this.baseURL = apiUrl;
 
-    // Propagate tenantId to all agents and their tools
+    // Propagate tenantId and projectId to all agents and their tools
     for (const agent of this.agents) {
       if (this.isInternalAgent(agent)) {
         const internalAgent = agent as AgentInterface;
-        if (!internalAgent.config.tenantId) {
-          internalAgent.config.tenantId = tenantId;
+        // Set the context on the agent
+        if (internalAgent.setContext) {
+          internalAgent.setContext(tenantId, projectId);
         }
 
         // Also update tools in this agent
         const tools = internalAgent.getTools();
         for (const [_, toolInstance] of Object.entries(tools)) {
-          if (toolInstance && typeof toolInstance === 'object' && toolInstance.config) {
-            if (!toolInstance.config.tenantId) {
-              toolInstance.config.tenantId = tenantId;
-            }
-            // Also update baseURL for tools if they have one
-            if ('baseURL' in toolInstance && !toolInstance.baseURL) {
-              toolInstance.baseURL = apiUrl;
+          if (toolInstance && typeof toolInstance === 'object') {
+            // Set context on the tool if it has the method
+            if ('setContext' in toolInstance && typeof toolInstance.setContext === 'function') {
+              toolInstance.setContext(tenantId, projectId);
             }
           }
         }
       }
     }
 
-    // Update context config tenant ID if present
-    if (this.contextConfig && !this.contextConfig.tenantId) {
-      this.contextConfig.tenantId = tenantId;
+    // Update context config tenant ID and project ID if present
+    if (this.contextConfig?.setContext) {
+      this.contextConfig.setContext(tenantId, projectId);
     }
 
     logger.info(
@@ -164,7 +164,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Convert the AgentGraph to FullGraphDefinition format for the new graph endpoint
    */
-  private async toFullGraphDefinition(): Promise<FullGraphDefinition> {
+  async toFullGraphDefinition(): Promise<FullGraphDefinition> {
     const agentsObject: Record<string, any> = {};
 
     for (const agent of this.agents) {
@@ -179,29 +179,21 @@ export class AgentGraph implements GraphInterface {
         // Convert tools to the expected format (agent.tools should be an array of tool IDs)
         const tools: string[] = [];
         const selectedToolsMapping: Record<string, string[]> = {};
+        const headersMapping: Record<string, Record<string, string>> = {};
         const agentTools = internalAgent.getTools();
 
         for (const [_toolName, toolInstance] of Object.entries(agentTools)) {
-          if (toolInstance && typeof toolInstance === 'object') {
-            let toolId: string;
+          const toolId = toolInstance.getId();
 
-            // Get tool ID
-            toolId = (toolInstance as any).getId?.() || (toolInstance as any).id;
-
-            // Check if this tool instance has selectedTools (from AgentMcpConfig processing)
-            if (
-              'selectedTools' in toolInstance &&
-              (toolInstance as any).selectedTools !== undefined
-            ) {
-              logger.info(
-                { toolId, selectedTools: (toolInstance as any).selectedTools },
-                'Selected tools'
-              );
-              selectedToolsMapping[toolId] = (toolInstance as any).selectedTools;
-            }
-
-            tools.push(toolId);
+          if (toolInstance.selectedTools) {
+            selectedToolsMapping[toolId] = toolInstance.selectedTools;
           }
+
+          if (toolInstance.headers) {
+            headersMapping[toolId] = toolInstance.headers;
+          }
+
+          tools.push(toolId);
         }
 
         // Convert dataComponents to the expected format (agent.dataComponents should be an array of dataComponent IDs)
@@ -226,6 +218,14 @@ export class AgentGraph implements GraphInterface {
           }
         }
 
+        // Convert tools and selectedTools to canUse array
+        // Always include canUse for internal agents (even if empty) as it's required by the API
+        const canUse = tools.map((toolId) => ({
+          toolId,
+          toolSelection: selectedToolsMapping[toolId] || null,
+          headers: headersMapping[toolId] || null,
+        }));
+
         agentsObject[internalAgent.getId()] = {
           id: internalAgent.getId(),
           name: internalAgent.getName(),
@@ -234,9 +234,7 @@ export class AgentGraph implements GraphInterface {
           models: internalAgent.config.models,
           canTransferTo: transfers.map((h) => h.getId()),
           canDelegateTo: delegates.map((d) => d.getId()),
-          tools,
-          selectedTools:
-            Object.keys(selectedToolsMapping).length > 0 ? selectedToolsMapping : undefined,
+          canUse, // Always include for internal agents (required by API)
           dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
           artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
           type: 'internal',
@@ -252,177 +250,17 @@ export class AgentGraph implements GraphInterface {
           baseUrl: externalAgent.getBaseUrl(),
           credentialReferenceId: externalAgent.getCredentialReferenceId(),
           headers: externalAgent.getHeaders(),
-          tools: [], // External agents don't have tools in this context
           type: 'external',
         };
       }
     }
 
-    // Collect all tools from all agents
-    const toolsObject: Record<string, any> = {};
+    // Note: Tools are now managed at the PROJECT level, not graph level
+    // This graph only stores agent definitions with tool ID references
+    // The actual tool definitions are stored in the project's tools object
 
-    for (const agent of this.agents) {
-      if (!(agent as AgentInterface).getTransfers) {
-        continue; // Skip external agents
-      }
-
-      const internalAgent = agent as AgentInterface;
-      const agentTools = internalAgent.getTools();
-
-      for (const [toolName, toolInstance] of Object.entries(agentTools)) {
-        if (toolInstance && typeof toolInstance === 'object') {
-          let actualTool: any;
-          let toolId: string;
-
-          // Check if this is an AgentMcpConfig
-          if ('server' in toolInstance && 'selectedTools' in toolInstance) {
-            const mcpConfig = toolInstance as any; // AgentMcpConfig
-            actualTool = mcpConfig.server;
-            toolId = actualTool.getId();
-          } else if (toolInstance.constructor.name === 'FunctionTool') {
-            // Function tool instance
-            actualTool = toolInstance;
-            toolId = actualTool.getId();
-          } else {
-            // Regular tool instance
-            actualTool = toolInstance;
-            toolId = actualTool.getId?.() || actualTool.id || toolName;
-          }
-
-          // Only add if not already added (avoid duplicates across agents)
-          if (!toolsObject[toolId]) {
-            let toolConfig: any;
-
-            // Check if it's a FunctionTool
-            if (actualTool.constructor.name === 'FunctionTool') {
-              const serialized = actualTool.serialize();
-              toolConfig = {
-                type: 'function',
-                function: {
-                  description: serialized.description,
-                  inputSchema: serialized.inputSchema,
-                  executeCode: serialized.executeCode,
-                  dependencies: serialized.dependencies,
-                  sandboxConfig: serialized.sandboxConfig,
-                },
-              };
-            } else if (actualTool.config?.serverUrl) {
-              // IPCTool with MCP server configuration
-              toolConfig = {
-                type: 'mcp',
-                mcp: {
-                  server: {
-                    url: actualTool.config.serverUrl,
-                  },
-                },
-              };
-            } else if (actualTool.config?.type === 'mcp') {
-              // Already has proper MCP config
-              toolConfig = actualTool.config;
-            } else {
-              // Fallback for uninitialized tools
-              toolConfig = {
-                type: 'function',
-                parameters: actualTool.parameters || {},
-              };
-            }
-
-            const toolData: any = {
-              id: toolId,
-              name: actualTool.config?.name || actualTool.name || toolName,
-              config: toolConfig,
-              status: actualTool.getStatus?.() || actualTool.status || 'unknown',
-            };
-
-            // Add additional fields if available
-            if (actualTool.config?.imageUrl) {
-              toolData.imageUrl = actualTool.config.imageUrl;
-            }
-            if (actualTool.config?.headers) {
-              toolData.headers = actualTool.config.headers;
-            }
-            if (actualTool.capabilities) {
-              toolData.capabilities = actualTool.capabilities;
-            }
-            if (actualTool.lastHealthCheck) {
-              toolData.lastHealthCheck = actualTool.lastHealthCheck;
-            }
-            if (actualTool.availableTools) {
-              toolData.availableTools = actualTool.availableTools;
-            }
-            if (actualTool.lastError) {
-              toolData.lastError = actualTool.lastError;
-            }
-            if (actualTool.lastToolsSync) {
-              toolData.lastToolsSync = actualTool.lastToolsSync;
-            }
-            // Add credential reference ID if available
-            if (actualTool.getCredentialReferenceId?.()) {
-              toolData.credentialReferenceId = actualTool.getCredentialReferenceId();
-            }
-
-            toolsObject[toolId] = toolData;
-          }
-        }
-      }
-    }
-
-    // Collect all dataComponents from all agents
-    const dataComponentsObject: Record<string, any> = {};
-
-    for (const agent of this.agents) {
-      if (!this.isInternalAgent(agent)) {
-        continue; // Skip external agents
-      }
-
-      const internalAgent = agent as AgentInterface;
-      const agentDataComponents = internalAgent.getDataComponents();
-      if (agentDataComponents) {
-        for (const dataComponent of agentDataComponents) {
-          const dataComponentId =
-            dataComponent.id || dataComponent.name.toLowerCase().replace(/\s+/g, '-');
-
-          // Only add if not already added (avoid duplicates across agents)
-          if (!dataComponentsObject[dataComponentId]) {
-            dataComponentsObject[dataComponentId] = {
-              id: dataComponentId,
-              name: dataComponent.name,
-              description: dataComponent.description || '',
-              props: dataComponent.props || {},
-            };
-          }
-        }
-      }
-    }
-
-    // Collect all artifactComponents from all agents
-    const artifactComponentsObject: Record<string, any> = {};
-
-    for (const agent of this.agents) {
-      if (!this.isInternalAgent(agent)) {
-        continue; // Skip external agents
-      }
-
-      const internalAgent = agent as AgentInterface;
-      const agentArtifactComponents = internalAgent.getArtifactComponents();
-      if (agentArtifactComponents) {
-        for (const artifactComponent of agentArtifactComponents) {
-          const artifactComponentId =
-            artifactComponent.id || artifactComponent.name.toLowerCase().replace(/\s+/g, '-');
-
-          // Only add if not already added (avoid duplicates across agents)
-          if (!artifactComponentsObject[artifactComponentId]) {
-            artifactComponentsObject[artifactComponentId] = {
-              id: artifactComponentId,
-              name: artifactComponent.name,
-              description: artifactComponent.description || '',
-              summaryProps: artifactComponent.summaryProps || {},
-              fullProps: artifactComponent.fullProps || {},
-            };
-          }
-        }
-      }
-    }
+    // Note: DataComponents and ArtifactComponents are also managed at PROJECT level
+    // Agent definitions only reference their IDs, actual definitions are in project
 
     return {
       id: this.graphId,
@@ -1306,7 +1144,7 @@ export class AgentGraph implements GraphInterface {
   private async saveToDatabase(): Promise<void> {
     try {
       // Check if graph already exists
-      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/agent-graphs/${this.graphId}`;
+      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
 
       try {
         const getResponse = await fetch(getUrl, {
@@ -1333,7 +1171,7 @@ export class AgentGraph implements GraphInterface {
       // Graph doesn't exist, create it
       logger.info({ graphId: this.graphId }, 'Creating graph in backend');
 
-      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/agent-graphs`;
+      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs`;
       const createResponse = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -1367,7 +1205,7 @@ export class AgentGraph implements GraphInterface {
   private async saveRelations(): Promise<void> {
     if (this.defaultAgent) {
       try {
-        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/agent-graphs/${this.graphId}`;
+        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
         const updateResponse = await fetch(updateUrl, {
           method: 'PUT',
           headers: {
@@ -1422,8 +1260,7 @@ export class AgentGraph implements GraphInterface {
         // Create internal delegation relations
         const delegates = agent.getDelegates();
         for (const delegate of delegates) {
-          // Check if delegate is an ExternalAgent instance
-          if (delegate instanceof ExternalAgent) {
+          if (delegate.type === 'external') {
             allRelationPromises.push(this.createExternalAgentRelation(agent, delegate, 'delegate'));
           } else {
             // Must be an internal agent (AgentInterface)
@@ -1479,21 +1316,18 @@ export class AgentGraph implements GraphInterface {
     relationType: 'transfer' | 'delegate'
   ): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/agent-relations`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            graphId: this.graphId,
-            sourceAgentId: sourceAgent.getId(),
-            targetAgentId: targetAgent.getId(),
-            relationType,
-          }),
-        }
-      );
+      const response = await fetch(`${this.baseURL}/tenants/${this.tenantId}/agent-relations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          graphId: this.graphId,
+          sourceAgentId: sourceAgent.getId(),
+          targetAgentId: targetAgent.getId(),
+          relationType,
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -1539,28 +1373,24 @@ export class AgentGraph implements GraphInterface {
     }
   }
 
-  // enableComponentMode removed – feature deprecated
   private async createExternalAgentRelation(
     sourceAgent: AgentInterface,
     externalAgent: ExternalAgentInterface,
     relationType: 'transfer' | 'delegate'
   ): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/agent-relations`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            graphId: this.graphId,
-            sourceAgentId: sourceAgent.getId(),
-            externalAgentId: externalAgent.getId(),
-            relationType,
-          }),
-        }
-      );
+      const response = await fetch(`${this.baseURL}/tenants/${this.tenantId}/agent-relations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          graphId: this.graphId,
+          sourceAgentId: sourceAgent.getId(),
+          externalAgentId: externalAgent.getId(),
+          relationType,
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');

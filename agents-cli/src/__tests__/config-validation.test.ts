@@ -10,7 +10,6 @@ vi.mock('../utils/tsx-loader.js', () => ({
     Promise.resolve({
       default: {
         tenantId: 'config-tenant',
-        projectId: 'config-project',
         agentsManageApiUrl: 'http://config-management',
         agentsRunApiUrl: 'http://config-execution',
       },
@@ -19,15 +18,18 @@ vi.mock('../utils/tsx-loader.js', () => ({
 }));
 
 // Mock the file system to control when config files are found
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => false),
-}));
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(() => false),
+  };
+});
 
 describe('Configuration Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv };
-    delete process.env.INKEEP_API_URL;
     delete process.env.INKEEP_AGENTS_MANAGE_API_URL;
     delete process.env.INKEEP_AGENTS_RUN_API_URL;
   });
@@ -113,16 +115,17 @@ describe('Configuration Validation', () => {
     });
 
     describe('Invalid Configurations', () => {
-      it('should reject --config-file-path with --tenant-id', async () => {
+      it('should reject non-existent config file', async () => {
         await expect(
           validateConfiguration('test-tenant', undefined, undefined, '/path/to/config.js')
-        ).rejects.toThrow('Invalid configuration combination');
+        ).rejects.toThrow('Config file not found');
       });
 
-      it('should reject --tenant-id without both API URLs', async () => {
-        await expect(
-          validateConfiguration('test-tenant', undefined, undefined, undefined)
-        ).rejects.toThrow('--tenant-id requires --agents-manage-api-url and --agents-run-api-url');
+      it('should use defaults when --tenant-id is provided without API URLs', async () => {
+        const config = await validateConfiguration('test-tenant', undefined, undefined, undefined);
+        expect(config.tenantId).toBe('test-tenant');
+        expect(config.agentsManageApiUrl).toBe('http://localhost:3002');
+        expect(config.agentsRunApiUrl).toBe('http://localhost:3003');
       });
 
       it('should reject when no configuration is provided', async () => {

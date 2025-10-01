@@ -4,11 +4,16 @@ export default {
       pages: [
         'overview',
         {
-          group: 'Quick Start',
+          group: 'Get Started',
           icon: 'LuZap',
-          pages: ['quick-start/start-development', 'quick-start/observability', 'quick-start/credentials'],
+          pages: [
+            'quick-start/start-development',
+            'quick-start/observability',
+            'quick-start/credentials',
+          ],
         },
         'concepts',
+        'troubleshooting',
       ],
     },
 
@@ -19,14 +24,25 @@ export default {
         'typescript-sdk/agent-settings',
         'typescript-sdk/agent-relationships',
         'typescript-sdk/tools-and-mcp-servers',
+        'typescript-sdk/create-mcp-servers',
         'typescript-sdk/credentials',
-        'typescript-sdk/context-fetchers',
         'typescript-sdk/request-context',
+        'typescript-sdk/context-fetchers',
         'authentication',
         'typescript-sdk/data-components',
         'typescript-sdk/artifact-components',
         'typescript-sdk/status-updates',
-        'typescript-sdk/cli-reference',
+        {
+          group: 'Project Management',
+          icon: 'LuFolderOpen',
+          pages: [
+            'typescript-sdk/project-structure',
+            'typescript-sdk/configuration',
+            'typescript-sdk/environments',
+            'typescript-sdk/push-pull-workflows',
+            'typescript-sdk/cli-reference',
+          ],
+        },
         {
           group: 'Observability',
           icon: 'LuChartColumn',
@@ -56,6 +72,7 @@ export default {
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
         'talk-to-your-agents/api',
+        'talk-to-your-agents/vercel-ai-sdk',
         'talk-to-your-agents/a2a',
         {
           group: 'React UI Components',
@@ -118,6 +135,16 @@ export default {
     //     },
     //   ],
     // },
+    {
+      group: 'Self-Hosting',
+      icon: 'LuServer',
+      pages: [
+        'self-hosting/vercel',
+        'self-hosting/docker',
+        'self-hosting/add-sentry',
+        'self-hosting/add-datadog-apm',
+      ],
+    },
     {
       group: 'Community',
       icon: 'LuUsers',

@@ -13,14 +13,12 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
-  getToolsForAgent,
   IdParamsSchema,
   ListResponseSchema,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectGraphParamsSchema,
-  TenantProjectParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
@@ -35,7 +33,7 @@ app.openapi(
     path: '/',
     summary: 'List Agent Tool Relations',
     operationId: 'list-agent-tool-relations',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -115,7 +113,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Agent Tool Relation',
     operationId: 'get-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
     },
@@ -149,50 +147,6 @@ app.openapi(
   }
 );
 
-// Get tools for a specific agent (with tool details)
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/agent/{agentId}/tools',
-    summary: 'Get Tools for Agent',
-    operationId: 'get-tools-for-agent',
-    tags: ['CRUD Agent Tool Relations'],
-    request: {
-      params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
-      }),
-      query: PaginationQueryParamsSchema,
-    },
-    responses: {
-      200: {
-        description: 'Tools for agent retrieved successfully',
-        content: {
-          'application/json': {
-            schema: ListResponseSchema(AgentToolRelationApiSelectSchema),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
-    const { page, limit } = c.req.valid('query');
-
-    const dbResult = await getToolsForAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
-      pagination: { page, limit },
-    });
-
-    const result = {
-      data: dbResult.data,
-      pagination: dbResult.pagination,
-    };
-
-    return c.json(result);
-  }
-);
-
 // Get agents for a specific tool (with agent details)
 app.openapi(
   createRoute({
@@ -200,7 +154,7 @@ app.openapi(
     path: '/tool/{toolId}/agents',
     summary: 'Get Agents for Tool',
     operationId: 'get-agents-for-tool',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
         toolId: z.string(),
@@ -240,7 +194,7 @@ app.openapi(
     path: '/',
     summary: 'Create Agent Tool Relation',
     operationId: 'create-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
@@ -317,7 +271,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Agent Tool Relation',
     operationId: 'update-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
       body: {
@@ -377,7 +331,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Agent Tool Relation',
     operationId: 'delete-agent-tool-relation',
-    tags: ['CRUD Agent Tool Relations'],
+    tags: ['Agent Tool Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
     },

@@ -1,4 +1,4 @@
-import { batchProcessor } from './instrumentation';
+import { otel } from '@hono/otel';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
@@ -12,6 +12,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
+import { defaultBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -19,7 +20,6 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
-import { otel } from '@hono/otel';
 
 const logger = getLogger('agents-run-api');
 
@@ -261,21 +261,21 @@ function createExecutionHono(
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
-  app.use('/tenants/*', async (c, next) => {
+  app.use('/tenants/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
-  app.use('/agents/*', async (c, next) => {
+  app.use('/agents/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
-  app.use('/v1/*', async (c, next) => {
+  app.use('/v1/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
-  app.use('/api/*', async (c, next) => {
+  app.use('/api/*', async (_c, next) => {
     await next();
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   });
 
   const baseApp = new Hono();

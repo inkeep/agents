@@ -60,7 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: Workflow,
           },
           {
-            title: 'Graph API Keys',
+            title: 'API Keys',
             url: `/${tenantId}/projects/${projectId}/api-keys`,
             icon: Key,
           },
@@ -68,16 +68,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: 'MCP Servers',
             url: `/${tenantId}/projects/${projectId}/mcp-servers`,
             icon: MCPIcon as LucideIcon,
-          },
-          {
-            title: 'Data Components',
-            url: `/${tenantId}/projects/${projectId}/data-components`,
-            icon: Component,
-          },
-          {
-            title: 'Artifact Components',
-            url: `/${tenantId}/projects/${projectId}/artifact-components`,
-            icon: Library,
           },
           {
             title: 'Credentials',
@@ -88,6 +78,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: 'Traces',
             url: `/${tenantId}/projects/${projectId}/traces`,
             icon: Activity,
+          },
+          {
+            title: 'Components',
+            url: `/${tenantId}/projects/${projectId}/components`,
+            icon: Component,
+          },
+          {
+            title: 'Artifacts',
+            url: `/${tenantId}/projects/${projectId}/artifacts`,
+            icon: Library,
           },
           {
             title: 'Settings',

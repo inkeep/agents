@@ -1,10 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Check, X } from 'lucide-react';
+import { useMemo } from 'react';
 import { type Control, type FieldPath, useController } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type ToolsConfig =
   | {
@@ -40,8 +43,6 @@ export function ActiveToolsSelector<
   description,
   disabled = false,
 }: ActiveToolsSelectorProps<TFieldValues>) {
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
-
   // Control for toolsConfig discriminated union
   const {
     field: { value: toolsConfig, onChange: setToolsConfig },
@@ -127,49 +128,7 @@ export function ActiveToolsSelector<
     }
   };
 
-  const toggleDescriptionExpansion = (toolName: string) => {
-    const newExpanded = new Set(expandedDescriptions);
-    if (newExpanded.has(toolName)) {
-      newExpanded.delete(toolName);
-    } else {
-      newExpanded.add(toolName);
-    }
-    setExpandedDescriptions(newExpanded);
-  };
-
-  const renderSelectedTools = () => {
-    switch (safeToolsConfig.type) {
-      case 'all':
-        return (
-          <div className="flex flex-wrap gap-2">
-            {availableTools.map((tool) => (
-              <Badge key={tool.name} variant="secondary" className="text-xs">
-                {tool.name}
-              </Badge>
-            ))}
-          </div>
-        );
-      case 'selective': {
-        // Only show tools that still exist in availableTools
-        const validSelectedTools = safeToolsConfig.tools.filter((toolName) =>
-          availableTools.some((tool) => tool.name === toolName)
-        );
-        return validSelectedTools.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {validSelectedTools.map((toolName: string) => (
-              <Badge key={toolName} variant="secondary" className="text-xs">
-                {toolName}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">None</div>
-        );
-      }
-      default:
-        return <div className="text-sm text-muted-foreground">None</div>;
-    }
-  };
+  const allToolsSelected = getSelectedCount() === availableTools.length;
 
   return (
     <FormField
@@ -177,72 +136,91 @@ export function ActiveToolsSelector<
       name={name}
       render={() => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <FormLabel>
+            {label}
+            <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
+              {getSelectedCount()}
+            </Badge>
+          </FormLabel>
+
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
-          <div className="space-y-4">
+          <div className="mt-2">
             {availableTools.length === 0 && (
-              <div className="text-sm text-muted-foreground p-4 border rounded-md bg-muted/30">
+              <div className="text-sm text-muted-foreground border rounded-md p-3 py-2 bg-gray-100/80 dark:bg-sidebar">
                 No tools available from this server
               </div>
             )}
             {availableTools.length > 0 && (
               <>
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="normal-case"
-                    onClick={handleSelectAll}
-                    disabled={disabled}
-                  >
-                    Select all
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="normal-case"
-                    onClick={handleDeselectAll}
-                    disabled={disabled}
-                  >
-                    Deselect all
-                  </Button>
-                </div>
-
-                {/* Selected Tools Status */}
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-2">
-                    Selected tools ({getSelectedCount()}):
+                <div className="flex items-center gap-2 justify-between py-3 px-6 rounded-t-lg border border-b-0">
+                  <div className="text-sm">
+                    {getSelectedCount()}{' '}
+                    <span className="text-gray-400 dark:text-white/40">
+                      / {availableTools.length} tool{availableTools.length === 1 ? '' : 's'}
+                    </span>
                   </div>
-                  {renderSelectedTools()}
+                  {allToolsSelected ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDeselectAll}
+                      disabled={disabled}
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                      Deselect all
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAll}
+                      disabled={disabled}
+                    >
+                      <Check className="w-4 h-4 text-muted-foreground" />
+                      Select all
+                    </Button>
+                  )}
                 </div>
 
                 {/* Individual Tool Selection */}
-                <div className="space-y-3 max-h-96 overflow-y-auto border rounded-md p-4">
+                <div className="max-h-96 overflow-y-auto border rounded-lg rounded-t-none scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
                   {availableTools.map((tool) => {
                     const isChecked = isToolSelected(tool.name);
 
                     return (
-                      <div key={tool.name} className="space-y-2">
-                        <Badge
-                          variant={isChecked ? 'default' : 'outline'}
-                          className={`font-mono text-xs cursor-pointer transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent'}`}
-                          onClick={() => !disabled && handleToolToggle(tool.name, !isChecked)}
-                        >
-                          {tool.name}
-                        </Badge>
-                        {tool.description && (
-                          <button
-                            type="button"
-                            className={`text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 transition-colors text-left w-full ${expandedDescriptions.has(tool.name) ? '' : 'line-clamp-2'}`}
-                            onClick={() => toggleDescriptionExpansion(tool.name)}
-                            title="Click to expand/collapse"
+                      <div
+                        key={tool.name}
+                        className="space-y-2 flex items-start gap-6 border-b last:border-b-0 py-4 px-6 relative"
+                      >
+                        <div className="flex items-center h-[22px]">
+                          <Checkbox
+                            checked={isChecked}
+                            disabled={disabled}
+                            className="mb-0"
+                            onClick={() => !disabled && handleToolToggle(tool.name, !isChecked)}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Badge
+                            variant={isChecked ? 'primary' : 'code'}
+                            className={`font-mono font-medium text-xs cursor-pointer transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => !disabled && handleToolToggle(tool.name, !isChecked)}
                           >
-                            {tool.description}
-                          </button>
-                        )}
+                            {tool.name}
+                          </Badge>
+                          <Tooltip delayDuration={800}>
+                            <TooltipTrigger asChild>
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                {tool.description}
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" align="start">
+                              {tool.description}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
                     );
                   })}

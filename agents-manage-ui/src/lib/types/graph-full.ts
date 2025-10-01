@@ -15,7 +15,9 @@ export {
   AgentGraphApiInsertSchema as AgentGraphApiSchema,
   type AgentGraphInsert as AgentGraphApi,
   ErrorResponseSchema,
+  type ExternalAgentDefinition,
   type FullGraphDefinition,
+  type InternalAgentDefinition,
   // Core schemas
   FullGraphDefinitionSchema,
   ListResponseSchema,

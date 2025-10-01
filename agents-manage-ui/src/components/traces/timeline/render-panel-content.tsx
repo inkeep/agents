@@ -27,19 +27,19 @@ export function renderPanelContent({
     return (
       <Section>
         <Info
-          label="Tool Name"
+          label="Tool name"
           value={
             <Badge variant="code" className="">
               {e.toolName}
             </Badge>
           }
         />
-        <LabeledBlock label="Error Message">
+        <LabeledBlock label="Error message">
           <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             {e.error}
           </Bubble>
         </LabeledBlock>
-        <LabeledBlock label="Failure Reason">
+        <LabeledBlock label="Failure reason">
           <Bubble className="bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-300">
             {e.failureReason}
           </Bubble>
@@ -70,7 +70,7 @@ export function renderPanelContent({
 
   const AdvancedBlock = (
     <div className="space-y-3">
-      <div className="text-xs text-muted-foreground mb-2">Span Attributes:</div>
+      <div className="text-xs text-muted-foreground mb-2">Span attributes:</div>
       {span ? (
         <Streamdown>{`\`\`\`json\n${JSON.stringify(span, null, 2)}\n\`\`\``}</Streamdown>
       ) : (
@@ -85,9 +85,76 @@ export function renderPanelContent({
         <>
           <Section>
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
-            <Info label="Input Tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output Tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
+            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <Info label="Agent" value={a.agentName || '-'} />
+            {a.aiResponseText && (
+              <LabeledBlock label="Response text">
+                <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+                  {a.aiResponseText}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.aiPromptMessages && (
+              <LabeledBlock label="Prompt messages">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.aiPromptMessages), null, 2);
+                    } catch {
+                      return a.aiPromptMessages;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.aiResponseToolCalls && (
+              <LabeledBlock label="Tool calls">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.aiResponseToolCalls), null, 2);
+                    } catch {
+                      return a.aiResponseToolCalls;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {/* Show error message if there's an error */}
+            {a.hasError && a.otelStatusDescription && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.hasError && a.otelStatusCode && (
+              <Info label="Status code" value={a.otelStatusCode} />
+            )}
+            <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'agent_generation':
+      return (
+        <>
+          <Section>
+            {a.hasError && a.otelStatusDescription && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.hasError && a.otelStatusCode && (
+              <Info label="Status code" value={a.otelStatusCode} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -101,10 +168,10 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="Message Content">
+            <LabeledBlock label="Message content">
               <Bubble className="">{a.messageContent || 'Message content not available'}</Bubble>
             </LabeledBlock>
-            <Info label="Message Length" value={`${a.messageContent?.length || 0} characters`} />
+            <Info label="Message length" value={`${a.messageContent?.length || 0} characters`} />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -118,16 +185,16 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="AI Response Content">
+            <LabeledBlock label="AI response content">
               <Bubble className=" whitespace-pre-wrap break-words">
                 {a.aiResponseContent || 'Response content not available'}
               </Bubble>
             </LabeledBlock>
             <Info label="Agent" value={a.agentName || 'Unknown'} />
             <StatusBadge status={a.status} />
-            <Info label="Activity Timestamp" value={formatDateTime(a.timestamp)} />
+            <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
             <Info
-              label="Message ID"
+              label="Message id"
               value={
                 <Badge variant="code" className="">
                   {a.id}
@@ -157,7 +224,7 @@ export function renderPanelContent({
         <>
           <Section>
             {a.contextAgentGraphId && (
-              <LabeledBlock label="Agent Graph ID">
+              <LabeledBlock label="Agent graph id">
                 <Badge variant="code" className="">
                   {a.contextAgentGraphId}
                 </Badge>
@@ -166,7 +233,7 @@ export function renderPanelContent({
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
             <StatusBadge status={a.status} />
             {a.contextStatusDescription && (
-              <LabeledBlock label="Status Description">
+              <LabeledBlock label="Status description">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.contextStatusDescription}
                 </Bubble>
@@ -200,12 +267,12 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From Agent">
+            <LabeledBlock label="From agent">
               <Badge variant="code" className="">
                 {a.delegationFromAgentId || a.agentName || 'Unknown Agent'}
               </Badge>
             </LabeledBlock>
-            <LabeledBlock label="To Agent">
+            <LabeledBlock label="To agent">
               <Badge variant="code" className="">
                 {a.delegationToAgentId ||
                   a.toolName?.replace('delegate_to_', '') ||
@@ -213,7 +280,7 @@ export function renderPanelContent({
               </Badge>
             </LabeledBlock>
             <Info
-              label="Tool Name"
+              label="Tool name"
               value={
                 <Badge variant="code" className="">
                   {a.toolName || 'Unknown Tool'}
@@ -221,7 +288,32 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -234,26 +326,51 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From Agent">
+            <LabeledBlock label="From agent">
               <Badge variant="code" className="">
                 {a.transferFromAgentId || a.agentName || 'Unknown Agent'}
               </Badge>
             </LabeledBlock>
-            <LabeledBlock label="To Agent">
+            <LabeledBlock label="To agent">
               <Badge variant="code" className="">
-                {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown Target'}
+                {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown target'}
               </Badge>
             </LabeledBlock>
             <Info
-              label="Tool Name"
+              label="Tool name"
               value={
                 <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
+                  {a.toolName || 'Unknown tool'}
                 </Badge>
               }
             />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -267,15 +384,15 @@ export function renderPanelContent({
         <>
           <Section>
             <Info
-              label="Tool Name"
+              label="Tool name"
               value={
                 <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
+                  {a.toolName || 'Unknown tool'}
                 </Badge>
               }
             />
             {a.toolType && (
-              <LabeledBlock label="Tool Type">
+              <LabeledBlock label="Tool type">
                 <Badge variant="code" className="text-xs">
                   {a.toolType}
                 </Badge>
@@ -284,9 +401,34 @@ export function renderPanelContent({
             <LabeledBlock label="Purpose">
               <Bubble className="b">{a.toolPurpose || 'No purpose information available'}</Bubble>
             </LabeledBlock>
-            <Info label="Agent" value={a.agentName || 'Unknown Agent'} />
+            <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -300,7 +442,7 @@ export function renderPanelContent({
         <>
           <Section>
             <Info
-              label="Tool Name"
+              label="Tool name"
               value={
                 <Badge variant="code" className="">
                   {a.toolName || 'Unknown Tool'}
@@ -308,14 +450,39 @@ export function renderPanelContent({
               }
             />
             {a.toolType && (
-              <LabeledBlock label="Tool Type">
+              <LabeledBlock label="Tool type">
                 <Badge variant="code" className="text-xs">
                   {a.toolType}
                 </Badge>
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -330,22 +497,17 @@ export function renderPanelContent({
           <Section>
             <Info label="Model" value={<ModelBadge model={a.aiStreamTextModel || 'Unknown'} />} />
             <Info
-              label="Operation ID"
+              label="Operation id"
               value={
                 <Badge variant="code" className="">
                   {a.aiStreamTextOperationId || 'Unknown'}
                 </Badge>
               }
             />
-            <Info label="Input Tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output Tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
+            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-            <LabeledBlock label="Streamed Text Content">
-              <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
-                {a.aiStreamTextContent || 'No content available'}
-              </Bubble>
-            </LabeledBlock>
           </Section>
           <Divider />
           {SignozButton}

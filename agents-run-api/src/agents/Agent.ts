@@ -43,22 +43,23 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { graphSessionManager } from '../services/GraphSession';
+import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import { ResponseFormatter } from '../services/ResponseFormatter';
 import { generateToolId } from '../utils/agent-operations';
-import { ArtifactReferenceSchema } from '../utils/artifact-component-schema';
+import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
-import { graphSessionManager } from '../utils/graph-session';
-import { IncrementalStreamParser } from '../utils/incremental-stream-parser';
-import { ResponseFormatter } from '../utils/response-formatter';
+import { parseEmbeddedJson } from '../utils/json-parser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { createSaveToolResultTool } from './artifactTools';
 import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
-import { V1Config } from './versions/V1Config';
+import { Phase1Config } from './versions/v1/Phase1Config';
+import { Phase2Config } from './versions/v1/Phase2Config';
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -156,8 +157,7 @@ function isValidTool(
 
 export class Agent {
   private config: AgentConfig;
-  private systemPromptBuilder = new SystemPromptBuilder('v1', new V1Config());
-  private responseFormatter: ResponseFormatter;
+  private systemPromptBuilder = new SystemPromptBuilder('v1', new Phase1Config());
   private credentialStuffer?: CredentialStuffer;
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
@@ -194,7 +194,7 @@ export class Agent {
       });
     }
 
-    // If we have artifact components, add the default artifact data component for response hydration
+    // If we have artifact components, add the default artifact data components for response hydration
     if (
       this.artifactComponents.length > 0 &&
       config.dataComponents &&
@@ -213,7 +213,6 @@ export class Agent {
       conversationHistoryConfig:
         config.conversationHistoryConfig || createDefaultConversationHistoryConfig(),
     };
-    this.responseFormatter = new ResponseFormatter(config.tenantId);
 
     // Store the credential store registry
     this.credentialStoreRegistry = credentialStoreRegistry;
@@ -236,6 +235,49 @@ export class Agent {
    */
   private getMaxGenerationSteps(): number {
     return this.config.stopWhen?.stepCountIs ?? CONSTANTS.MAX_GENERATION_STEPS;
+  }
+
+  /**
+   * Sanitizes tool names at runtime for AI SDK compatibility.
+   * The AI SDK requires tool names to match pattern ^[a-zA-Z0-9_-]{1,128}$
+   */
+  private sanitizeToolsForAISDK(tools: ToolSet): ToolSet {
+    const sanitizedTools: ToolSet = {};
+
+    for (const [originalKey, toolDef] of Object.entries(tools)) {
+      // Sanitize the tool key (object property name)
+      let sanitizedKey = originalKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+      sanitizedKey = sanitizedKey.replace(/_+/g, '_');
+      sanitizedKey = sanitizedKey.replace(/^_+|_+$/g, '');
+
+      if (!sanitizedKey || sanitizedKey.length === 0) {
+        sanitizedKey = 'unnamed_tool';
+      }
+
+      if (sanitizedKey.length > 100) {
+        sanitizedKey = sanitizedKey.substring(0, 100);
+      }
+
+      // Clone the tool with a sanitized ID
+      const originalId = (toolDef as any).id || originalKey;
+      let sanitizedId = originalId.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      sanitizedId = sanitizedId.replace(/_+/g, '_');
+      sanitizedId = sanitizedId.replace(/^_+|_+$/g, '');
+
+      if (sanitizedId.length > 128) {
+        sanitizedId = sanitizedId.substring(0, 128);
+      }
+
+      // Create a new tool object with sanitized ID
+      const sanitizedTool = {
+        ...toolDef,
+        id: sanitizedId,
+      };
+
+      sanitizedTools[sanitizedKey] = sanitizedTool;
+    }
+
+    return sanitizedTools;
   }
 
   /**
@@ -498,18 +540,25 @@ export class Agent {
 
             try {
               // Call the original MCP tool with proper error handling
-              const result = await originalTool.execute(args, { toolCallId });
+              const rawResult = await originalTool.execute(args, { toolCallId });
 
-              // Record the result immediately in the session manager
+              // Parse any embedded JSON in the result
+              const parsedResult = parseEmbeddedJson(rawResult);
+
+              // Analyze result structure and add path hints for artifact creation
+              const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
+
+              // Record the enhanced result in the session manager
+
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
                 args,
-                result,
+                result: enhancedResult,
                 timestamp: Date.now(),
               });
 
-              return { result, toolCallId };
+              return { result: enhancedResult, toolCallId };
             } catch (error) {
               logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
               throw error;
@@ -533,7 +582,10 @@ export class Agent {
   /**
    * Convert database McpTool to builder MCPToolConfig format
    */
-  private convertToMCPToolConfig(tool: McpTool): MCPToolConfig {
+  private convertToMCPToolConfig(
+    tool: McpTool,
+    agentToolRelationHeaders?: Record<string, string>
+  ): MCPToolConfig {
     return {
       id: tool.id,
       name: tool.name,
@@ -544,7 +596,10 @@ export class Agent {
         ? MCPServerType.nango
         : MCPServerType.generic,
       transport: tool.config.mcp?.transport,
-      headers: tool.headers,
+      headers: {
+        ...tool.headers,
+        ...agentToolRelationHeaders,
+      },
     };
   }
 
@@ -559,6 +614,9 @@ export class Agent {
         agentId: this.config.id,
       },
     });
+
+    const agentToolRelationHeaders =
+      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
 
     const selectedTools =
       toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
@@ -592,7 +650,7 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool),
+        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
         storeReference,
         selectedTools
       );
@@ -604,7 +662,7 @@ export class Agent {
           contextConfigId: this.config.contextConfigId || undefined,
           conversationId: this.conversationId || undefined,
         },
-        this.convertToMCPToolConfig(tool),
+        this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
         undefined,
         selectedTools
       );
@@ -615,6 +673,7 @@ export class Agent {
         url: tool.config.mcp?.server?.url || '',
         activeTools: tool.config.mcp?.activeTools,
         selectedTools,
+        headers: agentToolRelationHeaders,
       };
     }
 
@@ -863,42 +922,69 @@ export class Agent {
    * Build adaptive system prompt for Phase 2 structured output generation
    * based on configured data components and artifact components across the graph
    */
-  private async buildPhase2SystemPrompt(): Promise<string> {
-    const hasDataComponents = this.config.dataComponents && this.config.dataComponents.length > 0;
-    const hasArtifactComponents = await this.hasGraphArtifactComponents();
+  private async buildPhase2SystemPrompt(
+    runtimeContext?: {
+      contextId: string;
+      metadata: {
+        conversationId: string;
+        threadId: string;
+        streamRequestId?: string;
+        streamBaseUrl?: string;
+      };
+    }
+  ): Promise<string> {
+    const phase2Config = new Phase2Config();
+    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
 
-    if (hasDataComponents && hasArtifactComponents) {
-      return `Generate the final structured JSON response using the configured data components. Intersperse artifact references throughout the dataComponents array to support each piece of information with evidence from the research above. Use exact artifact_id and task_id values from the tool outputs - never make up or modify these IDs.
+    // Get resolved context using ContextResolver
+    const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
+    const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-Key requirements:
-- Mix artifact references throughout your dataComponents array
-- Each artifact reference must use EXACT IDs from tool outputs
-- Reference artifacts that directly support the adjacent information
-- Follow the pattern: Data → Supporting Artifact → Next Data → Next Artifact
-- IMPORTANT: In Text components, write naturally as if having a conversation - do NOT mention components, schemas, JSON, structured data, or any technical implementation details`;
+    // Process agent prompt with context (same logic as buildSystemPrompt)
+    let processedPrompt = this.config.agentPrompt;
+    if (resolvedContext) {
+      try {
+        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with context for Phase 2, using original'
+        );
+        processedPrompt = this.config.agentPrompt;
+      }
     }
 
-    if (hasDataComponents && !hasArtifactComponents) {
-      return `Generate the final structured JSON response using the configured data components. Organize the information from the research above into the appropriate structured format based on the available component schemas.
+    // Get reference artifacts from existing tasks (same logic as buildSystemPrompt)
+    const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
+      contextId: this.conversationId || '',
+    });
 
-Key requirements:
-- Use the exact component structure and property names
-- Fill in all relevant data from the research
-- Ensure data is organized logically and completely
-- IMPORTANT: In Text components, write naturally as if having a conversation - do NOT mention components, schemas, JSON, structured data, or any technical implementation details`;
+    const referenceArtifacts: Artifact[] = [];
+    for (const taskId of referenceTaskIds) {
+      const artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+        },
+        taskId: taskId,
+      });
+      referenceArtifacts.push(...artifacts);
     }
 
-    if (!hasDataComponents && hasArtifactComponents) {
-      return `Generate the final structured response with artifact references based on the research above. Use the artifact reference component to cite relevant information with exact artifact_id and task_id values from the tool outputs.
-
-Key requirements:
-- Use exact artifact_id and task_id from tool outputs
-- Reference artifacts that support your response
-- Never make up or modify artifact IDs`;
-    }
-
-    // Fallback case (shouldn't happen in normal operation since we check hasStructuredOutput)
-    return `Generate the final response based on the research above. Write naturally as if having a conversation.`;
+    return phase2Config.assemblePhase2Prompt({
+      corePrompt: processedPrompt,
+      dataComponents: this.config.dataComponents || [],
+      artifactComponents: this.artifactComponents,
+      hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
+      hasGraphArtifactComponents,
+      artifacts: referenceArtifacts,
+    });
   }
 
   private async buildSystemPrompt(
@@ -978,21 +1064,17 @@ Key requirements:
           : 'Use this tool when appropriate for the task at hand.',
     }));
 
-    const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
-      contextId: runtimeContext?.contextId || '',
-    });
+    // Get artifacts that match the conversation history scope
+    const { getConversationScopedArtifacts } = await import('../data/conversations');
+    const historyConfig =
+      this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
 
-    const referenceArtifacts: Artifact[] = [];
-    for (const taskId of referenceTaskIds) {
-      const artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        taskId: taskId,
-      });
-      referenceArtifacts.push(...artifacts);
-    }
+    const referenceArtifacts: Artifact[] = await getConversationScopedArtifacts({
+      tenantId: this.config.tenantId,
+      projectId: this.config.projectId,
+      conversationId: runtimeContext?.contextId || '',
+      historyConfig,
+    });
 
     // Use component dataComponents for system prompt (artifacts already separated in constructor)
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
@@ -1023,12 +1105,21 @@ Key requirements:
       }
     }
 
+    // When excludeDataComponents = true (Phase 1 of two-phase), don't include artifact components
+    // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components
+    const shouldIncludeArtifactComponents = !excludeDataComponents;
+
+    // Check if any agent in the graph has artifact components (for referencing guidance)
+    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       graphPrompt,
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
+      artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
+      hasGraphArtifactComponents,
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -1064,9 +1155,14 @@ Key requirements:
   private createThinkingCompleteTool(): any {
     return tool({
       description:
-        'Call when research and planning is complete, ready to generate structured response. This marks the end of the thinking phase.',
+        '🚨 CRITICAL: Call this tool IMMEDIATELY when you have gathered enough information to answer the user. This is MANDATORY - you CANNOT provide text responses in thinking mode, only tool calls. Call thinking_complete as soon as you have sufficient data to generate a structured response.',
       inputSchema: z.object({
-        complete: z.boolean().describe('Set to true when research is finished'),
+        complete: z.boolean().describe('ALWAYS set to true - marks end of research phase'),
+        summary: z
+          .string()
+          .describe(
+            'Brief summary of what information was gathered and why it is sufficient to answer the user'
+          ),
       }),
       execute: async (params) => params,
     });
@@ -1082,15 +1178,8 @@ Key requirements:
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
-    // Only add save_tool_result if this specific agent has artifact components
-    if (this.artifactComponents.length > 0) {
-      defaultTools.save_tool_result = createSaveToolResultTool(
-        sessionId,
-        streamRequestId,
-        this.config.id,
-        this.artifactComponents
-      );
-    }
+    // Note: save_tool_result tool is replaced by artifact:create response annotations
+    // Agents with artifact components will receive creation instructions in their system prompt
 
     // Add thinking_complete tool if we have structured output components
     const hasStructuredOutput = this.config.dataComponents && this.config.dataComponents.length > 0;
@@ -1112,6 +1201,270 @@ Key requirements:
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  /**
+   * Analyze tool result structure and add helpful path hints for artifact creation
+   * Only adds hints when artifact components are available
+   */
+  private enhanceToolResultWithStructureHints(result: any): any {
+    if (!result) {
+      return result;
+    }
+
+    // Only add structure hints if artifact components are available
+    if (!this.artifactComponents || this.artifactComponents.length === 0) {
+      return result;
+    }
+
+    // Parse embedded JSON if result is a string
+    let parsedForAnalysis = result;
+    if (typeof result === 'string') {
+      try {
+        parsedForAnalysis = parseEmbeddedJson(result);
+      } catch (error) {
+        // If parsing fails, analyze the original result
+        parsedForAnalysis = result;
+      }
+    }
+
+    if (!parsedForAnalysis || typeof parsedForAnalysis !== 'object') {
+      return result;
+    }
+
+    const findAllPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 8) return []; // Allow deeper exploration
+
+      const paths: string[] = [];
+
+      if (Array.isArray(obj)) {
+        if (obj.length > 0) {
+          // Add the array path itself
+          paths.push(`${prefix}[array-${obj.length}-items]`);
+
+          // Add filtering examples based on actual data
+          if (obj[0] && typeof obj[0] === 'object') {
+            const sampleItem = obj[0];
+            Object.keys(sampleItem).forEach((key) => {
+              const value = sampleItem[key];
+              if (typeof value === 'string' && value.length < 50) {
+                paths.push(`${prefix}[?${key}=='${value}']`);
+              } else if (typeof value === 'boolean') {
+                paths.push(`${prefix}[?${key}==${value}]`);
+              } else if (key === 'id' || key === 'name' || key === 'type') {
+                paths.push(`${prefix}[?${key}=='value']`);
+              }
+            });
+          }
+
+          // Recurse into array items to find nested structures (use filtering instead of selecting all)
+          paths.push(...findAllPaths(obj[0], `${prefix}[?field=='value']`, depth + 1));
+        }
+      } else if (obj && typeof obj === 'object') {
+        // Add each property path
+        Object.entries(obj).forEach(([key, value]) => {
+          const currentPath = `${prefix}.${key}`;
+
+          if (value && typeof value === 'object') {
+            if (Array.isArray(value)) {
+              paths.push(`${currentPath}[array]`);
+            } else {
+              paths.push(`${currentPath}[object]`);
+            }
+            // Recurse into nested structures
+            paths.push(...findAllPaths(value, currentPath, depth + 1));
+          } else {
+            // Terminal field
+            paths.push(`${currentPath}[${typeof value}]`);
+          }
+        });
+      }
+
+      return paths;
+    };
+
+    const findCommonFields = (obj: any, depth = 0): Set<string> => {
+      if (depth > 5) return new Set();
+
+      const fields = new Set<string>();
+      if (Array.isArray(obj)) {
+        // Check first few items for common field patterns
+        obj.slice(0, 3).forEach((item) => {
+          if (item && typeof item === 'object') {
+            Object.keys(item).forEach((key) => fields.add(key));
+          }
+        });
+      } else if (obj && typeof obj === 'object') {
+        Object.keys(obj).forEach((key) => fields.add(key));
+        Object.values(obj).forEach((value) => {
+          findCommonFields(value, depth + 1).forEach((field) => fields.add(field));
+        });
+      }
+      return fields;
+    };
+
+    // Find deeply nested paths that might be good for filtering
+    const findUsefulSelectors = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 5) return [];
+
+      const selectors: string[] = [];
+
+      if (Array.isArray(obj) && obj.length > 0) {
+        const firstItem = obj[0];
+        if (firstItem && typeof firstItem === 'object') {
+          // Add specific filtering examples based on actual data
+          if (firstItem.title) {
+            selectors.push(
+              `${prefix}[?title=='${String(firstItem.title).replace(/'/g, "\\'")}'] | [0]`
+            );
+          }
+          if (firstItem.type) {
+            selectors.push(`${prefix}[?type=='${firstItem.type}'] | [0]`);
+          }
+          if (firstItem.record_type) {
+            selectors.push(`${prefix}[?record_type=='${firstItem.record_type}'] | [0]`);
+          }
+          if (firstItem.url) {
+            selectors.push(`${prefix}[?url!=null] | [0]`);
+          }
+
+          // Add compound filters for better specificity
+          if (firstItem.type && firstItem.title) {
+            selectors.push(
+              `${prefix}[?type=='${firstItem.type}' && title=='${String(firstItem.title).replace(/'/g, "\\'")}'] | [0]`
+            );
+          }
+
+          // Add direct indexed access as fallback
+          selectors.push(`${prefix}[0]`);
+        }
+      } else if (obj && typeof obj === 'object') {
+        Object.entries(obj).forEach(([key, value]) => {
+          if (typeof value === 'object' && value !== null) {
+            selectors.push(...findUsefulSelectors(value, `${prefix}.${key}`, depth + 1));
+          }
+        });
+      }
+
+      return selectors;
+    };
+
+    // Find nested content paths specifically
+    const findNestedContentPaths = (obj: any, prefix = 'result', depth = 0): string[] => {
+      if (depth > 6) return [];
+
+      const paths: string[] = [];
+
+      if (obj && typeof obj === 'object') {
+        // Look for nested content structures
+        Object.entries(obj).forEach(([key, value]) => {
+          const currentPath = `${prefix}.${key}`;
+
+          if (Array.isArray(value) && value.length > 0) {
+            // Check if this is a content array with structured items
+            const firstItem = value[0];
+            if (firstItem && typeof firstItem === 'object') {
+              if (firstItem.type === 'document' || firstItem.type === 'text') {
+                paths.push(`${currentPath}[?type=='document'] | [0]`);
+                paths.push(`${currentPath}[?type=='text'] | [0]`);
+
+                // Add specific filtering based on actual content
+                if (firstItem.title) {
+                  const titleSample = String(firstItem.title).slice(0, 20);
+                  paths.push(
+                    `${currentPath}[?title && contains(title, '${titleSample.split(' ')[0]}')] | [0]`
+                  );
+                }
+                if (firstItem.record_type) {
+                  paths.push(`${currentPath}[?record_type=='${firstItem.record_type}'] | [0]`);
+                }
+              }
+            }
+
+            // Continue deeper into nested structures
+            paths.push(...findNestedContentPaths(value, currentPath, depth + 1));
+          } else if (value && typeof value === 'object') {
+            paths.push(...findNestedContentPaths(value, currentPath, depth + 1));
+          }
+        });
+      }
+
+      return paths;
+    };
+
+    try {
+      const allPaths = findAllPaths(parsedForAnalysis);
+      const commonFields = Array.from(findCommonFields(parsedForAnalysis)).slice(0, 15);
+      const usefulSelectors = findUsefulSelectors(parsedForAnalysis).slice(0, 10);
+      const nestedContentPaths = findNestedContentPaths(parsedForAnalysis).slice(0, 8);
+
+      // Get comprehensive path information
+      const terminalPaths = allPaths
+        .filter((p) => p.includes('[string]') || p.includes('[number]') || p.includes('[boolean]'))
+        .slice(0, 20);
+      const arrayPaths = allPaths.filter((p) => p.includes('[array')).slice(0, 15);
+      const objectPaths = allPaths.filter((p) => p.includes('[object]')).slice(0, 15);
+
+      // Combine all selector examples and remove duplicates
+      const allSelectors = [...usefulSelectors, ...nestedContentPaths];
+      const uniqueSelectors = [...new Set(allSelectors)].slice(0, 15);
+
+      // Add structure hints to the original result (not the parsed version)
+      const enhanced = {
+        ...result,
+        _structureHints: {
+          terminalPaths: terminalPaths, // All field paths that contain actual values
+          arrayPaths: arrayPaths, // All array structures found
+          objectPaths: objectPaths, // All nested object structures
+          commonFields: commonFields,
+          exampleSelectors: uniqueSelectors,
+          deepStructureExamples: nestedContentPaths,
+          maxDepthFound: Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length)),
+          totalPathsFound: allPaths.length,
+          artifactGuidance: {
+            creationFirst:
+              '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
+            baseSelector:
+              "🎯 CRITICAL: Use base_selector to navigate to ONE specific item. For deeply nested structures with repeated keys, use full paths with specific filtering (e.g., \"result.data.content.items[?type=='guide' && status=='active']\")",
+            summaryProps:
+              '📝 Use relative selectors from that item (e.g., "title", "metadata.category", "properties.status")',
+            fullProps:
+              '📖 Use relative selectors for detailed data (e.g., "content.details", "specifications.data", "attributes")',
+            avoidLiterals:
+              '❌ NEVER use literal values - always use field selectors to extract from data',
+            avoidArrays:
+              '✨ ALWAYS filter arrays to single items using [?condition] - NEVER use [*] notation which returns arrays',
+            nestedKeys:
+              '🔑 For structures with repeated keys (like result.content.data.content.items.content), use full paths with filtering at each level',
+            filterTips:
+              "💡 Use compound filters for precision: [?type=='document' && category=='api']",
+            forbiddenSyntax:
+              '🚫 FORBIDDEN JMESPATH PATTERNS:\n' +
+              "❌ NEVER: [?title~'.*text.*'] (regex patterns with ~ operator)\n" +
+              "❌ NEVER: [?field~'pattern.*'] (any ~ operator usage)\n" +
+              "❌ NEVER: [?title~'Slack.*Discord.*'] (regex wildcards)\n" +
+              "❌ NEVER: [?name~'https://.*'] (regex in URL matching)\n" +
+              "❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)\n" +
+              "❌ NEVER: contains(@, 'text') (@ operator usage)\n" +
+              '❌ NEVER: [?field=="value"] (double quotes in filters)\n' +
+              "❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)\n" +
+              '✅ USE INSTEAD:\n' +
+              "✅ [?contains(title, 'text')] (contains function)\n" +
+              "✅ [?title=='exact match'] (exact string matching)\n" +
+              "✅ [?contains(title, 'Slack') && contains(title, 'Discord')] (compound conditions)\n" +
+              "✅ [?starts_with(url, 'https://')] (starts_with function)\n" +
+              "✅ [?type=='doc' && status=='active'] (single filter with &&)",
+            pathDepth: `📏 This structure goes ${Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length))} levels deep - use full paths to avoid ambiguity`,
+          },
+          note: `Comprehensive structure analysis: ${allPaths.length} paths found, ${Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length))} levels deep. Use specific filtering for precise selection.`,
+        },
+      };
+
+      return enhanced;
+    } catch (error) {
+      logger.warn({ error }, 'Failed to enhance tool result with structure hints');
+      return result;
+    }
   }
 
   // Check if any agents in the graph have artifact components
@@ -1147,19 +1500,18 @@ Key requirements:
     }
   ) {
     return tracer.startActiveSpan('agent.generate', async (span) => {
-      // Create tool session for this execution outside try blocks
+      // Use the ToolSession created by GraphSession
+      // All agents in this execution share the same session
       const contextId = runtimeContext?.contextId || 'default';
       const taskId = runtimeContext?.metadata?.taskId || 'unknown';
-      const sessionId = toolSessionManager.createSession(
-        this.config.tenantId,
-        this.config.projectId,
-        contextId,
-        taskId
-      );
+      const streamRequestId = runtimeContext?.metadata?.streamRequestId;
+      const sessionId = streamRequestId || 'fallback-session';
+
+      // Note: ToolSession is now created by GraphSession, not by agents
+      // This ensures proper lifecycle management and session coordination
 
       try {
         // Set streaming helper from registry if available
-        const streamRequestId = runtimeContext?.metadata?.streamRequestId;
         this.streamRequestId = streamRequestId;
         this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
         const conversationId = runtimeContext?.metadata?.conversationId;
@@ -1216,6 +1568,9 @@ Key requirements:
           ...relationTools,
           ...defaultTools,
         };
+
+        // Sanitize tool names at runtime for AI SDK compatibility
+        const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
 
         // Get conversation history
         let conversationHistory = '';
@@ -1312,7 +1667,7 @@ Key requirements:
           const streamResult = streamText({
             ...streamConfig,
             messages,
-            tools: allTools,
+            tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
               // Track the last step's text reasoning
               const last = steps.at(-1);
@@ -1352,7 +1707,22 @@ Key requirements:
           if (!streamHelper) {
             throw new Error('Stream helper is unexpectedly undefined in streaming context');
           }
-          const parser = new IncrementalStreamParser(streamHelper, this.config.tenantId, contextId);
+          // Get session info from tool session manager
+          const session = toolSessionManager.getSession(sessionId);
+          const artifactParserOptions = {
+            sessionId,
+            taskId: session?.taskId,
+            projectId: session?.projectId,
+            artifactComponents: this.artifactComponents,
+            streamRequestId: this.getStreamRequestId(),
+            agentId: this.config.id,
+          };
+          const parser = new IncrementalStreamParser(
+            streamHelper,
+            this.config.tenantId,
+            contextId,
+            artifactParserOptions
+          );
 
           // Process the full stream - track all events including tool calls
           // Note: stopWhen will automatically stop on transfer_to_
@@ -1415,7 +1785,7 @@ Key requirements:
           response = await generateText({
             ...genConfig,
             messages,
-            tools: allTools,
+            tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
               // Track the last step's text reasoning
               const last = steps.at(-1);
@@ -1490,50 +1860,71 @@ Key requirements:
                       if (toolName === 'thinking_complete') {
                         return;
                       }
-
-                      // Special handling for save_artifact_tool and save_tool_result
-                      if (toolName === 'save_artifact_tool' || toolName === 'save_tool_result') {
-                        logger.info({ result }, 'save_artifact_tool or save_tool_result');
-                        if (result.output.artifacts) {
-                          for (const artifact of result.output.artifacts) {
-                            const artifactId = artifact?.artifactId || 'N/A';
-                            const taskId = artifact?.taskId || 'N/A';
-                            const summaryData = artifact?.summaryData || {};
-
-                            const formattedArtifact = `## Artifact Saved
-
-    **Artifact ID:** ${artifactId}
-    **Task ID:** ${taskId}
-
-    ### Summary
-    ${typeof summaryData === 'string' ? summaryData : JSON.stringify(summaryData, null, 2)}`;
-
-                            reasoningFlow.push({
-                              role: 'assistant',
-                              content: formattedArtifact,
-                            });
-                          }
-                        }
-                        return;
-                      }
-
                       // Default formatting for all other tools
                       const actualResult = storedResult?.result || result.result || result;
                       const actualArgs = storedResult?.args || call.args;
 
+                      // Filter out _structureHints from the result for clean JSON output
+                      const cleanResult =
+                        actualResult &&
+                        typeof actualResult === 'object' &&
+                        !Array.isArray(actualResult)
+                          ? Object.fromEntries(
+                              Object.entries(actualResult).filter(
+                                ([key]) => key !== '_structureHints'
+                              )
+                            )
+                          : actualResult;
+
                       const input = actualArgs ? JSON.stringify(actualArgs, null, 2) : 'No input';
                       const output =
-                        typeof actualResult === 'string'
-                          ? actualResult
-                          : JSON.stringify(actualResult, null, 2);
+                        typeof cleanResult === 'string'
+                          ? cleanResult
+                          : JSON.stringify(cleanResult, null, 2);
+
+                      // Format structure hints if present and artifact components are available
+                      let structureHintsFormatted = '';
+                      if (
+                        actualResult?._structureHints &&
+                        this.artifactComponents &&
+                        this.artifactComponents.length > 0
+                      ) {
+                        const hints = actualResult._structureHints;
+                        structureHintsFormatted = `
+### 📊 Structure Hints for Artifact Creation
+
+**Terminal Field Paths (${hints.terminalPaths?.length || 0} found):**
+${hints.terminalPaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Array Structures (${hints.arrayPaths?.length || 0} found):**
+${hints.arrayPaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Object Structures (${hints.objectPaths?.length || 0} found):**
+${hints.objectPaths?.map((path: string) => `  • ${path}`).join('\n') || '  None detected'}
+
+**Example Selectors:**
+${hints.exampleSelectors?.map((sel: string) => `  • ${sel}`).join('\n') || '  None detected'}
+
+**Common Fields:**
+${hints.commonFields?.map((field: string) => `  • ${field}`).join('\n') || '  None detected'}
+
+**Structure Stats:** ${hints.totalPathsFound || 0} total paths, ${hints.maxDepthFound || 0} levels deep
+
+**Note:** ${hints.note || 'Use these paths for artifact base selectors.'}
+
+**Forbidden Syntax:** ${hints.forbiddenSyntax || 'Use these paths for artifact base selectors.'}
+`;
+                      }
 
                       const formattedResult = `## Tool: ${call.toolName}
+
+### 🔧 TOOL_CALL_ID: ${result.toolCallId}
 
 ### Input
 ${input}
 
 ### Output
-${output}`;
+${output}${structureHintsFormatted}`;
 
                       reasoningFlow.push({
                         role: 'assistant',
@@ -1562,8 +1953,14 @@ ${output}`;
               });
             }
 
-            // Add artifact reference schema
+            // Add artifact schemas only when artifact components are available
             if (this.artifactComponents.length > 0) {
+              // Add one ArtifactCreate schema for each artifact component type
+              const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
+                this.artifactComponents
+              );
+              componentSchemas.push(...artifactCreateSchemas);
+              // Add the single reference schema for all types
               componentSchemas.push(ArtifactReferenceSchema.getSchema());
             }
 
@@ -1589,16 +1986,24 @@ ${output}`;
 
             if (shouldStreamPhase2) {
               // Streaming Phase 2: Stream structured output with incremental parser
+              const phase2Messages: any[] = [
+                {
+                  role: 'system',
+                  content: await this.buildPhase2SystemPrompt(runtimeContext),
+                },
+              ];
+
+              // Add conversation history if available
+              if (conversationHistory.trim() !== '') {
+                phase2Messages.push({ role: 'user', content: conversationHistory });
+              }
+              
+              phase2Messages.push({ role: 'user', content: userMessage });
+              phase2Messages.push(...reasoningFlow);
+
               const streamResult = streamObject({
                 ...structuredModelSettings,
-                messages: [
-                  { role: 'user', content: userMessage },
-                  ...reasoningFlow,
-                  {
-                    role: 'user',
-                    content: await this.buildPhase2SystemPrompt(),
-                  },
-                ],
+                messages: phase2Messages,
                 schema: z.object({
                   dataComponents: z.array(dataComponentsSchema),
                 }),
@@ -1619,10 +2024,21 @@ ${output}`;
               if (!streamHelper) {
                 throw new Error('Stream helper is unexpectedly undefined in streaming context');
               }
+              // Get session info for artifact parser
+              const session = toolSessionManager.getSession(sessionId);
+              const artifactParserOptions = {
+                sessionId,
+                taskId: session?.taskId,
+                projectId: session?.projectId,
+                artifactComponents: this.artifactComponents,
+                streamRequestId: this.getStreamRequestId(),
+                agentId: this.config.id,
+              };
               const parser = new IncrementalStreamParser(
                 streamHelper,
                 this.config.tenantId,
-                contextId
+                contextId,
+                artifactParserOptions
               );
 
               // Process the object stream with better delta handling
@@ -1659,30 +2075,40 @@ ${output}`;
               textResponse = JSON.stringify(structuredResponse.object, null, 2);
             } else {
               // Non-streaming Phase 2: Use generateObject as fallback
-              const structuredResponse = await generateObject({
-                ...structuredModelSettings,
-                messages: [
-                  { role: 'user', content: userMessage },
-                  ...reasoningFlow,
-                  {
-                    role: 'user',
-                    content: await this.buildPhase2SystemPrompt(),
+              const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
+
+              // Build Phase 2 messages with conversation history
+              const phase2Messages: any[] = [
+                { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
+              ];
+
+              // Add conversation history if available
+              if (conversationHistory.trim() !== '') {
+                phase2Messages.push({ role: 'user', content: conversationHistory });
+              }
+              
+              phase2Messages.push({ role: 'user', content: userMessage });
+              phase2Messages.push(...reasoningFlow);
+
+              const structuredResponse = await generateObject(
+                withJsonPostProcessing({
+                  ...structuredModelSettings,
+                  messages: phase2Messages,
+                  schema: z.object({
+                    dataComponents: z.array(dataComponentsSchema),
+                  }),
+                  experimental_telemetry: {
+                    isEnabled: true,
+                    functionId: this.config.id,
+                    recordInputs: true,
+                    recordOutputs: true,
+                    metadata: {
+                      phase: 'structured_generation',
+                    },
                   },
-                ],
-                schema: z.object({
-                  dataComponents: z.array(dataComponentsSchema),
-                }),
-                experimental_telemetry: {
-                  isEnabled: true,
-                  functionId: this.config.id,
-                  recordInputs: true,
-                  recordOutputs: true,
-                  metadata: {
-                    phase: 'structured_generation',
-                  },
-                },
-                abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-              });
+                  abortSignal: AbortSignal.timeout(phase2TimeoutMs),
+                })
+              );
 
               // Merge structured output into response
               response = {
@@ -1707,15 +2133,27 @@ ${output}`;
         let formattedContent: MessageContent | null = response.formattedContent || null;
 
         if (!formattedContent) {
+          // Create ResponseFormatter with proper context
+          const session = toolSessionManager.getSession(sessionId);
+          const responseFormatter = new ResponseFormatter(this.config.tenantId, {
+            sessionId,
+            taskId: session?.taskId,
+            projectId: session?.projectId,
+            contextId,
+            artifactComponents: this.artifactComponents,
+            streamRequestId: this.getStreamRequestId(),
+            agentId: this.config.id,
+          });
+
           if (response.object) {
             // For object responses, replace artifact markers and convert to parts array
-            formattedContent = await this.responseFormatter.formatObjectResponse(
+            formattedContent = await responseFormatter.formatObjectResponse(
               response.object,
               contextId
             );
           } else if (textResponse) {
             // For text responses, apply artifact marker formatting to create text/data parts
-            formattedContent = await this.responseFormatter.formatResponse(textResponse, contextId);
+            formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
           }
         }
 
@@ -1742,13 +2180,12 @@ ${output}`;
           });
         }
 
-        // Clean up session after completion
-        toolSessionManager.endSession(sessionId);
+        // Don't clean up ToolSession here - let ToolSessionManager handle timeout-based cleanup
+        // The ToolSession might still be needed by other agents in the graph execution
 
         return formattedResponse;
       } catch (error) {
-        // Clean up session on error
-        toolSessionManager.endSession(sessionId);
+        // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
 
         // Record exception and mark span as error
         setSpanWithError(span, error);

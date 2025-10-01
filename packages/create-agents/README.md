@@ -118,7 +118,7 @@ After setup, you'll have access to:
 ## Commands Available in Your Directory
 
 - `pnpm dev` - Start both API services with hot reload
-- `pnpm db:push` - Apply database schema changes
+- `pnpm db:migrate` - Apply database migrations
 - `inkeep dev` - Start the Manage UI
 - `inkeep push` - Deploy project configurations
 - `inkeep chat` - Interactive chat with your agents

@@ -1,6 +1,7 @@
+import { env } from './env';
 import {
-  getAgentsRunApiUrl,
   getAgentsManageApiUrl,
+  getAgentsRunApiUrl,
   getProjectId,
   getTenantId,
 } from './utils/config';
@@ -57,13 +58,13 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
     const response = await fetch(
-      `${this.apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/agent-graphs`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
           }),
         },
       }
@@ -102,13 +103,13 @@ export class ManagementApiClient extends BaseApiClient {
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await fetch(
-      `${this.apiUrl}/tenants/${tenantId}/crud/projects/${projectId}/graph/${graphId}`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
       {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
           }),
         },
         body: JSON.stringify(graphDefinition),
@@ -152,8 +153,8 @@ export class ExecutionApiClient extends BaseApiClient {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-        ...(process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
-          Authorization: `Bearer ${process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+        ...(env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
+          Authorization: `Bearer ${env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
         }),
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,

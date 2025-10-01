@@ -10,23 +10,37 @@ keywords: SigNoz, tracing, observability, OpenTelemetry, monitoring, distributed
 
 You can set up SigNoz in two ways:
 
-1.  **Cloud Setup**: Use SigNoz Cloud (recommended)
+1. **Cloud Setup**: Use SigNoz Cloud
 2. **Local Setup**: Run SigNoz locally using Docker
 
-## Option 1: SigNoz Cloud Setup
+## Option 1: SigNoz cloud setup
 
-### Step 1: Create SigNoz Cloud Account
+### Step 1: Create a SigNoz cloud project
 
-1. Sign up at [SigNoz Cloud](https://signoz.io/teams/)
+1. Sign up at [SigNoz](https://signoz.io/teams/)
 2. Create a new project or use an existing one
-3. Note your ingestion endpoint and API key from the project settings
 
-### Step 2: Configure Root Environment
+### Step 2: Save your SigNoz API key, ingestion key, and SigNoz URL
 
-In your **root project directory**, update your `.env` file:
+You'll need to collect three pieces of information from your SigNoz dashboard:
 
-```bash
-# SigNoz Cloud Configuration
+1. **API Key**: 
+   - Navigate to Settings → Workspace Settings → API Keys → New Key
+   - Set the expiration field to "No Expiry" to prevent the key from expiring
+   - Copy the generated API key
+
+2. **Ingestion Key**:
+   - Navigate to Settings → Workspace Settings → Ingestion
+   - Copy the ingestion key
+
+3. **SigNoz URL**:
+   - Copy the URL from your browser's address bar
+   - It will look like: `https://<your-organization>.signoz.cloud`
+
+### Step 3: Configure your root `.env` file
+
+```
+# SigNoz
 SIGNOZ_URL=https://<your-organization>.signoz.cloud
 SIGNOZ_API_KEY=<your-api-key>
 
@@ -34,25 +48,24 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
 OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 ```
 
+### Step 4: Verify cloud setup
 
-### Step 4: Verify Cloud Setup
-
-1. Start your Inkeep agents:
+1. Restart your development environment:
    ```bash
    pnpm dev
    ```
 
 2. Generate some traces by interacting with your agents
 
-3. Open your SigNoz Cloud dashboard and navigate to "Traces" to see your agent traces
+3. Open your SigNoz canloud dashboard and navigate to "Traces" to see your agent traces
 
-## Option 2: Local SigNoz Setup
+## Option 2: Local SigNoz setup
 
 ### Prerequisites
 
 - Docker installed on your machine
 
-### Step 1: Clone the Optional Services Repository
+### Step 1: Clone the optional services repository
 
 Clone the Inkeep optional local development services repository:
 
@@ -61,12 +74,21 @@ git clone https://github.com/inkeep/agents-optional-local-dev
 cd agents-optional-local-dev
 ```
 
-### Step 2: Start SigNoz Services
+### Step 2: Configure SigNoz Credentials (Optional)
+
+In the `agents-optional-local-dev` repository, you can optionally set credentials by adding these to your `.env` file:
+
+```bash
+SIGNOZ_ADMIN_EMAIL=admin@example.com
+SIGNOZ_ADMIN_PASSWORD="adminADMIN#1"
+```
+
+### Step 3: Start SigNoz Services
 
 Run the following command to start SigNoz and related services:
 
 ```bash
-docker compose up -d
+docker-compose --profile signoz up -d
 ```
 
 This will start:
@@ -75,7 +97,9 @@ This will start:
 - SigNoz OTEL collector
 - ClickHouse database
 
-### Step 3: Configure Environment Variables
+When you visit `http://localhost:3080`, you can log in using the credentials you configured above.
+
+### Step 4: Configure Environment Variables
 
 In your **root project directory** (of my-agent-directory), update your `.env` file:
 
@@ -83,15 +107,20 @@ In your **root project directory** (of my-agent-directory), update your `.env` f
 # SigNoz Configuration
 SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key
+
+# IMPORTANT: Comment out the OTEL Configuration
+# OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
+# OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 ```
 
 To get your SigNoz API key:
 
 1. Open SigNoz at `http://localhost:3080`
-2. Navigate to Settings → Account Settings → API Keys
-3. Create a new API key or copy an existing one
+2. Navigate to Settings → Account Settings → API Keys → New Key
+3. Create a new API key or copy an existing one. 
+   - Set the expiration field to "No Expiry" to prevent the key from expiring
 
-### Step 4: Verify Setup
+### Step 5: Verify Setup
 
 1. Restart your Inkeep agents:
    ```bash
@@ -102,9 +131,11 @@ To get your SigNoz API key:
 
 3. Open SigNoz at `http://localhost:3080` and navigate to the "Traces" section to see your agent traces
 
+For more information on how to debug traces, see the [SigNoz Usage guide](/typescript-sdk/signoz-usage).
+
+
+
 ## Additional Observability: Langfuse Integration
 
-If you want to connect to **Langfuse** for specialized LLM observability alongside SigNoz, you'll need to use Docker and the **local method** (Option 2 above). 
-
-👉 **See the [Langfuse Usage guide](/typescript-sdk/langfuse-usage)** for complete setup instructions with Docker.
+👉 **If you want to connect to Langfuse** for specialized LLM observability alongside SigNoz see the [Langfuse Usage guide](/typescript-sdk/langfuse-usage) for complete setup instructions.
 

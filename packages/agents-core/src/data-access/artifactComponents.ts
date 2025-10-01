@@ -272,8 +272,22 @@ export const graphHasArtifactComponents =
     const result = await db
       .select({ count: count() })
       .from(agentArtifactComponents)
-      .innerJoin(agents, eq(agentArtifactComponents.agentId, agents.id))
-      .innerJoin(agentRelations, eq(agents.id, agentRelations.sourceAgentId))
+      .innerJoin(
+        agents,
+        and(
+          eq(agentArtifactComponents.agentId, agents.id),
+          eq(agentArtifactComponents.tenantId, agents.tenantId)
+        )
+      )
+      .innerJoin(
+        agentRelations,
+        and(
+          eq(agents.id, agentRelations.sourceAgentId),
+          eq(agents.tenantId, agentRelations.tenantId),
+          eq(agents.projectId, agentRelations.projectId),
+          eq(agents.graphId, agentRelations.graphId)
+        )
+      )
       .where(
         and(
           eq(agentArtifactComponents.tenantId, params.scopes.tenantId),

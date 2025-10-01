@@ -1,10 +1,10 @@
+import { exec } from 'node:child_process';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
-import { exec } from 'child_process';
 import fs from 'fs-extra';
-import path from 'path';
 import color from 'picocolors';
-import { promisify } from 'util';
-import { cloneTemplate, getAvailableTemplates } from './templates.js';
+import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
 
@@ -22,7 +22,7 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: 'openai/gpt-5-2025-08-07',
+    model: 'openai/gpt-4.1-2025-04-14',
   },
   structuredOutput: {
     model: 'openai/gpt-4.1-mini-2025-04-14',
@@ -96,8 +96,8 @@ export const createAgents = async (
     templateName = template;
   } else {
     // No template or custom project ID provided - use defaults
-    projectId = 'weather-graph';
-    templateName = 'weather-graph';
+    projectId = 'weather-project';
+    templateName = 'weather-project';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -212,7 +212,7 @@ export const createAgents = async (
     const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
 
     const projectTemplateRepo = templateName
-      ? `https://github.com/inkeep/agents-cookbook/templates/${templateName}`
+      ? `https://github.com/inkeep/agents-cookbook/template-projects/${templateName}`
       : null;
 
     const directoryPath = path.resolve(process.cwd(), dirName);
@@ -249,7 +249,7 @@ export const createAgents = async (
       manageApiPort: manageApiPort || '3002',
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
-      customProject: customProjectId ? true : false,
+      customProject: !!customProjectId,
     };
 
     // Create workspace structure for project-specific files
@@ -264,7 +264,18 @@ export const createAgents = async (
     if (projectTemplateRepo) {
       s.message('Creating project template folder...');
       const templateTargetPath = `src/${projectId}`;
-      await cloneTemplate(projectTemplateRepo, templateTargetPath);
+
+      // Prepare content replacements for model settings
+      const contentReplacements: ContentReplacement[] = [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: defaultModelSettings,
+          },
+        },
+      ];
+
+      await cloneTemplate(projectTemplateRepo, templateTargetPath, contentReplacements);
     } else {
       s.message('Creating empty project folder...');
       await fs.ensureDir(`src/${projectId}`);
@@ -361,14 +372,12 @@ async function createInkeepConfig(config: FileConfig) {
 
   const config = defineConfig({
     tenantId: "${config.tenantId}",
-    projectId: "${config.projectId}",
     agentsManageApiUrl: 'http://localhost:3002',
     agentsRunApiUrl: 'http://localhost:3003',
-    modelSettings: ${JSON.stringify(config.modelSettings, null, 2)},
   });
       
   export default config;`;
-  await fs.writeFile(`src/${config.projectId}/inkeep.config.ts`, inkeepConfig);
+  await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
   if (config.customProject) {
     const customIndexContent = `import { project } from '@inkeep/agents-sdk';
@@ -378,6 +387,7 @@ export const myProject = project({
   name: "${config.projectId}",
   description: "",
   graphs: () => [],
+  models: ${JSON.stringify(config.modelSettings, null, 2)},
 });`;
     await fs.writeFile(`src/${config.projectId}/index.ts`, customIndexContent);
   }
@@ -389,7 +399,7 @@ async function installDependencies() {
 
 async function setupProjectInDatabase(config: FileConfig) {
   // Start development servers in background
-  const { spawn } = await import('child_process');
+  const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
     stdio: ['pipe', 'pipe', 'pipe'],
     detached: true, // Detach so we can kill the process group
@@ -402,10 +412,10 @@ async function setupProjectInDatabase(config: FileConfig) {
   // Run inkeep push
   try {
     // Suppress all output
-    const { stdout, stderr } = await execAsync(
-      `pnpm inkeep push --project src/${config.projectId}`
+    await execAsync(
+      `pnpm inkeep push --project src/${config.projectId} --config src/inkeep.config.ts`
     );
-  } catch (error) {
+  } catch (_error) {
     //Continue despite error - user can setup project manually
   } finally {
     // Kill the dev servers and their child processes
@@ -423,7 +433,7 @@ async function setupProjectInDatabase(config: FileConfig) {
         } catch {
           // Process already terminated
         }
-      } catch (error) {
+      } catch (_error) {
         // Process might already be dead, that's fine
         console.log('Note: Dev servers may still be running in background');
       }
@@ -433,8 +443,9 @@ async function setupProjectInDatabase(config: FileConfig) {
 
 async function setupDatabase() {
   try {
-    // Run drizzle-kit push to create database file and apply schema
-    await execAsync('pnpm db:push');
+    // Run drizzle-kit migrate to apply migrations to database
+    await execAsync('pnpm db:generate');
+    await execAsync('pnpm db:migrate');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
     throw new Error(

@@ -9,9 +9,12 @@ import {
   mcpNodeHandleId,
   NodeType,
 } from '@/components/graph/configuration/node-types';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import type {
+  ExternalAgentDefinition,
+  FullGraphDefinition,
+  InternalAgentDefinition,
+} from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';
-import type { ExtendedAgent } from './serialize';
 
 interface TransformResult {
   nodes: Node[];
@@ -19,22 +22,64 @@ interface TransformResult {
 }
 
 export const NODE_WIDTH = 300;
-const NODE_HEIGHT = 150;
+const BASE_NODE_HEIGHT = 150;
+const MIN_NODE_HEIGHT = 120;
+
+function calculateNodeHeight(node: Node): number {
+  // Base height for all nodes
+  let height = MIN_NODE_HEIGHT;
+
+  // Agent and External Agent nodes have dynamic height
+  if (node.type === NodeType.Agent || node.type === NodeType.ExternalAgent) {
+    const data = node.data as any;
+
+    // Add height for description if it exists
+    if (data.description) {
+      height += 20;
+    }
+
+    // Add height for model badge if present
+    if (data.models?.base?.model) {
+      height += 30;
+    }
+
+    // Add height for components section
+    if (data.dataComponents && data.dataComponents.length > 0) {
+      // Title + items section
+      height += 60 + Math.ceil(data.dataComponents.length / 3) * 30;
+    }
+
+    // Add height for artifacts section
+    if (data.artifactComponents && data.artifactComponents.length > 0) {
+      // Title + items section
+      height += 60 + Math.ceil(data.artifactComponents.length / 3) * 30;
+    }
+  }
+
+  // MCP nodes are typically smaller
+  if (node.type === NodeType.MCP) {
+    height = 100;
+  }
+
+  return Math.max(height, BASE_NODE_HEIGHT);
+}
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new (dagre as any).graphlib.Graph();
   g.setGraph({
     rankdir: 'TB',
     nodesep: 150,
-    ranksep: 120,
+    ranksep: 150, // Increased vertical spacing between ranks
     edgesep: 80,
     marginx: 50,
     marginy: 50,
   });
   g.setDefaultEdgeLabel(() => ({}));
 
+  // Set nodes with calculated heights
   for (const node of nodes) {
-    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    const nodeHeight = calculateNodeHeight(node);
+    g.setNode(node.id, { width: NODE_WIDTH, height: nodeHeight });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
@@ -44,11 +89,12 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
 
   return nodes.map((node) => {
     const nodeWithPosition = g.node(node.id);
+    const nodeHeight = calculateNodeHeight(node);
     return {
       ...node,
       position: {
         x: nodeWithPosition.x - NODE_WIDTH / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
       },
     };
   });
@@ -60,7 +106,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
 
   const agentIds: string[] = Object.keys(data.agents);
   for (const agentId of agentIds) {
-    const agent = data.agents[agentId] as ExtendedAgent;
+    const agent = data.agents[agentId];
     const isDefault = agentId === data.defaultAgentId;
     const isExternal = agent.type === 'external';
 
@@ -70,51 +116,79 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
           id: agent.id,
           name: agent.name,
           description: agent.description,
-          baseUrl: agent.baseUrl,
+          baseUrl: (agent as ExternalAgentDefinition).baseUrl,
+          headers: formatJsonField(agent.headers) || '{}',
           type: agent.type,
+          credentialReferenceId: agent.credentialReferenceId,
         }
-      : {
-          id: agent.id,
-          name: agent.name,
-          isDefault,
-          prompt: agent.prompt,
-          description: agent.description,
-          dataComponents: agent.dataComponents,
-          artifactComponents: agent.artifactComponents,
-          models: agent.models
-            ? {
-                base: agent.models.base
-                  ? {
-                      model: agent.models.base.model ?? '',
-                      providerOptions: agent.models.base.providerOptions
-                        ? formatJsonField(agent.models.base.providerOptions)
-                        : undefined,
+      : (() => {
+          const internalAgent = agent as InternalAgentDefinition;
+          return {
+            id: agent.id,
+            name: agent.name,
+            isDefault,
+            prompt: internalAgent.prompt,
+            description: agent.description,
+            dataComponents: internalAgent.dataComponents,
+            artifactComponents: internalAgent.artifactComponents,
+            models: internalAgent.models
+              ? {
+                  base: internalAgent.models.base
+                    ? {
+                        model: internalAgent.models.base.model ?? '',
+                        providerOptions: internalAgent.models.base.providerOptions
+                          ? formatJsonField(internalAgent.models.base.providerOptions)
+                          : undefined,
+                      }
+                    : undefined,
+                  structuredOutput: internalAgent.models.structuredOutput
+                    ? {
+                        model: internalAgent.models.structuredOutput.model ?? '',
+                        providerOptions: internalAgent.models.structuredOutput.providerOptions
+                          ? formatJsonField(internalAgent.models.structuredOutput.providerOptions)
+                          : undefined,
+                      }
+                    : undefined,
+                  summarizer: internalAgent.models.summarizer
+                    ? {
+                        model: internalAgent.models.summarizer.model ?? '',
+                        providerOptions: internalAgent.models.summarizer.providerOptions
+                          ? formatJsonField(internalAgent.models.summarizer.providerOptions)
+                          : undefined,
+                      }
+                    : undefined,
+                }
+              : undefined,
+            stopWhen: internalAgent.stopWhen
+              ? { stepCountIs: internalAgent.stopWhen.stepCountIs }
+              : undefined,
+            type: agent.type,
+            // Convert canUse back to tools, selectedTools, headers for UI
+            tools: internalAgent.canUse ? internalAgent.canUse.map((item) => item.toolId) : [],
+            selectedTools: internalAgent.canUse
+              ? internalAgent.canUse.reduce(
+                  (acc, item) => {
+                    if (item.toolSelection) {
+                      acc[item.toolId] = item.toolSelection;
                     }
-                  : undefined,
-                structuredOutput: agent.models.structuredOutput
-                  ? {
-                      model: agent.models.structuredOutput.model ?? '',
-                      providerOptions: agent.models.structuredOutput.providerOptions
-                        ? formatJsonField(agent.models.structuredOutput.providerOptions)
-                        : undefined,
+                    return acc;
+                  },
+                  {} as Record<string, string[]>
+                )
+              : undefined,
+            headers: internalAgent.canUse
+              ? internalAgent.canUse.reduce(
+                  (acc, item) => {
+                    if (item.headers) {
+                      acc[item.toolId] = item.headers;
                     }
-                  : undefined,
-                summarizer: agent.models.summarizer
-                  ? {
-                      model: agent.models.summarizer.model ?? '',
-                      providerOptions: agent.models.summarizer.providerOptions
-                        ? formatJsonField(agent.models.summarizer.providerOptions)
-                        : undefined,
-                    }
-                  : undefined,
-              }
-            : undefined,
-          stopWhen: (agent as any).stopWhen
-            ? { stepCountIs: (agent as any).stopWhen.stepCountIs }
-            : undefined,
-          type: agent.type,
-          ...(agent.selectedTools && { selectedTools: agent.selectedTools }),
-        };
+                    return acc;
+                  },
+                  {} as Record<string, Record<string, string>>
+                )
+              : undefined,
+          };
+        })();
 
     const agentNode: Node = {
       id: agentId,
@@ -130,65 +204,30 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   // Tool visualization will need to be handled at the project level
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
-    // Check if agent has tools property (internal agents)
-    if ('tools' in agent && agent.tools && agent.tools.length > 0) {
-      // Only create tool nodes if tools data is available in graph (backward compatibility)
-      const toolsData = (data as any).tools;
-      if (toolsData) {
-        for (const toolId of agent.tools) {
-          const tool = toolsData[toolId];
-          if (!tool) {
-            // eslint-disable-next-line no-console
-            console.warn(`Tool with ID ${toolId} not found in tools object`);
-            continue;
-          }
-          const toolNodeId = nanoid();
-          const toolNode: Node = {
-            id: toolNodeId,
-            type: NodeType.MCP,
-            position: { x: 0, y: 0 },
-            data: { id: tool.id, ...tool },
-          };
-          nodes.push(toolNode);
+    // Check if agent has canUse property (internal agents)
+    if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
+      // Tools are project-scoped - create nodes from canUse items
+      for (const canUseItem of agent.canUse) {
+        const toolId = canUseItem.toolId;
+        const toolNodeId = nanoid();
+        const relationshipId = canUseItem.agentToolRelationId;
+        const toolNode: Node = {
+          id: toolNodeId,
+          type: NodeType.MCP,
+          position: { x: 0, y: 0 },
+          data: { toolId, agentId, relationshipId },
+        };
+        nodes.push(toolNode);
 
-          const agentToToolEdge: Edge = {
-            id: `edge-${toolNodeId}-${agentId}`,
-            type: EdgeType.Default,
-            source: agentId,
-            sourceHandle: agentNodeSourceHandleId,
-            target: toolNodeId,
-            targetHandle: mcpNodeHandleId,
-          };
-          edges.push(agentToToolEdge);
-        }
-      } else {
-        // Tools are project-scoped, create placeholder nodes with tool IDs
-        for (const toolId of agent.tools) {
-          const toolNodeId = nanoid();
-          const toolNode: Node = {
-            id: toolNodeId,
-            type: NodeType.MCP,
-            position: { x: 0, y: 0 },
-            data: {
-              id: toolId,
-              name: toolId,
-              description: 'Project-scoped tool',
-              type: 'project-scoped',
-              config: {}
-            },
-          };
-          nodes.push(toolNode);
-
-          const agentToToolEdge: Edge = {
-            id: `edge-${toolNodeId}-${agentId}`,
-            type: EdgeType.Default,
-            source: agentId,
-            sourceHandle: agentNodeSourceHandleId,
-            target: toolNodeId,
-            targetHandle: mcpNodeHandleId,
-          };
-          edges.push(agentToToolEdge);
-        }
+        const agentToToolEdge: Edge = {
+          id: `edge-${toolNodeId}-${agentId}`,
+          type: EdgeType.Default,
+          source: agentId,
+          sourceHandle: agentNodeSourceHandleId,
+          target: toolNodeId,
+          targetHandle: mcpNodeHandleId,
+        };
+        edges.push(agentToToolEdge);
       }
     }
   }
