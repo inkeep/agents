@@ -123,7 +123,6 @@ export function ProjectForm({
           toast.error(res.error || 'Failed to update project');
           return;
         }
-        form.reset({ ...res.data });
         toast.success('Project updated successfully');
         if (onSuccess) {
           onSuccess(data.id);
