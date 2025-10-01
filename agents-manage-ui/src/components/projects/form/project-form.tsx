@@ -34,9 +34,9 @@ const serializeData = (data: ProjectFormData) => {
   };
 
   const cleanStopWhen = (stopWhen: any) => {
-    // If stopWhen is null, undefined, or empty object, return undefined
+    // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
     if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
-      return undefined;
+      return {};
     }
 
     // Clean the individual properties - remove null/undefined values
@@ -48,9 +48,9 @@ const serializeData = (data: ProjectFormData) => {
       cleaned.stepCountIs = stopWhen.stepCountIs;
     }
 
-    // If no valid properties, return undefined
+    // If no valid properties, return empty object (undefined will not update the field)
     if (Object.keys(cleaned).length === 0) {
-      return undefined;
+      return {};
     }
 
     return cleaned;
@@ -123,6 +123,7 @@ export function ProjectForm({
           toast.error(res.error || 'Failed to update project');
           return;
         }
+        form.reset({ ...res.data });
         toast.success('Project updated successfully');
         if (onSuccess) {
           onSuccess(data.id);
