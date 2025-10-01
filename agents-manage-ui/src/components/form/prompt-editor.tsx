@@ -1,8 +1,12 @@
-import { type FC, useMemo } from 'react';
-import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete';
-import { keymap, Decoration, ViewPlugin, EditorView, type DecorationSet } from '@codemirror/view';
+import { type FC, type RefObject, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { autocompletion, type CompletionSource, startCompletion } from '@codemirror/autocomplete';
+import { Decoration, ViewPlugin, EditorView, type DecorationSet } from '@codemirror/view';
 import { duotoneDark, duotoneLight } from '@uiw/codemirror-theme-duotone';
-import CodeMirror, { type ReactCodeMirrorProps, type Range } from '@uiw/react-codemirror';
+import CodeMirror, {
+  type ReactCodeMirrorProps,
+  type Range,
+  type ReactCodeMirrorRef,
+} from '@uiw/react-codemirror';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { getContextSuggestions } from '@/lib/context-suggestions';
@@ -34,10 +38,9 @@ const templateVariablePlugin = ViewPlugin.fromClass(
 
       for (let i = 0; i < view.state.doc.lines; i++) {
         const line = view.state.doc.line(i + 1);
-        const text = line.text;
         let match: RegExpExecArray | null;
 
-        while ((match = regex.exec(text)) !== null) {
+        while ((match = regex.exec(line.text)) !== null) {
           const from = line.from + match.index;
           const to = line.from + match.index + match[0].length;
           decorations.push(templateVariableDecoration.range(from, to));
@@ -88,10 +91,22 @@ function createContextAutocompleteSource(suggestions: string[]): CompletionSourc
   };
 }
 
-export interface TextareaWithSuggestionsProps extends ReactCodeMirrorProps {
+export interface TextareaWithSuggestionsProps extends Omit<ReactCodeMirrorProps, 'onChange'> {
+  onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  ref?: RefObject<{ insertTemplateVariable: () => void }>;
+}
+
+function tryJsonParse(json: string): object {
+  if (!json.trim()) {
+    return {};
+  }
+  try {
+    return JSON.parse(json);
+  } catch {}
+  return {};
 }
 
 export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
@@ -101,21 +116,27 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
   placeholder,
   disabled,
   readOnly,
+  ref,
   ...rest
 }) => {
+  const editorRef = useRef<ReactCodeMirrorRef | null>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const contextConfig = useGraphStore((state) => state.metadata.contextConfig);
 
   const extensions = useMemo(() => {
-    const contextVariables = JSON.parse(contextConfig.contextVariables || '{}');
-    const requestContextSchema = JSON.parse(contextConfig.requestContextSchema || '{}');
-    const suggestions = getContextSuggestions({ requestContextSchema, contextVariables });
+    const contextVariables = tryJsonParse(contextConfig.contextVariables);
+    const requestContextSchema = tryJsonParse(contextConfig.requestContextSchema);
+    const suggestions = getContextSuggestions({
+      // @ts-expect-error -- todo: improve type
+      requestContextSchema,
+      // @ts-expect-error -- todo: improve type
+      contextVariables,
+    });
     return [
       autocompletion({
         override: [createContextAutocompleteSource(suggestions)],
       }),
-      keymap.of(completionKeymap),
       templateVariablePlugin,
       templateVariableTheme,
     ];
@@ -123,6 +144,7 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
 
   return (
     <CodeMirror
+      ref={editorRef}
       {...rest}
       value={value || ''}
       onChange={onChange}
