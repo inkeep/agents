@@ -4,6 +4,6 @@ export const defaultValues: ArtifactComponentFormData = {
   id: '',
   name: '',
   description: '',
-  summaryProps: '',
-  fullProps: '',
+  summaryProps: undefined,
+  fullProps: undefined,
 };

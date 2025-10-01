@@ -1,42 +1,36 @@
 import { z } from 'zod';
-import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
+import { validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
 import { idSchema } from '@/lib/validation';
 
-const jsonSchemaValidation = (fieldName: string) =>
-  z
-    .string()
-    .min(1, `${fieldName} schema is required.`)
-    .transform((str, ctx) => {
-      try {
-        const parsed = JSON.parse(str);
+const optionalJsonSchemaValidation = z
+  .string()
+  .optional()
+  .refine((str) => {
+    // If empty or undefined, it's valid (optional field)
+    if (!str || str.trim() === '') {
+      return true;
+    }
 
-        // Validate it's a proper LLM-compatible JSON schema
-        const validationResult = validateJsonSchemaForLlm(str);
-        if (!validationResult.isValid) {
-          const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: errorMessage,
-          });
-          return z.NEVER;
-        }
+    // Try to parse as JSON
+    try {
+      JSON.parse(str);
+    } catch {
+      return false;
+    }
 
-        return parsed;
-      } catch (error) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: getJsonParseError(error),
-        });
-        return z.NEVER;
-      }
-    });
+    // Validate it's a proper LLM-compatible JSON schema
+    const validationResult = validateJsonSchemaForLlm(str);
+    return validationResult.isValid;
+  }, {
+    message: 'Must be a valid JSON Schema'
+  });
 
 export const artifactComponentSchema = z.object({
   id: idSchema,
   name: z.string().min(1, 'Name is required.'),
   description: z.string().min(1, 'Description is required.'),
-  summaryProps: jsonSchemaValidation('Summary props').optional(),
-  fullProps: jsonSchemaValidation('Full props').optional(),
+  summaryProps: optionalJsonSchemaValidation,
+  fullProps: optionalJsonSchemaValidation,
 });
 
 export type ArtifactComponentFormData = z.infer<typeof artifactComponentSchema>;

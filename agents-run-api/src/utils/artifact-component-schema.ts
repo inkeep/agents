@@ -158,30 +158,40 @@ export class ArtifactCreateSchema {
       const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
       const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
 
+      const properties: any = {
+        id: {
+          type: 'string',
+          description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+        },
+        tool_call_id: {
+          type: 'string',
+          description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+        },
+        type: {
+          type: 'string',
+          enum: [component.name],
+          description: `Artifact type - must be "${component.name}"`,
+        },
+        base_selector: {
+          type: 'string',
+          description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+        },
+      };
+
+      const required = ['id', 'tool_call_id', 'type', 'base_selector'];
+
+      // Only include schema fields if they are defined
+      if (component.summaryProps) {
+        properties.summary_props = enhancedSummaryProps;
+      }
+      if (component.fullProps) {
+        properties.full_props = enhancedFullProps;
+      }
+
       const propsSchema = {
         type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
-          },
-          tool_call_id: {
-            type: 'string',
-            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
-          },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
-          base_selector: {
-            type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
-          },
-          summary_props: enhancedSummaryProps,
-          full_props: enhancedFullProps,
-        },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+        properties,
+        required,
       };
 
       return z.object({
@@ -207,30 +217,40 @@ export class ArtifactCreateSchema {
       const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
       const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
 
+      const properties: any = {
+        id: {
+          type: 'string',
+          description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+        },
+        tool_call_id: {
+          type: 'string',
+          description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+        },
+        type: {
+          type: 'string',
+          enum: [component.name],
+          description: `Artifact type - must be "${component.name}"`,
+        },
+        base_selector: {
+          type: 'string',
+          description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+        },
+      };
+
+      const required = ['id', 'tool_call_id', 'type', 'base_selector'];
+
+      // Only include schema fields if they are defined
+      if (component.summaryProps) {
+        properties.summary_props = enhancedSummaryProps;
+      }
+      if (component.fullProps) {
+        properties.full_props = enhancedFullProps;
+      }
+
       const propsSchema = {
         type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
-          },
-          tool_call_id: {
-            type: 'string',
-            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
-          },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
-          base_selector: {
-            type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
-          },
-          summary_props: enhancedSummaryProps,
-          full_props: enhancedFullProps,
-        },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+        properties,
+        required,
       };
 
       return {

@@ -63,7 +63,17 @@ export function ArtifactComponentForm({
 
   const onSubmit = async (data: ArtifactComponentFormData) => {
     try {
-      const payload = { ...data } as ArtifactComponent;
+      // Transform form data to API format
+      const payload = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        summaryProps: data.summaryProps ? JSON.parse(data.summaryProps) : undefined,
+        fullProps: data.fullProps ? JSON.parse(data.fullProps) : undefined,
+        // These fields are typically set by the API, but required for the type
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as ArtifactComponent;
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
@@ -123,14 +133,14 @@ export function ArtifactComponentForm({
           name="summaryProps"
           label="Summary props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
-          isRequired
+          description="Optional. Define the structure for summary data extraction."
         />
         <JsonSchemaInput
           control={form.control}
           name="fullProps"
           label="Full props (JSON schema)"
           placeholder="Enter a valid JSON Schema..."
-          isRequired
+          description="Optional. Define the structure for detailed data extraction."
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

@@ -664,8 +664,8 @@ export class Project implements ProjectInterface {
                   : '');
               artifactComponentName = artifactComponent.name || '';
               artifactComponentDescription = artifactComponent.description || '';
-              artifactComponentSummaryProps = artifactComponent.summaryProps || {};
-              artifactComponentFullProps = artifactComponent.fullProps || {};
+              artifactComponentSummaryProps = artifactComponent.summaryProps;
+              artifactComponentFullProps = artifactComponent.fullProps;
             }
 
             // Only add if not already added (avoid duplicates)

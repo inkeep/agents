@@ -134,6 +134,11 @@ CREATING ARTIFACTS (SERVES AS CITATION):
 Use the appropriate ArtifactCreate_[Type] component to extract and structure data from tool results.
 The creation itself serves as a citation - no additional reference needed.
 
+IMPORTANT: Only include summary_props and full_props if the artifact component has schemas defined:
+- If summaryProps schema exists → include "summary_props": {...}
+- If fullProps schema exists → include "full_props": {...}
+- If no schemas exist → only include id, tool_call_id, type, and base_selector
+
 🚫 FORBIDDEN JMESPATH PATTERNS:
 ❌ NEVER: [?title~'.*text.*'] (regex patterns with ~ operator)
 ❌ NEVER: [?field~'pattern.*'] (any ~ operator usage)
@@ -265,24 +270,30 @@ IMPORTANT GUIDELINES:
     // For structured responses - show available component types
     const componentDescriptions = artifactComponents
       .map((ac) => {
-        const summaryProps = ac.summaryProps?.properties
-          ? Object.entries(ac.summaryProps.properties)
-              .map(([key, value]: [string, any]) => `      - ${key}: ${value.description || 'Field from tool result'}`)
-              .join('\n')
-          : '      No properties defined';
+        let sections = [`  ArtifactCreate_${ac.name}:`, `    Description: ${ac.description || 'Extract and structure data'}`];
 
-        const fullProps = ac.fullProps?.properties
-          ? Object.entries(ac.fullProps.properties)
+        if (ac.summaryProps?.properties) {
+          const summaryProps = Object.entries(ac.summaryProps.properties)
               .map(([key, value]: [string, any]) => `      - ${key}: ${value.description || 'Field from tool result'}`)
-              .join('\n')
-          : '      No properties defined';
+            .join('\n');
+          sections.push('    Summary Properties:');
+          sections.push(summaryProps);
+        }
 
-        return `  ArtifactCreate_${ac.name}:
-    Description: ${ac.description || 'Extract and structure data'}
-    Summary Properties:
-${summaryProps}
-    Full Properties:
-${fullProps}`;
+        if (ac.fullProps?.properties) {
+          const fullProps = Object.entries(ac.fullProps.properties)
+            .map(([key, value]: [string, any]) => `      - ${key}: ${value.description || 'Field from tool result'}`)
+            .join('\n');
+          sections.push('    Full Properties:');
+          sections.push(fullProps);
+        }
+
+        // If no schemas defined, indicate that the entire response will be saved
+        if (!ac.summaryProps?.properties && !ac.fullProps?.properties) {
+          sections.push('    Note: No schemas defined - entire tool response will be saved as single data item');
+        }
+
+        return sections.join('\n');
       })
       .join('\n\n');
 

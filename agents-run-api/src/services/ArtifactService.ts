@@ -154,9 +154,18 @@ export class ArtifactService {
       }
 
       // Extract summary and full data
-
-      const summaryData = this.extractProps(selectedData, request.summaryProps || {});
-      let fullData = this.extractProps(selectedData, request.fullProps || {});
+      let summaryData: Record<string, any> = {};
+      let fullData: Record<string, any> = {};
+      if (request.summaryProps) {
+        summaryData = this.extractProps(selectedData, request.summaryProps || {});
+      } else {
+        summaryData = selectedData;
+      }
+      if (request.fullProps) {
+        fullData = this.extractProps(selectedData, request.fullProps || {});
+      } else {
+        fullData = selectedData;
+      }
 
       // Fallback: if fullData is empty, use the entire selectedData from base selector
       const isFullDataEmpty =

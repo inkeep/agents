@@ -227,6 +227,10 @@ You will create and reference artifacts using inline annotations in your text re
 
 CREATING ARTIFACTS (SERVES AS CITATION):
 Use the artifact:create annotation to extract data from tool results. The creation itself serves as a citation.
+
+ANNOTATION FORMAT DEPENDS ON ARTIFACT SCHEMA:
+
+📋 FOR ARTIFACTS WITH SCHEMAS:
 Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" summary='{"key":"jmespath_selector"}' full='{"key":"jmespath_selector"}' />
 
 🚨 CRITICAL: SUMMARY AND FULL PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
@@ -241,9 +245,14 @@ full='{"description":"content.description","main_text":"content.text","author":"
 
 The selectors extract actual field values from the data structure selected by your base selector.
 
-THE summary AND full PROPERTIES MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE TOOL RESULT!
-- summary: Contains JMESPath selectors relative to the base selector
-- full: Contains JMESPath selectors relative to the base selector  
+📋 FOR ARTIFACTS WITHOUT SCHEMAS:
+Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" />
+
+When no schemas are defined, only provide id, tool, type, and base. The entire data at the base selector will be saved.
+
+THE summary AND full PROPERTIES (WHEN USED) MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE TOOL RESULT!
+- summary: Contains JMESPath selectors relative to the base selector (only include if artifact has summaryProps schema)
+- full: Contains JMESPath selectors relative to the base selector (only include if artifact has fullProps schema)
 - These selectors are evaluated against the tool result to extract the actual values
 - NEVER put literal values like "Inkeep" or "2023" - always use selectors like "metadata.company" or "founded_year"
 
@@ -373,28 +382,28 @@ IMPORTANT GUIDELINES:
     // For text responses (annotations) - show available types with their schemas
     const typeDescriptions = artifactComponents
       .map((ac) => {
-        let summarySchema = 'No schema defined';
-        let fullSchema = 'No schema defined';
+        let schemaLines = [`  - "${ac.name}": ${ac.description || 'No description available'}`];
         
         if (ac.summaryProps?.properties) {
-          const summaryPropNames = Object.keys(ac.summaryProps.properties);
           const summaryDetails = Object.entries(ac.summaryProps.properties)
             .map(([key, value]: [string, any]) => `${key} (${value.description || value.type || 'field'})`)
             .join(', ');
-          summarySchema = `Required: ${summaryDetails}`;
+          schemaLines.push(`    Summary Props: Required: ${summaryDetails}`);
         }
         
         if (ac.fullProps?.properties) {
-          const fullPropNames = Object.keys(ac.fullProps.properties);
           const fullDetails = Object.entries(ac.fullProps.properties)
             .map(([key, value]: [string, any]) => `${key} (${value.description || value.type || 'field'})`)
             .join(', ');
-          fullSchema = `Available: ${fullDetails}`;
+          schemaLines.push(`    Full Props: Available: ${fullDetails}`);
         }
 
-        return `  - "${ac.name}": ${ac.description || 'No description available'}
-    Summary Props: ${summarySchema}
-    Full Props: ${fullSchema}`;
+        // If no schemas defined, indicate that the entire response will be saved
+        if (!ac.summaryProps?.properties && !ac.fullProps?.properties) {
+          schemaLines.push(`    Note: No schemas defined - entire tool response will be saved as single data item`);
+        }
+
+        return schemaLines.join('\n');
       })
       .join('\n\n');
 

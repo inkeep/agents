@@ -37,8 +37,8 @@ export default async function ArtifactComponentPage({ params }: ArtifactComponen
               id: artifactComponentId,
               name,
               description: description ?? '',
-              summaryProps,
-              fullProps,
+              summaryProps: summaryProps ? JSON.stringify(summaryProps, null, 2) : undefined,
+              fullProps: fullProps ? JSON.stringify(fullProps, null, 2) : undefined,
             }}
           />
         </div>

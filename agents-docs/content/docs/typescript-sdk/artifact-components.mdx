@@ -64,7 +64,25 @@ const agent = agent({
 });
 ```
 
-The `summaryProps` is used in the agent's context. The `fullProps` is used to store extra information about the artifact, stored in the database.
+The `summaryProps` (optional) is used in the agent's context. The `fullProps` (optional) is used to store extra information about the artifact, stored in the database. If no schema is provided, the entire response will be saved as a single piece of data.
+
+### Optional Schema Example
+
+You can also create artifact components without schemas for simple data storage:
+
+```typescript
+const agent = agent({
+  // ... other agent config
+  artifactComponents: [
+    {
+      id: "simple-artifact",
+      name: "Simple Artifact",
+      description: "Store raw tool responses without structured extraction",
+      // No summaryProps or fullProps - entire response will be saved
+    },
+  ],
+});
+```
 
 ## Automatic Artifact Creation
 
