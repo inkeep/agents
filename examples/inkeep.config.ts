@@ -3,6 +3,6 @@ import { defineConfig } from '@inkeep/agents-cli/config';
 export default defineConfig({
   tenantId: 'default',
   outputDirectory: 'default',
-  agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
+  agentsManageApiUrl: 'https://weather-agents-1-manage-api-two.preview.inkeep.com',
+  agentsRunApiUrl: 'https://weather-agents-1-run-api-six.preview.inkeep.com',
 });

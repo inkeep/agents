@@ -14,7 +14,7 @@ export interface ArtifactComponentInterface {
   getDescription(): ArtifactComponentType['description'];
   getSummaryProps(): ArtifactComponentType['summaryProps'];
   getFullProps(): ArtifactComponentType['fullProps'];
-  setContext(tenantId: string, projectId: string): void;
+  setContext(tenantId: string, projectId: string, baseURL?: string): void;
 }
 
 export class ArtifactComponent implements ArtifactComponentInterface {
@@ -45,10 +45,13 @@ export class ArtifactComponent implements ArtifactComponentInterface {
     );
   }
 
-  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
-  setContext(tenantId: string, projectId: string): void {
+  // Set context (tenantId, projectId, and baseURL) from external source (agent, graph, CLI, etc)
+  setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
+    if (baseURL) {
+      this.baseURL = baseURL;
+    }
   }
 
   // Compute ID from name using same slug transformation as agents

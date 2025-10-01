@@ -288,7 +288,7 @@ export interface AgentInterface {
   getDelegates(): AllAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
-  setContext(tenantId: string, projectId: string): void;
+  setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: AgentInterface[]): void;
   addDelegate(...agents: AgentInterface[]): void;
@@ -304,7 +304,7 @@ export interface ExternalAgentInterface {
   getBaseUrl(): string;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
-  setContext?(tenantId: string): void;
+  setContext?(tenantId: string, baseURL?: string): void;
 }
 
 // Graph interface for runner operations
