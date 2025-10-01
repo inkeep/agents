@@ -26,18 +26,15 @@ This API handles the configuration and management layer:
 
 ### Setup
 
-If you do not have the db setup:
-
-```bash
-cd packages/core
-pnpm db:push
-```
-
-Then:
-
 ```bash
 cd agents-run-api
 pnpm install
+```
+
+If you do not have the database setup, run migrations from the monorepo root:
+
+```bash
+pnpm db:migrate
 ```
 
 ### Environment Variables
@@ -60,9 +57,9 @@ pnpm format          # Format code
 
 ### Database Operations
 ```bash
-pnpm db:push         # Apply schema changes to SQLite
+pnpm db:generate     # Generate migration files from schema changes
+pnpm db:migrate      # Apply migration files to database
 pnpm db:studio       # Open Drizzle Studio for inspection
-pnpm db:generate     # Generate migration files
 ```
 
 ## Builder Patterns

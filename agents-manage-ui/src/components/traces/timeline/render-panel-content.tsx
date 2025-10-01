@@ -95,6 +95,66 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
+            {a.aiPromptMessages && (
+              <LabeledBlock label="Prompt messages">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.aiPromptMessages), null, 2);
+                    } catch {
+                      return a.aiPromptMessages;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.aiResponseToolCalls && (
+              <LabeledBlock label="Tool calls">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.aiResponseToolCalls), null, 2);
+                    } catch {
+                      return a.aiResponseToolCalls;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {/* Show error message if there's an error */}
+            {a.hasError && a.otelStatusDescription && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.hasError && a.otelStatusCode && (
+              <Info label="Status code" value={a.otelStatusCode} />
+            )}
+            <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'agent_generation':
+      return (
+        <>
+          <Section>
+            {a.hasError && a.otelStatusDescription && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.hasError && a.otelStatusCode && (
+              <Info label="Status code" value={a.otelStatusCode} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -231,14 +291,26 @@ export function renderPanelContent({
             {a.toolCallArgs && (
               <LabeledBlock label="Tool arguments">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
             {a.toolCallResult && (
               <LabeledBlock label="Tool result">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
@@ -276,14 +348,26 @@ export function renderPanelContent({
             {a.toolCallArgs && (
               <LabeledBlock label="Tool arguments">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
             {a.toolCallResult && (
               <LabeledBlock label="Tool result">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
@@ -322,14 +406,26 @@ export function renderPanelContent({
             {a.toolCallArgs && (
               <LabeledBlock label="Tool arguments">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
             {a.toolCallResult && (
               <LabeledBlock label="Tool result">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
@@ -364,14 +460,26 @@ export function renderPanelContent({
             {a.toolCallArgs && (
               <LabeledBlock label="Tool arguments">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
+                    } catch {
+                      return a.toolCallArgs;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}
             {a.toolCallResult && (
               <LabeledBlock label="Tool result">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
+                    } catch {
+                      return a.toolCallResult;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
                 </CodeBubble>
               </LabeledBlock>
             )}

@@ -1,16 +1,13 @@
 'use client';
 
-import { ChevronRight, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
-import { CollapsibleInfoCard } from '@/components/ui/info-card';
 import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
@@ -25,11 +22,35 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
+import { CollapsibleSettings } from '../collapsible-settings';
 import { ExpandableTextArea } from '../nodes/expandable-text-area';
 import { InputField, TextareaField } from '../nodes/form-fields';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
+
+const ExecutionLimitInheritanceInfo = () => {
+  return (
+    <ul className="space-y-1.5 list-disc list-outside pl-4">
+      <li>
+        <span className="font-medium">transferCountIs</span>: Project → Graph only (controls
+        transfers between agents)
+      </li>
+      <li>
+        <span className="font-medium">Explicit settings</span> always take precedence over inherited
+        values
+      </li>
+      <li>
+        <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no value is
+        set anywhere
+      </li>
+      <li>
+        <span className="font-medium">Graph scope</span>: This limit applies to all agents within
+        this graph
+      </li>
+    </ul>
+  );
+};
 
 function MetadataEditor() {
   const params = useParams();
@@ -146,6 +167,12 @@ function MetadataEditor() {
         <SectionHeader
           title="Default models"
           description="Set default models that will be inherited by agents that don't have their own models configured."
+          titleTooltip={
+            <div>
+              <p>How model inheritance works:</p>
+              <ModelInheritanceInfo />
+            </div>
+          }
         />
         <div className="relative space-y-2">
           <ModelSelector
@@ -180,169 +207,151 @@ function MetadataEditor() {
           <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
         </div>
 
-        <Collapsible
+        <CollapsibleSettings
           defaultOpen={!!models?.structuredOutput || !!models?.summarizer}
-          className="border rounded-md bg-muted/30 dark:bg-muted/20"
+          title="Advanced model options"
         >
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center justify-start gap-1.5 p-0 h-auto font-normal text-xs text-foreground/80 dark:text-foreground/90 hover:text-foreground hover:!bg-transparent transition-colors group w-full py-2 px-4"
-            >
-              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-              Advanced model options
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-8 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-            <div className="relative space-y-2">
-              <ModelSelector
-                value={models?.structuredOutput?.model || ''}
-                inheritedValue={
-                  project?.models?.structuredOutput?.model ||
-                  models?.base?.model ||
-                  project?.models?.base?.model
-                }
-                onValueChange={(value) => {
-                  const newModels = {
-                    ...(models || {}),
-                    structuredOutput: value
-                      ? {
-                          ...(models?.structuredOutput || {}),
-                          model: value,
-                        }
-                      : undefined,
-                  };
-                  updateMetadata('models', newModels);
-                }}
-                label={
-                  <div className="flex items-center gap-2">
-                    Structured output model
-                    <InheritanceIndicator
-                      {...getModelInheritanceStatus(
-                        'graph',
-                        models?.structuredOutput?.model,
-                        project?.models?.structuredOutput?.model
-                      )}
-                      size="sm"
-                    />
-                  </div>
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Model for structured outputs and data components (defaults to base model)
-              </p>
-            </div>
-            <div className="relative space-y-2">
-              <ModelSelector
-                value={models?.summarizer?.model || ''}
-                inheritedValue={
-                  project?.models?.summarizer?.model ||
-                  models?.base?.model ||
-                  project?.models?.base?.model
-                }
-                onValueChange={(value) => {
-                  const newModels = {
-                    ...(models || {}),
-                    summarizer: value
-                      ? {
-                          ...(models?.summarizer || {}),
-                          model: value,
-                        }
-                      : undefined,
-                  };
-                  updateMetadata('models', newModels);
-                }}
-                label={
-                  <div className="flex items-center gap-2">
-                    Summarizer model
-                    <InheritanceIndicator
-                      {...getModelInheritanceStatus(
-                        'graph',
-                        models?.summarizer?.model,
-                        project?.models?.summarizer?.model
-                      )}
-                      size="sm"
-                    />
-                  </div>
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Model for summarization tasks (defaults to base model)
-              </p>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <CollapsibleInfoCard title="How model inheritance works:" Icon={Info}>
-          <ModelInheritanceInfo />
-        </CollapsibleInfoCard>
-
-        {/* Base Model Provider Options */}
-        {models?.base?.model && (
-          <ExpandableJsonEditor
-            name="base-provider-options"
-            label="Base model provider options"
-            onChange={(value) => {
-              updateMetadata('models', {
-                ...(models || {}),
-                base: {
-                  model: models.base?.model || '',
-                  providerOptions: value,
-                },
-              });
-            }}
-            value={models.base.providerOptions || ''}
-            placeholder={`{
+          {/* Base Model Provider Options */}
+          {models?.base?.model && (
+            <ExpandableJsonEditor
+              name="base-provider-options"
+              label="Base model provider options"
+              onChange={(value) => {
+                updateMetadata('models', {
+                  ...(models || {}),
+                  base: {
+                    model: models.base?.model || '',
+                    providerOptions: value,
+                  },
+                });
+              }}
+              value={models.base.providerOptions || ''}
+              placeholder={`{
     "temperature": 0.7,
     "maxTokens": 2048
 }`}
-          />
-        )}
+            />
+          )}
 
-        {/* Structured Output Model Provider Options */}
-        {models?.structuredOutput?.model && (
-          <ExpandableJsonEditor
-            name="structured-provider-options"
-            label="Structured output model provider options"
-            onChange={(value) => {
-              updateMetadata('models', {
-                ...(models || {}),
-                structuredOutput: {
-                  model: models.structuredOutput?.model || '',
-                  providerOptions: value,
-                },
-              });
-            }}
-            value={models.structuredOutput.providerOptions || ''}
-            placeholder={`{
+          <div className="relative space-y-2">
+            <ModelSelector
+              value={models?.structuredOutput?.model || ''}
+              inheritedValue={
+                project?.models?.structuredOutput?.model ||
+                models?.base?.model ||
+                project?.models?.base?.model
+              }
+              onValueChange={(value) => {
+                const newModels = {
+                  ...(models || {}),
+                  structuredOutput: value
+                    ? {
+                        ...(models?.structuredOutput || {}),
+                        model: value,
+                      }
+                    : undefined,
+                };
+                updateMetadata('models', newModels);
+              }}
+              label={
+                <div className="flex items-center gap-2">
+                  Structured output model
+                  <InheritanceIndicator
+                    {...getModelInheritanceStatus(
+                      'graph',
+                      models?.structuredOutput?.model,
+                      project?.models?.structuredOutput?.model
+                    )}
+                    size="sm"
+                  />
+                </div>
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Model for structured outputs and components (defaults to base model)
+            </p>
+          </div>
+          {/* Structured Output Model Provider Options */}
+          {models?.structuredOutput?.model && (
+            <ExpandableJsonEditor
+              name="structured-provider-options"
+              label="Structured output model provider options"
+              onChange={(value) => {
+                updateMetadata('models', {
+                  ...(models || {}),
+                  structuredOutput: {
+                    model: models.structuredOutput?.model || '',
+                    providerOptions: value,
+                  },
+                });
+              }}
+              value={models.structuredOutput.providerOptions || ''}
+              placeholder={`{
   "temperature": 0.1,
   "maxTokens": 1024
 }`}
-          />
-        )}
-
-        {/* Summarizer Model Provider Options */}
-        {models?.summarizer?.model && (
-          <ExpandableJsonEditor
-            name="summarizer-provider-options"
-            label="Summarizer model provider options"
-            onChange={(value) => {
-              updateMetadata('models', {
-                ...(models || {}),
-                summarizer: {
-                  model: models.summarizer?.model || '',
-                  providerOptions: value,
-                },
-              });
-            }}
-            value={models.summarizer.providerOptions || ''}
-            placeholder={`{
+            />
+          )}
+          <div className="relative space-y-2">
+            <ModelSelector
+              value={models?.summarizer?.model || ''}
+              inheritedValue={
+                project?.models?.summarizer?.model ||
+                models?.base?.model ||
+                project?.models?.base?.model
+              }
+              onValueChange={(value) => {
+                const newModels = {
+                  ...(models || {}),
+                  summarizer: value
+                    ? {
+                        ...(models?.summarizer || {}),
+                        model: value,
+                      }
+                    : undefined,
+                };
+                updateMetadata('models', newModels);
+              }}
+              label={
+                <div className="flex items-center gap-2">
+                  Summarizer model
+                  <InheritanceIndicator
+                    {...getModelInheritanceStatus(
+                      'graph',
+                      models?.summarizer?.model,
+                      project?.models?.summarizer?.model
+                    )}
+                    size="sm"
+                  />
+                </div>
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Model for summarization tasks (defaults to base model)
+            </p>
+          </div>
+          {/* Summarizer Model Provider Options */}
+          {models?.summarizer?.model && (
+            <ExpandableJsonEditor
+              name="summarizer-provider-options"
+              label="Summarizer model provider options"
+              onChange={(value) => {
+                updateMetadata('models', {
+                  ...(models || {}),
+                  summarizer: {
+                    model: models.summarizer?.model || '',
+                    providerOptions: value,
+                  },
+                });
+              }}
+              value={models.summarizer.providerOptions || ''}
+              placeholder={`{
   "temperature": 0.3,
   "maxTokens": 1024
 }`}
-          />
-        )}
+            />
+          )}
+        </CollapsibleSettings>
       </div>
 
       <Separator />
@@ -352,6 +361,12 @@ function MetadataEditor() {
         <SectionHeader
           title="Execution limits"
           description="Configure graph-level execution limits for transfers between agents."
+          titleTooltip={
+            <div>
+              <p>How execution limit inheritance works:</p>
+              <ExecutionLimitInheritanceInfo />
+            </div>
+          }
         />
 
         <div className="space-y-2">
@@ -386,26 +401,6 @@ function MetadataEditor() {
             Maximum number of agent transfers per conversation (defaults to 10 if not set)
           </p>
         </div>
-        <CollapsibleInfoCard title="How execution limit inheritance works:" Icon={Info}>
-          <ul className="space-y-1.5 list-disc list-outside pl-4">
-            <li>
-              <span className="font-medium">transferCountIs</span>: Project → Graph only (controls
-              transfers between agents)
-            </li>
-            <li>
-              <span className="font-medium">Explicit settings</span> always take precedence over
-              inherited values
-            </li>
-            <li>
-              <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no
-              value is set anywhere
-            </li>
-            <li>
-              <span className="font-medium">Graph scope</span>: This limit applies to all agents
-              within this graph
-            </li>
-          </ul>
-        </CollapsibleInfoCard>
       </div>
 
       <Separator />
@@ -437,7 +432,7 @@ function MetadataEditor() {
           </div>
 
           {(statusUpdates?.enabled ?? true) && (
-            <>
+            <CollapsibleSettings title="Status updates configuration">
               <div className="space-y-2">
                 <Label htmlFor="status-updates-prompt">Status updates prompt</Label>
                 <Textarea
@@ -450,7 +445,7 @@ function MetadataEditor() {
                     });
                   }}
                   placeholder="Generate a status update describing the current progress..."
-                  className="max-h-32"
+                  className="max-h-32 bg-background"
                 />
                 <p className="text-xs text-muted-foreground">
                   Custom prompt for generating status updates (optional)
@@ -464,6 +459,7 @@ function MetadataEditor() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="event-based-updates"
+                        className="bg-background"
                         checked={!!statusUpdates?.numEvents}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -484,6 +480,7 @@ function MetadataEditor() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="time-based-updates"
+                        className="bg-background"
                         checked={!!statusUpdates?.timeInSeconds}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -520,6 +517,7 @@ function MetadataEditor() {
                         });
                       }}
                       placeholder="10"
+                      className="bg-background"
                     />
                     <p className="text-xs text-muted-foreground">
                       Number of events/steps between status updates (default: 10)
@@ -544,6 +542,7 @@ function MetadataEditor() {
                         });
                       }}
                       placeholder="30"
+                      className="bg-background"
                     />
                     <p className="text-xs text-muted-foreground">
                       Time interval in seconds between status updates (default: 30)
@@ -595,7 +594,7 @@ function MetadataEditor() {
                   description, and JSON schema.
                 </p>
               </div>
-            </>
+            </CollapsibleSettings>
           )}
         </div>
       </div>

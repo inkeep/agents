@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.10.1",
+  "version": "0.11.3",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,7 +41,6 @@
     "@hono/vite-dev-server": "^0.20.1",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^2.0.0",
-    "drizzle-kit": "^0.31.4",
     "nodemon": "^3.1.0",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.7.1",

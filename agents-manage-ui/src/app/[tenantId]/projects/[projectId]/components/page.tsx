@@ -22,24 +22,24 @@ async function DataComponentsPage({ params }: DataComponentsPageProps) {
     const response = await fetchDataComponents(tenantId, projectId);
     dataComponents = response;
   } catch (_error) {
-    throw new Error('Failed to fetch data components');
+    throw new Error('Failed to fetch components');
   }
   return (
-    <BodyTemplate breadcrumbs={[{ label: 'Data components' }]}>
+    <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>
       <MainContent className="min-h-full">
         {dataComponents.data.length > 0 ? (
           <>
             <PageHeader
-              title="Data components"
+              title="Components"
               description={dataComponentDescription}
               action={
                 <Button asChild>
                   <Link
-                    href={`/${tenantId}/projects/${projectId}/data-components/new`}
+                    href={`/${tenantId}/projects/${projectId}/components/new`}
                     className="flex items-center gap-2"
                   >
                     <Plus className="size-4" />
-                    New data component
+                    New component
                   </Link>
                 </Button>
               }
@@ -52,10 +52,10 @@ async function DataComponentsPage({ params }: DataComponentsPageProps) {
           </>
         ) : (
           <EmptyState
-            title="No data components yet."
+            title="No components yet."
             description={dataComponentDescription}
-            link={`/${tenantId}/projects/${projectId}/data-components/new`}
-            linkText="Create data component"
+            link={`/${tenantId}/projects/${projectId}/components/new`}
+            linkText="Create component"
           />
         )}
       </MainContent>

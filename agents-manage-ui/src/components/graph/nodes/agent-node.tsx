@@ -108,14 +108,10 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
             </Badge>
           ) : null}
           {dataComponentNames?.length > 0 && (
-            <ListSection title="Data components" items={dataComponentNames} Icon={Component} />
+            <ListSection title="Components" items={dataComponentNames} Icon={Component} />
           )}
           {artifactComponentNames?.length > 0 && (
-            <ListSection
-              title="Artifact components"
-              items={artifactComponentNames}
-              Icon={Library}
-            />
+            <ListSection title="Artifacts" items={artifactComponentNames} Icon={Library} />
           )}
         </BaseNodeContent>
         <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />

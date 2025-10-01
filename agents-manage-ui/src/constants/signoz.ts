@@ -20,6 +20,7 @@ export const SPAN_KEYS = {
   TIMESTAMP: 'timestamp',
   HAS_ERROR: 'hasError',
   STATUS_MESSAGE: 'status_message',
+  OTEL_STATUS_CODE: 'otel.status_code',
   OTEL_STATUS_DESCRIPTION: 'otel.status_description',
 
   // Graph attributes
@@ -36,6 +37,8 @@ export const SPAN_KEYS = {
   AI_RESPONSE_CONTENT: 'ai.response.content',
   AI_RESPONSE_TEXT: 'ai.response.text',
   AI_RESPONSE_MODEL: 'ai.response.model',
+  AI_RESPONSE_TOOL_CALLS: 'ai.response.toolCalls',
+  AI_PROMPT_MESSAGES: 'ai.prompt.messages',
   AI_MODEL_PROVIDER: 'ai.model.provider',
   AI_TELEMETRY_FUNCTION_ID: 'ai.telemetry.functionId',
   AI_MODEL_ID: 'ai.model.id',
@@ -153,6 +156,7 @@ export const UNKNOWN_VALUE = 'unknown' as const;
 export const ACTIVITY_TYPES = {
   TOOL_CALL: 'tool_call',
   AI_GENERATION: 'ai_generation',
+  AGENT_GENERATION: 'agent_generation',
   CONTEXT_FETCH: 'context_fetch',
   CONTEXT_RESOLUTION: 'context_resolution',
   USER_MESSAGE: 'user_message',
@@ -245,6 +249,8 @@ export const QUERY_EXPRESSIONS = {
   AI_STREAMING_TEXT: 'aiStreamingText',
   CONTEXT_FETCHERS: 'contextFetchers',
   DURATION_SPANS: 'durationSpans',
+  AGENT_GENERATIONS: 'agentGenerations',
+  SPANS_WITH_ERRORS: 'spansWithErrors',
 } as const;
 
 /** Query Reduce Operations */

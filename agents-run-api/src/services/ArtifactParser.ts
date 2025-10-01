@@ -77,8 +77,13 @@ export class ArtifactParser {
    * Check if text contains complete artifact markers (ref or create)
    */
   hasArtifactMarkers(text: string): boolean {
-    return ArtifactParser.ARTIFACT_CHECK_REGEX.test(text) || 
-           ArtifactParser.ARTIFACT_CREATE_REGEX.test(text);
+    const refMatch = ArtifactParser.ARTIFACT_CHECK_REGEX.test(text);
+    
+    // Use a fresh regex instance to avoid state issues
+    const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
+    const createMatch = createRegex.test(text);
+    
+    return refMatch || createMatch;
   }
 
   /**
@@ -164,9 +169,6 @@ export class ArtifactParser {
       attrs[key] = value;
     }
 
-    // Debug log the parsed attributes
-    logger.debug({ attrs, attrString }, 'Parsed artifact:create attributes');
-
     // Validate required attributes
     if (!attrs.id || !attrs.tool || !attrs.type || !attrs.base) {
       logger.warn({ attrs, attrString }, 'Missing required attributes in artifact annotation');
@@ -188,17 +190,14 @@ export class ArtifactParser {
    */
   private parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
     const annotations: ArtifactCreateAnnotation[] = [];
-    const matches = [...text.matchAll(ArtifactParser.ARTIFACT_CREATE_REGEX)];
     
-    logger.debug({ 
-      textContainsCreate: text.includes('artifact:create'),
-      matchCount: matches.length,
-      textLength: text.length 
-    }, 'parseCreateAnnotations called');
+    // Create a fresh regex instance to avoid state issues
+    const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
+    
+    const matches = [...text.matchAll(createRegex)];
 
     for (const match of matches) {
       const [fullMatch, attributes] = match;
-      logger.debug({ fullMatch, attributes }, 'Found artifact:create match');
       const annotation = this.parseCreateAttributes(attributes);
       if (annotation) {
         annotation.raw = fullMatch;
@@ -213,7 +212,8 @@ export class ArtifactParser {
    * Extract artifact data from a create annotation - delegates to service
    */
   private async extractFromCreateAnnotation(
-    annotation: ArtifactCreateAnnotation
+    annotation: ArtifactCreateAnnotation,
+    agentId?: string
   ): Promise<ArtifactData | null> {
     const request: ArtifactCreateRequest = {
       artifactId: annotation.artifactId,
@@ -224,7 +224,7 @@ export class ArtifactParser {
       fullProps: annotation.fullProps,
     };
 
-    return this.artifactService.createArtifact(request);
+    return this.artifactService.createArtifact(request, agentId);
   }
 
   /**
@@ -232,16 +232,11 @@ export class ArtifactParser {
    * Handles both artifact:ref and artifact:create tags
    * Can work with or without pre-fetched artifact map
    */
-  async parseText(text: string, artifactMap?: Map<string, any>): Promise<StreamPart[]> {
+  async parseText(text: string, artifactMap?: Map<string, any>, agentId?: string): Promise<StreamPart[]> {
     // First, process any artifact:create annotations
     let processedText = text;
     const createAnnotations = this.parseCreateAnnotations(text);
     
-    logger.debug({ 
-      hasCreateAnnotations: createAnnotations.length > 0,
-      annotationCount: createAnnotations.length,
-      textLength: text.length 
-    }, 'Processing text for artifact annotations');
     
     // Extract artifacts from create annotations and cache them for direct replacement
     const createdArtifactData = new Map<string, ArtifactData>();
@@ -249,7 +244,8 @@ export class ArtifactParser {
     
     for (const annotation of createAnnotations) {
       try {
-        const artifactData = await this.extractFromCreateAnnotation(annotation);
+        const artifactData = await this.extractFromCreateAnnotation(annotation, agentId);
+
         if (artifactData && annotation.raw) {
           // Cache the artifact data for direct replacement
           createdArtifactData.set(annotation.raw, artifactData);
@@ -257,7 +253,7 @@ export class ArtifactParser {
           // Track failed annotation for user feedback
           failedAnnotations.push(`Failed to create artifact "${annotation.artifactId}": Missing or invalid data`);
           processedText = processedText.replace(annotation.raw, '');
-          logger.warn({ annotation }, 'Removed failed artifact:create annotation from output');
+          logger.warn({ annotation, artifactData }, 'Removed failed artifact:create annotation from output');
         }
       } catch (error) {
         // Track extraction failures for user feedback
@@ -282,9 +278,13 @@ export class ArtifactParser {
     // Parse text for both artifact:create and artifact:ref tags
     const parts: StreamPart[] = [];
     
+    // Use fresh regex instances to avoid state issues
+    const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
+    const refRegex = /<artifact:ref\s+id=(["'])([^"']*?)\1\s+tool=(["'])([^"']*?)\3\s*\/>/gs;
+    
     // First handle direct artifact:create replacements
-    const createMatches = [...text.matchAll(ArtifactParser.ARTIFACT_CREATE_REGEX)];
-    const refMatches = [...processedText.matchAll(ArtifactParser.ARTIFACT_REGEX)];
+    const createMatches = [...text.matchAll(createRegex)];
+    const refMatches = [...processedText.matchAll(refRegex)];
     
     // Combine and sort all matches by position
     const allMatches: Array<{ match: RegExpMatchArray; type: 'create' | 'ref' }> = [
@@ -345,7 +345,7 @@ export class ArtifactParser {
   /**
    * Process object/dataComponents for artifact components
    */
-  async parseObject(obj: any, artifactMap?: Map<string, any>): Promise<StreamPart[]> {
+  async parseObject(obj: any, artifactMap?: Map<string, any>, agentId?: string): Promise<StreamPart[]> {
     // Handle dataComponents array
     if (obj?.dataComponents && Array.isArray(obj.dataComponents)) {
       const parts: StreamPart[] = [];
@@ -362,7 +362,7 @@ export class ArtifactParser {
           }
         } else if (this.isArtifactCreateComponent(component)) {
           // Handle ArtifactCreate component - extract artifact from tool result
-          const createData = await this.extractFromArtifactCreateComponent(component);
+          const createData = await this.extractFromArtifactCreateComponent(component, agentId);
           if (createData) {
             parts.push({ kind: 'data', data: createData });
           }
@@ -385,7 +385,7 @@ export class ArtifactParser {
     }
 
     if (this.isArtifactCreateComponent(obj)) {
-      const createData = await this.extractFromArtifactCreateComponent(obj);
+      const createData = await this.extractFromArtifactCreateComponent(obj, agentId);
       return createData ? [{ kind: 'data', data: createData }] : [];
     }
 
@@ -396,15 +396,7 @@ export class ArtifactParser {
    * Check if object is an artifact component
    */
   private isArtifactComponent(obj: any): boolean {
-    const result = obj?.name === 'Artifact' && obj?.props?.artifact_id && obj?.props?.tool_call_id;
-    logger.debug({ 
-      obj, 
-      name: obj?.name, 
-      artifact_id: obj?.props?.artifact_id, 
-      tool_call_id: obj?.props?.tool_call_id,
-      result 
-    }, 'isArtifactComponent check');
-    return result;
+    return obj?.name === 'Artifact' && obj?.props?.artifact_id && obj?.props?.tool_call_id;
   }
 
   /**
@@ -417,7 +409,7 @@ export class ArtifactParser {
   /**
    * Extract artifact from ArtifactCreate component
    */
-  private async extractFromArtifactCreateComponent(component: any): Promise<ArtifactData | null> {
+  private async extractFromArtifactCreateComponent(component: any, agentId?: string): Promise<ArtifactData | null> {
     const props = component.props;
     if (!props) {
       return null;
@@ -434,7 +426,7 @@ export class ArtifactParser {
     };
 
     // Use existing extraction logic
-    return await this.extractFromCreateAnnotation(annotation);
+    return await this.extractFromCreateAnnotation(annotation, agentId);
   }
 
   /**

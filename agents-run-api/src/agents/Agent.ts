@@ -53,7 +53,6 @@ import { parseEmbeddedJson } from '../utils/json-parser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { createSaveToolResultTool } from './artifactTools';
 import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
@@ -853,9 +852,43 @@ export class Agent {
    * Build adaptive system prompt for Phase 2 structured output generation
    * based on configured data components and artifact components across the graph
    */
-  private async buildPhase2SystemPrompt(): Promise<string> {
+  private async buildPhase2SystemPrompt(
+    runtimeContext?: {
+      contextId: string;
+      metadata: {
+        conversationId: string;
+        threadId: string;
+        streamRequestId?: string;
+        streamBaseUrl?: string;
+      };
+    }
+  ): Promise<string> {
     const phase2Config = new Phase2Config();
     const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+
+    // Get resolved context using ContextResolver
+    const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
+    const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
+
+    // Process agent prompt with context (same logic as buildSystemPrompt)
+    let processedPrompt = this.config.agentPrompt;
+    if (resolvedContext) {
+      try {
+        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with context for Phase 2, using original'
+        );
+        processedPrompt = this.config.agentPrompt;
+      }
+    }
 
     // Get reference artifacts from existing tasks (same logic as buildSystemPrompt)
     const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
@@ -875,6 +908,7 @@ export class Agent {
     }
 
     return phase2Config.assemblePhase2Prompt({
+      corePrompt: processedPrompt,
       dataComponents: this.config.dataComponents || [],
       artifactComponents: this.artifactComponents,
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
@@ -1866,16 +1900,24 @@ ${output}${structureHintsFormatted}`;
 
             if (shouldStreamPhase2) {
               // Streaming Phase 2: Stream structured output with incremental parser
+              const phase2Messages: any[] = [
+                {
+                  role: 'system',
+                  content: await this.buildPhase2SystemPrompt(runtimeContext),
+                },
+              ];
+
+              // Add conversation history if available
+              if (conversationHistory.trim() !== '') {
+                phase2Messages.push({ role: 'user', content: conversationHistory });
+              }
+              
+              phase2Messages.push({ role: 'user', content: userMessage });
+              phase2Messages.push(...reasoningFlow);
+
               const streamResult = streamObject({
                 ...structuredModelSettings,
-                messages: [
-                  {
-                    role: 'system',
-                    content: await this.buildPhase2SystemPrompt(),
-                  },
-                  { role: 'user', content: userMessage },
-                  ...reasoningFlow,
-                ],
+                messages: phase2Messages,
                 schema: z.object({
                   dataComponents: z.array(dataComponentsSchema),
                 }),
@@ -1949,14 +1991,23 @@ ${output}${structureHintsFormatted}`;
               // Non-streaming Phase 2: Use generateObject as fallback
               const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
 
+              // Build Phase 2 messages with conversation history
+              const phase2Messages: any[] = [
+                { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
+              ];
+
+              // Add conversation history if available
+              if (conversationHistory.trim() !== '') {
+                phase2Messages.push({ role: 'user', content: conversationHistory });
+              }
+              
+              phase2Messages.push({ role: 'user', content: userMessage });
+              phase2Messages.push(...reasoningFlow);
+
               const structuredResponse = await generateObject(
                 withJsonPostProcessing({
                   ...structuredModelSettings,
-                  messages: [
-                    { role: 'system', content: await this.buildPhase2SystemPrompt() },
-                    { role: 'user', content: userMessage },
-                    ...reasoningFlow,
-                  ],
+                  messages: phase2Messages,
                   schema: z.object({
                     dataComponents: z.array(dataComponentsSchema),
                   }),

@@ -23,6 +23,8 @@ function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {
     case 'ai_generation':
       return 'AI generation details';
+    case 'agent_generation':
+      return 'Agent generation details';
     case 'user_message':
       return 'User message details';
     case 'ai_assistant_message':

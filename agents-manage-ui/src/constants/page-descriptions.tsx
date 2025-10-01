@@ -15,7 +15,7 @@ export const artifactDescription = (
 
 export const dataComponentDescription = (
   <>
-    Data components are structured components that agents can use to display rich data.
+    Components are structured components that agents can use to display rich data.
     {'\n'}
     <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/data-components`}>Learn more</ExternalLink>
   </>

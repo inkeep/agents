@@ -1,5 +1,40 @@
 # @inkeep/agents-manage-api
 
+## 0.11.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.11.3
+
+## 0.11.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.11.2
+
+## 0.11.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.11.1
+
+## 0.11.0
+
+### Minor Changes
+
+- 9cbb2a5: DB management is maturing; management is now done with explicit drizzle migrations; it is no longer recommended to use drizzle-kit push for db schema updates; recommendation is to use drizzle-kit migrate which will make databases more stable
+
+### Patch Changes
+
+- Updated dependencies [9cbb2a5]
+  - @inkeep/agents-core@0.11.0
+
+## 0.10.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.10.2
+
 ## 0.10.1
 
 ### Patch Changes

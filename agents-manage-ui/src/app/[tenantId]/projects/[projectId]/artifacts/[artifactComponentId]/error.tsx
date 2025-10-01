@@ -11,8 +11,8 @@ export default function ArtifactComponentError() {
   return (
     <FullPageError
       description="Something went wrong."
-      link={`/${tenantId}/projects/${projectId}/artifact-components`}
-      linkText="Go back to artifact components"
+      link={`/${tenantId}/projects/${projectId}/artifacts`}
+      linkText="Go back to artifacts"
     />
   );
 }

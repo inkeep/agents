@@ -46,4 +46,12 @@ CITATION PLACEMENT RULES:
 
 🎯 **KEY PRINCIPLE**: Information from tools → Complete thought → Punctuation → Citation → Continue
 
+DELEGATION AND ARTIFACTS:
+When you use delegation tools, the response may include artifacts in the parts array. These appear as objects with:
+- kind: "data"
+- data: { artifactId, toolCallId, name, description, type, artifactSummary }
+
+These artifacts become immediately available for you to reference using the artifactId and toolCallId from the response.
+Present delegation results naturally without mentioning the delegation process itself.
+
 IMPORTANT: All agents can retrieve and use information from existing artifacts when the graph has artifact components, regardless of whether the individual agent can create new artifacts.

@@ -1,9 +1,11 @@
 import {
+  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   CheckCircle,
   ChevronDown,
   ChevronRight,
+  Cpu,
   Database,
   Hammer,
   Settings,
@@ -45,6 +47,7 @@ function statusIcon(
   const base: Record<string, { Icon: any; cls: string }> = {
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
+    agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
     ai_assistant_message: { Icon: Sparkles, cls: 'text-primary' },
     ai_model_streamed_text: { Icon: Sparkles, cls: 'text-primary' },
     context_fetch: { Icon: Settings, cls: 'text-indigo-400' },
@@ -101,6 +104,12 @@ export function TimelineItem({
   const formattedDateTime = formatDateTime(activity.timestamp);
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
+  // Determine text color based on status
+  const textColorClass =
+    activity.status === 'error'
+      ? 'text-red-500 hover:text-red-700'
+        : 'text-foreground hover:text-primary';
+
   return (
     <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
@@ -117,14 +126,14 @@ export function TimelineItem({
             <button
               type="button"
               onClick={onSelect}
-              className="flex items-center gap-1 group cursor-pointer hover:text-primary transition-colors text-foreground duration-200"
+              className={`flex items-center gap-1 group cursor-pointer transition-colors duration-200 ${textColorClass}`}
               title="Click to view details"
             >
               <span className="font-medium">
                 <Streamdown>{activity.description}</Streamdown>
               </span>
               <ArrowUpRight
-                className="h-4 w-4 text-muted-foreground group-hover:text-primary"
+                className={`h-4 w-4 transition-colors ${activity.status === 'error' ? 'text-red-700 group-hover:text-red-800' : 'text-muted-foreground group-hover:text-primary'}`}
                 aria-hidden="true"
               />
             </button>
@@ -381,6 +390,31 @@ export function TimelineItem({
               <Badge variant="code">{activity.agentName}</Badge>
             </div>
           )}
+
+          {/* OTEL status for failed agent.generate spans */}
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION &&
+            activity.name === 'agent.generate' &&
+            activity.hasError &&
+            (activity.otelStatusCode || activity.otelStatusDescription) && (
+              <div className="mt-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    {activity.otelStatusCode && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Status Code:</span>{' '}
+                        <span className="font-mono">{activity.otelStatusCode}</span>
+                      </div>
+                    )}
+                    {activity.otelStatusDescription && (
+                      <CodeBubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                        {activity.otelStatusDescription}
+                      </CodeBubble>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"

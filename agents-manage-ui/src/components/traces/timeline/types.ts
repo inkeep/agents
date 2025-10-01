@@ -15,6 +15,7 @@ export type SelectedPanel =
 export const ACTIVITY_TYPES = {
   TOOL_CALL: 'tool_call',
   AI_GENERATION: 'ai_generation',
+  AGENT_GENERATION: 'agent_generation',
   CONTEXT_FETCH: 'context_fetch',
   CONTEXT_RESOLUTION: 'context_resolution',
   USER_MESSAGE: 'user_message',
@@ -27,6 +28,7 @@ export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
 export interface ActivityItem {
   id: string;
   type: ActivityKind;
+  name?: string;
   description: string;
   timestamp: string;
   agentId?: string;
@@ -76,6 +78,12 @@ export interface ActivityItem {
   toolCallArgs?: string;
   toolCallResult?: string;
   aiResponseText?: string;
+  aiResponseToolCalls?: string;
+  aiPromptMessages?: string;
+  traceId?: string;
+  // OTEL status fields
+  otelStatusCode?: string;
+  otelStatusDescription?: string;
 }
 
 export interface ToolCall {
@@ -124,6 +132,9 @@ export interface ConversationDetail {
   traceId?: string;
   graphId?: string;
   graphName?: string;
+  spansWithErrorsCount?: number;
+  errorCount?: number;
+  warningCount?: number;
   allSpanAttributes?: Array<{
     spanId: string;
     traceId: string;
@@ -137,16 +148,6 @@ export interface ConversationDetail {
     error: string;
     failureReason: string;
     timestamp: string;
-  }>;
-  contextErrors?: Array<{
-    spanId: string;
-    timestamp: string;
-    statusDescription: string;
-  }>;
-  agentGenerationErrors?: Array<{
-    spanId: string;
-    timestamp: string;
-    statusDescription: string;
   }>;
 }
 

@@ -12,6 +12,7 @@ const logger = getLogger('ResponseFormatter');
  */
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
+  private agentId?: string;
 
   constructor(
     tenantId: string,
@@ -25,6 +26,9 @@ export class ResponseFormatter {
       agentId?: string;
     }
   ) {
+    // Store agentId for passing to parsing methods
+    this.agentId = artifactParserOptions?.agentId;
+    
     // Get the shared ArtifactParser from GraphSession
     if (artifactParserOptions?.streamRequestId) {
       const sessionParser = graphSessionManager.getArtifactParser(artifactParserOptions.streamRequestId);
@@ -53,8 +57,8 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse the object using unified parser
-        const parts = await this.artifactParser.parseObject(responseObject, artifactMap);
+        // Parse the object using unified parser, passing agentId for artifact persistence
+        const parts = await this.artifactParser.parseObject(responseObject, artifactMap, this.agentId);
 
         // Count and log metrics
         const uniqueArtifacts = this.countUniqueArtifacts(parts);
@@ -89,8 +93,9 @@ export class ResponseFormatter {
   async formatResponse(responseText: string, contextId: string): Promise<MessageContent> {
     return tracer.startActiveSpan('response.format_response', async (span) => {
       try {
+        const hasMarkers = this.artifactParser.hasArtifactMarkers(responseText);
         span.setAttributes({
-          'response.hasArtifactMarkers': this.artifactParser.hasArtifactMarkers(responseText),
+          'response.hasArtifactMarkers': hasMarkers,
           'response.contextId': contextId,
           'response.textLength': responseText.length,
         });
@@ -111,8 +116,8 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse text using unified parser
-        const parts = await this.artifactParser.parseText(responseText, artifactMap);
+        // Parse text using unified parser, passing agentId for artifact persistence
+        const parts = await this.artifactParser.parseText(responseText, artifactMap, this.agentId);
 
         // If only one text part, return as plain text
         if (parts.length === 1 && parts[0].kind === 'text') {

@@ -21,6 +21,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.29.6
         version: 2.29.7(@types/node@24.5.2)
+      drizzle-kit:
+        specifier: ^0.31.5
+        version: 0.31.5
       husky:
         specifier: ^9.1.6
         version: 9.1.7
@@ -336,9 +339,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^2.0.0
         version: 2.1.9(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.17)(jiti@2.6.0)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))
-      drizzle-kit:
-        specifier: ^0.31.4
-        version: 0.31.4
       nodemon:
         specifier: ^3.1.0
         version: 3.1.10
@@ -386,8 +386,8 @@ importers:
         specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/cxkit-react-oss':
-        specifier: 0.5.105
-        version: 0.5.105(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.107
+        version: 0.5.107(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
@@ -749,8 +749,8 @@ importers:
   agents-ui:
     dependencies:
       '@inkeep/cxkit-react-oss':
-        specifier: 0.5.105
-        version: 0.5.105(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.107
+        version: 0.5.107(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       lucide-react:
         specifier: ^0.539.0
         version: 0.539.0(react@19.1.1)
@@ -919,9 +919,6 @@ importers:
       clean-package:
         specifier: ^2.2.0
         version: 2.2.0
-      drizzle-kit:
-        specifier: ^0.31.4
-        version: 0.31.4
       tsx:
         specifier: ^4.19.2
         version: 4.20.5
@@ -978,6 +975,9 @@ importers:
       degit:
         specifier: ^2.8.4
         version: 2.8.4
+      drizzle-kit:
+        specifier: ^0.31.5
+        version: 0.31.5
       fs-extra:
         specifier: ^11.0.0
         version: 11.3.2
@@ -2090,8 +2090,8 @@ packages:
       react: '>=17.0.0'
       react-dom: '>=17.0.0'
 
-  '@inkeep/cxkit-react-oss@0.5.105':
-    resolution: {integrity: sha512-NsvSmpdVdiHi/ihWnwXzl604ITGP7RYJhKekJ7vLs+g/BAo9sYJphjZIlu55TS75rEe4oqnwI4s56AcxTLYnRg==}
+  '@inkeep/cxkit-react-oss@0.5.107':
+    resolution: {integrity: sha512-FdDxn6F98JtBOE0G8SsZmMJ+lr+koIvLfopaSosoUWTBg74dmSh28hAXObfToRVH+v4gYvbexRYejeasABX0jg==}
 
   '@inkeep/cxkit-react@0.5.98':
     resolution: {integrity: sha512-vGm8V/zINlxls4G6QO9N0DTUwv6j0Sp9if7HC+4D/0EL6SfkzAu87vszTgtbRssdPyqh/pa2E6OaXpfCSwIzew==}
@@ -5770,8 +5770,8 @@ packages:
     resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
     engines: {node: '>=12'}
 
-  drizzle-kit@0.31.4:
-    resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
+  drizzle-kit@0.31.5:
+    resolution: {integrity: sha512-+CHgPFzuoTQTt7cOYCV6MOw2w8vqEn/ap1yv4bpZOWL03u7rlVRQhUY0WYT3rHsgVTXwYQDZaSUJSQrMBUKuWg==}
     hasBin: true
 
   drizzle-orm@0.44.5:
@@ -10721,7 +10721,7 @@ snapshots:
       - supports-color
       - zod
 
-  '@inkeep/cxkit-react-oss@0.5.105(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@inkeep/cxkit-react-oss@0.5.107(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.11)
       '@ai-sdk/react': 2.0.5(react@19.1.1)(zod@4.1.11)
@@ -15154,7 +15154,7 @@ snapshots:
 
   dotenv@17.2.2: {}
 
-  drizzle-kit@0.31.4:
+  drizzle-kit@0.31.5:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5

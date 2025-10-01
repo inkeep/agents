@@ -118,9 +118,15 @@ COMMON FAILURE POINTS (AVOID THESE):
     if (!shouldShowReferencingRules) {
       return '';
     }
+    
+    // Get the shared retrieval guidance
+    const sharedGuidance = artifactRetrievalGuidance;
+    
     // Scenario 1: Has data components AND can create artifacts
     if (hasArtifactComponents && artifactComponents && artifactComponents.length > 0) {
-      return `ARTIFACT MANAGEMENT FOR STRUCTURED RESPONSES:
+      return `${sharedGuidance}
+
+ARTIFACT MANAGEMENT FOR STRUCTURED RESPONSES:
 
 You will create and reference artifacts using data components in your JSON response.
 
@@ -202,12 +208,14 @@ COMPONENT GUIDELINES:
     }
     
     // Scenario 2: Has data components but CANNOT create artifacts (can only reference)
-    return `ARTIFACT REFERENCING FOR STRUCTURED RESPONSES:
+    return `${sharedGuidance}
+
+ARTIFACT REFERENCING FOR STRUCTURED RESPONSES:
 
 You can reference existing artifacts but cannot create new ones.
 
 HOW TO REFERENCE ARTIFACTS:
-Use the Artifact component with artifact_id and tool_call_id from existing artifacts.
+Use the Artifact component with artifact_id and tool_call_id from existing artifacts or delegation responses.
 
 EXAMPLE STRUCTURED RESPONSE:
 \`\`\`json
@@ -389,13 +397,14 @@ ${artifactRetrievalGuidance}
    * Assemble the complete Phase 2 system prompt for structured output generation
    */
   assemblePhase2Prompt(config: {
+    corePrompt: string;
     dataComponents: DataComponentApiInsert[];
     artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>;
     hasArtifactComponents: boolean;
     hasGraphArtifactComponents?: boolean;
     artifacts?: Artifact[];
   }): string {
-    const { dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
+    const { corePrompt, dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
     let allDataComponents = [...dataComponents];
@@ -415,6 +424,7 @@ ${artifactRetrievalGuidance}
     const artifactTypes = this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
 
     let phase2Prompt = systemPromptTemplate;
+    phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);
     phase2Prompt = phase2Prompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACT_GUIDANCE_SECTION}}', artifactGuidance);

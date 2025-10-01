@@ -29,16 +29,14 @@ This API handles the execution layer of the Inkeep Agent Framework:
 ## Development
 
 ### Setup
-If you do not have the db setup:
-```bash 
-cd packages/core
-pnpm db:push
-```
-
-Then:
 ```bash
 cd agents-run-api
 pnpm install
+```
+
+If you do not have the database setup, run migrations from the monorepo root:
+```bash
+pnpm db:migrate
 ```
 
 
