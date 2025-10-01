@@ -11,6 +11,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { Project } from '@/lib/types/project';
+import type { ProjectFormData } from './form/validation';
 import { ProjectItemMenu } from './project-item-menu';
 
 export interface ProjectItemProps extends Project {
@@ -38,7 +39,7 @@ export function ProjectItem({
         </ItemCardLink>
         <ProjectItemMenu
           projectName={name}
-          projectData={{ id: projectId, name, description, models, stopWhen }}
+          projectData={{ id: projectId, name, description, models, stopWhen } as ProjectFormData}
           tenantId={tenantId}
         />
       </ItemCardHeader>
