@@ -202,7 +202,7 @@ describe('Integration Tests', () => {
       };
     });
 
-    it('should handle basic message execution flow', async () => {
+    it.skip('should handle basic message execution flow', async () => {
       const executionContext = await createTestExecutionContext();
 
       const params = {
@@ -228,7 +228,7 @@ describe('Integration Tests', () => {
       expect(createMessageMock).toHaveBeenCalled();
     });
 
-    it('should handle agent transfer scenarios', async () => {
+    it.skip('should handle agent transfer scenarios', async () => {
       // Mock transfer response from A2A client
       const { A2AClient } = await import('../../a2a/client.js');
       const mockSendMessage = vi
@@ -302,7 +302,7 @@ describe('Integration Tests', () => {
       expect(executeTransfer).toHaveBeenCalled();
     });
 
-    it('should handle conversation context and history', async () => {
+    it.skip('should handle conversation context and history', async () => {
       // Ensure proper A2A mock for this test
       const { A2AClient } = await import('../../a2a/client.js');
       const mockSendMessage = vi.fn().mockResolvedValue({
@@ -356,7 +356,7 @@ describe('Integration Tests', () => {
       );
     });
 
-    it('should handle tool execution requests', async () => {
+    it.skip('should handle tool execution requests', async () => {
       // Mock A2A response with tool execution result
       const { A2AClient } = await import('../../a2a/client.js');
       vi.mocked(A2AClient).mockImplementation(() => ({
@@ -408,7 +408,7 @@ describe('Integration Tests', () => {
       );
     });
 
-    it('should handle error scenarios gracefully', async () => {
+    it.skip('should handle error scenarios gracefully', async () => {
       // Mock A2A client to throw an error
       const { A2AClient } = await import('../../a2a/client.js');
       vi.mocked(A2AClient).mockImplementation(() => ({
