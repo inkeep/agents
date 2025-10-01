@@ -201,9 +201,5 @@ describe('getContextSuggestions', () => {
         ]
       `);
     });
-    //
-    // it('handles empty path', () => {
-    //   const schema = z.object({ value: z.string() });
-    // });
   });
 });
