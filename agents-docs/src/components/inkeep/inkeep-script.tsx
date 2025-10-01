@@ -6,10 +6,9 @@ import {
   type InkeepEmbeddedSearchAndChatFunctions,
   InkeepModalSearchAndChat,
   type InkeepSearchSettings,
-  type ToolFunction,
 } from '@inkeep/cxkit-react';
 import { useEffect, useRef, useState } from 'react';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { z } from 'zod';
 import { detectedSalesSignal, salesSignalType } from './sales-escalation';
 import { provideAnswerConfidenceSchema } from './support-escalation';
 
@@ -110,14 +109,14 @@ export function InkeepScript() {
       ],
       getTools: () => [
         {
-          type: 'function',
+          type: 'function' as const,
           function: {
             name: 'detectSalesSignal',
             description:
               'Identify when users express interest in potentially purchasing a product.',
-            parameters: zodToJsonSchema(detectedSalesSignal),
+            parameters: z.toJSONSchema(detectedSalesSignal),
           },
-          renderMessageButtons: ({ args }) => {
+          renderMessageButtons: ({ args }: { args: { type: string } }) => {
             if (args.type && validSalesSignalTypes.includes(args.type)) {
               return [
                 {
@@ -132,16 +131,20 @@ export function InkeepScript() {
             }
             return [];
           },
-        } as ToolFunction<{ type: string }>,
+        },
         {
-          type: 'function',
+          type: 'function' as const,
           function: {
             name: 'provideAnswerConfidence',
             description:
               'Determine how confident the AI assistant was and whether or not to escalate to humans.',
-            parameters: zodToJsonSchema(provideAnswerConfidenceSchema),
+            parameters: z.toJSONSchema(provideAnswerConfidenceSchema),
           },
-          renderMessageButtons: ({ args }) => {
+          renderMessageButtons: ({
+            args,
+          }: {
+            args: z.infer<typeof provideAnswerConfidenceSchema>;
+          }) => {
             const confidence = args.answerConfidence;
             if (['not_confident', 'no_sources', 'other'].includes(confidence)) {
               return [
@@ -157,12 +160,9 @@ export function InkeepScript() {
             }
             return [];
           },
-        } as ToolFunction<{
-          answerConfidence: string;
-          explanation: string;
-        }>,
+        },
       ],
-    },
+    } as any,
     modalSettings: {
       // disable default cmd+k behavior, it's handled in this script
       shortcutKey: null,

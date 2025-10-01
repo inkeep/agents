@@ -27,10 +27,10 @@
     "@shikijs/langs": "^3.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "fumadocs-core": "15.6.1",
-    "fumadocs-mdx": "11.6.10",
-    "fumadocs-openapi": "^9.3.5",
-    "fumadocs-ui": "15.6.1",
+    "fumadocs-core": "15.7.13",
+    "fumadocs-mdx": "11.10.1",
+    "fumadocs-openapi": "^9.4.0",
+    "fumadocs-ui": "15.7.13",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lucide-react": "^0.503.0",
     "mermaid": "^11.12.0",
@@ -48,8 +48,7 @@
     "shiki": "^3.3.0",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.3",
-    "zod-to-json-schema": "^3.24.6"
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",

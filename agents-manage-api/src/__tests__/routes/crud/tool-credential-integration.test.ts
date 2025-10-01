@@ -182,10 +182,10 @@ describe('Tool-Credential Integration Tests', () => {
       const { toolId: tool2Id } = await createTestTool(tenantId, credentialId);
 
       // Verify both tools reference the same credential
-      const tool1Res = await app.request(
+      const tool1Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${tool1Id}`
       );
-      const tool2Res = await app.request(
+      const tool2Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${tool2Id}`
       );
 
@@ -209,7 +209,7 @@ describe('Tool-Credential Integration Tests', () => {
       const { toolId: tool2Id } = await createTestTool(tenantId, credentialId);
 
       // Delete first tool
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${tool1Id}`,
         {
           method: 'DELETE',
@@ -218,7 +218,7 @@ describe('Tool-Credential Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify second tool still exists and references the credential
-      const tool2Res = await app.request(
+      const tool2Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${tool2Id}`
       );
       expect(tool2Res.status).toBe(200);
@@ -226,7 +226,7 @@ describe('Tool-Credential Integration Tests', () => {
       expect(tool2Body.data.credentialReferenceId).toBe(credentialId);
 
       // Verify credential still exists
-      const credRes = await app.request(
+      const credRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(credRes.status).toBe(200);
@@ -244,7 +244,7 @@ describe('Tool-Credential Integration Tests', () => {
       await createTestTool(tenantId); // Tool without credential
 
       // List tools
-      const listRes = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools`);
+      const listRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`);
       expect(listRes.status).toBe(200);
 
       const listBody = await listRes.json();

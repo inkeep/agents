@@ -51,10 +51,13 @@ export class Agent implements AgentInterface {
     );
   }
 
-  // Set context (tenantId and projectId) from external source (graph, CLI, etc)
-  setContext(tenantId: string, projectId: string): void {
+  // Set context (tenantId, projectId, and baseURL) from external source (graph, CLI, etc)
+  setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
+    if (baseURL) {
+      this.baseURL = baseURL;
+    }
   }
 
   // Return the configured ID

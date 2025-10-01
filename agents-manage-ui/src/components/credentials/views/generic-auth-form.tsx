@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ApiProvider } from '@nangohq/types';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod/v4';
+import * as z from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ProviderIcon } from '@/components/icons/provider-icon';

@@ -36,10 +36,13 @@ export class Tool implements ToolInterface {
     );
   }
 
-  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
-  setContext(tenantId: string, projectId: string): void {
+  // Set context (tenantId, projectId, and baseURL) from external source (agent, graph, CLI, etc)
+  setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
+    if (baseURL) {
+      this.baseURL = baseURL;
+    }
   }
 
   // Compute ID from name using same slug transformation as agents

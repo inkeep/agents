@@ -84,7 +84,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should list artifact components with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('artifact-components-list-empty');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -106,7 +106,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentData } = await createTestArtifactComponent({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -137,7 +137,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       await createMultipleArtifactComponents({ tenantId, count: TOTAL_ITEMS });
 
       // Test first page
-      const firstPageRes = await app.request(
+      const firstPageRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?page=1&limit=${PAGE_SIZE}`
       );
       expect(firstPageRes.status).toBe(200);
@@ -151,7 +151,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       });
 
       // Test last page
-      const lastPageRes = await app.request(
+      const lastPageRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?page=3&limit=${PAGE_SIZE}`
       );
       expect(lastPageRes.status).toBe(200);
@@ -168,7 +168,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should use default pagination values when not provided', async () => {
       const tenantId = createTestTenantId('artifact-components-list-defaults');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components`
       );
       expect(res.status).toBe(200);
@@ -183,7 +183,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should validate maximum page size to 100', async () => {
       const tenantId = createTestTenantId('artifact-components-list-max-limit');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?limit=1000`
       );
       expect(res.status).toBe(400); // Validation error for limit > 100
@@ -198,7 +198,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         tenantId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
       );
       expect(res.status).toBe(200);
@@ -219,7 +219,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = nanoid();
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`
       );
       expect(res.status).toBe(404);
@@ -232,7 +232,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId: tenantId1 });
 
       // Try to access from different tenant
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId2}/projects/${projectId}/artifact-components/${artifactComponentId}`
       );
       expect(res.status).toBe(404);
@@ -524,7 +524,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
           method: 'DELETE',
@@ -533,7 +533,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify it's actually deleted
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
       );
       expect(getRes.status).toBe(404);
@@ -544,7 +544,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = nanoid();
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`,
         {
           method: 'DELETE',
@@ -560,7 +560,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId: tenantId1 });
 
       // Try to delete from different tenant - still returns 404 but doesn't delete anything
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId2}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
           method: 'DELETE',
@@ -569,7 +569,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(404);
 
       // Verify the original item still exists in tenant1
-      const verifyRes = await app.request(
+      const verifyRes = await makeRequest(
         `/tenants/${tenantId1}/projects/${projectId}/artifact-components/${artifactComponentId}`
       );
       expect(verifyRes.status).toBe(200);
@@ -585,7 +585,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
       // 2. Get artifact component
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
       );
       expect(getRes.status).toBe(200);
@@ -601,7 +601,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
 
       // 4. List artifact components (should include our component)
-      const listRes = await app.request(
+      const listRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components`
       );
       expect(listRes.status).toBe(200);
@@ -610,7 +610,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(listBody.data[0].name).toBe('Updated E2E Artifact Component');
 
       // 5. Delete artifact component
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
           method: 'DELETE',
@@ -619,7 +619,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // 6. Verify deletion
-      const finalGetRes = await app.request(
+      const finalGetRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
       );
       expect(finalGetRes.status).toBe(404);

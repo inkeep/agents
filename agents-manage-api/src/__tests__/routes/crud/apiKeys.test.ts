@@ -340,6 +340,9 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
 
+      // Wait 1ms to ensure updatedAt will be different
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
       const newExpiresAt = '2025-12-31T23:59:59Z';
       const updateData = {
         expiresAt: newExpiresAt,

@@ -62,7 +62,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
   describe('GET /', () => {
     it('should list projects with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('projects-list-empty');
-      const res = await app.request(`/tenants/${tenantId}/projects?page=1&limit=10`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=10`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -81,7 +81,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('projects-list-single');
       const { projectData } = await createTestProject({ tenantId });
 
-      const res = await app.request(`/tenants/${tenantId}/projects?page=1&limit=10`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=10`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -104,7 +104,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       await createMultipleProjects({ tenantId, count: 5 });
 
       // Test first page with limit 2
-      const page1Res = await app.request(`/tenants/${tenantId}/projects?page=1&limit=2`);
+      const page1Res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=2`);
       expect(page1Res.status).toBe(200);
 
       const page1Body = await page1Res.json();
@@ -117,7 +117,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       });
 
       // Test second page
-      const page2Res = await app.request(`/tenants/${tenantId}/projects?page=2&limit=2`);
+      const page2Res = await makeRequest(`/tenants/${tenantId}/projects?page=2&limit=2`);
       expect(page2Res.status).toBe(200);
 
       const page2Body = await page2Res.json();
@@ -130,7 +130,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       });
 
       // Test third page (partial)
-      const page3Res = await app.request(`/tenants/${tenantId}/projects?page=3&limit=2`);
+      const page3Res = await makeRequest(`/tenants/${tenantId}/projects?page=3&limit=2`);
       expect(page3Res.status).toBe(200);
 
       const page3Body = await page3Res.json();
@@ -156,7 +156,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       await createMultipleProjects({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
-      const res = await app.request(`/tenants/${tenantId}/projects?page=5&limit=2`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects?page=5&limit=2`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -172,13 +172,13 @@ describe('Project CRUD Routes - Integration Tests', () => {
     it('should enforce max limit of 100', async () => {
       const tenantId = createTestTenantId('projects-list-max-limit');
       // Note: The backend enforces max limit by capping to 100, not by returning an error
-      const res = await app.request(`/tenants/${tenantId}/projects?page=1&limit=200`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=200`);
 
       // If it returns 400, check what the actual validation is
       if (res.status === 400) {
         // The PaginationQueryParamsSchema might be enforcing a max limit validation
         // Let's test with limit=100 which should work
-        const res2 = await app.request(`/tenants/${tenantId}/projects?page=1&limit=100`);
+        const res2 = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=100`);
         expect(res2.status).toBe(200);
         const body2 = await res2.json();
         expect(body2.pagination.limit).toBe(100);
@@ -194,7 +194,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('projects-list-defaults');
       await createTestProject({ tenantId });
 
-      const res = await app.request(`/tenants/${tenantId}/projects`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -208,7 +208,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('projects-get-single');
       const { projectData, projectId } = await createTestProject({ tenantId });
 
-      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -221,7 +221,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
     it('should return 404 for non-existent project', async () => {
       const tenantId = createTestTenantId('projects-get-notfound');
-      const res = await app.request(`/tenants/${tenantId}/projects/non-existent-id`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/non-existent-id`);
       expect(res.status).toBe(404);
 
       const body = await res.json();
@@ -236,7 +236,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
       const { projectId } = await createTestProject({ tenantId: tenantId1 });
 
-      const res = await app.request(`/tenants/${tenantId2}/projects/${projectId}`);
+      const res = await makeRequest(`/tenants/${tenantId2}/projects/${projectId}`);
       expect(res.status).toBe(404);
     });
   });
@@ -263,7 +263,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       expect(body.data.updatedAt).toBeDefined();
 
       // Verify it was actually created
-      const getRes = await app.request(`/tenants/${tenantId}/projects/${projectData.id}`);
+      const getRes = await makeRequest(`/tenants/${tenantId}/projects/${projectData.id}`);
       expect(getRes.status).toBe(200);
     });
 
@@ -359,7 +359,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       expect(body.data.updatedAt).toBeDefined();
 
       // Verify the update persisted
-      const getRes = await app.request(`/tenants/${tenantId}/projects/${projectId}`);
+      const getRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
       const getBody = await getRes.json();
       expect(getBody.data.name).toBe(updateData.name);
       expect(getBody.data.description).toBe(updateData.description);
@@ -435,7 +435,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       expect(await res.text()).toBe('');
 
       // Verify it was actually deleted
-      const getRes = await app.request(`/tenants/${tenantId}/projects/${projectId}`);
+      const getRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
       expect(getRes.status).toBe(404);
     });
 
@@ -466,7 +466,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(404);
 
       // Verify project still exists in original tenant
-      const getRes = await app.request(`/tenants/${tenantId1}/projects/${projectId}`);
+      const getRes = await makeRequest(`/tenants/${tenantId1}/projects/${projectId}`);
       expect(getRes.status).toBe(200);
     });
   });
@@ -489,7 +489,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       });
 
       // Verify count
-      const listRes = await app.request(`/tenants/${tenantId}/projects?limit=10`);
+      const listRes = await makeRequest(`/tenants/${tenantId}/projects?limit=10`);
       const listBody = await listRes.json();
       expect(listBody.data).toHaveLength(5);
     });
@@ -503,11 +503,11 @@ describe('Project CRUD Routes - Integration Tests', () => {
       await createMultipleProjects({ tenantId: tenantId2, count: 2 });
 
       // Each tenant should only see their own projects
-      const res1 = await app.request(`/tenants/${tenantId1}/projects?limit=10`);
+      const res1 = await makeRequest(`/tenants/${tenantId1}/projects?limit=10`);
       const body1 = await res1.json();
       expect(body1.data).toHaveLength(3);
 
-      const res2 = await app.request(`/tenants/${tenantId2}/projects?limit=10`);
+      const res2 = await makeRequest(`/tenants/${tenantId2}/projects?limit=10`);
       const body2 = await res2.json();
       expect(body2.data).toHaveLength(2);
 

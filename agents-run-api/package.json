@@ -63,7 +63,7 @@
     "pino": "^9.11.0",
     "traverse": "^0.6.11",
     "ts-pattern": "^5.7.1",
-    "zod": "^4.1.5"
+    "zod": "^4.1.11"
   },
   "optionalDependencies": {
     "keytar": "^7.9.0"

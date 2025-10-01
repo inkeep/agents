@@ -14,7 +14,7 @@
     "@inkeep/agents-manage-api": "workspace:*",
     "@inkeep/agents-run-api": "workspace:*",
     "@inkeep/agents-sdk": "workspace:*",
-    "zod": "^4.1.5"
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@inkeep/agents-cli": "workspace:*",
