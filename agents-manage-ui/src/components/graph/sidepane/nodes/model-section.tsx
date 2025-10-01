@@ -82,7 +82,6 @@ export function ModelSection({
           <ModelSelector
             value={models?.structuredOutput?.model || ''}
             onValueChange={(modelValue) => {
-              console.log('modelValue', modelValue);
               updatePath('models.structuredOutput.model', modelValue || undefined);
             }}
             inheritedValue={
