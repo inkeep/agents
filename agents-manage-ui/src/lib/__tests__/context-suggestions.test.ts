@@ -54,34 +54,82 @@ describe('getContextSuggestions', () => {
     expect(suggestions).toEqual([]);
   });
 
-  it('handles deeply nested structures', () => {
-    const deepSchema = z.object({
-      level1: z.object({
-        level2: z.object({
-          level3: z.object({
-            level4: z.object({
-              value: z.string(),
+  // Based on packages/agents-core/src/__tests__/context/validation-edge-cases.test.ts
+  describe('edge cases', () => {
+    it('handles deeply nested structures', () => {
+      const deepSchema = z.object({
+        level1: z.object({
+          level2: z.object({
+            level3: z.object({
+              level4: z.object({
+                value: z.string(),
+              }),
             }),
           }),
         }),
-      }),
-    });
-    const suggestions = getContextSuggestions({
-      contextVariables: {
-        deep: {
-          id: 'test',
-          name: 'Test',
-          responseSchema: z.toJSONSchema(deepSchema),
+      });
+
+      const suggestions = getContextSuggestions({
+        contextVariables: {
+          deep: {
+            id: 'test',
+            name: 'Test',
+            responseSchema: z.toJSONSchema(deepSchema),
+          },
         },
-      },
+      });
+
+      expect(suggestions).toStrictEqual([
+        'deep',
+        'deep.level1',
+        'deep.level1.level2',
+        'deep.level1.level2.level3',
+        'deep.level1.level2.level3.level4',
+        'deep.level1.level2.level3.level4.value',
+      ]);
     });
-    expect(suggestions).toStrictEqual([
-      'deep',
-      'deep.level1',
-      'deep.level1.level2',
-      'deep.level1.level2.level3',
-      'deep.level1.level2.level3.level4',
-      'deep.level1.level2.level3.level4.value',
-    ]);
+
+    it('handles mixed arrays and objects', () => {
+      const mixedSchema = z.object({
+        users: z.array(
+          z.object({
+            posts: z.array(
+              z.object({
+                comments: z.array(
+                  z.object({
+                    text: z.string(),
+                  })
+                ),
+              })
+            ),
+          })
+        ),
+      });
+    });
+
+    it('handles optional and nullable fields', () => {
+      const optionalSchema = z.object({
+        required: z.string(),
+        optional: z.string().optional(),
+        nullable: z.string().nullable(),
+        nullish: z.string().nullish(),
+      });
+    });
+
+    it('handles union types', () => {
+      const unionSchema = z.union([
+        z.object({ type: z.literal('user'), name: z.string() }),
+        z.object({ type: z.literal('admin'), role: z.string() }),
+      ]);
+    });
+
+    it('handles multiple context variables', () => {
+      const userSchema = z.object({ id: z.string(), name: z.string() });
+      const settingsSchema = z.object({ theme: z.string(), locale: z.string() });
+    });
+
+    it('handles empty path', () => {
+      const schema = z.object({ value: z.string() });
+    });
   });
 });
