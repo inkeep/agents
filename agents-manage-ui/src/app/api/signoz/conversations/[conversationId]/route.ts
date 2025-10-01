@@ -835,6 +835,12 @@ export async function GET(
     // tool calls → activities
     for (const span of toolCallSpans) {
       const name = getString(span, SPAN_KEYS.AI_TOOL_CALL_NAME, 'Unknown Tool');
+      
+      // Skip thinking_complete tool calls from the timeline
+      if (name === 'thinking_complete') {
+        continue;
+      }
+      
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
