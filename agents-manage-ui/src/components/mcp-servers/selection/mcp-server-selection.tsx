@@ -60,10 +60,9 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       };
 
       const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
-      toast.success(`${server.name} MCP server created successfully`);
 
       if (server.isOpen) {
-        toast.success('MCP server created successfully');
+        toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       } else {
         handleOAuthLogin(newTool.id);

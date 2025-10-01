@@ -54,7 +54,7 @@ export function ViewMCPServerDetails({
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
-    onSuccess: () => {
+    onFinish: () => {
       window.location.reload();
     },
   });

@@ -271,7 +271,7 @@ const getBaseMCPServers = (isDark: boolean): PrebuiltMCPServer[] => [
   {
     id: 'stytch',
     name: 'Stytch',
-    url: 'http://mcp.stytch.dev/mcp',
+    url: 'https://mcp.stytch.dev/mcp',
     transport: MCPTransportType.streamableHttp,
     imageUrl: 'https://stytch.com/favicon.ico',
   },

@@ -6,11 +6,11 @@ import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
 interface UseOAuthLoginProps {
   tenantId: string;
   projectId: string;
-  onSuccess?: (toolId: string) => void;
+  onFinish?: (toolId: string) => void;
   onError?: (error: Error) => void;
 }
 
-export function useOAuthLogin({ tenantId, projectId, onSuccess, onError }: UseOAuthLoginProps) {
+export function useOAuthLogin({ tenantId, projectId, onFinish, onError }: UseOAuthLoginProps) {
   const router = useRouter();
   const { INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
 
@@ -36,8 +36,8 @@ export function useOAuthLogin({ tenantId, projectId, onSuccess, onError }: UseOA
           window.removeEventListener('message', handleMessage);
 
           // Call custom success handler or default behavior
-          if (onSuccess) {
-            onSuccess(toolId);
+          if (onFinish) {
+            onFinish(toolId);
           } else {
             // Default: navigate to server details page
             router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
@@ -55,8 +55,8 @@ export function useOAuthLogin({ tenantId, projectId, onSuccess, onError }: UseOA
             window.removeEventListener('message', handleMessage);
 
             // Call custom success handler or default behavior
-            if (onSuccess) {
-              onSuccess(toolId);
+            if (onFinish) {
+              onFinish(toolId);
             } else {
               // Default: navigate to server details page
               router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
