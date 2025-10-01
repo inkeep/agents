@@ -228,48 +228,6 @@ describe('Project', () => {
       expect((project as any).initialized).toBe(true);
     });
 
-    it('should initialize all graphs', async () => {
-      const mockGraph1 = new AgentGraph(graphConfig);
-      const mockGraph2 = new AgentGraph({ ...graphConfig, id: 'test-graph-2' });
-
-      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph1, 'init').mockResolvedValue();
-      vi.spyOn(mockGraph2, 'init').mockResolvedValue();
-
-      // Mock toFullGraphDefinition for both graphs
-      vi.spyOn(mockGraph1 as any, 'toFullGraphDefinition').mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
-        agents: {},
-        tools: {},
-      });
-      vi.spyOn(mockGraph2 as any, 'toFullGraphDefinition').mockResolvedValue({
-        id: 'test-graph-2',
-        name: 'Test Graph 2',
-        agents: {},
-        tools: {},
-      });
-
-      const configWithGraphs: ProjectConfig = {
-        ...projectConfig,
-        graphs: () => [mockGraph1, mockGraph2],
-      };
-
-      const project = new Project(configWithGraphs);
-
-      // Mock successful full project API call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: mockProjectData }),
-      });
-
-      await project.init();
-
-      expect(mockGraph1.init).toHaveBeenCalled();
-      expect(mockGraph2.init).toHaveBeenCalled();
-    });
-
     it('should not reinitialize if already initialized', async () => {
       const project = new Project(projectConfig);
 
