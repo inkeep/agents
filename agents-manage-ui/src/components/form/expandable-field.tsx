@@ -47,9 +47,9 @@ export function ExpandableField({
           </div>
           <div className="relative">
             {compactView}
-            <DialogTrigger asChild>
-              <Tooltip>
-                <TooltipTrigger asChild>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -59,10 +59,10 @@ export function ExpandableField({
                     <Maximize className="h-4 w-4 text-muted-foreground" />
                     <span className="sr-only">{expandButtonLabel}</span>
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>{expandButtonLabel}</TooltipContent>
-              </Tooltip>
-            </DialogTrigger>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{expandButtonLabel}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
