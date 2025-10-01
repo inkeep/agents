@@ -122,6 +122,29 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
   const editorRef = useRef<ReactCodeMirrorRef | null>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  useEffect(() => {
+    editorRef.current = new EditorView();
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    insertTemplateVariable() {
+      const view = editorRef.current?.view;
+      if (!view) {
+        return;
+      }
+      const { doc, selection } = view.state;
+      // If there's a caret, insert at caret; otherwise, fall back to end of the current line.
+      const insertPos = selection.main.empty ? selection.main.head : doc.line(doc.lines).to;
+      // Insert "{}" and put the cursor between
+      view.dispatch({
+        changes: { from: insertPos, to: insertPos, insert: '{}' },
+        selection: { anchor: insertPos + 1 },
+        scrollIntoView: true,
+      });
+      startCompletion(view);
+    },
+  }));
+
   const contextConfig = useGraphStore((state) => state.metadata.contextConfig);
 
   const extensions = useMemo(() => {
