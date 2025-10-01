@@ -40,6 +40,7 @@
     "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {
+    "@codemirror/lint": "^6.8.5",
     "@ai-sdk/react": "2.0.11",
     "@codemirror/autocomplete": "^6.19.0",
     "@codemirror/lang-json": "^6.0.2",

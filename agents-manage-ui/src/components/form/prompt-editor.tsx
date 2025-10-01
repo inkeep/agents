@@ -1,6 +1,7 @@
 import { type FC, type RefObject, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { autocompletion, type CompletionSource, startCompletion } from '@codemirror/autocomplete';
 import { Decoration, ViewPlugin, EditorView, type DecorationSet } from '@codemirror/view';
+import { linter, type Diagnostic } from '@codemirror/lint';
 import { duotoneDark, duotoneLight } from '@uiw/codemirror-theme-duotone';
 import CodeMirror, {
   type ReactCodeMirrorProps,
@@ -68,6 +69,44 @@ const templateVariableTheme = EditorView.theme({
 
 const RESERVED_KEYS = ['$env.', '$time', '$date', '$timestamp', '$now'];
 
+// Create linter for template variable validation
+function createTemplateVariableLinter(suggestions: string[]) {
+  return linter((view) => {
+    const diagnostics: Diagnostic[] = [];
+    const validVariables = new Set(suggestions);
+    const reservedKeys = new Set(RESERVED_KEYS.filter((name) => name !== '$env.'));
+    const regex = /\{\{([^}]+)}}/g;
+
+    for (let i = 0; i < view.state.doc.lines; i++) {
+      const line = view.state.doc.line(i + 1);
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(line.text)) !== null) {
+        const from = line.from + match.index;
+        const to = line.from + match.index + match[0].length;
+        const variableName = match[1];
+
+        // Check if variable is valid (in suggestions) or reserved
+        const isValid =
+          validVariables.has(variableName) ||
+          reservedKeys.has(variableName) ||
+          variableName.startsWith('$env.');
+
+        if (!isValid) {
+          diagnostics.push({
+            from,
+            to,
+            severity: 'error',
+            message: `Unknown variable: ${variableName}`,
+          });
+        }
+      }
+    }
+
+    return diagnostics;
+  });
+}
+
 // Create autocomplete source for context variables
 function createContextAutocompleteSource(suggestions: string[]): CompletionSource {
   return (context) => {
@@ -87,7 +126,7 @@ function createContextAutocompleteSource(suggestions: string[]): CompletionSourc
       to: pos,
       options: [...RESERVED_KEYS, ...filteredSuggestions].map((suggestion) => ({
         label: suggestion,
-        apply: `{${suggestion}${nextChar === '}' ? '}' : '}}'}`, // insert }} at the end if next character is not }
+        apply: `{${suggestion}${nextChar === '}' ? '}' : '}}'}`, // insert `}}` at the end if next character is not `}`
       })),
     };
   };
@@ -168,6 +207,7 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
       }),
       templateVariablePlugin,
       templateVariableTheme,
+      createTemplateVariableLinter(suggestions),
     ];
   }, [contextConfig]);
 
