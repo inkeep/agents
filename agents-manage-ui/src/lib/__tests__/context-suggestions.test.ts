@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import { getContextSuggestions } from '../context-suggestions';
 
 describe('getContextSuggestions', () => {
@@ -51,5 +52,36 @@ describe('getContextSuggestions', () => {
   it('should handle empty schema', () => {
     const suggestions = getContextSuggestions({});
     expect(suggestions).toEqual([]);
+  });
+
+  it('handles deeply nested structures', () => {
+    const deepSchema = z.object({
+      level1: z.object({
+        level2: z.object({
+          level3: z.object({
+            level4: z.object({
+              value: z.string(),
+            }),
+          }),
+        }),
+      }),
+    });
+    const suggestions = getContextSuggestions({
+      contextVariables: {
+        deep: {
+          id: 'test',
+          name: 'Test',
+          responseSchema: z.toJSONSchema(deepSchema),
+        },
+      },
+    });
+    expect(suggestions).toStrictEqual([
+      'deep',
+      'deep.level1',
+      'deep.level1.level2',
+      'deep.level1.level2.level3',
+      'deep.level1.level2.level3.level4',
+      'deep.level1.level2.level3.level4.value',
+    ]);
   });
 });

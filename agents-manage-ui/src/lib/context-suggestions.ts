@@ -3,21 +3,13 @@
  */
 
 export interface ContextSchema {
-  requestContextSchema?: {
-    type: string;
-    properties?: Record<string, any>;
-    required?: string[];
-  };
+  requestContextSchema?: Record<string, any>;
   contextVariables?: Record<
     string,
     {
       id: string;
       name?: string;
-      responseSchema?: {
-        type: string;
-        properties?: Record<string, any>;
-        required?: string[];
-      };
+      responseSchema?: Record<string, any>;
     }
   >;
 }
@@ -85,58 +77,3 @@ export function getContextSuggestions(contextSchema: ContextSchema): string[] {
 
   return suggestions;
 }
-
-/**
- * Example usage:
- *
- * const contextSchema = {
- *   requestContextSchema: {
- *     type: 'object',
- *     properties: {
- *       user_id: { type: 'string' },
- *       auth_token: { type: 'string' },
- *       org_name: { type: 'string' },
- *       profile: {
- *         type: 'object',
- *         properties: {
- *           name: { type: 'string' },
- *           email: { type: 'string' }
- *         }
- *       }
- *     }
- *   },
- *   contextVariables: {
- *     userName: {
- *       id: 'user-data',
- *       responseSchema: {
- *         type: 'object',
- *         properties: {
- *           name: { type: 'string' },
- *           preferences: {
- *             type: 'object',
- *             properties: {
- *               theme: { type: 'string' },
- *               language: { type: 'string' }
- *             }
- *           }
- *         }
- *       }
- *     }
- *   }
- * };
- *
- * const suggestions = getContextSuggestions(contextSchema);
- * // Returns: [
- * //   'requestContext.user_id',
- * //   'requestContext.auth_token',
- * //   'requestContext.org_name',
- * //   'requestContext.profile',
- * //   'requestContext.profile.name',
- * //   'requestContext.profile.email',
- * //   'userName',
- * //   'userName.name',
- * //   'userName.preferences',
- * //   'userName.preferences.theme',
- * //   'userName.preferences.language'
- * // ]
- */
