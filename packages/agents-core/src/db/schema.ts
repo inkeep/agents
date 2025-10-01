@@ -25,14 +25,41 @@ import type {
 } from '../types/utility';
 import type { AgentStopWhen, GraphStopWhen, StopWhen } from '../validation/schemas';
 
-// Projects table: Stores project metadata
+const tenantScoped = {
+  tenantId: text('tenant_id').notNull(),
+  id: text('id').notNull(),
+};
+
+const projectScoped = {
+  ...tenantScoped,
+  projectId: text('project_id').notNull(),
+};
+
+const graphScoped = {
+  ...projectScoped,
+  graphId: text('graph_id').notNull(),
+};
+
+const agentScoped = {
+  ...graphScoped,
+  agentId: text('agent_id').notNull(),
+};
+
+const uiProperties = {
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+};
+
+const timestamps = {
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+};
+
 export const projects = sqliteTable(
   'projects',
   {
-    tenantId: text('tenant_id').notNull(),
-    id: text('id').notNull(), // This IS the project ID
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...tenantScoped,
+    ...uiProperties,
 
     // Project-level default model settings that can be inherited by graphs and agents
     models: text('models', { mode: 'json' }).$type<ProjectModels>(),
@@ -40,19 +67,15 @@ export const projects = sqliteTable(
     // Project-level stopWhen configuration that can be inherited by graphs and agents
     stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
 
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
 );
 
-// Define the agent graph table (updated to reference context configs)
 export const agentGraph = sqliteTable(
   'agent_graph',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
     name: text('name').notNull(),
     description: text('description'),
     defaultAgentId: text('default_agent_id'),
@@ -72,8 +95,7 @@ export const agentGraph = sqliteTable(
     // Graph-level stopWhen configuration that can be inherited by agents
     stopWhen: text('stop_when', { mode: 'json' }).$type<GraphStopWhen>(),
 
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -89,12 +111,8 @@ export const agentGraph = sqliteTable(
 export const contextConfigs = sqliteTable(
   'context_configs',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    // Add graph level scoping
-    id: text('id').notNull(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...projectScoped,
+    ...uiProperties,
 
     // Developer-defined Zod schema for validating incoming request context
     requestContextSchema: blob('request_context_schema', { mode: 'json' }).$type<unknown>(), // Stores serialized Zod schema
@@ -104,8 +122,7 @@ export const contextConfigs = sqliteTable(
       Record<string, ContextFetchDefinition>
     >(),
 
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -121,9 +138,7 @@ export const contextConfigs = sqliteTable(
 export const contextCache = sqliteTable(
   'context_cache',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
 
     // Always scoped to conversation for complete data isolation
     conversationId: text('conversation_id').notNull(),
@@ -143,8 +158,7 @@ export const contextCache = sqliteTable(
     fetchSource: text('fetch_source'), // URL or source identifier
     fetchDurationMs: integer('fetch_duration_ms'),
 
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -165,12 +179,8 @@ export const contextCache = sqliteTable(
 export const agents = sqliteTable(
   'agents',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
-    id: text('id').notNull(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...graphScoped,
+    ...uiProperties,
     prompt: text('prompt').notNull(),
 
     conversationHistoryConfig: text('conversation_history_config', {
@@ -180,8 +190,7 @@ export const agents = sqliteTable(
 
     // Agent-level stopWhen configuration (inherited from project)
     stopWhen: text('stop_when', { mode: 'json' }).$type<AgentStopWhen>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
@@ -198,18 +207,14 @@ export const agents = sqliteTable(
 export const agentRelations = sqliteTable(
   'agent_relations',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
-    id: text('id').notNull(),
+    ...graphScoped,
     sourceAgentId: text('source_agent_id').notNull(),
     // For internal relationships
     targetAgentId: text('target_agent_id'),
     // For external relationships
     externalAgentId: text('external_agent_id'),
     relationType: text('relation_type'), // 'transfer' | 'delegate'
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
@@ -225,17 +230,12 @@ export const agentRelations = sqliteTable(
 export const externalAgents = sqliteTable(
   'external_agents',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
-    id: text('id').notNull(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...graphScoped,
+    ...uiProperties,
     baseUrl: text('base_url').notNull(), // A2A endpoint URL
     credentialReferenceId: text('credential_reference_id'),
     headers: blob('headers', { mode: 'json' }).$type<Record<string, string>>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
@@ -259,22 +259,18 @@ export const externalAgents = sqliteTable(
 export const tasks = sqliteTable(
   'tasks',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...agentScoped,
     contextId: text('context_id').notNull(),
     status: text('status').notNull(),
     metadata: blob('metadata', { mode: 'json' }).$type<TaskMetadataConfig>(),
-    agentId: text('agent_id').notNull(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'tasks_project_fk',
+      columns: [table.tenantId, table.projectId, table.graphId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.graphId, agents.id],
+      name: 'tasks_agent_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -283,14 +279,11 @@ export const tasks = sqliteTable(
 export const taskRelations = sqliteTable(
   'task_relations',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
     parentTaskId: text('parent_task_id').notNull(),
     childTaskId: text('child_task_id').notNull(),
     relationType: text('relation_type').default('parent_child'), // Could be extended for other relation types
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -305,14 +298,10 @@ export const taskRelations = sqliteTable(
 export const dataComponents = sqliteTable(
   'data_components',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...projectScoped,
+    ...uiProperties,
     props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -328,11 +317,7 @@ export const dataComponents = sqliteTable(
 export const agentDataComponents = sqliteTable(
   'agent_data_components',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
-    agentId: text('agent_id').notNull(),
-    id: text('id').notNull(),
+    ...agentScoped,
     dataComponentId: text('data_component_id').notNull(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -356,15 +341,11 @@ export const agentDataComponents = sqliteTable(
 export const artifactComponents = sqliteTable(
   'artifact_components',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...projectScoped,
+    ...uiProperties,
     summaryProps: blob('summary_props', { mode: 'json' }).$type<Record<string, unknown>>(),
     fullProps: blob('full_props', { mode: 'json' }).$type<Record<string, unknown>>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -380,11 +361,7 @@ export const artifactComponents = sqliteTable(
 export const agentArtifactComponents = sqliteTable(
   'agent_artifact_components',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
-    agentId: text('agent_id').notNull(),
-    id: text('id').notNull(),
+    ...agentScoped,
     artifactComponentId: text('artifact_component_id').notNull(),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   },
@@ -414,9 +391,7 @@ export const agentArtifactComponents = sqliteTable(
 export const tools = sqliteTable(
   'tools',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
     name: text('name').notNull(),
 
     // Enhanced MCP configuration
@@ -439,8 +414,7 @@ export const tools = sqliteTable(
 
     lastError: text('last_error'),
 
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -455,16 +429,11 @@ export const tools = sqliteTable(
 export const agentToolRelations = sqliteTable(
   'agent_tool_relations',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
-    agentId: text('agent_id').notNull(),
-    id: text('id').notNull(),
+    ...agentScoped,
     toolId: text('tool_id').notNull(),
     selectedTools: blob('selected_tools', { mode: 'json' }).$type<string[] | null>(),
     headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
@@ -487,16 +456,13 @@ export const agentToolRelations = sqliteTable(
 export const conversations = sqliteTable(
   'conversations',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
     userId: text('user_id'),
     activeAgentId: text('active_agent_id').notNull(),
     title: text('title'),
     lastContextResolution: text('last_context_resolution'),
     metadata: blob('metadata', { mode: 'json' }).$type<ConversationMetadata>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -512,9 +478,7 @@ export const conversations = sqliteTable(
 export const messages = sqliteTable(
   'messages',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
     conversationId: text('conversation_id').notNull(),
 
     // Role mapping: user, agent, system (unified for both formats)
@@ -549,8 +513,7 @@ export const messages = sqliteTable(
     // Metadata for extensions
     metadata: blob('metadata', { mode: 'json' }).$type<MessageMetadata>(),
 
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -566,10 +529,7 @@ export const messages = sqliteTable(
 export const ledgerArtifacts = sqliteTable(
   'ledger_artifacts',
   {
-    // Primary identifier (maps to `artifactId`)
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
 
     // Links
     taskId: text('task_id').notNull(),
@@ -590,9 +550,7 @@ export const ledgerArtifacts = sqliteTable(
     allowedAgents: blob('allowed_agents', { mode: 'json' }).$type<string[] | null>(),
     derivedFrom: text('derived_from'),
 
-    // Timestamps
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id, table.taskId] }),
@@ -601,6 +559,14 @@ export const ledgerArtifacts = sqliteTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'ledger_artifacts_project_fk',
     }).onDelete('cascade'),
+    index('ledger_artifacts_task_id_idx').on(table.taskId),
+    index('ledger_artifacts_tool_call_id_idx').on(table.toolCallId),
+    index('ledger_artifacts_context_id_idx').on(table.contextId),
+    unique('ledger_artifacts_task_context_name_unique').on(
+      table.taskId,
+      table.contextId,
+      table.name
+    ),
   ]
 );
 
@@ -608,18 +574,14 @@ export const ledgerArtifacts = sqliteTable(
 export const apiKeys = sqliteTable(
   'api_keys',
   {
-    id: text('id').primaryKey(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    graphId: text('graph_id').notNull(),
+    ...graphScoped,
     publicId: text('public_id').notNull().unique(), // Public ID for O(1) lookup (e.g., "abc123def456")
     keyHash: text('key_hash').notNull(), // Hashed API key (never store plaintext)
     keyPrefix: text('key_prefix').notNull(), // First 8 chars for identification (e.g., "sk_live_abc...")
     name: text('name'),
     lastUsedAt: text('last_used_at'),
     expiresAt: text('expires_at'),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (t) => [
     foreignKey({
@@ -642,14 +604,11 @@ export const apiKeys = sqliteTable(
 export const credentialReferences = sqliteTable(
   'credential_references',
   {
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    id: text('id').notNull(),
+    ...projectScoped,
     type: text('type').notNull(), // Implementation type: 'keychain', 'nango', 'memory', etc.
     credentialStoreId: text('credential_store_id').notNull(), // Maps to framework.getCredentialStore(id)
     retrievalParams: blob('retrieval_params', { mode: 'json' }).$type<Record<string, unknown>>(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    ...timestamps,
   },
   (t) => [
     primaryKey({ columns: [t.tenantId, t.projectId, t.id] }),
@@ -661,22 +620,6 @@ export const credentialReferences = sqliteTable(
   ]
 );
 
-// Indexes & Constraints for ledger artifacts
-export const ledgerArtifactsTaskIdIdx = index('ledger_artifacts_task_id_idx').on(
-  ledgerArtifacts.taskId
-);
-export const ledgerArtifactsToolCallIdIdx = index('ledger_artifacts_tool_call_id_idx').on(
-  ledgerArtifacts.toolCallId
-);
-export const ledgerArtifactsContextIdIdx = index('ledger_artifacts_context_id_idx').on(
-  ledgerArtifacts.contextId
-);
-
-export const ledgerArtifactsTaskContextNameUnique = unique(
-  'ledger_artifacts_task_context_name_unique'
-).on(ledgerArtifacts.taskId, ledgerArtifacts.contextId, ledgerArtifacts.name);
-
-// Relations definitions
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   // A task belongs to one project
   project: one(projects, {
@@ -704,39 +647,26 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
 
 // Define relations for projects
 export const projectsRelations = relations(projects, ({ many }) => ({
-  // A project can have many agents
   agents: many(agents),
-  // A project can have many agent graphs
   agentGraphs: many(agentGraph),
-  // A project can have many tools
   tools: many(tools),
-  // A project can have many context configs
   contextConfigs: many(contextConfigs),
-  // A project can have many external agents
   externalAgents: many(externalAgents),
-  // A project can have many conversations
   conversations: many(conversations),
-  // A project can have many tasks
   tasks: many(tasks),
-  // A project can have many data components
   dataComponents: many(dataComponents),
-  // A project can have many artifact components
   artifactComponents: many(artifactComponents),
-  // A project can have many ledger artifacts
   ledgerArtifacts: many(ledgerArtifacts),
-  // A project can have many credential references
   credentialReferences: many(credentialReferences),
 }));
 
 // Define relations for taskRelations junction table
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
-  // Each relation has one parent task
   parentTask: one(tasks, {
     fields: [taskRelations.parentTaskId],
     references: [tasks.id],
     relationName: 'parentTask',
   }),
-  // Each relation has one child task
   childTask: one(tasks, {
     fields: [taskRelations.childTaskId],
     references: [tasks.id],
@@ -744,166 +674,127 @@ export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
   }),
 }));
 
-// Define relations for context system
 export const contextConfigsRelations = relations(contextConfigs, ({ many, one }) => ({
-  // A context config belongs to one project
   project: one(projects, {
     fields: [contextConfigs.tenantId, contextConfigs.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // A context config can be used by many agent graphs
   graphs: many(agentGraph),
-  // A context config can have many cached entries
   cache: many(contextCache),
 }));
 
 export const contextCacheRelations = relations(contextCache, ({ one }) => ({
-  // Each cache entry belongs to one context config
   contextConfig: one(contextConfigs, {
     fields: [contextCache.contextConfigId],
     references: [contextConfigs.id],
   }),
 }));
 
-// Define relations for agents
 export const agentsRelations = relations(agents, ({ many, one }) => ({
-  // A context config belongs to one project
   project: one(projects, {
     fields: [agents.tenantId, agents.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // An agent can have many tasks
   tasks: many(tasks),
-  // An agent can be the default agent for many graphs
   defaultForGraphs: many(agentGraph),
-  // Agent relation tracking
   sourceRelations: many(agentRelations, {
     relationName: 'sourceRelations',
   }),
   targetRelations: many(agentRelations, {
     relationName: 'targetRelations',
   }),
-  // Message tracking relations
   sentMessages: many(messages, {
     relationName: 'sentMessages',
   }),
   receivedMessages: many(messages, {
     relationName: 'receivedMessages',
   }),
-  // Legacy message association (consider deprecating)
   associatedMessages: many(messages, {
     relationName: 'associatedAgent',
   }),
   toolRelations: many(agentToolRelations),
-  // Data component relations
   dataComponentRelations: many(agentDataComponents),
-  // Artifact component relations
   artifactComponentRelations: many(agentArtifactComponents),
 }));
 
-// Define relations for agent graphs (updated to include context config)
 export const agentGraphRelations = relations(agentGraph, ({ one }) => ({
-  // An agent graph belongs to one project
   project: one(projects, {
     fields: [agentGraph.tenantId, agentGraph.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // An agent graph may have one default agent (optional)
   defaultAgent: one(agents, {
     fields: [agentGraph.defaultAgentId],
     references: [agents.id],
   }),
-  // An agent graph can reference one context config
   contextConfig: one(contextConfigs, {
     fields: [agentGraph.contextConfigId],
     references: [contextConfigs.id],
   }),
 }));
 
-// Define relations for external agents
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
-  // An external agent belongs to one project
   project: one(projects, {
     fields: [externalAgents.tenantId, externalAgents.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // An external agent can be referenced by many agent relations
   agentRelations: many(agentRelations),
-  // An external agent may have one credential reference
   credentialReference: one(credentialReferences, {
     fields: [externalAgents.credentialReferenceId],
     references: [credentialReferences.id],
   }),
 }));
 
-// Define relations for API keys
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
-  // An API key belongs to one project
   project: one(projects, {
     fields: [apiKeys.tenantId, apiKeys.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // An API key belongs to one tenant and graph
   graph: one(agentGraph, {
     fields: [apiKeys.graphId],
     references: [agentGraph.id],
   }),
 }));
 
-// Define relations for agent tool relations
 export const agentToolRelationsRelations = relations(agentToolRelations, ({ one }) => ({
-  // An agent-tool relation belongs to one agent
   agent: one(agents, {
     fields: [agentToolRelations.agentId],
     references: [agents.id],
   }),
-  // An agent-tool relation belongs to one tool
   tool: one(tools, {
     fields: [agentToolRelations.toolId],
     references: [tools.id],
   }),
 }));
 
-// Define relations for credential references
 export const credentialReferencesRelations = relations(credentialReferences, ({ many }) => ({
   tools: many(tools),
 }));
 
-// Define relations for tools
 export const toolsRelations = relations(tools, ({ one, many }) => ({
-  // A tool belongs to one project
   project: one(projects, {
     fields: [tools.tenantId, tools.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // A tool can be used by many agents through agent-tool relations
   agentRelations: many(agentToolRelations),
-  // A tool may have one credential reference
   credentialReference: one(credentialReferences, {
     fields: [tools.credentialReferenceId],
     references: [credentialReferences.id],
   }),
 }));
 
-// Define relations for conversations
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  // A conversation belongs to one project
   project: one(projects, {
     fields: [conversations.tenantId, conversations.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // A conversation has many messages
   messages: many(messages),
-  // A conversation has one active agent
   activeAgent: one(agents, {
     fields: [conversations.activeAgentId],
     references: [agents.id],
   }),
 }));
 
-// Define relations for messages
 export const messagesRelations = relations(messages, ({ one, many }) => ({
-  // A message belongs to one conversation
   conversation: one(conversations, {
     fields: [messages.conversationId],
     references: [conversations.id],
@@ -914,126 +805,100 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     references: [agents.id],
     relationName: 'associatedAgent',
   }),
-  // Sender tracking relations
   fromAgent: one(agents, {
     fields: [messages.fromAgentId],
     references: [agents.id],
     relationName: 'sentMessages',
   }),
-  // Recipient tracking relations
   toAgent: one(agents, {
     fields: [messages.toAgentId],
     references: [agents.id],
     relationName: 'receivedMessages',
   }),
-  // External agent sender tracking relations
   fromExternalAgent: one(externalAgents, {
     fields: [messages.fromExternalAgentId],
     references: [externalAgents.id],
     relationName: 'receivedExternalMessages',
   }),
-  // External agent recipient tracking relations
   toExternalAgent: one(externalAgents, {
     fields: [messages.toExternalAgentId],
     references: [externalAgents.id],
     relationName: 'sentExternalMessages',
   }),
-  // A message may be associated with a task
   task: one(tasks, {
     fields: [messages.taskId],
     references: [tasks.id],
   }),
-  // A message may have a parent message (for threading)
   parentMessage: one(messages, {
     fields: [messages.parentMessageId],
     references: [messages.id],
     relationName: 'parentChild',
   }),
-  // A message may have child messages
   childMessages: many(messages, {
     relationName: 'parentChild',
   }),
 }));
 
-// Define relations for artifact components
 export const artifactComponentsRelations = relations(artifactComponents, ({ many }) => ({
-  // An artifact component can be associated with many agents
   agentRelations: many(agentArtifactComponents),
 }));
 
-// Define relations for agent-artifact component associations
 export const agentArtifactComponentsRelations = relations(agentArtifactComponents, ({ one }) => ({
-  // An agent-artifact component relation belongs to one agent
   agent: one(agents, {
     fields: [agentArtifactComponents.agentId],
     references: [agents.id],
   }),
-  // An agent-artifact component relation belongs to one artifact component
   artifactComponent: one(artifactComponents, {
     fields: [agentArtifactComponents.artifactComponentId],
     references: [artifactComponents.id],
   }),
 }));
 
-// Define relations for data components
 export const dataComponentsRelations = relations(dataComponents, ({ many, one }) => ({
-  // A data component belongs to one project
   project: one(projects, {
     fields: [dataComponents.tenantId, dataComponents.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // A data component can be associated with many agents
   agentRelations: many(agentDataComponents),
 }));
 
-// Define relations for agent-data component associations
 export const agentDataComponentsRelations = relations(agentDataComponents, ({ one }) => ({
-  // An agent-data component relation belongs to one agent
   agent: one(agents, {
     fields: [agentDataComponents.agentId],
     references: [agents.id],
   }),
-  // An agent-data component relation belongs to one data component
   dataComponent: one(dataComponents, {
     fields: [agentDataComponents.dataComponentId],
     references: [dataComponents.id],
   }),
 }));
 
-// Define relations for ledger artifacts
 export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => ({
-  // A ledger artifact belongs to one project
   project: one(projects, {
     fields: [ledgerArtifacts.tenantId, ledgerArtifacts.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  // A ledger artifact may be associated with one task
   task: one(tasks, {
     fields: [ledgerArtifacts.taskId],
     references: [tasks.id],
   }),
 }));
 
-// Define relations for agent relations
 export const agentRelationsRelations = relations(agentRelations, ({ one }) => ({
-  // An agent relation belongs to one graph
   graph: one(agentGraph, {
     fields: [agentRelations.graphId],
     references: [agentGraph.id],
   }),
-  // An agent relation has one source agent
   sourceAgent: one(agents, {
     fields: [agentRelations.sourceAgentId],
     references: [agents.id],
     relationName: 'sourceRelations',
   }),
-  // An agent relation may have one target agent (for internal relations)
   targetAgent: one(agents, {
     fields: [agentRelations.targetAgentId],
     references: [agents.id],
     relationName: 'targetRelations',
   }),
-  // An agent relation may have one external agent (for external relations)
   externalAgent: one(externalAgents, {
     fields: [agentRelations.externalAgentId],
     references: [externalAgents.id],

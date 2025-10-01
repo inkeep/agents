@@ -1,5 +1,27 @@
 # @inkeep/create-agents
 
+## 0.11.2
+
+## 0.11.1
+
+## 0.11.0
+
+### Minor Changes
+
+- 9cbb2a5: DB management is maturing; management is now done with explicit drizzle migrations; it is no longer recommended to use drizzle-kit push for db schema updates; recommendation is to use drizzle-kit migrate which will make databases more stable
+
+## 0.10.2
+
+## 0.10.1
+
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
+## 0.9.0
+
 ## 0.8.7
 
 ## 0.8.6

@@ -64,21 +64,21 @@ export function DataComponentForm({
       if (id) {
         const res = await updateDataComponentAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to update data component');
+          toast.error(res.error || 'Failed to update component');
           return;
         }
-        toast.success('Data component updated');
+        toast.success('Component updated');
       } else {
         const res = await createDataComponentAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to create data component');
+          toast.error(res.error || 'Failed to create component');
           return;
         }
-        toast.success('Data component created');
-        router.push(`/${tenantId}/projects/${projectId}/data-components`);
+        toast.success('Component created');
+        router.push(`/${tenantId}/projects/${projectId}/components`);
       }
     } catch (error) {
-      console.error('Error submitting data component:', error);
+      console.error('Error submitting component:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }

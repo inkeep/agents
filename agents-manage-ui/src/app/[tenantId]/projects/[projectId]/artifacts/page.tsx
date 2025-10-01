@@ -22,14 +22,14 @@ async function ArtifactComponentsPage({ params }: ArtifactComponentsPageProps) {
     const response = await fetchArtifactComponents(tenantId, projectId);
     artifacts = response;
   } catch (_error) {
-    throw new Error('Failed to fetch artifacts components');
+    throw new Error('Failed to fetch artifacts.');
   }
   return (
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Artifact components',
-          href: `/${tenantId}/projects/${projectId}/artifact-components`,
+          label: 'Artifacts',
+          href: `/${tenantId}/projects/${projectId}/artifacts`,
         },
       ]}
     >
@@ -37,12 +37,12 @@ async function ArtifactComponentsPage({ params }: ArtifactComponentsPageProps) {
         {artifacts.data.length > 0 ? (
           <>
             <PageHeader
-              title="Artifact components"
+              title="Artifacts"
               description={artifactDescription}
               action={
                 <Button asChild>
-                  <Link href={`/${tenantId}/projects/${projectId}/artifact-components/new`}>
-                    <Plus className="size-4" /> New artifact component
+                  <Link href={`/${tenantId}/projects/${projectId}/artifacts/new`}>
+                    <Plus className="size-4" /> New artifact
                   </Link>
                 </Button>
               }
@@ -55,10 +55,10 @@ async function ArtifactComponentsPage({ params }: ArtifactComponentsPageProps) {
           </>
         ) : (
           <EmptyState
-            title="No artifact components yet."
+            title="No artifacts yet."
             description={artifactDescription}
-            link={`/${tenantId}/projects/${projectId}/artifact-components/new`}
-            linkText="Create artifact component"
+            link={`/${tenantId}/projects/${projectId}/artifacts/new`}
+            linkText="Create artifact"
           />
         )}
       </MainContent>

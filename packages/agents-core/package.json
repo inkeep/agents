@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.8.7",
+  "version": "0.11.2",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -26,14 +26,13 @@
     "format:check": "biome format src",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
+    "db:drop": "drizzle-kit drop",
     "db:clean": "tsx src/db/clean.ts",
     "db:delete": "tsx src/db/delete.ts",
-    "db:reset": "pnpm db:delete && pnpm db:push",
+    "db:reset": "pnpm db:delete && pnpm db:migrate",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check",
-    "db:reset-schema": "rm -rf drizzle/* && echo 'All migration files removed, generating new schema' && drizzle-kit generate",
     "prepack": "clean-package",
     "postpack": "clean-package restore"
   },
@@ -65,19 +64,20 @@
     "find-up": "^7.0.0",
     "hono": "^4.9.7",
     "jmespath": "^0.16.0",
-    "keytar": "^7.9.0",
     "nanoid": "^5.0.9",
     "pino": "^9.11.0",
     "pino-pretty": "^13.1.1",
     "ts-pattern": "^5.7.1",
     "zod": "^4.1.5"
   },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
   "devDependencies": {
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^2.0.0",
     "clean-package": "^2.2.0",
-    "drizzle-kit": "^0.31.4",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2",
     "vitest": "^3.1.4"

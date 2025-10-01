@@ -1,5 +1,43 @@
 # @inkeep/agents-core
 
+## 0.11.2
+
+## 0.11.1
+
+## 0.11.0
+
+### Minor Changes
+
+- 9cbb2a5: DB management is maturing; management is now done with explicit drizzle migrations; it is no longer recommended to use drizzle-kit push for db schema updates; recommendation is to use drizzle-kit migrate which will make databases more stable
+
+## 0.10.2
+
+## 0.10.1
+
+### Patch Changes
+
+- 974992c: context fetching span and ui trace improvements
+
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
+### Patch Changes
+
+- 7801b2c: improve credential store use for cloud deployments
+
+## 0.9.0
+
+### Minor Changes
+
+- 44178fc: Improve Visual Builder agent-tool relations, and bug fixes
+
+### Patch Changes
+
+- 6fb1e3d: fixes drizzle load from turso
+
 ## 0.8.7
 
 ## 0.8.6

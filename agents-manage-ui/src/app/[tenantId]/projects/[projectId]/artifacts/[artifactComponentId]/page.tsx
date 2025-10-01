@@ -21,8 +21,8 @@ export default async function ArtifactComponentPage({ params }: ArtifactComponen
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Artifact components',
-          href: `/${tenantId}/projects/${projectId}/artifact-components`,
+          label: 'Artifacts',
+          href: `/${tenantId}/projects/${projectId}/artifacts`,
         },
         { label: artifactComponent.name },
       ]}

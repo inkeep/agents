@@ -50,7 +50,7 @@ export async function fetchArtifactComponents(
 }
 
 /**
- * Fetch a single artifact component by ID
+ * Fetch a single artifact by ID
  */
 export async function fetchArtifactComponent(
   tenantId: string,
@@ -73,7 +73,7 @@ export async function fetchArtifactComponent(
 }
 
 /**
- * Create a new artifact component
+ * Create a new artifact
  */
 export async function createArtifactComponent(
   tenantId: string,
@@ -100,7 +100,7 @@ export async function createArtifactComponent(
 }
 
 /**
- * Update an existing artifact component
+ * Update an existing artifact
  */
 export async function updateArtifactComponent(
   tenantId: string,
@@ -127,7 +127,7 @@ export async function updateArtifactComponent(
 }
 
 /**
- * Delete an artifact component
+ * Delete an artifact
  */
 export async function deleteArtifactComponent(
   tenantId: string,

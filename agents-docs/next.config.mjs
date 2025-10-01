@@ -2,12 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { createMDX } from 'fumadocs-mdx/next';
+import { fetchCloudRedirects } from './redirects.mjs';
 
 const withMDX = createMDX();
 
 const isProd = process.env.NODE_ENV === 'production';
 const redirectsPath = path.join(process.cwd(), 'redirects.json');
-const redirects = JSON.parse(fs.readFileSync(redirectsPath, 'utf8'));
+
+// Read static redirects
+const staticRedirects = JSON.parse(fs.readFileSync(redirectsPath, 'utf8'));
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -17,8 +20,11 @@ const config = {
   // Increase timeout for static page generation in CI environments
   staticPageGenerationTimeout: 180, // 3 minutes instead of default 60 seconds
   async redirects() {
+    const cloudRedirects = await fetchCloudRedirects();
+
     return [
-      ...redirects.map((item) => ({ ...item, permanent: isProd })),
+      ...staticRedirects.map((item) => ({ ...item, permanent: isProd })),
+      ...cloudRedirects.map((item) => ({ ...item, permanent: isProd })),
       {
         source: '/cloud',
         destination: '/cloud/overview/ai-for-customers',

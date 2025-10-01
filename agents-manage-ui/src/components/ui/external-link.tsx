@@ -3,7 +3,13 @@ import Link from 'next/link';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
-export function ExternalLink({ href, children, className, ...props }: ComponentProps<typeof Link>) {
+export function ExternalLink({
+  href,
+  children,
+  className,
+  iconClassName,
+  ...props
+}: ComponentProps<typeof Link> & { iconClassName?: string }) {
   return (
     <Link
       href={href}
@@ -16,7 +22,12 @@ export function ExternalLink({ href, children, className, ...props }: ComponentP
       {...props}
     >
       {children}
-      <ArrowUpRight className="size-3.5 text-muted-foreground/60 group-hover/link:text-primary" />
+      <ArrowUpRight
+        className={cn(
+          'size-3.5 text-muted-foreground/60 group-hover/link:text-primary',
+          iconClassName
+        )}
+      />
     </Link>
   );
 }

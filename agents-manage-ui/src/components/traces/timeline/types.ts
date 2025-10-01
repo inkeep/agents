@@ -73,6 +73,9 @@ export interface ActivityItem {
   aiStreamTextModel?: string;
   aiStreamTextProvider?: string;
   aiStreamTextOperationId?: string;
+  toolCallArgs?: string;
+  toolCallResult?: string;
+  aiResponseText?: string;
 }
 
 export interface ToolCall {
@@ -128,6 +131,7 @@ export interface ConversationDetail {
     data: Record<string, any>;
   }>;
   mcpToolErrors?: Array<{
+    id: string;
     spanId: string;
     toolName: string;
     error: string;

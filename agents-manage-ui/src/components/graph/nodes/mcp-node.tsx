@@ -8,6 +8,8 @@ import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
+const TOOLS_SHOWN_LIMIT = 4;
+
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
   const toolLookup = useGraphStore((state) => state.toolLookup);
@@ -32,10 +34,14 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const getToolDisplay = () => {
     if (selectedTools === null) {
       // All tools selected
-      return {
-        toolBadges: [(activeTools?.length ?? 0).toString()],
-        additionalBadge: null,
-      };
+      const toolsToShow = (activeTools?.slice(0, TOOLS_SHOWN_LIMIT) || []).map((tool) => tool.name);
+      const remainingCount = (activeTools?.length ?? 0) - TOOLS_SHOWN_LIMIT;
+      const toolBadges = [...toolsToShow];
+      if (remainingCount > 0) {
+        toolBadges.push(`+${remainingCount} (ALL)`);
+      }
+
+      return toolBadges;
     }
 
     const selectedCount = selectedTools.length;
@@ -43,41 +49,35 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
     // If no tools selected, show 0
     if (selectedCount === 0) {
-      return {
-        toolBadges: ['0'],
-        additionalBadge: null,
-      };
+      return ['0'];
     }
 
     // If all tools are selected, show total count
     if (selectedCount === totalCount) {
-      return {
-        toolBadges: [totalCount.toString()],
-        additionalBadge: null,
-      };
+      const toolsToShow = selectedTools.slice(0, TOOLS_SHOWN_LIMIT);
+      const remainingCount = selectedCount - TOOLS_SHOWN_LIMIT;
+      const toolBadges = [...toolsToShow];
+      if (remainingCount > 0) {
+        toolBadges.push(`+${remainingCount} (ALL)`);
+      }
+      return toolBadges;
     }
 
-    // If 2 or fewer tools selected, show each tool name as separate badge
-    if (selectedCount <= 2) {
-      return {
-        toolBadges: selectedTools,
-        additionalBadge: null,
-      };
+    // If TOOLS_SHOWN_LIMIT or fewer tools selected, show each tool name as separate badge
+    if (selectedCount <= TOOLS_SHOWN_LIMIT) {
+      return selectedTools;
     }
 
-    // Show first 2 tool names as separate badges, remaining count in additional badge
-    const firstTwoTools = selectedTools.slice(0, 2);
-    const remainingCount = selectedCount - 2;
-    return {
-      toolBadges: firstTwoTools,
-      additionalBadge: `+${remainingCount}`,
-    };
+    // Show first TOOLS_SHOWN_LIMIT tool names as separate badges, remaining count in additional badge
+    const toolsToShow = selectedTools.slice(0, TOOLS_SHOWN_LIMIT);
+    const remainingCount = selectedCount - TOOLS_SHOWN_LIMIT;
+    return [...toolsToShow, `+${remainingCount}`];
   };
 
-  const toolDisplay = getToolDisplay();
+  const toolBadges = getToolDisplay();
 
   return (
-    <BaseNode isSelected={selected} className="rounded-full min-w-40 min-h-13 max-w-3xs">
+    <BaseNode isSelected={selected} className="rounded-4xl min-w-40 min-h-13 max-w-3xs">
       <BaseNodeHeader className="mb-0 py-3">
         <div className="flex items-center flex-wrap gap-1">
           <div className="flex items-center gap-2 flex-shrink-0 mr-4">
@@ -90,23 +90,17 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
             />
             <BaseNodeHeaderTitle className="flex-shrink-0">{name}</BaseNodeHeaderTitle>
           </div>
-          {toolDisplay.toolBadges.map((toolName, index) => (
-            <Badge
-              key={index}
-              variant="code"
-              className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
-            >
-              {toolName}
-            </Badge>
-          ))}
-          {toolDisplay.additionalBadge && (
-            <Badge
-              variant="code"
-              className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
-            >
-              {toolDisplay.additionalBadge}
-            </Badge>
-          )}
+          <div className="flex items-center flex-wrap gap-1">
+            {toolBadges.map((label, index) => (
+              <Badge
+                key={index}
+                variant="code"
+                className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
+              >
+                {label}
+              </Badge>
+            ))}
+          </div>
         </div>
       </BaseNodeHeader>
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />

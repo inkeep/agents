@@ -88,6 +88,13 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <Info label="Agent" value={a.agentName || '-'} />
+            {a.aiResponseText && (
+              <LabeledBlock label="Response text">
+                <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+                  {a.aiResponseText}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -221,7 +228,20 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -253,7 +273,20 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -286,7 +319,20 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -315,7 +361,20 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            <Info label="Result" value={a.toolResult || 'No result available'} />
+            {a.toolCallArgs && (
+              <LabeledBlock label="Tool arguments">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallArgs}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            {a.toolCallResult && (
+              <LabeledBlock label="Tool result">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${a.toolCallResult}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -341,11 +400,6 @@ export function renderPanelContent({
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-            <LabeledBlock label="Streamed text content">
-              <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
-                {a.aiStreamTextContent || 'No content available'}
-              </Bubble>
-            </LabeledBlock>
           </Section>
           <Divider />
           {SignozButton}

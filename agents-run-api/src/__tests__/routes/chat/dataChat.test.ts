@@ -94,6 +94,7 @@ describe('Chat Data Stream Route', () => {
       tenantId,
       projectId,
       name: 'Test Graph',
+      description: 'Test graph for data chat',
       defaultAgentId: agentId,
     });
 

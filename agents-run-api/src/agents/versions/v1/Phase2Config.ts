@@ -397,13 +397,14 @@ ${artifactRetrievalGuidance}
    * Assemble the complete Phase 2 system prompt for structured output generation
    */
   assemblePhase2Prompt(config: {
+    corePrompt: string;
     dataComponents: DataComponentApiInsert[];
     artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>;
     hasArtifactComponents: boolean;
     hasGraphArtifactComponents?: boolean;
     artifacts?: Artifact[];
   }): string {
-    const { dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
+    const { corePrompt, dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
     let allDataComponents = [...dataComponents];
@@ -423,6 +424,7 @@ ${artifactRetrievalGuidance}
     const artifactTypes = this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
 
     let phase2Prompt = systemPromptTemplate;
+    phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);
     phase2Prompt = phase2Prompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACT_GUIDANCE_SECTION}}', artifactGuidance);

@@ -12,10 +12,10 @@ async function NewArtifactComponentPage({ params }: NewArtifactComponentPageProp
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Artifact components',
-          href: `/${tenantId}/projects/${projectId}/artifact-components`,
+          label: 'Artifacts',
+          href: `/${tenantId}/projects/${projectId}/artifacts`,
         },
-        { label: 'New Artifact Component' },
+        { label: 'New Artifact' },
       ]}
     >
       <MainContent>

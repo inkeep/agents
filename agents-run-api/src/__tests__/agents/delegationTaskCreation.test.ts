@@ -74,6 +74,7 @@ describe('Delegation Task Creation Fixes', () => {
       id: taskId,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
+      graphId: 'test-graph',
       agentId: 'math-supervisor', // Use existing agent from database
       contextId: conversationId,
       status: 'pending',
@@ -174,6 +175,7 @@ describe('Delegation Task Creation Fixes', () => {
       id: `delegation-test-${nanoid()}`,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
+      graphId: 'test-graph',
       agentId: 'number-producer-a',
       contextId: testContextId,
       status: 'working',

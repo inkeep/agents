@@ -7,5 +7,3 @@ packages:
   - examples
   - agents-docs
   - "packages/*"
-onlyBuiltDependencies:
-  - keytar

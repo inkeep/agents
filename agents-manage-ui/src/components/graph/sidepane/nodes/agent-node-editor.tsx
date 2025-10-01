@@ -1,8 +1,6 @@
 import type { Node } from '@xyflow/react';
-import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { CollapsibleInfoCard } from '@/components/ui/info-card';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -23,6 +21,29 @@ import { ComponentSelector } from './component-selector/component-selector';
 import { ExpandableTextArea } from './expandable-text-area';
 import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
+
+const ExecutionLimitInheritanceInfo = () => {
+  return (
+    <ul className="space-y-1.5 list-disc list-outside pl-4">
+      <li>
+        <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
+        execution limit)
+      </li>
+      <li>
+        <span className="font-medium">Explicit settings</span> always take precedence over inherited
+        values
+      </li>
+      <li>
+        <span className="font-medium">Agent scope</span>: This limit applies only to this specific
+        agent's execution steps
+      </li>
+      <li>
+        <span className="font-medium">Independent from transfers</span>: Steps are counted per
+        agent, transfers are counted per conversation
+      </li>
+    </ul>
+  );
+};
 
 interface AgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
@@ -129,7 +150,7 @@ export function AgentNodeEditor({
           <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
         )}
       </div>
-
+      <Separator />
       <ModelSection
         models={selectedNode.data.models}
         updatePath={updateModelPath}
@@ -142,6 +163,12 @@ export function AgentNodeEditor({
         <SectionHeader
           title="Execution limits"
           description="Configure agent-level execution limits for steps within this agent."
+          titleTooltip={
+            <div>
+              <p>How execution limit inheritance works:</p>
+              <ExecutionLimitInheritanceInfo />
+            </div>
+          }
         />
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -175,52 +202,32 @@ export function AgentNodeEditor({
             Maximum number of execution steps for this agent (defaults to 50 if not set)
           </p>
         </div>
-        <CollapsibleInfoCard title="How execution limit inheritance works:" Icon={Info}>
-          <ul className="space-y-1.5 list-disc list-outside pl-4">
-            <li>
-              <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
-              execution limit)
-            </li>
-            <li>
-              <span className="font-medium">Explicit settings</span> always take precedence over
-              inherited values
-            </li>
-            <li>
-              <span className="font-medium">Agent scope</span>: This limit applies only to this
-              specific agent's execution steps
-            </li>
-            <li>
-              <span className="font-medium">Independent from transfers</span>: Steps are counted per
-              agent, transfers are counted per conversation
-            </li>
-          </ul>
-        </CollapsibleInfoCard>
       </div>
       <Separator />
       <ComponentSelector
-        label="Data components"
+        label="Components"
         componentLookup={dataComponentLookup}
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
           updatePath('dataComponents', newSelection);
         }}
-        emptyStateMessage="No data components found."
-        emptyStateActionText="Create data component"
-        emptyStateActionHref={`/${tenantId}/projects/${projectId}/data-components/new`}
-        placeholder="Select data components..."
+        emptyStateMessage="No components found."
+        emptyStateActionText="Create component"
+        emptyStateActionHref={`/${tenantId}/projects/${projectId}/components/new`}
+        placeholder="Select components..."
       />
 
       <ComponentSelector
-        label="Artifact components"
+        label="Artifacts"
         componentLookup={artifactComponentLookup}
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
           updatePath('artifactComponents', newSelection);
         }}
-        emptyStateMessage="No artifact components found."
-        emptyStateActionText="Create artifact component"
-        emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifact-components/new`}
-        placeholder="Select artifact components..."
+        emptyStateMessage="No artifacts found."
+        emptyStateActionText="Create artifact"
+        emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
+        placeholder="Select artifacts..."
       />
     </div>
   );
