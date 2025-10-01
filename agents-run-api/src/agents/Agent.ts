@@ -175,7 +175,13 @@ export class Agent {
     this.artifactComponents = config.artifactComponents || [];
 
     // Process dataComponents (now only component-type)
-    let processedDataComponents = config.dataComponents || [];
+    // Filter out components with null props and cast types properly
+    let processedDataComponents = (config.dataComponents || [])
+      .filter(dc => dc.props !== null && dc.props !== undefined)
+      .map(dc => ({
+        ...dc,
+        props: dc.props as Record<string, unknown>
+      }));
 
     if (processedDataComponents.length > 0) {
       processedDataComponents.push({
@@ -203,8 +209,12 @@ export class Agent {
       config.dataComponents &&
       config.dataComponents.length > 0
     ) {
+      const artifactRefComponent = ArtifactReferenceSchema.getDataComponent(config.tenantId, config.projectId);
       processedDataComponents = [
-        ArtifactReferenceSchema.getDataComponent(config.tenantId, config.projectId),
+        {
+          ...artifactRefComponent,
+          props: artifactRefComponent.props as Record<string, unknown>
+        },
         ...processedDataComponents,
       ];
     }

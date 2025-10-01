@@ -1151,7 +1151,10 @@ describe('Two-Pass Generation System', () => {
       transferRelations: [],
       delegateRelations: [],
       tools: [],
-      dataComponents: [mockDataComponent],
+      dataComponents: [{
+        ...mockDataComponent,
+        props: mockDataComponent.props as Record<string, unknown>
+      }],
       models: {
         base: {
           model: 'anthropic/claude-sonnet-4-20250514',

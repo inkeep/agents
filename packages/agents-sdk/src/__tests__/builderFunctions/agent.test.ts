@@ -50,6 +50,10 @@ describe('agent builder function', () => {
       id: 'test-component',
       name: 'Test Component',
       description: 'A test data component',
+      props: {
+        type: 'object',
+        properties: {}
+      },
     };
 
     const config: AgentConfig = {

@@ -418,14 +418,22 @@ ${artifactRetrievalGuidance}
     const { corePrompt, dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
-    let allDataComponents = [...dataComponents];
+    // Filter out data components with null props to match expected type
+    const validDataComponents = dataComponents.filter(dc => dc.props !== null && dc.props !== undefined).map(dc => ({
+      ...dc,
+      props: dc.props as Record<string, unknown>
+    }));
+    let allDataComponents = [...validDataComponents];
     if (hasArtifactComponents && artifactComponents) {
       const artifactCreateComponents = ArtifactCreateSchema.getDataComponents(
         'tenant', // placeholder - not used in Phase2
         '', // placeholder - not used in Phase2  
         artifactComponents
-      );
-      allDataComponents = [...dataComponents, ...artifactCreateComponents];
+      ).map(component => ({
+        ...component,
+        props: component.props as Record<string, unknown>
+      }));
+      allDataComponents = [...validDataComponents, ...artifactCreateComponents];
     }
 
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);

@@ -4,7 +4,7 @@ import { z } from 'zod';
 let logger: any = null;
 try {
   // Only import logger in Node.js environment
-  if (typeof window === 'undefined') {
+  if (typeof globalThis !== 'undefined' && typeof (globalThis as any).window === 'undefined') {
     const { getLogger } = require('./logger');
     logger = getLogger('schema-utils');
   }

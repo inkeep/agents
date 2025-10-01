@@ -313,6 +313,10 @@ describe('Agent Builder', () => {
             id: 'test-data-component',
             name: 'Test Data Component',
             description: 'Test description',
+            props: {
+              type: 'object',
+              properties: {}
+            },
           },
         ],
       });

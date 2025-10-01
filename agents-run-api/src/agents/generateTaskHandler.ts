@@ -235,8 +235,15 @@ export const createTaskHandler = (
           ],
           tools: toolsForAgentResult,
           functionTools: [], // All tools are now handled via MCP servers
-          dataComponents: dataComponents,
-          artifactComponents: artifactComponents,
+          dataComponents: dataComponents.filter(dc => dc.props !== null).map(dc => ({
+            ...dc,
+            props: dc.props as Record<string, unknown>
+          })),
+          artifactComponents: artifactComponents.map(ac => ({
+            ...ac,
+            summaryProps: ac.summaryProps || undefined,
+            fullProps: ac.fullProps || undefined
+          })),
           contextConfigId: config.contextConfigId || undefined,
           conversationHistoryConfig: config.conversationHistoryConfig,
         },
