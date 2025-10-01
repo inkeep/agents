@@ -109,7 +109,7 @@ html {
 }
 
 #nd-page > article {
-  @apply lg:px-12;
+  @apply lg:pl-12 lg:pr-20;
 }
 /* mobile toc */
 #nd-tocnav {
