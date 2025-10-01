@@ -120,6 +120,7 @@ export class ExecutionHandler {
           id: taskId,
           tenantId,
           projectId,
+          graphId,
           agentId: currentAgentId,
           contextId: conversationId,
           status: 'pending',

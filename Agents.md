@@ -51,10 +51,10 @@ pnpm install
 
 ### Database Setup
 
-Set the DB schema:
+Run database migrations:
 
 ```bash
-pnpm --dir ./packages/agents-core db:push
+pnpm db:migrate
 ```
 
 ### Running the Development Server

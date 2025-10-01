@@ -136,6 +136,7 @@ export function SidePane({
     getFieldErrorMessage,
     getFirstErrorField,
     agentToolConfigLookup,
+    credentialLookup,
   ]);
 
   const showBackButton = useMemo(() => {

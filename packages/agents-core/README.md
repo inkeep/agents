@@ -134,10 +134,7 @@ pnpm db:check
 ### Apply Migrations
 
 ```bash
-# Push schema changes directly (development)
-pnpm db:push
-
-# Run migrations (production)
+# Run migrations
 pnpm db:migrate
 ```
 
@@ -413,9 +410,6 @@ export * from './workflows';
 pnpm db:generate
 
 # Apply migration to database
-pnpm db:push
-
-# Or for production, run migrations
 pnpm db:migrate
 ```
 

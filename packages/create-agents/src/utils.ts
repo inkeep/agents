@@ -443,8 +443,8 @@ async function setupProjectInDatabase(config: FileConfig) {
 
 async function setupDatabase() {
   try {
-    // Run drizzle-kit push to create database file and apply schema
-    await execAsync('pnpm db:push');
+    // Run drizzle-kit migrate to apply migrations to database
+    await execAsync('pnpm db:migrate');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
     throw new Error(

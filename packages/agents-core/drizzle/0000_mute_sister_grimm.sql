@@ -1,9 +1,9 @@
 CREATE TABLE `agent_artifact_components` (
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
 	`agent_id` text NOT NULL,
-	`id` text NOT NULL,
 	`artifact_component_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `agent_id`, `id`),
@@ -13,10 +13,10 @@ CREATE TABLE `agent_artifact_components` (
 --> statement-breakpoint
 CREATE TABLE `agent_data_components` (
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
 	`agent_id` text NOT NULL,
-	`id` text NOT NULL,
 	`data_component_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
@@ -26,8 +26,8 @@ CREATE TABLE `agent_data_components` (
 --> statement-breakpoint
 CREATE TABLE `agent_graph` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
 	`default_agent_id` text,
@@ -44,9 +44,9 @@ CREATE TABLE `agent_graph` (
 --> statement-breakpoint
 CREATE TABLE `agent_relations` (
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
-	`id` text NOT NULL,
 	`source_agent_id` text NOT NULL,
 	`target_agent_id` text,
 	`external_agent_id` text,
@@ -59,10 +59,10 @@ CREATE TABLE `agent_relations` (
 --> statement-breakpoint
 CREATE TABLE `agent_tool_relations` (
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
 	`agent_id` text NOT NULL,
-	`id` text NOT NULL,
 	`tool_id` text NOT NULL,
 	`selected_tools` blob,
 	`headers` blob,
@@ -75,9 +75,9 @@ CREATE TABLE `agent_tool_relations` (
 --> statement-breakpoint
 CREATE TABLE `agents` (
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
-	`id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
 	`prompt` text NOT NULL,
@@ -91,8 +91,8 @@ CREATE TABLE `agents` (
 );
 --> statement-breakpoint
 CREATE TABLE `api_keys` (
-	`id` text PRIMARY KEY NOT NULL,
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
 	`public_id` text NOT NULL,
@@ -113,8 +113,8 @@ CREATE INDEX `api_keys_prefix_idx` ON `api_keys` (`key_prefix`);--> statement-br
 CREATE INDEX `api_keys_public_id_idx` ON `api_keys` (`public_id`);--> statement-breakpoint
 CREATE TABLE `artifact_components` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
 	`summary_props` blob,
@@ -127,8 +127,8 @@ CREATE TABLE `artifact_components` (
 --> statement-breakpoint
 CREATE TABLE `context_cache` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`conversation_id` text NOT NULL,
 	`context_config_id` text NOT NULL,
 	`context_variable_key` text NOT NULL,
@@ -146,8 +146,8 @@ CREATE TABLE `context_cache` (
 CREATE INDEX `context_cache_lookup_idx` ON `context_cache` (`conversation_id`,`context_config_id`,`context_variable_key`);--> statement-breakpoint
 CREATE TABLE `context_configs` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
 	`request_context_schema` blob,
@@ -160,8 +160,8 @@ CREATE TABLE `context_configs` (
 --> statement-breakpoint
 CREATE TABLE `conversations` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`user_id` text,
 	`active_agent_id` text NOT NULL,
 	`title` text,
@@ -175,8 +175,8 @@ CREATE TABLE `conversations` (
 --> statement-breakpoint
 CREATE TABLE `credential_references` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`type` text NOT NULL,
 	`credential_store_id` text NOT NULL,
 	`retrieval_params` blob,
@@ -188,8 +188,8 @@ CREATE TABLE `credential_references` (
 --> statement-breakpoint
 CREATE TABLE `data_components` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
 	`props` blob,
@@ -201,9 +201,9 @@ CREATE TABLE `data_components` (
 --> statement-breakpoint
 CREATE TABLE `external_agents` (
 	`tenant_id` text NOT NULL,
+	`id` text NOT NULL,
 	`project_id` text NOT NULL,
 	`graph_id` text NOT NULL,
-	`id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text NOT NULL,
 	`base_url` text NOT NULL,
@@ -218,8 +218,8 @@ CREATE TABLE `external_agents` (
 --> statement-breakpoint
 CREATE TABLE `ledger_artifacts` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`task_id` text NOT NULL,
 	`tool_call_id` text,
 	`context_id` text NOT NULL,
@@ -239,10 +239,14 @@ CREATE TABLE `ledger_artifacts` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `ledger_artifacts_task_id_idx` ON `ledger_artifacts` (`task_id`);--> statement-breakpoint
+CREATE INDEX `ledger_artifacts_tool_call_id_idx` ON `ledger_artifacts` (`tool_call_id`);--> statement-breakpoint
+CREATE INDEX `ledger_artifacts_context_id_idx` ON `ledger_artifacts` (`context_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `ledger_artifacts_task_context_name_unique` ON `ledger_artifacts` (`task_id`,`context_id`,`name`);--> statement-breakpoint
 CREATE TABLE `messages` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`conversation_id` text NOT NULL,
 	`role` text NOT NULL,
 	`from_agent_id` text,
@@ -278,8 +282,8 @@ CREATE TABLE `projects` (
 --> statement-breakpoint
 CREATE TABLE `task_relations` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`parent_task_id` text NOT NULL,
 	`child_task_id` text NOT NULL,
 	`relation_type` text DEFAULT 'parent_child',
@@ -291,22 +295,23 @@ CREATE TABLE `task_relations` (
 --> statement-breakpoint
 CREATE TABLE `tasks` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
+	`graph_id` text NOT NULL,
+	`agent_id` text NOT NULL,
 	`context_id` text NOT NULL,
 	`status` text NOT NULL,
 	`metadata` blob,
-	`agent_id` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	PRIMARY KEY(`tenant_id`, `project_id`, `id`),
-	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`graph_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `tools` (
 	`tenant_id` text NOT NULL,
-	`project_id` text NOT NULL,
 	`id` text NOT NULL,
+	`project_id` text NOT NULL,
 	`name` text NOT NULL,
 	`config` blob NOT NULL,
 	`credential_reference_id` text,

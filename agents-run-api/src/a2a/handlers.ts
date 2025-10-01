@@ -187,6 +187,7 @@ async function handleMessageSend(
       id: task.id,
       tenantId: agent.tenantId,
       projectId: agent.projectId,
+      graphId: graphId || '',
       contextId: effectiveContextId,
       status: 'working',
       metadata: {

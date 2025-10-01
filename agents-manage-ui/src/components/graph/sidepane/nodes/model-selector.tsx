@@ -98,7 +98,7 @@ export function ModelSelector({
                 role="combobox"
                 aria-expanded={open}
                 className={cn(
-                  'justify-between bg-background dark:bg-background flex-1 text-foreground shadow-none truncate',
+                  'justify-between bg-background dark:bg-input/30 flex-1 text-foreground shadow-none truncate',
                   selectedModel && canClear ? 'rounded-r-none border-r-0' : 'rounded-r-md'
                 )}
               >
@@ -316,7 +316,7 @@ export function ModelSelector({
                 type="button"
                 disabled={!selectedModel}
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-gray-500 dark:text-white/40" />
               </Button>
             </div>
           )}

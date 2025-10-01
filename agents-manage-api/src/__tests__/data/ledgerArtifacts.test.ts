@@ -1,7 +1,7 @@
 import {
   addLedgerArtifacts,
-  agents,
   agentGraph,
+  agents,
   conversations,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
@@ -67,6 +67,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: taskId,
       tenantId,
       projectId,
+      graphId,
       contextId,
       status: 'completed',
       agentId,

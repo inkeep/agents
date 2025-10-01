@@ -210,6 +210,10 @@ export function ChatWidget({
             },
           }}
           aiChatSettings={{
+            aiAssistantAvatar: {
+              light: '/assets/inkeep-icons/icon-blue.svg',
+              dark: '/assets/inkeep-icons/icon-sky.svg',
+            },
             conversationId,
             graphUrl: graphId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
             headers: {

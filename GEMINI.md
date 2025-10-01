@@ -50,10 +50,9 @@ pnpm install
 
 ### Database Setup
 
-Set the DB schema:
-
 ```bash
-pnpm --dir ./packages/agents-core db:push
+pnpm db:generate  # Generate migration from schema.ts changes
+pnpm db:migrate   # Apply migrations to database
 ```
 
 ### Running the Development Server
@@ -87,3 +86,17 @@ The project uses a pre-push hook to run tests.
 ### Versioning and Releasing
 
 The project uses Changesets for versioning and releasing.
+
+### Database Migration Best Practices
+
+**Standard Workflow:**
+1. Edit `packages/agents-core/src/db/schema.ts`
+2. Run `pnpm db:generate` to create migration files
+3. Optionally edit the newly generated SQL file (before first use only)
+4. Run `pnpm db:migrate` to apply migrations
+
+**Important Rules:**
+- Never manually edit `drizzle/meta/` files - managed by drizzle-kit
+- Never edit existing SQL migrations after they've been applied
+- Use `pnpm db:drop` to remove migrations (don't delete manually)
+- Only edit newly created migrations before first application

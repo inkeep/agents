@@ -141,6 +141,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: nanoid(),
+      graphId: graphId,
       contextId: nanoid(),
       status: 'pending',
       agentId: agentId,

@@ -93,7 +93,7 @@ echo -e "${GREEN}✓${NC} Dependencies installed"
 # 7. Setup database
 echo ""
 echo "Setting up database..."
-pnpm --filter @inkeep/agents-core db:push
+pnpm --filter @inkeep/agents-core db:migrate
 echo -e "${GREEN}✓${NC} Database ready"
 
 echo ""
