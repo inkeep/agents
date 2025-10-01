@@ -97,6 +97,8 @@ function createTemplateVariableLinter(suggestions: string[]) {
           validVariables.has(variableName) ||
           RESERVED_KEYS.has(variableName) ||
           variableName.startsWith('$env.') ||
+          // Exclude arrays from linting, as they are indicated with [*] in the suggestions
+          variableName.includes('[') ||
           isJMESPathExpressions(variableName);
 
         if (!isValid) {
