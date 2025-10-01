@@ -975,6 +975,9 @@ importers:
       degit:
         specifier: ^2.8.4
         version: 2.8.4
+      drizzle-kit:
+        specifier: ^0.31.5
+        version: 0.31.5
       fs-extra:
         specifier: ^11.0.0
         version: 11.3.2
