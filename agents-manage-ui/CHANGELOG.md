@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.10.2
+
+### Patch Changes
+
+- 46d9d53: - Rename data components to components at the ui layer, make graph api keys just api keys and reorder sidebar nav
+- 7c465c9: remove thinking tool
+- 74c3acf: Rename artifact components to artifacts
+  - @inkeep/agents-manage-api@0.10.2
+  - @inkeep/agents-run-api@0.10.2
+  - @inkeep/agents-core@0.10.2
+
 ## 0.10.1
 
 ### Patch Changes
