@@ -3,11 +3,16 @@ import { z } from 'zod';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
-  providerOptions: z.record(z.string(), z.any()).optional(),
+  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
+});
+
+const baseModelSettingsSchema = z.object({
+  model: z.string().min(1, 'Base model is required'),
+  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
 });
 
 const projectModelsSchema = z.object({
-  base: modelSettingsSchema,
+  base: baseModelSettingsSchema,
   structuredOutput: modelSettingsSchema.optional(),
   summarizer: modelSettingsSchema.optional(),
 });

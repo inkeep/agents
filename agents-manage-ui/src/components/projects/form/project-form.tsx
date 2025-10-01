@@ -81,6 +81,15 @@ const serializeData = (data: ProjectFormData) => {
   };
 };
 
+const createDefaultValues = (initialData?: ProjectFormData) => {
+  return {
+    ...initialData,
+    // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object
+    stopWhen: initialData?.stopWhen || {},
+    models: initialData?.models || { base: { model: '', providerOptions: null } },
+  };
+};
+
 export function ProjectForm({
   tenantId,
   projectId,
@@ -90,10 +99,7 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
-    defaultValues: {
-      ...defaultValues,
-      ...initialData,
-    },
+    defaultValues: initialData ? createDefaultValues(initialData) : { ...defaultValues },
   });
 
   const { isSubmitting } = form.formState;
