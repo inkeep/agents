@@ -20,7 +20,7 @@ export interface ContextSchema {
 function extractPathsFromSchema(
   schema: any,
   prefix = '',
-  maxDepth = 5,
+  maxDepth = 10,
   currentDepth = 0
 ): string[] {
   if (currentDepth >= maxDepth || !schema || typeof schema !== 'object') {
@@ -38,6 +38,17 @@ function extractPathsFromSchema(
       if (typeof value === 'object' && value !== null) {
         paths.push(...extractPathsFromSchema(value, newPath, maxDepth, currentDepth + 1));
       }
+    }
+  }
+
+  // Handle array items
+  if (schema.type === 'array' && schema.items) {
+    const arrayPath = prefix ? `${prefix}[*]` : '[*]';
+    paths.push(arrayPath);
+
+    // Recursively get paths from array items
+    if (schema.items && typeof schema.items === 'object') {
+      paths.push(...extractPathsFromSchema(schema.items, arrayPath, maxDepth, currentDepth + 1));
     }
   }
 
@@ -66,7 +77,7 @@ export function getContextSuggestions(contextSchema: ContextSchema): string[] {
       suggestions.push(variableName);
 
       // Add nested properties if responseSchema exists
-      if (variable.responseSchema?.properties) {
+      if (variable.responseSchema) {
         const responsePaths = extractPathsFromSchema(variable.responseSchema);
         for (const path of responsePaths) {
           suggestions.push(`${variableName}.${path}`);

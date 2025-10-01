@@ -105,31 +105,51 @@ describe('getContextSuggestions', () => {
           })
         ),
       });
-    });
 
-    it('handles optional and nullable fields', () => {
-      const optionalSchema = z.object({
-        required: z.string(),
-        optional: z.string().optional(),
-        nullable: z.string().nullable(),
-        nullish: z.string().nullish(),
+      const suggestions = getContextSuggestions({
+        contextVariables: {
+          data: {
+            id: 'test',
+            name: 'Test',
+            responseSchema: z.toJSONSchema(mixedSchema),
+          },
+        },
       });
-    });
-
-    it('handles union types', () => {
-      const unionSchema = z.union([
-        z.object({ type: z.literal('user'), name: z.string() }),
-        z.object({ type: z.literal('admin'), role: z.string() }),
+      expect(suggestions).toStrictEqual([
+        'data',
+        'data.users',
+        'data.users[*]',
+        'data.users[*].posts',
+        'data.users[*].posts[*]',
+        'data.users[*].posts[*].comments',
+        'data.users[*].posts[*].comments[*]',
+        'data.users[*].posts[*].comments[*].text',
       ]);
     });
 
-    it('handles multiple context variables', () => {
-      const userSchema = z.object({ id: z.string(), name: z.string() });
-      const settingsSchema = z.object({ theme: z.string(), locale: z.string() });
-    });
-
-    it('handles empty path', () => {
-      const schema = z.object({ value: z.string() });
-    });
+    // it('handles optional and nullable fields', () => {
+    //   const optionalSchema = z.object({
+    //     required: z.string(),
+    //     optional: z.string().optional(),
+    //     nullable: z.string().nullable(),
+    //     nullish: z.string().nullish(),
+    //   });
+    // });
+    //
+    // it('handles union types', () => {
+    //   const unionSchema = z.union([
+    //     z.object({ type: z.literal('user'), name: z.string() }),
+    //     z.object({ type: z.literal('admin'), role: z.string() }),
+    //   ]);
+    // });
+    //
+    // it('handles multiple context variables', () => {
+    //   const userSchema = z.object({ id: z.string(), name: z.string() });
+    //   const settingsSchema = z.object({ theme: z.string(), locale: z.string() });
+    // });
+    //
+    // it('handles empty path', () => {
+    //   const schema = z.object({ value: z.string() });
+    // });
   });
 });
