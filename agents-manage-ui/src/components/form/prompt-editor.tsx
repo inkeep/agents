@@ -69,6 +69,13 @@ const templateVariableTheme = EditorView.theme({
 
 const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
+function isJMESPathExpressions(key: string): boolean {
+  if (key.startsWith('length(')) {
+    return true;
+  }
+  return key.includes('[?') || key.includes('[*]');
+}
+
 // Create linter for template variable validation
 function createTemplateVariableLinter(suggestions: string[]) {
   return linter((view) => {
@@ -89,7 +96,8 @@ function createTemplateVariableLinter(suggestions: string[]) {
         const isValid =
           validVariables.has(variableName) ||
           RESERVED_KEYS.has(variableName) ||
-          variableName.startsWith('$env.');
+          variableName.startsWith('$env.') ||
+          isJMESPathExpressions(variableName);
 
         if (!isValid) {
           diagnostics.push({
@@ -200,7 +208,7 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
       autocompletion({
         override: [createContextAutocompleteSource(suggestions)],
         compareCompletions(_a, _b) {
-          // Disable sorting
+          // Disable default localCompare sorting
           return -1;
         },
       }),
