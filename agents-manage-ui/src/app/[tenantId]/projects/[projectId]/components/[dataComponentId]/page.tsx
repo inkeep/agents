@@ -21,8 +21,8 @@ export default async function DataComponentPage({ params }: DataComponentPagePro
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Data components',
-          href: `/${tenantId}/projects/${projectId}/data-components`,
+          label: 'Components',
+          href: `/${tenantId}/projects/${projectId}/components`,
         },
         { label: dataComponent.name },
       ]}

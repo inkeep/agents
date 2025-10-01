@@ -29,7 +29,7 @@ export function DeleteDataComponentConfirmation({
       const result = await deleteDataComponentAction(tenantId, projectId, dataComponentId);
       if (result.success) {
         setIsOpen(false);
-        toast.success('Data component deleted.');
+        toast.success('Component deleted.');
       } else {
         toast.error(result.error);
       }
@@ -40,7 +40,7 @@ export function DeleteDataComponentConfirmation({
 
   return (
     <DeleteConfirmation
-      itemName={dataComponentName || 'this data component'}
+      itemName={dataComponentName || 'this component'}
       isSubmitting={isSubmitting}
       onDelete={handleDelete}
     />

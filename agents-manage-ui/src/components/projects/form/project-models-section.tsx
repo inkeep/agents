@@ -83,7 +83,7 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
         control={control}
         name="models.structuredOutput.model"
         label="Structured output model"
-        description="Model for structured outputs and data components (defaults to base model)"
+        description="Model for structured outputs and components (defaults to base model)"
       >
         {(field) => (
           <ModelSelector

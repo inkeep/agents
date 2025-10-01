@@ -3,6 +3,10 @@
     Generate the final structured JSON response using the configured data components and artifact creation capabilities.
   </instruction>
 
+  <core_instructions>
+    {{CORE_INSTRUCTIONS}}
+  </core_instructions>
+
   {{ARTIFACTS_SECTION}}
   {{DATA_COMPONENTS_SECTION}}
 

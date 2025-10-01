@@ -21,7 +21,7 @@ export function DataComponentItem({
   tenantId,
   projectId,
 }: DataComponent & { tenantId: string; projectId: string }) {
-  const linkPath = `/${tenantId}/projects/${projectId}/data-components/${id}`;
+  const linkPath = `/${tenantId}/projects/${projectId}/components/${id}`;
 
   return (
     <ItemCardRoot>

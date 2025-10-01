@@ -29,7 +29,7 @@ export function ModelSection({
 
   return (
     <div className="space-y-8">
-      <div className="relative">
+      <div className="relative space-y-2">
         <ModelSelector
           value={models?.base?.model || ''}
           onValueChange={(modelValue) => {
@@ -50,8 +50,8 @@ export function ModelSection({
               />
             </div>
           }
-          tooltip="Primary model for general agent responses"
         />
+        <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
       </div>
 
       <Collapsible
@@ -69,7 +69,7 @@ export function ModelSection({
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-8 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-          <div className="relative">
+          <div className="relative space-y-2">
             <ModelSelector
               value={models?.structuredOutput?.model || ''}
               onValueChange={(modelValue) => {
@@ -96,10 +96,12 @@ export function ModelSection({
                   />
                 </div>
               }
-              tooltip="The model used for structured output and data components (defaults to base model)"
             />
+            <p className="text-xs text-muted-foreground">
+              The model used for structured output and components (defaults to base model)
+            </p>
           </div>
-          <div className="relative">
+          <div className="relative space-y-2">
             <ModelSelector
               value={models?.summarizer?.model || ''}
               onValueChange={(modelValue) => {
@@ -126,8 +128,10 @@ export function ModelSection({
                   />
                 </div>
               }
-              tooltip="The model used for summarization tasks (defaults to base model)"
             />
+            <p className="text-xs text-muted-foreground">
+              The model used for summarization tasks (defaults to base model)
+            </p>
           </div>
         </CollapsibleContent>
       </Collapsible>

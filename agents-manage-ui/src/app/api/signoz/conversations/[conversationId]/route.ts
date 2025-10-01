@@ -204,6 +204,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TOOL_CALL_RESULT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_TOOL_CALL_ARGS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
@@ -579,6 +583,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TEXT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -783,6 +791,7 @@ export async function GET(
       serviceTier?: string;
       aiResponseContent?: string;
       aiResponseTimestamp?: string;
+      aiResponseText?: string;
       // user
       messageContent?: string;
       // context resolution
@@ -795,6 +804,8 @@ export async function GET(
       // tool specifics
       toolType?: string;
       toolPurpose?: string;
+      toolCallArgs?: string;
+      toolCallResult?: string;
       // delegation/transfer
       delegationFromAgentId?: string;
       delegationToAgentId?: string;
@@ -824,6 +835,12 @@ export async function GET(
     // tool calls → activities
     for (const span of toolCallSpans) {
       const name = getString(span, SPAN_KEYS.AI_TOOL_CALL_NAME, 'Unknown Tool');
+      
+      // Skip thinking_complete tool calls from the timeline
+      if (name === 'thinking_complete') {
+        continue;
+      }
+      
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
@@ -833,11 +850,13 @@ export async function GET(
       const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
       const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_AGENT_ID, '');
 
+      // Extract tool call args and result for ALL tool calls
+      const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
+      const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
+
       // Parse save_tool_result JSON if present
       let saveFields: any = {};
       if (name === TOOL_NAMES.SAVE_TOOL_RESULT) {
-        const toolResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
-        const toolArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
         const operationId = getString(span, SPAN_KEYS.AI_OPERATION_ID, '');
         const toolCallId = getString(span, SPAN_KEYS.AI_TOOL_CALL_ID, '');
         const functionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
@@ -845,14 +864,14 @@ export async function GET(
         // Parse tool arguments
         let parsedArgs: any = {};
         try {
-          parsedArgs = JSON.parse(toolArgs);
+          parsedArgs = JSON.parse(toolCallArgs);
         } catch (_e) {
           // Keep empty if parsing fails
         }
 
         // Parse tool result
         try {
-          const parsed = JSON.parse(toolResult);
+          const parsed = JSON.parse(toolCallResult);
           // Extract first artifact info if available
           const firstArtifact = parsed.artifacts
             ? (Object.values(parsed.artifacts)[0] as any)
@@ -898,6 +917,8 @@ export async function GET(
         delegationToAgentId: delegationToAgentId || undefined,
         transferFromAgentId: transferFromAgentId || undefined,
         transferToAgentId: transferToAgentId || undefined,
+        toolCallArgs: toolCallArgs || undefined,
+        toolCallResult: toolCallResult || undefined,
         ...saveFields, // Include save_tool_result specific fields
       });
     }
@@ -1040,6 +1061,7 @@ export async function GET(
         aiModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
       });
     }
 

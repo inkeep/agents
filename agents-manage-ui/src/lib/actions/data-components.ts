@@ -55,7 +55,7 @@ export async function createDataComponentAction(
 ): Promise<ActionResult<DataComponent>> {
   try {
     const result = await createDataComponent(tenantId, projectId, data);
-    revalidatePath(`/${tenantId}/projects/${projectId}/data-components`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/components`);
     return {
       success: true,
       data: result,
@@ -87,8 +87,8 @@ export async function updateDataComponentAction(
 ): Promise<ActionResult<DataComponent>> {
   try {
     const result = await updateDataComponent(tenantId, projectId, data);
-    revalidatePath(`/${tenantId}/projects/${projectId}/data-components`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/data-components/${data.id}`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/components`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/components/${data.id}`);
     return {
       success: true,
       data: result,
@@ -120,8 +120,8 @@ export async function deleteDataComponentAction(
 ): Promise<ActionResult<void>> {
   try {
     await deleteDataComponent(tenantId, projectId, dataComponentId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/data-components`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/components`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/components/${dataComponentId}`);
     return {
       success: true,
     };

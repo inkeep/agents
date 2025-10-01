@@ -198,29 +198,29 @@ export function AgentNodeEditor({
       </div>
       <Separator />
       <ComponentSelector
-        label="Data components"
+        label="Components"
         componentLookup={dataComponentLookup}
         selectedComponents={selectedDataComponents}
         onSelectionChange={(newSelection) => {
           updatePath('dataComponents', newSelection);
         }}
-        emptyStateMessage="No data components found."
-        emptyStateActionText="Create data component"
-        emptyStateActionHref={`/${tenantId}/projects/${projectId}/data-components/new`}
-        placeholder="Select data components..."
+        emptyStateMessage="No components found."
+        emptyStateActionText="Create component"
+        emptyStateActionHref={`/${tenantId}/projects/${projectId}/components/new`}
+        placeholder="Select components..."
       />
 
       <ComponentSelector
-        label="Artifact components"
+        label="Artifacts"
         componentLookup={artifactComponentLookup}
         selectedComponents={selectedArtifactComponents}
         onSelectionChange={(newSelection) => {
           updatePath('artifactComponents', newSelection);
         }}
-        emptyStateMessage="No artifact components found."
-        emptyStateActionText="Create artifact component"
-        emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifact-components/new`}
-        placeholder="Select artifact components..."
+        emptyStateMessage="No artifacts found."
+        emptyStateActionText="Create artifact"
+        emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
+        placeholder="Select artifacts..."
       />
     </div>
   );

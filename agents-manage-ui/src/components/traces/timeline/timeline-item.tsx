@@ -21,6 +21,7 @@ import {
   type ActivityKind,
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
+import { Badge } from '@/components/ui/badge';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -72,6 +73,7 @@ interface TimelineItemProps {
   activity: ActivityItem;
   isLast: boolean;
   onSelect: () => void;
+  isSelected?: boolean;
   isAiMessageCollapsed?: boolean;
   onToggleAiMessageCollapse?: (activityId: string) => void;
 }
@@ -80,6 +82,7 @@ export function TimelineItem({
   activity,
   isLast,
   onSelect,
+  isSelected = false,
   isAiMessageCollapsed = false,
   onToggleAiMessageCollapse,
 }: TimelineItemProps) {
@@ -99,13 +102,17 @@ export function TimelineItem({
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
   return (
-    <div className="flex flex-col text-muted-foreground relative text-xs">
+    <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
-        <div className="mr-4 pt-[1px]">
+        <div className="mr-2 py-2">
           <Icon className={`w-4 h-4 ${className}`} />
         </div>
 
-        <div className="space-y-1.5">
+        <div
+          className={`space-y-1.5 px-3 py-2 w-full transition-all duration-200 rounded-lg ${
+            isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
+          }`}
+        >
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -368,6 +375,13 @@ export function TimelineItem({
               </CodeBubble>
             )}
 
+          {/* agent name for AI generation */}
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
+            <div className="mb-1">
+              <Badge variant="code">{activity.agentName}</Badge>
+            </div>
+          )}
+
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"
             dateTime={isoDateTime}
@@ -378,7 +392,7 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && <div className="absolute top-6 left-[7px] border-l border-border h-full" />}
+      {!isLast && <div className="absolute top-8 left-[7px] border-l border-border h-full" />}
     </div>
   );
 }

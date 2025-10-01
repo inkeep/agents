@@ -1,5 +1,23 @@
 # @inkeep/agents-core
 
+## 0.10.2
+
+## 0.10.1
+
+### Patch Changes
+
+- 974992c: context fetching span and ui trace improvements
+
+## 0.10.0
+
+### Minor Changes
+
+- d7fdb5c: Update oauth login and callback urls
+
+### Patch Changes
+
+- 7801b2c: improve credential store use for cloud deployments
+
 ## 0.9.0
 
 ### Minor Changes
