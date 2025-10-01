@@ -1,5 +1,14 @@
 # @inkeep/agents-cli
 
+## 0.12.1
+
+### Patch Changes
+
+- 2c255ba: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- Updated dependencies [2c255ba]
+  - @inkeep/agents-manage-ui@0.12.1
+  - @inkeep/agents-core@0.12.1
+
 ## 0.12.0
 
 ### Patch Changes
