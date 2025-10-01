@@ -389,8 +389,8 @@ importers:
         specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/cxkit-react-oss':
-        specifier: 0.5.105
-        version: 0.5.105(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.107
+        version: 0.5.107(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
@@ -752,8 +752,8 @@ importers:
   agents-ui:
     dependencies:
       '@inkeep/cxkit-react-oss':
-        specifier: 0.5.105
-        version: 0.5.105(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.107
+        version: 0.5.107(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       lucide-react:
         specifier: ^0.539.0
         version: 0.539.0(react@19.1.1)
@@ -2090,8 +2090,8 @@ packages:
       react: '>=17.0.0'
       react-dom: '>=17.0.0'
 
-  '@inkeep/cxkit-react-oss@0.5.105':
-    resolution: {integrity: sha512-NsvSmpdVdiHi/ihWnwXzl604ITGP7RYJhKekJ7vLs+g/BAo9sYJphjZIlu55TS75rEe4oqnwI4s56AcxTLYnRg==}
+  '@inkeep/cxkit-react-oss@0.5.107':
+    resolution: {integrity: sha512-FdDxn6F98JtBOE0G8SsZmMJ+lr+koIvLfopaSosoUWTBg74dmSh28hAXObfToRVH+v4gYvbexRYejeasABX0jg==}
 
   '@inkeep/cxkit-react@0.5.98':
     resolution: {integrity: sha512-vGm8V/zINlxls4G6QO9N0DTUwv6j0Sp9if7HC+4D/0EL6SfkzAu87vszTgtbRssdPyqh/pa2E6OaXpfCSwIzew==}
@@ -10721,7 +10721,7 @@ snapshots:
       - supports-color
       - zod
 
-  '@inkeep/cxkit-react-oss@0.5.105(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@inkeep/cxkit-react-oss@0.5.107(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.11)
       '@ai-sdk/react': 2.0.5(react@19.1.1)(zod@4.1.11)

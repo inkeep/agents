@@ -121,7 +121,7 @@ export function ExpandableJsonEditor({
             value={value || ''}
             onChange={onChange}
             placeholder={placeholder}
-            className={`font-mono text-sm max-h-96 ${error ? 'mb-6' : ''}`}
+            className={`font-mono bg-background text-sm max-h-96 ${error ? 'mb-6' : ''}`}
           />
           {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
         </>

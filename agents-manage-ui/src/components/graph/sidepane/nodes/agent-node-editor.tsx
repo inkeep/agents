@@ -129,7 +129,7 @@ export function AgentNodeEditor({
           <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
         )}
       </div>
-
+      <Separator />
       <ModelSection
         models={selectedNode.data.models}
         updatePath={updateModelPath}
