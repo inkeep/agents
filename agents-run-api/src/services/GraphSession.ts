@@ -1236,6 +1236,9 @@ Make it specific and relevant.`;
                 'llm.model': this.statusUpdateState?.summarizerModel?.model,
                 'llm.operation': 'generate_object',
                 'artifact.id': artifactData.artifactId,
+                'artifact.type': artifactData.artifactType,
+                'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
+                'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
                 'prompt.length': prompt.length,
               },
             },
@@ -1263,6 +1266,12 @@ Make it specific and relevant.`;
                   });
 
                   generationSpan.setAttributes({
+                    'artifact.id': artifactData.artifactId,
+                    'artifact.type': artifactData.artifactType,
+                    'artifact.name': result.object.name,
+                    'artifact.description': result.object.description,
+                    'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
+                    'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
                     'generation.name_length': result.object.name.length,
                     'generation.description_length': result.object.description.length,
                     'generation.attempts': attempt,
