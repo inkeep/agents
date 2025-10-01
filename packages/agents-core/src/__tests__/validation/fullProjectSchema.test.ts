@@ -6,6 +6,12 @@ describe('FullProjectDefinitionSchema', () => {
     id: 'test-project',
     name: 'Test Project',
     description: 'A test project for validation',
+    models: {
+      base: {
+        model: 'claude-sonnet-4',
+        providerOptions: {},
+      },
+    },
     stopWhen: {
       transferCountIs: 10,
       stepCountIs: 50,
@@ -55,6 +61,12 @@ describe('FullProjectDefinitionSchema', () => {
       id: 'minimal-project',
       name: 'Minimal Project',
       description: '',
+      models: {
+        base: {
+          model: 'claude-sonnet-4',
+          providerOptions: {},
+        },
+      },
       graphs: {},
       tools: {},
     };
@@ -63,7 +75,7 @@ describe('FullProjectDefinitionSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should require id, name, graphs, and tools fields', () => {
+  it('should require id, name, models, graphs, and tools fields', () => {
     const invalidProject = {
       description: 'Missing required fields',
     };
@@ -75,6 +87,7 @@ describe('FullProjectDefinitionSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({ path: ['id'] }),
           expect.objectContaining({ path: ['name'] }),
+          expect.objectContaining({ path: ['models'] }),
           expect.objectContaining({ path: ['graphs'] }),
           expect.objectContaining({ path: ['tools'] }),
         ])
@@ -125,6 +138,12 @@ describe('FullProjectDefinitionSchema', () => {
       id: 'test-project',
       name: 'Test Project',
       description: 'A test project',
+      models: {
+        base: {
+          model: 'claude-sonnet-4',
+          providerOptions: {},
+        },
+      },
       graphs: {},
       tools: {},
       // credentialReferences omitted

@@ -37,10 +37,10 @@ export const defaultAnthropicModelConfigurations = {
     model: 'anthropic/claude-sonnet-4-20250514',
   },
   structuredOutput: {
-    model: 'anthropic/claude-3-5-haiku-20241022',
+    model: 'anthropic/claude-sonnet-4-20250514',
   },
   summarizer: {
-    model: 'anthropic/claude-3-5-haiku-20241022',
+    model: 'anthropic/claude-sonnet-4-20250514',
   },
 };
 

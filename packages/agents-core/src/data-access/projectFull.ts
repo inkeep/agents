@@ -976,11 +976,18 @@ export const getFullProject =
         await Promise.all(graphPromises);
       }
 
+      // Ensure project has required models configuration
+      if (!project.models) {
+        throw new Error(
+          `Project ${project.id} is missing required models configuration. Please update the project to include a base model.`
+        );
+      }
+
       const fullProjectDefinition: FullProjectDefinition = {
         id: project.id,
         name: project.name,
         description: project.description,
-        models: project.models || undefined,
+        models: project.models,
         stopWhen: project.stopWhen || undefined,
         graphs,
         tools: projectTools,
