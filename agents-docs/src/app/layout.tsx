@@ -1,5 +1,4 @@
 import '@/app/global.css';
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
@@ -8,7 +7,7 @@ import { InkeepScript } from '@/components/inkeep/inkeep-script';
 import { Navbar } from '@/components/navbar';
 import { AppSidebar } from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { source } from '@/lib/source';
+import { cn } from '@/lib/utils';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,21 +26,20 @@ export default function Layout({ children }: { children: ReactNode }) {
           <InkeepScript />
           <RootProvider theme={{ enabled: false }}>
             <SidebarProvider>
-              <DocsLayout
-                tree={source.pageTree}
-                sidebar={{
-                  component: <AppSidebar />,
-                }}
-                nav={{
-                  component: <Navbar />,
-                }}
-                containerProps={{
-                  className:
-                    'flex flex-1 flex-row pe-(--fd-layout-offset) max-w-fd-container relative top-[calc(var(--fd-nav-height)+1rem)] px-4 ms-auto! me-auto!',
-                }}
+              <Navbar />
+              <main
+                id="nd-docs-layout"
+                className={cn(
+                  'flex flex-1 flex-col pt-(--fd-nav-height) transition-[padding] fd-default-layout',
+                  'mx-(--fd-layout-offset)',
+                  'md:[&_#nd-page_article]:pt-12 xl:[--fd-toc-width:286px] xl:[&_#nd-page_article]:px-8',
+                  'md:[--fd-sidebar-width:268px] lg:[--fd-sidebar-width:286px]',
+                  'flex flex-1 flex-row pe-(--fd-layout-offset) max-w-fd-container relative top-[calc(var(--fd-nav-height)+1rem)] px-4 ms-auto! me-auto!',
+                )}
               >
+                <AppSidebar />
                 {children}
-              </DocsLayout>
+              </main>
             </SidebarProvider>
           </RootProvider>
         </ThemeProvider>
