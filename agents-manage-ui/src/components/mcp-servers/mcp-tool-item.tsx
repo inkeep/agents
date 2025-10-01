@@ -1,6 +1,6 @@
 'use client';
 
-import { Lock, LockOpen, MoreVertical, Trash2 } from 'lucide-react';
+import { MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -23,7 +23,8 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import { deleteToolAction } from '@/lib/actions/tools';
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
+
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Badge } from '../ui/badge';
 import { CardTitle } from '../ui/card';
@@ -136,7 +137,7 @@ export function MCPToolItem({
       <ItemCardHeader>
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-md">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <MCPToolImage
                 imageUrl={tool.imageUrl}
                 name={tool.name}
@@ -163,21 +164,15 @@ export function MCPToolItem({
             {(tool.status === 'unhealthy' || tool.status === 'unknown') && (
               <Badge variant="error">{tool.status}</Badge>
             )}
-            {tool.status === 'needs_auth' ? (
+
+            {tool.status === 'healthy' && <Badge variant="success">{tool.status}</Badge>}
+
+            {tool.status === 'needs_auth' && (
               <div className="flex items-center gap-2">
                 <Badge variant="warning">Needs Login</Badge>
               </div>
-            ) : tool.credentialReferenceId ? (
-              <Badge variant="success">
-                <Lock className="w-3 h-3 mr-1" />
-                Secured
-              </Badge>
-            ) : (
-              <Badge variant="warning">
-                <LockOpen className="w-3 h-3 mr-1" />
-                Unsecured
-              </Badge>
             )}
+
             <Badge variant="code" className="uppercase bg-transparent">
               {activeTools?.length ?? 0} Active tool
               {activeTools?.length !== 1 ? 's' : ''}

@@ -53,7 +53,10 @@ export function MCPToolImage({
 
   // Handle regular URLs with Next.js Image component for optimization
   return (
-    <div className={cn('relative', className)} style={{ width: size, height: size }}>
+    <div
+      className={cn('relative flex items-center justify-center', className)}
+      style={{ width: size, height: size }}
+    >
       {imageLoading && provider && (
         <ProviderIcon provider={provider} size={size} className="absolute inset-0" />
       )}

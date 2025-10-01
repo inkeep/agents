@@ -5,11 +5,9 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import type { MCPTool } from '@/lib/types/tools';
-
 import { cn } from '@/lib/utils';
-import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
@@ -53,7 +51,14 @@ export function ViewMCPServerDetails({
   tenantId: string;
   projectId: string;
 }) {
-  const { INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
+  const { handleOAuthLogin } = useOAuthLogin({
+    tenantId,
+    projectId,
+    onSuccess: () => {
+      window.location.reload();
+    },
+  });
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -97,50 +102,6 @@ export function ViewMCPServerDetails({
     className?: string;
   }) => {
     return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
-  };
-
-  // Handle OAuth login for MCP tools that need authentication
-  const handleOAuthLogin = (toolId: string) => {
-    try {
-      // Get the OAuth URL and open in popup window
-      const oauthUrl = getOAuthLoginUrl({
-        INKEEP_AGENTS_MANAGE_API_URL,
-        tenantId,
-        projectId,
-        id: toolId,
-      });
-      const popup = window.open(
-        oauthUrl,
-        'oauth-popup',
-        'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes'
-      );
-
-      // Listen for OAuth success message from popup
-      const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'oauth-success' && event.data.toolId === toolId) {
-          // Clean up listener
-          window.removeEventListener('message', handleMessage);
-          // Refresh the page to show updated tool status
-          window.location.reload();
-        }
-      };
-
-      if (popup) {
-        window.addEventListener('message', handleMessage);
-
-        // Fallback: Monitor popup for closure
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            window.removeEventListener('message', handleMessage);
-            // Only refresh if we didn't already get the success message
-            window.location.reload();
-          }
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('OAuth login failed:', error);
-    }
   };
 
   let provider: string | undefined;
@@ -195,14 +156,6 @@ export function ViewMCPServerDetails({
             </ItemValue>
           </div>
         </div>
-        {tool.imageUrl && (
-          <div className="space-y-2">
-            <ItemLabel>Image URL</ItemLabel>
-            <ItemValue>
-              {tool.imageUrl.startsWith('data:image/') ? 'Base64 encoded image' : tool.imageUrl}
-            </ItemValue>
-          </div>
-        )}
 
         <div className="space-y-2">
           <ItemLabel>Status</ItemLabel>

@@ -1,4 +1,4 @@
-import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
+import { MCPServerSelection } from '@/components/mcp-servers/selection/mcp-server-selection';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 
 async function NewMCPServerPage({
@@ -14,11 +14,7 @@ async function NewMCPServerPage({
     console.error('Failed to load credentials:', error);
   }
 
-  return (
-    <div className="max-w-2xl mx-auto py-4">
-      <MCPServerForm credentials={credentials} tenantId={tenantId} projectId={projectId} />
-    </div>
-  );
+  return <MCPServerSelection credentials={credentials} tenantId={tenantId} projectId={projectId} />;
 }
 
 export default NewMCPServerPage;
