@@ -16,8 +16,12 @@ export function ExpandableTextArea({
   label,
   isRequired = false,
   ...props
-}: { label: string; isRequired?: boolean } & React.ComponentProps<typeof PromptEditor>) {
+}: {
+  label: string;
+  isRequired?: boolean;
+} & React.ComponentProps<typeof PromptEditor>) {
   const codemirrorRef = useRef<RefValue<typeof props.ref>>(null!);
+  const variablesText = 'Add variables';
   return (
     <ExpandableField
       name={props.id || 'expandable-textarea'}
@@ -38,13 +42,13 @@ export function ExpandableTextArea({
                 }}
               >
                 <Braces className="h-4 w-4 text-muted-foreground" />
-                <span className="sr-only">Add variables &#123;</span>
+                <span className="sr-only">{variablesText}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              Add variables{' '}
+              {variablesText}{' '}
               <span className="font-mono bg-foreground text-background rounded py-0.5 px-1 ms-1">
-                &#123;
+                &#123;&thinsp;&#125;
               </span>
             </TooltipContent>
           </Tooltip>
