@@ -23,6 +23,7 @@ import {
   tasks,
   tools,
 } from '../db/schema';
+import { convertZodToJsonSchema } from '../utils/schemaUtils';
 import {
   CredentialStoreType,
   MCPServerType,
@@ -64,6 +65,77 @@ export const resourceIdSchema = z
   .openapi({
     description: 'Resource identifier',
     example: 'resource_789',
+  });
+
+// Schema validation utilities for component props
+function isZodSchema(value: unknown): value is z.ZodTypeAny {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    '_def' in value &&
+    typeof (value as any)._def === 'object' &&
+    'typeName' in (value as any)._def
+  );
+}
+
+function isJsonSchema(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const schema = value as Record<string, unknown>;
+  
+  // Basic JSON Schema structure validation
+  // Must have at least one of these properties to be considered a JSON Schema
+  const requiredProperties = ['type', 'properties', 'items', 'enum', 'const', 'oneOf', 'anyOf', 'allOf'];
+  const hasRequiredProperty = requiredProperties.some(prop => prop in schema);
+  
+  if (!hasRequiredProperty) {
+    return false;
+  }
+
+  // Validate type field if present
+  if ('type' in schema) {
+    const validTypes = ['null', 'boolean', 'object', 'array', 'number', 'string'];
+    if (typeof schema.type === 'string' && !validTypes.includes(schema.type)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function validateSchemaField(value: unknown): boolean {
+  // Check if it's a Zod schema
+  if (isZodSchema(value)) {
+    try {
+      // Validate by attempting to convert to JSON schema
+      convertZodToJsonSchema(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Check if it's a JSON schema
+  return isJsonSchema(value);
+}
+
+// Zod schema for validating component schema fields
+const componentSchemaValidator = z
+  .custom<z.ZodTypeAny | Record<string, unknown>>(
+    validateSchemaField,
+    {
+      message: 'Must be a valid JSON Schema or Zod schema'
+    }
+  )
+  .transform((value): Record<string, unknown> => {
+    // If it's a Zod schema, convert it to JSON schema
+    if (isZodSchema(value)) {
+      return convertZodToJsonSchema(value);
+    }
+    // If it's already a JSON schema, return as is
+    return value as Record<string, unknown>;
   });
 
 export const ModelSettingsSchema = z.object({
@@ -333,7 +405,9 @@ export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
 export const DataComponentApiSelectSchema = createApiSchema(DataComponentSelectSchema);
-export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema);
+export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema).extend({
+  props: componentSchemaValidator,
+});
 export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentUpdateSchema);
 
 // === Agent Data Component Schemas ===
@@ -368,6 +442,9 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
   projectId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  summaryProps: componentSchemaValidator,
+  fullProps: componentSchemaValidator,
 });
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
