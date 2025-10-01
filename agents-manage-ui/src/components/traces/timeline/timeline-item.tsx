@@ -104,6 +104,12 @@ export function TimelineItem({
   const formattedDateTime = formatDateTime(activity.timestamp);
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
+  // Determine text color based on status
+  const textColorClass =
+    activity.status === 'error'
+      ? 'text-red-500 hover:text-red-700'
+        : 'text-foreground hover:text-primary';
+
   return (
     <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
@@ -120,14 +126,14 @@ export function TimelineItem({
             <button
               type="button"
               onClick={onSelect}
-              className="flex items-center gap-1 group cursor-pointer hover:text-primary transition-colors text-foreground duration-200"
+              className={`flex items-center gap-1 group cursor-pointer transition-colors duration-200 ${textColorClass}`}
               title="Click to view details"
             >
               <span className="font-medium">
                 <Streamdown>{activity.description}</Streamdown>
               </span>
               <ArrowUpRight
-                className="h-4 w-4 text-muted-foreground group-hover:text-primary"
+                className={`h-4 w-4 transition-colors ${activity.status === 'error' ? 'text-red-700 group-hover:text-red-800' : 'text-muted-foreground group-hover:text-primary'}`}
                 aria-hidden="true"
               />
             </button>
