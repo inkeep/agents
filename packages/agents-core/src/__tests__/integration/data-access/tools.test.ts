@@ -25,6 +25,12 @@ const createProjectData = ({ suffix = '' }: { suffix?: string } = {}) => {
     id: `test-project-${suffix}-${timestamp}-${randomId}`,
     name: `Test Project ${suffix}`,
     description: `Test project ${suffix} for tools integration tests`,
+    models: {
+      base: {
+        model: 'claude-sonnet-4',
+        providerOptions: {},
+      },
+    },
   };
 };
 
