@@ -1,5 +1,11 @@
 # @inkeep/agents-run-api
 
+## 0.11.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.11.2
+
 ## 0.11.1
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.11.2
+
+### Patch Changes
+
+- 42cf60c: Show 4 tools on node by default
+  - @inkeep/agents-manage-api@0.11.2
+  - @inkeep/agents-run-api@0.11.2
+  - @inkeep/agents-core@0.11.2
+
 ## 0.11.1
 
 ### Patch Changes
