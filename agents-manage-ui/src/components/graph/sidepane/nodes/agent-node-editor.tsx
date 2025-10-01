@@ -1,8 +1,6 @@
 import type { Node } from '@xyflow/react';
-import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { CollapsibleInfoCard } from '@/components/ui/info-card';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -23,6 +21,29 @@ import { ComponentSelector } from './component-selector/component-selector';
 import { ExpandableTextArea } from './expandable-text-area';
 import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
+
+const ExecutionLimitInheritanceInfo = () => {
+  return (
+    <ul className="space-y-1.5 list-disc list-outside pl-4">
+      <li>
+        <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
+        execution limit)
+      </li>
+      <li>
+        <span className="font-medium">Explicit settings</span> always take precedence over inherited
+        values
+      </li>
+      <li>
+        <span className="font-medium">Agent scope</span>: This limit applies only to this specific
+        agent's execution steps
+      </li>
+      <li>
+        <span className="font-medium">Independent from transfers</span>: Steps are counted per
+        agent, transfers are counted per conversation
+      </li>
+    </ul>
+  );
+};
 
 interface AgentNodeEditorProps {
   selectedNode: Node<AgentNodeData>;
@@ -142,6 +163,12 @@ export function AgentNodeEditor({
         <SectionHeader
           title="Execution limits"
           description="Configure agent-level execution limits for steps within this agent."
+          titleTooltip={
+            <div>
+              <p>How execution limit inheritance works:</p>
+              <ExecutionLimitInheritanceInfo />
+            </div>
+          }
         />
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -175,26 +202,6 @@ export function AgentNodeEditor({
             Maximum number of execution steps for this agent (defaults to 50 if not set)
           </p>
         </div>
-        <CollapsibleInfoCard title="How execution limit inheritance works:" Icon={Info}>
-          <ul className="space-y-1.5 list-disc list-outside pl-4">
-            <li>
-              <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
-              execution limit)
-            </li>
-            <li>
-              <span className="font-medium">Explicit settings</span> always take precedence over
-              inherited values
-            </li>
-            <li>
-              <span className="font-medium">Agent scope</span>: This limit applies only to this
-              specific agent's execution steps
-            </li>
-            <li>
-              <span className="font-medium">Independent from transfers</span>: Steps are counted per
-              agent, transfers are counted per conversation
-            </li>
-          </ul>
-        </CollapsibleInfoCard>
       </div>
       <Separator />
       <ComponentSelector
