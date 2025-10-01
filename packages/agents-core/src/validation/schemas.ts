@@ -443,8 +443,8 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
   createdAt: true,
   updatedAt: true,
 }).extend({
-  summaryProps: componentSchemaValidator,
-  fullProps: componentSchemaValidator,
+  summaryProps: componentSchemaValidator.optional(),
+  fullProps: componentSchemaValidator.optional(),
 });
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
