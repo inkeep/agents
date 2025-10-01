@@ -5,12 +5,14 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
 } from '@inkeep/agents-core';
+import { getAgentById } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import { getFormattedConversationHistory } from '../data/conversations';
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getStreamHelper } from '../utils/stream-registry';
@@ -99,6 +101,7 @@ export interface ArtifactSavedData {
   tenantId?: string;
   projectId?: string;
   contextId?: string;
+  agentId?: string;
   metadata?: Record<string, any>;
   summaryProps?: Record<string, any>;
   fullProps?: Record<string, any>;
@@ -287,7 +290,9 @@ export class GraphSession {
       // Fire and forget - process artifact completely asynchronously without any blocking
       setImmediate(() => {
         // No await, no spans at trigger level - truly fire and forget
-        this.processArtifact(data as ArtifactSavedData)
+        // Include agentId from the event in the artifact data
+        const artifactDataWithAgent = { ...(data as ArtifactSavedData), agentId };
+        this.processArtifact(artifactDataWithAgent)
           .then(() => {
             // Remove from pending on success
             this.pendingArtifacts.delete(artifactId);
@@ -1209,27 +1214,78 @@ Make it specific and relevant.`;
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              throw new Error(
-                'Either summarizer or base model is required for artifact name generation. Please configure models at the project level.'
-              );
+              // Try to get agent model configuration if statusUpdateState is not available
+              if (artifactData.agentId && artifactData.tenantId && artifactData.projectId) {
+                try {
+                  const agentData = await getAgentById(dbClient)({
+                    scopes: {
+                      tenantId: artifactData.tenantId,
+                      projectId: artifactData.projectId,
+                      graphId: this.graphId || '',
+                    },
+                    agentId: artifactData.agentId,
+                  });
+                  
+                  if (agentData && 'models' in agentData && agentData.models?.base?.model) {
+                    modelToUse = agentData.models.base;
+                    logger.info(
+                      {
+                        sessionId: this.sessionId,
+                        artifactId: artifactData.artifactId,
+                        agentId: artifactData.agentId,
+                        model: modelToUse.model,
+                      },
+                      'Using agent model configuration for artifact name generation'
+                    );
+                  }
+                } catch (error) {
+                  logger.warn(
+                    { 
+                      sessionId: this.sessionId, 
+                      artifactId: artifactData.artifactId,
+                      agentId: artifactData.agentId,
+                      error: error instanceof Error ? error.message : 'Unknown error'
+                    },
+                    'Failed to get agent model configuration'
+                  );
+                }
+              }
+              
+              if (!modelToUse?.model?.trim()) {
+                logger.warn(
+                  {
+                    sessionId: this.sessionId,
+                    artifactId: artifactData.artifactId,
+                  },
+                  'No model configuration available for artifact name generation, will use fallback names'
+                );
+                // Skip name generation and use fallback
+                modelToUse = undefined;
+              }
+            } else {
+              modelToUse = this.statusUpdateState.baseModel;
             }
-            modelToUse = this.statusUpdateState.baseModel;
           }
 
+          let result: { name: string; description: string };
           if (!modelToUse) {
-            throw new Error('No model configuration available');
-          }
-          const model = ModelFactory.createModel(modelToUse);
+            // Use fallback name/description
+            result = {
+              name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
+              description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolCallId || 'tool results'}`,
+            };
+          } else {
+            const model = ModelFactory.createModel(modelToUse);
 
-          const schema = z.object({
-            name: z.string().describe('Concise, descriptive name for the artifact'),
-            description: z
-              .string()
-              .describe("Brief description of the artifact's relevance to the user's question"),
-          });
+            const schema = z.object({
+              name: z.string().describe('Concise, descriptive name for the artifact'),
+              description: z
+                .string()
+                .describe("Brief description of the artifact's relevance to the user's question"),
+            });
 
-          // Add nested span for LLM generation with retry logic
-          const { object: result } = await tracer.startActiveSpan(
+            // Add nested span for LLM generation with retry logic
+            const { object } = await tracer.startActiveSpan(
             'graph_session.generate_artifact_metadata',
             {
               attributes: {
@@ -1308,6 +1364,8 @@ Make it specific and relevant.`;
               );
             }
           );
+          result = object;
+          }
 
           // Now save the artifact using ArtifactService
           const artifactService = new ArtifactService({

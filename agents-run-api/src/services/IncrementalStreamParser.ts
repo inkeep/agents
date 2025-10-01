@@ -27,6 +27,7 @@ export class IncrementalStreamParser {
   private lastStreamedComponents = new Map<string, any>();
   private componentSnapshots = new Map<string, string>();
   private artifactMap?: Map<string, any>;
+  private agentId?: string;
 
   // Memory management constants
   private static readonly MAX_SNAPSHOT_SIZE = 100; // Max number of snapshots to keep
@@ -48,6 +49,8 @@ export class IncrementalStreamParser {
   ) {
     this.streamHelper = streamHelper;
     this.contextId = contextId;
+    // Store agentId for passing to parsing methods
+    this.agentId = artifactParserOptions?.agentId;
 
     // Get the shared ArtifactParser from GraphSession
     if (artifactParserOptions?.streamRequestId) {
@@ -238,7 +241,7 @@ export class IncrementalStreamParser {
     // Stream as regular data component (Text components handled elsewhere)
     const parts = await this.artifactParser.parseObject({
       dataComponents: [component],
-    });
+    }, this.artifactMap, this.agentId);
 
     // Ensure parts is an array before iterating
     if (!Array.isArray(parts)) {
@@ -345,7 +348,7 @@ export class IncrementalStreamParser {
         if (!hasBeenStreamed && this.isComponentComplete(component) && component.name !== 'Text') {
           const parts = await this.artifactParser.parseObject({
             dataComponents: [component],
-          });
+          }, this.artifactMap, this.agentId);
 
           for (const part of parts) {
             await this.streamPart(part);
@@ -426,7 +429,7 @@ export class IncrementalStreamParser {
       if (safeEnd > 0) {
         const safeText = workingBuffer.slice(0, safeEnd);
         // Parse the safe portion for complete artifacts
-        const parts = await this.artifactParser.parseText(safeText, this.artifactMap);
+        const parts = await this.artifactParser.parseText(safeText, this.artifactMap, this.agentId);
         completeParts.push(...parts);
 
         return {
@@ -443,7 +446,7 @@ export class IncrementalStreamParser {
     }
 
     // No incomplete artifacts, parse the entire buffer
-    const parts = await this.artifactParser.parseText(workingBuffer, this.artifactMap);
+    const parts = await this.artifactParser.parseText(workingBuffer, this.artifactMap, this.agentId);
 
     // Check last part - if it's text, it might be incomplete
     if (parts.length > 0 && parts[parts.length - 1].kind === 'text') {

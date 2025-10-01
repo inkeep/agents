@@ -107,7 +107,8 @@ export class ArtifactService {
   /**
    * Create artifact from tool result and request data
    */
-  async createArtifact(request: ArtifactCreateRequest): Promise<ArtifactData | null> {
+  async createArtifact(request: ArtifactCreateRequest, agentId?: string): Promise<ArtifactData | null> {
+    
     if (!this.context.sessionId) {
       logger.warn({ request }, 'No session ID available for artifact creation');
       return null;
@@ -194,7 +195,7 @@ export class ArtifactService {
       };
 
       // Persist artifact to database using cleaned data
-      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData);
+      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, agentId);
 
       // Cache artifact for immediate access using cleaned data
       await this.cacheArtifact(
@@ -296,13 +297,18 @@ export class ArtifactService {
   private async persistArtifact(
     request: ArtifactCreateRequest,
     summaryData: Record<string, any>,
-    fullData: Record<string, any>
+    fullData: Record<string, any>,
+    agentId?: string
   ): Promise<void> {
-    if (this.context.streamRequestId && this.context.agentId && this.context.taskId) {
+    // Use passed agentId or fall back to context agentId
+    const effectiveAgentId = agentId || this.context.agentId;
+    
+    
+    if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await graphSessionManager.recordEvent(
         this.context.streamRequestId,
         'artifact_saved',
-        this.context.agentId,
+        effectiveAgentId,
         {
           artifactId: request.artifactId,
           taskId: this.context.taskId,
@@ -310,6 +316,7 @@ export class ArtifactService {
           artifactType: request.type,
           summaryProps: summaryData,
           fullProps: fullData,
+          agentId: effectiveAgentId,
           metadata: {
             toolCallId: request.toolCallId,
             baseSelector: request.baseSelector,
@@ -324,6 +331,15 @@ export class ArtifactService {
           pendingGeneration: true,
         }
       );
+    } else {
+      logger.warn({
+        artifactId: request.artifactId,
+        hasStreamRequestId: !!this.context.streamRequestId,
+        hasAgentId: !!effectiveAgentId,
+        hasTaskId: !!this.context.taskId,
+        passedAgentId: agentId,
+        contextAgentId: this.context.agentId,
+      }, 'Skipping artifact_saved event - missing required context');
     }
   }
 

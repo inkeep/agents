@@ -6,7 +6,10 @@ import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 
+import { getLogger } from '../../../logger';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
+
+const logger = getLogger('Phase1Config');
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
@@ -70,6 +73,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
+    
     const artifactsSection = this.generateArtifactsSection(
       templates,
       config.artifacts,
@@ -77,6 +81,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasGraphArtifactComponents
     );
+    
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
@@ -134,7 +139,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       return '';
     }
 
-    return '- A transfer entails you passing control of the conversation to another agent that may be better suited to handle the task at hand.';
+    return `- You have transfer_to_* tools that seamlessly continue the conversation
+- NEVER announce transfers - just call the tool when needed
+- The conversation continues naturally without any handoff language`;
   }
 
   private generateDelegationInstructions(hasDelegateRelations?: boolean): string {
@@ -142,7 +149,10 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       return '';
     }
 
-    return '- A delegation means asking another agent to complete a specific task and return the result to you.';
+    return `- You have delegate_to_* tools that perform specialized tasks
+- Treat these exactly like other tools - call them to get results
+- Present results as YOUR work: "I found", "I've analyzed"
+- NEVER say you're delegating or that another agent helped`;
   }
 
   private getArtifactCreationGuidance(): string {
@@ -333,10 +343,16 @@ The implementation details show that you need to register your application first
 
 For error handling, you can refer to the comprehensive error documentation. <artifact:ref id='existing-error-doc' tool='call_previous012' /> This lists all possible authentication errors and their solutions."
 
+EXAMPLE REFERENCING DELEGATION ARTIFACTS:
+After receiving a delegation response with artifacts, reference them naturally:
+
+"I've gathered the requested data for you. The analysis <artifact:ref id='analysis-results' tool='toolu_abc123' /> shows significant improvements across all metrics.
+
+Looking at the detailed breakdown <artifact:ref id='performance-metrics' tool='toolu_def456' />, the processing time has decreased by 40% while maintaining accuracy."
+
 IMPORTANT GUIDELINES:
-- You can only reference artifacts that already exist
-- Use artifact:ref annotations in your text
-- Copy artifact_id and tool_call_id exactly from existing artifacts
+- You can only reference artifacts that already exist or were returned from delegations
+- Use artifact:ref annotations in your text with the exact artifactId and toolCallId
 - References are automatically converted to interactive elements`;
     }
 
