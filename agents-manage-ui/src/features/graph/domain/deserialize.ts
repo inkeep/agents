@@ -43,7 +43,7 @@ function calculateNodeHeight(node: Node): number {
       height += 30;
     }
 
-    // Add height for data components section
+    // Add height for components section
     if (data.dataComponents && data.dataComponents.length > 0) {
       // Title + items section
       height += 60 + Math.ceil(data.dataComponents.length / 3) * 30;

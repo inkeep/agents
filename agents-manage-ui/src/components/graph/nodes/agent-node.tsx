@@ -108,7 +108,7 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
             </Badge>
           ) : null}
           {dataComponentNames?.length > 0 && (
-            <ListSection title="Data components" items={dataComponentNames} Icon={Component} />
+            <ListSection title="Components" items={dataComponentNames} Icon={Component} />
           )}
           {artifactComponentNames?.length > 0 && (
             <ListSection title="Artifacts" items={artifactComponentNames} Icon={Library} />

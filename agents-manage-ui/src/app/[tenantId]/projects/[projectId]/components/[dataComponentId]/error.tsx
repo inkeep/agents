@@ -11,8 +11,8 @@ export default function DataComponentError() {
   return (
     <FullPageError
       description="Something went wrong."
-      link={`/${tenantId}/projects/${projectId}/data-components`}
-      linkText="Go back to data components"
+      link={`/${tenantId}/projects/${projectId}/components`}
+      linkText="Go back to components"
     />
   );
 }

@@ -12,10 +12,10 @@ async function NewDataComponentPage({ params }: NewDataComponentPageProps) {
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Data components',
-          href: `/${tenantId}/projects/${projectId}/data-components`,
+          label: 'Components',
+          href: `/${tenantId}/projects/${projectId}/components`,
         },
-        { label: 'New Data Component' },
+        { label: 'New Component' },
       ]}
     >
       <MainContent>

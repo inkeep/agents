@@ -230,7 +230,7 @@ function MetadataEditor() {
                 }
               />
               <p className="text-xs text-muted-foreground">
-                Model for structured outputs and data components (defaults to base model)
+                Model for structured outputs and components (defaults to base model)
               </p>
             </div>
             <div className="relative space-y-2">

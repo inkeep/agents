@@ -98,7 +98,7 @@ export function ModelSection({
               }
             />
             <p className="text-xs text-muted-foreground">
-              The model used for structured output and data components (defaults to base model)
+              The model used for structured output and components (defaults to base model)
             </p>
           </div>
           <div className="relative space-y-2">

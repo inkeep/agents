@@ -175,7 +175,7 @@ function getFieldDisplayName(field: string): string {
     maxTokens: 'Max Tokens',
     systemPrompt: 'System Prompt',
     tools: 'Tools',
-    dataComponents: 'Data Components',
+    dataComponents: 'Components',
     artifactComponents: 'Artifacts',
     relationships: 'Relationships',
     transferTargetToSource: 'Transfer (Target to Source)',
