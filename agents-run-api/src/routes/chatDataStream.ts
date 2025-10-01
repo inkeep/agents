@@ -208,6 +208,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       execute: async ({ writer }) => {
         const streamHelper = createVercelStreamHelper(writer);
         try {
+          // Check for debug mode header
+          const debugModeHeader = c.req.header('x-debug-mode');
+          const debugMode = debugModeHeader === 'true';
+
           const executionHandler = new ExecutionHandler();
 
           const result = await executionHandler.execute({
@@ -217,6 +221,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             initialAgentId: agentId,
             requestId: `chatds-${Date.now()}`,
             sseHelper: streamHelper,
+            debugMode,
           });
 
           if (!result.success) {

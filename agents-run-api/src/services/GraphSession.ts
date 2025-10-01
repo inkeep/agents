@@ -145,6 +145,7 @@ export class GraphSession {
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
   private artifactParser?: any; // Session-scoped ArtifactParser instance
+  private isDebugMode: boolean = false; // Whether to send data operations
 
   constructor(
     public readonly sessionId: string,
@@ -187,6 +188,80 @@ export class GraphSession {
         taskId: `task_${contextId}-${messageId}`,
         streamRequestId: sessionId,
       });
+    }
+  }
+
+  /**
+   * Enable debug mode to send data operations
+   */
+  enableDebugMode(): void {
+    this.isDebugMode = true;
+    logger.info({ sessionId: this.sessionId }, '🔍 DEBUG: Debug mode enabled for GraphSession');
+  }
+
+  /**
+   * Send data operation to stream when in debug mode
+   */
+  private async sendDataOperation(event: GraphSessionEvent): Promise<void> {
+    try {
+      const streamHelper = getStreamHelper(this.sessionId);
+      if (streamHelper) {
+        // Format like SummaryEvent with type, label, details
+        const formattedOperation = {
+          type: event.eventType,
+          label: this.generateEventLabel(event),
+          details: {
+            timestamp: event.timestamp,
+            agentId: event.agentId,
+            data: event.data,
+          },
+        };
+
+        await streamHelper.writeOperation(formattedOperation);
+      }
+    } catch (error) {
+      logger.error(
+        {
+          sessionId: this.sessionId,
+          eventType: event.eventType,
+          error: error instanceof Error ? error.message : error,
+        },
+        '❌ DEBUG: Failed to send data operation'
+      );
+    }
+  }
+
+  /**
+   * Generate human-readable labels for events
+   */
+  private generateEventLabel(event: GraphSessionEvent): string {
+    switch (event.eventType) {
+      case 'agent_generate':
+        return `Agent ${event.agentId} generating response`;
+      case 'agent_reasoning':
+        return `Agent ${event.agentId} reasoning through request`;
+      case 'tool_execution': {
+        const toolData = event.data as any;
+        return `Tool execution: ${toolData.toolName || 'unknown'}`;
+      }
+      case 'transfer': {
+        const transferData = event.data as any;
+        return `Agent transfer: ${transferData.fromAgent} → ${transferData.targetAgent}`;
+      }
+      case 'delegation_sent': {
+        const delegationData = event.data as any;
+        return `Task delegated: ${delegationData.fromAgent} → ${delegationData.targetAgent}`;
+      }
+      case 'delegation_returned': {
+        const returnData = event.data as any;
+        return `Task completed: ${returnData.targetAgent} → ${returnData.fromAgent}`;
+      }
+      case 'artifact_saved': {
+        const artifactData = event.data as any;
+        return `Artifact saved: ${artifactData.artifactType || 'unknown type'}`;
+      }
+      default:
+        return `${event.eventType} event`;
     }
   }
 
@@ -245,6 +320,16 @@ export class GraphSession {
    */
   recordEvent(eventType: GraphSessionEventType, agentId: string, data: EventData): void {
     // Don't record events or trigger updates if session has ended
+
+    if (this.isDebugMode) {
+      this.sendDataOperation({
+        timestamp: Date.now(),
+        eventType,
+        agentId,
+        data,
+      });
+    }
+
     if (this.isEnded) {
       logger.debug(
         {
@@ -1244,7 +1329,7 @@ Make it specific and relevant.`;
                       sessionId: this.sessionId, 
                       artifactId: artifactData.artifactId,
                       agentId: artifactData.agentId,
-                      error: error instanceof Error ? error.message : 'Unknown error'
+                      error: error instanceof Error ? error.message : 'Unknown error',
                     },
                     'Failed to get agent model configuration'
                   );
@@ -1554,6 +1639,24 @@ export class GraphSessionManager {
           availableSessions: Array.from(this.sessions.keys()),
         },
         'Session not found for status updates initialization'
+      );
+    }
+  }
+
+  /**
+   * Enable debug mode for a session to send data operations
+   */
+  enableDebugMode(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.enableDebugMode();
+    } else {
+      logger.error(
+        {
+          sessionId,
+          availableSessions: Array.from(this.sessions.keys()),
+        },
+        'Session not found for debug mode enablement'
       );
     }
   }
