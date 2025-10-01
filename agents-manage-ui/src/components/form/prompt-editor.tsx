@@ -67,14 +67,13 @@ const templateVariableTheme = EditorView.theme({
   },
 });
 
-const RESERVED_KEYS = ['$env.', '$time', '$date', '$timestamp', '$now'];
+const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
 // Create linter for template variable validation
 function createTemplateVariableLinter(suggestions: string[]) {
   return linter((view) => {
     const diagnostics: Diagnostic[] = [];
     const validVariables = new Set(suggestions);
-    const reservedKeys = new Set(RESERVED_KEYS.filter((name) => name !== '$env.'));
     const regex = /\{\{([^}]+)}}/g;
 
     for (let i = 0; i < view.state.doc.lines; i++) {
@@ -89,7 +88,7 @@ function createTemplateVariableLinter(suggestions: string[]) {
         // Check if variable is valid (in suggestions) or reserved
         const isValid =
           validVariables.has(variableName) ||
-          reservedKeys.has(variableName) ||
+          RESERVED_KEYS.has(variableName) ||
           variableName.startsWith('$env.');
 
         if (!isValid) {
@@ -124,7 +123,7 @@ function createContextAutocompleteSource(suggestions: string[]): CompletionSourc
     return {
       from: pos - match[1].length,
       to: pos,
-      options: [...RESERVED_KEYS, ...filteredSuggestions].map((suggestion) => ({
+      options: ['$env.', ...RESERVED_KEYS, ...filteredSuggestions].map((suggestion) => ({
         label: suggestion,
         apply: `{${suggestion}${nextChar === '}' ? '}' : '}}'}`, // insert `}}` at the end if next character is not `}`
       })),
