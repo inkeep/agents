@@ -176,7 +176,7 @@ function getFieldDisplayName(field: string): string {
     systemPrompt: 'System Prompt',
     tools: 'Tools',
     dataComponents: 'Data Components',
-    artifactComponents: 'Artifact Components',
+    artifactComponents: 'Artifacts',
     relationships: 'Relationships',
     transferTargetToSource: 'Transfer (Target to Source)',
     transferSourceToTarget: 'Transfer (Source to Target)',

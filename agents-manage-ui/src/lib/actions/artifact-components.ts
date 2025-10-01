@@ -16,7 +16,7 @@ import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
 /**
- * Fetch all data components
+ * Fetch all artifacts
  */
 export async function fetchArtifactComponentsAction(
   tenantId: string,
@@ -46,7 +46,7 @@ export async function fetchArtifactComponentsAction(
 }
 
 /**
- * Create a new artifact component
+ * Create a new artifact
  */
 export async function createArtifactComponentAction(
   tenantId: string,
@@ -55,7 +55,7 @@ export async function createArtifactComponentAction(
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
     const result = await createArtifactComponent(tenantId, projectId, data);
-    revalidatePath(`/${tenantId}/projects/${projectId}/artifact-components`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
     return {
       success: true,
       data: result,
@@ -78,7 +78,7 @@ export async function createArtifactComponentAction(
 }
 
 /**
- * Update an existing artifact component
+ * Update an existing artifact
  */
 export async function updateArtifactComponentAction(
   tenantId: string,
@@ -87,8 +87,8 @@ export async function updateArtifactComponentAction(
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
     const result = await updateArtifactComponent(tenantId, projectId, data);
-    revalidatePath(`/${tenantId}/projects/${projectId}/artifact-components`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/artifact-components/${data.id}`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/artifacts/${data.id}`);
     return {
       success: true,
       data: result,
@@ -111,7 +111,7 @@ export async function updateArtifactComponentAction(
 }
 
 /**
- * Delete an artifact component
+ * Delete an artifact
  */
 export async function deleteArtifactComponentAction(
   tenantId: string,
@@ -120,8 +120,8 @@ export async function deleteArtifactComponentAction(
 ): Promise<ActionResult<void>> {
   try {
     await deleteArtifactComponent(tenantId, projectId, artifactComponentId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/artifact-components`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/artifacts/${artifactComponentId}`);
     return {
       success: true,
     };

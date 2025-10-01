@@ -29,7 +29,7 @@ export function DeleteArtifactComponentConfirmation({
       const result = await deleteArtifactComponentAction(tenantId, projectId, artifactComponentId);
       if (result.success) {
         setIsOpen(false);
-        toast.success('Artifact component deleted.');
+        toast.success('Artifact deleted.');
       } else {
         toast.error(result.error);
       }
@@ -40,7 +40,7 @@ export function DeleteArtifactComponentConfirmation({
 
   return (
     <DeleteConfirmation
-      itemName={artifactComponentName || 'this artifact component'}
+      itemName={artifactComponentName || 'this artifact'}
       isSubmitting={isSubmitting}
       onDelete={handleDelete}
     />

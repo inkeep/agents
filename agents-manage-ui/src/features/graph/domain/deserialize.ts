@@ -49,7 +49,7 @@ function calculateNodeHeight(node: Node): number {
       height += 60 + Math.ceil(data.dataComponents.length / 3) * 30;
     }
 
-    // Add height for artifact components section
+    // Add height for artifacts section
     if (data.artifactComponents && data.artifactComponents.length > 0) {
       // Title + items section
       height += 60 + Math.ceil(data.artifactComponents.length / 3) * 30;

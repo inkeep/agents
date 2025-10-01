@@ -75,8 +75,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: Component,
           },
           {
-            title: 'Artifact Components',
-            url: `/${tenantId}/projects/${projectId}/artifact-components`,
+            title: 'Artifacts',
+            url: `/${tenantId}/projects/${projectId}/artifacts`,
             icon: Library,
           },
           {
