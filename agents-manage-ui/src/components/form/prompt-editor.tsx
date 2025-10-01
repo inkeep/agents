@@ -66,26 +66,28 @@ const templateVariableTheme = EditorView.theme({
   },
 });
 
+const RESERVED_KEYS = ['$env.', '$time', '$date', '$timestamp', '$now'];
+
 // Create autocomplete source for context variables
 function createContextAutocompleteSource(suggestions: string[]): CompletionSource {
   return (context) => {
     const { state, pos } = context;
     const line = state.doc.lineAt(pos);
-    const textBefore = line.text.slice(0, pos - line.from);
-
+    const to = pos - line.from;
+    const textBefore = line.text.slice(0, to);
     // Check if we're after a { character
     const match = textBefore.match(/\{([^}]*)$/);
     if (!match) return null;
 
     const query = match[1].toLowerCase();
     const filteredSuggestions = suggestions.filter((s) => s.toLowerCase().includes(query));
-
+    const nextChar = line.text[to];
     return {
       from: pos - match[1].length,
       to: pos,
-      options: filteredSuggestions.map((suggestion) => ({
+      options: [...RESERVED_KEYS, ...filteredSuggestions].map((suggestion) => ({
         label: suggestion,
-        apply: `{${suggestion}}`,
+        apply: `{${suggestion}${nextChar === '}' ? '}' : '}}'}`, // insert }} at the end if next character is not }
       })),
     };
   };
@@ -159,6 +161,10 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
     return [
       autocompletion({
         override: [createContextAutocompleteSource(suggestions)],
+        compareCompletions(_a, _b) {
+          // Disable sorting
+          return -1;
+        },
       }),
       templateVariablePlugin,
       templateVariableTheme,
