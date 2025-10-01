@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.12.0
+
+### Patch Changes
+
+- ca84651: show prebuilt servers when creating new mcp server
+- Updated dependencies [c4284a3]
+- Updated dependencies [2b16ae6]
+  - @inkeep/agents-run-api@0.12.0
+  - @inkeep/agents-core@0.12.0
+  - @inkeep/agents-manage-api@0.12.0
+
 ## 0.11.3
 
 ### Patch Changes

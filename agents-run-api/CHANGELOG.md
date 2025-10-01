@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.12.0
+
+### Patch Changes
+
+- c4284a3: fixed artifact saving bug
+- Updated dependencies [2b16ae6]
+  - @inkeep/agents-core@0.12.0
+
 ## 0.11.3
 
 ### Patch Changes

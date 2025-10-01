@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.12.0
+
+### Minor Changes
+
+- 2b16ae6: add missing export
+
 ## 0.11.3
 
 ## 0.11.2
