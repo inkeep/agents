@@ -67,8 +67,6 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 ### Step 1: Clone the optional services repository
 
-Clone the Inkeep optional local development services repository:
-
 ```bash
 git clone https://github.com/inkeep/agents-optional-local-dev
 cd agents-optional-local-dev
@@ -85,7 +83,7 @@ SIGNOZ_ADMIN_PASSWORD="adminADMIN#1"
 
 ### Step 3: Start SigNoz Services
 
-Run the following command to start SigNoz and related services:
+Inside the `agents-optional-local-dev` repository, run the following command:
 
 ```bash
 docker-compose --profile signoz up -d
@@ -101,7 +99,7 @@ When you visit `http://localhost:3080`, you can log in using the credentials you
 
 ### Step 4: Configure Environment Variables
 
-In your **root project directory** (of my-agent-directory), update your `.env` file:
+In your **root project directory** (not inside the `agents-optional-local-dev` repository), update your `.env` file:
 
 ```bash
 # SigNoz Configuration
