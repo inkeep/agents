@@ -201,7 +201,6 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
     const requestContextSchema = tryJsonParse(contextConfig.requestContextSchema);
     const suggestions = getContextSuggestions({
-      // @ts-expect-error -- todo: improve type
       requestContextSchema,
       // @ts-expect-error -- todo: improve type
       contextVariables,
