@@ -35,6 +35,7 @@
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
     "prepare": "husky",
+    "changeset:quick": "./scripts/quick-changeset.sh",
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
