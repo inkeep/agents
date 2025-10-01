@@ -587,6 +587,14 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_RESPONSE_TEXT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TOOL_CALLS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_PROMPT_MESSAGES,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -815,6 +823,9 @@ export async function GET(
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
       aiStreamTextOperationId?: string;
+      // ai generation specifics
+      aiResponseToolCalls?: string;
+      aiPromptMessages?: string;
       // save_tool_result specifics
       saveResultSaved?: boolean;
       saveArtifactType?: string;
@@ -1046,6 +1057,11 @@ export async function GET(
     for (const span of aiGenerationSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      
+      // Extract ai.response.toolCalls and ai.prompt.messages for ai.generateText.doGenerate spans
+      const aiResponseToolCalls = getString(span, SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, '');
+      const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
+      
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.AI_GENERATION,
@@ -1062,6 +1078,8 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
+        aiResponseToolCalls: aiResponseToolCalls || undefined,
+        aiPromptMessages: aiPromptMessages || undefined,
       });
     }
 

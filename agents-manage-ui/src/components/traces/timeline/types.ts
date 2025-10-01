@@ -76,6 +76,8 @@ export interface ActivityItem {
   toolCallArgs?: string;
   toolCallResult?: string;
   aiResponseText?: string;
+  aiResponseToolCalls?: string;
+  aiPromptMessages?: string;
 }
 
 export interface ToolCall {

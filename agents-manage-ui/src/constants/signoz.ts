@@ -36,6 +36,8 @@ export const SPAN_KEYS = {
   AI_RESPONSE_CONTENT: 'ai.response.content',
   AI_RESPONSE_TEXT: 'ai.response.text',
   AI_RESPONSE_MODEL: 'ai.response.model',
+  AI_RESPONSE_TOOL_CALLS: 'ai.response.toolCalls',
+  AI_PROMPT_MESSAGES: 'ai.prompt.messages',
   AI_MODEL_PROVIDER: 'ai.model.provider',
   AI_TELEMETRY_FUNCTION_ID: 'ai.telemetry.functionId',
   AI_MODEL_ID: 'ai.model.id',
