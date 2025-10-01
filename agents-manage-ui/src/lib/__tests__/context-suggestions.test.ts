@@ -38,14 +38,14 @@ describe('getContextSuggestions', () => {
   it('should return all expected suggestions', () => {
     const suggestions = getContextSuggestions(mockContextSchema);
     expect(suggestions).toStrictEqual([
-      'requestContext.user_id',
       'requestContext.auth_token',
       'requestContext.org_name',
+      'requestContext.user_id',
       'userName',
       'userName.name',
       'userName.preferences',
-      'userName.preferences.theme',
       'userName.preferences.language',
+      'userName.preferences.theme',
     ]);
   });
 
@@ -146,10 +146,10 @@ describe('getContextSuggestions', () => {
       });
       expect(suggestions).toStrictEqual([
         'opt',
-        'opt.required',
-        'opt.optional',
         'opt.nullable',
         'opt.nullish',
+        'opt.optional',
+        'opt.required',
       ]);
     });
 
@@ -168,7 +168,7 @@ describe('getContextSuggestions', () => {
           },
         },
       });
-      expect(suggestions).toStrictEqual(['entity', 'entity.type', 'entity.name', 'entity.role']);
+      expect(suggestions).toStrictEqual(['entity', 'entity.name', 'entity.role', 'entity.type']);
     });
     //
     // it('handles multiple context variables', () => {

@@ -29,6 +29,17 @@ function extractPathsFromSchema(
 
   const paths: string[] = [];
 
+  // Handle union types (anyOf, oneOf, allOf)
+  if (schema.anyOf || schema.oneOf || schema.allOf) {
+    const unionSchemas = schema.anyOf || schema.oneOf || schema.allOf;
+    for (const unionSchema of unionSchemas) {
+      if (unionSchema && typeof unionSchema === 'object') {
+        paths.push(...extractPathsFromSchema(unionSchema, prefix, maxDepth, currentDepth));
+      }
+    }
+    return paths;
+  }
+
   if (schema.type === 'object' && schema.properties) {
     for (const [key, value] of Object.entries(schema.properties)) {
       const newPath = prefix ? `${prefix}.${key}` : key;
@@ -86,5 +97,6 @@ export function getContextSuggestions(contextSchema: ContextSchema): string[] {
     }
   }
 
-  return suggestions;
+  // Remove duplicates and sort
+  return [...new Set(suggestions)].sort();
 }
