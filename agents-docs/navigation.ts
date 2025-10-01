@@ -8,7 +8,7 @@ export default {
           icon: 'LuZap',
           pages: [
             'quick-start/start-development',
-            'quick-start/observability',
+            'quick-start/traces',
             'quick-start/credentials',
           ],
         },
