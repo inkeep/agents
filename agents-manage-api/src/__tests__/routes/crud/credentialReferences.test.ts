@@ -165,7 +165,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     it('should list credentials with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('credentials-list-empty');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -189,7 +189,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create test credentials
       await createMultipleCredentials({ tenantId, count: 3 });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -223,7 +223,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createMultipleCredentials({ tenantId, count: 5 });
 
       // Test first page
-      const page1 = await app.request(
+      const page1 = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=2`
       );
       expect(page1.status).toBe(200);
@@ -237,7 +237,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       });
 
       // Test second page
-      const page2 = await app.request(
+      const page2 = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=2&limit=2`
       );
       expect(page2.status).toBe(200);
@@ -251,7 +251,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       });
 
       // Test third page
-      const page3 = await app.request(
+      const page3 = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=3&limit=2`
       );
       expect(page3.status).toBe(200);
@@ -262,7 +262,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     it('should enforce maximum limit', async () => {
       const tenantId = createTestTenantId('credentials-max-limit');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -282,12 +282,12 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createMultipleCredentials({ tenantId: tenantB, count: 3 });
 
       // Check tenant A sees only its credentials
-      const resA = await app.request(`/tenants/${tenantA}/projects/${projectId}/credentials`);
+      const resA = await makeRequest(`/tenants/${tenantA}/projects/${projectId}/credentials`);
       const bodyA = await resA.json();
       expect(bodyA.data).toHaveLength(2);
 
       // Check tenant B sees only its credentials
-      const resB = await app.request(`/tenants/${tenantB}/projects/${projectId}/credentials`);
+      const resB = await makeRequest(`/tenants/${tenantB}/projects/${projectId}/credentials`);
       const bodyB = await resB.json();
       expect(bodyB.data).toHaveLength(3);
     });
@@ -299,7 +299,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { credentialData, credentialId } = await createTestCredential({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(res.status).toBe(200);
@@ -321,7 +321,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = 'non-existent-credential-id';
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${nonExistentId}`
       );
       expect(res.status).toBe(404);
@@ -341,7 +341,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { credentialId } = await createTestCredential({ tenantId: tenantA });
 
       // Try to access from tenant B
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantB}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(res.status).toBe(404);
@@ -534,13 +534,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { credentialId } = await createTestCredential({ tenantId });
 
       // Verify credential exists
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(getRes.status).toBe(200);
 
       // Delete the credential
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'DELETE',
@@ -549,7 +549,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify credential is deleted
-      const getAfterDeleteRes = await app.request(
+      const getAfterDeleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
@@ -560,7 +560,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = 'non-existent-credential-id';
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${nonExistentId}`,
         {
           method: 'DELETE',
@@ -579,7 +579,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { credentialId } = await createTestCredential({ tenantId: tenantA });
 
       // Try to delete from tenant B
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantB}/projects/${projectId}/credentials/${credentialId}`,
         {
           method: 'DELETE',
@@ -589,7 +589,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(404);
 
       // Verify credential still exists for tenant A
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantA}/projects/${projectId}/credentials/${credentialId}`
       );
       expect(getRes.status).toBe(200);
@@ -623,7 +623,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
 
       // Delete the credential
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -632,7 +632,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify it's deleted
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getRes.status).toBe(404);
@@ -644,7 +644,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('credentials-malformed-json');
       await ensureTestProject(tenantId, projectId);
 
-      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -763,13 +763,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(createRes.status).toBe(201);
       const { data: credential } = await createRes.json();
       // Verify credential exists in database
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getRes.status).toBe(200);
 
       // Delete the credential
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -782,7 +782,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(globalThis.mockMemoryStore.delete).toHaveBeenCalledTimes(1);
 
       // Verify credential is deleted from database
-      const getAfterDeleteRes = await app.request(
+      const getAfterDeleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
@@ -814,7 +814,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
 
       // Delete should still succeed even if external store fails
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -823,7 +823,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify credential is still deleted from database despite external store failure
-      const getAfterDeleteRes = await app.request(
+      const getAfterDeleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
@@ -854,7 +854,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
 
       // Delete should succeed even if credential store is not available
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -863,7 +863,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // Verify credential is deleted from database
-      const getAfterDeleteRes = await app.request(
+      const getAfterDeleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);
@@ -897,7 +897,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
 
       // Delete the credential
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -940,7 +940,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
 
       // Delete the credential
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -978,7 +978,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const { data: credential } = await createRes.json();
 
       // Delete the credential
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`,
         {
           method: 'DELETE',
@@ -991,7 +991,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       expect(globalThis.callOrder).toContain('external-store-delete:order-test-key');
 
       // Verify credential is deleted from database (happens after external store)
-      const getAfterDeleteRes = await app.request(
+      const getAfterDeleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials/${credential.id}`
       );
       expect(getAfterDeleteRes.status).toBe(404);

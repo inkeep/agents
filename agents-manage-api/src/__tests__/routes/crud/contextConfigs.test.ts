@@ -90,7 +90,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should list context configs with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('context-configs-list-empty');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -112,7 +112,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { contextConfigData } = await createTestContextConfig({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=1&limit=10`
       );
 
@@ -140,7 +140,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const _contextConfigs = await createMultipleContextConfigs({ tenantId, count: 5 });
 
       // Test first page with limit 2
-      const page1Res = await app.request(
+      const page1Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
@@ -155,7 +155,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       });
 
       // Test second page
-      const page2Res = await app.request(
+      const page2Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
@@ -170,7 +170,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       });
 
       // Test third page (partial)
-      const page3Res = await app.request(
+      const page3Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
@@ -199,7 +199,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await createMultipleContextConfigs({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=5&limit=2`
       );
       expect(res.status).toBe(200);
@@ -220,7 +220,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const _contextConfigs = await createMultipleContextConfigs({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -244,7 +244,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         tenantId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs/${contextConfigId}`
       );
       expect(res.status).toBe(200);
@@ -264,7 +264,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should return 404 when context config not found', async () => {
       const tenantId = createTestTenantId('context-configs-get-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs/non-existent-id`
       );
       expect(res.status).toBe(404);
@@ -285,7 +285,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
       const tenantId = createTestTenantId('context-configs-problem-details-404');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs/non-existent-id`
       );
       expect(res.status).toBe(404);
@@ -546,7 +546,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { contextConfigId } = await createTestContextConfig({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs/${contextConfigId}`,
         {
           method: 'DELETE',
@@ -556,7 +556,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(204);
 
       // Verify the context config is deleted
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs/${contextConfigId}`
       );
       expect(getRes.status).toBe(404);
@@ -565,7 +565,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should return 404 when deleting non-existent context config', async () => {
       const tenantId = createTestTenantId('context-configs-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/context-configs/non-existent-id`,
         {
           method: 'DELETE',

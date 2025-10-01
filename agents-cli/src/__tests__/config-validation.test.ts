@@ -76,25 +76,17 @@ describe('Configuration Validation', () => {
           },
         });
 
-        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://localhost:9090';
-        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://localhost:9091';
-
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
         expect(config.tenantId).toBe('env-tenant');
         expect(config.agentsManageApiUrl).toBe('http://localhost:9090');
         expect(config.agentsRunApiUrl).toBe('http://localhost:9091');
-        expect(config.sources.agentsManageApiUrl).toBe(
-          'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
-        );
-        expect(config.sources.agentsRunApiUrl).toBe(
-          'environment variable (INKEEP_AGENTS_RUN_API_URL)'
-        );
+        // URLs come from config file, not environment variables (env vars are ignored for URLs)
+        expect(config.sources.agentsManageApiUrl).toContain('config file');
+        expect(config.sources.agentsRunApiUrl).toContain('config file');
       });
 
-      it('should allow command-line flags to override environment variables', async () => {
-        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://localhost:9090';
-        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://localhost:9091';
+      it('should allow command-line flags to override config file', async () => {
 
         const config = await validateConfiguration(
           'cli-tenant',
@@ -152,7 +144,7 @@ describe('Configuration Validation', () => {
         expect(config.sources.configFile).toBeUndefined();
       });
 
-      it('should correctly identify environment variable sources', async () => {
+      it('should correctly identify config file sources', async () => {
         // Mock existsSync to return true for config file
         const { existsSync } = await import('node:fs');
         (existsSync as any).mockImplementation((path: string) => {
@@ -168,21 +160,15 @@ describe('Configuration Validation', () => {
             agentsRunApiUrl: 'http://env-execution',
           },
         });
-
-        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://env-management';
-        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://env-execution';
 
         const config = await validateConfiguration(undefined, undefined, undefined, undefined);
 
-        expect(config.sources.agentsManageApiUrl).toBe(
-          'environment variable (INKEEP_AGENTS_MANAGE_API_URL)'
-        );
-        expect(config.sources.agentsRunApiUrl).toBe(
-          'environment variable (INKEEP_AGENTS_RUN_API_URL)'
-        );
+        // URLs come from config file (environment variables are ignored for URLs)
+        expect(config.sources.agentsManageApiUrl).toContain('config file');
+        expect(config.sources.agentsRunApiUrl).toContain('config file');
       });
 
-      it('should correctly identify mixed sources with env and flag', async () => {
+      it('should correctly identify mixed sources with config file and flag', async () => {
         // Mock existsSync to return true for config file
         const { existsSync } = await import('node:fs');
         (existsSync as any).mockImplementation((path: string) => {
@@ -198,9 +184,6 @@ describe('Configuration Validation', () => {
             agentsRunApiUrl: 'http://env-execution',
           },
         });
-
-        process.env.INKEEP_AGENTS_MANAGE_API_URL = 'http://env-management';
-        process.env.INKEEP_AGENTS_RUN_API_URL = 'http://env-execution';
 
         // Override only the management API URL with a flag
         const config = await validateConfiguration(
@@ -216,9 +199,8 @@ describe('Configuration Validation', () => {
         expect(config.sources.agentsManageApiUrl).toBe(
           'command-line flag (--agents-manage-api-url)'
         );
-        expect(config.sources.agentsRunApiUrl).toBe(
-          'environment variable (INKEEP_AGENTS_RUN_API_URL)'
-        );
+        // Run API URL comes from config file (not env vars)
+        expect(config.sources.agentsRunApiUrl).toContain('config file');
       });
     });
   });

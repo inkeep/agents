@@ -63,6 +63,7 @@ describe('ApiClient', () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: expect.any(String),
           },
         }
       );
@@ -158,6 +159,8 @@ describe('ApiClient', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            // Authorization header is added when bypass secret is configured
+            Authorization: expect.any(String),
           },
           body: JSON.stringify({
             ...graphDefinition,

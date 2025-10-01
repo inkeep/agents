@@ -68,7 +68,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should list data components with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('data-components-list-empty');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -90,7 +90,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { dataComponentData } = await createTestDataComponent({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -117,7 +117,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const _dataComponents = await createMultipleDataComponents({ tenantId, count: 5 });
 
       // Test first page with limit 2
-      const page1Res = await app.request(
+      const page1Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
@@ -132,7 +132,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       });
 
       // Test second page
-      const page2Res = await app.request(
+      const page2Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
@@ -147,7 +147,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       });
 
       // Test third page (partial)
-      const page3Res = await app.request(
+      const page3Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
@@ -176,7 +176,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=5&limit=2`
       );
       expect(res.status).toBe(200);
@@ -197,7 +197,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const _dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Test with limit 1 (each page should have exactly 1 item)
-      const page1Res = await app.request(
+      const page1Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=1`
       );
       expect(page1Res.status).toBe(200);
@@ -212,7 +212,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       });
 
       // Test middle page
-      const page2Res = await app.request(
+      const page2Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=2&limit=1`
       );
       expect(page2Res.status).toBe(200);
@@ -227,7 +227,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       });
 
       // Test last page
-      const page3Res = await app.request(
+      const page3Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=3&limit=1`
       );
       expect(page3Res.status).toBe(200);
@@ -248,7 +248,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const _dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -272,7 +272,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
         tenantId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
       );
       expect(res.status).toBe(200);
@@ -292,7 +292,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should return 404 when data component not found', async () => {
       const tenantId = createTestTenantId('data-components-get-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`
       );
       expect(res.status).toBe(404);
@@ -313,7 +313,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
       const tenantId = createTestTenantId('data-components-problem-details-404');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`
       );
       expect(res.status).toBe(404);
@@ -386,7 +386,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       });
 
       // Verify the data component can be fetched with the provided ID
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/${providedId}`
       );
       expect(getRes.status).toBe(200);
@@ -546,7 +546,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { dataComponentId } = await createTestDataComponent({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
         {
           method: 'DELETE',
@@ -556,7 +556,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(204);
 
       // Verify the data component is deleted
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
       );
       expect(getRes.status).toBe(404);
@@ -565,7 +565,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should return 404 when deleting non-existent data component', async () => {
       const tenantId = createTestTenantId('data-components-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {
           method: 'DELETE',
