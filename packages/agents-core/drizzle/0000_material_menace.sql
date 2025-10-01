@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `agent_artifact_components` (
+CREATE TABLE `agent_artifact_components` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `agent_artifact_components` (
 	FOREIGN KEY (`tenant_id`,`project_id`,`artifact_component_id`) REFERENCES `artifact_components`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `agent_data_components` (
+CREATE TABLE `agent_data_components` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `agent_data_components` (
 	FOREIGN KEY (`tenant_id`,`project_id`,`data_component_id`) REFERENCES `data_components`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `agent_graph` (
+CREATE TABLE `agent_graph` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `agent_graph` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `agent_relations` (
+CREATE TABLE `agent_relations` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS `agent_relations` (
 	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`) REFERENCES `agent_graph`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `agent_tool_relations` (
+CREATE TABLE `agent_tool_relations` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS `agent_tool_relations` (
 	FOREIGN KEY (`tenant_id`,`project_id`,`tool_id`) REFERENCES `tools`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `agents` (
+CREATE TABLE `agents` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -103,16 +103,15 @@ CREATE TABLE `api_keys` (
 	`expires_at` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	PRIMARY KEY(`tenant_id`, `project_id`, `graph_id`, `id`),
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`) REFERENCES `agent_graph`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `api_keys_public_id_unique` ON `api_keys` (`public_id`);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `api_keys_tenant_graph_idx` ON `api_keys` (`tenant_id`,`graph_id`);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `api_keys_prefix_idx` ON `api_keys` (`key_prefix`);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `api_keys_public_id_idx` ON `api_keys` (`public_id`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `artifact_components` (
+CREATE UNIQUE INDEX `api_keys_public_id_unique` ON `api_keys` (`public_id`);--> statement-breakpoint
+CREATE INDEX `api_keys_tenant_graph_idx` ON `api_keys` (`tenant_id`,`graph_id`);--> statement-breakpoint
+CREATE INDEX `api_keys_prefix_idx` ON `api_keys` (`key_prefix`);--> statement-breakpoint
+CREATE INDEX `api_keys_public_id_idx` ON `api_keys` (`public_id`);--> statement-breakpoint
+CREATE TABLE `artifact_components` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -126,7 +125,7 @@ CREATE TABLE IF NOT EXISTS `artifact_components` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `context_cache` (
+CREATE TABLE `context_cache` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -144,8 +143,8 @@ CREATE TABLE IF NOT EXISTS `context_cache` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `context_cache_lookup_idx` ON `context_cache` (`conversation_id`,`context_config_id`,`context_variable_key`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `context_configs` (
+CREATE INDEX `context_cache_lookup_idx` ON `context_cache` (`conversation_id`,`context_config_id`,`context_variable_key`);--> statement-breakpoint
+CREATE TABLE `context_configs` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -159,7 +158,7 @@ CREATE TABLE IF NOT EXISTS `context_configs` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `conversations` (
+CREATE TABLE `conversations` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -174,7 +173,7 @@ CREATE TABLE IF NOT EXISTS `conversations` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `credential_references` (
+CREATE TABLE `credential_references` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -187,7 +186,7 @@ CREATE TABLE IF NOT EXISTS `credential_references` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `data_components` (
+CREATE TABLE `data_components` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -200,7 +199,7 @@ CREATE TABLE IF NOT EXISTS `data_components` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `external_agents` (
+CREATE TABLE `external_agents` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -217,7 +216,7 @@ CREATE TABLE IF NOT EXISTS `external_agents` (
 	FOREIGN KEY (`tenant_id`,`project_id`,`credential_reference_id`) REFERENCES `credential_references`(`tenant_id`,`project_id`,`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `ledger_artifacts` (
+CREATE TABLE `ledger_artifacts` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -269,7 +268,7 @@ CREATE TABLE `messages` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `projects` (
+CREATE TABLE `projects` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`name` text NOT NULL,
@@ -281,7 +280,7 @@ CREATE TABLE IF NOT EXISTS `projects` (
 	PRIMARY KEY(`tenant_id`, `id`)
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `task_relations` (
+CREATE TABLE `task_relations` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -294,7 +293,7 @@ CREATE TABLE IF NOT EXISTS `task_relations` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `tasks` (
+CREATE TABLE `tasks` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,
@@ -309,7 +308,7 @@ CREATE TABLE IF NOT EXISTS `tasks` (
 	FOREIGN KEY (`tenant_id`,`project_id`,`graph_id`,`agent_id`) REFERENCES `agents`(`tenant_id`,`project_id`,`graph_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `tools` (
+CREATE TABLE `tools` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
 	`project_id` text NOT NULL,

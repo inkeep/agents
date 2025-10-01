@@ -5,6 +5,14 @@ import { ExecutionApiClient, ManagementApiClient } from '../api';
 const mockFetch = vi.fn();
 global.fetch = mockFetch as any;
 
+// Mock env module
+vi.mock('../env.js', () => ({
+  env: {
+    INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: 'test-secret',
+    INKEEP_AGENTS_RUN_API_BYPASS_SECRET: 'test-secret',
+  },
+}));
+
 // Mock config module
 vi.mock('../utils/config.js', () => ({
   getApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
