@@ -46,8 +46,8 @@ export function GenericInput<T extends FieldValues>({
           onChange={(e) => {
             const value = e.target.value;
             if (type === 'number') {
-              // For number inputs, convert empty string to undefined, otherwise parse as number
-              field.onChange(value === '' ? undefined : Number(value));
+              // For number inputs, convert empty string to null, otherwise parse as number
+              field.onChange(value === '' ? null : Number(value));
             } else {
               field.onChange(value);
             }

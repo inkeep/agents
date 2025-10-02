@@ -37,7 +37,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[] }>
         component: <Footer url={page.url} />,
       }}
       container={{
-        className: 'lg:pt-0! [&>#nd-toc]:!pt-0 [&>#nd-toc]:pb-4 h-full min-h-0',
+        className: 'lg:pt-0! [&>#nd-toc]:!pt-6 [&>#nd-toc]:pb-4 h-full min-h-0',
       }}
     >
       <div className="flex items-center justify-between">
