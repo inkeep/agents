@@ -17,6 +17,7 @@ import {
   CredentialStoreType,
   createCredentialReference,
   dbResultToMcpTool,
+  generateIdFromName,
   getCredentialReferenceWithTools,
   getToolById,
   type ServerConfig,
@@ -277,7 +278,7 @@ app.openapi(
         try {
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
-            id: mcpTool.name,
+            id: generateIdFromName(mcpTool.name),
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
             retrievalParams: {
@@ -293,7 +294,7 @@ app.openapi(
         const nangoStore = credentialStores.get('nango-default');
         await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
         newCredentialData = {
-          id: mcpTool.name,
+          id: generateIdFromName(mcpTool.name),
           type: CredentialStoreType.nango,
           credentialStoreId: 'nango-default',
           retrievalParams: {
