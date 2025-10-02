@@ -145,6 +145,7 @@ export class GraphSession {
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
   private artifactParser?: any; // Session-scoped ArtifactParser instance
+  private isDebugMode: boolean = false; // Whether to send data operations
 
   constructor(
     public readonly sessionId: string,
@@ -187,6 +188,80 @@ export class GraphSession {
         taskId: `task_${contextId}-${messageId}`,
         streamRequestId: sessionId,
       });
+    }
+  }
+
+  /**
+   * Enable debug mode to send data operations
+   */
+  enableDebugMode(): void {
+    this.isDebugMode = true;
+    logger.info({ sessionId: this.sessionId }, '🔍 DEBUG: Debug mode enabled for GraphSession');
+  }
+
+  /**
+   * Send data operation to stream when in debug mode
+   */
+  private async sendDataOperation(event: GraphSessionEvent): Promise<void> {
+    try {
+      const streamHelper = getStreamHelper(this.sessionId);
+      if (streamHelper) {
+        // Format like SummaryEvent with type, label, details
+        const formattedOperation = {
+          type: event.eventType,
+          label: this.generateEventLabel(event),
+          details: {
+            timestamp: event.timestamp,
+            agentId: event.agentId,
+            data: event.data,
+          },
+        };
+
+        await streamHelper.writeOperation(formattedOperation);
+      }
+    } catch (error) {
+      logger.error(
+        {
+          sessionId: this.sessionId,
+          eventType: event.eventType,
+          error: error instanceof Error ? error.message : error,
+        },
+        '❌ DEBUG: Failed to send data operation'
+      );
+    }
+  }
+
+  /**
+   * Generate human-readable labels for events
+   */
+  private generateEventLabel(event: GraphSessionEvent): string {
+    switch (event.eventType) {
+      case 'agent_generate':
+        return `Agent ${event.agentId} generating response`;
+      case 'agent_reasoning':
+        return `Agent ${event.agentId} reasoning through request`;
+      case 'tool_execution': {
+        const toolData = event.data as any;
+        return `Tool execution: ${toolData.toolName || 'unknown'}`;
+      }
+      case 'transfer': {
+        const transferData = event.data as any;
+        return `Agent transfer: ${transferData.fromAgent} → ${transferData.targetAgent}`;
+      }
+      case 'delegation_sent': {
+        const delegationData = event.data as any;
+        return `Task delegated: ${delegationData.fromAgent} → ${delegationData.targetAgent}`;
+      }
+      case 'delegation_returned': {
+        const returnData = event.data as any;
+        return `Task completed: ${returnData.targetAgent} → ${returnData.fromAgent}`;
+      }
+      case 'artifact_saved': {
+        const artifactData = event.data as any;
+        return `Artifact saved: ${artifactData.artifactType || 'unknown type'}`;
+      }
+      default:
+        return `${event.eventType} event`;
     }
   }
 
@@ -245,6 +320,16 @@ export class GraphSession {
    */
   recordEvent(eventType: GraphSessionEventType, agentId: string, data: EventData): void {
     // Don't record events or trigger updates if session has ended
+
+    if (this.isDebugMode) {
+      this.sendDataOperation({
+        timestamp: Date.now(),
+        eventType,
+        agentId,
+        data,
+      });
+    }
+
     if (this.isEnded) {
       logger.debug(
         {
@@ -1225,7 +1310,7 @@ Make it specific and relevant.`;
                     },
                     agentId: artifactData.agentId,
                   });
-                  
+
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
                     modelToUse = agentData.models.base;
                     logger.info(
@@ -1240,17 +1325,17 @@ Make it specific and relevant.`;
                   }
                 } catch (error) {
                   logger.warn(
-                    { 
-                      sessionId: this.sessionId, 
+                    {
+                      sessionId: this.sessionId,
                       artifactId: artifactData.artifactId,
                       agentId: artifactData.agentId,
-                      error: error instanceof Error ? error.message : 'Unknown error'
+                      error: error instanceof Error ? error.message : 'Unknown error',
                     },
                     'Failed to get agent model configuration'
                   );
                 }
               }
-              
+
               if (!modelToUse?.model?.trim()) {
                 logger.warn(
                   {
@@ -1286,85 +1371,85 @@ Make it specific and relevant.`;
 
             // Add nested span for LLM generation with retry logic
             const { object } = await tracer.startActiveSpan(
-            'graph_session.generate_artifact_metadata',
-            {
-              attributes: {
-                'llm.model': this.statusUpdateState?.summarizerModel?.model,
-                'llm.operation': 'generate_object',
-                'artifact.id': artifactData.artifactId,
-                'artifact.type': artifactData.artifactType,
-                'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
-                'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
-                'prompt.length': prompt.length,
+              'graph_session.generate_artifact_metadata',
+              {
+                attributes: {
+                  'llm.model': this.statusUpdateState?.summarizerModel?.model,
+                  'llm.operation': 'generate_object',
+                  'artifact.id': artifactData.artifactId,
+                  'artifact.type': artifactData.artifactType,
+                  'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
+                  'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
+                  'prompt.length': prompt.length,
+                },
               },
-            },
-            async (generationSpan) => {
-              const maxRetries = 3;
-              let lastError: Error | null = null;
+              async (generationSpan) => {
+                const maxRetries = 3;
+                let lastError: Error | null = null;
 
-              for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                  const result = await generateObject({
-                    model,
-                    prompt,
-                    schema,
-                    experimental_telemetry: {
-                      isEnabled: true,
-                      functionId: `artifact_processing_${artifactData.artifactId}`,
-                      recordInputs: true,
-                      recordOutputs: true,
-                      metadata: {
-                        operation: 'artifact_name_description_generation',
-                        sessionId: this.sessionId,
-                        attempt,
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                  try {
+                    const result = await generateObject({
+                      model,
+                      prompt,
+                      schema,
+                      experimental_telemetry: {
+                        isEnabled: true,
+                        functionId: `artifact_processing_${artifactData.artifactId}`,
+                        recordInputs: true,
+                        recordOutputs: true,
+                        metadata: {
+                          operation: 'artifact_name_description_generation',
+                          sessionId: this.sessionId,
+                          attempt,
+                        },
                       },
-                    },
-                  });
+                    });
 
-                  generationSpan.setAttributes({
-                    'artifact.id': artifactData.artifactId,
-                    'artifact.type': artifactData.artifactType,
-                    'artifact.name': result.object.name,
-                    'artifact.description': result.object.description,
-                    'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
-                    'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
-                    'generation.name_length': result.object.name.length,
-                    'generation.description_length': result.object.description.length,
-                    'generation.attempts': attempt,
-                  });
+                    generationSpan.setAttributes({
+                      'artifact.id': artifactData.artifactId,
+                      'artifact.type': artifactData.artifactType,
+                      'artifact.name': result.object.name,
+                      'artifact.description': result.object.description,
+                      'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
+                      'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
+                      'generation.name_length': result.object.name.length,
+                      'generation.description_length': result.object.description.length,
+                      'generation.attempts': attempt,
+                    });
 
-                  generationSpan.setStatus({ code: SpanStatusCode.OK });
-                  return result;
-                } catch (error) {
-                  lastError = error instanceof Error ? error : new Error(String(error));
+                    generationSpan.setStatus({ code: SpanStatusCode.OK });
+                    return result;
+                  } catch (error) {
+                    lastError = error instanceof Error ? error : new Error(String(error));
 
-                  logger.warn(
-                    {
-                      sessionId: this.sessionId,
-                      artifactId: artifactData.artifactId,
-                      attempt,
-                      maxRetries,
-                      error: lastError.message,
-                    },
-                    `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
-                  );
+                    logger.warn(
+                      {
+                        sessionId: this.sessionId,
+                        artifactId: artifactData.artifactId,
+                        attempt,
+                        maxRetries,
+                        error: lastError.message,
+                      },
+                      `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
+                    );
 
-                  // If this isn't the last attempt, wait before retrying
-                  if (attempt < maxRetries) {
-                    const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
-                    await new Promise((resolve) => setTimeout(resolve, backoffMs));
+                    // If this isn't the last attempt, wait before retrying
+                    if (attempt < maxRetries) {
+                      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
+                      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+                    }
                   }
                 }
-              }
 
-              // All retries failed
-              setSpanWithError(generationSpan, lastError);
-              throw new Error(
-                `Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`
-              );
-            }
-          );
-          result = object;
+                // All retries failed
+                setSpanWithError(generationSpan, lastError);
+                throw new Error(
+                  `Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`
+                );
+              }
+            );
+            result = object;
           }
 
           // Now save the artifact using ArtifactService
@@ -1554,6 +1639,24 @@ export class GraphSessionManager {
           availableSessions: Array.from(this.sessions.keys()),
         },
         'Session not found for status updates initialization'
+      );
+    }
+  }
+
+  /**
+   * Enable debug mode for a session to send data operations
+   */
+  enableDebugMode(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.enableDebugMode();
+    } else {
+      logger.error(
+        {
+          sessionId,
+          availableSessions: Array.from(this.sessions.keys()),
+        },
+        'Session not found for debug mode enablement'
       );
     }
   }
