@@ -41,7 +41,11 @@ export default defineConfig({
 });
 ```
 
-#### Flat Format (Legacy, Backward Compatible)
+#### Flat Format (Deprecated - Legacy Only)
+
+:::warning
+**Deprecated:** The flat configuration format is maintained for backward compatibility only. New projects should use the nested format above.
+:::
 
 ```typescript
 import { defineConfig } from '@inkeep/agents-cli/config';
@@ -50,9 +54,9 @@ export default defineConfig({
   // Required: Your tenant identifier
   tenantId: 'my-company',
 
-  // API endpoints (legacy format)
-  agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
+  // API endpoints (legacy format - DEPRECATED)
+  agentsManageApiUrl: 'http://localhost:3002', // ⚠️ Use agentsManageApi.url instead
+  agentsRunApiUrl: 'http://localhost:3003',     // ⚠️ Use agentsRunApi.url instead
 });
 ```
 
@@ -72,13 +76,13 @@ export default defineConfig({
 | `outputDirectory` | `string` | Output directory for generated files | - |
 | `manageUiUrl` | `string` | Optional Management UI URL | `'http://localhost:3000'` |
 
-#### Flat Format Options (Legacy)
+#### Flat Format Options (Deprecated - Legacy)
 
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
 | `tenantId` | `string` | **Required.** Unique identifier for your tenant | - |
-| `agentsManageApiUrl` | `string` | Management API endpoint | `'http://localhost:3002'` |
-| `agentsRunApiUrl` | `string` | Runtime API endpoint | `'http://localhost:3003'` |
+| `agentsManageApiUrl` | `string` | **⚠️ Deprecated.** Management API endpoint. Use `agentsManageApi.url` instead | `'http://localhost:3002'` |
+| `agentsRunApiUrl` | `string` | **⚠️ Deprecated.** Runtime API endpoint. Use `agentsRunApi.url` instead | `'http://localhost:3003'` |
 | `outputDirectory` | `string` | Output directory for generated files | - |
 | `manageUiUrl` | `string` | Optional Management UI URL | `'http://localhost:3000'` |
 

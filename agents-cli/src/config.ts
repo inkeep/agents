@@ -7,7 +7,13 @@ export interface ApiConfig {
 // Flat configuration format (legacy, for backward compatibility)
 export interface FlatInkeepConfig {
   tenantId: string;
+  /**
+   * @deprecated Use the nested `agentsManageApi.url` format instead
+   */
   agentsManageApiUrl: string;
+  /**
+   * @deprecated Use the nested `agentsRunApi.url` format instead
+   */
   agentsRunApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
