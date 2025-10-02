@@ -1,6 +1,6 @@
 ---
 title: Configuration Management
-description: Learn how to configure your Inkeep Agent projects with inkeep.config.ts and environment overrides
+description: Configure your Inkeep Agent workspace with inkeep.config.ts - workspace-level settings for all agents and CLI commands
 icon: "LuSettings"
 ---
 
@@ -12,7 +12,18 @@ Inkeep Agent projects use a hierarchical configuration system that combines file
 
 ### `inkeep.config.ts`
 
-The primary configuration file for your project. Supports both nested (recommended) and flat configuration formats:
+The **workspace-level** configuration file for your Inkeep project. This file defines settings that apply to your entire workspace, including:
+
+- **Tenant and project identification** for organizing your agents
+- **API endpoints** for the Management and Runtime APIs
+- **Authentication credentials** for secure API access
+- **Output directories** for generated files
+
+:::tip
+`inkeep.config.ts` is typically placed at the **root of your workspace** (not within individual packages or subdirectories). All CLI commands in the workspace will discover and use this configuration automatically.
+:::
+
+The configuration file supports both nested (recommended) and flat configuration formats:
 
 #### Nested Format (Recommended)
 
@@ -87,6 +98,30 @@ export default defineConfig({
 | `manageUiUrl` | `string` | Optional Management UI URL | `'http://localhost:3000'` |
 
 **Note:** API keys should be provided via the config file (using environment variables) rather than using legacy `INKEEP_AGENTS_*_BYPASS_SECRET` environment variables.
+
+## Workspace Structure
+
+The `inkeep.config.ts` file is a **workspace-level configuration** that applies to all agent definitions and CLI commands within your project. Here's a typical workspace structure:
+
+```
+my-agent-workspace/
+├── inkeep.config.ts          # Workspace configuration (shared)
+├── .env                       # Environment variables
+├── package.json
+├── agents/                    # Your agent definitions
+│   ├── qa-agent.graph.ts
+│   ├── support-agent.graph.ts
+│   └── router.graph.ts
+└── tools/                     # Custom tools (optional)
+    └── search-tool.ts
+```
+
+**Key points:**
+
+- **Single config per workspace**: One `inkeep.config.ts` at the workspace root
+- **Shared settings**: All agent files use the same tenant, API endpoints, and credentials
+- **CLI discovery**: Commands run from any subdirectory will find the root config
+- **Monorepo support**: In monorepos, place config at the root or use `--config` flag
 
 ## Config File Discovery
 

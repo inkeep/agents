@@ -59,18 +59,21 @@ describe('Init Command', () => {
       await initCommand();
 
       expect(existsSync).toHaveBeenCalledWith(expect.stringContaining('inkeep.config.ts'));
-      expect(writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('inkeep.config.ts'),
-        expect.stringContaining("tenantId: 'test-tenant-123'")
-      );
-      expect(writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('inkeep.config.ts'),
-        expect.stringContaining("agentsManageApi:")
-      );
-      expect(writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('inkeep.config.ts'),
-        expect.stringContaining("url: 'http://localhost:3002'")
-      );
+
+      // Get the actual content that was written
+      const writeCall = vi.mocked(writeFileSync).mock.calls[0];
+      const writtenContent = writeCall[1] as string;
+
+      // Verify all required parts are present
+      expect(writtenContent).toContain("tenantId: 'test-tenant-123'");
+      expect(writtenContent).toContain("agentsManageApi:");
+      expect(writtenContent).toContain("agentsRunApi:");
+      expect(writtenContent).toContain("url: 'http://localhost:3002'");
+
+      // Verify it's using nested format (not flat)
+      expect(writtenContent).not.toContain("agentsManageApiUrl:");
+      expect(writtenContent).not.toContain("agentsRunApiUrl:");
+
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.any(String), // The checkmark
         expect.stringContaining('Created')
