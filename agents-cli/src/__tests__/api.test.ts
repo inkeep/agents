@@ -7,11 +7,6 @@ global.fetch = mockFetch as any;
 
 // Mock config module
 vi.mock('../utils/config.js', () => ({
-  getApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
-  getAgentsManageApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3002'),
-  getAgentsRunApiUrl: vi.fn(async (override?: string) => override || 'http://localhost:3003'),
-  getTenantId: vi.fn(async () => 'test-tenant-id'),
-  getProjectId: vi.fn(async () => 'test-project-id'),
   loadConfig: vi.fn(),
   validateConfiguration: vi.fn(async () => ({
     tenantId: 'test-tenant-id',
@@ -101,8 +96,20 @@ describe('ApiClient', () => {
     });
 
     it('should throw error when tenant ID is not configured', async () => {
-      const { getTenantId } = await import('../utils/config.js');
-      vi.mocked(getTenantId).mockResolvedValueOnce(undefined);
+      const { validateConfiguration } = await import('../utils/config.js');
+      // Mock validateConfiguration to return a config with empty tenant ID
+      vi.mocked(validateConfiguration).mockResolvedValueOnce({
+        tenantId: '',
+        agentsManageApiUrl: 'http://localhost:3002',
+        agentsRunApiUrl: 'http://localhost:3003',
+        agentsManageApiKey: undefined,
+        agentsRunApiKey: undefined,
+        sources: {
+          tenantId: 'test',
+          agentsManageApiUrl: 'test',
+          agentsRunApiUrl: 'test',
+        },
+      });
 
       const client = await ManagementApiClient.create();
 
@@ -442,33 +449,42 @@ describe('ApiClient', () => {
 
       await clientWithApiKey.chatCompletion('test-graph', messages);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3003/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'text/event-stream',
-            Authorization: 'Bearer test-run-key-789',
-            'x-inkeep-tenant-id': 'test-tenant-id',
-            'x-inkeep-project-id': 'test-project-id',
-            'x-inkeep-graph-id': 'test-graph',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages,
-            conversationId: undefined,
-            stream: true,
-          }),
-        }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3003/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+          Authorization: 'Bearer test-run-key-789',
+          'x-inkeep-tenant-id': 'test-tenant-id',
+          'x-inkeep-project-id': 'test-project-id',
+          'x-inkeep-graph-id': 'test-graph',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages,
+          conversationId: undefined,
+          stream: true,
+        }),
+      });
     });
   });
 
   describe('checkTenantId', () => {
     it('should throw error for all methods when tenant ID is not configured', async () => {
-      const { getTenantId } = await import('../utils/config.js');
-      vi.mocked(getTenantId).mockResolvedValue(undefined);
+      const { validateConfiguration } = await import('../utils/config.js');
+      // Mock validateConfiguration to return a config with no tenant ID
+      vi.mocked(validateConfiguration).mockResolvedValue({
+        tenantId: '',
+        agentsManageApiUrl: 'http://localhost:3002',
+        agentsRunApiUrl: 'http://localhost:3003',
+        agentsManageApiKey: undefined,
+        agentsRunApiKey: undefined,
+        sources: {
+          tenantId: 'test',
+          agentsManageApiUrl: 'test',
+          agentsRunApiUrl: 'test',
+        },
+      });
 
       const client = await ManagementApiClient.create();
       const execClient = await ExecutionApiClient.create();

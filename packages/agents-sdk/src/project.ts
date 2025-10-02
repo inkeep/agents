@@ -93,6 +93,7 @@ export class Project implements ProjectInterface {
   private projectDescription?: string;
   private tenantId: string;
   private baseURL: string;
+  private apiKey?: string;
   private initialized = false;
   private models?: {
     base?: ModelSettings;
@@ -139,13 +140,19 @@ export class Project implements ProjectInterface {
    * Set or update the configuration (tenantId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(tenantId: string, apiUrl: string, models?: ProjectConfig['models']): void {
+  setConfig(
+    tenantId: string,
+    apiUrl: string,
+    models?: ProjectConfig['models'],
+    apiKey?: string
+  ): void {
     if (this.initialized) {
       throw new Error('Cannot set config after project has been initialized');
     }
 
     this.tenantId = tenantId;
     this.baseURL = apiUrl;
+    this.apiKey = apiKey;
 
     // Update models if provided
     if (models) {
@@ -163,6 +170,7 @@ export class Project implements ProjectInterface {
         tenantId: this.tenantId,
         apiUrl: this.baseURL,
         hasModels: !!this.models,
+        hasApiKey: !!this.apiKey,
       },
       'Project configuration updated'
     );
@@ -221,7 +229,8 @@ export class Project implements ProjectInterface {
         this.tenantId,
         this.baseURL,
         this.projectId,
-        projectDefinition
+        projectDefinition,
+        this.apiKey
       );
 
       this.initialized = true;

@@ -3,8 +3,7 @@
  * These functions make HTTP requests to the server instead of direct database calls
  */
 
-import type { FullProjectDefinition } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
+import { apiFetch, type FullProjectDefinition, getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('projectFullClient');
 
@@ -14,7 +13,8 @@ const logger = getLogger('projectFullClient');
 export async function createFullProjectViaAPI(
   tenantId: string,
   apiUrl: string,
-  projectData: FullProjectDefinition
+  projectData: FullProjectDefinition,
+  apiKey?: string
 ): Promise<FullProjectDefinition> {
   logger.info(
     {
@@ -26,22 +26,30 @@ export async function createFullProjectViaAPI(
   );
 
   const url = `${apiUrl}/tenants/${tenantId}/project-full`;
+
+  // Build headers with optional Authorization
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(projectData),
     });
   } catch (fetchError) {
-    logger.error({
-      error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
-      url,
-      tenantId,
-      projectId: projectData.id
-    }, 'Fetch request failed');
+    logger.error(
+      {
+        error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
+        url,
+        tenantId,
+        projectId: projectData.id,
+      },
+      'Fetch request failed'
+    );
     throw fetchError;
   }
 
@@ -91,7 +99,8 @@ export async function updateFullProjectViaAPI(
   tenantId: string,
   apiUrl: string,
   projectId: string,
-  projectData: FullProjectDefinition
+  projectData: FullProjectDefinition,
+  apiKey?: string
 ): Promise<FullProjectDefinition> {
   logger.info(
     {
@@ -103,22 +112,30 @@ export async function updateFullProjectViaAPI(
   );
 
   const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
+
+  // Build headers with optional Authorization
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(projectData),
     });
   } catch (fetchError) {
-    logger.error({
-      error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
-      url,
-      tenantId,
-      projectId
-    }, 'Fetch request failed');
+    logger.error(
+      {
+        error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
+        url,
+        tenantId,
+        projectId,
+      },
+      'Fetch request failed'
+    );
     throw fetchError;
   }
 
@@ -167,7 +184,8 @@ export async function updateFullProjectViaAPI(
 export async function getFullProjectViaAPI(
   tenantId: string,
   apiUrl: string,
-  projectId: string
+  projectId: string,
+  apiKey?: string
 ): Promise<FullProjectDefinition | null> {
   logger.info(
     {
@@ -179,11 +197,16 @@ export async function getFullProjectViaAPI(
   );
 
   const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
-  const response = await fetch(url, {
+
+  // Build headers with optional Authorization
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  const response = await apiFetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {

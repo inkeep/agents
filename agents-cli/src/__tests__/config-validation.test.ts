@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { validateConfiguration } from '../utils/config';
+import { maskSensitiveConfig, validateConfiguration } from '../utils/config';
 
 // Save original env and cwd
 const originalEnv = process.env;
@@ -26,6 +26,60 @@ vi.mock('node:fs', async () => {
   };
 });
 
+describe('maskSensitiveConfig', () => {
+  it('should mask API keys showing only last 4 characters', () => {
+    const config = {
+      tenantId: 'test-tenant',
+      agentsManageApiKey: 'secret-manage-key-12345',
+      agentsRunApiKey: 'secret-run-key-67890',
+    };
+
+    const masked = maskSensitiveConfig(config);
+
+    expect(masked.tenantId).toBe('test-tenant');
+    expect(masked.agentsManageApiKey).toBe('***2345');
+    expect(masked.agentsRunApiKey).toBe('***7890');
+  });
+
+  it('should handle undefined config', () => {
+    const masked = maskSensitiveConfig(undefined);
+    expect(masked).toBeUndefined();
+  });
+
+  it('should handle null config', () => {
+    const masked = maskSensitiveConfig(null);
+    expect(masked).toBeNull();
+  });
+
+  it('should handle config without API keys', () => {
+    const config = {
+      tenantId: 'test-tenant',
+      agentsManageApiUrl: 'http://localhost:3002',
+    };
+
+    const masked = maskSensitiveConfig(config);
+
+    expect(masked.tenantId).toBe('test-tenant');
+    expect(masked.agentsManageApiUrl).toBe('http://localhost:3002');
+    expect(masked.agentsManageApiKey).toBeUndefined();
+    expect(masked.agentsRunApiKey).toBeUndefined();
+  });
+
+  it('should not mutate the original config object', () => {
+    const config = {
+      tenantId: 'test-tenant',
+      agentsManageApiKey: 'secret-key-12345',
+    };
+
+    const masked = maskSensitiveConfig(config);
+
+    // Original should be unchanged
+    expect(config.agentsManageApiKey).toBe('secret-key-12345');
+    // Masked should be different
+    expect(masked.agentsManageApiKey).toBe('***2345');
+  });
+});
+
 describe('Configuration Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,22 +95,31 @@ describe('Configuration Validation', () => {
 
   describe('validateConfiguration', () => {
     describe('Valid Configurations', () => {
-      it('should accept --tenant-id with --agents-manage-api-url and --agents-run-api-url flags', async () => {
-        const config = await validateConfiguration(
-          'test-tenant',
-          'http://localhost:3002',
-          'http://localhost:3003',
-          undefined
-        );
+      it('should load config from file', async () => {
+        // Mock existsSync to return true for config file
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        // Mock the tsx-loader to return a config
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'test-tenant',
+            agentsManageApiUrl: 'http://localhost:3002',
+            agentsRunApiUrl: 'http://localhost:3003',
+          },
+        });
+
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('test-tenant');
         expect(config.agentsManageApiUrl).toBe('http://localhost:3002');
         expect(config.agentsRunApiUrl).toBe('http://localhost:3003');
-        expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
-        expect(config.sources.agentsManageApiUrl).toBe(
-          'command-line flag (--agents-manage-api-url)'
-        );
-        expect(config.sources.agentsRunApiUrl).toBe('command-line flag (--agents-run-api-url)');
+        expect(config.sources.tenantId).toContain('config file');
+        expect(config.sources.agentsManageApiUrl).toContain('config file');
+        expect(config.sources.agentsRunApiUrl).toContain('config file');
       });
 
       it('should use environment variables when no flags provided', async () => {
@@ -76,7 +139,7 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('env-tenant');
         expect(config.agentsManageApiUrl).toBe('http://localhost:9090');
@@ -86,64 +149,44 @@ describe('Configuration Validation', () => {
         expect(config.sources.agentsRunApiUrl).toContain('config file');
       });
 
-      it('should allow command-line flags to override config file', async () => {
+      it('should use defaults for missing URLs in config file', async () => {
+        // Mock existsSync to return true for config file
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
 
-        const config = await validateConfiguration(
-          'cli-tenant',
-          'http://cli-management',
-          'http://cli-execution',
-          undefined
-        );
+        // Mock the tsx-loader to return a config with tenant ID and default URLs
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'test-tenant',
+            // URLs will be populated from defaults by loadConfig
+          },
+        });
 
-        expect(config.tenantId).toBe('cli-tenant');
-        expect(config.agentsManageApiUrl).toBe('http://cli-management');
-        expect(config.agentsRunApiUrl).toBe('http://cli-execution');
-        expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
-        expect(config.sources.agentsManageApiUrl).toBe(
-          'command-line flag (--agents-manage-api-url)'
-        );
-        expect(config.sources.agentsRunApiUrl).toBe('command-line flag (--agents-run-api-url)');
+        const config = await validateConfiguration(undefined);
+
+        expect(config.tenantId).toBe('test-tenant');
+        // Default values should be applied by loadConfig
+        expect(config.agentsManageApiUrl).toBe('http://localhost:3002');
+        expect(config.agentsRunApiUrl).toBe('http://localhost:3003');
       });
     });
 
     describe('Invalid Configurations', () => {
       it('should reject non-existent config file', async () => {
-        await expect(
-          validateConfiguration('test-tenant', undefined, undefined, '/path/to/config.js')
-        ).rejects.toThrow('Config file not found');
-      });
-
-      it('should use defaults when --tenant-id is provided without API URLs', async () => {
-        const config = await validateConfiguration('test-tenant', undefined, undefined, undefined);
-        expect(config.tenantId).toBe('test-tenant');
-        expect(config.agentsManageApiUrl).toBe('http://localhost:3002');
-        expect(config.agentsRunApiUrl).toBe('http://localhost:3003');
+        await expect(validateConfiguration('/path/to/config.js')).rejects.toThrow(
+          'Config file not found'
+        );
       });
 
       it('should reject when no configuration is provided', async () => {
-        await expect(
-          validateConfiguration(undefined, undefined, undefined, undefined)
-        ).rejects.toThrow('No configuration found');
+        await expect(validateConfiguration(undefined)).rejects.toThrow('No configuration found');
       });
     });
 
     describe('Configuration Source Tracking', () => {
-      it('should correctly identify command-line flag sources', async () => {
-        const config = await validateConfiguration(
-          'cli-tenant',
-          'http://cli-management',
-          'http://cli-execution',
-          undefined
-        );
-
-        expect(config.sources.tenantId).toBe('command-line flag (--tenant-id)');
-        expect(config.sources.agentsManageApiUrl).toBe(
-          'command-line flag (--agents-manage-api-url)'
-        );
-        expect(config.sources.agentsRunApiUrl).toBe('command-line flag (--agents-run-api-url)');
-        expect(config.sources.configFile).toBeUndefined();
-      });
-
       it('should correctly identify config file sources', async () => {
         // Mock existsSync to return true for config file
         const { existsSync } = await import('node:fs');
@@ -161,46 +204,16 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
-
-        // URLs come from config file (environment variables are ignored for URLs)
-        expect(config.sources.agentsManageApiUrl).toContain('config file');
-        expect(config.sources.agentsRunApiUrl).toContain('config file');
-      });
-
-      it('should correctly identify mixed sources with config file and flag', async () => {
-        // Mock existsSync to return true for config file
-        const { existsSync } = await import('node:fs');
-        (existsSync as any).mockImplementation((path: string) => {
-          return path.includes('inkeep.config');
-        });
-
-        // Mock the tsx-loader to return a config with tenant ID
-        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
-        (importWithTypeScriptSupport as any).mockResolvedValue({
-          default: {
-            tenantId: 'env-tenant',
-            agentsManageApiUrl: 'http://env-management',
-            agentsRunApiUrl: 'http://env-execution',
-          },
-        });
-
-        // Override only the management API URL with a flag
-        const config = await validateConfiguration(
-          undefined,
-          'http://override-management',
-          undefined,
-          undefined
-        );
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('env-tenant');
-        expect(config.agentsManageApiUrl).toBe('http://override-management');
+        expect(config.agentsManageApiUrl).toBe('http://env-management');
         expect(config.agentsRunApiUrl).toBe('http://env-execution');
-        expect(config.sources.agentsManageApiUrl).toBe(
-          'command-line flag (--agents-manage-api-url)'
-        );
-        // Run API URL comes from config file (not env vars)
+        // All config comes from config file
+        expect(config.sources.tenantId).toContain('config file');
+        expect(config.sources.agentsManageApiUrl).toContain('config file');
         expect(config.sources.agentsRunApiUrl).toContain('config file');
+        expect(config.sources.configFile).toBeDefined();
       });
     });
 
@@ -226,7 +239,7 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('nested-tenant');
         expect(config.agentsManageApiUrl).toBe('http://nested-management');
@@ -254,7 +267,7 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('nested-tenant-no-keys');
         expect(config.agentsManageApiUrl).toBe('http://nested-management-no-key');
@@ -278,7 +291,7 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('flat-tenant');
         expect(config.agentsManageApiUrl).toBe('http://flat-management');
@@ -312,13 +325,104 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+        const config = await validateConfiguration(undefined);
 
         expect(config.tenantId).toBe('mixed-tenant');
         expect(config.agentsManageApiUrl).toBe('http://new-management');
         expect(config.agentsRunApiUrl).toBe('http://new-execution');
         expect(config.agentsManageApiKey).toBe('new-manage-key');
         expect(config.agentsRunApiKey).toBe('new-run-key');
+      });
+    });
+
+    describe('Sensitive Data Masking in Logs', () => {
+      it('should mask API keys in logged config values', async () => {
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'test-tenant',
+            agentsManageApi: {
+              url: 'http://localhost:3002',
+              apiKey: 'secret-manage-key-12345',
+            },
+            agentsRunApi: {
+              url: 'http://localhost:3003',
+              apiKey: 'secret-run-key-67890',
+            },
+          },
+        });
+
+        // Spy on logger to check if keys are masked
+        const { getLogger } = await import('@inkeep/agents-core');
+        const mockLogger = {
+          info: vi.fn(),
+        };
+        vi.mocked(getLogger).mockReturnValue(mockLogger as any);
+
+        const config = await validateConfiguration(undefined);
+
+        // Verify the actual config has the real keys
+        expect(config.agentsManageApiKey).toBe('secret-manage-key-12345');
+        expect(config.agentsRunApiKey).toBe('secret-run-key-67890');
+
+        // Verify the logger was called with masked keys
+        expect(mockLogger.info).toHaveBeenCalled();
+        const logCalls = mockLogger.info.mock.calls;
+
+        // Find the log call with config
+        const configLogCall = logCalls.find(
+          (call: any) =>
+            call[0]?.config?.agentsManageApiKey || call[0]?.mergedConfig?.agentsManageApiKey
+        );
+
+        expect(configLogCall).toBeDefined();
+        const loggedConfig = configLogCall[0].config || configLogCall[0].mergedConfig;
+
+        // Check that keys are masked (showing only last 4 chars)
+        expect(loggedConfig.agentsManageApiKey).toBe('***2345');
+        expect(loggedConfig.agentsRunApiKey).toBe('***7890');
+      });
+
+      it('should handle missing API keys gracefully', async () => {
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'test-tenant',
+            agentsManageApi: {
+              url: 'http://localhost:3002',
+              // No API key
+            },
+            agentsRunApi: {
+              url: 'http://localhost:3003',
+              // No API key
+            },
+          },
+        });
+
+        const { getLogger } = await import('@inkeep/agents-core');
+        const mockLogger = {
+          info: vi.fn(),
+        };
+        vi.mocked(getLogger).mockReturnValue(mockLogger as any);
+
+        const config = await validateConfiguration(undefined);
+
+        // Verify keys are undefined
+        expect(config.agentsManageApiKey).toBeUndefined();
+        expect(config.agentsRunApiKey).toBeUndefined();
+
+        // Verify no errors when logging undefined keys
+        expect(mockLogger.info).toHaveBeenCalled();
       });
     });
   });

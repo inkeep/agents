@@ -4,9 +4,12 @@ import type { ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
 import prompts from 'prompts';
+import { ManagementApiClient } from '../api';
+import type { NestedInkeepConfig } from '../config';
 import { env } from '../env';
-import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { loadConfig } from '../utils/config';
 import { findProjectDirectory } from '../utils/project-directory';
+import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 import {
   generateArtifactComponentFile,
   generateDataComponentFile,
@@ -15,11 +18,9 @@ import {
   generateIndexFile,
   generateToolFile,
 } from './pull.llm-generate';
-
 export interface PullOptions {
   project?: string;
   config?: string;
-  agentsManageApiUrl?: string;
   env?: string;
   json?: boolean;
   debug?: boolean;
@@ -37,8 +38,7 @@ interface VerificationResult {
 async function verifyGeneratedFiles(
   projectDir: string,
   originalProjectData: any,
-  debug: boolean = false,
-  config?: { tenantId: string; apiUrl: string }
+  debug: boolean = false
 ): Promise<VerificationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -97,22 +97,33 @@ async function verifyGeneratedFiles(
           if (debug) {
             console.log(chalk.gray('\n📋 Generated project successfully'));
             console.log(chalk.gray(`  • Has tools: ${!!generatedProjectData.tools}`));
-            console.log(chalk.gray(`  • Tools count: ${Object.keys(generatedProjectData.tools || {}).length}`));
-            console.log(chalk.gray(`  • Has credentials: ${!!generatedProjectData.credentialReferences}`));
-            console.log(chalk.gray(`  • Credentials count: ${Object.keys(generatedProjectData.credentialReferences || {}).length}`));
+            console.log(
+              chalk.gray(`  • Tools count: ${Object.keys(generatedProjectData.tools || {}).length}`)
+            );
+            console.log(
+              chalk.gray(`  • Has credentials: ${!!generatedProjectData.credentialReferences}`)
+            );
+            console.log(
+              chalk.gray(
+                `  • Credentials count: ${Object.keys(generatedProjectData.credentialReferences || {}).length}`
+              )
+            );
           }
 
           // Basic structural validation - just ensure we can generate valid project data
           if (!generatedProjectData) {
             structuralErrors.push('Generated project definition is empty');
           }
-
         } catch (projectDefError: any) {
           // Log the error but don't fail verification - SDK might have internal issues
           if (debug) {
-            console.log(chalk.yellow(`  Project definition generation warning: ${projectDefError.message}`));
+            console.log(
+              chalk.yellow(`  Project definition generation warning: ${projectDefError.message}`)
+            );
           }
-          structuralWarnings.push(`Project definition generation had issues: ${projectDefError.message}`);
+          structuralWarnings.push(
+            `Project definition generation had issues: ${projectDefError.message}`
+          );
         }
       }
 
@@ -132,12 +143,20 @@ async function verifyGeneratedFiles(
         }
         // Check that it doesn't have invalid config property
         if (toolContent.includes('config:')) {
-          structuralWarnings.push('Tool file contains invalid config property (should use individual properties)');
+          structuralWarnings.push(
+            'Tool file contains invalid config property (should use individual properties)'
+          );
         }
         if (debug) {
-          console.log(chalk.gray(`  • Tool file has serverUrl: ${toolContent.includes('serverUrl:')}`));
-          console.log(chalk.gray(`  • Tool file has credential: ${toolContent.includes('credential:')}`));
-          console.log(chalk.gray(`  • Tool file has invalid config: ${toolContent.includes('config:')}`));
+          console.log(
+            chalk.gray(`  • Tool file has serverUrl: ${toolContent.includes('serverUrl:')}`)
+          );
+          console.log(
+            chalk.gray(`  • Tool file has credential: ${toolContent.includes('credential:')}`)
+          );
+          console.log(
+            chalk.gray(`  • Tool file has invalid config: ${toolContent.includes('config:')}`)
+          );
         }
       } else {
         structuralErrors.push('Tool file inkeep_facts.ts not found');
@@ -149,12 +168,15 @@ async function verifyGeneratedFiles(
           structuralWarnings.push('Environment file may be missing credential definition');
         }
         if (debug) {
-          console.log(chalk.gray(`  • Environment file has credential: ${envContent.includes('inkeep_api_credential')}`));
+          console.log(
+            chalk.gray(
+              `  • Environment file has credential: ${envContent.includes('inkeep_api_credential')}`
+            )
+          );
         }
       } else {
         structuralErrors.push('Environment file development.env.ts not found');
       }
-
     } catch (structuralError: any) {
       structuralErrors.push(`Structural validation failed: ${structuralError.message}`);
     }
@@ -165,13 +187,20 @@ async function verifyGeneratedFiles(
     if (debug) {
       console.log(chalk.gray('\n🔍 Structural Verification Summary:'));
       console.log(chalk.gray(`  • Project loaded successfully: ${!!project}`));
-      console.log(chalk.gray(`  • Expected graphs: ${Object.keys(originalProjectData.graphs || {}).length}`));
-      console.log(chalk.gray(`  • Expected tools: ${Object.keys(originalProjectData.tools || {}).length}`));
-      console.log(chalk.gray(`  • Expected credentials: ${Object.keys(originalProjectData.credentialReferences || {}).length}`));
+      console.log(
+        chalk.gray(`  • Expected graphs: ${Object.keys(originalProjectData.graphs || {}).length}`)
+      );
+      console.log(
+        chalk.gray(`  • Expected tools: ${Object.keys(originalProjectData.tools || {}).length}`)
+      );
+      console.log(
+        chalk.gray(
+          `  • Expected credentials: ${Object.keys(originalProjectData.credentialReferences || {}).length}`
+        )
+      );
     }
 
     return { success: errors.length === 0, errors, warnings };
-
   } catch (error: any) {
     errors.push(`Verification failed: ${error.message}`);
     return { success: false, errors, warnings };
@@ -179,249 +208,45 @@ async function verifyGeneratedFiles(
 }
 
 /**
- * Deeply compare two objects, ignoring order and minor formatting differences
+ * Load and validate inkeep.config.ts using the centralized config loader
+ * Converts normalized config to nested format for backward compatibility
  */
-function deepCompare(obj1: any, obj2: any): boolean {
-  if (obj1 === obj2) return true;
-
-  if (obj1 == null || obj2 == null) return obj1 === obj2;
-
-  if (typeof obj1 !== typeof obj2) return false;
-
-  if (typeof obj1 === 'object') {
-    if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
-
-    const keys1 = Object.keys(obj1).sort();
-    const keys2 = Object.keys(obj2).sort();
-
-    if (keys1.length !== keys2.length) return false;
-    if (!keys1.every((key, i) => key === keys2[i])) return false;
-
-    return keys1.every(key => deepCompare(obj1[key], obj2[key]));
-  }
-
-  return obj1 === obj2;
-}
-
-/**
- * Compare two project data objects and return differences
- */
-function compareProjectData(original: any, generated: any, debug: boolean = false): { errors: string[], warnings: string[] } {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  // Compare basic project properties
-  if (original.id !== generated.id) {
-    errors.push(`Project ID mismatch: expected '${original.id}', got '${generated.id}'`);
-  }
-  if (original.name !== generated.name) {
-    errors.push(`Project name mismatch: expected '${original.name}', got '${generated.name}'`);
-  }
-  if (original.description !== generated.description) {
-    warnings.push(`Project description differs`);
-  }
-
-  // Compare graphs
-  const originalGraphs = original.graphs || {};
-  const generatedGraphs = generated.graphs || {};
-
-  const originalGraphKeys = Object.keys(originalGraphs);
-  const generatedGraphKeys = Object.keys(generatedGraphs);
-
-  if (originalGraphKeys.length !== generatedGraphKeys.length) {
-    errors.push(`Graph count mismatch: expected ${originalGraphKeys.length}, got ${generatedGraphKeys.length}`);
-  }
-
-  for (const graphId of originalGraphKeys) {
-    if (!generatedGraphs[graphId]) {
-      errors.push(`Missing graph: ${graphId}`);
-    } else {
-      // Compare graph properties
-      const origGraph = originalGraphs[graphId];
-      const genGraph = generatedGraphs[graphId];
-
-      if (origGraph.id !== genGraph.id) {
-        errors.push(`Graph ${graphId} ID mismatch: expected '${origGraph.id}', got '${genGraph.id}'`);
-      }
-      if (origGraph.name !== genGraph.name) {
-        warnings.push(`Graph ${graphId} name differs: expected '${origGraph.name}', got '${genGraph.name}'`);
-      }
-
-      // Compare graph description/prompt
-      if (origGraph.description !== genGraph.description) {
-        warnings.push(`Graph ${graphId} description differs`);
-      }
-
-      // Compare graph configuration deeply
-      if (!deepCompare(origGraph.config, genGraph.config)) {
-        warnings.push(`Graph ${graphId} configuration differs`);
-      }
-    }
-  }
-
-  for (const graphId of generatedGraphKeys) {
-    if (!originalGraphs[graphId]) {
-      errors.push(`Extra graph: ${graphId}`);
-    }
-  }
-
-  // Compare tools with enhanced logic
-  const originalTools = original.tools || {};
-  const generatedTools = generated.tools || {};
-
-  const originalToolKeys = Object.keys(originalTools);
-  const generatedToolKeys = Object.keys(generatedTools);
-
-  if (originalToolKeys.length !== generatedToolKeys.length) {
-    errors.push(`Tool count mismatch: expected ${originalToolKeys.length}, got ${generatedToolKeys.length}`);
-  }
-
-  for (const toolId of originalToolKeys) {
-    if (!generatedTools[toolId]) {
-      errors.push(`Missing tool: ${toolId}`);
-    } else {
-      // Compare tool properties
-      const origTool = originalTools[toolId];
-      const genTool = generatedTools[toolId];
-
-      if (origTool.id !== genTool.id) {
-        errors.push(`Tool ${toolId} ID mismatch: expected '${origTool.id}', got '${genTool.id}'`);
-      }
-      if (origTool.name !== genTool.name) {
-        warnings.push(`Tool ${toolId} name differs: expected '${origTool.name}', got '${genTool.name}'`);
-      }
-
-      // Compare credential references with better error messages
-      if (origTool.credentialReferenceId !== genTool.credentialReferenceId) {
-        if (origTool.credentialReferenceId && !genTool.credentialReferenceId) {
-          errors.push(`Tool ${toolId} missing credential reference: expected '${origTool.credentialReferenceId}'`);
-        } else if (!origTool.credentialReferenceId && genTool.credentialReferenceId) {
-          warnings.push(`Tool ${toolId} has unexpected credential reference: '${genTool.credentialReferenceId}'`);
-        } else if (origTool.credentialReferenceId && genTool.credentialReferenceId) {
-          errors.push(`Tool ${toolId} credential reference mismatch: expected '${origTool.credentialReferenceId}', got '${genTool.credentialReferenceId}'`);
-        }
-      }
-
-      // Compare tool configurations deeply
-      if (!deepCompare(origTool.config, genTool.config)) {
-        if (debug) {
-          console.log(chalk.yellow(`  Tool ${toolId} config differs:`));
-          console.log(chalk.gray(`    Original: ${JSON.stringify(origTool.config, null, 2)}`));
-          console.log(chalk.gray(`    Generated: ${JSON.stringify(genTool.config, null, 2)}`));
-        }
-        errors.push(`Tool ${toolId} configuration differs`);
-      }
-
-      // Compare other tool properties
-      if (origTool.imageUrl !== genTool.imageUrl) {
-        warnings.push(`Tool ${toolId} imageUrl differs`);
-      }
-    }
-  }
-
-  for (const toolId of generatedToolKeys) {
-    if (!originalTools[toolId]) {
-      errors.push(`Extra tool: ${toolId}`);
-    }
-  }
-
-  // Compare credentials with enhanced checking
-  const originalCreds = original.credentialReferences || {};
-  const generatedCreds = generated.credentialReferences || {};
-
-  const originalCredKeys = Object.keys(originalCreds);
-  const generatedCredKeys = Object.keys(generatedCreds);
-
-  if (originalCredKeys.length !== generatedCredKeys.length) {
-    errors.push(`Credential count mismatch: expected ${originalCredKeys.length}, got ${generatedCredKeys.length}`);
-  }
-
-  for (const credId of originalCredKeys) {
-    if (!generatedCreds[credId]) {
-      errors.push(`Missing credential: ${credId}`);
-    } else {
-      // Compare credential properties
-      const origCred = originalCreds[credId];
-      const genCred = generatedCreds[credId];
-
-      if (!deepCompare(origCred, genCred)) {
-        warnings.push(`Credential ${credId} configuration differs`);
-        if (debug) {
-          console.log(chalk.yellow(`  Credential ${credId} differs:`));
-          console.log(chalk.gray(`    Original: ${JSON.stringify(origCred, null, 2)}`));
-          console.log(chalk.gray(`    Generated: ${JSON.stringify(genCred, null, 2)}`));
-        }
-      }
-    }
-  }
-
-  for (const credId of generatedCredKeys) {
-    if (!originalCreds[credId]) {
-      errors.push(`Extra credential: ${credId}`);
-    }
-  }
-
-  return { errors, warnings };
-}
-
-/**
- * Load and validate inkeep.config.ts
- */
-async function loadProjectConfig(projectDir: string, configPathOverride?: string): Promise<{
-  tenantId: string;
-  agentsManageApiUrl: string;
-  outputDirectory?: string;
-}> {
-  const configPath = configPathOverride ? resolve(process.cwd(), configPathOverride) : join(projectDir, 'inkeep.config.ts');
+async function loadProjectConfig(
+  projectDir: string,
+  configPathOverride?: string
+): Promise<NestedInkeepConfig> {
+  const configPath = configPathOverride
+    ? resolve(process.cwd(), configPathOverride)
+    : join(projectDir, 'inkeep.config.ts');
 
   if (!existsSync(configPath)) {
     throw new Error(`Configuration file not found: ${configPath}`);
   }
 
   try {
-    const configModule = await importWithTypeScriptSupport(configPath);
-
-    // Look for default export or named export
-    const config = configModule.default || configModule.config;
-
-    if (!config) {
-      throw new Error('No configuration found in inkeep.config.ts');
-    }
+    // Use centralized config loader
+    const config = await loadConfig(configPath);
 
     if (!config.tenantId) {
       throw new Error('tenantId is required in inkeep.config.ts');
     }
 
+    // Convert normalized config to nested format
     return {
       tenantId: config.tenantId,
-      agentsManageApiUrl: config.agentsManageApiUrl || 'http://localhost:3002',
+      agentsManageApi: {
+        url: config.agentsManageApiUrl || 'http://localhost:3002',
+        ...(config.agentsManageApiKey && { apiKey: config.agentsManageApiKey }),
+      },
+      agentsRunApi: {
+        url: config.agentsRunApiUrl || 'http://localhost:3003',
+        ...(config.agentsRunApiKey && { apiKey: config.agentsRunApiKey }),
+      },
       outputDirectory: config.outputDirectory,
     };
   } catch (error: any) {
     throw new Error(`Failed to load configuration: ${error.message}`);
   }
-}
-
-/**
- * Fetch project data from backend API
- */
-async function fetchProjectData(tenantId: string, projectId: string, apiUrl: string): Promise<any> {
-  const response = await fetch(`${apiUrl}/tenants/${tenantId}/project-full/${projectId}`, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error(`Project "${projectId}" not found`);
-    }
-    throw new Error(`Failed to fetch project: ${response.statusText}`);
-  }
-
-  const responseData = await response.json();
-  return responseData.data;
 }
 
 /**
@@ -525,7 +350,9 @@ async function generateProjectFiles(
   if (dataComponents && Object.keys(dataComponents).length > 0) {
     for (const [componentId, componentData] of Object.entries(dataComponents)) {
       const componentPath = join(dirs.dataComponentsDir, `${componentId}.ts`);
-      generationTasks.push(generateDataComponentFile(componentData, componentId, componentPath, modelSettings));
+      generationTasks.push(
+        generateDataComponentFile(componentData, componentId, componentPath, modelSettings)
+      );
       fileInfo.push({ type: 'dataComponent', name: `${componentId}.ts` });
     }
   }
@@ -534,23 +361,30 @@ async function generateProjectFiles(
   if (artifactComponents && Object.keys(artifactComponents).length > 0) {
     for (const [componentId, componentData] of Object.entries(artifactComponents)) {
       const componentPath = join(dirs.artifactComponentsDir, `${componentId}.ts`);
-      generationTasks.push(generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings));
+      generationTasks.push(
+        generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings)
+      );
       fileInfo.push({ type: 'artifactComponent', name: `${componentId}.ts` });
     }
   }
 
   // Add environment files generation with actual credential data
   const targetEnvironment = environment;
-  generationTasks.push(generateEnvironmentFiles(dirs.environmentsDir, credentialReferences, targetEnvironment));
+  generationTasks.push(
+    generateEnvironmentFiles(dirs.environmentsDir, credentialReferences, targetEnvironment)
+  );
   fileInfo.push({ type: 'env', name: `index.ts, ${targetEnvironment}.env.ts` });
 
   // Display what we're generating
   console.log(chalk.cyan('  📝 Generating files in parallel:'));
-  const filesByType = fileInfo.reduce((acc, file) => {
-    if (!acc[file.type]) acc[file.type] = [];
-    acc[file.type].push(file.name);
-    return acc;
-  }, {} as Record<string, string[]>);
+  const filesByType = fileInfo.reduce(
+    (acc, file) => {
+      if (!acc[file.type]) acc[file.type] = [];
+      acc[file.type].push(file.name);
+      return acc;
+    },
+    {} as Record<string, string[]>
+  );
 
   if (filesByType.config) {
     console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
@@ -565,7 +399,9 @@ async function generateProjectFiles(
     console.log(chalk.gray(`     • Data components: ${filesByType.dataComponent.join(', ')}`));
   }
   if (filesByType.artifactComponent) {
-    console.log(chalk.gray(`     • Artifact components: ${filesByType.artifactComponent.join(', ')}`));
+    console.log(
+      chalk.gray(`     • Artifact components: ${filesByType.artifactComponent.join(', ')}`)
+    );
   }
   if (filesByType.env) {
     console.log(chalk.gray(`     • Environment: ${filesByType.env.join(', ')}`));
@@ -587,13 +423,21 @@ async function generateProjectFiles(
           const taskStartTime = Date.now();
           if (debug) {
             const taskInfo = fileInfo[index];
-            console.log(chalk.gray(`  [${index + 1}/${generationTasks.length}] Starting ${taskInfo.type}: ${taskInfo.name}`));
+            console.log(
+              chalk.gray(
+                `  [${index + 1}/${generationTasks.length}] Starting ${taskInfo.type}: ${taskInfo.name}`
+              )
+            );
           }
           await task;
           if (debug) {
             const taskInfo = fileInfo[index];
             const taskDuration = Date.now() - taskStartTime;
-            console.log(chalk.gray(`  [${index + 1}/${generationTasks.length}] ✓ Completed ${taskInfo.type}: ${taskInfo.name} (${taskDuration}ms)`));
+            console.log(
+              chalk.gray(
+                `  [${index + 1}/${generationTasks.length}] ✓ Completed ${taskInfo.type}: ${taskInfo.name} (${taskDuration}ms)`
+              )
+            );
           }
         })
       );
@@ -646,7 +490,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           configLocation = configPath;
         } catch (error) {
           spinner.fail('Failed to load specified configuration file');
-          console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+          console.error(
+            chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+          );
           process.exit(1);
         }
       } else {
@@ -702,7 +548,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     if (!configFound || !config) {
       spinner.fail('No inkeep.config.ts found');
       console.error(chalk.red('Configuration file is required for pull command'));
-      console.log(chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings'));
+      console.log(
+        chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings')
+      );
       console.log(chalk.gray('Searched in:'));
       console.log(chalk.gray(`  • Current directory: ${searchDir}`));
       console.log(chalk.gray(`  • Parent directory: ${join(searchDir, '..')}`));
@@ -737,11 +585,12 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     spinner.succeed(`Output directory: ${baseDir}`);
 
-    // Override with CLI options
+    // Build final config from loaded config file
     const finalConfig = {
-      tenantId: config.tenantId, // Tenant ID comes from config, not env flag
+      tenantId: config.tenantId,
       projectId: '', // Will be determined from API response or user input
-      agentsManageApiUrl: options.agentsManageApiUrl || config.agentsManageApiUrl,
+      agentsManageApiUrl: config.agentsManageApi.url,
+      agentsManageApiKey: config.agentsManageApi.apiKey,
     };
 
     // Prompt for project ID if not provided
@@ -772,13 +621,15 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.gray(`  • Project ID: ${finalConfig.projectId}`));
     console.log(chalk.gray(`  • API URL: ${finalConfig.agentsManageApiUrl}`));
 
-    // Fetch project data
+    // Fetch project data using API client
     spinner.start('Fetching project data from backend...');
-    const projectData = await fetchProjectData(
+    const apiClient = await ManagementApiClient.create(
+      finalConfig.agentsManageApiUrl,
+      options.config, // Pass the config path from options
       finalConfig.tenantId,
-      finalConfig.projectId,
-      finalConfig.agentsManageApiUrl
+      finalConfig.projectId
     );
+    const projectData = await apiClient.getFullProject(finalConfig.projectId);
     spinner.succeed('Project data fetched');
 
     // Show project summary
@@ -838,7 +689,11 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
         }
       }
 
-      console.log(chalk.yellow(`  ⚠️  Environment file (${options.env || 'development'}.env.ts) will be generated with credential references`));
+      console.log(
+        chalk.yellow(
+          `  ⚠️  Environment file (${options.env || 'development'}.env.ts) will be generated with credential references`
+        )
+      );
     }
 
     // Create project directory structure
@@ -863,7 +718,13 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       model: 'anthropic/claude-sonnet-4-20250514',
     };
 
-    await generateProjectFiles(dirs, projectData, modelSettings, options.env || 'development', options.debug || false);
+    await generateProjectFiles(
+      dirs,
+      projectData,
+      modelSettings,
+      options.env || 'development',
+      options.debug || false
+    );
 
     // Count generated files for summary
     const fileCount = {
@@ -884,29 +745,37 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     // Verification step: ensure generated TS files can reconstruct the original JSON
     spinner.start('Verifying generated files...');
     try {
-      const verificationResult = await verifyGeneratedFiles(dirs.projectRoot, projectData, options.debug || false, config);
+      const verificationResult = await verifyGeneratedFiles(
+        dirs.projectRoot,
+        projectData,
+        options.debug || false
+      );
       if (verificationResult.success) {
         spinner.succeed('Generated files verified successfully');
         if (options.debug && verificationResult.warnings.length > 0) {
           console.log(chalk.yellow('\n⚠️  Verification warnings:'));
-          verificationResult.warnings.forEach(warning => {
+          verificationResult.warnings.forEach((warning) => {
             console.log(chalk.gray(`  • ${warning}`));
           });
         }
       } else {
         spinner.fail('Generated files verification failed');
         console.error(chalk.red('\n❌ Verification errors:'));
-        verificationResult.errors.forEach(error => {
+        verificationResult.errors.forEach((error) => {
           console.error(chalk.red(`  • ${error}`));
         });
         if (verificationResult.warnings.length > 0) {
           console.log(chalk.yellow('\n⚠️  Verification warnings:'));
-          verificationResult.warnings.forEach(warning => {
+          verificationResult.warnings.forEach((warning) => {
             console.log(chalk.gray(`  • ${warning}`));
           });
         }
-        console.log(chalk.gray('\nThe generated files may not accurately represent the pulled project.'));
-        console.log(chalk.gray('This could indicate an issue with the LLM generation or schema mappings.'));
+        console.log(
+          chalk.gray('\nThe generated files may not accurately represent the pulled project.')
+        );
+        console.log(
+          chalk.gray('This could indicate an issue with the LLM generation or schema mappings.')
+        );
 
         // Don't exit - still show success but warn user
       }

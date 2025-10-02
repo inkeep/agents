@@ -1,18 +1,15 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import chalk from 'chalk';
-import ora from 'ora';
+import ora, { type Ora } from 'ora';
 import { env } from '../env';
-import { validateConfiguration } from '../utils/config';
+import { initializeCommand } from '../utils/cli-pipeline';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 
 export interface PushOptions {
   project?: string;
   config?: string;
-  tenantId?: string;
-  agentsManageApiUrl?: string;
-  agentsRunApiUrl?: string;
   env?: string;
   json?: boolean;
 }
@@ -45,30 +42,20 @@ async function loadProject(projectDir: string) {
 }
 
 export async function pushCommand(options: PushOptions) {
-  const spinner = ora('Loading configuration...').start();
+  // Use standardized CLI pipeline for initialization
+  const { config } = await initializeCommand({
+    configPath: options.config,
+    showSpinner: true,
+    spinnerText: 'Loading configuration...',
+    logConfig: true,
+  });
+
+  // Declare spinner at function scope so it's accessible in catch block
+  let spinner: Ora | undefined;
 
   try {
-    // Use unified config validation
-    const config = await validateConfiguration(
-      options.tenantId,
-      options.agentsManageApiUrl,
-      options.agentsRunApiUrl,
-      options.config
-    );
-
-    spinner.succeed('Configuration loaded');
-
-    // Log configuration sources
-    console.log(chalk.gray('Configuration sources:'));
-    console.log(chalk.gray(`  • Tenant ID: ${config.tenantId}`));
-    console.log(chalk.gray(`  • Manage API URL: ${config.agentsManageApiUrl}`));
-    console.log(chalk.gray(`  • Run API URL: ${config.agentsRunApiUrl}`));
-    if (config.sources.configFile) {
-      console.log(chalk.gray(`  • Config file: ${config.sources.configFile}`));
-    }
-
     // Determine project directory - look for index.ts in current directory
-    spinner.start('Detecting project...');
+    spinner = ora('Detecting project...').start();
     let projectDir: string;
 
     if (options.project) {
@@ -86,7 +73,9 @@ export async function pushCommand(options: PushOptions) {
       } else {
         spinner.fail('No index.ts found in current directory');
         console.error(
-          chalk.yellow('Please run this command from a directory containing index.ts or use --project <path>')
+          chalk.yellow(
+            'Please run this command from a directory containing index.ts or use --project <path>'
+          )
         );
         process.exit(1);
       }
@@ -131,8 +120,9 @@ export async function pushCommand(options: PushOptions) {
     if (typeof project.setConfig === 'function') {
       project.setConfig(
         config.tenantId,
-        config.agentsManageApiUrl
-        // Note: models should be passed here if needed, not agentsRunApiUrl
+        config.agentsManageApiUrl,
+        undefined, // models - not needed here as they come from the project definition
+        config.agentsManageApiKey
       );
     }
 
@@ -261,7 +251,7 @@ export async function pushCommand(options: PushOptions) {
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Silently fail if credential tracking is not available
       if (env.DEBUG) {
         console.error(chalk.yellow('Could not retrieve credential tracking information'));
@@ -275,8 +265,11 @@ export async function pushCommand(options: PushOptions) {
 
     // Force exit to avoid hanging due to OpenTelemetry or other background tasks
     process.exit(0);
-  } catch (error: any) {
-    spinner.fail('Failed to push project');
+  } catch (_error: unknown) {
+    if (spinner) {
+      spinner.fail('Failed to push project');
+    }
+    const error = _error as Error;
     console.error(chalk.red('Error:'), error.message);
 
     if (error.stack && env.DEBUG) {
