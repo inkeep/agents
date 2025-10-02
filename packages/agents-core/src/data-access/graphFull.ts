@@ -703,15 +703,7 @@ export const updateFullGraphServerSide =
         );
       }
       if (typedGraphDefinition.contextConfig) {
-        logger.info(
-          { contextConfigId: typedGraphDefinition.contextConfig.id },
-          'Processing context config'
-        );
         try {
-          logger.info(
-            { contextConfigId: typedGraphDefinition.contextConfig.id },
-            'Processing context config'
-          );
           const contextConfig = await upsertContextConfig(db)({
             data: {
               ...typedGraphDefinition.contextConfig,
