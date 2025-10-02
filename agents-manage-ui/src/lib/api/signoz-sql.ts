@@ -43,10 +43,6 @@ export async function fetchAllSpanAttributes_SQL(
     data: Record<string, any>;
   }>
 > {
-  console.log(`🔍 DEBUG - fetchAllSpanAttributes_SQL called with:`, {
-    conversationId,
-    sigNozUrl,
-  });
 
   const results: Array<{
     spanId: string;
@@ -59,7 +55,6 @@ export async function fetchAllSpanAttributes_SQL(
   let offset = 0;
   const tableName = 'distributed_signoz_index_v3';
 
-  console.log(`🔍 DEBUG - Using table: ${tableName}, LIMIT: ${LIMIT}`);
 
   const basePayload = {
     start: new Date('2020-01-01T00:00:00Z').getTime(),
@@ -109,26 +104,27 @@ export async function fetchAllSpanAttributes_SQL(
         timeout: 30000,
       });
 
-      console.log(`🔍 DEBUG - Page response status: ${response.status} ${response.statusText}`);
-
       const json = response.data;
-      console.log(`🔍 DEBUG - Page response JSON:`, JSON.stringify(json, null, 2));
 
       const result = json?.data?.result?.[0];
       let rows: SpanRow[] = [];
-      rows = result.series
-        .map((s: any) => ({
-          trace_id: s.labels?.trace_id,
-          span_id: s.labels?.span_id,
-          parent_span_id: s.labels?.parent_span_id,
-          timestamp: s.labels?.timestamp,
-          name: s.labels?.name,
-          attributes_string_json: s.labels?.attributes_string_json,
-          attributes_number_json: s.labels?.attributes_number_json,
-          attributes_bool_json: s.labels?.attributes_bool_json,
-          resources_string_json: s.labels?.resources_string_json,
-        }))
-        .filter((r: any) => r.trace_id && r.span_id); // Filter out incomplete rows
+      
+      // Check if result and series exist before mapping
+      if (result?.series) {
+        rows = result.series
+          .map((s: any) => ({
+            trace_id: s.labels?.trace_id,
+            span_id: s.labels?.span_id,
+            parent_span_id: s.labels?.parent_span_id,
+            timestamp: s.labels?.timestamp,
+            name: s.labels?.name,
+            attributes_string_json: s.labels?.attributes_string_json,
+            attributes_number_json: s.labels?.attributes_number_json,
+            attributes_bool_json: s.labels?.attributes_bool_json,
+            resources_string_json: s.labels?.resources_string_json,
+          }))
+          .filter((r: any) => r.trace_id && r.span_id); // Filter out incomplete rows
+      }
 
       if (!rows.length) {
         break;
@@ -162,7 +158,7 @@ export async function fetchAllSpanAttributes_SQL(
 
       offset += LIMIT;
       if (rows.length < LIMIT) {
-        console.log(`🔍 DEBUG - Last page (${rows.length} < ${LIMIT}), breaking pagination`);
+        // console.log(`🔍 DEBUG - Last page (${rows.length} < ${LIMIT}), breaking pagination`);
         break;
       }
     } catch (error) {

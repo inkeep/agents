@@ -72,7 +72,6 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
   }
 
   try {
-    logger.info({ payload }, 'SigNoz payload');
     const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
     const response = await axios.post(signozEndpoint, payload, {
       headers: {
@@ -86,7 +85,6 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
       queryName: r.queryName,
       count: r.list?.length,
     }));
-    logger.info({ responseData }, 'SigNoz response (truncated)');
     return json;
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
