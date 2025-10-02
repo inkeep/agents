@@ -1,4 +1,3 @@
-import { env } from './env';
 import {
   getAgentsManageApiUrl,
   getAgentsRunApiUrl,
@@ -10,11 +9,13 @@ abstract class BaseApiClient {
   protected apiUrl: string;
   protected tenantId: string | undefined;
   protected projectId: string;
+  protected apiKey: string | undefined;
 
-  protected constructor(apiUrl: string, tenantId: string | undefined, projectId: string) {
+  protected constructor(apiUrl: string, tenantId: string | undefined, projectId: string, apiKey?: string) {
     this.apiUrl = apiUrl;
     this.tenantId = tenantId;
     this.projectId = projectId;
+    this.apiKey = apiKey;
   }
 
   protected checkTenantId(): string {
@@ -38,8 +39,8 @@ abstract class BaseApiClient {
 }
 
 export class ManagementApiClient extends BaseApiClient {
-  private constructor(apiUrl: string, tenantId: string | undefined, projectId: string) {
-    super(apiUrl, tenantId, projectId);
+  private constructor(apiUrl: string, tenantId: string | undefined, projectId: string, apiKey?: string) {
+    super(apiUrl, tenantId, projectId, apiKey);
   }
 
   static async create(
@@ -51,20 +52,26 @@ export class ManagementApiClient extends BaseApiClient {
     const resolvedApiUrl = await getAgentsManageApiUrl(apiUrl, configPath);
     const tenantId = tenantIdOverride || (await getTenantId(configPath));
     const projectId = projectIdOverride || (await getProjectId(configPath));
-    return new ManagementApiClient(resolvedApiUrl, tenantId, projectId);
+
+    // Load config to get API key
+    const { validateConfiguration } = await import('./utils/config.js');
+    const config = await validateConfiguration(tenantIdOverride, apiUrl, undefined, configPath);
+
+    return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
   }
 
   async listGraphs(): Promise<any[]> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
+
     const response = await fetch(
       `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+          ...(this.apiKey && {
+            Authorization: `Bearer ${this.apiKey}`,
           }),
         },
       }
@@ -108,8 +115,8 @@ export class ManagementApiClient extends BaseApiClient {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+          ...(this.apiKey && {
+            Authorization: `Bearer ${this.apiKey}`,
           }),
         },
         body: JSON.stringify(graphDefinition),
@@ -127,8 +134,8 @@ export class ManagementApiClient extends BaseApiClient {
 }
 
 export class ExecutionApiClient extends BaseApiClient {
-  private constructor(apiUrl: string, tenantId: string | undefined, projectId: string) {
-    super(apiUrl, tenantId, projectId);
+  private constructor(apiUrl: string, tenantId: string | undefined, projectId: string, apiKey?: string) {
+    super(apiUrl, tenantId, projectId, apiKey);
   }
 
   static async create(
@@ -140,7 +147,12 @@ export class ExecutionApiClient extends BaseApiClient {
     const resolvedApiUrl = await getAgentsRunApiUrl(apiUrl, configPath);
     const tenantId = tenantIdOverride || (await getTenantId(configPath));
     const projectId = projectIdOverride || (await getProjectId(configPath));
-    return new ExecutionApiClient(resolvedApiUrl, tenantId, projectId);
+
+    // Load config to get API key
+    const { validateConfiguration } = await import('./utils/config.js');
+    const config = await validateConfiguration(tenantIdOverride, undefined, apiUrl, configPath);
+
+    return new ExecutionApiClient(resolvedApiUrl, tenantId, projectId, config.agentsRunApiKey);
   }
 
   async chatCompletion(
@@ -153,8 +165,8 @@ export class ExecutionApiClient extends BaseApiClient {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-        ...(env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
-          Authorization: `Bearer ${env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+        ...(this.apiKey && {
+          Authorization: `Bearer ${this.apiKey}`,
         }),
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,

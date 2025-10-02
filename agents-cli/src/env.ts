@@ -15,8 +15,6 @@ loadEnvironmentFiles();
 const envSchema = z.object({
   DEBUG: z.string().optional(),
   // Secrets loaded from .env files (relative to where CLI is executed)
-  INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
-  INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
 });
 

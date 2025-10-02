@@ -1,6 +1,6 @@
 ---
 title: Configuration Management
-description: Learn how to configure your Inkeep Agent projects with inkeep.config.ts and environment overrides
+description: Configure your Inkeep Agent workspace with inkeep.config.ts - workspace-level settings for all agents and CLI commands
 icon: "LuSettings"
 ---
 
@@ -12,7 +12,51 @@ Inkeep Agent projects use a hierarchical configuration system that combines file
 
 ### `inkeep.config.ts`
 
-The primary configuration file for your project:
+The **workspace-level** configuration file for your Inkeep project. This file defines settings that apply to your entire workspace, including:
+
+- **Tenant and project identification** for organizing your agents
+- **API endpoints** for the Management and Runtime APIs
+- **Authentication credentials** for secure API access
+- **Output directories** for generated files
+
+:::tip
+`inkeep.config.ts` is typically placed at the **root of your workspace** (not within individual packages or subdirectories). All CLI commands in the workspace will discover and use this configuration automatically.
+:::
+
+The configuration file supports both nested (recommended) and flat configuration formats:
+
+#### Nested Format (Recommended)
+
+```typescript
+import { defineConfig } from '@inkeep/agents-cli/config';
+import 'dotenv/config';
+
+export default defineConfig({
+  // Required: Your tenant identifier
+  tenantId: 'my-company',
+
+  // Management API configuration
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+    apiKey: process.env.MANAGE_API_KEY, // Optional: API key for authentication
+  },
+
+  // Runtime API configuration
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+    apiKey: process.env.RUN_API_KEY, // Optional: API key for authentication
+  },
+
+  // Optional: Output directory for generated files
+  outputDirectory: './output',
+});
+```
+
+#### Flat Format (Deprecated - Legacy Only)
+
+:::warning
+**Deprecated:** The flat configuration format is maintained for backward compatibility only. New projects should use the nested format above.
+:::
 
 ```typescript
 import { defineConfig } from '@inkeep/agents-cli/config';
@@ -21,26 +65,63 @@ export default defineConfig({
   // Required: Your tenant identifier
   tenantId: 'my-company',
 
-
-  // API endpoints
-  agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
-
-  // Optional: Advanced settings
-  apiTimeout: 30000,
-  retryAttempts: 3,
+  // API endpoints (legacy format - DEPRECATED)
+  agentsManageApiUrl: 'http://localhost:3002', // ⚠️ Use agentsManageApi.url instead
+  agentsRunApiUrl: 'http://localhost:3003',     // ⚠️ Use agentsRunApi.url instead
 });
 ```
 
 ### Configuration Options
 
+#### Nested Format Options
+
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
 | `tenantId` | `string` | **Required.** Unique identifier for your tenant | - |
-| `agentsManageApiUrl` | `string` | Management API endpoint | `'http://localhost:3002'` |
-| `agentsRunApiUrl` | `string` | Runtime API endpoint | `'http://localhost:3003'` |
-| `apiTimeout` | `number` | API request timeout (ms) | `30000` |
-| `retryAttempts` | `number` | Number of retry attempts | `3` |
+| `agentsManageApi` | `object` | Management API configuration | - |
+| `agentsManageApi.url` | `string` | Management API endpoint URL | `'http://localhost:3002'` |
+| `agentsManageApi.apiKey` | `string` | Optional API key for Management API authentication | - |
+| `agentsRunApi` | `object` | Runtime API configuration | - |
+| `agentsRunApi.url` | `string` | Runtime API endpoint URL | `'http://localhost:3003'` |
+| `agentsRunApi.apiKey` | `string` | Optional API key for Runtime API authentication | - |
+| `outputDirectory` | `string` | Output directory for generated files | - |
+| `manageUiUrl` | `string` | Optional Management UI URL | `'http://localhost:3000'` |
+
+#### Flat Format Options (Deprecated - Legacy)
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `tenantId` | `string` | **Required.** Unique identifier for your tenant | - |
+| `agentsManageApiUrl` | `string` | **⚠️ Deprecated.** Management API endpoint. Use `agentsManageApi.url` instead | `'http://localhost:3002'` |
+| `agentsRunApiUrl` | `string` | **⚠️ Deprecated.** Runtime API endpoint. Use `agentsRunApi.url` instead | `'http://localhost:3003'` |
+| `outputDirectory` | `string` | Output directory for generated files | - |
+| `manageUiUrl` | `string` | Optional Management UI URL | `'http://localhost:3000'` |
+
+**Note:** API keys should be provided via the config file (using environment variables) rather than using legacy `INKEEP_AGENTS_*_BYPASS_SECRET` environment variables.
+
+## Workspace Structure
+
+The `inkeep.config.ts` file is a **workspace-level configuration** that applies to all agent definitions and CLI commands within your project. Here's a typical workspace structure:
+
+```
+my-agent-workspace/
+├── inkeep.config.ts          # Workspace configuration (shared)
+├── .env                       # Environment variables
+├── package.json
+├── agents/                    # Your agent definitions
+│   ├── qa-agent.graph.ts
+│   ├── support-agent.graph.ts
+│   └── router.graph.ts
+└── tools/                     # Custom tools (optional)
+    └── search-tool.ts
+```
+
+**Key points:**
+
+- **Single config per workspace**: One `inkeep.config.ts` at the workspace root
+- **Shared settings**: All agent files use the same tenant, API endpoints, and credentials
+- **CLI discovery**: Commands run from any subdirectory will find the root config
+- **Monorepo support**: In monorepos, place config at the root or use `--config` flag
 
 ## Config File Discovery
 
@@ -144,8 +225,6 @@ inkeep push
 | `INKEEP_AGENTS_MANAGE_API_URL` | `agentsManageApiUrl` | Management API URL |
 | `INKEEP_AGENTS_RUN_API_URL` | `agentsRunApiUrl` | Runtime API URL |
 | `INKEEP_ENV` | - | Environment name for credential loading |
-| `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` | - | Optional API bypass token |
-| `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | - | Optional API bypass token |
 
 ### 3. Config File Values
 
@@ -340,14 +419,68 @@ export default defineConfig({
   tenantId: 'acme-corp-prod',
 
   // Use staging API for development
-  agentsManageApiUrl: process.env.NODE_ENV === 'development'
-    ? 'https://api-staging.acme.com'
-    : 'https://api.acme.com',
+  agentsManageApi: {
+    url: process.env.NODE_ENV === 'development'
+      ? 'https://api-staging.acme.com'
+      : 'https://api.acme.com',
+    apiKey: process.env.MANAGE_API_KEY,
+  },
 
-  // Longer timeout for large deployments
-  apiTimeout: 60000,
+  agentsRunApi: {
+    url: process.env.NODE_ENV === 'development'
+      ? 'https://run-staging.acme.com'
+      : 'https://run.acme.com',
+    apiKey: process.env.RUN_API_KEY,
+  },
 });
 ```
+
+## Migration Guide
+
+### Migrating from Flat to Nested Format
+
+If you're using the legacy flat format, here's how to migrate to the new nested format:
+
+**Before (Flat Format):**
+```typescript
+import { defineConfig } from '@inkeep/agents-cli/config';
+
+export default defineConfig({
+  tenantId: 'my-tenant',
+  agentsManageApiUrl: 'http://localhost:3002',
+  agentsRunApiUrl: 'http://localhost:3003',
+});
+```
+
+**After (Nested Format):**
+```typescript
+import { defineConfig } from '@inkeep/agents-cli/config';
+import 'dotenv/config';
+
+export default defineConfig({
+  tenantId: 'my-tenant',
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+    // Optional: Add API key for authentication
+    apiKey: process.env.MANAGE_API_KEY,
+  },
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+    // Optional: Add API key for authentication
+    apiKey: process.env.RUN_API_KEY,
+  },
+});
+```
+
+**Benefits of the Nested Format:**
+- **Explicit API Key Management**: Store API keys directly in config (via environment variables) with clear, organized structure
+- **Better Organization**: Related configuration grouped together
+- **Type Safety**: Improved IntelliSense and type checking
+- **Future-Proof**: New API configuration options can be added without cluttering the top-level config
+- **Cleaner Environment**: No need for legacy `INKEEP_AGENTS_*_BYPASS_SECRET` environment variables
+
+**Backward Compatibility:**
+The CLI fully supports both formats. You can continue using the flat format without any changes, or migrate at your convenience.
 
 ## Troubleshooting
 

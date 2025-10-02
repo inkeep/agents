@@ -5,10 +5,13 @@ import { importWithTypeScriptSupport } from './tsx-loader';
 
 const logger = getLogger('config');
 
+// Internal normalized configuration (supports both formats)
 export interface InkeepConfig {
   tenantId?: string;
   agentsManageApiUrl?: string;
   agentsRunApiUrl?: string;
+  agentsManageApiKey?: string;
+  agentsRunApiKey?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
 }
@@ -17,6 +20,8 @@ export interface ValidatedConfiguration {
   tenantId: string;
   agentsManageApiUrl: string;
   agentsRunApiUrl: string;
+  agentsManageApiKey?: string;
+  agentsRunApiKey?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
   sources: {
@@ -25,6 +30,49 @@ export interface ValidatedConfiguration {
     agentsRunApiUrl: string;
     configFile?: string;
   };
+}
+
+/**
+ * Type guard to check if config uses nested format
+ */
+function isNestedConfig(config: any): config is {
+  tenantId?: string;
+  agentsManageApi?: { url?: string; apiKey?: string };
+  agentsRunApi?: { url?: string; apiKey?: string };
+  manageUiUrl?: string;
+  outputDirectory?: string;
+} {
+  return (
+    config &&
+    (config.agentsManageApi !== undefined || config.agentsRunApi !== undefined)
+  );
+}
+
+/**
+ * Normalize config from either flat or nested format to internal format
+ */
+function normalizeConfig(config: any): InkeepConfig {
+  if (isNestedConfig(config)) {
+    // New nested format
+    return {
+      tenantId: config.tenantId,
+      agentsManageApiUrl: config.agentsManageApi?.url,
+      agentsRunApiUrl: config.agentsRunApi?.url,
+      agentsManageApiKey: config.agentsManageApi?.apiKey,
+      agentsRunApiKey: config.agentsRunApi?.apiKey,
+      manageUiUrl: config.manageUiUrl,
+      outputDirectory: config.outputDirectory,
+    };
+  } else {
+    // Legacy flat format
+    return {
+      tenantId: config.tenantId,
+      agentsManageApiUrl: config.agentsManageApiUrl,
+      agentsRunApiUrl: config.agentsRunApiUrl,
+      manageUiUrl: config.manageUiUrl,
+      outputDirectory: config.outputDirectory,
+    };
+  }
 }
 
 /**
@@ -79,13 +127,16 @@ async function loadConfigFromFile(configPath?: string): Promise<InkeepConfig | n
     const module = await importWithTypeScriptSupport(resolvedPath);
 
     // Support both default export and named export
-    const config = module.default || module.config;
+    const rawConfig = module.default || module.config;
 
-    logger.info({ config }, `Loaded config values`);
-
-    if (!config) {
+    if (!rawConfig) {
       throw new Error(`No config exported from ${resolvedPath}`);
     }
+
+    // Normalize config to internal format (handles both flat and nested)
+    const config = normalizeConfig(rawConfig);
+
+    logger.info({ config }, `Loaded config values`);
 
     return config;
   } catch (error) {
@@ -211,6 +262,8 @@ export async function validateConfiguration(
       tenantId: tenantIdFlag,
       agentsManageApiUrl: agentsManageApiUrlFlag,
       agentsRunApiUrl: agentsRunApiUrlFlag,
+      agentsManageApiKey: config.agentsManageApiKey,
+      agentsRunApiKey: config.agentsRunApiKey,
       manageUiUrl: config.manageUiUrl,
       sources,
     };
@@ -276,6 +329,8 @@ export async function validateConfiguration(
     tenantId,
     agentsManageApiUrl,
     agentsRunApiUrl,
+    agentsManageApiKey: config.agentsManageApiKey,
+    agentsRunApiKey: config.agentsRunApiKey,
     manageUiUrl: config.manageUiUrl,
     sources,
   };

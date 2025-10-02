@@ -203,5 +203,123 @@ describe('Configuration Validation', () => {
         expect(config.sources.agentsRunApiUrl).toContain('config file');
       });
     });
+
+    describe('Nested Config Format', () => {
+      it('should handle nested config format with API keys', async () => {
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'nested-tenant',
+            agentsManageApi: {
+              url: 'http://nested-management',
+              apiKey: 'manage-key-123',
+            },
+            agentsRunApi: {
+              url: 'http://nested-execution',
+              apiKey: 'run-key-456',
+            },
+          },
+        });
+
+        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+
+        expect(config.tenantId).toBe('nested-tenant');
+        expect(config.agentsManageApiUrl).toBe('http://nested-management');
+        expect(config.agentsRunApiUrl).toBe('http://nested-execution');
+        expect(config.agentsManageApiKey).toBe('manage-key-123');
+        expect(config.agentsRunApiKey).toBe('run-key-456');
+      });
+
+      it('should handle nested config format without API keys', async () => {
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'nested-tenant-no-keys',
+            agentsManageApi: {
+              url: 'http://nested-management-no-key',
+            },
+            agentsRunApi: {
+              url: 'http://nested-execution-no-key',
+            },
+          },
+        });
+
+        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+
+        expect(config.tenantId).toBe('nested-tenant-no-keys');
+        expect(config.agentsManageApiUrl).toBe('http://nested-management-no-key');
+        expect(config.agentsRunApiUrl).toBe('http://nested-execution-no-key');
+        expect(config.agentsManageApiKey).toBeUndefined();
+        expect(config.agentsRunApiKey).toBeUndefined();
+      });
+
+      it('should handle backward compatibility with flat config format', async () => {
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'flat-tenant',
+            agentsManageApiUrl: 'http://flat-management',
+            agentsRunApiUrl: 'http://flat-execution',
+          },
+        });
+
+        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+
+        expect(config.tenantId).toBe('flat-tenant');
+        expect(config.agentsManageApiUrl).toBe('http://flat-management');
+        expect(config.agentsRunApiUrl).toBe('http://flat-execution');
+        expect(config.agentsManageApiKey).toBeUndefined();
+        expect(config.agentsRunApiKey).toBeUndefined();
+      });
+
+      it('should prioritize nested format when both formats are present', async () => {
+        const { existsSync } = await import('node:fs');
+        (existsSync as any).mockImplementation((path: string) => {
+          return path.includes('inkeep.config');
+        });
+
+        const { importWithTypeScriptSupport } = await import('../utils/tsx-loader.js');
+        (importWithTypeScriptSupport as any).mockResolvedValue({
+          default: {
+            tenantId: 'mixed-tenant',
+            // Old flat format (should be ignored)
+            agentsManageApiUrl: 'http://old-management',
+            agentsRunApiUrl: 'http://old-execution',
+            // New nested format (should take priority)
+            agentsManageApi: {
+              url: 'http://new-management',
+              apiKey: 'new-manage-key',
+            },
+            agentsRunApi: {
+              url: 'http://new-execution',
+              apiKey: 'new-run-key',
+            },
+          },
+        });
+
+        const config = await validateConfiguration(undefined, undefined, undefined, undefined);
+
+        expect(config.tenantId).toBe('mixed-tenant');
+        expect(config.agentsManageApiUrl).toBe('http://new-management');
+        expect(config.agentsRunApiUrl).toBe('http://new-execution');
+        expect(config.agentsManageApiKey).toBe('new-manage-key');
+        expect(config.agentsRunApiKey).toBe('new-run-key');
+      });
+    });
   });
 });
