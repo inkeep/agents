@@ -2,7 +2,7 @@ import type { Connection, Edge, Node } from '@xyflow/react';
 import { addEdge } from '@xyflow/react';
 import { EdgeType } from '@/components/graph/configuration/edge-types';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { graphStore } from '@/features/graph/state/use-graph-store';
 import { eventBus } from '@/lib/events';
 import type { Command } from './command-manager';
 
@@ -13,11 +13,11 @@ export class AddNodeCommand implements Command {
     this.node = node;
   }
   execute() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.setNodes((prev) => prev.concat(this.node));
   }
   undo() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.setNodes((prev) => prev.filter((n) => n.id !== this.node.id));
   }
 }
@@ -25,12 +25,12 @@ export class AddNodeCommand implements Command {
 export class DeleteSelectionCommand implements Command {
   readonly name = 'DeleteSelection';
   execute() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.deleteSelected();
   }
   undo() {
     // relies on store history; in a richer system we'd capture diffs
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.undo();
   }
 }
@@ -43,7 +43,7 @@ export class ConnectEdgeCommand implements Command {
     this.connection = connection;
   }
   execute() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.setEdges((eds) => {
       const newEdges = addEdge(this.connection as any, eds);
       const last = newEdges[newEdges.length - 1];
@@ -53,7 +53,7 @@ export class ConnectEdgeCommand implements Command {
   }
   undo() {
     if (!this.createdEdgeId) return;
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     const id = this.createdEdgeId;
     actions.setEdges((eds) => eds.filter((e) => e.id !== id));
   }
@@ -69,12 +69,12 @@ export class UpdateMetadataCommand implements Command {
     this.value = value;
   }
   execute() {
-    const { metadata, actions } = useGraphStore.getState();
+    const { metadata, actions } = graphStore.getState();
     this.prev = metadata[this.field];
     actions.setMetadata(this.field, this.value);
   }
   undo() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.setMetadata(this.field, this.prev as any);
   }
 }
@@ -82,7 +82,7 @@ export class UpdateMetadataCommand implements Command {
 export class ClearSelectionCommand implements Command {
   readonly name = 'ClearSelection';
   execute() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     actions.clearSelection();
   }
   undo() {
@@ -99,7 +99,7 @@ export class AddPreparedEdgeCommand implements Command {
     this.deselectOtherEdgesIfA2A = Boolean(options?.deselectOtherEdgesIfA2A);
   }
   execute() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     if (this.edge.type === EdgeType.A2A) {
       // deselect nodes when creating an A2A edge
       actions.setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
@@ -116,7 +116,7 @@ export class AddPreparedEdgeCommand implements Command {
     });
   }
   undo() {
-    const { actions } = useGraphStore.getState();
+    const { actions } = graphStore.getState();
     const id = this.edge.id;
     actions.setEdges((eds) => eds.filter((e) => e.id !== id));
   }
