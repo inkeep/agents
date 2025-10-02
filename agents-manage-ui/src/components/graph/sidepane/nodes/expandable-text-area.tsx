@@ -38,7 +38,7 @@ const PromptEditorWithAddVariables: FC<
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          {variablesText}{' '}
+          {variablesText}
         </TooltipContent>
       </Tooltip>
     </div>
