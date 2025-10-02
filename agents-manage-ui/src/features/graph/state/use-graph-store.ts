@@ -282,6 +282,11 @@ const useGraphStoreImpl = create<GraphState>()(
   }))
 );
 
+/**
+ * Actions are functions which update values in your store. These are static and never change.
+ *
+ * @see https://tkdodo.eu/blog/working-with-zustand#separate-actions-from-state
+ */
 export const useGraphActions = () => useGraphStoreImpl((state) => state.actions);
 
 export const useGraphStore = useGraphStoreImpl;
