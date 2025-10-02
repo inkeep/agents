@@ -1,5 +1,21 @@
 # @inkeep/agents-cli
 
+## 0.13.0
+
+### Minor Changes
+
+- 1581a53: inkeep.config.ts should read apiKey from env vars, introduced nested inkeep config values for setting api url and keys
+
+### Patch Changes
+
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- Updated dependencies [079ccfa]
+- Updated dependencies [c43a622]
+- Updated dependencies [c7eae94]
+- Updated dependencies [94e010a]
+  - @inkeep/agents-manage-ui@0.13.0
+  - @inkeep/agents-core@0.13.0
+
 ## 0.12.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @inkeep/create-agents
 
+## 0.13.0
+
+### Patch Changes
+
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- 94e010a: updated base model
+
 ## 0.12.1
 
 ### Patch Changes

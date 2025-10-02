@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.13.0
+
+### Patch Changes
+
+- 079ccfa: - Fix project form bugs
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- c7eae94: Variable suggestions feature for Prompt/Graph Prompt inputs
+- Updated dependencies [c43a622]
+- Updated dependencies [94e010a]
+  - @inkeep/agents-manage-api@0.13.0
+  - @inkeep/agents-run-api@0.13.0
+  - @inkeep/agents-core@0.13.0
+
 ## 0.12.1
 
 ### Patch Changes
