@@ -208,7 +208,6 @@ function Flow({
    * when a `replace` change causes node intersections.
    **/
   const onNodesChange: typeof storeOnNodesChange = useCallback((changes) => {
-    // For non-replace changes or when no intersections, use normal handling
     storeOnNodesChange(changes);
 
     const replaceChanges = changes.filter(change => change.type === 'replace');
