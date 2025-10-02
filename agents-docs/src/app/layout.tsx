@@ -30,9 +30,9 @@ export default function Layout({ children }: { children: ReactNode }) {
               <main
                 id="nd-docs-layout"
                 className={cn(
-                  'flex flex-1 flex-col pt-(--fd-nav-height) transition-[padding] fd-default-layout',
+                  'flex flex-1 flex-col pt-[calc(var(--fd-nav-height)-0.4rem)] transition-[padding] fd-default-layout',
                   'mx-(--fd-layout-offset)',
-                  'md:[&_#nd-page_article]:pt-12 xl:[--fd-toc-width:286px] xl:[&_#nd-page_article]:px-8',
+                  'md:[&_#nd-page_article]:pt-0! xl:[--fd-toc-width:286px] xl:[&_#nd-page_article]:px-8',
                   'md:[--fd-sidebar-width:268px] lg:[--fd-sidebar-width:286px]',
                   'flex flex-1 flex-row pe-(--fd-layout-offset) max-w-fd-container relative top-[calc(var(--fd-nav-height)+1rem)] px-4 ms-auto! me-auto!',
                 )}
