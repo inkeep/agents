@@ -38,8 +38,20 @@ jobs:
       - name: Install
         uses: ./.github/composite-actions/install
 
+      - name: Setup Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Build packages
         run: pnpm build
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
       - name: Publish packages
         id: changesets
