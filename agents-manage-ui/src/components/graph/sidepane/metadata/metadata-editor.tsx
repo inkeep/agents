@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions, useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import { CollapsibleSettings } from '../collapsible-settings';
@@ -64,7 +64,7 @@ function MetadataEditor() {
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();
 
-  const { markUnsaved, setMetadata } = useGraphStore();
+  const { markUnsaved, setMetadata } = useGraphActions();
 
   const updateMetadata: typeof setMetadata = useCallback(
     (...attrs) => {

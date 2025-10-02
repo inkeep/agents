@@ -1,6 +1,6 @@
 import { useReactFlow } from '@xyflow/react';
 import { useCallback, useRef } from 'react';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions } from '@/features/graph/state/use-graph-store';
 import type { ErrorHelpers } from './use-graph-errors';
 
 interface UseNodeEditorOptions {
@@ -10,7 +10,7 @@ interface UseNodeEditorOptions {
 
 export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOptions) {
   const { updateNodeData } = useReactFlow();
-  const markUnsaved = useGraphStore((state) => state.markUnsaved);
+  const { markUnsaved } = useGraphActions();
 
   // Focus management for error fields
   const fieldRefs = useRef<Record<string, HTMLElement>>({});

@@ -26,7 +26,7 @@ import {
   extractGraphMetadata,
   serializeGraphData,
 } from '@/features/graph/domain';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions, useGraphStore } from '@/features/graph/state/use-graph-store';
 import { useGraphShortcuts } from '@/features/graph/ui/use-graph-shortcuts';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
@@ -180,20 +180,18 @@ function Flow({
   }, [graph?.agents]);
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
+  const { nodes: storeNodes, edges, metadata } = useGraphStore();
   const {
-    nodes: storeNodes,
-    edges,
     setNodes,
     setEdges,
     onNodesChange,
     onEdgesChange,
-    metadata,
     setMetadata,
     setInitial,
     markSaved,
     clearSelection,
     markUnsaved,
-  } = useGraphStore();
+  } = useGraphActions();
 
   // Always use enriched nodes for ReactFlow
   const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);

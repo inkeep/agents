@@ -95,7 +95,7 @@ const useGraphStoreImpl = create<GraphState>()(
     future: [],
     errors: null,
     showErrors: false,
-    // ⬇️ separate "namespace" for actions
+    // Separate "namespace" for actions
     actions: {
       setInitial(
         nodes,
