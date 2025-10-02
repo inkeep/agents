@@ -67,7 +67,6 @@ type GraphState = GraphStateData & {
   actions: GraphActions;
 };
 
-// Not exported, so that no one can subscribe to the entire store
 export const graphStore = create<GraphState>()(
   devtools((set, get) => ({
     nodes: [],
