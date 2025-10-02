@@ -494,10 +494,10 @@ export class Project implements ProjectInterface {
       }
 
       // Check context config for credentials
-      const contextConfig = (graph as any).contextConfig;
-      if (contextConfig) {
+      const graphContextConfig = (graph as any).contextConfig;
+      if (graphContextConfig) {
         const contextVariables =
-          contextConfig.getContextVariables?.() || contextConfig.contextVariables;
+          graphContextConfig.getContextVariables?.() || graphContextConfig.contextVariables;
         if (contextVariables) {
           for (const [key, variable] of Object.entries(contextVariables)) {
             // Check for credential references in fetch definitions
