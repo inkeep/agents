@@ -666,6 +666,8 @@ export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.exten
       ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
     ])
   ),
+  contextConfig: z.optional(ContextConfigApiInsertSchema),
+  statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: GraphStopWhenSchema.optional(),
   graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),

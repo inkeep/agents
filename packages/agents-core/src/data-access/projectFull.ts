@@ -10,7 +10,7 @@ import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
-import { listContextConfigs, upsertContextConfig } from './contextConfigs';
+import { listContextConfigs } from './contextConfigs';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
 import {
@@ -161,48 +161,6 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 4: Create contextConfigs at project level if they exist
-      if (typed.contextConfig && Object.keys(typed.contextConfig).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.contextConfig).length,
-          },
-          'Creating project contextConfigs'
-        );
-
-        const contextConfigPromises = Object.entries(typed.contextConfig).map(
-          async ([configId, configData]) => {
-            try {
-              logger.info({ projectId: typed.id, configId }, 'Creating contextConfig in project');
-              await upsertContextConfig(db)({
-                data: {
-                  ...configData,
-                  tenantId,
-                  projectId: typed.id,
-                },
-              });
-              logger.info({ projectId: typed.id, configId }, 'ContextConfig created successfully');
-            } catch (error) {
-              logger.error(
-                { projectId: typed.id, configId, error },
-                'Failed to create contextConfig in project'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(contextConfigPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.contextConfig).length,
-          },
-          'All project contextConfigs created successfully'
-        );
-      }
-
       // Step 5: Create dataComponents at project level if they exist
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
@@ -321,7 +279,6 @@ export const createFullProjectServerSide =
               tools: typed.tools || {}, // Pass project-level resources for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
-              contextConfig: typed.contextConfig?.[graphId] || undefined,
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: graphData.statusUpdates === null ? undefined : graphData.statusUpdates,
             };
@@ -516,48 +473,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 4: Update contextConfigs at project level if they exist
-      if (typed.contextConfig && Object.keys(typed.contextConfig).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.contextConfig).length,
-          },
-          'Updating project contextConfigs'
-        );
-
-        const contextConfigPromises = Object.entries(typed.contextConfig).map(
-          async ([configId, configData]) => {
-            try {
-              logger.info({ projectId: typed.id, configId }, 'Updating contextConfig in project');
-              await upsertContextConfig(db)({
-                data: {
-                  ...configData,
-                  tenantId,
-                  projectId: typed.id,
-                },
-              });
-              logger.info({ projectId: typed.id, configId }, 'ContextConfig updated successfully');
-            } catch (error) {
-              logger.error(
-                { projectId: typed.id, configId, error },
-                'Failed to update contextConfig in project'
-              );
-              throw error;
-            }
-          }
-        );
-
-        await Promise.all(contextConfigPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.contextConfig).length,
-          },
-          'All project contextConfigs updated successfully'
-        );
-      }
-
       // Step 5: Update dataComponents at project level if they exist
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
@@ -667,7 +582,10 @@ export const updateFullProjectServerSide =
       for (const graph of existingGraphs) {
         if (!incomingGraphIds.has(graph.id)) {
           try {
-            await deleteFullGraph(db, logger)({
+            await deleteFullGraph(
+              db,
+              logger
+            )({
               scopes: { tenantId, projectId: typed.id, graphId: graph.id },
             });
             deletedGraphCount++;
@@ -714,7 +632,6 @@ export const updateFullProjectServerSide =
               tools: typed.tools || {}, // Pass project-level resources for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
-              contextConfig: typed.contextConfig?.[graphId] || undefined,
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: graphData.statusUpdates === null ? undefined : graphData.statusUpdates,
             };

@@ -182,6 +182,30 @@ export class ContextConfigBuilder<
   }
 
   /**
+   * Set the context (tenantId, projectId, baseURL) for this context config
+   * Called by graph.setConfig() when the graph is configured
+   */
+  setContext(tenantId: string, projectId: string, baseURL?: string): void {
+    this.tenantId = tenantId;
+    this.projectId = projectId;
+    if (baseURL) {
+      this.baseURL = baseURL;
+    }
+    // Update the config object as well
+    this.config.tenantId = tenantId;
+    this.config.projectId = projectId;
+
+    logger.info(
+      {
+        contextConfigId: this.config.id,
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+      },
+      'ContextConfig context updated'
+    );
+  }
+
+  /**
    * Convert the builder to a plain object for database operations
    */
   toObject(): ContextConfigSelect {
