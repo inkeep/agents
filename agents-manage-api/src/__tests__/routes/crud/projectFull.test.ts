@@ -131,6 +131,12 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         id: projectId,
         name: 'Minimal Project',
         description: 'Minimal test project',
+        models: {
+          base: {
+            model: 'claude-sonnet-4',
+            providerOptions: {},
+          },
+        },
         graphs: {},
         tools: {}, // Required field
       };

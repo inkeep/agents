@@ -12,6 +12,12 @@ describe('Project CRUD Routes - Integration Tests', () => {
     id: `test-project${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
     name: `Test Project${suffix}`,
     description: `Test Description${suffix}`,
+    models: {
+      base: {
+        model: 'claude-sonnet-4',
+        providerOptions: {},
+      },
+    },
   });
 
   // Helper function to create a project and return its ID
@@ -307,6 +313,12 @@ describe('Project CRUD Routes - Integration Tests', () => {
         body: JSON.stringify({
           id: 'test-id',
           description: 'Test description',
+          models: {
+            base: {
+              model: 'claude-sonnet-4',
+              providerOptions: {},
+            },
+          },
         }),
       });
       expect(res1.status).toBe(400);
@@ -317,6 +329,12 @@ describe('Project CRUD Routes - Integration Tests', () => {
         body: JSON.stringify({
           id: 'test-id',
           name: 'Test name',
+          models: {
+            base: {
+              model: 'claude-sonnet-4',
+              providerOptions: {},
+            },
+          },
         }),
       });
       expect(res2.status).toBe(400);
@@ -327,9 +345,43 @@ describe('Project CRUD Routes - Integration Tests', () => {
         body: JSON.stringify({
           name: 'Test name',
           description: 'Test description',
+          models: {
+            base: {
+              model: 'claude-sonnet-4',
+              providerOptions: {},
+            },
+          },
         }),
       });
       expect(res3.status).toBe(400);
+
+      // Missing models
+      const res4 = await makeRequest(`/tenants/${tenantId}/projects`, {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'test-id',
+          name: 'Test name',
+          description: 'Test description',
+        }),
+      });
+      expect(res4.status).toBe(400);
+
+      // Missing base model within models
+      const res5 = await makeRequest(`/tenants/${tenantId}/projects`, {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'test-id',
+          name: 'Test name',
+          description: 'Test description',
+          models: {
+            structuredOutput: {
+              model: 'claude-sonnet-4',
+              providerOptions: {},
+            },
+          },
+        }),
+      });
+      expect(res5.status).toBe(400);
     });
   });
 

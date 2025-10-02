@@ -709,7 +709,7 @@ export const RemovedResponseSchema = z.object({
 export const ProjectSelectSchema = createSelectSchema(projects);
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
-    models: ProjectModelSchema.optional(),
+    models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
   .omit({
