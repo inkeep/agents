@@ -46,8 +46,10 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { name, isDefault, description, models } = data;
   const modelName = models?.base?.model;
 
-  const dataComponentLookup = useGraphStore((state) => state.dataComponentLookup);
-  const artifactComponentLookup = useGraphStore((state) => state.artifactComponentLookup);
+  const { dataComponentLookup, artifactComponentLookup } = useGraphStore((state) => ({
+    dataComponentLookup: state.dataComponentLookup,
+    artifactComponentLookup: state.artifactComponentLookup,
+  }));
   const { getNodeErrors, hasNodeErrors } = useGraphErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID

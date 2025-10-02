@@ -9,6 +9,7 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { MCPTool } from '@/lib/types/tools';
 import type { GraphErrorSummary } from '@/lib/utils/graph-error-parser';
+import { useShallow } from 'zustand/react/shallow';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -67,7 +68,7 @@ type GraphState = GraphStateData & {
 };
 
 // Not exported, so that no one can subscribe to the entire store
-const useGraphStoreImpl = create<GraphState>()(
+export const graphStore = create<GraphState>()(
   devtools((set, get) => ({
     nodes: [],
     edges: [],
@@ -283,10 +284,20 @@ const useGraphStoreImpl = create<GraphState>()(
 );
 
 /**
- * Actions are functions which update values in your store. These are static and never change.
+ * Actions are functions that update values in your store.
+ * These are static and do not change between renders.
  *
  * @see https://tkdodo.eu/blog/working-with-zustand#separate-actions-from-state
  */
-export const useGraphActions = () => useGraphStoreImpl((state) => state.actions);
+export const useGraphActions = () => graphStore((state) => state.actions);
 
-export const useGraphStore = useGraphStoreImpl;
+/**
+ * Select values from the graph store (excluding actions).
+ *
+ * We explicitly use `GraphStateData` instead of `GraphState`,
+ * which includes actions, to encourage using `useGraphActions`
+ * when accessing or calling actions.
+ */
+export function useGraphStore<T>(selector: (state: GraphStateData) => T): T {
+  return graphStore(useShallow(selector));
+}

@@ -180,7 +180,11 @@ function Flow({
   }, [graph?.agents]);
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { nodes: storeNodes, edges, metadata } = useGraphStore();
+  const { storeNodes, edges, metadata } = useGraphStore((state) => ({
+    storeNodes: state.nodes,
+    edges: state.edges,
+    metadata: state.metadata,
+  }));
   const {
     setNodes,
     setEdges,

@@ -12,9 +12,11 @@ const TOOLS_SHOWN_LIMIT = 4;
 
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
-  const toolLookup = useGraphStore((state) => state.toolLookup);
-  const agentToolConfigLookup = useGraphStore((state) => state.agentToolConfigLookup);
-  const edges = useGraphStore((state) => state.edges);
+  const { toolLookup, agentToolConfigLookup, edges } = useGraphStore((state) => ({
+    toolLookup: state.toolLookup,
+    agentToolConfigLookup: state.agentToolConfigLookup,
+    edges: state.edges,
+  }));
 
   const name = data.name || `Tool: ${data.toolId}`;
   const imageUrl = data.imageUrl;

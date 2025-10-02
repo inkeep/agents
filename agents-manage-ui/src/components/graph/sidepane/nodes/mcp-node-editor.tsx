@@ -36,8 +36,10 @@ export function MCPServerNodeEditor({
   const { markUnsaved } = useGraphActions();
 
   // Only use toolLookup - single source of truth
-  const toolLookup = useGraphStore((state) => state.toolLookup);
-  const edges = useGraphStore((state) => state.edges);
+  const { toolLookup, edges } = useGraphStore((state) => ({
+    toolLookup: state.toolLookup,
+    edges: state.edges,
+  }));
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);

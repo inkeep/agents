@@ -12,8 +12,10 @@ export interface ErrorHelpers {
 }
 
 export function useGraphErrors() {
-  const errors = useGraphStore((state) => state.errors);
-  const showErrors = useGraphStore((state) => state.showErrors);
+  const { errors, showErrors } = useGraphStore((state) => ({
+    errors: state.errors,
+    showErrors: state.showErrors,
+  }));
   const { hasErrors, getNodeErrors, getEdgeErrors, setErrors, clearErrors, setShowErrors } =
     useGraphActions();
 
