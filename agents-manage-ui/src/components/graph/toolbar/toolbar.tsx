@@ -19,7 +19,7 @@ export function Toolbar({
   const dirty = useGraphStore((state) => state.dirty);
   const PreviewButton = (
     <Button
-      disabled={dirty || isPreviewDisabled}
+      disabled={isPreviewDisabled}
       variant="outline"
       type="button"
       onClick={() => setShowPlayground(true)}
@@ -31,15 +31,13 @@ export function Toolbar({
 
   return (
     <div className="flex gap-2">
-      {dirty || isPreviewDisabled ? (
+      {isPreviewDisabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div>{PreviewButton}</div>
+            {PreviewButton}
           </TooltipTrigger>
           <TooltipContent>
-            {dirty
-              ? 'Please save your changes before trying the graph.'
-              : 'Please save the graph to try it.'}
+            Please save the graph to try it.
           </TooltipContent>
         </Tooltip>
       ) : (
