@@ -26,6 +26,26 @@ vi.mock('node:fs', async () => {
   };
 });
 
+// Mock the logger from agents-core using vi.hoisted() to avoid initialization issues
+const { mockLoggerFunctions } = vi.hoisted(() => {
+  return {
+    mockLoggerFunctions: {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@inkeep/agents-core', async () => {
+  const actual = await vi.importActual('@inkeep/agents-core');
+  return {
+    ...actual,
+    getLogger: vi.fn(() => mockLoggerFunctions),
+  };
+});
+
 describe('maskSensitiveConfig', () => {
   it('should mask API keys showing only last 4 characters', () => {
     const config = {
@@ -357,13 +377,6 @@ describe('Configuration Validation', () => {
           },
         });
 
-        // Spy on logger to check if keys are masked
-        const { getLogger } = await import('@inkeep/agents-core');
-        const mockLogger = {
-          info: vi.fn(),
-        };
-        vi.mocked(getLogger).mockReturnValue(mockLogger as any);
-
         const config = await validateConfiguration(undefined);
 
         // Verify the actual config has the real keys
@@ -371,8 +384,8 @@ describe('Configuration Validation', () => {
         expect(config.agentsRunApiKey).toBe('secret-run-key-67890');
 
         // Verify the logger was called with masked keys
-        expect(mockLogger.info).toHaveBeenCalled();
-        const logCalls = mockLogger.info.mock.calls;
+        expect(mockLoggerFunctions.info).toHaveBeenCalled();
+        const logCalls = mockLoggerFunctions.info.mock.calls;
 
         // Find the log call with config
         const configLogCall = logCalls.find(
@@ -381,6 +394,8 @@ describe('Configuration Validation', () => {
         );
 
         expect(configLogCall).toBeDefined();
+        if (!configLogCall) throw new Error('Config log call not found');
+
         const loggedConfig = configLogCall[0].config || configLogCall[0].mergedConfig;
 
         // Check that keys are masked (showing only last 4 chars)
@@ -409,12 +424,6 @@ describe('Configuration Validation', () => {
           },
         });
 
-        const { getLogger } = await import('@inkeep/agents-core');
-        const mockLogger = {
-          info: vi.fn(),
-        };
-        vi.mocked(getLogger).mockReturnValue(mockLogger as any);
-
         const config = await validateConfiguration(undefined);
 
         // Verify keys are undefined
@@ -422,7 +431,7 @@ describe('Configuration Validation', () => {
         expect(config.agentsRunApiKey).toBeUndefined();
 
         // Verify no errors when logging undefined keys
-        expect(mockLogger.info).toHaveBeenCalled();
+        expect(mockLoggerFunctions.info).toHaveBeenCalled();
       });
     });
   });

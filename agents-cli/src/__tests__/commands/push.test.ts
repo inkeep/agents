@@ -133,7 +133,12 @@ describe('Push Command - Project Validation', () => {
     expect(importWithTypeScriptSupport).toHaveBeenCalledWith('/test/project/index.ts');
 
     // Verify config was set on project
-    expect(mockProject.setConfig).toHaveBeenCalledWith('test-tenant', 'http://localhost:3002');
+    expect(mockProject.setConfig).toHaveBeenCalledWith(
+      'test-tenant',
+      'http://localhost:3002',
+      undefined, // models
+      undefined // apiKey (not set in mock config)
+    );
 
     // Verify init was called
     expect(mockProject.init).toHaveBeenCalled();

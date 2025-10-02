@@ -27,8 +27,18 @@ describe('ApiClient', () => {
   let executionApiClient: ExecutionApiClient;
 
   beforeEach(async () => {
-    apiClient = await ManagementApiClient.create();
-    executionApiClient = await ExecutionApiClient.create();
+    apiClient = await ManagementApiClient.create(
+      undefined,
+      undefined,
+      undefined,
+      'test-project-id'
+    );
+    executionApiClient = await ExecutionApiClient.create(
+      undefined,
+      undefined,
+      undefined,
+      'test-project-id'
+    );
     mockFetch.mockClear();
     vi.clearAllMocks();
   });
@@ -70,6 +80,7 @@ describe('ApiClient', () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
         }
       );
@@ -133,7 +144,12 @@ describe('ApiClient', () => {
         },
       });
 
-      const clientWithApiKey = await ManagementApiClient.create();
+      const clientWithApiKey = await ManagementApiClient.create(
+        undefined,
+        undefined,
+        undefined,
+        'test-project-id'
+      );
 
       const mockGraphs = [{ id: 'graph1', name: 'Test Graph 1' }];
       mockFetch.mockResolvedValueOnce({
@@ -149,6 +165,7 @@ describe('ApiClient', () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
             Authorization: 'Bearer test-api-key-123',
           },
         }
@@ -214,6 +231,7 @@ describe('ApiClient', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
           body: JSON.stringify({
             ...graphDefinition,
@@ -267,7 +285,12 @@ describe('ApiClient', () => {
         },
       });
 
-      const clientWithApiKey = await ManagementApiClient.create();
+      const clientWithApiKey = await ManagementApiClient.create(
+        undefined,
+        undefined,
+        undefined,
+        'test-project-id'
+      );
 
       const graphDefinition = {
         id: 'test-graph',
@@ -287,6 +310,7 @@ describe('ApiClient', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
             Authorization: 'Bearer test-manage-key-456',
           },
           body: JSON.stringify({
@@ -434,7 +458,12 @@ describe('ApiClient', () => {
         },
       });
 
-      const clientWithApiKey = await ExecutionApiClient.create();
+      const clientWithApiKey = await ExecutionApiClient.create(
+        undefined,
+        undefined,
+        undefined,
+        'test-project-id'
+      );
 
       const messages = [{ role: 'user', content: 'Hello' }];
       const mockStream = new ReadableStream();

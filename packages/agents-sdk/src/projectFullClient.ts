@@ -264,7 +264,8 @@ export async function getFullProjectViaAPI(
 export async function deleteFullProjectViaAPI(
   tenantId: string,
   apiUrl: string,
-  projectId: string
+  projectId: string,
+  apiKey?: string
 ): Promise<void> {
   logger.info(
     {
@@ -276,11 +277,16 @@ export async function deleteFullProjectViaAPI(
   );
 
   const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
-  const response = await fetch(url, {
+
+  // Build headers with optional Authorization
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  const response = await apiFetch(url, {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {
