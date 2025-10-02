@@ -39,9 +39,6 @@ const PromptEditorWithAddVariables: FC<
         </TooltipTrigger>
         <TooltipContent>
           {variablesText}{' '}
-          <span className="font-mono bg-foreground text-background rounded py-0.5 px-1 ms-1">
-            &#123;&thinsp;&#125;
-          </span>
         </TooltipContent>
       </Tooltip>
     </div>
