@@ -21,12 +21,13 @@ import { toast } from 'sonner';
 import { commandManager } from '@/features/graph/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/graph/commands/commands';
 import {
+  applyDagreLayout,
   deserializeGraphData,
   type ExtendedFullGraphDefinition,
   extractGraphMetadata,
   serializeGraphData,
 } from '@/features/graph/domain';
-import { useGraphActions, useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions, useGraphStore } from '@/features/graph/state/use-graph-store'
 import { useGraphShortcuts } from '@/features/graph/ui/use-graph-shortcuts';
 import { useGraphErrors } from '@/hooks/use-graph-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
@@ -179,7 +180,7 @@ function Flow({
     return lookup;
   }, [graph?.agents]);
 
-  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
+  const { screenToFlowPosition, updateNodeData, fitView, getNodes, getEdges, getIntersectingNodes } = useReactFlow();
   const { storeNodes, edges, metadata } = useGraphStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
@@ -188,7 +189,7 @@ function Flow({
   const {
     setNodes,
     setEdges,
-    onNodesChange,
+    onNodesChange: storeOnNodesChange,
     onEdgesChange,
     setMetadata,
     setInitial,
@@ -201,6 +202,39 @@ function Flow({
   const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
   const { nodeId, edgeId, setQueryState, openGraphPane, isOpen } = useSidePane();
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useGraphErrors();
+
+  /**
+   * Custom `onNodesChange` handler that relayouts the graph using Dagre
+   * when a `replace` change causes node intersections.
+   **/
+  const onNodesChange: typeof storeOnNodesChange = useCallback((changes) => {
+    // For non-replace changes or when no intersections, use normal handling
+    storeOnNodesChange(changes);
+
+    const replaceChanges = changes.filter(change => change.type === 'replace');
+    if (!replaceChanges.length) {
+      return
+    }
+    // Using `setTimeout` instead of `requestAnimationFrame` ensures updated node positions are available,
+    // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
+    setTimeout(() => {
+      const currentNodes = getNodes();
+      // Check if any of the replaced nodes are intersecting with others
+      for (const change of replaceChanges) {
+        const node = currentNodes.find(n => n.id === change.id);
+        if (!node) {
+          continue
+        }
+        // Use React Flow's intersection detection
+        const intersectingNodes = getIntersectingNodes(node);
+        if (intersectingNodes.length > 0) {
+          // Apply Dagre layout to resolve intersections
+          setNodes((prev) => applyDagreLayout(prev, getEdges()))
+          return // exit loop
+        }
+      }
+    }, 0)
+  }, [getNodes, getEdges, getIntersectingNodes, setNodes, storeOnNodesChange]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
