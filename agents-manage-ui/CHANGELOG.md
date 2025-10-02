@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.0
+
+### Patch Changes
+
+- a72a22c: Add `⌘ + S` / `Ctrl + S` (windows) shortcut to save changes
+- Updated dependencies [521a908]
+  - @inkeep/agents-manage-api@0.14.0
+  - @inkeep/agents-run-api@0.14.0
+  - @inkeep/agents-core@0.14.0
+
 ## 0.13.0
 
 ### Patch Changes

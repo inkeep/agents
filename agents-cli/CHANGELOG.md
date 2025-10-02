@@ -1,5 +1,17 @@
 # @inkeep/agents-cli
 
+## 0.14.0
+
+### Minor Changes
+
+- 7185b20: standardize config loading to fix bug with inkeep cli not respecting agents manage and run api urls
+
+### Patch Changes
+
+- Updated dependencies [a72a22c]
+  - @inkeep/agents-manage-ui@0.14.0
+  - @inkeep/agents-core@0.14.0
+
 ## 0.13.0
 
 ### Minor Changes

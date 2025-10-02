@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-api
 
+## 0.14.0
+
+### Patch Changes
+
+- 521a908: fix oauth flow setting credential ids
+  - @inkeep/agents-core@0.14.0
+
 ## 0.13.0
 
 ### Patch Changes
