@@ -15,9 +15,10 @@ import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor, type SpanProcessor, NoopSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { getLogger } from './logger';
 
 const otlpExporter = new OTLPTraceExporter();
-
+const logger = getLogger('instrumentation');
 /**
  * Creates a safe batch processor that falls back to no-op when SignOz is not configured
  */
@@ -27,6 +28,7 @@ function createSafeBatchProcessor(): SpanProcessor {
       scheduledDelayMillis: 1000,
     });
   } catch (error) {
+    logger.warn({ error }, 'Failed to create batch processor');
     return new NoopSpanProcessor();
   }
 }
