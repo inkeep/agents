@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.4
+
+### Patch Changes
+
+- 098c439: relayouts the graph using Dagre when a `replace` change causes node intersections
+- Updated dependencies [b88e9b1]
+  - @inkeep/agents-run-api@0.14.4
+  - @inkeep/agents-manage-api@0.14.4
+  - @inkeep/agents-core@0.14.4
+
 ## 0.14.3
 
 ### Patch Changes
