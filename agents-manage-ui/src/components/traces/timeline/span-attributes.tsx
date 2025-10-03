@@ -4,74 +4,100 @@ import { Streamdown } from 'streamdown';
 import { CodeBubble } from '@/components/traces/timeline/bubble';
 import { LabeledBlock } from '@/components/traces/timeline/blocks';
 
+// Constants for attribute categorization and sorting
+const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.'] as const;
+const PINNED_ATTRIBUTE_KEYS = [
+  'name',
+  'spanID',
+  'traceID',
+  'conversation.id',
+  'graph.id',
+  'project.id',
+  'parentSpanID',
+  'tenant.id',
+] as const;
+
+// Type definitions
+type SpanAttribute = string | number | boolean | object | null | undefined;
+type AttributeMap = Record<string, SpanAttribute>;
+
 interface SpanAttributesProps {
-  span: Record<string, any>;
+  span: AttributeMap;
   className?: string;
 }
 
-function separateAttributes(span: Record<string, any>) {
-  const processAttributes: Record<string, any> = {};
-  const otherAttributes: Record<string, any> = {};
+interface SeparatedAttributes {
+  processAttributes: AttributeMap;
+  otherAttributes: AttributeMap;
+  hasProcessAttributes: boolean;
+}
+
+interface ProcessAttributesSectionProps {
+  processAttributes: AttributeMap;
+}
+
+/**
+ * Separates span attributes into process-related and other attributes
+ */
+function separateAttributes(span: AttributeMap): SeparatedAttributes {
+  const processAttributes: AttributeMap = {};
+  const otherAttributes: AttributeMap = {};
 
   Object.entries(span).forEach(([key, value]) => {
-    if (key.startsWith('host.') || key.startsWith('process.')) {
+    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some(prefix => 
+      key.startsWith(prefix)
+    );
+    
+    if (isProcessAttribute) {
       processAttributes[key] = value;
     } else {
       otherAttributes[key] = value;
     }
   });
 
-  const hasProcessAttributes = Object.keys(processAttributes).length > 0;
-
   return {
     processAttributes,
     otherAttributes,
-    hasProcessAttributes,
+    hasProcessAttributes: Object.keys(processAttributes).length > 0,
   };
 }
 
-function sortAttributes(attributes: Record<string, any>) {
-  const pinnedKeys = [
-    'name', 
-    'spanID', 
-    'traceID', 
-    'conversation.id', 
-    'graph.id', 
-    'project.id', 
-    'parentSpanID', 
-    'tenant.id'
-  ];
-  const pinnedAttributes: Record<string, any> = {};
-  const remainingAttributes: Record<string, any> = {};
+/**
+ * Sorts attributes with pinned keys first, then alphabetically
+ */
+function sortAttributes(attributes: AttributeMap): AttributeMap {
+  const pinnedAttributes: AttributeMap = {};
+  const remainingAttributes: AttributeMap = {};
 
-  // Extract pinned attributes first
-  pinnedKeys.forEach(key => {
+  // Extract pinned attributes in order
+  PINNED_ATTRIBUTE_KEYS.forEach(key => {
     if (key in attributes) {
       pinnedAttributes[key] = attributes[key];
     }
   });
 
-  // Get remaining attributes and sort them alphabetically
-  Object.keys(attributes)
-    .filter(key => !pinnedKeys.includes(key))
-    .sort()
-    .forEach(key => {
-      remainingAttributes[key] = attributes[key];
-    });
+  // Get remaining attributes sorted alphabetically
+  const remainingKeys = Object.keys(attributes)
+    .filter(key => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
+    .sort();
 
-  // Combine pinned attributes first, then sorted remaining attributes
+  remainingKeys.forEach(key => {
+    remainingAttributes[key] = attributes[key];
+  });
+
   return { ...pinnedAttributes, ...remainingAttributes };
 }
 
-function ProcessAttributesSection({ processAttributes }: { processAttributes: Record<string, any> }) {
+/**
+ * Renders process attributes in a collapsible section
+ */
+function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   return (
     <div className="border rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
       <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-lg">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            Process Attributes
-          </span>
-        </div>
+        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          Process Attributes
+        </span>
       </div>
       
       <div className="p-3 rounded-b-lg">
@@ -83,14 +109,20 @@ function ProcessAttributesSection({ processAttributes }: { processAttributes: Re
   );
 }
 
+/**
+ * Main component for displaying span attributes with proper categorization and sorting
+ */
 export function SpanAttributes({ span, className }: SpanAttributesProps) {
   const { processAttributes, otherAttributes, hasProcessAttributes } = separateAttributes(span);
   const sortedOtherAttributes = sortAttributes(otherAttributes);
+  
+  const hasOtherAttributes = Object.keys(otherAttributes).length > 0;
+  const hasAnyAttributes = hasOtherAttributes || hasProcessAttributes;
 
   return (
-    <div className={`space-y-3 ${className || ''}`}>
+    <div className={`space-y-3 ${className ?? ''}`}>
       {/* Main span attributes */}
-      {Object.keys(otherAttributes).length > 0 && (
+      {hasOtherAttributes && (
         <LabeledBlock label="Advanced Span Attributes">
           <CodeBubble className="max-h-60 overflow-y-auto">
             <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
@@ -98,13 +130,13 @@ export function SpanAttributes({ span, className }: SpanAttributesProps) {
         </LabeledBlock>
       )}
 
-      {/* Process attributes in collapsible section */}
+      {/* Process attributes section */}
       {hasProcessAttributes && (
         <ProcessAttributesSection processAttributes={processAttributes} />
       )}
 
-      {/* Fallback if no attributes at all */}
-      {Object.keys(otherAttributes).length === 0 && !hasProcessAttributes && (
+      {/* Empty state */}
+      {!hasAnyAttributes && (
         <div className="text-center py-4 text-xs text-muted-foreground">
           No span attributes available
         </div>
