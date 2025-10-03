@@ -87,9 +87,9 @@ export const defaultSDK = new NodeSDK({
   instrumentations: defaultInstrumentations,
 });
 
-export async function flushBatchProcessor(batchProcessor: SpanProcessor): Promise<void> {
+export async function flushBatchProcessor(): Promise<void> {
   try {
-    await batchProcessor.forceFlush();
+    await defaultBatchProcessor.forceFlush();
   } catch (error) {
     logger.warn({ error }, 'Failed to flush batch processor');
   }
