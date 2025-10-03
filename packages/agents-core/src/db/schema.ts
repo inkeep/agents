@@ -111,7 +111,7 @@ export const agentGraph = sqliteTable(
 export const contextConfigs = sqliteTable(
   'context_configs',
   {
-    ...projectScoped,
+    ...graphScoped,
     ...uiProperties,
 
     // Developer-defined Zod schema for validating incoming request context
@@ -125,11 +125,11 @@ export const contextConfigs = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId],
-      foreignColumns: [projects.tenantId, projects.id],
-      name: 'context_configs_project_fk',
+      columns: [table.tenantId, table.projectId, table.graphId],
+      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+      name: 'context_configs_graph_fk',
     }).onDelete('cascade'),
   ]
 );
