@@ -84,7 +84,7 @@ export class ResponseFormatter {
         };
       } finally {
         span.end();
-        defaultBatchProcessor.forceFlush();
+        await defaultBatchProcessor.forceFlush();
       }
     });
   }
@@ -151,7 +151,7 @@ export class ResponseFormatter {
         return { text: responseText };
       } finally {
         span.end();
-        defaultBatchProcessor.forceFlush();
+        await defaultBatchProcessor.forceFlush();
       }
     });
   }

@@ -454,7 +454,7 @@ export class ExecutionHandler {
               throw error;
             } finally {
               span.end();
-              defaultBatchProcessor.forceFlush();
+              await defaultBatchProcessor.forceFlush();
             }
           });
         }

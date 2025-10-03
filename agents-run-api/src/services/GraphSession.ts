@@ -959,7 +959,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           return { summaries: [] };
         } finally {
           span.end();
-          defaultBatchProcessor.forceFlush();
+          await defaultBatchProcessor.forceFlush();
         }
       }
     );
@@ -1474,7 +1474,7 @@ Make it specific and relevant.`;
         } finally {
           // Always end the main span
           span.end();
-          defaultBatchProcessor.forceFlush();
+          await defaultBatchProcessor.forceFlush();
         }
       }
     );
