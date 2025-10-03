@@ -1,8 +1,10 @@
 ---
 title: Vercel
 description: Deploy the Inkeep Agent Framework to Vercel
-icon: "LuRocket"
+icon: "brand/VercelIcon"
 ---
+
+## Deploy to Vercel
 
 ### Step 1: Create a GitHub repository for your project
 
@@ -137,3 +139,46 @@ NANGO_SERVER_URL=https://api.nango.dev
 To prevent anyone from being able to access the UI, we recommend enabling Vercel authentication for all deployments: **Settings > Deployment Protection > Vercel Authentication > All Deployments**.
 
 ## Push your graph
+
+### Step 1: Configure your root .env file
+
+```
+INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
+INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
+```
+
+### Step 2: Create a cloud configuration file
+
+Create a new configuration file named `inkeep-cloud.config.ts` in your project's `src` directory, alongside your existing configuration file.
+  
+```typescript
+import { defineConfig } from '@inkeep/agents-cli/config';
+
+const config = defineConfig({
+  tenantId: "default",
+  agentsManageApi: {
+    url: 'https://<your-manage-api-url>',
+    apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+  },
+  agentsRunApi: {
+    url: 'https://<your-run-api-url>',
+    apiKey: process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
+  },
+});
+    
+export default config;
+```
+
+### Step 3: Push your graph
+
+```bash
+cd /src/<your-project-directory>
+inkeep push --config ../inkeep-cloud.config.ts
+```
+
+## Pull your graph
+
+```bash
+cd /src
+inkeep pull --config inkeep-cloud.config.ts
+```
