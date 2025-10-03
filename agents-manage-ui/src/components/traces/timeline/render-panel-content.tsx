@@ -12,6 +12,7 @@ import {
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
+import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 
 export function renderPanelContent({
   selected,
@@ -68,15 +69,10 @@ export function renderPanelContent({
     </div>
   ) : null;
 
-  const AdvancedBlock = (
-    <div className="space-y-3">
-      <div className="text-xs text-muted-foreground mb-2">Span attributes:</div>
-      {span ? (
-        <Streamdown>{`\`\`\`json\n${JSON.stringify(span, null, 2)}\n\`\`\``}</Streamdown>
-      ) : (
-        <div className="text-center py-4 text-xs text-muted-foreground">Span not found</div>
-      )}
-    </div>
+  const AdvancedBlock = span ? (
+    <SpanAttributes span={span.data} />
+  ) : (
+    <div className="text-center py-4 text-xs text-muted-foreground">Span not found</div>
   );
 
   switch (selected.type) {
@@ -247,19 +243,8 @@ export function renderPanelContent({
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
-          <div className="mt-2">
-            {SignozButton}
-            <div className="space-y-3">
-              <div className="text-xs text-muted-foreground mb-2">Span Attributes:</div>
-              {span ? (
-                <Streamdown>{`\`\`\`json\n${JSON.stringify(span, null, 2)}\n\`\`\``}</Streamdown>
-              ) : (
-                <div className="text-center py-4 text-xs text-muted-foreground">
-                  Context resolver span not found
-                </div>
-              )}
-            </div>
-          </div>
+          {SignozButton}
+          {AdvancedBlock}
         </>
       );
 
