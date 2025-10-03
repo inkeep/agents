@@ -190,6 +190,8 @@ export const VercelIcon = () => (
     xmlns="http://www.w3.org/2000/svg"
     className="w-4 h-4 shrink-0"
   >
+        <title>Vercel</title>
+
     <path
       d="M37.5274 0L75.0548 65H0L37.5274 0Z"
       fill="currentColor"
