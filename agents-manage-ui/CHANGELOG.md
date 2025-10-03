@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.3
+
+### Patch Changes
+
+- Updated dependencies [c6b3a21]
+  - @inkeep/agents-run-api@0.14.3
+  - @inkeep/agents-manage-api@0.14.3
+  - @inkeep/agents-core@0.14.3
+
 ## 0.14.2
 
 ### Patch Changes
