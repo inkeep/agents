@@ -82,6 +82,88 @@ function getBaseUrlFromRequest(c: any): string {
   return `${url.protocol}//${url.host}`;
 }
 
+/**
+ * Generate OAuth callback HTML page
+ */
+function generateOAuthCallbackPage(params: {
+  title: string;
+  message: string;
+  isSuccess: boolean;
+}): string {
+  const { title, message, isSuccess } = params;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <meta charset="utf-8">
+      <style>
+        body {
+          background-color: #000;
+          color: #fff;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          margin: 0;
+          text-align: center;
+        }
+        .container {
+          max-width: 400px;
+          padding: 2rem;
+        }
+        .title {
+          font-size: 1.2rem;
+          margin-bottom: 1rem;
+        }
+        .message {
+          color: #ccc;
+          line-height: 1.5;
+        }
+        .countdown {
+          margin-top: 1rem;
+          font-size: 0.9rem;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="title">${title}</div>
+        <div class="message">${message}</div>
+        <div class="message countdown">
+          ${isSuccess ? 'Closing automatically...' : ''}
+        </div>
+      </div>
+      <script>
+        ${
+          isSuccess &&
+          `
+        // Success: Send PostMessage then auto-close
+        if (window.opener) {
+          try {
+            window.opener.postMessage({
+              type: 'oauth-success',
+              timestamp: Date.now()
+            }, '*');
+          } catch (error) {
+            console.error('PostMessage failed:', error);
+          }
+        }
+        
+        // Auto-close after brief delay
+        setTimeout(() => {
+          window.close();
+        }, 1000);
+          `
+        }
+      </script>
+    </body>
+    </html>
+  `;
+}
+
 // OAuth login endpoint schema
 const OAuthLoginQuerySchema = z.object({
   tenantId: z.string().min(1, 'Tenant ID is required'),
@@ -220,18 +302,33 @@ app.openapi(
       // Check for OAuth errors
       if (error) {
         logger.error({ error, error_description }, 'OAuth authorization failed');
-        const errorMessage = 'OAuth Authorization Failed. Please try again.';
-        return c.text(errorMessage, 400);
+        const errorMessage =
+          error_description || error || 'OAuth Authorization Failed. Please try again.';
+
+        const errorPage = generateOAuthCallbackPage({
+          title: 'Authentication Failed',
+          message: errorMessage,
+          isSuccess: false,
+        });
+
+        return c.html(errorPage);
       }
 
       // Retrieve PKCE verifier and tool info
       const pkceData = retrievePKCEVerifier(state);
       if (!pkceData) {
         logger.error({ state }, 'Invalid or expired OAuth state');
-        return c.text(
-          'OAuth Session Expired: The OAuth session has expired or is invalid. Please try again.',
-          400
-        );
+
+        const errorMessage =
+          'OAuth Session Expired: The OAuth session has expired or is invalid. Please try again.';
+
+        const expiredPage = generateOAuthCallbackPage({
+          title: 'Session Expired',
+          message: errorMessage,
+          isSuccess: false,
+        });
+
+        return c.html(expiredPage);
       }
 
       const { codeVerifier, toolId, tenantId, projectId, clientId } = pkceData;
@@ -324,52 +421,25 @@ app.openapi(
       logger.info({ toolId, credentialId: newCredential.id }, 'OAuth flow completed successfully');
 
       // Show simple success page that auto-closes the tab
-      const successPage = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Authentication Complete</title>
-          <meta charset="utf-8">
-        </head>
-        <body>
-          <p>Authentication successful. Closing in <span id="countdown">3</span> seconds...</p>
-          <script>
-            let countdown = 3;
-            const countdownEl = document.getElementById('countdown');
-            
-            // Notify parent window of successful authentication
-            if (window.opener) {
-              window.opener.postMessage({ 
-                type: 'oauth-success', 
-                toolId: '${toolId}' 
-              }, '*');
-            }
-            
-            const timer = setInterval(() => {
-              countdown--;
-              countdownEl.textContent = countdown;
-              
-              if (countdown <= 0) {
-                clearInterval(timer);
-                window.close();
-              }
-            }, 1000);
-            
-            // Also try to close immediately for some browsers
-            setTimeout(() => {
-              window.close();
-            }, 3000);
-          </script>
-        </body>
-        </html>
-      `;
+      const successPage = generateOAuthCallbackPage({
+        title: 'Authentication Complete',
+        message: 'You have been successfully authenticated.',
+        isSuccess: true,
+      });
 
       return c.html(successPage);
     } catch (error) {
       logger.error({ error }, 'OAuth callback processing failed');
 
       const errorMessage = 'OAuth Processing Failed. Please try again.';
-      return c.text(errorMessage, 500);
+
+      const errorPage = generateOAuthCallbackPage({
+        title: 'Processing Failed',
+        message: errorMessage,
+        isSuccess: false,
+      });
+
+      return c.html(errorPage);
     }
   }
 );
