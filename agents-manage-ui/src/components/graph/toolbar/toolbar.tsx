@@ -11,11 +11,11 @@ interface ToolbarProps {
 }
 
 export function Toolbar({
-                          onSubmit,
-                          isPreviewDisabled,
-                          toggleSidePane,
-                          setShowPlayground,
-                        }: ToolbarProps) {
+  onSubmit,
+  isPreviewDisabled,
+  toggleSidePane,
+  setShowPlayground,
+}: ToolbarProps) {
   const dirty = useGraphStore((state) => state.dirty);
   const PreviewButton = (
     <Button
