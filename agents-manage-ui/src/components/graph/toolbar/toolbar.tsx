@@ -11,15 +11,15 @@ interface ToolbarProps {
 }
 
 export function Toolbar({
-  onSubmit,
-  isPreviewDisabled,
-  toggleSidePane,
-  setShowPlayground,
-}: ToolbarProps) {
+                          onSubmit,
+                          isPreviewDisabled,
+                          toggleSidePane,
+                          setShowPlayground,
+                        }: ToolbarProps) {
   const dirty = useGraphStore((state) => state.dirty);
   const PreviewButton = (
     <Button
-      disabled={isPreviewDisabled}
+      disabled={dirty || isPreviewDisabled}
       variant="outline"
       type="button"
       onClick={() => setShowPlayground(true)}
@@ -31,13 +31,15 @@ export function Toolbar({
 
   return (
     <div className="flex gap-2">
-      {isPreviewDisabled ? (
+      {dirty || isPreviewDisabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            {PreviewButton}
+            <div>{PreviewButton}</div>
           </TooltipTrigger>
           <TooltipContent>
-            Please save the graph to try it.
+            {dirty
+              ? 'Please save your changes before trying the graph.'
+              : 'Please save the graph to try it.'}
           </TooltipContent>
         </Tooltip>
       ) : (

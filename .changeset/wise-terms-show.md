@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-Allow trying the graph without saving changes
+Allow trying the graph when nodes have been repositioned
