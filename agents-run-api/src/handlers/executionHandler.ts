@@ -20,6 +20,7 @@ import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-opera
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
+import { defaultBatchProcessor } from '../instrumentation';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -453,6 +454,7 @@ export class ExecutionHandler {
               throw error;
             } finally {
               span.end();
+              defaultBatchProcessor.forceFlush();
             }
           });
         }

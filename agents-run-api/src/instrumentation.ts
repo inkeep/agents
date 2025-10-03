@@ -18,7 +18,9 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 
 const otlpExporter = new OTLPTraceExporter();
 
-export const defaultBatchProcessor = new BatchSpanProcessor(otlpExporter);
+export const defaultBatchProcessor = new BatchSpanProcessor(otlpExporter, {
+  scheduledDelayMillis: 1000,
+});
 
 export const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',

@@ -22,6 +22,7 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import { errorOp } from '../utils/agent-operations';
 import { createVercelStreamHelper } from '../utils/stream-helpers';
+import { defaultBatchProcessor } from '../instrumentation';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -169,6 +170,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       dbClient,
       credentialStores,
     });
+    defaultBatchProcessor.forceFlush();
 
     // Store last user message
     const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];

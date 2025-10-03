@@ -60,6 +60,7 @@ import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { Phase1Config } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
+import { defaultBatchProcessor } from '../instrumentation';
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -749,6 +750,7 @@ export class Agent {
         requestContext: requestContext || {},
         tenantId: this.config.tenantId,
       });
+      defaultBatchProcessor.forceFlush();
 
       // Add built-in variables to resolved context
       const contextWithBuiltins = {
@@ -1471,6 +1473,7 @@ export class Agent {
               throw err;
             } finally {
               childSpan.end();
+              defaultBatchProcessor.forceFlush();
             }
           }
         );
@@ -2041,6 +2044,7 @@ ${output}${structureHintsFormatted}`;
         // Mark span as successful
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
+        defaultBatchProcessor.forceFlush();
 
         // Format response - handle object vs text responses differently
         // Only format if we don't already have formattedContent from streaming
