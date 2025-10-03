@@ -19,8 +19,8 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
-  OTEL_BATCH_SCHEDULED_DELAY_MILLIS: z.coerce.number().optional().default(500),
-  OTEL_BATCH_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
+  OTEL_BSP_SCHEDULE_DELAY: z.coerce.number().optional().default(500),
+  OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
 });
 
 const parseEnv = () => {
