@@ -30,8 +30,8 @@ const logger = getLogger('instrumentation');
 function createSafeBatchProcessor(): SpanProcessor {
   try {
     return new BatchSpanProcessor(otlpExporter, {
-      scheduledDelayMillis: env.OTEL_BATCH_SCHEDULED_DELAY_MILLIS,
-      maxExportBatchSize: env.OTEL_BATCH_MAX_EXPORT_BATCH_SIZE,
+      scheduledDelayMillis: env.OTEL_BSP_SCHEDULE_DELAY,
+      maxExportBatchSize: env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE,
     });
   } catch (error) {
     logger.warn({ error }, 'Failed to create batch processor');
