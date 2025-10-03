@@ -84,11 +84,7 @@ export class ResponseFormatter {
         };
       } finally {
         span.end();
-        try {
-          await defaultBatchProcessor.forceFlush();
-        } catch (error) {
-          logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
-        }
+        await defaultBatchProcessor.forceFlush();
       }
     });
   }
@@ -155,11 +151,7 @@ export class ResponseFormatter {
         return { text: responseText };
       } finally {
         span.end();
-        try {
-          await defaultBatchProcessor.forceFlush();
-        } catch (error) {
-          logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
-        }
+        await defaultBatchProcessor.forceFlush();
       }
     });
   }

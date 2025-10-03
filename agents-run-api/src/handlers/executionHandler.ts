@@ -454,11 +454,7 @@ export class ExecutionHandler {
               throw error;
             } finally {
               span.end();
-              try {
-                await defaultBatchProcessor.forceFlush();
-              } catch (error) {
-                logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
-              }
+              await defaultBatchProcessor.forceFlush();
             }
           });
         }

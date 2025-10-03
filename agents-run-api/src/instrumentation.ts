@@ -13,14 +13,25 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { BatchSpanProcessor, type SpanProcessor, NoopSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 
 const otlpExporter = new OTLPTraceExporter();
 
-export const defaultBatchProcessor = new BatchSpanProcessor(otlpExporter, {
-  scheduledDelayMillis: 1000,
-});
+/**
+ * Creates a safe batch processor that falls back to no-op when SignOz is not configured
+ */
+function createSafeBatchProcessor(): SpanProcessor {
+  try {
+    return new BatchSpanProcessor(otlpExporter, {
+      scheduledDelayMillis: 1000,
+    });
+  } catch (error) {
+    return new NoopSpanProcessor();
+  }
+}
+
+export const defaultBatchProcessor = createSafeBatchProcessor();
 
 export const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',

@@ -750,11 +750,7 @@ export class Agent {
         requestContext: requestContext || {},
         tenantId: this.config.tenantId,
       });
-      try {
-        await defaultBatchProcessor.forceFlush();
-      } catch (error) {
-        logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
-      }
+      await defaultBatchProcessor.forceFlush();
 
       // Add built-in variables to resolved context
       const contextWithBuiltins = {
@@ -1477,11 +1473,7 @@ export class Agent {
               throw err;
             } finally {
               childSpan.end();
-              try {
-                await defaultBatchProcessor.forceFlush();
-              } catch (error) {
-                logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
-              }
+              await defaultBatchProcessor.forceFlush();
             }
           }
         );
@@ -2052,11 +2044,7 @@ ${output}${structureHintsFormatted}`;
         // Mark span as successful
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
-        try {
-          await defaultBatchProcessor.forceFlush();
-        } catch (error) {
-          logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
-        }
+        await defaultBatchProcessor.forceFlush();
 
         // Format response - handle object vs text responses differently
         // Only format if we don't already have formattedContent from streaming
