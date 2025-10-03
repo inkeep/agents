@@ -71,6 +71,10 @@ export class McpClient {
     );
   }
 
+  isConnected(): boolean {
+    return this.connected;
+  }
+
   async connect() {
     if (this.connected) return;
 

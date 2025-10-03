@@ -601,8 +601,7 @@ export class Agent {
   }
 
   async getMcpTool(tool: McpTool) {
-    // Create a cache key based on tool configuration
-    const cacheKey = `${tool.id}-${tool.config.mcp.server.url}-${tool.credentialReferenceId || 'no-cred'}`;
+    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}`;
 
     const credentialReferenceId = tool.credentialReferenceId;
 
@@ -689,22 +688,38 @@ export class Agent {
 
     let client = this.mcpClientCache.get(cacheKey);
 
+    if (client && !client.isConnected()) {
+      this.mcpClientCache.delete(cacheKey);
+      client = undefined;
+    }
+
     if (!client) {
       // Check if there's already a connection attempt in progress
-      const existingLock = this.mcpConnectionLocks.get(cacheKey);
-      if (existingLock) {
-        client = await existingLock;
-      } else {
-        // Create a promise for the connection attempt and store it in locks
-        const connectionPromise = this.createMcpConnection(tool, serverConfig, cacheKey);
-        this.mcpConnectionLocks.set(cacheKey, connectionPromise);
+      let connectionPromise = this.mcpConnectionLocks.get(cacheKey);
 
-        try {
-          client = await connectionPromise;
-        } finally {
-          // Clean up the lock after completion (success or failure)
-          this.mcpConnectionLocks.delete(cacheKey);
-        }
+      if (!connectionPromise) {
+        // No existing attempt - create new connection promise
+        connectionPromise = this.createMcpConnection(tool, serverConfig);
+        this.mcpConnectionLocks.set(cacheKey, connectionPromise);
+      }
+
+      try {
+        client = await connectionPromise;
+        // Only cache successful connections
+        this.mcpClientCache.set(cacheKey, client);
+      } catch (error) {
+        // Clean up failed connection attempt
+        this.mcpConnectionLocks.delete(cacheKey);
+        logger.error(
+          {
+            toolName: tool.name,
+            agentId: this.config.id,
+            cacheKey,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'MCP connection failed'
+        );
+        throw error;
       }
     }
 
@@ -716,8 +731,7 @@ export class Agent {
 
   private async createMcpConnection(
     tool: McpTool,
-    serverConfig: McpServerConfig,
-    cacheKey: string
+    serverConfig: McpServerConfig
   ): Promise<McpClient> {
     // Create and connect MCP client
     const client = new McpClient({
@@ -727,10 +741,6 @@ export class Agent {
 
     try {
       await client.connect();
-
-      // Cache the successfully connected client
-      this.mcpClientCache.set(cacheKey, client);
-
       return client;
     } catch (error) {
       logger.error(
