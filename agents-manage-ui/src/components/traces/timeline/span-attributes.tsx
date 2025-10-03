@@ -89,7 +89,7 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
 }
 
 /**
- * Renders process attributes in a collapsible section
+ * Renders process attributes
  */
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   return (
