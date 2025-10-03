@@ -92,6 +92,7 @@ export const createContextConfig = (db: DatabaseClient) => async (params: Contex
       id,
       tenantId: params.tenantId,
       projectId: params.projectId,
+      graphId: params.graphId,
       name: params.name,
       description: params.description,
       requestContextSchema: params.requestContextSchema ?? null,

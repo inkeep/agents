@@ -17,6 +17,7 @@ describe('Context Configs Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
+  const testGraphId = 'test-graph';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -311,6 +312,7 @@ describe('Context Configs Data Access', () => {
         id: 'test-config-id',
         tenantId: testTenantId,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Test Context Config',
         description: 'Test context configuration',
         requestContextSchema: { type: 'object' },
@@ -351,6 +353,7 @@ describe('Context Configs Data Access', () => {
         id: 'custom-id',
         tenantId: testTenantId,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Test Context Config',
         description: 'Test context configuration',
         requestContextSchema: null,
@@ -384,6 +387,7 @@ describe('Context Configs Data Access', () => {
         id: 'test-config-empty',
         tenantId: testTenantId,
         projectId: testProjectId,
+        graphId: testGraphId,
         name: 'Test Context Config',
         description: 'Test context configuration',
         contextVariables: {}, // Empty object should become null

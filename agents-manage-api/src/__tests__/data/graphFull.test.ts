@@ -93,8 +93,9 @@ describe('Graph Full Service Layer - Unit Tests', () => {
   });
 
   // Helper function to create test context config data
-  const createTestContextConfigData = (id: string, suffix = '') => ({
+  const createTestContextConfigData = (id: string, graphId: string, suffix = '') => ({
     id,
+    graphId,
     name: `Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
     contextSources: [
@@ -166,7 +167,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
     // Add context config if requested
     if (options.includeContextConfig) {
-      graphData.contextConfig = createTestContextConfigData(contextConfigId, '');
+      graphData.contextConfig = createTestContextConfigData(contextConfigId, id, '');
     }
 
     return graphData;
