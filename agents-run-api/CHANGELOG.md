@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.14.5
+
+### Patch Changes
+
+- 557afac: Improve mcp client connection with cache
+- Updated dependencies [557afac]
+  - @inkeep/agents-core@0.14.5
+
 ## 0.14.4
 
 ### Patch Changes

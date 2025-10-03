@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.14.5
+
+### Patch Changes
+
+- 557afac: Improve mcp client connection with cache
+
 ## 0.14.4
 
 ## 0.14.3
