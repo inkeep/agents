@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.14.1
+
+### Patch Changes
+
+- b056d33: Fix graphWithinProject schema
+
 ## 0.14.0
 
 ## 0.13.0

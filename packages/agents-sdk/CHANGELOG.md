@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.14.1
+
+### Patch Changes
+
+- b056d33: Fix graphWithinProject schema
+- Updated dependencies [b056d33]
+  - @inkeep/agents-core@0.14.1
+
 ## 0.14.0
 
 ### Patch Changes
