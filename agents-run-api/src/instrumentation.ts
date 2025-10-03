@@ -19,6 +19,7 @@ import {
   NoopSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { env } from './env';
 import { getLogger } from './logger';
 
 const otlpExporter = new OTLPTraceExporter();
@@ -29,7 +30,8 @@ const logger = getLogger('instrumentation');
 function createSafeBatchProcessor(): SpanProcessor {
   try {
     return new BatchSpanProcessor(otlpExporter, {
-      scheduledDelayMillis: 1000,
+      scheduledDelayMillis: env.OTEL_BATCH_SCHEDULED_DELAY_MILLIS,
+      maxExportBatchSize: env.OTEL_BATCH_MAX_EXPORT_BATCH_SIZE,
     });
   } catch (error) {
     logger.warn({ error }, 'Failed to create batch processor');
@@ -84,3 +86,11 @@ export const defaultSDK = new NodeSDK({
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
 });
+
+export async function flushBatchProcessor(batchProcessor: SpanProcessor): Promise<void> {
+  try {
+    await batchProcessor.forceFlush();
+  } catch (error) {
+    logger.warn({ error }, 'Failed to flush batch processor');
+  }
+}

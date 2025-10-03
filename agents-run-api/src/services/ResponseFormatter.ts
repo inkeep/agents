@@ -3,7 +3,6 @@ import { getLogger } from '../logger';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import { tracer, setSpanWithError } from '../utils/tracer';
 import { graphSessionManager } from '../services/GraphSession';
-import { defaultBatchProcessor } from '../instrumentation';
 
 const logger = getLogger('ResponseFormatter');
 
@@ -84,7 +83,6 @@ export class ResponseFormatter {
         };
       } finally {
         span.end();
-        await defaultBatchProcessor.forceFlush();
       }
     });
   }
@@ -151,7 +149,6 @@ export class ResponseFormatter {
         return { text: responseText };
       } finally {
         span.end();
-        await defaultBatchProcessor.forceFlush();
       }
     });
   }

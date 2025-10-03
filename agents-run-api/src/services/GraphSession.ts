@@ -19,7 +19,6 @@ import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { ArtifactParser } from './ArtifactParser';
 import { ArtifactService } from './ArtifactService';
-import { defaultBatchProcessor } from '../instrumentation';
 
 const logger = getLogger('GraphSession');
 
@@ -959,7 +958,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           return { summaries: [] };
         } finally {
           span.end();
-          await defaultBatchProcessor.forceFlush();
         }
       }
     );
@@ -1474,7 +1472,6 @@ Make it specific and relevant.`;
         } finally {
           // Always end the main span
           span.end();
-          await defaultBatchProcessor.forceFlush();
         }
       }
     );
