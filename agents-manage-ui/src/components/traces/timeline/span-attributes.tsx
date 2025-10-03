@@ -9,12 +9,12 @@ const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.'] as const;
 const PINNED_ATTRIBUTE_KEYS = [
   'name',
   'spanID',
-  'traceID',
-  'conversation.id',
-  'graph.id',
-  'project.id',
   'parentSpanID',
+  'traceID',
   'tenant.id',
+  'project.id',
+  'graph.id',
+  'conversation.id',
 ] as const;
 
 // Type definitions
