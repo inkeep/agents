@@ -263,19 +263,35 @@ function createExecutionHono(
 
   app.use('/tenants/*', async (_c, next) => {
     await next();
-    await defaultBatchProcessor.forceFlush();
+    try {
+      await defaultBatchProcessor.forceFlush();
+    } catch (error) {
+      logger.debug({ error }, 'Failed to flush OpenTelemetry traces - SignOz may not be configured');
+    }
   });
   app.use('/agents/*', async (_c, next) => {
     await next();
-    await defaultBatchProcessor.forceFlush();
+    try {
+      await defaultBatchProcessor.forceFlush();
+    } catch (error) {
+      logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
+    }
   });
   app.use('/v1/*', async (_c, next) => {
     await next();
-    await defaultBatchProcessor.forceFlush();
+    try {
+      await defaultBatchProcessor.forceFlush();
+    } catch (error) {
+      logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
+    }
   });
   app.use('/api/*', async (_c, next) => {
     await next();
-    await defaultBatchProcessor.forceFlush();
+    try {
+      await defaultBatchProcessor.forceFlush();
+    } catch (error) {
+      logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
+    }
   });
 
   const baseApp = new Hono();

@@ -959,7 +959,11 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           return { summaries: [] };
         } finally {
           span.end();
-          await defaultBatchProcessor.forceFlush();
+          try {
+            await defaultBatchProcessor.forceFlush();
+          } catch (error) {
+            logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
+          }
         }
       }
     );
@@ -1474,7 +1478,11 @@ Make it specific and relevant.`;
         } finally {
           // Always end the main span
           span.end();
-          await defaultBatchProcessor.forceFlush();
+          try {
+            await defaultBatchProcessor.forceFlush();
+          } catch (error) {
+            logger.debug({ error }, 'Failed to flush OpenTelemetry traces');
+          }
         }
       }
     );
