@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.6
+
+### Patch Changes
+
+- af3f015: bug fix for traces
+  - @inkeep/agents-manage-api@0.14.6
+  - @inkeep/agents-run-api@0.14.6
+  - @inkeep/agents-core@0.14.6
+
 ## 0.14.5
 
 ### Patch Changes
