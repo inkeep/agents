@@ -13,7 +13,11 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor, type SpanProcessor, NoopSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import {
+  BatchSpanProcessor,
+  type SpanProcessor,
+  NoopSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { getLogger } from './logger';
 
@@ -79,6 +83,4 @@ export const defaultSDK = new NodeSDK({
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
-
 });
-
