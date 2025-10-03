@@ -1,8 +1,9 @@
+import { DEFAULT_SIGNOZ_URL } from '@/lib/runtime-config/defaults';
 /**
  * Generate a SigNoz Traces Explorer URL scoped to a conversation that has errors.
  * Keeps columns/pagination; strips non-essential builder fields.
  */
-export function getSignozTracesExplorerUrl(conversationId: string): string {
+export function getSignozTracesExplorerUrl(conversationId: string, signozUrl?: string): string {
   const compositeQuery = {
     queryType: 'builder',
     builder: {
@@ -47,7 +48,7 @@ export function getSignozTracesExplorerUrl(conversationId: string): string {
   const encodedCompositeQuery = encodeURIComponent(
     encodeURIComponent(JSON.stringify(compositeQuery))
   );
-  const signozUrl = process.env.SIGNOZ_URL || 'http://localhost:3080';
+  const url = signozUrl || DEFAULT_SIGNOZ_URL;
 
-  return `${signozUrl}/traces-explorer?compositeQuery=${encodedCompositeQuery}&relativeTime=1month`;
+  return `${url}/traces-explorer?compositeQuery=${encodedCompositeQuery}&relativeTime=1month`;
 }

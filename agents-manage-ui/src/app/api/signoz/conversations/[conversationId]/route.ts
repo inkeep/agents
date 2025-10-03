@@ -553,7 +553,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_RESPONSE_MODEL,
+              key: SPAN_KEYS.AI_MODEL_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -620,7 +620,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_RESPONSE_MODEL,
+              key: SPAN_KEYS.AI_MODEL_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -1068,7 +1068,7 @@ export async function GET(
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
-        aiModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
+        aiModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
@@ -1118,7 +1118,7 @@ export async function GET(
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
         aiStreamTextContent: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, ''),
-        aiStreamTextModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
+        aiStreamTextModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         aiStreamTextOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),

@@ -23,6 +23,7 @@ import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -34,6 +35,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { tenantId, projectId } = useParams();
+  const { SIGNOZ_URL } = useRuntimeConfig();
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
@@ -264,7 +266,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       size="sm"
                       className="mt-3 w-full flex items-center justify-center gap-1"
                       onClick={() => {
-                        window.open(getSignozTracesExplorerUrl(conversationId as string), '_blank');
+                        window.open(getSignozTracesExplorerUrl(conversationId as string, SIGNOZ_URL), '_blank');
                       }}
                     >
                       <ExternalLinkIcon className="h-3 w-3" />
