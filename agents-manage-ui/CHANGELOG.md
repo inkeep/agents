@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.2
+
+### Patch Changes
+
+- bc14f9f: Allow trying the graph when nodes have been repositioned
+- Updated dependencies [c84d368]
+  - @inkeep/agents-run-api@0.14.2
+  - @inkeep/agents-manage-api@0.14.2
+  - @inkeep/agents-core@0.14.2
+
 ## 0.14.1
 
 ### Patch Changes
