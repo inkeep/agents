@@ -1,10 +1,11 @@
 import { defineConfig } from 'cypress';
 
 export default defineConfig({
+  // Default is Electron, we choose Chrome instead
   defaultBrowser: 'chrome',
   e2e: {
     baseUrl: 'http://localhost:3000',
-    // MacBook 15 viewport
+    // Increase default viewport, we choose use MacBook 15 viewport size
     viewportWidth: 1440,
     viewportHeight: 900,
     setupNodeEvents(_on, _config) {
