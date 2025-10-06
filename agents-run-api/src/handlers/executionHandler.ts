@@ -449,7 +449,7 @@ export class ExecutionHandler {
               logger.info({}, 'ExecutionHandler returning success');
               return { success: true, iterations, response };
             } catch (error) {
-              setSpanWithError(span, error);
+              setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
               throw error;
             } finally {
               span.end();

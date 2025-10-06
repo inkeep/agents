@@ -1529,7 +1529,8 @@ export class Agent {
               return result;
             } catch (err) {
               // Use helper function for consistent error handling
-              setSpanWithError(childSpan, err);
+              const errorObj = err instanceof Error ? err : new Error(String(err));
+              setSpanWithError(childSpan, errorObj);
               throw err;
             } finally {
               childSpan.end();
@@ -2166,10 +2167,17 @@ ${output}${structureHintsFormatted}`;
       } catch (error) {
         // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
 
+        // Convert AI SDK streaming errors to standard Error objects
+        // AI SDK throws: { type: 'error', error: { message: '...' } }
+        const errorToThrow = 
+          error && typeof error === 'object' && 'error' in error && (error as any).error?.message
+            ? new Error((error as any).error.message)
+            : error as Error;
+
         // Record exception and mark span as error
-        setSpanWithError(span, error);
+        setSpanWithError(span, errorToThrow);
         span.end();
-        throw error;
+        throw errorToThrow;
       }
     });
   }

@@ -46,46 +46,27 @@ const noopTracer = {
 } as Tracer;
 
 /**
- * AI SDK streaming error structure
- */
-interface AISDKStreamError {
-  type: 'error';
-  error: {
-    message: string;
-    type?: string;
-    code?: string;
-    param?: string | null;
-  };
-}
-
-/**
  * Helper function to handle span errors consistently
  * Records the exception, sets error status, and optionally logs
  */
 export function setSpanWithError(
   span: Span,
-  error: Error | AISDKStreamError,
+  error: Error,
   logger?: { error: (obj: any, msg?: string) => void },
   logMessage?: string
 ): void {
-  // Extract error message based on error type
-  const errorMessage = 
-    error instanceof Error 
-      ? error.message 
-      : error.error.message;
-
   // Record the exception in the span
-  span.recordException(error as Error);
+  span.recordException(error);
 
   // Set error status
   span.setStatus({
     code: SpanStatusCode.ERROR,
-    message: errorMessage,
+    message: error.message,
   });
 
   // Optionally log the error
   if (logger && logMessage) {
-    logger.error({ error: errorMessage }, logMessage);
+    logger.error({ error: error.message }, logMessage);
   }
 }
 
