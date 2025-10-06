@@ -45,7 +45,9 @@ export class PinoLogger {
       this.transportConfigs = config.transportConfigs;
     }
 
-    if (this.transportConfigs.length > 0) {
+    if (process.env.VERCEL) {
+      this.pinoInstance = pino(this.options, pino.destination({ sync: true }));
+    } else if (this.transportConfigs.length > 0) {
       this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
     } else {
       // Use pino-pretty stream directly instead of transport
