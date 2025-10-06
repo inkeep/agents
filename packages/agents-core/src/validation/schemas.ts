@@ -68,8 +68,10 @@ export const resourceIdSchema = z
 
 export const ModelSettingsSchema = z.object({
   model: z.string().optional(),
-  providerOptions: z.record(z.string(), z.unknown()).optional(),
+  providerOptions: z.record(z.string(), z.any()).optional(),
 });
+
+export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 
 export const ModelSchema = z.object({
   base: ModelSettingsSchema.optional(),

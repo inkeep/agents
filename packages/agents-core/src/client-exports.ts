@@ -18,6 +18,8 @@ import {
   FullGraphAgentInsertSchema,
   type GraphStopWhen,
   GraphStopWhenSchema,
+  type ModelSettings,
+  ModelSettingsSchema,
   type StopWhen,
   StopWhenSchema,
 } from './validation/schemas';
@@ -74,13 +76,8 @@ export const ErrorResponseSchema = z.object({
   details: z.unknown().optional(),
 });
 
-// Model Settings Schema
-export const ModelSettingsSchema = z.object({
-  model: z.string().optional(),
-  structuredOutput: z.string().optional(),
-  summarizer: z.string().optional(),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
-});
+// Model Settings Schema and type - re-exported from validation/schemas via imports above
+export { ModelSettingsSchema, type ModelSettings };
 
 // Agent API schemas (inline definitions to avoid DB imports)
 export const AgentApiInsertSchema = z.object({
@@ -270,7 +267,6 @@ export type InternalAgentDefinition = z.infer<typeof FullGraphAgentInsertSchema>
 export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
-export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 
 // Resource ID validation utilities (client-safe)
 export const MIN_ID_LENGTH = 1;
