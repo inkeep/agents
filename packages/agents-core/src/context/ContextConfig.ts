@@ -188,10 +188,12 @@ export class ContextConfigBuilder<
    * Set the context (tenantId, projectId, graphId) for this context config
    * Called by graph.setConfig() when the graph is configured
    */
-  setContext(tenantId: string, projectId: string, graphId: string): void {
+  setContext(tenantId: string, projectId: string, graphId: string, baseURL: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.graphId = graphId;
+    this.baseURL = baseURL;
+
     // Update the config object as well
     this.config.tenantId = tenantId;
     this.config.projectId = projectId;
