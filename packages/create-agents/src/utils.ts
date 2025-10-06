@@ -428,13 +428,76 @@ async function initializeGit() {
     );
   }
 }
+/**
+ * Port configuration for APIs
+ */
+const API_PORTS = {
+  runApi: { port: 3003, name: 'Run API' },
+  manageApi: { port: 3002, name: 'Manage API' },
+} as const;
+
+/**
+ * Check if a port is available
+ */
+async function isPortAvailable(port: number): Promise<boolean> {
+  const net = await import('node:net');
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => {
+      resolve(false);
+    });
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    server.listen(port);
+  });
+}
+
+/**
+ * Display port conflict error and exit
+ */
+function displayPortConflictError(unavailablePorts: {
+  runApi: boolean;
+  manageApi: boolean;
+}): never {
+  let errorMessage = '';
+  if (unavailablePorts.runApi) {
+    errorMessage += `${color.red(`${API_PORTS.runApi.name} port ${API_PORTS.runApi.port} is already in use`)}\n`;
+  }
+  if (unavailablePorts.manageApi) {
+    errorMessage += `${color.red(`${API_PORTS.manageApi.name} port ${API_PORTS.manageApi.port} is already in use`)}\n`;
+  }
+
+  p.cancel(
+    `\n${color.red('✗ Port conflicts detected')}\n\n` +
+      `${errorMessage}\n` +
+      `${color.yellow('Please free up the ports and try again.')}\n`
+  );
+  process.exit(1);
+}
+
+/**
+ * Check port availability and display errors if needed
+ */
+async function checkPortsAvailability(): Promise<void> {
+  const [runApiAvailable, manageApiAvailable] = await Promise.all([
+    isPortAvailable(API_PORTS.runApi.port),
+    isPortAvailable(API_PORTS.manageApi.port),
+  ]);
+
+  if (!runApiAvailable || !manageApiAvailable) {
+    displayPortConflictError({
+      runApi: !runApiAvailable,
+      manageApi: !manageApiAvailable,
+    });
+  }
+}
 
 async function setupProjectInDatabase(config: FileConfig) {
-  const errorLogRunApi = 'run-api-quickstart:dev: Error: Port';
-  const errorLogManageApi = 'manage-api-quickstart:dev: Error: Port';
+  // Proactively check if ports are available BEFORE starting servers
+  await checkPortsAvailability();
 
-  let runApiPortError: boolean = false;
-  let manageApiPortError: boolean = false;
   // Start development servers in background
   const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
@@ -447,33 +510,40 @@ async function setupProjectInDatabase(config: FileConfig) {
 
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
-  // Capture stdout (normal output)
-  devProcess.stdout.on('data', (data) => {
-    if (data.toString().includes(errorLogRunApi)) {
-      runApiPortError = true;
-    }
-    if (data.toString().includes(errorLogManageApi)) {
-      manageApiPortError = true;
-    }
-  });
-  // Give servers time to start
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  // Track if port errors occur during startup (as a safety fallback)
+  const portErrors = { runApi: false, manageApi: false };
 
-  // If port errors are found, exit with error
-  if (runApiPortError || manageApiPortError) {
-    let errorMessage = '';
-    if (runApiPortError) {
-      errorMessage += `${color.red('Run API port 3003 is already in use')}\n\n`;
+  // Regex patterns for detecting port errors in output
+  const portErrorPatterns = {
+    runApi: new RegExp(
+      `(EADDRINUSE.*:${API_PORTS.runApi.port}|port ${API_PORTS.runApi.port}.*already|Port ${API_PORTS.runApi.port}.*already|run-api.*Error.*Port)`,
+      'i'
+    ),
+    manageApi: new RegExp(
+      `(EADDRINUSE.*:${API_PORTS.manageApi.port}|port ${API_PORTS.manageApi.port}.*already|Port ${API_PORTS.manageApi.port}.*already|manage-api.*Error.*Port)`,
+      'i'
+    ),
+  };
+
+  // Monitor output for port errors (fallback in case ports become unavailable between check and start)
+  const checkForPortErrors = (data: Buffer) => {
+    const output = data.toString();
+    if (portErrorPatterns.runApi.test(output)) {
+      portErrors.runApi = true;
     }
-    if (manageApiPortError) {
-      errorMessage += `${color.red('Manage API port 3002 is already in use')}\n\n`;
+    if (portErrorPatterns.manageApi.test(output)) {
+      portErrors.manageApi = true;
     }
-    p.cancel(
-      `\n${color.red('✗ Port conflicts detected')}\n\n` +
-        `${color.red(errorMessage)}` +
-        `${color.yellow('Please check if the ports are already in use and try again.')}\n`
-    );
-    process.exit(1);
+  };
+
+  devProcess.stdout.on('data', checkForPortErrors);
+
+  // Give servers time to start
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  // Check if any port errors occurred during startup
+  if (portErrors.runApi || portErrors.manageApi) {
+    displayPortConflictError(portErrors);
   }
 
   // Run inkeep push
