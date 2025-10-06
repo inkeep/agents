@@ -1721,6 +1721,9 @@ export class Agent {
                   parser.markToolResult();
                 }
                 break;
+              case 'error':
+                  // Handle streaming errors by throwing them to propagate up
+                  throw event.error;
               // Handle other event types if needed
             }
           }
