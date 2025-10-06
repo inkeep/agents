@@ -66,7 +66,7 @@ describe('getConversationId', () => {
     it('should only contain URL-safe characters', () => {
       // nanoid uses A-Za-z0-9_- alphabet
       // After lowercase conversion: a-z0-9_-
-      const urlSafePattern = /^[a-z0-9_-]+$/;
+      const urlSafePattern = /^[a-z0-9]+$/;
 
       for (let i = 0; i < 50; i++) {
         const id = getConversationId();
@@ -86,7 +86,7 @@ describe('getConversationId', () => {
       // IDs should be valid
       for (const id of ids) {
         expect(id.length).toBeGreaterThan(0);
-        expect(/^[a-z0-9_-]+$/.test(id)).toBe(true);
+        expect(/^[a-z0-9]+$/.test(id)).toBe(true);
       }
     });
   });
