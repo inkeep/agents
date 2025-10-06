@@ -391,6 +391,18 @@ export function TimelineItem({
             </div>
           )}
 
+          {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
+          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
+            activity.aiTelemetryFunctionId &&
+            !activity.toolName?.includes('delegate') &&
+            !activity.toolName?.includes('transfer') && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  {activity.aiTelemetryFunctionId}
+                </Badge>
+              </div>
+            )}
+
           {/* OTEL status for failed agent.generate spans */}
           {activity.type === ACTIVITY_TYPES.AI_GENERATION &&
             activity.name === 'agent.generate' &&

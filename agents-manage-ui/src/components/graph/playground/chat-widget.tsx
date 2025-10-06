@@ -151,7 +151,7 @@ export function ChatWidget({
                 stopPollingTimeoutRef.current = setTimeout(() => {
                   stopPolling();
                   stopPollingTimeoutRef.current = null;
-                }, 5000);
+                }, 15000);
               }
               if (event.eventName === 'user_message_submitted') {
                 // Cancel any pending stop polling timeout since we need to keep polling

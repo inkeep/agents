@@ -210,6 +210,10 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
               key: SPAN_KEYS.DELEGATION_FROM_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
@@ -867,6 +871,7 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
+      const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_AGENT_ID, '');
       const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_AGENT_ID, '');
       const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
@@ -935,6 +940,7 @@ export async function GET(
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
+        aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromAgentId: delegationFromAgentId || undefined,
         delegationToAgentId: delegationToAgentId || undefined,
         transferFromAgentId: transferFromAgentId || undefined,
