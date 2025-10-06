@@ -55,7 +55,18 @@ export function setSpanWithError(
   logger?: { error: (obj: any, msg?: string) => void },
   logMessage?: string
 ): void {
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  // Extract error message, handling nested error structures from AI SDK
+  let errorMessage = 'Unknown error';
+  
+  if (error && typeof error === 'object' && 'error' in error) {
+    // Handle AI SDK streaming errors with nested error.error.message structure
+    const nestedError = (error as any).error;
+    if (nestedError && typeof nestedError === 'object' && nestedError.message) {
+      errorMessage = nestedError.message;
+    }
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
+  }
 
   // Record the exception in the span
   span.recordException(error as Error);
