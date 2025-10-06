@@ -6,6 +6,7 @@ export function setupOpenAPIRoutes(app: any) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
+      console.log('Generating OpenAPI document');
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
