@@ -31,6 +31,9 @@ const DIRECTORY_VALIDATION = {
 };
 const execAsync = promisify(exec);
 
+const manageApiPort = '3002';
+const runApiPort = '3003';
+
 export const defaultGoogleModelConfigurations = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
@@ -74,8 +77,6 @@ type FileConfig = {
   openAiKey?: string;
   anthropicKey?: string;
   googleKey?: string;
-  manageApiPort?: string;
-  runApiPort?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
   disableGit?: boolean;
@@ -95,8 +96,6 @@ export const createAgents = async (
 ) => {
   let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId, disableGit } = args;
   const tenantId = 'default';
-  const manageApiPort = '3002';
-  const runApiPort = '3003';
 
   let projectId: string;
   let templateName: string;
@@ -264,8 +263,6 @@ export const createAgents = async (
       openAiKey,
       anthropicKey,
       googleKey,
-      manageApiPort: manageApiPort || '3002',
-      runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
       disableGit: disableGit,
@@ -325,8 +322,8 @@ export const createAgents = async (
         `  cd ${dirName}\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:${manageApiPort || '3002'}\n` +
-        `  • Run API: http://localhost:${runApiPort || '3003'}\n` +
+        `  • Manage API: http://localhost:3002\n` +
+        `  • Run API: http://localhost:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -429,14 +426,6 @@ async function initializeGit() {
   }
 }
 /**
- * Port configuration for APIs
- */
-const API_PORTS = {
-  runApi: { port: 3003, name: 'Run API' },
-  manageApi: { port: 3002, name: 'Manage API' },
-} as const;
-
-/**
  * Check if a port is available
  */
 async function isPortAvailable(port: number): Promise<boolean> {
@@ -463,10 +452,10 @@ function displayPortConflictError(unavailablePorts: {
 }): never {
   let errorMessage = '';
   if (unavailablePorts.runApi) {
-    errorMessage += `${color.red(`${API_PORTS.runApi.name} port ${API_PORTS.runApi.port} is already in use`)}\n`;
+    errorMessage += `${color.red(`Run API port ${runApiPort} is already in use`)}\n`;
   }
   if (unavailablePorts.manageApi) {
-    errorMessage += `${color.red(`${API_PORTS.manageApi.name} port ${API_PORTS.manageApi.port} is already in use`)}\n`;
+    errorMessage += `${color.red(`Manage API port ${manageApiPort} is already in use`)}\n`;
   }
 
   p.cancel(
@@ -482,8 +471,8 @@ function displayPortConflictError(unavailablePorts: {
  */
 async function checkPortsAvailability(): Promise<void> {
   const [runApiAvailable, manageApiAvailable] = await Promise.all([
-    isPortAvailable(API_PORTS.runApi.port),
-    isPortAvailable(API_PORTS.manageApi.port),
+    isPortAvailable(Number(runApiPort)),
+    isPortAvailable(Number(manageApiPort)),
   ]);
 
   if (!runApiAvailable || !manageApiAvailable) {
@@ -516,11 +505,11 @@ async function setupProjectInDatabase(config: FileConfig) {
   // Regex patterns for detecting port errors in output
   const portErrorPatterns = {
     runApi: new RegExp(
-      `(EADDRINUSE.*:${API_PORTS.runApi.port}|port ${API_PORTS.runApi.port}.*already|Port ${API_PORTS.runApi.port}.*already|run-api.*Error.*Port)`,
+      `(EADDRINUSE.*:${runApiPort}|port ${runApiPort}.*already|Port ${runApiPort}.*already|run-api.*Error.*Port)`,
       'i'
     ),
     manageApi: new RegExp(
-      `(EADDRINUSE.*:${API_PORTS.manageApi.port}|port ${API_PORTS.manageApi.port}.*already|Port ${API_PORTS.manageApi.port}.*already|manage-api.*Error.*Port)`,
+      `(EADDRINUSE.*:${manageApiPort}|port ${manageApiPort}.*already|Port ${manageApiPort}.*already|manage-api.*Error.*Port)`,
       'i'
     ),
   };
