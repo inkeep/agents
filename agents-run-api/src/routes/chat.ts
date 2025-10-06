@@ -8,6 +8,7 @@ import {
   getActiveAgentForConversation,
   getAgentById,
   getAgentGraphWithDefaultAgent,
+  getConversationId,
   getFullGraph,
   getRequestExecutionContext,
   handleContextResolution,
@@ -191,7 +192,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
     // Get conversationId from request body or generate new one
     const body = c.get('requestBody') || {};
-    const conversationId = body.conversationId || nanoid();
+    const conversationId = body.conversationId || getConversationId();
 
     // Get the graph from the full graph system first, fall back to legacy system
     const fullGraph = await getFullGraph(dbClient)({

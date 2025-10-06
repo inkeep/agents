@@ -1,5 +1,4 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { conversations, messages } from '../db/schema';
 import type {
@@ -11,6 +10,7 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../types/index';
+import { getConversationId } from '../utils/conversations';
 
 export const listConversations =
   (db: DatabaseClient) =>
@@ -159,7 +159,7 @@ export const getConversation =
 // Create or get existing conversation
 export const createOrGetConversation =
   (db: DatabaseClient) => async (input: ConversationInsert) => {
-    const conversationId = input.id || nanoid();
+    const conversationId = input.id || getConversationId();
 
     // Check if conversation already exists
     if (input.id) {
@@ -243,7 +243,7 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
       // Add a summary message for truncated history if there are more messages
       if (i > 0) {
         const summaryMessage = {
-          id: `summary-${nanoid()}`,
+          id: `summary-${getConversationId()}`,
           role: 'system',
           content: {
             text: `[Previous conversation history truncated - ${i + 1} earlier messages]`,
