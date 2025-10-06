@@ -37,7 +37,9 @@
     "format:check": "biome format",
     "typecheck": "tsc --noEmit",
     "test": "vitest --run",
-    "test:coverage": "vitest --run --coverage"
+    "test:coverage": "vitest --run --coverage",
+    "test:e2e": "cypress run",
+    "test:e2e:ci": "cypress run --browser chrome --headless"
   },
   "dependencies": {
     "@codemirror/lint": "^6.8.5",
@@ -102,6 +104,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "cypress": "^15.3.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
