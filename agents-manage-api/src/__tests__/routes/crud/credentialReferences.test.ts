@@ -731,11 +731,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       vi.clearAllMocks();
       globalThis.callOrder = [];
 
-      // Use the shared mock instances stored globally
-      globalThis.mockCredentialStore = globalThis.sharedMockStores.mockCredentialStore;
-      globalThis.mockNangoStore = globalThis.sharedMockStores.mockNangoStore;
-      globalThis.mockMemoryStore = globalThis.sharedMockStores.mockMemoryStore;
-      globalThis.mockTrackingStore = globalThis.sharedMockStores.mockTrackingStore;
+      // Use the shared mock instances stored globally - with null check for test isolation
+      if (globalThis.sharedMockStores) {
+        globalThis.mockCredentialStore = globalThis.sharedMockStores.mockCredentialStore;
+        globalThis.mockNangoStore = globalThis.sharedMockStores.mockNangoStore;
+        globalThis.mockMemoryStore = globalThis.sharedMockStores.mockMemoryStore;
+        globalThis.mockTrackingStore = globalThis.sharedMockStores.mockTrackingStore;
+      }
     });
 
     it('should cleanup both local DB and external store atomically', async () => {
