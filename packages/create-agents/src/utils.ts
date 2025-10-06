@@ -430,6 +430,12 @@ async function initializeGit() {
 }
 
 async function setupProjectInDatabase(config: FileConfig) {
+  const errorLogRunApi = 'run-api-quickstart:dev: Error: Port';
+  const errorLogManageApi = 'manage-api-quickstart:dev: Error: Port';
+
+  let runApiPortError: boolean = false;
+  let manageApiPortError: boolean = false;
+  // Start development servers in background
   const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -441,6 +447,36 @@ async function setupProjectInDatabase(config: FileConfig) {
 
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
+  // Capture stdout (normal output)
+  devProcess.stdout.on('data', (data) => {
+    if (data.toString().includes(errorLogRunApi)) {
+      runApiPortError = true;
+    }
+    if (data.toString().includes(errorLogManageApi)) {
+      manageApiPortError = true;
+    }
+  });
+  // Give servers time to start
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  // If port errors are found, exit with error
+  if (runApiPortError || manageApiPortError) {
+    let errorMessage = '';
+    if (runApiPortError) {
+      errorMessage += `${color.red('Run API port 3003 is already in use')}\n\n`;
+    }
+    if (manageApiPortError) {
+      errorMessage += `${color.red('Manage API port 3002 is already in use')}\n\n`;
+    }
+    p.cancel(
+      `\n${color.red('✗ Port conflicts detected')}\n\n` +
+        `${color.red(errorMessage)}` +
+        `${color.yellow('Please check if the ports are already in use and try again.')}\n`
+    );
+    process.exit(1);
+  }
+
+  // Run inkeep push
   try {
     await execAsync(
       `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`
