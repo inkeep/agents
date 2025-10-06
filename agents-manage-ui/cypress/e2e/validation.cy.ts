@@ -20,5 +20,8 @@ describe('Validation', () => {
 
     // Check for validation errors
     cy.contains('Validation Errors (2)').should('exist');
+
+    cy.contains('Agent Errors (2)').click();
+    cy.contains('Agent is missing required field: Prompt').should('exist');
   });
 });
