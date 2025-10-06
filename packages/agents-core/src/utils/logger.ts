@@ -56,6 +56,7 @@ export class PinoLogger {
       console.log('Pino: using console.log passthrough for Vercel');
     } else if (this.transportConfigs.length > 0) {
       this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
+      console.log('Pino: using transport configs');
     } else {
       // Use pino-pretty stream directly instead of transport
       try {
@@ -64,7 +65,7 @@ export class PinoLogger {
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
         });
-
+        console.log('Pino: using pino-pretty stream');
         this.pinoInstance = pino(this.options, prettyStream);
       } catch (error) {
         // Fall back to standard pino if pino-pretty fails
@@ -99,7 +100,7 @@ export class PinoLogger {
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
         });
-
+        console.log('Pino: using pino-pretty stream');
         this.pinoInstance = pino(this.options, prettyStream);
       } catch (error) {
         // Fall back to standard pino if pino-pretty fails
@@ -107,6 +108,7 @@ export class PinoLogger {
         this.pinoInstance = pino(this.options);
       }
     } else {
+      console.log('Pino: using transport configs');
       const multiTransport: TransportMultiOptions = { targets: this.transportConfigs };
       const pinoTransport = pino.transport(multiTransport);
       this.pinoInstance = pino(this.options, pinoTransport);
