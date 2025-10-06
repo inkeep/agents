@@ -46,8 +46,14 @@ export class PinoLogger {
     }
 
     if (process.env.VERCEL) {
-      this.pinoInstance = pino(this.options, pino.destination({ sync: true }));
-      console.log('Vercel detected, using sync transport');
+      this.pinoInstance = pino({
+        ...this.options,
+        browser: {
+          asObject: true,
+          write: (o) => console.log(JSON.stringify(o)),
+        },
+      });
+      console.log('Pino: using console.log passthrough for Vercel');
     } else if (this.transportConfigs.length > 0) {
       this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
     } else {
@@ -77,8 +83,14 @@ export class PinoLogger {
     }
 
     if (process.env.VERCEL) {
-      this.pinoInstance = pino(this.options, pino.destination({ sync: true }));
-      console.log('Vercel detected, using sync transport');
+      this.pinoInstance = pino({
+        ...this.options,
+        browser: {
+          asObject: true,
+          write: (o) => console.log(JSON.stringify(o)),
+        },
+      });
+      console.log('Pino: using console.log passthrough for Vercel');
     } else if (this.transportConfigs.length === 0) {
       // Use pino-pretty stream directly instead of transport (same as constructor)
       try {
