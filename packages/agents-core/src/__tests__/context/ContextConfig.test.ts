@@ -233,7 +233,7 @@ describe('ContextConfig', () => {
         graphId: 'old-graph',
       });
 
-      config.setContext('new-tenant', 'new-project', 'new-graph');
+      config.setContext('new-tenant', 'new-project', 'new-graph', 'https://new-url.com');
 
       const obj = config.toObject();
       expect(obj.tenantId).toBe('new-tenant');
