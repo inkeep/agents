@@ -216,6 +216,7 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
       templateVariablePlugin,
       templateVariableTheme,
       createTemplateVariableLinter(suggestions),
+      EditorView.lineWrapping,
     ];
   }, [contextConfig]);
 
