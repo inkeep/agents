@@ -1,5 +1,14 @@
 # @inkeep/agents-sdk
 
+## 0.14.7
+
+### Patch Changes
+
+- d891309: Fix default graph id
+- Updated dependencies [d891309]
+- Updated dependencies [735d238]
+  - @inkeep/agents-core@0.14.7
+
 ## 0.14.6
 
 ### Patch Changes

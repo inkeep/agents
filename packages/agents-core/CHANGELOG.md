@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.14.7
+
+### Patch Changes
+
+- d891309: Fix default graph id
+- 735d238: normalize conversation ids
+
 ## 0.14.6
 
 ## 0.14.5
