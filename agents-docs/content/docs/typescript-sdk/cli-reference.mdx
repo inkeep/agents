@@ -11,7 +11,11 @@ The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framewo
 ## Installation
 
 ```bash
+# Install the CLI globally
 npm install -g @inkeep/agents-cli
+
+# Install the dashboard package (for visual agents orchestration)
+npm install @inkeep/agents-manage-ui
 ```
 
 ## Global Options
@@ -314,6 +318,8 @@ inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-ap
 ### `inkeep dev`
 
 Start the Inkeep dashboard server, build for production, or export the Next.js project.
+
+> **Note:** This command requires `@inkeep/agents-manage-ui` to be installed for visual agents orchestration.
 
 ```bash
 inkeep dev

@@ -29,7 +29,13 @@ function resolveWebRuntime(isRoot = false) {
 
     return join(root, '.next/standalone/agents-manage-ui');
   } catch (err) {
-    throw new Error(`Could not find @inkeep/agents-manage-ui package. ${err}`);
+    throw new Error(
+      `Could not find @inkeep/agents-manage-ui package. Please install it first:\n\n` +
+        `  npm install @inkeep/agents-manage-ui\n` +
+        `  # or\n` +
+        `  pnpm add @inkeep/agents-manage-ui\n\n` +
+        `Error: ${err instanceof Error ? err.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -100,6 +106,9 @@ async function buildNextApp({ outputDir }: { outputDir: string }) {
     if (!existsSync(standalonePath)) {
       spinner.fail('Standalone build not found');
       console.error(chalk.red('The standalone build has not been created yet.'));
+      console.error(chalk.yellow('Please build the dashboard first:'));
+      console.error(chalk.gray('  cd node_modules/@inkeep/agents-manage-ui'));
+      console.error(chalk.gray('  npm run build'));
       process.exit(1);
     }
 
@@ -126,9 +135,7 @@ async function buildNextApp({ outputDir }: { outputDir: string }) {
       scripts: {
         start: 'node server.js',
       },
-      dependencies: {
-        '@inkeep/agents-manage-ui': 'latest',
-      },
+      dependencies: {},
     };
 
     await fs.writeJson(join(outputDir, 'package.json'), packageJson, { spaces: 2 });
@@ -179,6 +186,10 @@ async function exportNextApp({ outputDir }: { outputDir: string }) {
     if (!existsSync(root)) {
       spinner.fail('Source project not found');
       console.error(chalk.red('The @inkeep/agents-manage-ui package was not found.'));
+      console.error(chalk.yellow('Please install it first:'));
+      console.error(chalk.gray('  npm install @inkeep/agents-manage-ui'));
+      console.error(chalk.gray('  # or'));
+      console.error(chalk.gray('  pnpm add @inkeep/agents-manage-ui'));
       process.exit(1);
     }
 

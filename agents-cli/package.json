@@ -37,7 +37,6 @@
     "@babel/types": "^7.23.0",
     "@clack/prompts": "^0.11.0",
     "@inkeep/agents-core": "workspace:^",
-    "@inkeep/agents-manage-ui": "workspace:^",
     "@libsql/client": "^0.15.7",
     "ai": "5.0.11",
     "ast-types": "^0.14.2",
@@ -72,7 +71,8 @@
     "pino-pretty": "^13.1.1"
   },
   "peerDependencies": {
-    "zod": "^4.1.11"
+    "zod": "^4.1.11",
+    "@inkeep/agents-manage-ui": "*"
   },
   "engines": {
     "node": ">=22.0.0"
