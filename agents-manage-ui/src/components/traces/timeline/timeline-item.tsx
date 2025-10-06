@@ -393,9 +393,9 @@ export function TimelineItem({
 
           {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.aiTelemetryFunctionId &&
-            !activity.toolName?.includes('delegate') &&
-            !activity.toolName?.includes('transfer') && (
+            activity.aiTelemetryFunctionId && 
+            activity.toolType !== 'delegation' && 
+            activity.toolType !== 'transfer' && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
                   {activity.aiTelemetryFunctionId}
