@@ -2166,14 +2166,7 @@ ${output}${structureHintsFormatted}`;
         return formattedResponse;
       } catch (error) {
         // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
-
-        // Convert AI SDK streaming errors to standard Error objects
-        // AI SDK throws: { type: 'error', error: { message: '...' } }
-        const errorToThrow = 
-          error && typeof error === 'object' && 'error' in error && (error as any).error?.message
-            ? new Error((error as any).error.message)
-            : error as Error;
-
+        const errorToThrow = error instanceof Error ? error : new Error(String(error));
         // Record exception and mark span as error
         setSpanWithError(span, errorToThrow);
         span.end();
