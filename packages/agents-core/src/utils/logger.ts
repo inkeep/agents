@@ -47,6 +47,7 @@ export class PinoLogger {
 
     if (process.env.VERCEL) {
       this.pinoInstance = pino(this.options, pino.destination({ sync: true }));
+      console.log('Vercel detected, using sync transport');
     } else if (this.transportConfigs.length > 0) {
       this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
     } else {
@@ -75,7 +76,10 @@ export class PinoLogger {
       this.pinoInstance.flush();
     }
 
-    if (this.transportConfigs.length === 0) {
+    if (process.env.VERCEL) {
+      this.pinoInstance = pino(this.options, pino.destination({ sync: true }));
+      console.log('Vercel detected, using sync transport');
+    } else if (this.transportConfigs.length === 0) {
       // Use pino-pretty stream directly instead of transport (same as constructor)
       try {
         const prettyStream = pinoPretty({
