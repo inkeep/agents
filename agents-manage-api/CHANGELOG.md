@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-api
 
+## 0.14.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.8
+
 ## 0.14.7
 
 ### Patch Changes

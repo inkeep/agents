@@ -1,5 +1,13 @@
 # @inkeep/agents-cli
 
+## 0.14.8
+
+### Patch Changes
+
+- 1a0c8a0: Separate manage ui
+  - @inkeep/agents-manage-ui@0.14.8
+  - @inkeep/agents-core@0.14.8
+
 ## 0.14.7
 
 ### Patch Changes
