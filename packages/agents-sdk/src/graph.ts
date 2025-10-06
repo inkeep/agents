@@ -151,9 +151,9 @@ export class AgentGraph implements GraphInterface {
       }
     }
 
-    // Update context config tenant ID, project ID, and baseURL if present
+    // Update context config tenant ID, project ID, and graph ID if present
     if (this.contextConfig?.setContext) {
-      this.contextConfig.setContext(tenantId, projectId, apiUrl);
+      this.contextConfig.setContext(tenantId, projectId, this.graphId);
     }
 
     logger.info(
