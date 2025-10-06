@@ -1,11 +1,15 @@
 import { swaggerUI } from '@hono/swagger-ui';
 import type { Context } from 'hono';
 import { env } from './env';
+import { getLogger } from './logger';
+
+const logger = getLogger('setupOpenAPIRoutes');
 
 export function setupOpenAPIRoutes(app: any) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
+      logger.info({}, 'logger Generating OpenAPI document');
       console.log('Generating OpenAPI document');
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
@@ -24,6 +28,7 @@ export function setupOpenAPIRoutes(app: any) {
       });
       return c.json(document);
     } catch (error) {
+      logger.warn({}, 'logger OpenAPI document generation failed');
       console.error('OpenAPI document generation failed:', error);
       const errorDetails =
         error instanceof Error
