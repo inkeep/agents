@@ -1,5 +1,14 @@
 # @inkeep/agents-run-api
 
+## 0.14.12
+
+### Patch Changes
+
+- 9c12ca8: error parse and span fix
+- a05d397: reduce log spam during tests runs
+- Updated dependencies [a05d397]
+  - @inkeep/agents-core@0.14.12
+
 ## 0.14.11
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+- Updated dependencies [9c12ca8]
+- Updated dependencies [a05d397]
+  - @inkeep/agents-manage-ui@0.14.12
+  - @inkeep/agents-core@0.14.12
+  - @inkeep/agents-sdk@0.14.12
+
 ## 0.14.11
 
 ### Patch Changes

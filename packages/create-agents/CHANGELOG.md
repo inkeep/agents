@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+
 ## 0.14.11
 
 ### Patch Changes
