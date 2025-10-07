@@ -25,6 +25,10 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
+    - name: Push Weather Example Project
+      shell: bash
+      run: cd examples && npx inkeep push --project my-weather-project
+
     # Start the backend API server
     - name: Start Backend API Server
       shell: bash
