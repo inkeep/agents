@@ -56,6 +56,7 @@ describe('projectFullClient', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify(mockProjectData),
       });
@@ -96,6 +97,7 @@ describe('projectFullClient', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
           body: JSON.stringify(mockProjectData),
         }
@@ -135,6 +137,7 @@ describe('projectFullClient', () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
         }
       );
@@ -182,6 +185,7 @@ describe('projectFullClient', () => {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
         }
       );

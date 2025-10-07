@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from 'react';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions } from '@/features/graph/state/use-graph-store';
 
 export function useGraphShortcuts() {
-  const { undo, redo, deleteSelected } = useGraphStore();
+  const { undo, redo, deleteSelected } = useGraphActions();
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {

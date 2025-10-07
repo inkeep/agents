@@ -72,7 +72,6 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
   }
 
   try {
-    logger.info({ payload }, 'SigNoz payload');
     const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
     const response = await axios.post(signozEndpoint, payload, {
       headers: {
@@ -82,11 +81,11 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
       timeout: 30000,
     });
     const json = response.data as SigNozResp;
-    const responseData = json?.data?.result?.map((r) => ({
+    const responseData = json?.data?.result ? json.data.result.map((r) => ({
       queryName: r.queryName,
       count: r.list?.length,
-    }));
-    logger.info({ responseData }, 'SigNoz response (truncated)');
+    })) : [];
+    logger.debug({ responseData }, 'SigNoz response (truncated)');
     return json;
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
@@ -210,6 +209,10 @@ function buildConversationListPayload(
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
             {
               key: SPAN_KEYS.DELEGATION_FROM_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -553,7 +556,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_RESPONSE_MODEL,
+              key: SPAN_KEYS.AI_MODEL_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -620,7 +623,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_RESPONSE_MODEL,
+              key: SPAN_KEYS.AI_MODEL_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -868,6 +871,7 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
+      const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_AGENT_ID, '');
       const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_AGENT_ID, '');
       const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
@@ -936,6 +940,7 @@ export async function GET(
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
+        aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromAgentId: delegationFromAgentId || undefined,
         delegationToAgentId: delegationToAgentId || undefined,
         transferFromAgentId: transferFromAgentId || undefined,
@@ -1068,7 +1073,7 @@ export async function GET(
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
-        aiModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
+        aiModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
@@ -1118,7 +1123,7 @@ export async function GET(
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
         aiStreamTextContent: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, ''),
-        aiStreamTextModel: getString(span, SPAN_KEYS.AI_RESPONSE_MODEL, 'Unknown Model'),
+        aiStreamTextModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         aiStreamTextOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),

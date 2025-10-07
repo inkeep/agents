@@ -9,6 +9,7 @@ A command-line interface for managing and interacting with Inkeep Agent Framewor
 - Node.js >= 20.x
 - pnpm package manager
 - Inkeep Agent Framework backend running (default: http://localhost:3002)
+- `@inkeep/agents-manage-ui` package installed (for visual agents orchestration)
 
 ### Quick Start
 
@@ -57,20 +58,29 @@ A command-line interface for managing and interacting with Inkeep Agent Framewor
    - The command is still `inkeep` even though the package name is `@inkeep/agents-cli`
    - If linking fails, try unlinking first: `npm unlink -g @inkeep/agents-cli`
 
-3. **Configure your project**
+3. **Install the dashboard package (for visual agents orchestration)**
 
-   ```bash
-   # Create an inkeep.config.ts file with your tenant ID
-   inkeep init
+```bash
+# Install the dashboard UI package for visual agents orchestration
+npm install @inkeep/agents-manage-ui
+# or
+pnpm add @inkeep/agents-manage-ui
+```
 
-   # Or manually create inkeep.config.ts:
-   # export default defineConfig({
-   #   tenantId: "your-tenant-id",
-   #   projectId: "your-project-id",
-   #   agentsManageApiUrl: "http://localhost:3002",
-   #   agentsRunApiUrl: "http://localhost:3003"
-   # });
-   ```
+4. **Configure your project**
+
+```bash
+# Create an inkeep.config.ts file with your tenant ID
+inkeep init
+
+# Or manually create inkeep.config.ts:
+# export default defineConfig({
+#   tenantId: "your-tenant-id",
+#   projectId: "your-project-id",
+#   agentsManageApiUrl: "http://localhost:3002",
+#   agentsRunApiUrl: "http://localhost:3003"
+# });
+```
 
 ## Configuration
 

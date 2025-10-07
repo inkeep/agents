@@ -97,6 +97,7 @@ describe('Cascading Delete Tests', () => {
     const contextConfig = {
       tenantId,
       projectId,
+      graphId,
       id: nanoid(),
       name: 'Test Context Config',
       description: 'Test context configuration',

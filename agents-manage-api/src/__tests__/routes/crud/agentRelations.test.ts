@@ -268,7 +268,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-relations-list-empty');
       await ensureTestProject(tenantId, projectId);
       const { agentGraphId } = await setupTestEnvironment(tenantId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
       );
       expect(res.status).toBe(200);
@@ -289,7 +289,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
         targetAgentId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations`
       );
       expect(res.status).toBe(200);
@@ -326,7 +326,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
         targetAgentId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations?sourceAgentId=${sourceAgentId}`
       );
       expect(res.status).toBe(200);
@@ -359,7 +359,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
         targetAgentId: otherTargetAgentId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations?targetAgentId=${targetAgentId}`
       );
       expect(res.status).toBe(200);
@@ -396,7 +396,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       });
 
       // Filter for transfer relations only
-      const transferRes = await app.request(
+      const transferRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations?sourceAgentId=${sourceAgentId}`
       );
       expect(transferRes.status).toBe(200);
@@ -423,7 +423,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
         targetAgentId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`
       );
       expect(res.status).toBe(200);
@@ -440,7 +440,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should return 404 when agent relation not found', async () => {
       const tenantId = createTestTenantId('agent-relations-get-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/default/agent-relations/non-existent-id`
       );
       expect(res.status).toBe(404);
@@ -539,7 +539,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
         targetAgentId,
       });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`,
         {
           method: 'DELETE',
@@ -548,7 +548,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(204);
 
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${agentGraphId}/agent-relations/${agentRelationId}`
       );
       expect(getRes.status).toBe(404);
@@ -557,7 +557,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should return 404 when deleting non-existent agent relation', async () => {
       const tenantId = createTestTenantId('agent-relations-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/default/agent-relations/non-existent-id`,
         {
           method: 'DELETE',

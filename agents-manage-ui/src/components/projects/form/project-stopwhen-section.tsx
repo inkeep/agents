@@ -1,8 +1,9 @@
 'use client';
 
 import { ChevronRight, Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { Control } from 'react-hook-form';
-import { useWatch } from 'react-hook-form';
+import { useFormState, useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -18,6 +19,17 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
   // Check if any stopWhen values are configured to determine default open state
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
+  const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);
+
+  const { errors } = useFormState({ control });
+  const hasStopWhenErrors = !!(errors.stopWhen?.transferCountIs || errors.stopWhen?.stepCountIs);
+
+  // Auto-open the collapsible when there are errors in the stopWhen section
+  useEffect(() => {
+    if (hasStopWhenErrors) {
+      setIsOpen(true);
+    }
+  }, [hasStopWhenErrors]);
 
   return (
     <div className="space-y-4">
@@ -28,7 +40,11 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
         </p>
       </div>
 
-      <Collapsible defaultOpen={hasConfiguredStopWhen} className="border rounded-md bg-background">
+      <Collapsible
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        className="border rounded-md bg-background"
+      >
         <CollapsibleTrigger asChild>
           <Button
             type="button"

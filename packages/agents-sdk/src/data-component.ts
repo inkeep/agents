@@ -10,7 +10,7 @@ export interface DataComponentInterface {
   getName(): DataComponentType['name'];
   getDescription(): DataComponentType['description'];
   getProps(): DataComponentType['props'];
-  setContext(tenantId: string, projectId: string): void;
+  setContext(tenantId: string, projectId: string, baseURL?: string): void;
 }
 
 export class DataComponent implements DataComponentInterface {
@@ -41,10 +41,13 @@ export class DataComponent implements DataComponentInterface {
     );
   }
 
-  // Set context (tenantId and projectId) from external source (agent, graph, CLI, etc)
-  setContext(tenantId: string, projectId: string): void {
+  // Set context (tenantId, projectId, and baseURL) from external source (agent, graph, CLI, etc)
+  setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
+    if (baseURL) {
+      this.baseURL = baseURL;
+    }
   }
 
   // Compute ID from name using same slug transformation as agents

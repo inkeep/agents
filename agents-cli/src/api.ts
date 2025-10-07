@@ -1,20 +1,22 @@
-import { env } from './env';
-import {
-  getAgentsManageApiUrl,
-  getAgentsRunApiUrl,
-  getProjectId,
-  getTenantId,
-} from './utils/config';
+// Import shared API client from agents-core
+import { apiFetch } from '@inkeep/agents-core';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
   protected tenantId: string | undefined;
   protected projectId: string;
+  protected apiKey: string | undefined;
 
-  protected constructor(apiUrl: string, tenantId: string | undefined, projectId: string) {
+  protected constructor(
+    apiUrl: string,
+    tenantId: string | undefined,
+    projectId: string,
+    apiKey?: string
+  ) {
     this.apiUrl = apiUrl;
     this.tenantId = tenantId;
     this.projectId = projectId;
+    this.apiKey = apiKey;
   }
 
   protected checkTenantId(): string {
@@ -22,6 +24,26 @@ abstract class BaseApiClient {
       throw new Error('No tenant ID configured. Please run: inkeep init');
     }
     return this.tenantId;
+  }
+
+  /**
+   * Wrapper around fetch that automatically includes Authorization header if API key is present
+   */
+  protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    // Build headers with Authorization if API key is present
+    const headers: Record<string, string> = {
+      ...((options.headers as Record<string, string>) || {}),
+    };
+
+    // Add Authorization header if API key is provided
+    if (this.apiKey) {
+      headers.Authorization = `Bearer ${this.apiKey}`;
+    }
+
+    return apiFetch(url, {
+      ...options,
+      headers,
+    });
   }
 
   getTenantId(): string | undefined {
@@ -38,8 +60,13 @@ abstract class BaseApiClient {
 }
 
 export class ManagementApiClient extends BaseApiClient {
-  private constructor(apiUrl: string, tenantId: string | undefined, projectId: string) {
-    super(apiUrl, tenantId, projectId);
+  private constructor(
+    apiUrl: string,
+    tenantId: string | undefined,
+    projectId: string,
+    apiKey?: string
+  ) {
+    super(apiUrl, tenantId, projectId, apiKey);
   }
 
   static async create(
@@ -48,25 +75,26 @@ export class ManagementApiClient extends BaseApiClient {
     tenantIdOverride?: string,
     projectIdOverride?: string
   ): Promise<ManagementApiClient> {
-    const resolvedApiUrl = await getAgentsManageApiUrl(apiUrl, configPath);
-    const tenantId = tenantIdOverride || (await getTenantId(configPath));
-    const projectId = projectIdOverride || (await getProjectId(configPath));
-    return new ManagementApiClient(resolvedApiUrl, tenantId, projectId);
+    // Load config from file
+    const { validateConfiguration } = await import('./utils/config.js');
+    const config = await validateConfiguration(configPath);
+
+    // Allow overrides from parameters
+    const resolvedApiUrl = apiUrl || config.agentsManageApiUrl;
+    const tenantId = tenantIdOverride || config.tenantId;
+    const projectId = projectIdOverride || '';
+
+    return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
   }
 
   async listGraphs(): Promise<any[]> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
-    const response = await fetch(
+
+    const response = await this.authenticatedFetch(
       `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
       {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
-          }),
-        },
       }
     );
 
@@ -102,16 +130,10 @@ export class ManagementApiClient extends BaseApiClient {
     }
 
     // Try to update first using PUT, if it doesn't exist, it will create it
-    const response = await fetch(
+    const response = await this.authenticatedFetch(
       `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
       {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-            Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
-          }),
-        },
         body: JSON.stringify(graphDefinition),
       }
     );
@@ -124,11 +146,43 @@ export class ManagementApiClient extends BaseApiClient {
     const data = await response.json();
     return data.data;
   }
+
+  /**
+   * Fetch full project data including all graphs, tools, and components
+   */
+  async getFullProject(projectId: string): Promise<any> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
+      {
+        method: 'GET',
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Project "${projectId}" not found`);
+      }
+      if (response.status === 401) {
+        throw new Error('Unauthorized - check your API key');
+      }
+      throw new Error(`Failed to fetch project: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    return responseData.data;
+  }
 }
 
 export class ExecutionApiClient extends BaseApiClient {
-  private constructor(apiUrl: string, tenantId: string | undefined, projectId: string) {
-    super(apiUrl, tenantId, projectId);
+  private constructor(
+    apiUrl: string,
+    tenantId: string | undefined,
+    projectId: string,
+    apiKey?: string
+  ) {
+    super(apiUrl, tenantId, projectId, apiKey);
   }
 
   static async create(
@@ -137,10 +191,16 @@ export class ExecutionApiClient extends BaseApiClient {
     tenantIdOverride?: string,
     projectIdOverride?: string
   ): Promise<ExecutionApiClient> {
-    const resolvedApiUrl = await getAgentsRunApiUrl(apiUrl, configPath);
-    const tenantId = tenantIdOverride || (await getTenantId(configPath));
-    const projectId = projectIdOverride || (await getProjectId(configPath));
-    return new ExecutionApiClient(resolvedApiUrl, tenantId, projectId);
+    // Load config from file
+    const { validateConfiguration } = await import('./utils/config.js');
+    const config = await validateConfiguration(configPath);
+
+    // Allow overrides from parameters
+    const resolvedApiUrl = apiUrl || config.agentsRunApiUrl;
+    const tenantId = tenantIdOverride || config.tenantId;
+    const projectId = projectIdOverride || '';
+
+    return new ExecutionApiClient(resolvedApiUrl, tenantId, projectId, config.agentsRunApiKey);
   }
 
   async chatCompletion(
@@ -148,14 +208,10 @@ export class ExecutionApiClient extends BaseApiClient {
     messages: any[],
     conversationId?: string
   ): Promise<ReadableStream<Uint8Array> | string> {
-    const response = await fetch(`${this.apiUrl}/v1/chat/completions`, {
+    const response = await this.authenticatedFetch(`${this.apiUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-        ...(env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
-          Authorization: `Bearer ${env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
-        }),
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,
         'x-inkeep-graph-id': graphId,

@@ -58,7 +58,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     it('should list tools with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('tools-list-empty');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools?page=1&limit=10`
       );
       expect(res.status).toBe(200);
@@ -72,7 +72,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       await createTestTool({ tenantId });
 
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools?status=unhealthy`
       );
       expect(res.status).toBe(200);
@@ -88,7 +88,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { toolData, toolId } = await createTestTool({ tenantId });
 
-      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`);
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data.id).toBe(toolId);
@@ -99,7 +99,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     it('should return 404 when tool not found', async () => {
       const tenantId = createTestTenantId('tools-get-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`
       );
       expect(res.status).toEqual(404);
@@ -182,12 +182,12 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('tools-delete-success');
       await ensureTestProject(tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
-      const res = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
         method: 'DELETE',
       });
       expect(res.status).toBe(204);
 
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(getRes.status).toBe(404);
@@ -196,7 +196,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     it('should return 404 when tool not found for deletion', async () => {
       const tenantId = createTestTenantId('tools-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const res = await app.request(
+      const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
         {
           method: 'DELETE',
@@ -214,7 +214,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const { toolId } = await createTestTool({ tenantId });
 
       // 2. Get tool
-      const getRes = await app.request(
+      const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(getRes.status).toBe(200);
@@ -230,13 +230,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
 
       // 4. List tools (should include our tool)
-      const listRes = await app.request(`/tenants/${tenantId}/projects/${projectId}/tools`);
+      const listRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`);
       expect(listRes.status).toBe(200);
       const listBody = await listRes.json();
       expect(listBody.data).toHaveLength(1);
 
       // 5. Delete tool
-      const deleteRes = await app.request(
+      const deleteRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
         {
           method: 'DELETE',
@@ -245,7 +245,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(deleteRes.status).toBe(204);
 
       // 6. Verify deletion
-      const finalGetRes = await app.request(
+      const finalGetRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
       );
       expect(finalGetRes.status).toBe(404);

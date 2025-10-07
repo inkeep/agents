@@ -2,7 +2,7 @@
 # Pre-push hook for Agent Framework
 #
 # This hook runs before each push to ensure code quality.
-# It runs a single optimized turbo command (pnpm check) that:
+# It runs a single optimized turbo command (pnpm check:husky) that:
 #   - Builds once (cached and reused by all tasks)
 #   - Runs lint, typecheck, and test in parallel after build
 #   - Matches the exact CI pipeline behavior
@@ -14,12 +14,12 @@
 # For more information, see CONTRIBUTING.md
 
 echo "🚀 Running pre-push checks (matching CI pipeline)..."
-echo "   Using 'pnpm check' - builds once, then runs lint, typecheck, and test in parallel"
+echo "   Using 'pnpm check:husky' - builds once, then runs lint, typecheck, and test in parallel"
 
 # Run the unified check command that matches CI pipeline exactly
-if ! pnpm check; then
+if ! pnpm check:husky; then
   echo "❌ Pre-push checks failed. Fix the issues above before pushing."
-  echo "   Run 'pnpm check' locally to reproduce the CI checks."
+  echo "   Run 'pnpm check:husky' locally to reproduce the CI checks."
   exit 1
 fi
 

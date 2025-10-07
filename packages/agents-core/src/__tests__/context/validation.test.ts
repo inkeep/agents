@@ -61,6 +61,7 @@ describe('contextConfig.toTemplate', () => {
   const config = contextConfig({
     id: 'test',
     name: 'Test',
+    graphId: 'test-graph',
     requestContextSchema: z.object({ token: z.string() }),
     contextVariables: { user: userFetcher },
   });

@@ -1,5 +1,54 @@
 # @inkeep/create-agents
 
+## 0.14.13
+
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+
+## 0.14.10
+
+## 0.14.9
+
+## 0.14.8
+
+## 0.14.7
+
+## 0.14.6
+
+## 0.14.5
+
+## 0.14.4
+
+## 0.14.3
+
+## 0.14.2
+
+## 0.14.1
+
+## 0.14.0
+
+## 0.13.0
+
+### Patch Changes
+
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- 94e010a: updated base model
+
+## 0.12.1
+
+### Patch Changes
+
+- 2c255ba: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+
 ## 0.12.0
 
 ## 0.11.3

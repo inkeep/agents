@@ -13,12 +13,33 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { BatchSpanProcessor, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import {
+  BatchSpanProcessor,
+  type SpanProcessor,
+  NoopSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { env } from './env';
+import { getLogger } from './logger';
 
 const otlpExporter = new OTLPTraceExporter();
+const logger = getLogger('instrumentation');
+/**
+ * Creates a safe batch processor that falls back to no-op when SignOz is not configured
+ */
+function createSafeBatchProcessor(): SpanProcessor {
+  try {
+    return new BatchSpanProcessor(otlpExporter, {
+      scheduledDelayMillis: env.OTEL_BSP_SCHEDULE_DELAY,
+      maxExportBatchSize: env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE,
+    });
+  } catch (error) {
+    logger.warn({ error }, 'Failed to create batch processor');
+    return new NoopSpanProcessor();
+  }
+}
 
-export const defaultBatchProcessor = new BatchSpanProcessor(otlpExporter);
+export const defaultBatchProcessor = createSafeBatchProcessor();
 
 export const defaultResource = resourceFromAttributes({
   [ATTR_SERVICE_NAME]: 'inkeep-agents-run-api',
@@ -64,6 +85,12 @@ export const defaultSDK = new NodeSDK({
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
-
 });
 
+export async function flushBatchProcessor(): Promise<void> {
+  try {
+    await defaultBatchProcessor.forceFlush();
+  } catch (error) {
+    logger.warn({ error }, 'Failed to flush batch processor');
+  }
+}

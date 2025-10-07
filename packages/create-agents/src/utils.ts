@@ -37,10 +37,10 @@ export const defaultAnthropicModelConfigurations = {
     model: 'anthropic/claude-sonnet-4-20250514',
   },
   structuredOutput: {
-    model: 'anthropic/claude-3-5-haiku-20241022',
+    model: 'anthropic/claude-sonnet-4-20250514',
   },
   summarizer: {
-    model: 'anthropic/claude-3-5-haiku-20241022',
+    model: 'anthropic/claude-sonnet-4-20250514',
   },
 };
 
@@ -126,7 +126,7 @@ export const createAgents = async (
   // Project ID is already determined above based on template/customProjectId logic
 
   // If keys aren't provided via CLI args, prompt for provider selection and keys
-  if (!anthropicKey && !openAiKey) {
+  if (!anthropicKey && !openAiKey && !googleKey) {
     const providerChoice = await p.select({
       message: 'Which AI provider would you like to use?',
       options: [
@@ -203,6 +203,12 @@ export const createAgents = async (
     defaultModelSettings = defaultOpenaiModelConfigurations;
   } else if (googleKey) {
     defaultModelSettings = defaultGoogleModelConfigurations;
+  }
+
+  // Ensure models are always configured - fail if none were set
+  if (Object.keys(defaultModelSettings).length === 0) {
+    p.cancel('Cannot continue without a model configuration for project. Please provide an API key for at least one AI provider.');
+    process.exit(1);
   }
 
   const s = p.spinner();

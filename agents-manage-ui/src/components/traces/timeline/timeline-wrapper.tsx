@@ -101,9 +101,9 @@ function EmptyTimeline({
                 <ExternalLink
                   className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200 ml-0 mt-1"
                   iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
-                  href={`${DOCS_BASE_URL}/quick-start/observability`}
+                  href={`${DOCS_BASE_URL}/quick-start/traces`}
                 >
-                  View observability setup guide
+                  View traces setup guide
                 </ExternalLink>
               </div>
             )}
@@ -211,23 +211,31 @@ export function TimelineWrapper({
       .filter(
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          (activity.hasError && activity.otelStatusDescription)
       )
+      .map((activity) => activity.id);
+  }, [sortedActivities]);
+
+  // Memoize stream text IDs for cleaner collapse logic
+  const streamTextIds = useMemo(() => {
+    return sortedActivities
+      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
   // Initialize AI messages based on view type when activities change
   useEffect(() => {
     if (enableAutoScroll) {
-      // Live trace view: default collapsed
+      // Live trace view: collapse all AI messages
       setCollapsedAiMessages(new Set(aiMessageIds));
       setAiMessagesGloballyCollapsed(true);
     } else {
-      // Conversation details view: default expanded
-      setCollapsedAiMessages(new Set());
-      setAiMessagesGloballyCollapsed(false);
+      // Conversation details view: collapse only ai.streamText.doStream spans
+      setCollapsedAiMessages(new Set(streamTextIds));
+      setAiMessagesGloballyCollapsed(streamTextIds.length === aiMessageIds.length);
     }
-  }, [aiMessageIds, enableAutoScroll]);
+  }, [aiMessageIds, streamTextIds, enableAutoScroll]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
@@ -255,7 +263,8 @@ export function TimelineWrapper({
       .filter(
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
     const allCollapsed = aiMessageIds.every((id) => newCollapsed.has(id));
@@ -316,7 +325,8 @@ export function TimelineWrapper({
                 {sortedActivities.some(
                   (activity) =>
                     activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+                    (activity.hasError && activity.otelStatusDescription)
                 ) && (
                   <div className="flex items-center gap-1">
                     <Button

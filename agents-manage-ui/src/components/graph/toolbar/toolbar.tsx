@@ -2,6 +2,8 @@ import { Play, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useEffect, useRef } from 'react';
+import { isMacOs } from '@/lib/utils';
 
 interface ToolbarProps {
   onSubmit: () => void;
@@ -17,6 +19,7 @@ export function Toolbar({
   setShowPlayground,
 }: ToolbarProps) {
   const dirty = useGraphStore((state) => state.dirty);
+  const saveButtonRef = useRef<HTMLButtonElement>(null!);
   const PreviewButton = (
     <Button
       disabled={dirty || isPreviewDisabled}
@@ -28,6 +31,21 @@ export function Toolbar({
       Try it
     </Button>
   );
+
+  useEffect(() => {
+    function handleSaveShortcut(event: KeyboardEvent) {
+      const isShortcutPressed = (isMacOs() ? event.metaKey : event.ctrlKey) && event.key === 's';
+      if (!isShortcutPressed) return;
+      event.preventDefault();
+      // Using button ref instead onSubmit to respect button's disabled state
+      saveButtonRef.current.click();
+    }
+
+    window.addEventListener('keydown', handleSaveShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleSaveShortcut);
+    };
+  }, []);
 
   return (
     <div className="flex gap-2">
@@ -49,6 +67,7 @@ export function Toolbar({
         onClick={onSubmit}
         variant={dirty ? 'default' : 'outline'}
         disabled={!dirty && !isPreviewDisabled}
+        ref={saveButtonRef}
       >
         {isPreviewDisabled ? 'Save' : 'Save changes'}
       </Button>

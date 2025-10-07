@@ -11,11 +11,11 @@ export function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
     icons: '/icon.svg',
-    metadataBase: new URL('https://https://docs.inkeep.com//'),
+    metadataBase: new URL('https://docs.inkeep.com//'),
     openGraph: {
       title: override.title ?? undefined,
       description: override.description ?? undefined,
-      url: 'https://https://docs.inkeep.com//',
+      url: 'https://docs.inkeep.com//',
       //   images: "/banner.png",
       siteName: 'Inkeep Agents',
       ...override.openGraph,

@@ -64,15 +64,18 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     suffix = '',
     tenantId = 'default-tenant',
     projectId = 'default',
+    graphId,
   }: {
     id: string;
     suffix?: string;
     tenantId?: string;
     projectId?: string;
+    graphId: string;
   }) => ({
     id,
     tenantId,
     projectId,
+    graphId,
     name: `Test Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
     requestContextSchema: {
@@ -221,6 +224,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         suffix: 'Main',
         tenantId,
         projectId: projectIdParam,
+        graphId: id,
       });
     }
 

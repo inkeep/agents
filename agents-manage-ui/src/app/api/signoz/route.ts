@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
     logger.info({ status: response.status }, 'SigNoz response received');
 
     const data = response.data;
-    logger.info({ dataLength: JSON.stringify(data).length }, 'SigNoz response data received');
 
     return NextResponse.json(data);
   } catch (error) {

@@ -3,42 +3,26 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
 import { ExecutionApiClient, ManagementApiClient } from '../api';
-import type { ValidatedConfiguration } from '../utils/config';
-import { validateConfiguration } from '../utils/config';
+import { initializeCommand } from '../utils/cli-pipeline';
 
 export interface ChatOptions {
-  tenantId?: string;
-  agentsManageApiUrl?: string;
-  agentsRunApiUrl?: string;
   config?: string;
   configFilePath?: string; // deprecated, kept for backward compatibility
 }
 
 export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatOptions) {
-  // Validate configuration
-  let config: ValidatedConfiguration;
-  try {
-    // Use new config parameter, fall back to configFilePath for backward compatibility
-    const configPath = options?.config || options?.configFilePath;
-    config = await validateConfiguration(
-      options?.tenantId,
-      options?.agentsManageApiUrl,
-      options?.agentsRunApiUrl,
-      configPath
-    );
-  } catch (error: any) {
-    console.error(chalk.red(error.message));
-    process.exit(1);
-  }
+  console.log(chalk.cyan('🤖 Inkeep Chat Interface\n'));
 
-  // Log configuration sources for debugging
-  console.log(chalk.gray('Using configuration:'));
-  console.log(chalk.gray(`  • Tenant ID: ${config.sources.tenantId}`));
-  console.log(chalk.gray(`  • Management API: ${config.sources.agentsManageApiUrl}`));
-  console.log(chalk.gray(`  • Execution API: ${config.sources.agentsRunApiUrl}`));
+  // Use standardized CLI pipeline for initialization
+  const configPath = options?.config || options?.configFilePath;
+  const { config } = await initializeCommand({
+    configPath,
+    showSpinner: false,
+    logConfig: true,
+  });
+
   console.log();
 
-  const configPath = options?.config || options?.configFilePath;
   const managementApi = await ManagementApiClient.create(
     config.agentsManageApiUrl,
     configPath,

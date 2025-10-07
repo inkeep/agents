@@ -16,10 +16,7 @@ export type MessageMode = 'full' | 'scoped' | 'none';
 
 export type Models = z.infer<typeof ModelSchema>;
 export type ProjectModels = z.infer<typeof ProjectModelSchema>;
-export type ModelSettings = {
-  model?: string;
-  providerOptions?: Record<string, unknown>;
-};
+// Note: ModelSettings is exported directly from validation/schemas.ts (no need to re-export here)
 
 export type StatusUpdateSettings = z.infer<typeof StatusUpdateSchema>;
 export type StatusComponent = z.infer<typeof StatusComponentSchema>;

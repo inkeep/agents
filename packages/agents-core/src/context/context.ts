@@ -208,7 +208,7 @@ async function handleContextResolution({
           'context.final_status': 'failed',
           'context.error_message': errorMessage,
         });
-        setSpanWithError(parentSpan, error);
+        setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
         logger.error(
           {
             error: errorMessage,

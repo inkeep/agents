@@ -1,7 +1,8 @@
 'use client';
 
 import { ChevronRight, Info } from 'lucide-react';
-import { type Control, useController, useWatch } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { ModelSelector } from '@/components/graph/sidepane/nodes/model-selector';
@@ -179,6 +180,25 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
 }
 
 export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { errors } = useFormState({ control });
+
+  const hasModelsErrors = !!(
+    errors.models?.base?.model ||
+    errors.models?.base?.providerOptions ||
+    errors.models?.structuredOutput?.model ||
+    errors.models?.structuredOutput?.providerOptions ||
+    errors.models?.summarizer?.model ||
+    errors.models?.summarizer?.providerOptions
+  );
+
+  // Auto-open the collapsible when there are errors in the models section
+  useEffect(() => {
+    if (hasModelsErrors) {
+      setIsOpen(true);
+    }
+  }, [hasModelsErrors]);
+
   return (
     <div className="space-y-4">
       <div>
@@ -188,7 +208,11 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
         </p>
       </div>
 
-      <Collapsible defaultOpen={false} className="border rounded-md bg-background">
+      <Collapsible
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        className="border rounded-md bg-background"
+      >
         <CollapsibleTrigger asChild>
           <Button
             type="button"

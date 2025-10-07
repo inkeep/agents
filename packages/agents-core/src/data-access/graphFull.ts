@@ -40,11 +40,7 @@ import {
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
 } from './dataComponents';
-import {
-  deleteExternalAgent,
-  listExternalAgents,
-  upsertExternalAgent,
-} from './externalAgents';
+import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
@@ -244,6 +240,41 @@ export const createFullGraphServerSide =
           logger.error(
             { contextConfigId: typed.contextConfig.id, error },
             'Failed to create/update context config'
+          );
+          throw error;
+        }
+      }
+
+      // Update the graph with the contextConfigId if we created one
+      if (contextConfigId) {
+        try {
+          logger.info(
+            { graphId: finalGraphId, contextConfigId },
+            'Updating graph with contextConfigId'
+          );
+          await upsertAgentGraph(db)({
+            data: {
+              id: finalGraphId,
+              tenantId,
+              projectId,
+              name: typed.name,
+              defaultAgentId: typed.defaultAgentId,
+              description: typed.description,
+              contextConfigId,
+              models: typed.models,
+              statusUpdates: typed.statusUpdates,
+              graphPrompt: typed.graphPrompt,
+              stopWhen: typed.stopWhen,
+            },
+          });
+          logger.info(
+            { graphId: finalGraphId, contextConfigId },
+            'Graph updated with contextConfigId successfully'
+          );
+        } catch (error) {
+          logger.error(
+            { graphId: finalGraphId, contextConfigId, error },
+            'Failed to update graph with contextConfigId'
           );
           throw error;
         }
@@ -666,11 +697,13 @@ export const updateFullGraphServerSide =
       // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typedGraphDefinition.contextConfig) {
+        logger.info(
+          { contextConfigId: typedGraphDefinition.contextConfig?.id },
+          ' context config exists'
+        );
+      }
+      if (typedGraphDefinition.contextConfig) {
         try {
-          logger.info(
-            { contextConfigId: typedGraphDefinition.contextConfig.id },
-            'Processing context config'
-          );
           const contextConfig = await upsertContextConfig(db)({
             data: {
               ...typedGraphDefinition.contextConfig,
@@ -684,6 +717,41 @@ export const updateFullGraphServerSide =
           logger.error(
             { contextConfigId: typedGraphDefinition.contextConfig.id, error },
             'Failed to create/update context config'
+          );
+          throw error;
+        }
+      }
+
+      // Update the graph with the contextConfigId if we created one
+      if (contextConfigId) {
+        try {
+          logger.info(
+            { graphId: finalGraphId, contextConfigId },
+            'Updating graph with contextConfigId'
+          );
+          await upsertAgentGraph(db)({
+            data: {
+              id: finalGraphId,
+              tenantId,
+              projectId,
+              name: typedGraphDefinition.name,
+              defaultAgentId: typedGraphDefinition.defaultAgentId,
+              description: typedGraphDefinition.description,
+              contextConfigId,
+              models: typedGraphDefinition.models,
+              statusUpdates: typedGraphDefinition.statusUpdates,
+              graphPrompt: typedGraphDefinition.graphPrompt,
+              stopWhen: typedGraphDefinition.stopWhen,
+            },
+          });
+          logger.info(
+            { graphId: finalGraphId, contextConfigId },
+            'Graph updated with contextConfigId successfully'
+          );
+        } catch (error) {
+          logger.error(
+            { graphId: finalGraphId, contextConfigId, error },
+            'Failed to update graph with contextConfigId'
           );
           throw error;
         }

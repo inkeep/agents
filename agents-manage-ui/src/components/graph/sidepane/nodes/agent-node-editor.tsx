@@ -135,11 +135,9 @@ export function AgentNodeEditor({
 
       <div className="space-y-2">
         <ExpandableTextArea
-          ref={(el) => setFieldRef('prompt', el)}
           id="prompt"
-          name="prompt"
           value={selectedNode.data.prompt || ''}
-          onChange={(e) => updatePath('prompt', e.target.value)}
+          onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."
           data-invalid={errorHelpers?.hasFieldError('prompt') ? '' : undefined}
           className="w-full max-h-96 data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
@@ -159,7 +157,7 @@ export function AgentNodeEditor({
       />
       <Separator />
       {/* Agent Execution Limits */}
-      <div className="space-y-8 ">
+      <div className="space-y-8">
         <SectionHeader
           title="Execution limits"
           description="Configure agent-level execution limits for steps within this agent."

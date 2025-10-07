@@ -8,16 +8,20 @@ import type {
   FullGraphDefinition,
   GraphStopWhen,
   McpTransportConfig,
+  ModelSettings,
   StatusUpdateSettings,
   ToolInsert,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { ArtifactComponentInterface } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './externalAgent';
 import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
+
+// Re-export ModelSettings from agents-core for convenience
+export type { ModelSettings };
 
 /**
  * Tool instance that may have additional metadata attached during agent processing
@@ -93,16 +97,6 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
   artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
-
-export interface ModelSettings {
-  model?: string;
-  providerOptions?: Record<string, Record<string, unknown>>;
-}
-
-export const ModelSettingsSchema = z.object({
-  model: z.string().optional(),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
-});
 
 // Tool configuration types
 export interface ToolConfig extends ToolInsert {
@@ -304,7 +298,7 @@ export interface AgentInterface {
   getDelegates(): AllAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
-  setContext(tenantId: string, projectId: string): void;
+  setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: AgentInterface[]): void;
   addDelegate(...agents: AgentInterface[]): void;
@@ -320,7 +314,7 @@ export interface ExternalAgentInterface {
   getBaseUrl(): string;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
-  setContext?(tenantId: string): void;
+  setContext?(tenantId: string, baseURL?: string): void;
 }
 
 // Graph interface for runner operations

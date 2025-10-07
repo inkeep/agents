@@ -84,6 +84,7 @@ export interface ActivityItem {
   // OTEL status fields
   otelStatusCode?: string;
   otelStatusDescription?: string;
+  aiTelemetryFunctionId?: string;
 }
 
 export interface ToolCall {

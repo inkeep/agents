@@ -611,6 +611,12 @@ describe('Projects Data Access', () => {
         id: testProjectId1,
         name: 'New Project',
         description: 'A new test project',
+        models: {
+          base: {
+            model: 'claude-sonnet-4',
+            providerOptions: {},
+          },
+        },
       };
 
       const expectedProject = {

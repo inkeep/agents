@@ -152,8 +152,12 @@ export async function initCommand(options?: InitOptions) {
 
 export default defineConfig({
   tenantId: '${answers.tenantId}',
-  agentsManageApiUrl: '${answers.apiUrl}',
-  agentsRunApiUrl: '${answers.apiUrl}',
+  agentsManageApi: {
+    url: '${answers.apiUrl}',
+  },
+  agentsRunApi: {
+    url: '${answers.apiUrl}',
+  },
 });
 `;
 

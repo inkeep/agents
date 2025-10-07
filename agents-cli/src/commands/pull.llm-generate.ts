@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
@@ -9,6 +9,43 @@ import {
   createPlaceholders,
   restorePlaceholders,
 } from './pull.placeholder-system';
+
+/**
+ * Read the complete type definitions from @inkeep/agents-sdk package
+ * This provides the LLM with full type context for generating code
+ * @internal - Exported for testing purposes
+ */
+export function getTypeDefinitions(): string {
+  try {
+    // Resolve package from node_modules using require.resolve
+    // This mirrors TypeScript's actual module resolution and works in:
+    // - Monorepo workspaces (resolves to workspace package)
+    // - Published packages (resolves to node_modules)
+    // - Different environments (no hardcoded relative paths)
+    const sdkPackagePath = require.resolve('@inkeep/agents-sdk/package.json');
+    const sdkPackageDir = join(sdkPackagePath, '..');
+    const sdkDtsPath = join(sdkPackageDir, 'dist/index.d.ts');
+
+    // Read the entire declaration file - let the LLM see all available types
+    const dtsContent = readFileSync(sdkDtsPath, 'utf-8');
+
+    return `
+TYPESCRIPT TYPE DEFINITIONS (from @inkeep/agents-sdk):
+
+The following is the complete type definition file from '@inkeep/agents-sdk'.
+
+---START OF TYPE DEFINITIONS---
+${dtsContent}
+---END OF TYPE DEFINITIONS---
+`;
+  } catch (error) {
+    // Fallback to comment if extraction fails
+    console.warn('Could not read type definitions:', error);
+    return `
+// Type definitions from @inkeep/agents-sdk could not be loaded.
+`;
+  }
+}
 
 /**
  * Create a language model instance from configuration
@@ -44,19 +81,161 @@ function createModel(config: ModelSettings) {
   }
 }
 
+const PROJECT_JSON_EXAMPLE = `
+---START OF PROJECT JSON EXAMPLE---
+{
+  "id": "my-project",
+  "name": "My Project",
+  "description": "test test",
+  "models": {
+    "base": {
+      "model": "anthropic/claude-opus-4-1-20250805",
+      "providerOptions": {
+        "temperature": 0.7,
+        "maxTokens": 2096
+      }
+    },
+    "structuredOutput": {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "providerOptions": {
+        "temperature": 0.4,
+        "maxTokens": 2048
+      }
+    },
+    "summarizer": {
+      "model": "openai/gpt-5-nano-2025-08-07",
+      "providerOptions": {
+        "temperature": 0.8,
+        "maxTokens": 1024
+      }
+    }
+  },
+  "stopWhen": {
+    "transferCountIs": 10,
+    "stepCountIs": 24
+  },
+  "graphs": {
+    "customer-service": {
+      "id": "customer-service",
+      "name": "customer-service",
+      "description": "respond to customer service requests",
+      "defaultAgentId": "router",
+      "agents": {
+        "refund-agent": {
+          "id": "refund-agent",
+          "name": "Refund Agent",
+          "description": "This agent is responsible for refunding customer orders",
+          "prompt": "Refund customer orders based on the following criteria:\n- Order is under $100\n- Order was placed in the last 30 days\n- Customer has no other refunds in the last 30 days",
+          "models": {
+            "base": {
+              "model": "google/gemini-2.5-flash"
+            }
+          },
+          "stopWhen": {
+            "stepCountIs": 24
+          },
+          "canTransferTo": ["router"],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        },
+        "router": {
+          "id": "router",
+          "name": "Router",
+          "description": "Routing incoming requests",
+          "prompt": "You route incoming requests to the correect agent",
+          "models": null,
+          "stopWhen": {
+            "stepCountIs": 24
+          },
+          "canTransferTo": ["refund-agent"],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        }
+      },
+      "createdAt": "2025-10-05T16:40:22.655Z",
+      "updatedAt": "2025-10-05T16:43:26.813Z",
+      "models": {
+        "base": {
+          "model": "anthropic/claude-sonnet-4-20250514",
+          "providerOptions": {
+            "temperature": 0.5
+          }
+        }
+      },
+      "statusUpdates": {
+        "numEvents": 10,
+        "timeInSeconds": 13
+      },
+      "stopWhen": {
+        "transferCountIs": 5
+      }
+    }
+  },
+  "tools": {},
+  "dataComponents": {
+    "listorders": {
+      "id": "listorders",
+      "name": "ListOrders",
+      "description": "Display a list of customer orders",
+      "props": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "An object containing a list of orders.",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "description": "A list of order objects.",
+            "items": {
+              "type": "object",
+              "description": "An individual order with identifying and creation details.",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique identifier for the order."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Human-readable name or label for the order."
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Timestamp when the order was created, in ISO 8601 format."
+                }
+              },
+              "required": ["id", "name", "createdAt"]
+            }
+          }
+        },
+        "required": ["orders"]
+      }
+    }
+  },
+  "artifactComponents": {},
+  "credentialReferences": {},
+  "createdAt": "2025-10-05T16:25:10.238Z",
+  "updatedAt": "2025-10-05T16:27:27.777Z"
+}
+---END OF PROJECT JSON EXAMPLE---
+`;
+
 /**
  * Reusable naming convention rules for all LLM generation functions
  */
 const NAMING_CONVENTION_RULES = `
 CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
-- File paths ALWAYS use the exact original ID (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
-- Import/export names MUST be camelCase versions of the ID
+- File names ALWAYS use the exact original ID. IDs are made of file safe characters (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
+- Name of consts and variables, especially ones that are exported ones, MUST be camelCase versions of the ID, unless the ID is random/UUID then take it verbatim.
 - Conversion rules for import/export names:
   - IDs with underscores: 'inkeep_facts' → inkeepFacts
   - IDs with hyphens: 'weather-api' → weatherApi
   - IDs with both: 'my_weather-api' → myWeatherApi
   - Random/UUID IDs: Keep as-is (e.g., 'fUI2riwrBVJ6MepT8rjx0' → fUI2riwrBVJ6MepT8rjx0)
-  - IDs starting with uppercase: Make first letter lowercase unless it's an acronym
+  - IDs starting with uppercase: Make first letter lowercase unless it's an acronym or random or UUID
 - The ID field in the exported object keeps the original format
 - Examples:
   - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
@@ -65,6 +244,8 @@ CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
 `;
 
 const IMPORT_INSTRUCTIONS = `
+CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
+
 CRITICAL IMPORT PATTERNS:
 - Tools: Import from '../tools/{toolId}' (individual files)
 - Data components: Import from '../data-components/{componentId}' (individual files)
@@ -72,16 +253,15 @@ CRITICAL IMPORT PATTERNS:
 - Graphs: Import from './graphs/{graphId}' (individual files)
 
 NEVER use barrel imports from directories:
-❌ WRONG: import { ambiguity, fact } from '../data-components';
+❌ WRONG: import { ordersList, refundApproval } from '../data-components';
 ✅ CORRECT:
-   import { ambiguity } from '../data-components/ambiguity';
-   import { fact } from '../data-components/fact';
+   import { ordersList } from '../data-components/orders-list';
+   import { refundApproval } from '../data-components/refund-approval';
 
-EXAMPLES:
+EXAMPLES: 
 // Multiple data components - each from individual file:
-import { ambiguity } from '../data-components/ambiguity';
-import { clarifyingquestion } from '../data-components/clarifyingquestion';
-import { fact } from '../data-components/fact';
+import { ordersList } from '../data-components/orders-list';
+import { refundApproval } from '../data-components/refund-approval';
 
 // Tools - each from individual file:
 import { inkeepFacts } from '../tools/inkeep_facts';
@@ -194,67 +374,35 @@ export async function generateIndexFile(
 
   const promptTemplate = `Generate a TypeScript index.ts file for an Inkeep project with the following data:
 
-PROJECT DATA:
+PROJECT JSON DATA:
 {{DATA}}
+
+
+${getTypeDefinitions()}
 
 ${NAMING_CONVENTION_RULES}
 
-CRITICAL IMPORT PATTERNS FOR INDEX.TS:
-- Tools: Import from './tools/{toolId}' (individual files)
-- Data components: Import from './data-components/{componentId}' (individual files)
-- Artifact components: Import from './artifact-components/{componentId}' (individual files)
-- Graphs: Import from './graphs/{graphId}' (individual files)
+${IMPORT_INSTRUCTIONS}
 
-NEVER use barrel imports from directories:
-❌ WRONG: import { ambiguity, fact } from './data-components';
-✅ CORRECT:
-   import { ambiguity } from './data-components/ambiguity';
-   import { fact } from './data-components/fact';
-
-EXAMPLES:
-// Multiple data components - each from individual file:
-import { ambiguity } from './data-components/ambiguity';
-import { clarifyingquestion } from './data-components/clarifyingquestion';
-import { fact } from './data-components/fact';
 
 REQUIREMENTS:
 1. Import the project function from '@inkeep/agents-sdk'
-2. Import each graph from individual files in the graphs directory
-3. Import each tool from individual files in the tools directory
-4. Import each data component from individual files in the data-components directory
-5. Import each artifact component from individual files in the artifact-components directory
-6. CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
-7. Export a const named after the project ID (in camelCase) using the project() function
-8. The project object should include:
-   - id: project ID
-   - name: project name
-   - description: project description (if provided)
-   - models: model configuration (if provided)
-   - stopWhen: stop configuration (if provided)
-   - graphs: arrow function returning array of imported graphs
-   - tools: arrow function returning array of imported tools by their IDs (if any)
-   - dataComponents: arrow function returning array of imported data components (if any)
-   - artifactComponents: arrow function returning array of imported artifact components (if any)
+2. The project object should include all required properties and any optional properties (according to the type definitions) that are present in the project data
 
-EXAMPLE (note: tools are imported and referenced by ID, not name):
+PROJECT JSON EXAMPLE:
+${PROJECT_JSON_EXAMPLE}
+
+
+EXAMPLE OUTPUT:
 import { project } from '@inkeep/agents-sdk';
-import { weatherForecast } from './data-components/weather-forecast';
-import { basicGraph } from './graphs/basic-graph';  // Note: 'basic-graph' becomes camelCase 'basicGraph'
-import { myGraphId } from './graphs/my-graph-id';  // Note: 'my-graph-id' becomes camelCase 'myGraphId'
-import { weatherGraph } from './graphs/weather-graph';
-import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0';
-import { fdxgfv9HL7SXlfynPx8hf } from './tools/fdxgfv9HL7SXlfynPx8hf';
 
-export const weatherProject = project({
-  id: 'weather-project',
-  name: 'Weather Project',
-  description: 'A weather information system',
+export const myProject = project({
+  id: 'my-project',
+  name: 'My Project',
+  description: 'test test',
   models: {
     base: { model: 'gpt-4o-mini' }
-  },
-  graphs: () => [basicGraph, myGraphId, weatherGraph],
-  tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
-  dataComponents: () => [weatherForecast]
+  }
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -287,71 +435,40 @@ GRAPH DATA:
 
 GRAPH ID: ${graphId}
 
+${getTypeDefinitions()}
+
 IMPORTANT CONTEXT:
-- Tools are defined at the project level and imported from '../tools' directory
-- Data components are imported from individual files in '../data-components' directory
-- Artifact components are imported from individual files in '../artifact-components' directory
-- CRITICAL: Tool files are named by their IDs (e.g., '../tools/fUI2riwrBVJ6MepT8rjx0')
-- CRITICAL: Import tools using their IDs as both file name and variable name
-- Agents reference these resources by their imported variable names
+- Agents reference resources (tools, components) by their imported variable names
 - The 'tools' field in agents contains tool IDs that must match the imported variable names
 
 ${NAMING_CONVENTION_RULES}
 
+${IMPORT_INSTRUCTIONS}
+
 REQUIREMENTS:
-1. Import { agent, agentGraph } from '@inkeep/agents-sdk' - ALWAYS sort named imports alphabetically
-2. Import tools from '../tools/{toolId}' following naming convention rules
-3. Import data components from '../data-components/{componentId}' following naming convention rules
-4. Import artifact components from '../artifact-components/{componentId}' following naming convention rules
-5. Define each agent using the agent() function with:
-   - id, name, description, prompt
-   - canUse: arrow function returning array of imported tool variables (using their IDs)
-   - selectedTools: if present, maps tool ID variable to selected tool names
-   - dataComponents: arrow function returning array of imported component configs
-   - artifactComponents: arrow function returning array of imported component configs
-   - canTransferTo/canDelegateTo: arrow functions returning agent variables
-6. Create the graph using agentGraph() with proper structure
+1. Import { agent, agentGraph } from '@inkeep/agents-sdk'
+2. Define each agent using the agent() function following the type definitions provided above
+3. Create the graph using agentGraph() with proper structure
    - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
-   - Only include description if it has a meaningful value
-7. CRITICAL: Export the graph with proper camelCase naming:
-   - Convert graph IDs with hyphens to camelCase (e.g., 'basic-graph' becomes 'basicGraph')
-   - Remove hyphens and capitalize the letter after each hyphen
-   - First letter should be lowercase
-8. Ensure all imports are sorted alphabetically
-9. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
+4. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
    - Single-line strings: use regular quotes 'short string'
    - Multi-line strings: MUST use template literals starting and ending with backticks
    - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
    - Placeholders contain multi-line content and require template literals
    - This prevents TypeScript syntax errors with newlines and special characters
 
-NAMING CONVENTION EXAMPLES:
-// Tool with underscore ID 'inkeep_facts':
-import { inkeepFacts } from '../tools/inkeep_facts';  // camelCase import, exact ID in path
-
-// Tool with hyphen ID 'weather-api':
-import { weatherApi } from '../tools/weather-api';  // camelCase import, exact ID in path
-
-// Data component with hyphen ID 'user-profile':
-import { userProfile } from '../data-components/user-profile';  // camelCase import, exact ID in path
-
-// Random ID (no conversion needed):
-import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
-
-// PLACEHOLDER HANDLING EXAMPLES:
+PLACEHOLDER HANDLING EXAMPLES:
 // CORRECT - Placeholder wrapped in template literals:
 prompt: \`<{{agents.facts.prompt.abc12345}}>\`
 
 // INCORRECT - Placeholder wrapped in single quotes (causes syntax errors):
 prompt: '<{{agents.facts.prompt.abc12345}}>'
 
-${IMPORT_INSTRUCTIONS}
-
 FULL EXAMPLE:
 import { agent, agentGraph } from '@inkeep/agents-sdk';
 import { userProfile } from '../data-components/user-profile';
-import { inkeepFacts } from '../tools/inkeep_facts';
-import { weatherApi } from '../tools/weather-api';
+import { searchTool } from '../tools/search-tool';
+import { weatherTool } from '../tools/weather-tool';
 
 const routerAgent = agent({
   id: 'router',
@@ -377,20 +494,10 @@ Follow these rules:
   dataComponents: () => [userProfile.config]
 });
 
-// Example: Graph ID 'support-graph' becomes 'supportGraph'
 export const supportGraph = agentGraph({
   id: 'support-graph',
   name: 'Support Graph',
   description: 'Multi-agent support system', // Only include if description has a value
-  defaultAgent: routerAgent,
-  agents: () => [routerAgent, qaAgent]
-});
-
-// Example without description (when null or undefined):
-export const weatherGraph = agentGraph({
-  id: 'weather-graph',
-  name: 'Weather Graph',
-  // description is omitted when null, undefined, or empty
   defaultAgent: routerAgent,
   agents: () => [routerAgent, qaAgent]
 });
@@ -509,36 +616,26 @@ TOOL DATA:
 
 TOOL ID: ${toolId}
 
+${getTypeDefinitions()}
+
 ${NAMING_CONVENTION_RULES}
 
+${IMPORT_INSTRUCTIONS}
+
 REQUIREMENTS:
-1. Import mcpTool from '@inkeep/agents-sdk' - ensure imports are alphabetically sorted
+1. Import mcpTool from '@inkeep/agents-sdk'
 2. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
 3. CRITICAL: Use individual properties supported by mcpTool - do NOT use nested config object
 4. Extract configuration properties and map them to mcpTool's expected properties (serverUrl, transport, etc.)
-5. Export the tool following naming convention rules (camelCase version of ID)
-6. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
-7. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
-8. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
-9. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
-10. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
+5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
+7. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
+8. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
 
-EXAMPLE FOR TOOL WITH UNDERSCORE ID:
-import { mcpTool } from '@inkeep/agents-sdk';
-
-// Tool ID 'inkeep_facts' becomes export name 'inkeepFacts'
-export const inkeepFacts = mcpTool({
-  id: 'inkeep_facts',  // Keep original ID here
-  name: 'Inkeep Facts',
-  serverUrl: 'https://facts.inkeep.com/mcp'
-});
-
-EXAMPLE FOR TOOL WITH CREDENTIAL REFERENCE:
-import { mcpTool } from '@inkeep/agents-sdk';
+EXAMPLE WITH CREDENTIAL REFERENCE:
 import { envSettings } from '../environments';
+import { mcpTool } from '@inkeep/agents-sdk';
 
-// Tool with credential reference - note credentialReferenceId 'inkeep-api-credential' becomes 'inkeep_api_credential'
-// IMPORTANT: Use individual properties only, no nested config object
 export const inkeepFacts = mcpTool({
   id: 'inkeep_facts',
   name: 'inkeep_facts',
@@ -546,10 +643,9 @@ export const inkeepFacts = mcpTool({
   credential: envSettings.getEnvironmentSetting('inkeep_api_credential')
 });
 
-EXAMPLE FOR TOOL WITH TRANSPORT CONFIG:
+EXAMPLE WITH TRANSPORT CONFIG:
 import { mcpTool } from '@inkeep/agents-sdk';
 
-// Tool with transport config - extract transport from config.mcp.transport
 export const transportTool = mcpTool({
   id: 'transport_tool',
   name: 'Transport Tool',
@@ -557,27 +653,6 @@ export const transportTool = mcpTool({
   transport: {
     type: 'streamable_http'
   }
-});
-
-EXAMPLE FOR TOOL WITH HYPHEN ID:
-import { mcpTool } from '@inkeep/agents-sdk';
-
-// Tool ID 'weather-api' becomes export name 'weatherApi'
-export const weatherApi = mcpTool({
-  id: 'weather-api',  // Keep original ID here
-  name: 'Weather API',
-  serverUrl: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-weather']
-});
-
-EXAMPLE FOR RANDOM ID:
-import { mcpTool } from '@inkeep/agents-sdk';
-
-// If tool ID is 'fUI2riwrBVJ6MepT8rjx0', export name is 'fUI2riwrBVJ6MepT8rjx0'
-export const fUI2riwrBVJ6MepT8rjx0 = mcpTool({
-  id: 'fUI2riwrBVJ6MepT8rjx0',
-  name: 'Weather Forecast',
-  serverUrl: 'https://weather-forecast-mcp.vercel.app/mcp'
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -609,34 +684,20 @@ DATA COMPONENT DATA:
 
 COMPONENT ID: ${componentId}
 
+${getTypeDefinitions()}
+
 ${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
 1. Import dataComponent from '@inkeep/agents-sdk'
 2. Create the data component using dataComponent()
 3. Include all properties from the component data INCLUDING the 'id' property
-4. Export following naming convention rules (camelCase version of ID)
-5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
-EXAMPLE WITH UNDERSCORE ID:
+EXAMPLE:
 import { dataComponent } from '@inkeep/agents-sdk';
 
-// Component ID 'user_profile' becomes export name 'userProfile'
-export const userProfile = dataComponent({
-  id: 'user_profile',
-  name: 'User Profile',
-  description: 'User profile information',
-  props: {
-    userId: { type: 'string', required: true },
-    email: { type: 'string', required: true },
-    preferences: { type: 'object' }
-  }
-});
-
-EXAMPLE WITH HYPHEN ID:
-import { dataComponent } from '@inkeep/agents-sdk';
-
-// Component ID 'weather-data' becomes export name 'weatherData'
 export const weatherData = dataComponent({
   id: 'weather-data',
   name: 'Weather Data',
@@ -676,37 +737,21 @@ ARTIFACT COMPONENT DATA:
 
 COMPONENT ID: ${componentId}
 
+${getTypeDefinitions()}
+
 ${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
 1. Import artifactComponent from '@inkeep/agents-sdk'
 2. Create the artifact component using artifactComponent()
 3. Include summaryProps and fullProps from the component data
-4. Export following naming convention rules (camelCase version of ID)
-5. Include the 'id' property to preserve the original component ID
-6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+4. Include the 'id' property to preserve the original component ID
 
-EXAMPLE WITH UNDERSCORE ID:
+EXAMPLE:
 import { artifactComponent } from '@inkeep/agents-sdk';
 
-// Component ID 'pdf_export' becomes export name 'pdfExport'
-export const pdfExport = artifactComponent({
-  id: 'pdf_export',
-  name: 'PDF Export',
-  description: 'Export data as PDF',
-  summaryProps: {
-    filename: { type: 'string', required: true }
-  },
-  fullProps: {
-    filename: { type: 'string', required: true },
-    content: { type: 'object', required: true }
-  }
-});
-
-EXAMPLE WITH HYPHEN ID:
-import { artifactComponent } from '@inkeep/agents-sdk';
-
-// Component ID 'order-summary' becomes export name 'orderSummary'
 export const orderSummary = artifactComponent({
   id: 'order-summary',
   name: 'Order Summary',
@@ -824,12 +869,10 @@ async function updateEnvironmentIndex(environmentsDir: string, environment: stri
 
   // Generate the complete index.ts content
   const importStatements = existingEnvironments
-    .map(env => `import { ${env} } from './${env}.env';`)
+    .map((env) => `import { ${env} } from './${env}.env';`)
     .join('\n');
 
-  const environmentObject = existingEnvironments
-    .map(env => `  ${env},`)
-    .join('\n');
+  const environmentObject = existingEnvironments.map((env) => `  ${env},`).join('\n');
 
   const exportStatement = existingEnvironments.join(', ');
 
@@ -949,6 +992,12 @@ ${graphDataJson}
 
 GRAPH ID: ${graphId}
 
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+
 REQUIREMENTS:
 1. Create a complete TypeScript file that exports an agentGraph configuration
 2. Use the exact structure and patterns shown in the graph data
@@ -989,6 +1038,12 @@ NEW GRAPH DATA (JSON):
 ${graphDataJson}
 
 GRAPH ID: ${graphId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 CRITICAL RULES - FOLLOW THESE EXACTLY:
 1. PRESERVE ALL EXISTING CONTENT - Do not delete, rewrite, or restructure anything

@@ -3,7 +3,7 @@
  */
 
 import { useCallback } from 'react';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphStore, useGraphActions } from '@/features/graph/state/use-graph-store';
 
 export interface ErrorHelpers {
   hasFieldError: (fieldName: string) => boolean;
@@ -12,14 +12,12 @@ export interface ErrorHelpers {
 }
 
 export function useGraphErrors() {
-  const errors = useGraphStore((state) => state.errors);
-  const showErrors = useGraphStore((state) => state.showErrors);
-  const hasErrors = useGraphStore((state) => state.hasErrors);
-  const getNodeErrors = useGraphStore((state) => state.getNodeErrors);
-  const getEdgeErrors = useGraphStore((state) => state.getEdgeErrors);
-  const setErrors = useGraphStore((state) => state.setErrors);
-  const clearErrors = useGraphStore((state) => state.clearErrors);
-  const setShowErrors = useGraphStore((state) => state.setShowErrors);
+  const { errors, showErrors } = useGraphStore((state) => ({
+    errors: state.errors,
+    showErrors: state.showErrors,
+  }));
+  const { hasErrors, getNodeErrors, getEdgeErrors, setErrors, clearErrors, setShowErrors } =
+    useGraphActions();
 
   const getNodeErrorCount = (nodeId: string): number => {
     return getNodeErrors(nodeId).length;

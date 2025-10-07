@@ -123,13 +123,13 @@ export class AgentGraph implements GraphInterface {
     this.projectId = projectId;
     this.baseURL = apiUrl;
 
-    // Propagate tenantId and projectId to all agents and their tools
+    // Propagate tenantId, projectId, and apiUrl to all agents and their tools
     for (const agent of this.agents) {
       if (this.isInternalAgent(agent)) {
         const internalAgent = agent as AgentInterface;
         // Set the context on the agent
         if (internalAgent.setContext) {
-          internalAgent.setContext(tenantId, projectId);
+          internalAgent.setContext(tenantId, projectId, apiUrl);
         }
 
         // Also update tools in this agent
@@ -138,16 +138,22 @@ export class AgentGraph implements GraphInterface {
           if (toolInstance && typeof toolInstance === 'object') {
             // Set context on the tool if it has the method
             if ('setContext' in toolInstance && typeof toolInstance.setContext === 'function') {
-              toolInstance.setContext(tenantId, projectId);
+              toolInstance.setContext(tenantId, projectId, apiUrl);
             }
           }
+        }
+      } else {
+        // External agent
+        const externalAgent = agent as ExternalAgentInterface;
+        if (externalAgent.setContext) {
+          externalAgent.setContext(tenantId, apiUrl);
         }
       }
     }
 
-    // Update context config tenant ID and project ID if present
+    // Update context config tenant ID, project ID, and graph ID if present
     if (this.contextConfig?.setContext) {
-      this.contextConfig.setContext(tenantId, projectId);
+      this.contextConfig.setContext(tenantId, projectId, this.graphId);
     }
 
     logger.info(

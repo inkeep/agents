@@ -98,6 +98,7 @@ export interface ContextConfigBuilderOptions<
   contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
   projectId?: string;
+  graphId?: string;
   baseURL?: string;
 }
 
@@ -109,10 +110,12 @@ export class ContextConfigBuilder<
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
+  private graphId: string;
 
   constructor(options: ContextConfigBuilderOptions<R, CV>) {
     this.tenantId = options.tenantId || 'default';
     this.projectId = options.projectId || 'default';
+    this.graphId = options.graphId || 'default';
     this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 
     // Convert request headers schema to JSON schema if provided
@@ -182,6 +185,30 @@ export class ContextConfigBuilder<
   }
 
   /**
+   * Set the context (tenantId, projectId, graphId) for this context config
+   * Called by graph.setConfig() when the graph is configured
+   */
+  setContext(tenantId: string, projectId: string, graphId: string): void {
+    this.tenantId = tenantId;
+    this.projectId = projectId;
+    this.graphId = graphId;
+    // Update the config object as well
+    this.config.tenantId = tenantId;
+    this.config.projectId = projectId;
+    this.config.graphId = graphId;
+
+    logger.info(
+      {
+        contextConfigId: this.config.id,
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        graphId: this.graphId,
+      },
+      'ContextConfig context updated'
+    );
+  }
+
+  /**
    * Convert the builder to a plain object for database operations
    */
   toObject(): ContextConfigSelect {
@@ -189,6 +216,7 @@ export class ContextConfigBuilder<
       id: this.getId(),
       tenantId: this.tenantId,
       projectId: this.projectId,
+      graphId: this.graphId,
       name: this.getName(),
       description: this.getDescription(),
       requestContextSchema: this.getRequestContextSchema(),

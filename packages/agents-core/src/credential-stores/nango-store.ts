@@ -200,9 +200,58 @@ export class NangoCredentialStore implements CredentialStore {
         return null;
       }
 
-      console.error(`Failed to fetch integration ${uniqueKey}:`, error);
+      logger.error(
+        { error: error instanceof Error ? error.message : 'Unknown error', uniqueKey },
+        `Failed to fetch integration ${uniqueKey}`
+      );
       return null;
     }
+  }
+
+  /**
+   * Optimize OAuth token data to fit within Nango's 1024 character limit for apiKey field
+   * Strategy: Remove unnecessary fields
+   */
+  private optimizeOAuthTokenForNango(tokenData: string): string | undefined {
+    const parsed = JSON.parse(tokenData);
+
+    // Start with essential fields only (removes id_token, scope, etc.)
+    const essential = {
+      access_token: parsed.access_token,
+      token_type: parsed.token_type,
+      expires_in: parsed.expires_in,
+      refresh_token: parsed.refresh_token,
+    };
+
+    // Remove undefined fields
+    Object.keys(essential).forEach((key) => {
+      if (essential[key as keyof typeof essential] === undefined) {
+        delete essential[key as keyof typeof essential];
+      }
+    });
+
+    const result = JSON.stringify(essential);
+
+    // If still too big after removing unnecessary fields, we cannot store in Nango
+    if (result.length > 1024) {
+      logger.error(
+        {
+          originalLength: tokenData.length,
+          essentialLength: result.length,
+          accessTokenLength: parsed.access_token?.length || 0,
+          refreshTokenLength: parsed.refresh_token?.length || 0,
+        },
+        'OAuth token too large for Nango storage even after removing non-essential fields'
+      );
+
+      throw new Error(
+        `OAuth token (${result.length} chars) exceeds Nango's 1024 character limit. ` +
+          `Essential fields cannot be truncated without breaking functionality. ` +
+          `Consider using keychain storage instead of Nango for this provider.`
+      );
+    }
+
+    return result;
   }
 
   /**
@@ -263,9 +312,16 @@ export class NangoCredentialStore implements CredentialStore {
       // Step 2: Import the connection to Nango
       const importConnectionUrl = `${process.env.NANGO_SERVER_URL || 'https://api.nango.dev'}/connections`;
 
+      // Optimize the OAuth token data to fit within Nango's 1024 character limit
+      const optimizedApiKey = this.optimizeOAuthTokenForNango(apiKeyToSet);
+
+      if (!optimizedApiKey) {
+        throw new Error(`Failed to optimize OAuth token for Nango.`);
+      }
+
       const credentials: ApiKeyCredentials = {
         type: 'API_KEY',
-        apiKey: apiKeyToSet,
+        apiKey: optimizedApiKey,
       };
 
       const body = {
@@ -285,12 +341,12 @@ export class NangoCredentialStore implements CredentialStore {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(
-          `Failed to import connection: HTTP ${response.status} - ${response.statusText}`
+          `Failed to import connection: HTTP ${response.status} - ${response.statusText}. Response: ${errorText}`
         );
       }
     } catch (error) {
-      console.error('Unexpected error creating API key credential:', error);
       logger.error(
         {
           error: error instanceof Error ? error.message : 'Unknown error',

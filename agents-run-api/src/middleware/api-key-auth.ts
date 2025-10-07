@@ -37,7 +37,7 @@ export const apiKeyAuth = () =>
 
       if (authHeader?.startsWith('Bearer ')) {
         try {
-          executionContext = await extractContextFromApiKey(authHeader.substring(7));
+          executionContext = await extractContextFromApiKey(authHeader.substring(7), baseUrl);
           executionContext.agentId = agentId;
           logger.info({}, 'Development/test environment - API key authenticated successfully');
         } catch {
@@ -115,7 +115,7 @@ export const apiKeyAuth = () =>
         await next();
         return;
       } else if (apiKey) {
-        const executionContext = await extractContextFromApiKey(apiKey);
+        const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
         executionContext.agentId = agentId;
 
         c.set('executionContext', executionContext);
@@ -141,7 +141,7 @@ export const apiKeyAuth = () =>
     }
 
     try {
-      const executionContext = await extractContextFromApiKey(apiKey);
+      const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
       executionContext.agentId = agentId;
 
       c.set('executionContext', executionContext);
@@ -172,7 +172,7 @@ export const apiKeyAuth = () =>
     }
   });
 
-export const extractContextFromApiKey = async (apiKey: string) => {
+export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string) => {
   const apiKeyRecord = await validateAndGetApiKey(apiKey, dbClient);
 
   if (!apiKeyRecord) {
@@ -187,6 +187,7 @@ export const extractContextFromApiKey = async (apiKey: string) => {
     projectId: apiKeyRecord.projectId,
     graphId: apiKeyRecord.graphId,
     apiKeyId: apiKeyRecord.id,
+    baseUrl: baseUrl,
   });
 };
 /**

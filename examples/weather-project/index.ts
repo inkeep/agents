@@ -8,6 +8,9 @@ export const myProject3 = project({
   id: 'my-weather-project',
   name: 'Weather Project',
   description: 'Project containing sample agent framework using ',
+  models: {
+    base: { model: 'gpt-4o-mini' },
+  },
   graphs: () => [weatherGraph],
   tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
   dataComponents: () => [weatherForecast],

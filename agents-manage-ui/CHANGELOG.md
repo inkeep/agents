@@ -1,5 +1,167 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.13
+
+### Patch Changes
+
+- 0a4e37c: Highlight active tools in available tools list
+  - @inkeep/agents-manage-api@0.14.13
+  - @inkeep/agents-run-api@0.14.13
+  - @inkeep/agents-core@0.14.13
+
+## 0.14.12
+
+### Patch Changes
+
+- 9c12ca8: error parse and span fix
+- a05d397: reduce log spam during tests runs
+- Updated dependencies [9c12ca8]
+- Updated dependencies [a05d397]
+  - @inkeep/agents-run-api@0.14.12
+  - @inkeep/agents-manage-api@0.14.12
+  - @inkeep/agents-core@0.14.12
+
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+- Updated dependencies [ef0a682]
+  - @inkeep/agents-manage-api@0.14.11
+  - @inkeep/agents-run-api@0.14.11
+  - @inkeep/agents-core@0.14.11
+
+## 0.14.10
+
+### Patch Changes
+
+- cee3fa1: use type defs from @inkeep/agents-core in llm generated @inkeep/agents-cli pull command prompts
+- 0f95f38: enables line wrapping in the prompt/graph prompts editors
+- 521c60e: Align toast error colors with `<GraphErrorSummaryComponent>` styling
+- Updated dependencies [cee3fa1]
+  - @inkeep/agents-core@0.14.10
+  - @inkeep/agents-manage-api@0.14.10
+  - @inkeep/agents-run-api@0.14.10
+
+## 0.14.9
+
+### Patch Changes
+
+- c7194ce: error handling and agent name more visible
+- Updated dependencies [c7194ce]
+- Updated dependencies [c7194ce]
+  - @inkeep/agents-core@0.14.9
+  - @inkeep/agents-run-api@0.14.9
+  - @inkeep/agents-manage-api@0.14.9
+
+## 0.14.8
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.14.8
+- @inkeep/agents-run-api@0.14.8
+- @inkeep/agents-core@0.14.8
+
+## 0.14.7
+
+### Patch Changes
+
+- Updated dependencies [d891309]
+- Updated dependencies [735d238]
+  - @inkeep/agents-core@0.14.7
+  - @inkeep/agents-run-api@0.14.7
+  - @inkeep/agents-manage-api@0.14.7
+
+## 0.14.6
+
+### Patch Changes
+
+- af3f015: bug fix for traces
+  - @inkeep/agents-manage-api@0.14.6
+  - @inkeep/agents-run-api@0.14.6
+  - @inkeep/agents-core@0.14.6
+
+## 0.14.5
+
+### Patch Changes
+
+- 557afac: Improve mcp client connection with cache
+- Updated dependencies [557afac]
+  - @inkeep/agents-core@0.14.5
+  - @inkeep/agents-manage-api@0.14.5
+  - @inkeep/agents-run-api@0.14.5
+
+## 0.14.4
+
+### Patch Changes
+
+- 098c439: relayouts the graph using Dagre when a `replace` change causes node intersections
+- Updated dependencies [b88e9b1]
+  - @inkeep/agents-run-api@0.14.4
+  - @inkeep/agents-manage-api@0.14.4
+  - @inkeep/agents-core@0.14.4
+
+## 0.14.3
+
+### Patch Changes
+
+- Updated dependencies [c6b3a21]
+  - @inkeep/agents-run-api@0.14.3
+  - @inkeep/agents-manage-api@0.14.3
+  - @inkeep/agents-core@0.14.3
+
+## 0.14.2
+
+### Patch Changes
+
+- bc14f9f: Allow trying the graph when nodes have been repositioned
+- Updated dependencies [c84d368]
+  - @inkeep/agents-run-api@0.14.2
+  - @inkeep/agents-manage-api@0.14.2
+  - @inkeep/agents-core@0.14.2
+
+## 0.14.1
+
+### Patch Changes
+
+- Updated dependencies [b056d33]
+  - @inkeep/agents-core@0.14.1
+  - @inkeep/agents-manage-api@0.14.1
+  - @inkeep/agents-run-api@0.14.1
+
+## 0.14.0
+
+### Patch Changes
+
+- a72a22c: Add `⌘ + S` / `Ctrl + S` (windows) shortcut to save changes
+- Updated dependencies [521a908]
+  - @inkeep/agents-manage-api@0.14.0
+  - @inkeep/agents-run-api@0.14.0
+  - @inkeep/agents-core@0.14.0
+
+## 0.13.0
+
+### Patch Changes
+
+- 079ccfa: - Fix project form bugs
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- c7eae94: Variable suggestions feature for Prompt/Graph Prompt inputs
+- Updated dependencies [c43a622]
+- Updated dependencies [94e010a]
+  - @inkeep/agents-manage-api@0.13.0
+  - @inkeep/agents-run-api@0.13.0
+  - @inkeep/agents-core@0.13.0
+
+## 0.12.1
+
+### Patch Changes
+
+- 2c255ba: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- Updated dependencies [2c255ba]
+  - @inkeep/agents-manage-api@0.12.1
+  - @inkeep/agents-run-api@0.12.1
+  - @inkeep/agents-core@0.12.1
+
 ## 0.12.0
 
 ### Patch Changes

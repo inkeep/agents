@@ -1,5 +1,119 @@
 # @inkeep/agents-manage-api
 
+## 0.14.13
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.13
+
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+- Updated dependencies [a05d397]
+  - @inkeep/agents-core@0.14.12
+
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+- Updated dependencies [ef0a682]
+  - @inkeep/agents-core@0.14.11
+
+## 0.14.10
+
+### Patch Changes
+
+- Updated dependencies [cee3fa1]
+  - @inkeep/agents-core@0.14.10
+
+## 0.14.9
+
+### Patch Changes
+
+- Updated dependencies [c7194ce]
+  - @inkeep/agents-core@0.14.9
+
+## 0.14.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.8
+
+## 0.14.7
+
+### Patch Changes
+
+- Updated dependencies [d891309]
+- Updated dependencies [735d238]
+  - @inkeep/agents-core@0.14.7
+
+## 0.14.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.6
+
+## 0.14.5
+
+### Patch Changes
+
+- 557afac: Improve mcp client connection with cache
+- Updated dependencies [557afac]
+  - @inkeep/agents-core@0.14.5
+
+## 0.14.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.4
+
+## 0.14.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.3
+
+## 0.14.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.2
+
+## 0.14.1
+
+### Patch Changes
+
+- Updated dependencies [b056d33]
+  - @inkeep/agents-core@0.14.1
+
+## 0.14.0
+
+### Patch Changes
+
+- 521a908: fix oauth flow setting credential ids
+  - @inkeep/agents-core@0.14.0
+
+## 0.13.0
+
+### Patch Changes
+
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- 94e010a: updated base model
+- Updated dependencies [c43a622]
+- Updated dependencies [94e010a]
+  - @inkeep/agents-core@0.13.0
+
+## 0.12.1
+
+### Patch Changes
+
+- 2c255ba: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- Updated dependencies [2c255ba]
+  - @inkeep/agents-core@0.12.1
+
 ## 0.12.0
 
 ### Patch Changes

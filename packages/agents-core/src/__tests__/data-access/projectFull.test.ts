@@ -129,6 +129,12 @@ describe('projectFull data access', () => {
         id: projectId,
         name: 'Minimal Project',
         description: '',
+        models: {
+          base: {
+            model: 'claude-sonnet-4',
+            providerOptions: {},
+          },
+        },
         graphs: {},
         tools: {},
         createdAt: new Date().toISOString(),

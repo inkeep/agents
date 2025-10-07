@@ -51,24 +51,22 @@ const noopTracer = {
  */
 export function setSpanWithError(
   span: Span,
-  error: unknown,
+  error: Error,
   logger?: { error: (obj: any, msg?: string) => void },
   logMessage?: string
 ): void {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-
   // Record the exception in the span
-  span.recordException(error as Error);
+  span.recordException(error);
 
   // Set error status
   span.setStatus({
     code: SpanStatusCode.ERROR,
-    message: errorMessage,
+    message: error.message,
   });
 
   // Optionally log the error
   if (logger && logMessage) {
-    logger.error({ error: errorMessage }, logMessage);
+    logger.error({ error: error.message }, logMessage);
   }
 }
 

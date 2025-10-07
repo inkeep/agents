@@ -19,6 +19,7 @@ import {
   getAgentById,
   getAgentGraphWithDefaultAgent,
   getConversation,
+  getConversationId,
   getRequestExecutionContext,
   handleContextResolution,
   updateConversation,
@@ -462,7 +463,7 @@ const handleInitializationRequest = async (
 ) => {
   const { tenantId, projectId, graphId } = executionContext;
   logger.info({ body }, 'Received initialization request');
-  const sessionId = nanoid();
+  const sessionId = getConversationId();
 
   // Get the default agent for the graph
   const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({

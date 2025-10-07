@@ -1,9 +1,7 @@
-import type { StopWhen as ProjectStopWhen } from '@inkeep/agents-core/client-exports';
-
-export interface ModelSettings {
-  model: string;
-  providerOptions?: Record<string, any>;
-}
+import type {
+  ModelSettings,
+  StopWhen as ProjectStopWhen,
+} from '@inkeep/agents-core/client-exports';
 
 export interface ProjectModels {
   base: ModelSettings;

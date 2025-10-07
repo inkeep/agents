@@ -22,3 +22,5 @@ runs:
     - name: Install dependencies
       shell: bash
       run: pnpm install
+      env:
+        HUSKY: 0

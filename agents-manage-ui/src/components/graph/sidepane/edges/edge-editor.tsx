@@ -3,7 +3,7 @@ import { Spline } from 'lucide-react';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions } from '@/features/graph/state/use-graph-store';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
 type RelationshipOptionProps = {
@@ -75,7 +75,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges } = useReactFlow();
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
-  const markUnsaved = useGraphStore((state) => state.markUnsaved);
+  const { markUnsaved } = useGraphActions();
 
   // Check if this is a self-loop (source and target are the same)
   const isSelfLoop = selectedEdge.source === selectedEdge.target;

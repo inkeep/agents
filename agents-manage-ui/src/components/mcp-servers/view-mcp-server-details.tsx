@@ -276,7 +276,10 @@ export function ViewMCPServerDetails({
 
         {/* Available Tools */}
         {tool.availableTools && tool.availableTools.length > 0 && (
-          <AvailableToolsCard tools={tool.availableTools} />
+          <AvailableToolsCard
+            tools={tool.availableTools}
+            activeTools={tool.config.mcp.activeTools}
+          />
         )}
       </div>
     </div>

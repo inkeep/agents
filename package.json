@@ -31,10 +31,12 @@
     "typecheck": "turbo typecheck",
     "precheck": "pnpm install --frozen-lockfile",
     "check": "turbo check",
+    "check:husky": "turbo check:husky",
     "check:fix": "biome check --write",
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
     "prepare": "husky",
+    "changeset:quick": "./scripts/quick-changeset.sh",
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
@@ -53,7 +55,8 @@
   "version": "0.1.0",
   "dependencies": {
     "npm-run-all": "^4.1.5",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
@@ -77,5 +80,10 @@
   "packageManager": "pnpm@10.10.0",
   "engines": {
     "node": ">=22.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "zod": "^4.1.11"
+    }
   }
 }

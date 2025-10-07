@@ -1,5 +1,75 @@
 # @inkeep/agents-core
 
+## 0.14.13
+
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+
+## 0.14.10
+
+### Patch Changes
+
+- cee3fa1: use type defs from @inkeep/agents-core in llm generated @inkeep/agents-cli pull command prompts
+
+## 0.14.9
+
+### Patch Changes
+
+- c7194ce: error surfacing
+
+## 0.14.8
+
+## 0.14.7
+
+### Patch Changes
+
+- d891309: Fix default graph id
+- 735d238: normalize conversation ids
+
+## 0.14.6
+
+## 0.14.5
+
+### Patch Changes
+
+- 557afac: Improve mcp client connection with cache
+
+## 0.14.4
+
+## 0.14.3
+
+## 0.14.2
+
+## 0.14.1
+
+### Patch Changes
+
+- b056d33: Fix graphWithinProject schema
+
+## 0.14.0
+
+## 0.13.0
+
+### Patch Changes
+
+- c43a622: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+- 94e010a: updated base model
+
+## 0.12.1
+
+### Patch Changes
+
+- 2c255ba: Fix for agents-cli so that inkeep.config.ts values for agentsRunApiUrl and agentsManageApiUrl are respected
+
 ## 0.12.0
 
 ### Minor Changes

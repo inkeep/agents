@@ -64,8 +64,8 @@ function calculateNodeHeight(node: Node): number {
   return Math.max(height, BASE_NODE_HEIGHT);
 }
 
-function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
-  const g = new (dagre as any).graphlib.Graph();
+export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
+  const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: 'TB',
     nodesep: 150,
@@ -85,7 +85,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
     g.setEdge(edge.source, edge.target);
   }
 
-  (dagre as any).layout(g);
+  dagre.layout(g);
 
   return nodes.map((node) => {
     const nodeWithPosition = g.node(node.id);

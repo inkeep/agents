@@ -953,7 +953,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           return { summaries };
         } catch (error) {
-          setSpanWithError(span, error);
+          setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
           logger.error({ error }, 'Failed to generate structured update, using fallback');
           return { summaries: [] };
         } finally {
@@ -1358,7 +1358,7 @@ Make it specific and relevant.`;
               }
 
               // All retries failed
-              setSpanWithError(generationSpan, lastError);
+              setSpanWithError(generationSpan, lastError instanceof Error ? lastError : new Error(String(lastError)));
               throw new Error(
                 `Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`
               );
@@ -1460,7 +1460,7 @@ Make it specific and relevant.`;
           }
         } catch (error) {
           // Handle span error (this is for name/description generation errors)
-          setSpanWithError(span, error);
+          setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
           logger.error(
             {
               sessionId: this.sessionId,

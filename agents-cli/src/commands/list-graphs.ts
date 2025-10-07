@@ -2,42 +2,25 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import ora from 'ora';
 import { ManagementApiClient } from '../api';
-import type { ValidatedConfiguration } from '../utils/config';
-import { validateConfiguration } from '../utils/config';
+import { initializeCommand } from '../utils/cli-pipeline';
 
 export interface ListGraphsOptions {
   project: string; // required project ID
-  tenantId?: string;
-  agentsManageApiUrl?: string;
   config?: string;
   configFilePath?: string; // deprecated, kept for backward compatibility
 }
 
 export async function listGraphsCommand(options: ListGraphsOptions) {
-  // Validate configuration
-  let config: ValidatedConfiguration;
+  // Use standardized CLI pipeline for initialization
+  const configPath = options.config || options.configFilePath;
+  const { config } = await initializeCommand({
+    configPath,
+    showSpinner: false,
+    logConfig: true,
+  });
 
-  try {
-    // Use new config parameter, fall back to configFilePath for backward compatibility
-    const configPath = options.config || options.configFilePath;
-    config = await validateConfiguration(
-      options.tenantId,
-      options.agentsManageApiUrl,
-      undefined, // agentsRunApiUrl not needed for list-graphs
-      configPath
-    );
-  } catch (error: any) {
-    console.error(chalk.red(error.message));
-    process.exit(1);
-  }
-
-  // Log configuration sources for debugging
-  console.log(chalk.gray('Using configuration:'));
-  console.log(chalk.gray(`  • Tenant ID: ${config.sources.tenantId}`));
-  console.log(chalk.gray(`  • API URL: ${config.sources.agentsManageApiUrl}`));
   console.log();
 
-  const configPath = options.config || options.configFilePath;
   const api = await ManagementApiClient.create(
     config.agentsManageApiUrl,
     configPath,
@@ -52,7 +35,9 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
 
     if (graphs.length === 0) {
       console.log(
-        chalk.gray(`No graphs found in project "${options.project}". Define graphs in your project and run: inkeep push`)
+        chalk.gray(
+          `No graphs found in project "${options.project}". Define graphs in your project and run: inkeep push`
+        )
       );
       return;
     }

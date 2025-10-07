@@ -1,4 +1,5 @@
 import app from '../../index';
+import { env } from '../../env';
 
 interface TestRequestOptions extends RequestInit {
   expectError?: boolean;
@@ -13,6 +14,10 @@ export const makeRequest = async (url: string, options: TestRequestOptions = {})
     ...requestOptions,
     headers: {
       'Content-Type': 'application/json',
+      // Include bypass secret if configured (for authentication in tests)
+      ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+        Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+      }),
       ...customHeaders,
       ...requestOptions.headers,
     },

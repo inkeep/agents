@@ -267,7 +267,7 @@ export class ContextResolver {
           const durationMs = Date.now() - startTime;
 
           // Use helper function for consistent error handling
-          setSpanWithError(parentSpan, error);
+          setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
 
           logger.error(
             {
@@ -371,7 +371,7 @@ export class ContextResolver {
           return data;
         } catch (error) {
           // Use helper function for consistent error handling
-          setSpanWithError(parentSpan, error);
+          setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
           throw error;
         } finally {
           parentSpan.end();

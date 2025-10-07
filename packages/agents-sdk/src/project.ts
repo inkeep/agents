@@ -94,6 +94,7 @@ export class Project implements ProjectInterface {
   private projectDescription?: string;
   private tenantId: string;
   private baseURL: string;
+  private apiKey?: string;
   private initialized = false;
   private models?: {
     base?: ModelSettings;
@@ -140,13 +141,19 @@ export class Project implements ProjectInterface {
    * Set or update the configuration (tenantId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(tenantId: string, apiUrl: string, models?: ProjectConfig['models']): void {
+  setConfig(
+    tenantId: string,
+    apiUrl: string,
+    models?: ProjectConfig['models'],
+    apiKey?: string
+  ): void {
     if (this.initialized) {
       throw new Error('Cannot set config after project has been initialized');
     }
 
     this.tenantId = tenantId;
     this.baseURL = apiUrl;
+    this.apiKey = apiKey;
 
     // Update models if provided
     if (models) {
@@ -164,6 +171,7 @@ export class Project implements ProjectInterface {
         tenantId: this.tenantId,
         apiUrl: this.baseURL,
         hasModels: !!this.models,
+        hasApiKey: !!this.apiKey,
       },
       'Project configuration updated'
     );
@@ -204,65 +212,6 @@ export class Project implements ProjectInterface {
     );
 
     try {
-      // First, create the project metadata without graphs to ensure it exists in the database
-      const projectMetadata = {
-        id: this.projectId,
-        name: this.projectName,
-        description: this.projectDescription || '',
-        models: this.models as any,
-        stopWhen: this.stopWhen,
-        graphs: {}, // Empty graphs object for now
-        tools: {}, // Empty tools object
-        credentialReferences: undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      logger.info(
-        {
-          projectId: this.projectId,
-          mode: 'api-client',
-          apiUrl: this.baseURL,
-        },
-        'Creating project metadata first'
-      );
-
-      // Create the project metadata first
-      await updateFullProjectViaAPI(this.tenantId, this.baseURL, this.projectId, projectMetadata);
-
-      logger.info(
-        {
-          projectId: this.projectId,
-        },
-        'Project metadata created successfully'
-      );
-
-      // Now initialize all graphs (they can now reference the existing project)
-      const initPromises = this.graphs.map(async (graph) => {
-        try {
-          await graph.init();
-          logger.debug(
-            {
-              projectId: this.projectId,
-              graphId: graph.getId(),
-            },
-            'Graph initialized in project'
-          );
-        } catch (error) {
-          logger.error(
-            {
-              projectId: this.projectId,
-              graphId: graph.getId(),
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-            'Failed to initialize graph in project'
-          );
-          throw error;
-        }
-      });
-
-      await Promise.all(initPromises);
-
       // Convert to FullProjectDefinition format
       const projectDefinition = await this.toFullProjectDefinition();
 
@@ -281,7 +230,8 @@ export class Project implements ProjectInterface {
         this.tenantId,
         this.baseURL,
         this.projectId,
-        projectDefinition
+        projectDefinition,
+        this.apiKey
       );
 
       this.initialized = true;
@@ -545,10 +495,10 @@ export class Project implements ProjectInterface {
       }
 
       // Check context config for credentials
-      const contextConfig = (graph as any).contextConfig;
-      if (contextConfig) {
+      const graphContextConfig = (graph as any).contextConfig;
+      if (graphContextConfig) {
         const contextVariables =
-          contextConfig.getContextVariables?.() || contextConfig.contextVariables;
+          graphContextConfig.getContextVariables?.() || graphContextConfig.contextVariables;
         if (contextVariables) {
           for (const [key, variable] of Object.entries(contextVariables)) {
             // Check for credential references in fetch definitions

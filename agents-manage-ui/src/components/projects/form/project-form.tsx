@@ -34,9 +34,9 @@ const serializeData = (data: ProjectFormData) => {
   };
 
   const cleanStopWhen = (stopWhen: any) => {
-    // If stopWhen is null, undefined, or empty object, return undefined
+    // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
     if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
-      return undefined;
+      return {};
     }
 
     // Clean the individual properties - remove null/undefined values
@@ -48,9 +48,9 @@ const serializeData = (data: ProjectFormData) => {
       cleaned.stepCountIs = stopWhen.stepCountIs;
     }
 
-    // If no valid properties, return undefined
+    // If no valid properties, return empty object (undefined will not update the field)
     if (Object.keys(cleaned).length === 0) {
-      return undefined;
+      return {};
     }
 
     return cleaned;
@@ -81,6 +81,15 @@ const serializeData = (data: ProjectFormData) => {
   };
 };
 
+const createDefaultValues = (initialData?: ProjectFormData) => {
+  return {
+    ...initialData,
+    // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object
+    stopWhen: initialData?.stopWhen || {},
+    models: initialData?.models || { base: { model: '', providerOptions: null } },
+  };
+};
+
 export function ProjectForm({
   tenantId,
   projectId,
@@ -90,10 +99,7 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
-    defaultValues: {
-      ...defaultValues,
-      ...initialData,
-    },
+    defaultValues: initialData ? createDefaultValues(initialData) : { ...defaultValues },
   });
 
   const { isSubmitting } = form.formState;

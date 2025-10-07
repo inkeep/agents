@@ -1,5 +1,4 @@
 import {
-  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   CheckCircle,
@@ -391,28 +390,40 @@ export function TimelineItem({
             </div>
           )}
 
-          {/* OTEL status for failed agent.generate spans */}
-          {activity.type === ACTIVITY_TYPES.AI_GENERATION &&
-            activity.name === 'agent.generate' &&
-            activity.hasError &&
-            (activity.otelStatusCode || activity.otelStatusDescription) && (
-              <div className="mt-2">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1.5 flex-1">
-                    {activity.otelStatusCode && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Status Code:</span>{' '}
-                        <span className="font-mono">{activity.otelStatusCode}</span>
-                      </div>
-                    )}
-                    {activity.otelStatusDescription && (
-                      <CodeBubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                        {activity.otelStatusDescription}
-                      </CodeBubble>
-                    )}
-                  </div>
-                </div>
+          {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
+          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
+            activity.aiTelemetryFunctionId && 
+            activity.toolType !== 'delegation' && 
+            activity.toolType !== 'transfer' && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  {activity.aiTelemetryFunctionId}
+                </Badge>
+              </div>
+            )}
+
+          {/* Error display for failed AI/Agent generations */}
+          {(activity.hasError) &&
+            activity.otelStatusDescription && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => onToggleAiMessageCollapse && onToggleAiMessageCollapse(activity.id)}
+                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
+                  title={isAiMessageCollapsed ? 'Expand error message' : 'Collapse error message'}
+                >
+                  {isAiMessageCollapsed ? (
+                    <ChevronRight className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                  Error Details
+                </button>
+                {!isAiMessageCollapsed && (
+                  <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                    {activity.otelStatusDescription}
+                  </Bubble>
+                )}
               </div>
             )}
 

@@ -8,6 +8,7 @@ import {
   getActiveAgentForConversation,
   getAgentById,
   getAgentGraphWithDefaultAgent,
+  getConversationId,
   getRequestExecutionContext,
   handleContextResolution,
   loggerFactory,
@@ -98,7 +99,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
-    const conversationId = body.conversationId || nanoid();
+    const conversationId = body.conversationId || getConversationId();
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
