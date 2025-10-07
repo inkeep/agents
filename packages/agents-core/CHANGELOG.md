@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.14.10
+
+### Patch Changes
+
+- cee3fa1: use type defs from @inkeep/agents-core in llm generated @inkeep/agents-cli pull command prompts
+
 ## 0.14.9
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.10
+
+### Patch Changes
+
+- cee3fa1: use type defs from @inkeep/agents-core in llm generated @inkeep/agents-cli pull command prompts
+- 0f95f38: enables line wrapping in the prompt/graph prompts editors
+- 521c60e: Align toast error colors with `<GraphErrorSummaryComponent>` styling
+- Updated dependencies [cee3fa1]
+  - @inkeep/agents-core@0.14.10
+  - @inkeep/agents-manage-api@0.14.10
+  - @inkeep/agents-run-api@0.14.10
+
 ## 0.14.9
 
 ### Patch Changes
