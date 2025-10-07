@@ -1723,9 +1723,12 @@ export class Agent {
                 }
                 break;
               case 'error':
-                  // Handle streaming errors by throwing them to propagate up
-                  throw event.error;
-              // Handle other event types if needed
+                  if (event.error instanceof Error) {
+                    throw event.error;
+                  } else {
+                    const errorMessage = (event.error as any)?.error?.message;
+                    throw new Error(errorMessage);
+                  }
             }
           }
 
