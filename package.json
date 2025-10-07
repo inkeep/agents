@@ -31,6 +31,7 @@
     "typecheck": "turbo typecheck",
     "precheck": "pnpm install --frozen-lockfile",
     "check": "turbo check",
+    "check:husky": "turbo check:husky",
     "check:fix": "biome check --write",
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",

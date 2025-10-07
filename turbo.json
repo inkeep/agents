@@ -146,6 +146,10 @@
       "persistent": true
     },
     "check": {
+      "dependsOn": ["lint", "typecheck", "test"],
+      "cache": false
+    },
+    "check:husky": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
       "cache": false
     }
