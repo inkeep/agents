@@ -16,8 +16,7 @@ export type MessageMode = 'full' | 'scoped' | 'none';
 
 export type Models = z.infer<typeof ModelSchema>;
 export type ProjectModels = z.infer<typeof ProjectModelSchema>;
-// Re-export ModelSettings from validation/schemas.ts
-export type { ModelSettings } from '../validation/schemas';
+// Note: ModelSettings is exported directly from validation/schemas.ts (no need to re-export here)
 
 export type StatusUpdateSettings = z.infer<typeof StatusUpdateSchema>;
 export type StatusComponent = z.infer<typeof StatusComponentSchema>;
