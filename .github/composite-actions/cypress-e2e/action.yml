@@ -27,7 +27,7 @@ runs:
 
     - name: Push Weather Example Project
       shell: bash
-      run: cd examples && npx inkeep push --project my-weather-project
+      run: cd examples && npx inkeep push --project weather-project
 
     # Start the backend API server
     - name: Start Backend API Server
