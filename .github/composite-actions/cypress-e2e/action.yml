@@ -25,10 +25,6 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
-    - name: Push Weather Example Project
-      shell: bash
-      run: cd examples && npx inkeep push --project weather-project
-
     # Start the backend API server
     - name: Start Backend API Server
       shell: bash
@@ -62,6 +58,10 @@ runs:
         echo "Waiting for backend API server to be ready..."
         timeout 60 bash -c 'until curl -f http://localhost:3002/health 2>/dev/null; do sleep 2; done'
         echo "Backend API server is ready!"
+
+    - name: Push Weather Example Project
+      shell: bash
+      run: cd examples && npx inkeep push --project weather-project
 
     - name: Wait for Frontend Development Server
       shell: bash
