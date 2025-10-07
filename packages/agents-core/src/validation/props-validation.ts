@@ -74,13 +74,15 @@ export function validatePropsAsJsonSchema(props: any): PropsValidationResult {
     };
   }
 
-  if (!Array.isArray(props.required)) {
+  // Note: 'required' array is optional in JSON Schema
+  // If present, it must be an array, but it's not mandatory
+  if (props.required !== undefined && !Array.isArray(props.required)) {
     return {
       isValid: false,
       errors: [
         {
           field: 'props.required',
-          message: 'JSON Schema must have a "required" array (can be empty)',
+          message: 'If present, "required" must be an array',
         },
       ],
     };

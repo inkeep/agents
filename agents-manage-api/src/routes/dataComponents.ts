@@ -135,7 +135,9 @@ app.openapi(
     if (body.props) {
       const propsValidation = validatePropsAsJsonSchema(body.props);
       if (!propsValidation.isValid) {
-        const errorMessages = propsValidation.errors.map(e => `${e.field}: ${e.message}`).join(', ');
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
         throw createApiError({
           code: 'bad_request',
           message: `Invalid props schema: ${errorMessages}`,
@@ -192,7 +194,9 @@ app.openapi(
     if (body.props !== undefined && body.props !== null) {
       const propsValidation = validatePropsAsJsonSchema(body.props);
       if (!propsValidation.isValid) {
-        const errorMessages = propsValidation.errors.map(e => `${e.field}: ${e.message}`).join(', ');
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
         throw createApiError({
           code: 'bad_request',
           message: `Invalid props schema: ${errorMessages}`,
