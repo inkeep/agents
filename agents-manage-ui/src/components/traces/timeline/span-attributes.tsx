@@ -91,7 +91,10 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
  */
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   return (
-    <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
+    <div>
+      <h3 className="text-sm font-medium mb-2">Process Attributes</h3>
+      <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
+    </div>
   );
 }
 
@@ -116,7 +119,10 @@ export function SpanAttributes({ span, className }: SpanAttributesProps) {
     <div className={`space-y-3 ${className ?? ''}`}>
       {/* Main span attributes */}
       {hasOtherAttributes && (
-        <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
+        <div>
+          <h3 className="text-sm font-medium mb-2">Advanced Span Attributes</h3>
+          <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
+        </div>
       )}
 
       {/* Process attributes section */}

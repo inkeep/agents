@@ -211,7 +211,8 @@ export function TimelineWrapper({
       .filter(
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
   }, [sortedActivities]);
@@ -262,7 +263,8 @@ export function TimelineWrapper({
       .filter(
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
     const allCollapsed = aiMessageIds.every((id) => newCollapsed.has(id));
@@ -323,7 +325,8 @@ export function TimelineWrapper({
                 {sortedActivities.some(
                   (activity) =>
                     activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+                    (activity.hasError && activity.otelStatusDescription)
                 ) && (
                   <div className="flex items-center gap-1">
                     <Button
