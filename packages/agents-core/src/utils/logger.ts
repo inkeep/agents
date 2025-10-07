@@ -32,7 +32,7 @@ export class PinoLogger {
   ) {
     this.options = {
       name: this.name,
-      level: process.env.LOG_LEVEL || 'info',
+      level: process.env.LOG_LEVEL || (process.env.ENVIRONMENT === 'test' ? 'silent' : 'info'),
       serializers: {
         obj: (value: any) => ({ ...value }),
       },
