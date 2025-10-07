@@ -1115,11 +1115,13 @@ export class Agent {
       execute: async ({ artifactId, toolCallId }) => {
         logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
         
-        // Use ArtifactService to get full data
-        const artifactService = new ArtifactService({
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-        });
+        // Use shared ArtifactService from GraphSessionManager
+        const streamRequestId = this.getStreamRequestId();
+        const artifactService = graphSessionManager.getArtifactService(streamRequestId);
+
+        if (!artifactService) {
+          throw new Error(`ArtifactService not found for session ${streamRequestId}`);
+        }
         
         const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
         if (!artifactData) {
@@ -1131,7 +1133,7 @@ export class Agent {
           name: artifactData.name,
           description: artifactData.description,
           type: artifactData.type,
-          data: artifactData.data
+          data: artifactData.data,
         };
       },
     });

@@ -90,14 +90,20 @@ export class ArtifactParser {
       artifactComponents?: ArtifactComponentApiInsert[];
       streamRequestId?: string;
       agentId?: string;
+      artifactService?: ArtifactService; // Allow passing existing ArtifactService
     }
   ) {
-    // Create new ArtifactService instance
-    const context: ArtifactServiceContext = {
-      tenantId,
-      ...options,
-    };
-    this.artifactService = new ArtifactService(context);
+    if (options?.artifactService) {
+      // Use provided ArtifactService instance
+      this.artifactService = options.artifactService;
+    } else {
+      // Create new ArtifactService instance
+      const context: ArtifactServiceContext = {
+        tenantId,
+        ...options,
+      };
+      this.artifactService = new ArtifactService(context);
+    }
   }
 
   /**

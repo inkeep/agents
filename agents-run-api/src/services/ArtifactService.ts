@@ -6,7 +6,6 @@ import {
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
-import { nanoid } from 'nanoid';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -73,6 +72,13 @@ export class ArtifactService {
    */
   static clearCaches(): void {
     ArtifactService.selectorCache.clear();
+  }
+
+  /**
+   * Update artifact components in the context
+   */
+  updateArtifactComponents(artifactComponents: ArtifactComponentApiInsert[]): void {
+    this.context.artifactComponents = artifactComponents;
   }
 
   /**
@@ -550,7 +556,7 @@ export class ArtifactService {
           const schema = artifactComponent.props as ExtendedJsonSchema;
           const previewSchema = extractPreviewFields(schema);
           const fullSchema = extractFullFields(schema);
-          
+
           // Extract data based on the schemas
           summaryData = this.filterBySchema(artifact.data, previewSchema);
           fullData = this.filterBySchema(artifact.data, fullSchema);

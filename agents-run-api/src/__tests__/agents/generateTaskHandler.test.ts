@@ -93,7 +93,7 @@ const {
       models: {
         base: { model: 'openai/gpt-4' },
         structuredOutput: { model: 'openai/gpt-4' },
-        summarizer: { model: 'openai/gpt-3.5-turbo' }
+        summarizer: { model: 'openai/gpt-3.5-turbo' },
       },
     })
   );
@@ -202,6 +202,13 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentById: getAgentByIdMock,
   getAgentGraph: getAgentGraphMock,
   getAgentGraphById: getAgentGraphByIdMock,
+  getTracer: vi.fn().mockReturnValue({
+    startSpan: vi.fn().mockReturnValue({
+      setAttributes: vi.fn(),
+      setStatus: vi.fn(),
+      end: vi.fn(),
+    }),
+  }),
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
   getProject: getProjectMock,

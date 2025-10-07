@@ -185,6 +185,7 @@ export class GraphSession {
         contextId,
         taskId: `task_${contextId}-${messageId}`,
         streamRequestId: sessionId,
+        artifactService: this.artifactService, // Pass the shared ArtifactService
       });
     }
   }
@@ -1382,7 +1383,11 @@ Make it specific and relevant.`;
                   'artifact.id': artifactData.artifactId,
                   'artifact.type': artifactData.artifactType,
                   'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
-                  'artifact.full': JSON.stringify(artifactData.data || artifactData.summaryData, null, 2),
+                  'artifact.full': JSON.stringify(
+                    artifactData.data || artifactData.summaryData,
+                    null,
+                    2
+                  ),
                   'prompt.length': prompt.length,
                 },
               },
@@ -1415,7 +1420,11 @@ Make it specific and relevant.`;
                       'artifact.name': result.object.name,
                       'artifact.description': result.object.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
-                      'artifact.full': JSON.stringify(artifactData.data || artifactData.summaryData, null, 2),
+                      'artifact.full': JSON.stringify(
+                        artifactData.data || artifactData.summaryData,
+                        null,
+                        2
+                      ),
                       'generation.name_length': result.object.name.length,
                       'generation.description_length': result.object.description.length,
                       'generation.attempts': attempt,
@@ -1596,6 +1605,15 @@ Make it specific and relevant.`;
     logger.debug({ sessionId: this.sessionId, key, found: !!artifact }, 'Artifact cache lookup');
     return artifact || null;
   }
+
+  /**
+   * Update artifact components in the shared ArtifactService
+   */
+  updateArtifactComponents(artifactComponents: any[]): void {
+    if (this.artifactService) {
+      this.artifactService.updateArtifactComponents(artifactComponents);
+    }
+  }
 }
 
 /**
@@ -1767,6 +1785,16 @@ export class GraphSessionManager {
   getArtifactParser(sessionId: string): any | null {
     const session = this.sessions.get(sessionId);
     return session ? session.getArtifactParser() : null;
+  }
+
+  /**
+   * Update artifact components for a session
+   */
+  updateArtifactComponents(sessionId: string, artifactComponents: any[]): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.updateArtifactComponents(artifactComponents);
+    }
   }
 }
 
