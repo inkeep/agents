@@ -90,6 +90,18 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
           CI: true
 
+      - name: Setup Cypress cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-cypress-
+
+      - name: Install Cypress binary
+        run: |
+          cd agents-manage-ui && npx cypress install
+
       # Start the backend API server
       - name: Start Backend API Server
         run: |
