@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.13
+
+### Patch Changes
+
+- 0a4e37c: Highlight active tools in available tools list
+  - @inkeep/agents-manage-api@0.14.13
+  - @inkeep/agents-run-api@0.14.13
+  - @inkeep/agents-core@0.14.13
+
 ## 0.14.12
 
 ### Patch Changes
