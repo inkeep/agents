@@ -467,13 +467,13 @@ export class ArtifactService {
   private async cacheArtifact(
     artifactId: string,
     toolCallId: string,
-    artifactData: ArtifactData,
+    artifactData: ArtifactSummaryData,
     fullData: Record<string, any>
   ): Promise<void> {
     const cacheKey = `${artifactId}:${toolCallId}`;
     const artifactForCache = {
       ...artifactData,
-      parts: [{ data: { summary: artifactData.artifactSummary, full: fullData } }],
+      parts: [{ data: { summary: artifactData.data, data: fullData } }],
       metadata: { artifactType: artifactData.type, toolCallId },
       taskId: this.context.taskId,
     };
