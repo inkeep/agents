@@ -6,11 +6,7 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: [
-            'quick-start/start-development',
-            'quick-start/traces',
-            'quick-start/credentials',
-          ],
+          pages: ['quick-start/start-development', 'quick-start/traces', 'quick-start/credentials'],
         },
         'concepts',
         'troubleshooting',
@@ -23,6 +19,7 @@ export default {
       pages: [
         'typescript-sdk/agent-settings',
         'typescript-sdk/agent-relationships',
+        'typescript-sdk/data-operations',
         'typescript-sdk/tools-and-mcp-servers',
         'typescript-sdk/create-mcp-servers',
         'typescript-sdk/credentials',

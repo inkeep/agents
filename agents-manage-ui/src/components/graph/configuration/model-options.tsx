@@ -1,6 +1,6 @@
 export const DEFAULT_ANTHROPIC_BASE_MODEL = 'anthropic/claude-sonnet-4-20250514';
-export const DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL = 'anthropic/claude-haiku-3-5-20241022';
-export const DEFAULT_ANTHROPIC_SUMMARIZER_MODEL = 'anthropic/claude-haiku-3-5-20241022';
+export const DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL = 'anthropic/claude-sonnet-4-2025051';
+export const DEFAULT_ANTHROPIC_SUMMARIZER_MODEL = 'anthropic/claude-sonnet-4-20250514';
 
 export const DEFAULT_OPENAI_BASE_MODEL = 'openai/gpt-4.1-2025-04-14';
 export const DEFAULT_OPENAI_STRUCTURED_OUTPUT_MODEL = 'openai/gpt-4.1-mini-2025-04-14';
@@ -21,8 +21,8 @@ export const modelOptions = {
       label: 'anthropic/claude-sonnet-4-20250514',
     },
     {
-      value: 'anthropic/claude-haiku-3-5-20241022',
-      label: 'anthropic/claude-haiku-3-5-20241022',
+      value: 'anthropic/claude-3-5-haiku-20241022',
+      label: 'anthropic/claude-3-5-haiku-20241022',
     },
   ],
   openai: [

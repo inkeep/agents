@@ -349,9 +349,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
         logger.info({ agentId }, 'Starting execution');
 
-        // Check for debug mode header
-        const debugModeHeader = c.req.header('x-debug-mode');
-        const debugMode = debugModeHeader === 'true';
+        // Check for emit operations header
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
 
         // Use the execution handler
         const executionHandler = new ExecutionHandler();
@@ -362,7 +362,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           initialAgentId: agentId,
           requestId,
           sseHelper,
-          debugMode,
+          emitOperations,
         });
 
         logger.info(

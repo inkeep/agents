@@ -30,7 +30,7 @@ interface ExecutionHandlerParams {
   initialAgentId: string;
   requestId: string;
   sseHelper: StreamHelper;
-  debugMode?: boolean;
+  emitOperations?: boolean;
 }
 
 interface ExecutionResult {
@@ -66,7 +66,7 @@ export class ExecutionHandler {
       initialAgentId,
       requestId,
       sseHelper,
-      debugMode,
+      emitOperations,
     } = params;
 
     const { tenantId, projectId, graphId, apiKey, baseUrl } = executionContext;
@@ -78,13 +78,13 @@ export class ExecutionHandler {
 
     graphSessionManager.createSession(requestId, graphId, tenantId, projectId, conversationId);
 
-    // Enable debug mode if requested
-    if (debugMode) {
-      graphSessionManager.enableDebugMode(requestId);
+    // Enable emit operations if requested
+    if (emitOperations) {
+      graphSessionManager.enableEmitOperations(requestId);
     }
 
     logger.info(
-      { sessionId: requestId, graphId, conversationId, debugMode },
+      { sessionId: requestId, graphId, conversationId, emitOperations },
       'Created GraphSession for message execution'
     );
 

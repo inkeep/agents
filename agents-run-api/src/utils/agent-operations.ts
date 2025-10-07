@@ -40,7 +40,7 @@ export interface ErrorEvent {
 }
 
 /**
- * Data operation event (for debug mode)
+ * Data operation event (for emit operations)
  */
 export interface DataOperationEvent {
   type: string;
