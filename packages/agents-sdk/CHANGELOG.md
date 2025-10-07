@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+- Updated dependencies [ef0a682]
+  - @inkeep/agents-core@0.14.11
+
 ## 0.14.10
 
 ### Patch Changes
