@@ -90,6 +90,9 @@ jobs:
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests
         uses: ./.github/composite-actions/cypress-e2e
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
 
       # Create summary report
       - name: Create CI Summary
