@@ -34,8 +34,7 @@ jobs:
 
       - name: Get pnpm store directory
         shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
@@ -48,16 +47,14 @@ jobs:
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
         uses: actions/cache@v4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+          restore-keys: ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: |
@@ -95,12 +92,10 @@ jobs:
         with:
           path: ~/.cache/Cypress
           key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-cypress-
+          restore-keys: ${{ runner.os }}-cypress-
 
       - name: Install Cypress binary
-        run: |
-          cd agents-manage-ui && npx cypress install
+        run: cd agents-manage-ui && npx cypress install
 
       # Start the backend API server
       - name: Start Backend API Server
@@ -141,8 +136,7 @@ jobs:
 
       # Run Cypress e2e tests
       - name: Run Cypress E2E Tests
-        run: |
-          pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
+        run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
