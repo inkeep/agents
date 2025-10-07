@@ -1329,7 +1329,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           body: JSON.stringify(updateData),
         }
       );
-      console.log(updateRes);
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();
