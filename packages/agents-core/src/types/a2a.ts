@@ -34,7 +34,12 @@ export interface DataPart extends PartBase {
   data: { [key: string]: any };
 }
 
-export type Part = TextPart | FilePart | DataPart;
+export interface ImagePart extends PartBase {
+  kind: 'image';
+  data: string; // base64 encoded image data or data URL
+}
+
+export type Part = TextPart | FilePart | DataPart | ImagePart;
 
 export enum TaskState {
   Submitted = 'submitted',
