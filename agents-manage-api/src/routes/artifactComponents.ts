@@ -195,14 +195,23 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
+    const updateData: any = {};
+
+    // Only include fields that are actually provided in the request
+    if (body.name !== undefined) {
+      updateData.name = String(body.name);
+    }
+    if (body.description !== undefined) {
+      updateData.description = String(body.description);
+    }
+    if (body.props !== undefined) {
+      updateData.props = body.props ?? null;
+    }
+
     const updatedArtifactComponent = await updateArtifactComponent(dbClient)({
       scopes: { tenantId, projectId },
       id,
-      data: {
-        name: body.name ? String(body.name) : undefined,
-        description: body.description ? String(body.description) : undefined,
-        props: body.props ?? null,
-      },
+      data: updateData,
     });
 
     if (!updatedArtifactComponent) {
