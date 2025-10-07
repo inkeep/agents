@@ -13,6 +13,7 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../types/utility';
+import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
 export const getArtifactComponentById =
   (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
@@ -80,6 +81,17 @@ export const listArtifactComponentsPaginated =
 
 export const createArtifactComponent =
   (db: DatabaseClient) => async (params: ArtifactComponentInsert) => {
+    // Validate props as JSON Schema if provided
+    if (params.props !== null && params.props !== undefined) {
+      const propsValidation = validatePropsAsJsonSchema(params.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
     const now = new Date().toISOString();
 
     const [artifactComponent] = await db
@@ -97,6 +109,17 @@ export const createArtifactComponent =
 export const updateArtifactComponent =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string; data: ArtifactComponentUpdate }) => {
+    // Validate props as JSON Schema if provided
+    if (params.data.props !== undefined && params.data.props !== null) {
+      const propsValidation = validatePropsAsJsonSchema(params.data.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
     const now = new Date().toISOString();
 
     const [updated] = await db

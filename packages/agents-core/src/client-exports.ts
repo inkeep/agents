@@ -25,6 +25,9 @@ import {
   StopWhenSchema,
 } from './validation/schemas';
 
+// Import validation utilities
+export { validatePropsAsJsonSchema } from './validation/props-validation';
+
 // Re-export StopWhen schemas and types for client usage
 export {
   StopWhenSchema,

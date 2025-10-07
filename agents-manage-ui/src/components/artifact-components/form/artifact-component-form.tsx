@@ -67,6 +67,11 @@ export function ArtifactComponentForm({
       const formattedData = formatFormData(data);
       const payload = { ...formattedData } as ArtifactComponent;
 
+      // Explicitly set props to null if it's undefined to ensure it gets cleared
+      if (payload.props === undefined) {
+        payload.props = null;
+      }
+
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
