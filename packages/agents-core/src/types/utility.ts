@@ -42,11 +42,11 @@ export type GraphScopeConfig = ProjectScopeConfig & {
 };
 
 export type AgentScopeConfig = GraphScopeConfig & {
-  agentId: string;
+  subAgentId: string;
 };
 export interface ConversationScopeOptions {
   taskId?: string;
-  agentId?: string;
+  subAgentId?: string;
 }
 
 export type ConversationHistoryConfig = {

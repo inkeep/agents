@@ -89,7 +89,7 @@ const personalAgent = agent({
 export const graph = agentGraph({
   id: "personal-graph",
   name: "Personal Assistant Graph",
-  defaultAgent: personalAgent,
+  defaultSubAgent: personalAgent,
   agents: () => [personalAgent],
   contextConfig: personalGraphContext,
 });

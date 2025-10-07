@@ -550,7 +550,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 
@@ -578,7 +578,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 
@@ -614,7 +614,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
       });
@@ -642,7 +642,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
       });
@@ -668,7 +668,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         dataComponentId: 'non-existent',
       });
@@ -754,7 +754,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
       });
@@ -781,7 +781,7 @@ describe('Data Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
       });

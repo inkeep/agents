@@ -1,6 +1,6 @@
 import {
   type DatabaseClient,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithdefaultSubAgent,
   getContextConfigById,
   getConversation,
   updateConversation,
@@ -100,7 +100,7 @@ async function handleContextResolution({
 
       try {
         // 1. Get graph's context config
-        agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+        agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
           scopes: { tenantId, projectId, graphId },
         });
         if (!agentGraph?.contextConfigId) {

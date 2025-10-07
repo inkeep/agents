@@ -43,7 +43,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockGraph = {
         id: testGraphId,
         name: 'Test Graph',
-        defaultAgentId: 'default-agent-1',
+        defaultSubAgentId: 'default-agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
         tenantId: testTenantId,
@@ -58,7 +58,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         agentGraph: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]), // No relations
         },
         agents: {
@@ -88,10 +88,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             },
           ]),
         },
-        agentDataComponents: {
+        subAgentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agentArtifactComponents: {
+        subAgentArtifactComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         projects: {
@@ -125,7 +125,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       expect(result).toBeDefined();
       expect(result?.id).toBe(testGraphId);
       expect(result?.name).toBe('Test Graph');
-      expect(result?.defaultAgentId).toBe('default-agent-1');
+      expect(result?.defaultSubAgentId).toBe('default-agent-1');
       expect(result?.agents).toHaveProperty('default-agent-1');
       expect(result?.agents['default-agent-1']).toEqual({
         id: 'default-agent-1',
@@ -145,7 +145,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockGraph = {
         id: testGraphId,
         name: 'Test Graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
         tenantId: testTenantId,
@@ -158,9 +158,9 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockRelations = [
         {
           id: 'relation-1',
-          sourceAgentId: 'agent-1',
-          targetAgentId: 'agent-2',
-          externalAgentId: null,
+          sourceSubAgentId: 'agent-1',
+          targetSubAgentId: 'agent-2',
+          externalSubAgentId: null,
           relationType: 'transfer',
           graphId: testGraphId,
           tenantId: testTenantId,
@@ -200,7 +200,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         agentGraph: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
         },
         agents: {
@@ -215,10 +215,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             }))
           ),
         },
-        agentDataComponents: {
+        subAgentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agentArtifactComponents: {
+        subAgentArtifactComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         projects: {
@@ -258,7 +258,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockGraph = {
         id: testGraphId,
         name: 'Test Graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
         tenantId: testTenantId,
@@ -300,7 +300,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         agentGraph: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         agents: {
@@ -312,10 +312,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             },
           ]),
         },
-        agentDataComponents: {
+        subAgentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agentArtifactComponents: {
+        subAgentArtifactComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         projects: {
@@ -361,7 +361,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockGraph = {
         id: testGraphId,
         name: 'Test Graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
         models: mockModelSettings,
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -388,7 +388,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         agentGraph: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         agents: {
@@ -400,10 +400,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             },
           ]),
         },
-        agentDataComponents: {
+        subAgentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agentArtifactComponents: {
+        subAgentArtifactComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         projects: {
@@ -441,7 +441,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockGraph = {
         id: testGraphId,
         name: 'Test Graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
         createdAt: 'invalid-date',
         updatedAt: 'invalid-date',
         tenantId: testTenantId,
@@ -483,7 +483,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         agentGraph: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         agents: {
@@ -495,10 +495,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             },
           ]),
         },
-        agentDataComponents: {
+        subAgentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agentArtifactComponents: {
+        subAgentArtifactComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         projects: {
@@ -538,7 +538,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockGraph = {
         id: testGraphId,
         name: 'Test Graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
         tenantId: testTenantId,
@@ -551,9 +551,9 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       const mockRelations = [
         {
           id: 'relation-1',
-          sourceAgentId: 'agent-1',
-          targetAgentId: 'non-existent-agent',
-          externalAgentId: null,
+          sourceSubAgentId: 'agent-1',
+          targetSubAgentId: 'non-existent-agent',
+          externalSubAgentId: null,
           relationType: 'transfer',
           graphId: testGraphId,
           tenantId: testTenantId,
@@ -568,7 +568,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         agentGraph: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
         },
         agents: {
@@ -601,10 +601,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             },
           ]),
         },
-        agentDataComponents: {
+        subAgentDataComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agentArtifactComponents: {
+        subAgentArtifactComponents: {
           findMany: vi.fn().mockResolvedValue([]),
         },
         projects: {

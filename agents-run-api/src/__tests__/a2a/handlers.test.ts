@@ -290,7 +290,7 @@ describe('A2A Handlers', () => {
       const result = await response.json();
 
       expect(result.result.artifacts[0].parts[0].data.type).toBe('transfer');
-      expect(result.result.artifacts[0].parts[0].data.targetAgentId).toBe('support-agent');
+      expect(result.result.artifacts[0].parts[0].data.targetSubAgentId).toBe('support-agent');
     });
 
     it('should handle contextId resolution for delegation', async () => {

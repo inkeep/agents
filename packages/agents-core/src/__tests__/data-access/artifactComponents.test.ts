@@ -488,7 +488,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 
@@ -525,7 +525,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -555,7 +555,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -586,7 +586,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -654,7 +654,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -683,7 +683,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -868,7 +868,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 
@@ -893,7 +893,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 

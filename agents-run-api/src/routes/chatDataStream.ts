@@ -7,7 +7,7 @@ import {
   createMessage,
   getActiveAgentForConversation,
   getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithdefaultSubAgent,
   getConversationId,
   getRequestExecutionContext,
   handleContextResolution,
@@ -111,7 +111,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+    const agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
     });
     if (!agentGraph) {
@@ -121,10 +121,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    const defaultAgentId = agentGraph.defaultAgentId;
+    const defaultSubAgentId = agentGraph.defaultSubAgentId;
     const graphName = agentGraph.name;
 
-    if (!defaultAgentId) {
+    if (!defaultSubAgentId) {
       throw createApiError({
         code: 'bad_request',
         message: 'Graph does not have a default agent configured',
@@ -139,10 +139,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultAgentId,
+        agentId: defaultSubAgentId,
       });
     }
-    const agentId = activeAgent?.activeAgentId || defaultAgentId;
+    const agentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
     const agentInfo = await getAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },

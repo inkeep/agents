@@ -109,7 +109,7 @@ export type AgentConfig = {
   name: string;
   description: string;
   agentPrompt: string;
-  agentRelations: AgentConfig[];
+  subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
   tools?: McpTool[];

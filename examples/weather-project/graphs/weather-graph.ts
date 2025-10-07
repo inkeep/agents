@@ -31,6 +31,6 @@ const weatherForecaster = agent({
 export const weatherGraph = agentGraph({
   id: 'weather-graph',
   name: 'Weather graph',
-  defaultAgent: weatherAssistant,
+  defaultSubAgent: weatherAssistant,
   agents: () => [geocoderAgent, weatherAssistant, weatherForecaster],
 });

@@ -14,7 +14,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       id: testGraphId,
       name: 'Test Graph',
       description: 'Test graph for context config tests',
-      defaultAgentId: 'test-agent',
+      defaultSubAgentId: 'test-agent',
       agents: {
         'test-agent': {
           id: 'test-agent',

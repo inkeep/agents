@@ -86,7 +86,7 @@ import { agentGraph } from '@inkeep/agents-manage-api';
 
 const graph = agentGraph({
   id: 'customer-support',
-  defaultAgent: routerAgent,
+  defaultSubAgent: routerAgent,
   agents: [routerAgent, qaAgent, orderAgent]
 });
 

@@ -171,8 +171,8 @@ export function validateGraphStructure(
   }
 ): void {
   // Validate default agent exists (if specified)
-  if (graphData.defaultAgentId && !graphData.agents[graphData.defaultAgentId]) {
-    throw new Error(`Default agent '${graphData.defaultAgentId}' does not exist in agents`);
+  if (graphData.defaultSubAgentId && !graphData.agents[graphData.defaultSubAgentId]) {
+    throw new Error(`Default agent '${graphData.defaultSubAgentId}' does not exist in agents`);
   }
 
   // Validate resource references if project resources are provided

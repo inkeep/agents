@@ -185,7 +185,7 @@ export const AgentGraphApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
+  defaultSubAgentId: z.string().optional(),
 });
 
 // Full Graph Definition Schema - extends AgentGraph with agents and tools

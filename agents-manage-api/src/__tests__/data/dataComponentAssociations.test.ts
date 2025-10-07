@@ -35,7 +35,7 @@ describe('Data Component Agent Associations', () => {
       tenantId,
       projectId,
       name: 'Test Graph',
-      defaultAgentId: agentId,
+      defaultSubAgentId: agentId,
     });
 
     // Create test agent with graphId

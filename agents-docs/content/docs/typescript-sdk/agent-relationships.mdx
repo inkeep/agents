@@ -57,7 +57,7 @@ const routerAgent = agent({
 // Create the graph with router as default entry point
 const supportGraph = agentGraph({
   id: "customer-support-graph",
-  defaultAgent: routerAgent, // Router is the entry point
+  defaultSubAgent: routerAgent, // Router is the entry point
   agents: () => [routerAgent, qaAgent, orderAgent],
   // Optional: Set default model settings for all agents
   modelSettings: {
@@ -110,7 +110,7 @@ const mathSupervisor = agent({
 
 const mathGraph = agentGraph({
   id: "math-delegation-graph",
-  defaultAgent: mathSupervisor,
+  defaultSubAgent: mathSupervisor,
   agents: () => [mathSupervisor, numberProducerA, numberProducerB],
   // Optional: Graph-level model settings inherited by agents without their own config
   modelSettings: {

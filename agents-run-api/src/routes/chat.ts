@@ -7,7 +7,7 @@ import {
   createOrGetConversation,
   getActiveAgentForConversation,
   getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithdefaultSubAgent,
   getConversationId,
   getFullGraph,
   getRequestExecutionContext,
@@ -200,7 +200,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     });
 
     let agentGraph: any;
-    let defaultAgentId: string;
+    let defaultSubAgentId: string;
 
     if (fullGraph) {
       // Use full graph system
@@ -209,14 +209,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
         name: fullGraph.name,
         tenantId,
         projectId,
-        defaultAgentId: fullGraph.defaultAgentId,
+        defaultSubAgentId: fullGraph.defaultSubAgentId,
       };
       const agentKeys = Object.keys((fullGraph.agents as Record<string, any>) || {});
       const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-      defaultAgentId = (fullGraph.defaultAgentId as string) || firstAgentId; // Use first agent if no defaultAgentId
+      defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {
       // Fall back to legacy system
-      agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+      agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
         scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {
@@ -225,10 +225,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
           message: 'Agent graph not found',
         });
       }
-      defaultAgentId = agentGraph.defaultAgentId || '';
+      defaultSubAgentId = agentGraph.defaultSubAgentId || '';
     }
 
-    if (!defaultAgentId) {
+    if (!defaultSubAgentId) {
       throw createApiError({
         code: 'not_found',
         message: 'No default agent found in graph',
@@ -240,7 +240,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       tenantId,
       projectId,
       id: conversationId,
-      activeAgentId: defaultAgentId,
+      activeSubAgentId: defaultSubAgentId,
     });
 
     const activeAgent = await getActiveAgentForConversation(dbClient)({
@@ -252,10 +252,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultAgentId,
+        agentId: defaultSubAgentId,
       });
     }
-    const agentId = activeAgent?.activeAgentId || defaultAgentId;
+    const agentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
     const agentInfo = await getAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
@@ -291,8 +291,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
         projectId,
         graphId,
         conversationId,
-        defaultAgentId,
-        activeAgentId: activeAgent?.activeAgentId || 'none',
+        defaultSubAgentId,
+        activeSubAgentId: activeAgent?.activeSubAgentId || 'none',
         hasContextConfig: !!agentGraph.contextConfigId,
         hasHeaders: !!body.headers,
         hasValidatedContext: !!validatedContext,

@@ -34,7 +34,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     const graphData = {
       id: nanoid(),
       name: `Test Graph ${nanoid()}`,
-      defaultAgentId: null,
+      defaultSubAgentId: null,
     };
 
     const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
@@ -73,7 +73,15 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create multiple agents
-  const createMultipleAgents = async ({ tenantId, graphId, count }: { tenantId: string; graphId: string; count: number }) => {
+  const createMultipleAgents = async ({
+    tenantId,
+    graphId,
+    count,
+  }: {
+    tenantId: string;
+    graphId: string;
+    count: number;
+  }) => {
     const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
     for (let i = 1; i <= count; i++) {
       const agent = await createTestAgent({ tenantId, graphId, suffix: ` ${i}` });
@@ -87,7 +95,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     const graphData = {
       id: 'default',
       name: 'Default Graph',
-      defaultAgentId: null,
+      defaultSubAgentId: null,
     };
 
     // Try to create the graph, it may already exist

@@ -30,13 +30,13 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultAgent: vi.fn().mockReturnValue(
+    getAgentGraphWithdefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
         tenantId: 'test-tenant',
         projectId: 'default',
-        defaultAgentId: 'test-agent',
+        defaultSubAgentId: 'test-agent',
       })
     ),
     getAgentById: vi.fn().mockReturnValue(
@@ -61,7 +61,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     getActiveAgentForConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        activeAgentId: 'test-agent',
+        activeSubAgentId: 'test-agent',
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
@@ -95,7 +95,7 @@ describe('Chat Data Stream Route', () => {
       projectId,
       name: 'Test Graph',
       description: 'Test graph for data chat',
-      defaultAgentId: agentId,
+      defaultSubAgentId: agentId,
     });
 
     // Then create agent with graphId

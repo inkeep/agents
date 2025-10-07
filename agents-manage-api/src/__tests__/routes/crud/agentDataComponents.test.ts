@@ -35,22 +35,28 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const graphData = {
         id: effectiveGraphId,
         name: 'Test Graph',
-        defaultAgentId: null,
+        defaultSubAgentId: null,
       };
       // Try to create the graph, ignore if it already exists
-      const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
-        method: 'POST',
-        body: JSON.stringify(graphData),
-      });
+      const graphRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
+        {
+          method: 'POST',
+          body: JSON.stringify(graphData),
+        }
+      );
       // Use the graphId from the created or existing graph
       effectiveGraphId = graphRes.status === 201 ? effectiveGraphId : 'default';
     }
 
     const agentData = { ...createAgentData({ suffix, tenantId }) };
-    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
+    const createRes = await makeRequest(
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      }
+    );
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
@@ -59,15 +65,15 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test agent graph data
   const _createAgentGraphData = ({
-    defaultAgentId,
+    defaultSubAgentId,
     suffix = '',
   }: {
-    defaultAgentId: string;
+    defaultSubAgentId: string;
     suffix?: string;
   }) => ({
     id: `test-graph${suffix}`,
     name: `Test Graph${suffix}`,
-    defaultAgentId,
+    defaultSubAgentId,
   });
 
   // Helper function to create test data component data

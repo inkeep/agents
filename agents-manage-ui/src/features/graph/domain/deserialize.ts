@@ -108,7 +108,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   const agentIds: string[] = Object.keys(data.agents);
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
-    const isDefault = agentId === data.defaultAgentId;
+    const isDefault = agentId === data.defaultSubAgentId;
     const isExternal = agent.type === 'external';
 
     const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.Agent;
@@ -267,54 +267,54 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   }
 
   const processedPairs = new Set<string>();
-  for (const sourceAgentId of agentIds) {
-    const sourceAgent = data.agents[sourceAgentId];
+  for (const sourceSubAgentId of agentIds) {
+    const sourceAgent = data.agents[sourceSubAgentId];
 
     // Check if agent has relationship properties (internal agents only)
     if ('canTransferTo' in sourceAgent && sourceAgent.canTransferTo) {
-      for (const targetAgentId of sourceAgent.canTransferTo) {
-        if (data.agents[targetAgentId]) {
+      for (const targetSubAgentId of sourceAgent.canTransferTo) {
+        if (data.agents[targetSubAgentId]) {
           // Special handling for self-referencing edges
-          const isSelfReference = sourceAgentId === targetAgentId;
+          const isSelfReference = sourceSubAgentId === targetSubAgentId;
           const pairKey = isSelfReference
-            ? `self-${sourceAgentId}`
-            : [sourceAgentId, targetAgentId].sort().join('-');
+            ? `self-${sourceSubAgentId}`
+            : [sourceSubAgentId, targetSubAgentId].sort().join('-');
 
           if (!processedPairs.has(pairKey)) {
             processedPairs.add(pairKey);
-            const targetAgent = data.agents[targetAgentId];
+            const targetAgent = data.agents[targetSubAgentId];
 
             const sourceCanTransferToTarget =
               ('canTransferTo' in sourceAgent &&
-                sourceAgent.canTransferTo?.includes(targetAgentId)) ||
+                sourceAgent.canTransferTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanTransferToSource =
               ('canTransferTo' in targetAgent &&
-                targetAgent.canTransferTo?.includes(sourceAgentId)) ||
+                targetAgent.canTransferTo?.includes(sourceSubAgentId)) ||
               false;
             const sourceCanDelegateToTarget =
               ('canDelegateTo' in sourceAgent &&
-                sourceAgent.canDelegateTo?.includes(targetAgentId)) ||
+                sourceAgent.canDelegateTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanDelegateToSource =
               ('canDelegateTo' in targetAgent &&
-                targetAgent.canDelegateTo?.includes(sourceAgentId)) ||
+                targetAgent.canDelegateTo?.includes(sourceSubAgentId)) ||
               false;
 
             const isTargetExternal = targetAgent.type === 'external';
 
             const edge = {
               id: isSelfReference
-                ? `edge-self-${sourceAgentId}`
-                : `edge-${targetAgentId}-${sourceAgentId}`,
+                ? `edge-self-${sourceSubAgentId}`
+                : `edge-${targetSubAgentId}-${sourceSubAgentId}`,
               type: isSelfReference
                 ? EdgeType.SelfLoop
                 : isTargetExternal
                   ? EdgeType.A2AExternal
                   : EdgeType.A2A,
-              source: sourceAgentId,
+              source: sourceSubAgentId,
               sourceHandle: agentNodeSourceHandleId,
-              target: targetAgentId,
+              target: targetSubAgentId,
               targetHandle: isTargetExternal
                 ? externalAgentNodeTargetHandleId
                 : agentNodeTargetHandleId,
@@ -335,49 +335,49 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
     }
 
     if ('canDelegateTo' in sourceAgent && sourceAgent.canDelegateTo) {
-      for (const targetAgentId of sourceAgent.canDelegateTo) {
-        if (data.agents[targetAgentId]) {
+      for (const targetSubAgentId of sourceAgent.canDelegateTo) {
+        if (data.agents[targetSubAgentId]) {
           // Special handling for self-referencing edges
-          const isSelfReference = sourceAgentId === targetAgentId;
+          const isSelfReference = sourceSubAgentId === targetSubAgentId;
           const pairKey = isSelfReference
-            ? `self-${sourceAgentId}`
-            : [sourceAgentId, targetAgentId].sort().join('-');
+            ? `self-${sourceSubAgentId}`
+            : [sourceSubAgentId, targetSubAgentId].sort().join('-');
 
           if (!processedPairs.has(pairKey)) {
             processedPairs.add(pairKey);
-            const targetAgent = data.agents[targetAgentId];
+            const targetAgent = data.agents[targetSubAgentId];
 
             const sourceCanTransferToTarget =
               ('canTransferTo' in sourceAgent &&
-                sourceAgent.canTransferTo?.includes(targetAgentId)) ||
+                sourceAgent.canTransferTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanTransferToSource =
               ('canTransferTo' in targetAgent &&
-                targetAgent.canTransferTo?.includes(sourceAgentId)) ||
+                targetAgent.canTransferTo?.includes(sourceSubAgentId)) ||
               false;
             const sourceCanDelegateToTarget =
               ('canDelegateTo' in sourceAgent &&
-                sourceAgent.canDelegateTo?.includes(targetAgentId)) ||
+                sourceAgent.canDelegateTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanDelegateToSource =
               ('canDelegateTo' in targetAgent &&
-                targetAgent.canDelegateTo?.includes(sourceAgentId)) ||
+                targetAgent.canDelegateTo?.includes(sourceSubAgentId)) ||
               false;
 
             const isTargetExternal = targetAgent.type === 'external';
 
             const edge = {
               id: isSelfReference
-                ? `edge-self-${sourceAgentId}`
-                : `edge-${targetAgentId}-${sourceAgentId}`,
+                ? `edge-self-${sourceSubAgentId}`
+                : `edge-${targetSubAgentId}-${sourceSubAgentId}`,
               type: isSelfReference
                 ? EdgeType.SelfLoop
                 : isTargetExternal
                   ? EdgeType.A2AExternal
                   : EdgeType.A2A,
-              source: sourceAgentId,
+              source: sourceSubAgentId,
               sourceHandle: agentNodeSourceHandleId,
-              target: targetAgentId,
+              target: targetSubAgentId,
               targetHandle: isTargetExternal
                 ? externalAgentNodeTargetHandleId
                 : agentNodeTargetHandleId,

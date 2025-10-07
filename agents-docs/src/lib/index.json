@@ -2279,19 +2279,19 @@
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "sourceAgentId",
+            "name": "sourceSubAgentId",
             "in": "query"
           },
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "targetAgentId",
+            "name": "targetSubAgentId",
             "in": "query"
           },
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "externalAgentId",
+            "name": "externalSubAgentId",
             "in": "query"
           }
         ],
@@ -2310,12 +2310,12 @@
                         "properties": {
                           "id": { "type": "string" },
                           "graphId": { "type": "string" },
-                          "sourceAgentId": { "type": "string" },
-                          "targetAgentId": {
+                          "sourceSubAgentId": { "type": "string" },
+                          "targetSubAgentId": {
                             "type": "string",
                             "nullable": true
                           },
-                          "externalAgentId": {
+                          "externalSubAgentId": {
                             "type": "string",
                             "nullable": true
                           },
@@ -2330,9 +2330,9 @@
                         "required": [
                           "id",
                           "graphId",
-                          "sourceAgentId",
-                          "targetAgentId",
-                          "externalAgentId",
+                          "sourceSubAgentId",
+                          "targetSubAgentId",
+                          "externalSubAgentId",
                           "relationType",
                           "createdAt",
                           "updatedAt"
@@ -2439,15 +2439,15 @@
                 "type": "object",
                 "properties": {
                   "graphId": { "type": "string" },
-                  "sourceAgentId": { "type": "string" },
-                  "targetAgentId": { "type": "string", "nullable": true },
-                  "externalAgentId": { "type": "string", "nullable": true },
+                  "sourceSubAgentId": { "type": "string" },
+                  "targetSubAgentId": { "type": "string", "nullable": true },
+                  "externalSubAgentId": { "type": "string", "nullable": true },
                   "relationType": {
                     "type": "string",
                     "enum": ["transfer", "delegate"]
                   }
                 },
-                "required": ["graphId", "sourceAgentId"]
+                "required": ["graphId", "sourceSubAgentId"]
               }
             }
           }
@@ -2465,9 +2465,9 @@
                       "properties": {
                         "id": { "type": "string" },
                         "graphId": { "type": "string" },
-                        "sourceAgentId": { "type": "string" },
-                        "targetAgentId": { "type": "string", "nullable": true },
-                        "externalAgentId": {
+                        "sourceSubAgentId": { "type": "string" },
+                        "targetSubAgentId": { "type": "string", "nullable": true },
+                        "externalSubAgentId": {
                           "type": "string",
                           "nullable": true
                         },
@@ -2482,9 +2482,9 @@
                       "required": [
                         "id",
                         "graphId",
-                        "sourceAgentId",
-                        "targetAgentId",
-                        "externalAgentId",
+                        "sourceSubAgentId",
+                        "targetSubAgentId",
+                        "externalSubAgentId",
                         "relationType",
                         "createdAt",
                         "updatedAt"
@@ -2592,9 +2592,9 @@
                       "properties": {
                         "id": { "type": "string" },
                         "graphId": { "type": "string" },
-                        "sourceAgentId": { "type": "string" },
-                        "targetAgentId": { "type": "string", "nullable": true },
-                        "externalAgentId": {
+                        "sourceSubAgentId": { "type": "string" },
+                        "targetSubAgentId": { "type": "string", "nullable": true },
+                        "externalSubAgentId": {
                           "type": "string",
                           "nullable": true
                         },
@@ -2609,9 +2609,9 @@
                       "required": [
                         "id",
                         "graphId",
-                        "sourceAgentId",
-                        "targetAgentId",
-                        "externalAgentId",
+                        "sourceSubAgentId",
+                        "targetSubAgentId",
+                        "externalSubAgentId",
                         "relationType",
                         "createdAt",
                         "updatedAt"
@@ -2711,9 +2711,9 @@
                 "type": "object",
                 "properties": {
                   "graphId": { "type": "string" },
-                  "sourceAgentId": { "type": "string" },
-                  "targetAgentId": { "type": "string", "nullable": true },
-                  "externalAgentId": { "type": "string", "nullable": true },
+                  "sourceSubAgentId": { "type": "string" },
+                  "targetSubAgentId": { "type": "string", "nullable": true },
+                  "externalSubAgentId": { "type": "string", "nullable": true },
                   "relationType": {
                     "type": "string",
                     "enum": ["transfer", "delegate"]
@@ -2736,9 +2736,9 @@
                       "properties": {
                         "id": { "type": "string" },
                         "graphId": { "type": "string" },
-                        "sourceAgentId": { "type": "string" },
-                        "targetAgentId": { "type": "string", "nullable": true },
-                        "externalAgentId": {
+                        "sourceSubAgentId": { "type": "string" },
+                        "targetSubAgentId": { "type": "string", "nullable": true },
+                        "externalSubAgentId": {
                           "type": "string",
                           "nullable": true
                         },
@@ -2753,9 +2753,9 @@
                       "required": [
                         "id",
                         "graphId",
-                        "sourceAgentId",
-                        "targetAgentId",
-                        "externalAgentId",
+                        "sourceSubAgentId",
+                        "targetSubAgentId",
+                        "externalSubAgentId",
                         "relationType",
                         "createdAt",
                         "updatedAt"
@@ -2921,7 +2921,7 @@
                           "id": { "type": "string" },
                           "name": { "type": "string" },
                           "description": { "type": "string", "nullable": true },
-                          "defaultAgentId": { "type": "string" },
+                          "defaultSubAgentId": { "type": "string" },
                           "contextConfigId": {
                             "type": "string",
                             "nullable": true
@@ -2967,7 +2967,7 @@
                           "id",
                           "name",
                           "description",
-                          "defaultAgentId",
+                          "defaultSubAgentId",
                           "contextConfigId",
                           "modelSettings",
                           "statusUpdates",
@@ -3084,7 +3084,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -3142,7 +3142,7 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": { "type": "string" },
+                        "defaultSubAgentId": { "type": "string" },
                         "contextConfigId": {
                           "type": "string",
                           "nullable": true
@@ -3182,7 +3182,7 @@
                         "id",
                         "name",
                         "description",
-                        "defaultAgentId",
+                        "defaultSubAgentId",
                         "contextConfigId",
                         "modelSettings",
                         "statusUpdates",
@@ -3293,7 +3293,7 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": { "type": "string" },
+                        "defaultSubAgentId": { "type": "string" },
                         "contextConfigId": {
                           "type": "string",
                           "nullable": true
@@ -3333,7 +3333,7 @@
                         "id",
                         "name",
                         "description",
-                        "defaultAgentId",
+                        "defaultSubAgentId",
                         "contextConfigId",
                         "modelSettings",
                         "statusUpdates",
@@ -3443,7 +3443,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -3500,7 +3500,7 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": { "type": "string" },
+                        "defaultSubAgentId": { "type": "string" },
                         "contextConfigId": {
                           "type": "string",
                           "nullable": true
@@ -3540,7 +3540,7 @@
                         "id",
                         "name",
                         "description",
-                        "defaultAgentId",
+                        "defaultSubAgentId",
                         "contextConfigId",
                         "modelSettings",
                         "statusUpdates",
@@ -3828,7 +3828,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -13602,7 +13602,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -14127,7 +14127,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -14777,7 +14777,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -15404,7 +15404,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -15929,7 +15929,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -16485,7 +16485,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,

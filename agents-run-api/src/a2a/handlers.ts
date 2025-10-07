@@ -327,7 +327,7 @@ async function handleMessageSend(
                     kind: 'data',
                     data: {
                       type: 'transfer',
-                      targetAgentId: transferPart.data.target,
+                      targetSubAgentId: transferPart.data.target,
                     },
                   },
                   {

@@ -34,7 +34,7 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
 export class AgentGraph implements GraphInterface {
   private agents: AllAgentInterface[] = [];
   private agentMap: Map<string, AllAgentInterface> = new Map();
-  private defaultAgent?: AgentInterface;
+  private defaultSubAgent?: AgentInterface;
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
@@ -55,7 +55,7 @@ export class AgentGraph implements GraphInterface {
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
   constructor(config: GraphConfig) {
-    this.defaultAgent = config.defaultAgent;
+    this.defaultSubAgent = config.defaultSubAgent;
     // tenantId and projectId will be set by setConfig method from CLI or other sources
     this.tenantId = 'default';
     this.projectId = 'default'; // Default project ID, will be overridden by setConfig
@@ -89,9 +89,9 @@ export class AgentGraph implements GraphInterface {
     this.agentMap = new Map(this.agents.map((agent) => [agent.getId(), agent]));
 
     // Add default agent to map
-    if (this.defaultAgent) {
-      this.agents.push(this.defaultAgent);
-      this.agentMap.set(this.defaultAgent.getId(), this.defaultAgent);
+    if (this.defaultSubAgent) {
+      this.agents.push(this.defaultSubAgent);
+      this.agentMap.set(this.defaultSubAgent.getId(), this.defaultSubAgent);
     }
 
     // Propagate graph-level models to agents immediately (if graph has models)
@@ -104,7 +104,7 @@ export class AgentGraph implements GraphInterface {
         graphId: this.graphId,
         tenantId: this.tenantId,
         agentCount: this.agents.length,
-        defaultAgent: this.defaultAgent?.getName(),
+        defaultSubAgent: this.defaultSubAgent?.getName(),
       },
       'AgentGraph created'
     );
@@ -204,9 +204,9 @@ export class AgentGraph implements GraphInterface {
 
         // Convert dataComponents to the expected format (agent.dataComponents should be an array of dataComponent IDs)
         const dataComponents: string[] = [];
-        const agentDataComponents = internalAgent.getDataComponents();
-        if (agentDataComponents) {
-          for (const dataComponent of agentDataComponents) {
+        const subAgentDataComponents = internalAgent.getDataComponents();
+        if (subAgentDataComponents) {
+          for (const dataComponent of subAgentDataComponents) {
             const dataComponentId =
               dataComponent.id || dataComponent.name.toLowerCase().replace(/\s+/g, '-');
             dataComponents.push(dataComponentId);
@@ -215,9 +215,9 @@ export class AgentGraph implements GraphInterface {
 
         // Convert artifactComponents to the expected format (agent.artifactComponents should be an array of artifactComponent IDs)
         const artifactComponents: string[] = [];
-        const agentArtifactComponents = internalAgent.getArtifactComponents();
-        if (agentArtifactComponents) {
-          for (const artifactComponent of agentArtifactComponents) {
+        const subAgentArtifactComponents = internalAgent.getArtifactComponents();
+        if (subAgentArtifactComponents) {
+          for (const artifactComponent of subAgentArtifactComponents) {
             const artifactComponentId =
               artifactComponent.id || artifactComponent.name.toLowerCase().replace(/\s+/g, '-');
             artifactComponents.push(artifactComponentId);
@@ -272,7 +272,7 @@ export class AgentGraph implements GraphInterface {
       id: this.graphId,
       name: this.graphName,
       description: this.graphDescription,
-      defaultAgentId: this.defaultAgent?.getId() || '',
+      defaultSubAgentId: this.defaultSubAgent?.getId() || '',
       agents: agentsObject,
       contextConfig: this.contextConfig?.toObject(),
 
@@ -524,14 +524,14 @@ export class AgentGraph implements GraphInterface {
   async generate(input: MessageInput, options?: GenerateOptions): Promise<string> {
     await this._init();
 
-    if (!this.defaultAgent) {
+    if (!this.defaultSubAgent) {
       throw new Error('No default agent configured for this graph');
     }
 
     logger.info(
       {
         graphId: this.graphId,
-        defaultAgent: this.defaultAgent.getName(),
+        defaultSubAgent: this.defaultSubAgent.getName(),
         conversationId: options?.conversationId,
       },
       'Generating response with default agent'
@@ -548,14 +548,14 @@ export class AgentGraph implements GraphInterface {
   async stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse> {
     await this._init();
 
-    if (!this.defaultAgent) {
+    if (!this.defaultSubAgent) {
       throw new Error('No default agent configured for this graph');
     }
 
     logger.info(
       {
         graphId: this.graphId,
-        defaultAgent: this.defaultAgent.getName(),
+        defaultSubAgent: this.defaultSubAgent.getName(),
         conversationId: options?.conversationId,
       },
       'Streaming response with default agent'
@@ -699,14 +699,14 @@ export class AgentGraph implements GraphInterface {
   /**
    * Set the default agent
    */
-  setDefaultAgent(agent: AgentInterface): void {
-    this.defaultAgent = agent;
+  setdefaultSubAgent(agent: AgentInterface): void {
+    this.defaultSubAgent = agent;
     this.addAgent(agent); // Ensure it's in the graph
 
     logger.info(
       {
         graphId: this.graphId,
-        defaultAgent: agent.getId(),
+        defaultSubAgent: agent.getId(),
       },
       'Default agent updated'
     );
@@ -715,8 +715,8 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get the default agent
    */
-  getDefaultAgent(): AgentInterface | undefined {
-    return this.defaultAgent;
+  getdefaultSubAgent(): AgentInterface | undefined {
+    return this.defaultSubAgent;
   }
 
   /**
@@ -785,14 +785,14 @@ export class AgentGraph implements GraphInterface {
    */
   getStats(): {
     agentCount: number;
-    defaultAgent: string | null;
+    defaultSubAgent: string | null;
     initialized: boolean;
     graphId: string;
     tenantId: string;
   } {
     return {
       agentCount: this.agents.length,
-      defaultAgent: this.defaultAgent?.getName() || null,
+      defaultSubAgent: this.defaultSubAgent?.getName() || null,
       initialized: this.initialized,
       graphId: this.graphId,
       tenantId: this.tenantId,
@@ -809,7 +809,7 @@ export class AgentGraph implements GraphInterface {
       errors.push('Graph must contain at least one agent');
     }
 
-    if (!this.defaultAgent) {
+    if (!this.defaultSubAgent) {
       errors.push('Graph must have a default agent');
     }
 
@@ -1186,7 +1186,7 @@ export class AgentGraph implements GraphInterface {
         body: JSON.stringify({
           id: this.graphId,
           name: this.graphName,
-          defaultAgentId: this.defaultAgent?.getId() || '',
+          defaultSubAgentId: this.defaultSubAgent?.getId() || '',
           contextConfigId: this.contextConfig?.getId(),
           models: this.models,
         }),
@@ -1209,7 +1209,7 @@ export class AgentGraph implements GraphInterface {
   }
 
   private async saveRelations(): Promise<void> {
-    if (this.defaultAgent) {
+    if (this.defaultSubAgent) {
       try {
         const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
         const updateResponse = await fetch(updateUrl, {
@@ -1219,7 +1219,7 @@ export class AgentGraph implements GraphInterface {
           },
           body: JSON.stringify({
             id: this.graphId,
-            defaultAgentId: this.defaultAgent.getId(),
+            defaultSubAgentId: this.defaultSubAgent.getId(),
             contextConfigId: this.contextConfig?.getId(),
           }),
         });
@@ -1231,7 +1231,7 @@ export class AgentGraph implements GraphInterface {
         logger.debug(
           {
             graphId: this.graphId,
-            defaultAgent: this.defaultAgent.getName(),
+            defaultSubAgent: this.defaultSubAgent.getName(),
           },
           'Graph relationships configured'
         );
@@ -1329,8 +1329,8 @@ export class AgentGraph implements GraphInterface {
         },
         body: JSON.stringify({
           graphId: this.graphId,
-          sourceAgentId: sourceAgent.getId(),
-          targetAgentId: targetAgent.getId(),
+          sourceSubAgentId: sourceAgent.getId(),
+          targetSubAgentId: targetAgent.getId(),
           relationType,
         }),
       });
@@ -1342,8 +1342,8 @@ export class AgentGraph implements GraphInterface {
         if (response.status === 422 && errorText.includes('already exists')) {
           logger.info(
             {
-              sourceAgentId: sourceAgent.getId(),
-              targetAgentId: targetAgent.getId(),
+              sourceSubAgentId: sourceAgent.getId(),
+              targetSubAgentId: targetAgent.getId(),
               graphId: this.graphId,
               relationType,
             },
@@ -1357,8 +1357,8 @@ export class AgentGraph implements GraphInterface {
 
       logger.info(
         {
-          sourceAgentId: sourceAgent.getId(),
-          targetAgentId: targetAgent.getId(),
+          sourceSubAgentId: sourceAgent.getId(),
+          targetSubAgentId: targetAgent.getId(),
           graphId: this.graphId,
           relationType,
         },
@@ -1367,8 +1367,8 @@ export class AgentGraph implements GraphInterface {
     } catch (error) {
       logger.error(
         {
-          sourceAgentId: sourceAgent.getId(),
-          targetAgentId: targetAgent.getId(),
+          sourceSubAgentId: sourceAgent.getId(),
+          targetSubAgentId: targetAgent.getId(),
           graphId: this.graphId,
           relationType,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -1392,8 +1392,8 @@ export class AgentGraph implements GraphInterface {
         },
         body: JSON.stringify({
           graphId: this.graphId,
-          sourceAgentId: sourceAgent.getId(),
-          externalAgentId: externalAgent.getId(),
+          sourceSubAgentId: sourceAgent.getId(),
+          externalSubAgentId: externalAgent.getId(),
           relationType,
         }),
       });
@@ -1405,8 +1405,8 @@ export class AgentGraph implements GraphInterface {
         if (response.status === 422 && errorText.includes('already exists')) {
           logger.info(
             {
-              sourceAgentId: sourceAgent.getId(),
-              externalAgentId: externalAgent.getId(),
+              sourceSubAgentId: sourceAgent.getId(),
+              externalSubAgentId: externalAgent.getId(),
               graphId: this.graphId,
               relationType,
             },
@@ -1422,8 +1422,8 @@ export class AgentGraph implements GraphInterface {
 
       logger.info(
         {
-          sourceAgentId: sourceAgent.getId(),
-          externalAgentId: externalAgent.getId(),
+          sourceSubAgentId: sourceAgent.getId(),
+          externalSubAgentId: externalAgent.getId(),
           graphId: this.graphId,
           relationType,
         },
@@ -1432,8 +1432,8 @@ export class AgentGraph implements GraphInterface {
     } catch (error) {
       logger.error(
         {
-          sourceAgentId: sourceAgent.getId(),
-          externalAgentId: externalAgent.getId(),
+          sourceSubAgentId: sourceAgent.getId(),
+          externalSubAgentId: externalAgent.getId(),
           graphId: this.graphId,
           relationType,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -1463,7 +1463,7 @@ export class AgentGraph implements GraphInterface {
         await externalAgent.init();
         logger.debug(
           {
-            externalAgentId: externalAgent.getId(),
+            externalSubAgentId: externalAgent.getId(),
             graphId: this.graphId,
           },
           'External agent created in database'
@@ -1471,7 +1471,7 @@ export class AgentGraph implements GraphInterface {
       } catch (error) {
         logger.error(
           {
-            externalAgentId: externalAgent.getId(),
+            externalSubAgentId: externalAgent.getId(),
             graphId: this.graphId,
             error: error instanceof Error ? error.message : 'Unknown error',
           },

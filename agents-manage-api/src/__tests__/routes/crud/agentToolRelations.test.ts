@@ -111,7 +111,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const graphData = {
         id: effectiveGraphId,
         name: `Test Graph${suffix}`,
-        defaultAgentId: null,
+        defaultSubAgentId: null,
       };
       const graphRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent-graphs`,

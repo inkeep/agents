@@ -2,8 +2,6 @@
 
 export * from '../db/client';
 export * from './agentGraphs';
-export * from './agentRelations';
-export * from './agents';
 export * from './apiKeys';
 export * from './artifactComponents';
 export * from './contextCache';
@@ -18,6 +16,8 @@ export * from './ledgerArtifacts';
 export * from './messages';
 export * from './projectFull';
 export * from './projects';
+export * from './subAgentRelations';
+export * from './subAgents';
 export * from './tasks';
 export * from './tools';
 export * from './validation';

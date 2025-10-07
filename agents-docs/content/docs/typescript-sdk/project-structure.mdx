@@ -101,7 +101,7 @@ const billingAgent = agent({
 });
 
 export const customerSupportGraph = agentGraph({
-  defaultAgent: routerAgent,
+  defaultSubAgent: routerAgent,
   agents: [routerAgent, billingAgent],
 });
 ```

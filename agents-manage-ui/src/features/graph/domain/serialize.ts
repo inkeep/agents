@@ -95,18 +95,18 @@ export function serializeGraphData(
   // Note: Tools are now project-scoped and not included in graph serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
-  let defaultAgentId = '';
+  let defaultSubAgentId = '';
 
   for (const node of nodes) {
     if (node.type === NodeType.Agent) {
       const agentId = (node.data.id as string) || node.id;
-      const agentDataComponents = (node.data.dataComponents as string[]) || [];
-      const agentArtifactComponents = (node.data.artifactComponents as string[]) || [];
+      const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
+      const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
-      agentDataComponents.forEach((componentId) => {
+      subAgentDataComponents.forEach((componentId) => {
         usedDataComponents.add(componentId);
       });
-      agentArtifactComponents.forEach((componentId) => {
+      subAgentArtifactComponents.forEach((componentId) => {
         usedArtifactComponents.add(componentId);
       });
       // Process models - only include if it has non-empty, non-whitespace values
@@ -238,15 +238,15 @@ export function serializeGraphData(
         canUse,
         canTransferTo: [],
         canDelegateTo: [],
-        dataComponents: agentDataComponents,
-        artifactComponents: agentArtifactComponents,
+        dataComponents: subAgentDataComponents,
+        artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
         type: 'internal',
         ...(stopWhen && { stopWhen }),
       };
 
       if ((node.data as any).isDefault) {
-        defaultAgentId = agentId;
+        defaultSubAgentId = agentId;
       }
 
       agents[agentId] = agent;
@@ -267,7 +267,7 @@ export function serializeGraphData(
       };
 
       if ((node.data as any).isDefault) {
-        defaultAgentId = agentId;
+        defaultSubAgentId = agentId;
       }
 
       agents[agentId] = agent;
@@ -286,10 +286,10 @@ export function serializeGraphData(
       const sourceAgentNode = nodes.find((node) => node.id === edge.source);
       const targetAgentNode = nodes.find((node) => node.id === edge.target);
 
-      const sourceAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
-      const targetAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
-      const sourceAgent: ExtendedAgent = agents[sourceAgentId];
-      const targetAgent: ExtendedAgent = agents[targetAgentId];
+      const sourceSubAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
+      const targetSubAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
+      const sourceAgent: ExtendedAgent = agents[sourceSubAgentId];
+      const targetAgent: ExtendedAgent = agents[targetSubAgentId];
 
       if (sourceAgent && targetAgent && (edge.data as any)?.relationships) {
         const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
@@ -302,27 +302,27 @@ export function serializeGraphData(
         ) => {
           if ('canUse' in agent) {
             if (!agent[relationshipType]) agent[relationshipType] = [];
-            const agentRelationships = agent[relationshipType];
-            if (agentRelationships && !agentRelationships.includes(targetId)) {
-              agentRelationships.push(targetId);
+            const subAgentRelationships = agent[relationshipType];
+            if (subAgentRelationships && !subAgentRelationships.includes(targetId)) {
+              subAgentRelationships.push(targetId);
             }
           }
         };
 
         // Process transfer relationships
         if (relationships.transferSourceToTarget) {
-          addRelationship(sourceAgent, 'canTransferTo', targetAgentId);
+          addRelationship(sourceAgent, 'canTransferTo', targetSubAgentId);
         }
         if (relationships.transferTargetToSource) {
-          addRelationship(targetAgent, 'canTransferTo', sourceAgentId);
+          addRelationship(targetAgent, 'canTransferTo', sourceSubAgentId);
         }
 
         // Process delegation relationships
         if (relationships.delegateSourceToTarget) {
-          addRelationship(sourceAgent, 'canDelegateTo', targetAgentId);
+          addRelationship(sourceAgent, 'canDelegateTo', targetSubAgentId);
         }
         if (relationships.delegateTargetToSource) {
-          addRelationship(targetAgent, 'canDelegateTo', sourceAgentId);
+          addRelationship(targetAgent, 'canDelegateTo', sourceSubAgentId);
         }
       }
     }
@@ -367,7 +367,7 @@ export function serializeGraphData(
     id: metadata?.id || nanoid(),
     name: metadata?.name || 'Untitled Graph',
     description: metadata?.description || undefined,
-    defaultAgentId,
+    defaultSubAgentId,
     agents,
     // Note: Tools are now project-scoped and not included in FullGraphDefinition
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
@@ -442,12 +442,12 @@ export function validateSerializedData(
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
-  if (data.defaultAgentId && !data.agents[data.defaultAgentId]) {
+  if (data.defaultSubAgentId && !data.agents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultAgentId}' not found in agents`,
-      field: 'defaultAgentId',
+      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents`,
+      field: 'defaultSubAgentId',
       code: 'invalid_reference',
-      path: ['defaultAgentId'],
+      path: ['defaultSubAgentId'],
     });
   }
 

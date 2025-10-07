@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AgentApiInsertSchema,
-  AgentApiUpdateSchema,
-  AgentInsertSchema,
   ConversationInsertSchema,
   MessageInsertSchema,
   PaginationQueryParamsSchema,
   PaginationSchema,
   resourceIdSchema,
+  SubAgentApiInsertSchema,
+  SubAgentApiUpdateSchema,
+  SubAgentInsertSchema,
   TaskInsertSchema,
 } from '../../validation/schemas';
 
@@ -70,7 +70,7 @@ describe('Validation Schemas', () => {
         },
       };
 
-      expect(() => AgentInsertSchema.parse(validAgent)).not.toThrow();
+      expect(() => SubAgentInsertSchema.parse(validAgent)).not.toThrow();
     });
 
     it('should validate minimal agent insert object', () => {
@@ -84,7 +84,7 @@ describe('Validation Schemas', () => {
         prompt: 'Test prompt',
       };
 
-      expect(() => AgentInsertSchema.parse(minimalAgent)).not.toThrow();
+      expect(() => SubAgentInsertSchema.parse(minimalAgent)).not.toThrow();
     });
 
     it('should reject invalid agent insert object', () => {
@@ -94,7 +94,7 @@ describe('Validation Schemas', () => {
         name: 'Test Agent',
       };
 
-      expect(() => AgentInsertSchema.parse(invalidAgent)).toThrow();
+      expect(() => SubAgentInsertSchema.parse(invalidAgent)).toThrow();
     });
   });
 
@@ -104,12 +104,12 @@ describe('Validation Schemas', () => {
         name: 'Updated Name',
       };
 
-      expect(() => AgentApiUpdateSchema.parse(partialUpdate)).not.toThrow();
+      expect(() => SubAgentApiUpdateSchema.parse(partialUpdate)).not.toThrow();
     });
 
     it('should allow empty update object', () => {
       const emptyUpdate = {};
-      expect(() => AgentApiUpdateSchema.parse(emptyUpdate)).not.toThrow();
+      expect(() => SubAgentApiUpdateSchema.parse(emptyUpdate)).not.toThrow();
     });
 
     it('should not allow tenantId or projectId in updates', () => {
@@ -119,7 +119,7 @@ describe('Validation Schemas', () => {
       };
 
       // This should not throw because tenantId is omitted from the schema
-      const result = AgentApiUpdateSchema.parse(invalidUpdate);
+      const result = SubAgentApiUpdateSchema.parse(invalidUpdate);
       expect(result).not.toHaveProperty('tenantId');
     });
   });
@@ -133,7 +133,7 @@ describe('Validation Schemas', () => {
         prompt: 'Test prompt',
       };
 
-      expect(() => AgentApiInsertSchema.parse(apiAgent)).not.toThrow();
+      expect(() => SubAgentApiInsertSchema.parse(apiAgent)).not.toThrow();
     });
 
     it('should reject agent data with tenant/project IDs', () => {
@@ -145,7 +145,7 @@ describe('Validation Schemas', () => {
         prompt: 'Test prompt',
       };
 
-      const result = AgentApiInsertSchema.parse(apiAgent);
+      const result = SubAgentApiInsertSchema.parse(apiAgent);
       expect(result).not.toHaveProperty('tenantId');
     });
   });
@@ -191,7 +191,7 @@ describe('Validation Schemas', () => {
         tenantId: 'tenant-1',
         projectId: 'project-1',
         userId: 'user-1',
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         title: 'Test Conversation',
         metadata: {
           source: 'web',

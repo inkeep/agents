@@ -2,12 +2,7 @@ import { z } from '@hono/zod-openapi';
 import type { StreamableHTTPReconnectionOptions } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import {
-  agentArtifactComponents,
-  agentDataComponents,
   agentGraph,
-  agentRelations,
-  agents,
-  agentToolRelations,
   apiKeys,
   artifactComponents,
   contextCache,
@@ -20,6 +15,11 @@ import {
   ledgerArtifacts,
   messages,
   projects,
+  subAgentArtifactComponents,
+  subAgentDataComponents,
+  subAgentRelations,
+  subAgents,
+  subAgentToolRelations,
   taskRelations,
   tasks,
   tools,
@@ -130,27 +130,27 @@ const createGraphScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.Zod
     .partial() satisfies z.ZodObject<any>;
 
 // === Agent Schemas ===
-export const AgentSelectSchema = createSelectSchema(agents);
+export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
-export const AgentInsertSchema = createInsertSchema(agents).extend({
+export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   id: resourceIdSchema,
   models: ModelSchema.optional(),
 });
 
-export const AgentUpdateSchema = AgentInsertSchema.partial();
+export const SubAgentUpdateSchema = SubAgentInsertSchema.partial();
 
-export const AgentApiSelectSchema = createGraphScopedApiSchema(AgentSelectSchema);
-export const AgentApiInsertSchema = createGraphScopedApiInsertSchema(AgentInsertSchema);
-export const AgentApiUpdateSchema = createGraphScopedApiUpdateSchema(AgentUpdateSchema);
+export const SubAgentApiSelectSchema = createGraphScopedApiSchema(SubAgentSelectSchema);
+export const SubAgentApiInsertSchema = createGraphScopedApiInsertSchema(SubAgentInsertSchema);
+export const SubAgentApiUpdateSchema = createGraphScopedApiUpdateSchema(SubAgentUpdateSchema);
 
 // === Agent Relations Schemas ===
-export const AgentRelationSelectSchema = createSelectSchema(agentRelations);
-export const AgentRelationInsertSchema = createInsertSchema(agentRelations).extend({
+export const AgentRelationSelectSchema = createSelectSchema(subAgentRelations);
+export const AgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
   graphId: resourceIdSchema,
-  sourceAgentId: resourceIdSchema,
-  targetAgentId: resourceIdSchema.optional(),
-  externalAgentId: resourceIdSchema.optional(),
+  sourceSubAgentId: resourceIdSchema,
+  targetSubAgentId: resourceIdSchema.optional(),
+  externalSubAgentId: resourceIdSchema.optional(),
 });
 export const AgentRelationUpdateSchema = AgentRelationInsertSchema.partial();
 
@@ -163,14 +163,14 @@ export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
   })
   .refine(
     (data) => {
-      // Exactly one of targetAgentId or externalAgentId must be provided
-      const hasTarget = data.targetAgentId != null;
-      const hasExternal = data.externalAgentId != null;
+      // Exactly one of targetSubAgentId or externalSubAgentId must be provided
+      const hasTarget = data.targetSubAgentId != null;
+      const hasExternal = data.externalSubAgentId != null;
       return hasTarget !== hasExternal; // XOR - exactly one must be true
     },
     {
-      message: 'Must specify exactly one of targetAgentId or externalAgentId',
-      path: ['targetAgentId', 'externalAgentId'],
+      message: 'Must specify exactly one of targetSubAgentId or externalSubAgentId',
+      path: ['targetSubAgentId', 'externalSubAgentId'],
     }
   );
 
@@ -183,36 +183,36 @@ export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
   .refine(
     (data) => {
       // Only validate agent IDs if either is provided in the update
-      const hasTarget = data.targetAgentId != null;
-      const hasExternal = data.externalAgentId != null;
+      const hasTarget = data.targetSubAgentId != null;
+      const hasExternal = data.externalSubAgentId != null;
 
       // If neither is provided (updating only other fields), skip validation
       if (!hasTarget && !hasExternal) {
         return true;
       }
 
-      // If either is provided, exactly one of targetAgentId or externalAgentId must be provided
+      // If either is provided, exactly one of targetSubAgentId or externalSubAgentId must be provided
       return hasTarget !== hasExternal; // XOR - exactly one must be true
     },
     {
       message:
-        'Must specify exactly one of targetAgentId or externalAgentId when updating agent relationships',
-      path: ['targetAgentId', 'externalAgentId'],
+        'Must specify exactly one of targetSubAgentId or externalSubAgentId when updating agent relationships',
+      path: ['targetSubAgentId', 'externalSubAgentId'],
     }
   );
 
 export const AgentRelationQuerySchema = z.object({
-  sourceAgentId: z.string().optional(),
-  targetAgentId: z.string().optional(),
-  externalAgentId: z.string().optional(),
+  sourceSubAgentId: z.string().optional(),
+  targetSubAgentId: z.string().optional(),
+  externalSubAgentId: z.string().optional(),
 });
 
 // === External Agent Relations Schemas ===
-export const ExternalAgentRelationInsertSchema = createInsertSchema(agentRelations).extend({
+export const ExternalAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
   graphId: resourceIdSchema,
-  sourceAgentId: resourceIdSchema,
-  externalAgentId: resourceIdSchema,
+  sourceSubAgentId: resourceIdSchema,
+  externalSubAgentId: resourceIdSchema,
 });
 
 export const ExternalAgentRelationApiInsertSchema = createApiInsertSchema(
@@ -389,8 +389,8 @@ export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentU
 
 // === Agent Data Component Schemas ===
 
-export const AgentDataComponentSelectSchema = createSelectSchema(agentDataComponents);
-export const AgentDataComponentInsertSchema = createInsertSchema(agentDataComponents);
+export const AgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
+export const AgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
 export const AgentDataComponentUpdateSchema = AgentDataComponentInsertSchema.partial();
 
 export const AgentDataComponentApiSelectSchema = createGraphScopedApiSchema(
@@ -426,9 +426,9 @@ export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
 
 // === Agent Artifact Component Schemas ===
 
-export const AgentArtifactComponentSelectSchema = createSelectSchema(agentArtifactComponents);
+export const AgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
 export const AgentArtifactComponentInsertSchema = createInsertSchema(
-  agentArtifactComponents
+  subAgentArtifactComponents
 ).extend({
   id: resourceIdSchema,
   agentId: resourceIdSchema,
@@ -467,7 +467,7 @@ export const ExternalAgentApiUpdateSchema =
 
 // Discriminated union for all agent types
 export const AllAgentSchema = z.discriminatedUnion('type', [
-  AgentApiSelectSchema.extend({ type: z.literal('internal') }),
+  SubAgentApiSelectSchema.extend({ type: z.literal('internal') }),
   ExternalAgentApiSelectSchema.extend({ type: z.literal('external') }),
 ]);
 
@@ -647,8 +647,8 @@ export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigU
 });
 
 // === Agent Tool Relation Schemas ===
-export const AgentToolRelationSelectSchema = createSelectSchema(agentToolRelations);
-export const AgentToolRelationInsertSchema = createInsertSchema(agentToolRelations).extend({
+export const AgentToolRelationSelectSchema = createSelectSchema(subAgentToolRelations);
+export const AgentToolRelationInsertSchema = createInsertSchema(subAgentToolRelations).extend({
   id: resourceIdSchema,
   agentId: resourceIdSchema,
   toolId: resourceIdSchema,
@@ -705,7 +705,7 @@ export const CanUseItemSchema = z.object({
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
-export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
+export const FullGraphAgentInsertSchema = SubAgentApiInsertSchema.extend({
   type: z.literal('internal'),
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),

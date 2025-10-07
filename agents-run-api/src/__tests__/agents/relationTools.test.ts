@@ -230,7 +230,7 @@ describe('Relationship Tools', () => {
       name: 'Target Agent',
       description: 'A target agent for testing',
       agentPrompt: 'You are a target agent.',
-      agentRelations: [],
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       tools: [],

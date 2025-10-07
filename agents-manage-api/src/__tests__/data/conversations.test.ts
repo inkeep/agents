@@ -58,7 +58,7 @@ describe.skip('Conversations', () => {
       tenantId: 'test-tenant',
       projectId: 'test-project',
       userId: null,
-      activeAgentId: 'default-agent',
+      activeSubAgentId: 'default-agent',
       title: null,
       lastContextResolution: null,
       metadata: null,
@@ -76,7 +76,7 @@ describe.skip('Conversations', () => {
       id: 'conv-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      activeAgentId: 'default-agent',
+      activeSubAgentId: 'default-agent',
     });
 
     expect(result).toEqual(expectedConversation);
@@ -90,7 +90,7 @@ describe('getConversation', () => {
       id: 'conv-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      activeAgentId: 'agent-1',
+      activeSubAgentId: 'agent-1',
       title: 'Test Conversation',
       userId: null,
       lastContextResolution: null,
@@ -131,7 +131,7 @@ describe('updateConversation', () => {
       title: 'Updated Title',
       updatedAt: '2024-01-01T00:00:00Z',
       userId: null,
-      activeAgentId: 'new-agent',
+      activeSubAgentId: 'new-agent',
       lastContextResolution: null,
       metadata: null,
       createdAt: '2024-01-01T00:00:00Z',
@@ -168,7 +168,7 @@ describe('updateConversationActiveAgent', () => {
       id: 'conv-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      activeAgentId: 'new-agent',
+      activeSubAgentId: 'new-agent',
       updatedAt: '2024-01-01T00:00:00Z',
       userId: null,
       lastContextResolution: null,
@@ -193,7 +193,7 @@ describe('updateConversationActiveAgent', () => {
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
       data: {
-        activeAgentId: 'new-agent',
+        activeSubAgentId: 'new-agent',
       },
     });
 

@@ -1,13 +1,9 @@
+import type { AgentDataComponentInsert, TaskInsert } from '@inkeep/agents-core';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-  agentArtifactComponents,
-  agentDataComponents,
   agentGraph,
-  agentRelations,
-  agents,
-  agentToolRelations,
   apiKeys,
   artifactComponents,
   contextCache,
@@ -19,6 +15,11 @@ import {
   ledgerArtifacts,
   messages,
   projects,
+  subAgentArtifactComponents,
+  subAgentDataComponents,
+  subAgentRelations,
+  subAgents,
+  subAgentToolRelations,
   taskRelations,
   tasks,
   tools,
@@ -37,7 +38,7 @@ describe('Cascading Delete Tests', () => {
   beforeEach(async () => {
     // Clean up all tables
     await dbClient.delete(projects);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
     await dbClient.delete(agentGraph);
     await dbClient.delete(contextConfigs);
     await dbClient.delete(contextCache);
@@ -46,16 +47,16 @@ describe('Cascading Delete Tests', () => {
     await dbClient.delete(tasks);
     await dbClient.delete(taskRelations);
     await dbClient.delete(dataComponents);
-    await dbClient.delete(agentDataComponents);
+    await dbClient.delete(subAgentDataComponents);
     await dbClient.delete(artifactComponents);
-    await dbClient.delete(agentArtifactComponents);
+    await dbClient.delete(subAgentArtifactComponents);
     await dbClient.delete(tools);
-    await dbClient.delete(agentToolRelations);
+    await dbClient.delete(subAgentToolRelations);
     await dbClient.delete(externalAgents);
     await dbClient.delete(apiKeys);
     await dbClient.delete(ledgerArtifacts);
     await dbClient.delete(credentialReferences);
-    await dbClient.delete(agentRelations);
+    await dbClient.delete(subAgentRelations);
   });
 
   it('should cascade delete all project-related resources when project is deleted', async () => {
@@ -70,14 +71,14 @@ describe('Cascading Delete Tests', () => {
 
     // Create an agent graph first
     const graphId = nanoid();
-    const agentId = nanoid();
+    const subAgentId = nanoid();
     const graph = {
       tenantId,
       projectId,
       id: graphId,
       name: 'Test Graph',
       description: 'Test graph',
-      defaultAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     };
     await dbClient.insert(agentGraph).values(graph);
 
@@ -86,12 +87,12 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       graphId,
-      id: agentId,
+      id: subAgentId,
       name: 'Test Agent',
       description: 'Test agent',
       prompt: 'You are a test agent',
     };
-    await dbClient.insert(agents).values(agent);
+    await dbClient.insert(subAgents).values(agent);
 
     // Create context config
     const contextConfig = {
@@ -122,7 +123,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: nanoid(),
-      activeAgentId: agentId,
+      activeSubAgentId: subAgentId,
     };
     await dbClient.insert(conversations).values(conversation);
 
@@ -138,14 +139,14 @@ describe('Cascading Delete Tests', () => {
     await dbClient.insert(messages).values(message);
 
     // Create task
-    const task = {
+    const task: TaskInsert = {
       tenantId,
       projectId,
       id: nanoid(),
       graphId: graphId,
       contextId: nanoid(),
       status: 'pending',
-      agentId: agentId,
+      subAgentId: subAgentId,
     };
     await dbClient.insert(tasks).values(task);
 
@@ -237,51 +238,54 @@ describe('Cascading Delete Tests', () => {
     await dbClient.insert(credentialReferences).values(credentialReference);
 
     // Create junction table entries
-    const agentDataComponentRelation = {
+    const agentDataComponentRelation: AgentDataComponentInsert = {
       tenantId,
       projectId,
       graphId,
       id: nanoid(),
-      agentId: agentId,
+      subAgentId: subAgentId,
       dataComponentId: dataComponent.id,
     };
-    await dbClient.insert(agentDataComponents).values(agentDataComponentRelation);
+    await dbClient.insert(subAgentDataComponents).values(agentDataComponentRelation);
 
     const agentArtifactComponentRelation = {
       tenantId,
       projectId,
       graphId,
       id: nanoid(),
-      agentId: agentId,
+      subAgentId: subAgentId,
       artifactComponentId: artifactComponent.id,
     };
-    await dbClient.insert(agentArtifactComponents).values(agentArtifactComponentRelation);
+    await dbClient.insert(subAgentArtifactComponents).values(agentArtifactComponentRelation);
 
     const agentToolRelation = {
       tenantId,
       projectId,
       graphId,
       id: nanoid(),
-      agentId: agentId,
+      subAgentId: subAgentId,
       toolId: tool.id,
     };
-    await dbClient.insert(agentToolRelations).values(agentToolRelation);
+    await dbClient.insert(subAgentToolRelations).values(agentToolRelation);
 
     const agentRelation = {
       tenantId,
       projectId,
       id: nanoid(),
       graphId: graphId,
-      sourceAgentId: agentId,
-      targetAgentId: agentId,
+      sourceSubAgentId: subAgentId,
+      targetSubAgentId: subAgentId,
     };
-    await dbClient.insert(agentRelations).values(agentRelation);
+    await dbClient.insert(subAgentRelations).values(agentRelation);
 
     // Verify all records exist before deletion
     const projectsCount = await dbClient.select().from(projects).where(eq(projects.id, projectId));
     expect(projectsCount).toHaveLength(1);
 
-    const agentsCount = await dbClient.select().from(agents).where(eq(agents.projectId, projectId));
+    const agentsCount = await dbClient
+      .select()
+      .from(subAgents)
+      .where(eq(subAgents.projectId, projectId));
     expect(agentsCount).toHaveLength(1);
 
     // Delete the project
@@ -296,8 +300,8 @@ describe('Cascading Delete Tests', () => {
 
     const remainingAgents = await dbClient
       .select()
-      .from(agents)
-      .where(eq(agents.projectId, projectId));
+      .from(subAgents)
+      .where(eq(subAgents.projectId, projectId));
     expect(remainingAgents).toHaveLength(0);
 
     const remainingGraphs = await dbClient
@@ -381,26 +385,26 @@ describe('Cascading Delete Tests', () => {
     // Junction tables should also be cleaned up
     const remainingAgentDataComponents = await dbClient
       .select()
-      .from(agentDataComponents)
-      .where(eq(agentDataComponents.projectId, projectId));
+      .from(subAgentDataComponents)
+      .where(eq(subAgentDataComponents.projectId, projectId));
     expect(remainingAgentDataComponents).toHaveLength(0);
 
     const remainingAgentArtifactComponents = await dbClient
       .select()
-      .from(agentArtifactComponents)
-      .where(eq(agentArtifactComponents.projectId, projectId));
+      .from(subAgentArtifactComponents)
+      .where(eq(subAgentArtifactComponents.projectId, projectId));
     expect(remainingAgentArtifactComponents).toHaveLength(0);
 
     const remainingAgentToolRelations = await dbClient
       .select()
-      .from(agentToolRelations)
-      .where(eq(agentToolRelations.projectId, projectId));
+      .from(subAgentToolRelations)
+      .where(eq(subAgentToolRelations.projectId, projectId));
     expect(remainingAgentToolRelations).toHaveLength(0);
 
     const remainingAgentRelations = await dbClient
       .select()
-      .from(agentRelations)
-      .where(eq(agentRelations.projectId, projectId));
+      .from(subAgentRelations)
+      .where(eq(subAgentRelations.projectId, projectId));
     expect(remainingAgentRelations).toHaveLength(0);
   });
 
@@ -437,7 +441,7 @@ describe('Cascading Delete Tests', () => {
         id: graph1Id,
         name: 'Graph 1',
         description: 'Graph for project 1',
-        defaultAgentId: agent1Id,
+        defaultSubAgentId: agent1Id,
       },
       {
         tenantId,
@@ -445,7 +449,7 @@ describe('Cascading Delete Tests', () => {
         id: graph2Id,
         name: 'Graph 2',
         description: 'Graph for project 2',
-        defaultAgentId: agent2Id,
+        defaultSubAgentId: agent2Id,
       },
     ]);
 
@@ -468,7 +472,7 @@ describe('Cascading Delete Tests', () => {
       description: 'Agent for project 2',
       prompt: 'You are agent 2',
     };
-    await dbClient.insert(agents).values([agent1, agent2]);
+    await dbClient.insert(subAgents).values([agent1, agent2]);
 
     // Delete project 1
     await dbClient.delete(projects).where(eq(projects.id, project1Id));
@@ -480,7 +484,10 @@ describe('Cascading Delete Tests', () => {
       .where(eq(projects.id, project1Id));
     expect(remainingProject1).toHaveLength(0);
 
-    const remainingAgent1 = await dbClient.select().from(agents).where(eq(agents.id, agent1.id));
+    const remainingAgent1 = await dbClient
+      .select()
+      .from(subAgents)
+      .where(eq(subAgents.id, agent1.id));
     expect(remainingAgent1).toHaveLength(0);
 
     // Verify project 2 and its agent still exist
@@ -490,7 +497,10 @@ describe('Cascading Delete Tests', () => {
       .where(eq(projects.id, project2Id));
     expect(remainingProject2).toHaveLength(1);
 
-    const remainingAgent2 = await dbClient.select().from(agents).where(eq(agents.id, agent2.id));
+    const remainingAgent2 = await dbClient
+      .select()
+      .from(subAgents)
+      .where(eq(subAgents.id, agent2.id));
     expect(remainingAgent2).toHaveLength(1);
   });
 });

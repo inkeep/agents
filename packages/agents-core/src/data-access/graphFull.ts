@@ -1,7 +1,7 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { agents, agentToolRelations, projects } from '../db/schema';
+import { projects, subAgents, subAgentToolRelations } from '../db/schema';
 import type {
   AgentDefinition,
   ExternalAgentApiInsert,
@@ -23,13 +23,6 @@ import {
   upsertAgentGraph,
 } from './agentGraphs';
 import {
-  createAgentRelation,
-  deleteAgentRelationsByGraph,
-  deleteAgentToolRelationByAgent,
-  upsertAgentRelation,
-} from './agentRelations';
-import { deleteAgent, listAgents, upsertAgent } from './agents';
-import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
   upsertAgentArtifactComponentRelation,
@@ -41,6 +34,13 @@ import {
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
+import {
+  createSubAgentRelation,
+  deleteAgentRelationsByGraph,
+  deleteAgentToolRelationByAgent,
+  upsertAgentRelation,
+} from './subAgentRelations';
+import { deleteSubAgent, listSubAgents, upsertSubAgent } from './subAgents';
 import { upsertAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
@@ -206,7 +206,7 @@ export const createFullGraphServerSide =
             tenantId,
             projectId,
             name: typed.name,
-            defaultAgentId: typed.defaultAgentId,
+            defaultSubAgentId: typed.defaultSubAgentId,
             description: typed.description,
             contextConfigId: undefined, // Will be updated later if context config exists
             models: typed.models,
@@ -259,7 +259,7 @@ export const createFullGraphServerSide =
               tenantId,
               projectId,
               name: typed.name,
-              defaultAgentId: typed.defaultAgentId,
+              defaultSubAgentId: typed.defaultSubAgentId,
               description: typed.description,
               contextConfigId,
               models: typed.models,
@@ -301,7 +301,7 @@ export const createFullGraphServerSide =
           const internalAgent = agentData as InternalAgentDefinition;
           try {
             logger.info({ agentId }, 'Processing internal agent');
-            await upsertAgent(db)({
+            await upsertSubAgent(db)({
               data: {
                 id: agentId,
                 tenantId,
@@ -436,7 +436,7 @@ export const createFullGraphServerSide =
                     'Processing agent-data component relation'
                   );
                   await upsertAgentDataComponentRelation(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
                     dataComponentId,
                   });
                   logger.info(
@@ -473,7 +473,7 @@ export const createFullGraphServerSide =
                     'Processing agent-artifact component relation'
                   );
                   await upsertAgentArtifactComponentRelation(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
                     artifactComponentId,
                   });
                   logger.info(
@@ -502,12 +502,12 @@ export const createFullGraphServerSide =
       for (const [agentId, agentData] of Object.entries(typed.agents)) {
         // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
-          for (const targetAgentId of agentData.canTransferTo) {
+          for (const targetSubAgentId of agentData.canTransferTo) {
             agentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
-                    { agentId, targetAgentId, type: 'transfer' },
+                    { agentId, targetSubAgentId, type: 'transfer' },
                     'Processing agent transfer relation'
                   );
                   await upsertAgentRelation(db)({
@@ -515,17 +515,17 @@ export const createFullGraphServerSide =
                     tenantId,
                     projectId,
                     graphId: finalGraphId,
-                    sourceAgentId: agentId,
-                    targetAgentId,
+                    sourceSubAgentId: agentId,
+                    targetSubAgentId: targetSubAgentId,
                     relationType: 'transfer',
                   });
                   logger.info(
-                    { agentId, targetAgentId, type: 'transfer' },
+                    { agentId, targetSubAgentId, type: 'transfer' },
                     'Agent transfer relation processed successfully'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, targetAgentId, type: 'transfer', error },
+                    { agentId, targetSubAgentId, type: 'transfer', error },
                     'Failed to create transfer relation'
                   );
                 }
@@ -536,16 +536,16 @@ export const createFullGraphServerSide =
 
         // Create delegation relations
         if (isInternalAgent(agentData) && agentData.canDelegateTo) {
-          for (const targetAgentId of agentData.canDelegateTo) {
+          for (const targetSubAgentId of agentData.canDelegateTo) {
             // Check if the target agent is external by looking it up in the typed.agents
-            const targetAgentData = typed.agents[targetAgentId];
+            const targetAgentData = typed.agents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
 
             agentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
-                    { agentId, targetAgentId, type: 'delegate' },
+                    { agentId, targetSubAgentId, type: 'delegate' },
                     'Processing agent delegation relation'
                   );
                   await upsertAgentRelation(db)({
@@ -553,18 +553,18 @@ export const createFullGraphServerSide =
                     tenantId,
                     projectId,
                     graphId: finalGraphId,
-                    sourceAgentId: agentId,
-                    targetAgentId: isTargetExternal ? undefined : targetAgentId,
-                    externalAgentId: isTargetExternal ? targetAgentId : undefined,
+                    sourceSubAgentId: agentId,
+                    targetSubAgentId: isTargetExternal ? undefined : targetSubAgentId,
+                    externalSubAgentId: isTargetExternal ? targetSubAgentId : undefined,
                     relationType: 'delegate',
                   });
                   logger.info(
-                    { agentId, targetAgentId, type: 'delegate' },
+                    { agentId, targetSubAgentId, type: 'delegate' },
                     'Agent delegation relation processed successfully'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, targetAgentId, type: 'delegate', error },
+                    { agentId, targetSubAgentId, type: 'delegate', error },
                     'Failed to create delegation relation'
                   );
                 }
@@ -676,7 +676,7 @@ export const updateFullGraphServerSide =
             tenantId,
             projectId,
             name: typedGraphDefinition.name,
-            defaultAgentId: typedGraphDefinition.defaultAgentId,
+            defaultSubAgentId: typedGraphDefinition.defaultSubAgentId,
             description: typedGraphDefinition.description,
             contextConfigId: undefined, // Will be updated later if context config exists
             models: typedGraphDefinition.models,
@@ -737,7 +737,7 @@ export const updateFullGraphServerSide =
               tenantId,
               projectId,
               name: typedGraphDefinition.name,
-              defaultAgentId: typedGraphDefinition.defaultAgentId,
+              defaultSubAgentId: typedGraphDefinition.defaultSubAgentId,
               description: typedGraphDefinition.description,
               contextConfigId,
               models: typedGraphDefinition.models,
@@ -777,11 +777,11 @@ export const updateFullGraphServerSide =
           // Get the existing agent to check for inheritance
           let existingAgent = null;
           try {
-            existingAgent = await db.query.agents.findFirst({
+            existingAgent = await db.query.subAgents.findFirst({
               where: and(
-                eq(agents.id, agentId),
-                eq(agents.tenantId, tenantId),
-                eq(agents.projectId, projectId)
+                eq(subAgents.id, agentId),
+                eq(subAgents.tenantId, tenantId),
+                eq(subAgents.projectId, projectId)
               ),
               columns: {
                 models: true,
@@ -838,7 +838,7 @@ export const updateFullGraphServerSide =
 
           try {
             logger.info({ agentId }, 'Processing internal agent');
-            await upsertAgent(db)({
+            await upsertSubAgent(db)({
               data: {
                 id: agentId,
                 tenantId,
@@ -903,7 +903,7 @@ export const updateFullGraphServerSide =
       const incomingAgentIds = new Set(Object.keys(typedGraphDefinition.agents));
 
       // Get existing internal agents for this graph
-      const existingInternalAgents = await listAgents(db)({
+      const existingInternalAgents = await listSubAgents(db)({
         scopes: { tenantId, projectId, graphId: finalGraphId },
       });
 
@@ -917,9 +917,9 @@ export const updateFullGraphServerSide =
       for (const agent of existingInternalAgents) {
         if (!incomingAgentIds.has(agent.id)) {
           try {
-            await deleteAgent(db)({
+            await deleteSubAgent(db)({
               scopes: { tenantId, projectId, graphId: finalGraphId },
-              agentId: agent.id,
+              subAgentId: agent.id,
             });
             deletedInternalCount++;
             logger.info({ agentId: agent.id }, 'Deleted orphaned internal agent');
@@ -964,7 +964,7 @@ export const updateFullGraphServerSide =
         scopes: { tenantId, projectId, graphId: typedGraphDefinition.id },
         data: {
           name: typedGraphDefinition.name,
-          defaultAgentId: typedGraphDefinition.defaultAgentId,
+          defaultSubAgentId: typedGraphDefinition.defaultSubAgentId,
           description: typedGraphDefinition.description,
           contextConfigId: contextConfigId,
           models: typedGraphDefinition.models,
@@ -999,27 +999,27 @@ export const updateFullGraphServerSide =
           if (incomingRelationshipIds.size === 0) {
             // Delete all relationships for this agent if no incoming IDs
             const result = await db
-              .delete(agentToolRelations)
+              .delete(subAgentToolRelations)
               .where(
                 and(
-                  eq(agentToolRelations.tenantId, tenantId),
-                  eq(agentToolRelations.projectId, projectId),
-                  eq(agentToolRelations.graphId, finalGraphId),
-                  eq(agentToolRelations.agentId, agentId)
+                  eq(subAgentToolRelations.tenantId, tenantId),
+                  eq(subAgentToolRelations.projectId, projectId),
+                  eq(subAgentToolRelations.graphId, finalGraphId),
+                  eq(subAgentToolRelations.subAgentId, agentId)
                 )
               );
             deletedCount = result.rowsAffected || 0;
           } else {
             // Delete relationships not in the incoming set
             const result = await db
-              .delete(agentToolRelations)
+              .delete(subAgentToolRelations)
               .where(
                 and(
-                  eq(agentToolRelations.tenantId, tenantId),
-                  eq(agentToolRelations.projectId, projectId),
-                  eq(agentToolRelations.graphId, finalGraphId),
-                  eq(agentToolRelations.agentId, agentId),
-                  not(inArray(agentToolRelations.id, Array.from(incomingRelationshipIds)))
+                  eq(subAgentToolRelations.tenantId, tenantId),
+                  eq(subAgentToolRelations.projectId, projectId),
+                  eq(subAgentToolRelations.graphId, finalGraphId),
+                  eq(subAgentToolRelations.subAgentId, agentId),
+                  not(inArray(subAgentToolRelations.id, Array.from(incomingRelationshipIds)))
                 )
               );
             deletedCount = result.rowsAffected || 0;
@@ -1085,7 +1085,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
+          scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
         });
       }
 
@@ -1099,7 +1099,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   await associateDataComponentWithAgent(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
                     dataComponentId,
                   });
 
@@ -1127,7 +1127,7 @@ export const updateFullGraphServerSide =
       // First, delete existing relationships for all agents in this graph
       for (const agentId of Object.keys(typedGraphDefinition.agents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
+          scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
         });
       }
 
@@ -1141,7 +1141,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   await associateArtifactComponentWithAgent(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
                     artifactComponentId,
                   });
 
@@ -1176,39 +1176,39 @@ export const updateFullGraphServerSide =
       // Then create new relationships
       const agentRelationPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
         // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
-          for (const targetAgentId of agentData.canTransferTo) {
+          for (const targetSubAgentId of agentData.canTransferTo) {
             agentRelationPromises.push(
               (async () => {
                 try {
                   // Check if the target agent is external by looking it up in the typed.agents
-                  const targetAgentData = typedGraphDefinition.agents[targetAgentId];
+                  const targetAgentData = typedGraphDefinition.agents[targetSubAgentId];
                   const isTargetExternal = isExternalAgent(targetAgentData);
-                  const targetField = isTargetExternal ? 'externalAgentId' : 'targetAgentId';
+                  const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
                   const relationData = {
                     id: nanoid(),
                     graphId: typedGraphDefinition.id || '',
-                    sourceAgentId: agentId,
+                    sourceSubAgentId: subAgentId,
                     relationType: 'transfer',
-                    [targetField]: targetAgentId,
+                    [targetField]: targetSubAgentId,
                   };
 
-                  await createAgentRelation(db)({
+                  await createSubAgentRelation(db)({
                     tenantId,
                     projectId,
                     ...relationData,
                   });
 
                   logger.info(
-                    { agentId, targetAgentId, isTargetExternal },
+                    { agentId: subAgentId, targetSubAgentId, isTargetExternal },
                     'Transfer relation created'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, targetAgentId, error },
+                    { agentId: subAgentId, targetSubAgentId, error },
                     'Failed to create transfer relation'
                   );
                 }
@@ -1219,13 +1219,13 @@ export const updateFullGraphServerSide =
 
         // Create delegation relations
         if (isInternalAgent(agentData) && agentData.canDelegateTo) {
-          for (const targetAgentId of agentData.canDelegateTo) {
+          for (const targetSubAgentId of agentData.canDelegateTo) {
             // External agents can't delegate to other agents
 
             // Check if the target agent is external by looking it up in the typed.agents
-            const targetAgentData = typedGraphDefinition.agents[targetAgentId];
+            const targetAgentData = typedGraphDefinition.agents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
-            const targetField = isTargetExternal ? 'externalAgentId' : 'targetAgentId';
+            const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
             agentRelationPromises.push(
               (async () => {
@@ -1233,21 +1233,21 @@ export const updateFullGraphServerSide =
                   const relationData = {
                     id: nanoid(),
                     graphId: typedGraphDefinition.id || '',
-                    sourceAgentId: agentId,
+                    sourceSubAgentId: subAgentId,
                     relationType: 'delegate',
-                    [targetField]: targetAgentId,
+                    [targetField]: targetSubAgentId,
                   };
 
-                  await createAgentRelation(db)({
+                  await createSubAgentRelation(db)({
                     tenantId,
                     projectId,
                     ...relationData,
                   });
 
-                  logger.info({ agentId, targetAgentId }, 'Delegation relation created');
+                  logger.info({ subAgentId, targetSubAgentId }, 'Delegation relation created');
                 } catch (error) {
                   logger.error(
-                    { agentId, targetAgentId, error },
+                    { subAgentId, targetSubAgentId, error },
                     'Failed to create delegation relation'
                   );
                 }
@@ -1358,7 +1358,7 @@ export const deleteFullGraph =
         // Delete agent-tool relations for all agents in this graph
         for (const agentId of agentIds) {
           await deleteAgentToolRelationByAgent(db)({
-            scopes: { tenantId, projectId, graphId, agentId },
+            scopes: { tenantId, projectId, graphId, subAgentId: agentId },
           });
         }
 

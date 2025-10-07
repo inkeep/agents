@@ -244,7 +244,7 @@ app.openapi(
       projectId,
       id: validatedBody.id || nanoid(),
       name: validatedBody.name,
-      defaultAgentId: validatedBody.defaultAgentId,
+      defaultSubAgentId: validatedBody.defaultSubAgentId,
       contextConfigId: validatedBody.contextConfigId ?? undefined,
     });
 
@@ -289,7 +289,7 @@ app.openapi(
     const updatedGraph = await updateAgentGraph(dbClient)({
       scopes: { tenantId, projectId, graphId: id },
       data: {
-        defaultAgentId: validatedBody.defaultAgentId,
+        defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
       },
     });

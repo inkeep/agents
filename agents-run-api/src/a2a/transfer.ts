@@ -11,23 +11,23 @@ export async function executeTransfer({
   tenantId,
   threadId,
   projectId,
-  targetAgentId,
+  targetSubAgentId,
 }: {
   tenantId: string;
   threadId: string;
   projectId: string;
-  targetAgentId: string;
+  targetSubAgentId: string;
 }): Promise<{
   success: boolean;
-  targetAgentId: string;
+  targetSubAgentId: string;
 }> {
-  logger.info({ targetAgent: targetAgentId }, 'Executing transfer to agent');
+  logger.info({ targetAgent: targetSubAgentId }, 'Executing transfer to agent');
   await setActiveAgentForThread(dbClient)({
     scopes: { tenantId, projectId },
     threadId,
-    agentId: targetAgentId,
+    agentId: targetSubAgentId,
   });
-  return { success: true, targetAgentId };
+  return { success: true, targetSubAgentId };
 }
 
 /**

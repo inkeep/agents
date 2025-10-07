@@ -171,7 +171,7 @@ export const createTaskHandler = (
           agentPrompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          agentRelations: enhancedInternalRelations.map((relation) => ({
+          subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -182,7 +182,7 @@ export const createTaskHandler = (
             description: relation.description,
             agentPrompt: '',
             delegateRelations: [],
-            agentRelations: [],
+            subAgentRelations: [],
             transferRelations: [],
           })),
           transferRelations: enhancedInternalRelations
@@ -198,7 +198,7 @@ export const createTaskHandler = (
               description: relation.description,
               agentPrompt: '',
               delegateRelations: [],
-              agentRelations: [],
+              subAgentRelations: [],
               transferRelations: [],
             })),
           delegateRelations: [
@@ -218,7 +218,7 @@ export const createTaskHandler = (
                   description: relation.description,
                   agentPrompt: '',
                   delegateRelations: [],
-                  agentRelations: [],
+                  subAgentRelations: [],
                   transferRelations: [],
                 },
               })),

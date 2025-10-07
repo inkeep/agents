@@ -251,7 +251,7 @@ export interface GraphConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultAgent?: AgentInterface;
+  defaultSubAgent?: AgentInterface;
   agents?: () => AllAgentInterface[];
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
@@ -344,7 +344,7 @@ export interface GraphInterface {
   generate(input: MessageInput, options?: GenerateOptions): Promise<string>;
   stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   generateStream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
-  getDefaultAgent(): AgentInterface | undefined;
+  getdefaultSubAgent(): AgentInterface | undefined;
   getAgent(name: string): AllAgentInterface | undefined;
   getAgents(): AllAgentInterface[];
   toFullGraphDefinition(): Promise<FullGraphDefinition>;

@@ -21,7 +21,7 @@ describe('FullProjectDefinitionSchema', () => {
         id: 'graph-1',
         name: 'Test Graph',
         description: 'A test graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
         agents: {
           'agent-1': {
             id: 'agent-1',

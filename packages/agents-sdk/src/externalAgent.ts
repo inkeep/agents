@@ -49,7 +49,7 @@ export class ExternalAgent implements ExternalAgentInterface {
 
       logger.info(
         {
-          externalAgentId: this.getId(),
+          externalSubAgentId: this.getId(),
         },
         'External agent initialized successfully'
       );
@@ -58,7 +58,7 @@ export class ExternalAgent implements ExternalAgentInterface {
     } catch (error) {
       logger.error(
         {
-          externalAgentId: this.getId(),
+          externalSubAgentId: this.getId(),
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to initialize external agent'
@@ -106,7 +106,7 @@ export class ExternalAgent implements ExternalAgentInterface {
     if (updateResponse.ok) {
       logger.info(
         {
-          externalAgentId: this.getId(),
+          externalSubAgentId: this.getId(),
         },
         'External agent updated successfully'
       );
@@ -117,7 +117,7 @@ export class ExternalAgent implements ExternalAgentInterface {
     if (updateResponse.status === 404) {
       logger.info(
         {
-          externalAgentId: this.getId(),
+          externalSubAgentId: this.getId(),
         },
         'External agent not found, creating new external agent'
       );
@@ -142,7 +142,7 @@ export class ExternalAgent implements ExternalAgentInterface {
 
       logger.info(
         {
-          externalAgentId: this.getId(),
+          externalSubAgentId: this.getId(),
         },
         'External agent created successfully'
       );

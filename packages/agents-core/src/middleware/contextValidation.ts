@@ -2,7 +2,7 @@ import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
 import { ContextResolver } from '../context/ContextResolver';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getAgentGraphWithDefaultAgent } from '../data-access/agentGraphs';
+import { getAgentGraphWithdefaultSubAgent } from '../data-access/agentGraphs';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect } from '../types/entities';
@@ -339,7 +339,7 @@ export async function validateHeaders({
 }): Promise<ContextValidationResult> {
   try {
     // Get the graph's context config
-    const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+    const agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
     });
 

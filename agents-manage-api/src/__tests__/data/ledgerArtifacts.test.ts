@@ -39,7 +39,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       tenantId,
       projectId,
       name: 'Test Graph',
-      defaultAgentId: agentId,
+      defaultSubAgentId: agentId,
     });
 
     // Create agent with graphId
@@ -58,7 +58,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: conversationId,
       tenantId,
       projectId,
-      activeAgentId: agentId,
+      activeSubAgentId: agentId,
       title: 'Test Conversation',
     });
 

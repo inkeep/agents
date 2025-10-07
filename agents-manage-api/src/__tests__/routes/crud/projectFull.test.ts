@@ -51,7 +51,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     id: graphId,
     name: `Test Graph${suffix}`,
     description: `Complete test graph${suffix}`,
-    defaultAgentId: agentId,
+    defaultSubAgentId: agentId,
     agents: {
       [agentId]: createTestAgentData(agentId, suffix),
     },

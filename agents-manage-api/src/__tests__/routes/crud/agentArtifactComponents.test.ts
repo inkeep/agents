@@ -34,12 +34,12 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     tenantId: string;
     suffix?: string;
   }) => {
-    // First create a default graph if it doesn't exist (without defaultAgentId)
+    // First create a default graph if it doesn't exist (without defaultSubAgentId)
     const graphId = nanoid();
     const graphData = {
       id: graphId,
       name: 'Test Graph',
-      defaultAgentId: null,
+      defaultSubAgentId: null,
     };
     // Try to create the graph, ignore if it already exists
     const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
@@ -638,13 +638,13 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       expect(existsBody.exists).toBe(true);
 
       // 4. Get artifact components for agent
-      const agentArtifactComponentsRes = await makeRequest(
+      const subAgentArtifactComponentsRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-artifact-components/agent/${agentId}`
       );
-      expect(agentArtifactComponentsRes.status).toBe(200);
-      const agentArtifactComponentsBody = await agentArtifactComponentsRes.json();
-      expect(agentArtifactComponentsBody.data).toHaveLength(1);
-      expect(agentArtifactComponentsBody.data[0].id).toBe(artifactComponentId);
+      expect(subAgentArtifactComponentsRes.status).toBe(200);
+      const subAgentArtifactComponentsBody = await subAgentArtifactComponentsRes.json();
+      expect(subAgentArtifactComponentsBody.data).toHaveLength(1);
+      expect(subAgentArtifactComponentsBody.data[0].id).toBe(artifactComponentId);
 
       // 5. Get agents using artifact component
       const artifactComponentAgentsRes = await makeRequest(

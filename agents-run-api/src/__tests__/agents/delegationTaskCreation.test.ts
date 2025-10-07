@@ -23,7 +23,7 @@ describe('Delegation Task Creation Fixes', () => {
       tenantId: tenantId,
       projectId: projectId,
       name: 'Test Graph',
-      defaultAgentId: 'math-supervisor',
+      defaultSubAgentId: 'math-supervisor',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
