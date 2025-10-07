@@ -1484,6 +1484,7 @@ Make it specific and relevant.`;
               type: artifactData.artifactType || 'source',
               data: artifactData.data || {},
               metadata: artifactData.metadata || {},
+              toolCallId: artifactData.toolCallId,
             });
 
             mainSaveSucceeded = true;

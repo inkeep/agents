@@ -197,8 +197,9 @@ export class ArtifactService {
           request.detailsSelector || {}
         );
       } else {
-        // Fallback: use details selector or entire selected data
-        summaryData = this.extractProps(selectedData, request.detailsSelector || {});
+        // Fallback: when no props schema, use the entire selected data
+        // This ensures we always have meaningful data for the artifact
+        summaryData = selectedData;
         fullData = selectedData;
       }
 
@@ -542,6 +543,7 @@ export class ArtifactService {
     type: string;
     data: Record<string, any>;
     metadata?: Record<string, any>;
+    toolCallId?: string;
   }): Promise<void> {
     // Get artifact component schema to extract preview fields
     let summaryData = artifact.data;
@@ -600,6 +602,7 @@ export class ArtifactService {
       },
       contextId: this.context.contextId!,
       taskId: this.context.taskId!,
+      toolCallId: artifact.toolCallId,
       artifact: artifactToSave,
     });
 

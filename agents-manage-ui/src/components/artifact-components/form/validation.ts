@@ -2,16 +2,20 @@ import { z } from 'zod';
 import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
 import { idSchema } from '@/lib/validation';
 
-const jsonSchemaValidation = (fieldName: string) =>
+const jsonSchemaValidation = () =>
   z
-    .string()
-    .min(1, `${fieldName} schema is required.`)
-    .transform((str, ctx) => {
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((value, ctx) => {
+      // If no value provided, empty string, or null, return undefined
+      if (!value || value === '' || value === null) {
+        return undefined;
+      }
+
       try {
-        const parsed = JSON.parse(str);
+        const parsed = JSON.parse(value);
 
         // Validate it's a proper LLM-compatible JSON schema
-        const validationResult = validateJsonSchemaForLlm(str);
+        const validationResult = validateJsonSchemaForLlm(value);
         if (!validationResult.isValid) {
           const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
           ctx.addIssue({
@@ -29,13 +33,14 @@ const jsonSchemaValidation = (fieldName: string) =>
         });
         return z.NEVER;
       }
-    });
+    })
+    .optional();
 
 export const artifactComponentSchema = z.object({
   id: idSchema,
   name: z.string().min(1, 'Name is required.'),
   description: z.string().min(1, 'Description is required.'),
-  props: jsonSchemaValidation('Props').optional(),
+  props: jsonSchemaValidation(),
 });
 
 export type ArtifactComponentFormData = z.infer<typeof artifactComponentSchema>;

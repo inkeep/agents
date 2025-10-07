@@ -30,7 +30,8 @@ const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentForm
   if (!data) return defaultValues;
 
   const formatted = { ...data };
-  if (formatted.props && formatted.props !== '') {
+  // Handle both null and undefined props, as well as empty strings
+  if (formatted.props && formatted.props !== '' && formatted.props !== null) {
     formatted.props = formatJsonField(formatted.props);
   } else {
     formatted.props = undefined;
@@ -62,7 +63,10 @@ export function ArtifactComponentForm({
 
   const onSubmit = async (data: ArtifactComponentFormData) => {
     try {
-      const payload = { ...data } as ArtifactComponent;
+      // Format the data before submission to handle empty props properly
+      const formattedData = formatFormData(data);
+      const payload = { ...formattedData } as ArtifactComponent;
+
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {

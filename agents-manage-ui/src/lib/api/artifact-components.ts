@@ -18,10 +18,8 @@ import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
-// Note: ArtifactComponentApiSelect might have nullable props, but UI expects non-nullable
-export type ArtifactComponent = Omit<ArtifactComponentApiSelect, 'props'> & {
-  props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
-};
+// Props can be null/undefined for optional artifact components
+export type ArtifactComponent = ArtifactComponentApiSelect;
 
 /**
  * Fetch all artifacts for a tenant
@@ -37,14 +35,8 @@ export async function fetchArtifactComponents(
     `tenants/${tenantId}/projects/${projectId}/artifact-components`
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response,
-    data: response.data.map((item) => ({
-      ...item,
-      props: item.props || {},
-    })),
-  };
+  // Return the response as-is, preserving null/undefined props
+  return response;
 }
 
 /**
@@ -62,11 +54,8 @@ export async function fetchArtifactComponent(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response.data,
-    props: response.data.props || {},
-  };
+  // Return the response as-is, preserving null/undefined props
+  return response.data;
 }
 
 /**
@@ -88,11 +77,8 @@ export async function createArtifactComponent(
     }
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response.data,
-    props: response.data.props || {},
-  };
+  // Return the response as-is, preserving null/undefined props
+  return response.data;
 }
 
 /**
@@ -114,11 +100,8 @@ export async function updateArtifactComponent(
     }
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response.data,
-    props: response.data.props || {},
-  };
+  // Return the response as-is, preserving null/undefined props
+  return response.data;
 }
 
 /**

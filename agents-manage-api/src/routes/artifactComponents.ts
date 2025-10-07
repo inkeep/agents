@@ -138,7 +138,7 @@ app.openapi(
       id: finalId,
       name: String(body.name),
       description: String(body.description),
-      props: body.props || undefined,
+      props: body.props ?? null,
     };
 
     try {
@@ -201,7 +201,7 @@ app.openapi(
       data: {
         name: body.name ? String(body.name) : undefined,
         description: body.description ? String(body.description) : undefined,
-        props: body.props || undefined,
+        props: body.props ?? null,
       },
     });
 
