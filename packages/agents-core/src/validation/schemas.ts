@@ -576,9 +576,15 @@ export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   });
 export const ContextConfigUpdateSchema = ContextConfigInsertSchema.partial();
 
-export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema);
-export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema);
-export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema);
+export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema).omit({
+  graphId: true,
+});
+export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema).omit({
+  graphId: true,
+});
+export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema).omit({
+  graphId: true,
+});
 
 // === Agent Tool Relation Schemas ===
 export const AgentToolRelationSelectSchema = createSelectSchema(agentToolRelations);
