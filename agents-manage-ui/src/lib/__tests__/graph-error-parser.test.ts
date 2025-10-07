@@ -32,12 +32,19 @@ describe('FullGraphDefinitionSchema', () => {
         },
       });
     } catch (error) {
-      expect(parseGraphValidationErrors(error.toString())).toMatchInlineSnapshot(`
+      const apiError = error!.toString();
+      const result = parseGraphValidationErrors(apiError);
+      expect(result.allErrors[0].field).toBe('prompt');
+      expect(result.allErrors[0].message).toBe('Agent is missing required field: Prompt');
+      expect(result.allErrors[1].field).toBe('baseUrl');
+      expect(result.allErrors[1].message).toBe('Agent is missing required field: Host URL');
+      expect(result.totalErrors).toBe(2);
+      expect(result).toMatchInlineSnapshot(`
         {
           "allErrors": [
             {
               "edgeId": undefined,
-              "field": "agents.WBLkgu_3cmQCZ-DXK3vL1.prompt",
+              "field": "prompt",
               "fullPath": [
                 "agents",
                 "WBLkgu_3cmQCZ-DXK3vL1",
@@ -46,7 +53,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "WBLkgu_3cmQCZ-DXK3vL1",
                 "prompt",
               ],
-              "message": "Agent is missing required field: Agents. W B Lkgu_3cm Q C Z- D X K3v L1.prompt",
+              "message": "Agent is missing required field: Prompt",
               "nodeId": "WBLkgu_3cmQCZ-DXK3vL1",
               "originalError": {
                 "code": "invalid_type",
@@ -62,7 +69,7 @@ describe('FullGraphDefinitionSchema', () => {
             },
             {
               "edgeId": undefined,
-              "field": "agents.1RJklJX9eQn-MaNIjVyuz.baseUrl",
+              "field": "baseUrl",
               "fullPath": [
                 "agents",
                 "1RJklJX9eQn-MaNIjVyuz",
@@ -71,7 +78,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "1RJklJX9eQn-MaNIjVyuz",
                 "baseUrl",
               ],
-              "message": "Agent is missing required field: Agents.1 R Jkl J X9e Qn- Ma N Ij Vyuz.base Url",
+              "message": "Agent is missing required field: Host URL",
               "nodeId": "1RJklJX9eQn-MaNIjVyuz",
               "originalError": {
                 "code": "invalid_type",
@@ -92,7 +99,7 @@ describe('FullGraphDefinitionSchema', () => {
             "1RJklJX9eQn-MaNIjVyuz": [
               {
                 "edgeId": undefined,
-                "field": "agents.1RJklJX9eQn-MaNIjVyuz.baseUrl",
+                "field": "baseUrl",
                 "fullPath": [
                   "agents",
                   "1RJklJX9eQn-MaNIjVyuz",
@@ -101,7 +108,7 @@ describe('FullGraphDefinitionSchema', () => {
                   "1RJklJX9eQn-MaNIjVyuz",
                   "baseUrl",
                 ],
-                "message": "Agent is missing required field: Agents.1 R Jkl J X9e Qn- Ma N Ij Vyuz.base Url",
+                "message": "Agent is missing required field: Host URL",
                 "nodeId": "1RJklJX9eQn-MaNIjVyuz",
                 "originalError": {
                   "code": "invalid_type",
@@ -119,7 +126,7 @@ describe('FullGraphDefinitionSchema', () => {
             "WBLkgu_3cmQCZ-DXK3vL1": [
               {
                 "edgeId": undefined,
-                "field": "agents.WBLkgu_3cmQCZ-DXK3vL1.prompt",
+                "field": "prompt",
                 "fullPath": [
                   "agents",
                   "WBLkgu_3cmQCZ-DXK3vL1",
@@ -128,7 +135,7 @@ describe('FullGraphDefinitionSchema', () => {
                   "WBLkgu_3cmQCZ-DXK3vL1",
                   "prompt",
                 ],
-                "message": "Agent is missing required field: Agents. W B Lkgu_3cm Q C Z- D X K3v L1.prompt",
+                "message": "Agent is missing required field: Prompt",
                 "nodeId": "WBLkgu_3cmQCZ-DXK3vL1",
                 "originalError": {
                   "code": "invalid_type",
