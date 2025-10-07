@@ -16,33 +16,33 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.10.0
           run_install: false
-      
+
       - name: Get pnpm store directory
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      
+
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
-      
+
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-      
+
       - name: Setup Turborepo cache
         uses: actions/cache@v4
         with:
@@ -58,19 +58,19 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-
-      
+
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
           # Ensure agents-manage-ui dependencies are properly installed
           cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
-      
+
       # Clean database files before running tests
       - name: Clean database files
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
-      
+
       # Run all CI checks in parallel with Turborepo
       - name: Run CI checks
         id: ci-check
@@ -89,7 +89,106 @@ jobs:
           DB_FILE_NAME: test.db
           NODE_OPTIONS: --max-old-space-size=4096
           CI: true
-      
+
+      # Start the backend API server
+      - name: Start Backend API Server
+        run: |
+          pnpm --filter @inkeep/agents-manage-api dev &
+          echo $! > backend.pid
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          ENVIRONMENT: test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
+          DB_FILE_NAME: test.db
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      # Start the frontend development server
+      - name: Start Frontend Development Server
+        run: |
+          pnpm --filter @inkeep/agents-manage-ui dev &
+          echo $! > frontend.pid
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      # Wait for services to be ready
+      - name: Wait for Backend API Server
+        run: |
+          echo "Waiting for backend API server to be ready..."
+          timeout 60 bash -c 'until curl -f http://localhost:3002/health 2>/dev/null; do sleep 2; done'
+          echo "Backend API server is ready!"
+
+      - name: Wait for Frontend Development Server
+        run: |
+          echo "Waiting for frontend development server to be ready..."
+          timeout 60 bash -c 'until curl -f http://localhost:3000 2>/dev/null; do sleep 2; done'
+          echo "Frontend development server is ready!"
+
+      # Run Cypress e2e tests
+      - name: Run Cypress E2E Tests
+        run: |
+          pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI: true
+
+      # Cleanup: Stop the services
+      - name: Stop Services
+        if: always()
+        run: |
+          echo "Stopping services..."
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) 2>/dev/null || true
+            rm -f backend.pid
+          fi
+          if [ -f frontend.pid ]; then
+            kill $(cat frontend.pid) 2>/dev/null || true
+            rm -f frontend.pid
+          fi
+          # Kill any remaining Node.js processes
+          pkill -f "pnpm.*dev" 2>/dev/null || true
+
+      # Upload Cypress screenshots and videos on failure
+      - name: Upload Cypress Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: agents-manage-ui/cypress/screenshots
+          retention-days: 7
+
+      - name: Upload Cypress Videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: agents-manage-ui/cypress/videos
+          retention-days: 7
+
+      # Create summary report
+      - name: Create E2E Test Summary
+        if: always()
+        run: |
+          echo "## Cypress E2E Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ **All Cypress E2E tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The validation test completed without errors." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Cypress E2E tests failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "One or more E2E tests failed. Review the logs above for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Screenshots and videos have been uploaded as artifacts for debugging." >> $GITHUB_STEP_SUMMARY
+          fi
+
       # Create summary report
       - name: Create CI Summary
         if: always()
