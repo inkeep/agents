@@ -1,5 +1,4 @@
 import {
-  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   CheckCircle,
