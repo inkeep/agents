@@ -1,11 +1,9 @@
 'use client';
 
 import { Streamdown } from 'streamdown';
-import { CodeBubble } from '@/components/traces/timeline/bubble';
-import { LabeledBlock } from '@/components/traces/timeline/blocks';
 
 // Constants for attribute categorization and sorting
-const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.'] as const;
+const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.collector.id'] as const;
 const PINNED_ATTRIBUTE_KEYS = [
   'name',
   'spanID',
@@ -93,19 +91,7 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
  */
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   return (
-    <div className="border rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-lg">
-        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          Process Attributes
-        </span>
-      </div>
-      
-      <div className="p-3 rounded-b-lg">
-        <CodeBubble className="max-h-60 overflow-y-auto">
-          <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
-        </CodeBubble>
-      </div>
-    </div>
+    <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
   );
 }
 
@@ -116,6 +102,13 @@ export function SpanAttributes({ span, className }: SpanAttributesProps) {
   const { processAttributes, otherAttributes, hasProcessAttributes } = separateAttributes(span);
   const sortedOtherAttributes = sortAttributes(otherAttributes);
   
+  // Sort process attributes alphabetically
+  const sortedProcessAttributes = Object.keys(processAttributes)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = processAttributes[key];
+      return acc;
+    }, {} as AttributeMap);
   const hasOtherAttributes = Object.keys(otherAttributes).length > 0;
   const hasAnyAttributes = hasOtherAttributes || hasProcessAttributes;
 
@@ -123,16 +116,12 @@ export function SpanAttributes({ span, className }: SpanAttributesProps) {
     <div className={`space-y-3 ${className ?? ''}`}>
       {/* Main span attributes */}
       {hasOtherAttributes && (
-        <LabeledBlock label="Advanced Span Attributes">
-          <CodeBubble className="max-h-60 overflow-y-auto">
-            <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
-          </CodeBubble>
-        </LabeledBlock>
+        <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
       )}
 
       {/* Process attributes section */}
       {hasProcessAttributes && (
-        <ProcessAttributesSection processAttributes={processAttributes} />
+        <ProcessAttributesSection processAttributes={sortedProcessAttributes} />
       )}
 
       {/* Empty state */}
