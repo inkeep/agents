@@ -14,52 +14,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: ${{ inputs.pnpm-version }}
-        run_install: false
-
-    - name: Get pnpm store directory
-      shell: bash
-      run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-    - name: Setup pnpm cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: ${{ runner.os }}-pnpm-store-
-
-    - name: Setup Turborepo cache
-      uses: actions/cache@v4
-      with:
-        path: .turbo
-        key: ${{ runner.os }}-turbo-${{ github.sha }}
-        restore-keys: ${{ runner.os }}-turbo-
-
-    - name: Install dependencies
-      shell: bash
-      run: |
-        pnpm install --frozen-lockfile
-        # Ensure agents-manage-ui dependencies are properly installed
-        cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
-
-    - name: Build packages
-      shell: bash
-      run: pnpm build --concurrency=200%
-      env:
-        TURBO_TELEMETRY_DISABLED: 1
-        TURBO_CACHE_DIR: .turbo
-        TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-        TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-        NODE_OPTIONS: --max-old-space-size=4096
-
     - name: Setup Cypress cache
       uses: actions/cache@v4
       with:
@@ -68,11 +22,10 @@ runs:
         restore-keys: ${{ runner.os }}-cypress-
 
     - name: Install Cypress binary
-      shell: bash
       run: cd agents-manage-ui && npx cypress install
 
+    # Start the backend API server
     - name: Start Backend API Server
-      shell: bash
       run: |
         pnpm --filter @inkeep/agents-manage-api dev &
         echo $! > backend.pid
@@ -84,10 +37,9 @@ runs:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
         DB_FILE_NAME: test.db
         NODE_OPTIONS: --max-old-space-size=4096
-        CI: true
 
+    # Start the frontend development server
     - name: Start Frontend Development Server
-      shell: bash
       run: |
         pnpm --filter @inkeep/agents-manage-ui dev &
         echo $! > frontend.pid
@@ -95,24 +47,22 @@ runs:
         TURBO_TELEMETRY_DISABLED: 1
         TURBO_CACHE_DIR: .turbo
         NODE_OPTIONS: --max-old-space-size=4096
-        CI: true
 
+    # Wait for services to be ready
     - name: Wait for Backend API Server
-      shell: bash
       run: |
         echo "Waiting for backend API server to be ready..."
         timeout 60 bash -c 'until curl -f http://localhost:3002/health 2>/dev/null; do sleep 2; done'
         echo "Backend API server is ready!"
 
     - name: Wait for Frontend Development Server
-      shell: bash
       run: |
         echo "Waiting for frontend development server to be ready..."
         timeout 60 bash -c 'until curl -f http://localhost:3000 2>/dev/null; do sleep 2; done'
         echo "Frontend development server is ready!"
 
+    # Run Cypress e2e tests
     - name: Run Cypress E2E Tests
-      shell: bash
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
       env:
         TURBO_TELEMETRY_DISABLED: 1
@@ -120,9 +70,9 @@ runs:
         NODE_OPTIONS: --max-old-space-size=4096
         CI: true
 
+    # Cleanup: Stop the services
     - name: Stop Services
       if: always()
-      shell: bash
       run: |
         echo "Stopping services..."
         if [ -f backend.pid ]; then
@@ -136,6 +86,7 @@ runs:
         # Kill any remaining Node.js processes
         pkill -f "pnpm.*dev" 2>/dev/null || true
 
+    # Upload Cypress screenshots and videos on failure
     - name: Upload Cypress Screenshots
       if: failure()
       uses: actions/upload-artifact@v4
@@ -152,9 +103,9 @@ runs:
         path: agents-manage-ui/cypress/videos
         retention-days: 7
 
+    # Create summary report
     - name: Create E2E Test Summary
       if: always()
-      shell: bash
       run: |
         echo "## Cypress E2E Test Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
