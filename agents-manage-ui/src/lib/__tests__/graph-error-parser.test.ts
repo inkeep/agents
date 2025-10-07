@@ -3,7 +3,7 @@ import { FullGraphDefinitionSchema } from '@inkeep/agents-core';
 import { parseGraphValidationErrors } from '@/lib/utils/graph-error-parser';
 
 describe('FullGraphDefinitionSchema', () => {
-  it('should have user friendly error', () => {
+  it('should have user friendly error for agents', () => {
     try {
       FullGraphDefinitionSchema.parse({
         id: 'XmkebOuDk5YM8MvwEPOCD',
