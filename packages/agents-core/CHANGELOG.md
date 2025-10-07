@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.14.9
+
+### Patch Changes
+
+- c7194ce: error surfacing
+
 ## 0.14.8
 
 ## 0.14.7

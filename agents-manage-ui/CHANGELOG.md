@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.9
+
+### Patch Changes
+
+- c7194ce: error handling and agent name more visible
+- Updated dependencies [c7194ce]
+- Updated dependencies [c7194ce]
+  - @inkeep/agents-core@0.14.9
+  - @inkeep/agents-run-api@0.14.9
+  - @inkeep/agents-manage-api@0.14.9
+
 ## 0.14.8
 
 ### Patch Changes
