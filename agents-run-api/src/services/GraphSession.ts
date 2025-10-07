@@ -1294,7 +1294,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 Tool Context: ${toolContext ? JSON.stringify(toolContext, null, 2) : 'No tool context'}
 Context: ${conversationHistory?.slice(-200) || 'Processing'}
 Type: ${artifactData.artifactType || 'data'}
-Data: ${JSON.stringify(artifactData.fullData, null, 2)}
+Data: ${JSON.stringify(artifactData.data || artifactData.summaryData, null, 2)}
 
 Make it specific and relevant.`;
 
@@ -1382,7 +1382,7 @@ Make it specific and relevant.`;
                   'artifact.id': artifactData.artifactId,
                   'artifact.type': artifactData.artifactType,
                   'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
-                  'artifact.full': JSON.stringify(artifactData.fullData, null, 2),
+                  'artifact.full': JSON.stringify(artifactData.data || artifactData.summaryData, null, 2),
                   'prompt.length': prompt.length,
                 },
               },
@@ -1415,7 +1415,7 @@ Make it specific and relevant.`;
                       'artifact.name': result.object.name,
                       'artifact.description': result.object.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
-                      'artifact.full': JSON.stringify(artifactData.fullData, null, 2),
+                      'artifact.full': JSON.stringify(artifactData.data || artifactData.summaryData, null, 2),
                       'generation.name_length': result.object.name.length,
                       'generation.description_length': result.object.description.length,
                       'generation.attempts': attempt,

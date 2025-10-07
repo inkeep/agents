@@ -548,8 +548,12 @@ export class ArtifactService {
       if (artifactComponent?.props) {
         try {
           const schema = artifactComponent.props as ExtendedJsonSchema;
-          summaryData = extractPreviewFields(schema, artifact.data);
-          fullData = extractFullFields(schema, artifact.data);
+          const previewSchema = extractPreviewFields(schema);
+          const fullSchema = extractFullFields(schema);
+          
+          // Extract data based on the schemas
+          summaryData = this.filterBySchema(artifact.data, previewSchema);
+          fullData = this.filterBySchema(artifact.data, fullSchema);
         } catch (error) {
           logger.warn(
             {

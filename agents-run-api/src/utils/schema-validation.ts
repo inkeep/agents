@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import { z } from 'zod';
-import { convertZodToJsonSchemaWithPreview, extractPreviewFields } from '@inkeep/agents-core/utils/schema-conversion';
+import { convertZodToJsonSchemaWithPreview, extractPreviewFields as extractPreviewFieldsCore } from '@inkeep/agents-core/utils/schema-conversion';
 import { getLogger } from '../logger';
 
 const logger = getLogger('SchemaValidation');
