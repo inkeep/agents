@@ -11,7 +11,8 @@
     "./schema": "./src/db/schema.ts",
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",
-    "./client-exports": "./src/client-exports.ts"
+    "./client-exports": "./src/client-exports.ts",
+    "./drizzle": "./drizzle/"
   },
   "scripts": {
     "build": "tsup",
@@ -91,6 +92,7 @@
   },
   "files": [
     "dist",
+    "drizzle",
     "README.md",
     "LICENSE.md",
     "SUPPLEMENTAL_TERMS.md"
