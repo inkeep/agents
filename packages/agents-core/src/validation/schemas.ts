@@ -648,8 +648,16 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
   canDelegateTo: z.array(z.string()).optional(),
 });
 
+const AgentsRecordSchema = z.record(
+  z.string(),
+  z.discriminatedUnion('type', [
+    FullGraphAgentInsertSchema,
+    ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
+  ])
+);
+
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  agents: AgentsRecordSchema,
   // Removed project-scoped resources - these are now managed at project level:
   // tools, credentialReferences, dataComponents, artifactComponents
   // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
@@ -661,13 +669,7 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
 });
 
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(
-    z.string(),
-    z.discriminatedUnion('type', [
-      FullGraphAgentInsertSchema,
-      ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
-    ])
-  ),
+  agents: AgentsRecordSchema,
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),

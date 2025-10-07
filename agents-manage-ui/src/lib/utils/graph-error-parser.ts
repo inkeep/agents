@@ -101,7 +101,7 @@ function processValidationError(
   if (fullPath[0] === 'agents' && fullPath[1]) {
     type = 'node';
     nodeId = fullPath[1];
-    field = error.path.join('.') || 'configuration';
+    field = error.path.slice(2).join('.') || 'configuration';
   } else if (fullPath[0] === 'edges' && fullPath[1]) {
     type = 'edge';
     edgeId = fullPath[1];
