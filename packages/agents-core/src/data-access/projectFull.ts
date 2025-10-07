@@ -10,7 +10,6 @@ import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
-import { listContextConfigs } from './contextConfigs';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
 import {
@@ -799,33 +798,6 @@ export const getFullProject =
         logger.warn(
           { tenantId, projectId, error },
           'Failed to retrieve artifactComponents for project'
-        );
-      }
-
-      // Step 6: Get all contextConfigs for this project
-      const projectContextConfigs: Record<string, any> = {};
-      try {
-        const contextConfigsList = await listContextConfigs(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const config of contextConfigsList) {
-          projectContextConfigs[config.id] = {
-            id: config.id,
-            name: config.name,
-            description: config.description,
-            requestContextSchema: config.requestContextSchema,
-            contextVariables: config.contextVariables,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectContextConfigs).length },
-          'ContextConfigs retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve contextConfigs for project'
         );
       }
 

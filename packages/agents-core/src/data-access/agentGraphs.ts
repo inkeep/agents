@@ -488,7 +488,7 @@ export const getFullGraphDefinition =
     if (graph.contextConfigId) {
       try {
         contextConfig = await getContextConfigById(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           id: graph.contextConfigId,
         });
       } catch (error) {

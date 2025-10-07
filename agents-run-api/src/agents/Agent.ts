@@ -794,7 +794,11 @@ export class Agent {
 
       // Get context configuration
       const contextConfig = await getContextConfigById(dbClient)({
-        scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+          graphId: this.config.graphId,
+        },
         id: this.config.contextConfigId,
       });
       if (!contextConfig) {
@@ -1723,12 +1727,12 @@ export class Agent {
                 }
                 break;
               case 'error':
-                  if (event.error instanceof Error) {
-                    throw event.error;
-                  } else {
-                    const errorMessage = (event.error as any)?.error?.message;
-                    throw new Error(errorMessage);
-                  }
+                if (event.error instanceof Error) {
+                  throw event.error;
+                } else {
+                  const errorMessage = (event.error as any)?.error?.message;
+                  throw new Error(errorMessage);
+                }
             }
           }
 

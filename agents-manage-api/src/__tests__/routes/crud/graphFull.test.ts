@@ -59,23 +59,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
   });
 
   // Helper function to create test contextConfig data
-  const createTestContextConfigData = ({
+  const createTestContextConfigData = ({ id, suffix = '' }: { id: string; suffix?: string }) => ({
     id,
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-    graphId,
-  }: {
-    id: string;
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-    graphId: string;
-  }) => ({
-    id,
-    tenantId,
-    projectId,
-    graphId,
     name: `Test Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
     requestContextSchema: {
@@ -222,9 +207,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       graphData.contextConfig = createTestContextConfigData({
         id: contextConfigId,
         suffix: 'Main',
-        tenantId,
-        projectId: projectIdParam,
-        graphId: id,
       });
     }
 
@@ -1347,7 +1329,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           body: JSON.stringify(updateData),
         }
       );
-
+      console.log(updateRes);
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();

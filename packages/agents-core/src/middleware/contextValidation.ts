@@ -355,7 +355,7 @@ export async function validateRequestContext({
 
     // Get context configuration
     const contextConfig = await getContextConfigById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       id: agentGraph.contextConfigId,
     });
 
