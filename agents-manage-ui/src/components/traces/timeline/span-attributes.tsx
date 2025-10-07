@@ -3,7 +3,7 @@
 import { Streamdown } from 'streamdown';
 
 // Constants for attribute categorization and sorting
-const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.collector.id'] as const;
+const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
 const PINNED_ATTRIBUTE_KEYS = [
   'name',
   'spanID',
