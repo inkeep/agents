@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { SandboxConfigSchema } from '@inkeep/agents-core';
+import type { SandboxConfigSchema } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
