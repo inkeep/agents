@@ -1,6 +1,17 @@
 import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
 import type { RefObject } from 'react';
 
+// Function to check if a token should show a copy icon
+function shouldShowCopyIcon(tokenType: string): boolean {
+  switch (tokenType) {
+    case 'string.value.json':
+    case 'number.json':
+    case 'keyword.json':
+      return true;
+  }
+  return false;
+}
+
 export function addDecorations(
   editorInstance: editor.IStandaloneCodeEditor,
   content: string,
@@ -11,16 +22,7 @@ export function addDecorations(
 } {
   // Add decorations for copy icons after primitive values
   const decorations: editor.IModelDeltaDecoration[] = [];
-
   const tokens = editor.tokenize(content, 'json');
-
-  // Function to check if a token should show a copy icon
-  const shouldShowCopyIcon = (tokenType: string): boolean => {
-    if (tokenType === 'string.value.json') return true;
-    if (tokenType === 'number.json') return true;
-    if (tokenType === 'keyword.json') return true;
-    return false;
-  };
 
   // Find tokens that should have copy icons and add decorations
   const lines = content.split('\n');
@@ -34,7 +36,7 @@ export function addDecorations(
       }
       // Calculate the end position of the current token
       const nextToken = lineTokens[i + 1];
-      const tokenEndOffset = nextToken ? nextToken.offset : lines[lineNumber - 1].length - 1;
+      const tokenEndOffset = nextToken ? nextToken.offset + 1 : lines[lineNumber - 1].length;
 
       const range = new Range(
         //
