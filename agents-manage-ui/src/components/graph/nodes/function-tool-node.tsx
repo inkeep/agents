@@ -1,6 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';

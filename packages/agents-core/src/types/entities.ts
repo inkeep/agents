@@ -99,12 +99,6 @@ import type {
   FunctionApiUpdateSchema,
   FunctionInsertSchema,
   FunctionSelectSchema,
-  FunctionToolApiInsertSchema,
-  FunctionToolApiSelectSchema,
-  FunctionToolApiUpdateSchema,
-  FunctionToolInsertSchema,
-  FunctionToolSelectSchema,
-  FunctionToolUpdateSchema,
   FunctionUpdateSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
@@ -210,13 +204,7 @@ export type FunctionApiSelect = z.infer<typeof FunctionApiSelectSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
 
-// === Function Tool Types ===
-export type FunctionToolSelect = z.infer<typeof FunctionToolSelectSchema>;
-export type FunctionToolInsert = z.infer<typeof FunctionToolInsertSchema>;
-export type FunctionToolUpdate = z.infer<typeof FunctionToolUpdateSchema>;
-export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
-export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
-export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
+// Function Tool types removed - function tools are now part of the tools table
 
 // === Conversation Types ===
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
@@ -337,11 +325,12 @@ export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
 export type CanUseItem = {
   toolId: string;
   toolSelection?: string[] | null;
+  headers?: Record<string, string> | null;
+  agentToolRelationId?: string;
 };
 
 export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
-  canUse: CanUseItem[]; // MCP tools (project-scoped)
-  functionTools?: string[]; // Function tool IDs (agent-scoped)
+  canUse: CanUseItem[]; // All tools (both MCP and function tools)
   dataComponents?: string[];
   artifactComponents?: string[];
   canTransferTo?: string[];

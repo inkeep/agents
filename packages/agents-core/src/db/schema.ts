@@ -412,7 +412,8 @@ export const tools = sqliteTable(
           }
         | {
             type: 'function';
-            function: {
+            // function property is optional since we use reference-only architecture (functionId)
+            function?: {
               inputSchema: Record<string, unknown>;
               executeCode: string;
               dependencies: Record<string, unknown>;
