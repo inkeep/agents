@@ -5,6 +5,7 @@ import type {
   CredentialReferenceApiInsert,
 } from '../types/index';
 import { getLogger } from '../utils/logger';
+import { convertZodToJsonSchema } from '../utils/schema-conversion';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 import type { DotPaths } from './validation-helpers';
 
@@ -72,20 +73,6 @@ export type builderFetchDefinition<R extends z.ZodTypeAny> = {
   credentialReference?: CredentialReferenceApiInsert; // Reference to credential store for secure credential resolution
 };
 
-// Utility function for converting Zod schemas to JSON Schema
-export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
-  try {
-    return z.toJSONSchema(zodSchema, { target: 'draft-7' });
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Failed to convert Zod schema to JSON Schema'
-    );
-    throw new Error('Failed to convert Zod schema to JSON Schema');
-  }
-}
 
 export interface ContextConfigBuilderOptions<
   R extends z.ZodTypeAny | undefined = undefined,
@@ -188,10 +175,11 @@ export class ContextConfigBuilder<
    * Set the context (tenantId, projectId, graphId) for this context config
    * Called by graph.setConfig() when the graph is configured
    */
-  setContext(tenantId: string, projectId: string, graphId: string): void {
+  setContext(tenantId: string, projectId: string, graphId: string, baseURL: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.graphId = graphId;
+    this.baseURL = baseURL;
     // Update the config object as well
     this.config.tenantId = tenantId;
     this.config.projectId = projectId;
@@ -337,7 +325,7 @@ export class ContextConfigBuilder<
     try {
       // First try to update (in case config exists)
       const updateResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/context-configs/${this.getId()}`,
+        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/graphs/${this.graphId}/context-configs/${this.getId()}`,
         {
           method: 'PUT',
           headers: {
@@ -367,7 +355,7 @@ export class ContextConfigBuilder<
         );
 
         const createResponse = await fetch(
-          `${this.baseURL}/tenants/${this.tenantId}/crud/context-configs`,
+          `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/graphs/${this.graphId}/context-configs`,
           {
             method: 'POST',
             headers: {

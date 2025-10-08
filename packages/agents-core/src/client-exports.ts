@@ -15,7 +15,9 @@ import {
   type AgentStopWhen,
   AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
+  ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullGraphAgentInsertSchema,
+  type FunctionApiInsertSchema,
   type GraphStopWhen,
   GraphStopWhenSchema,
   type ModelSettings,
@@ -23,6 +25,9 @@ import {
   type StopWhen,
   StopWhenSchema,
 } from './validation/schemas';
+
+// Import validation utilities
+export { validatePropsAsJsonSchema } from './validation/props-validation';
 
 // Re-export StopWhen schemas and types for client usage
 export {
@@ -33,6 +38,13 @@ export {
   type GraphStopWhen,
   type AgentStopWhen,
 };
+
+export {
+  FunctionApiInsertSchema,
+  FunctionApiSelectSchema,
+  FunctionApiUpdateSchema,
+  SandboxConfigSchema,
+} from './validation/schemas';
 
 // Common parameter schemas
 export const TenantParamsSchema = z.object({
@@ -145,14 +157,8 @@ export const DataComponentApiInsertSchema = z.object({
   props: z.record(z.string(), z.unknown()),
 });
 
-// Artifact Component API schemas (inline definitions)
-export const ArtifactComponentApiInsertSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  summaryProps: z.record(z.string(), z.unknown()),
-  fullProps: z.record(z.string(), z.unknown()),
-});
+// Artifact Component API schemas (re-exported from validation)
+export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
 
 // Context Config API schemas (inline definitions)
 export const ContextConfigApiInsertSchema = z.object({
@@ -248,16 +254,6 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
         .optional(),
     })
     .optional(),
-});
-
-// Function API schema (inline definition)
-export const FunctionApiInsertSchema = z.object({
-  id: z.string(),
-  inputSchema: z.record(z.string(), z.unknown()).nullable(),
-  executeCode: z.string(),
-  dependencies: z.record(z.string(), z.string()).nullable(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
 });
 
 // Export inferred types

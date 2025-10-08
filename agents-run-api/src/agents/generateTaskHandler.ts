@@ -18,6 +18,7 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { graphSessionManager } from '../services/GraphSession';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
@@ -242,6 +243,12 @@ export const createTaskHandler = (
         },
         credentialStoreRegistry
       );
+
+      // Update the shared ArtifactService with artifact components for this agent
+      const artifactStreamRequestId = task.context?.metadata?.streamRequestId;
+      if (artifactStreamRequestId && artifactComponents.length > 0) {
+        graphSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
+      }
 
       // More robust contextId resolution for delegation scenarios
       let contextId = task.context?.conversationId;

@@ -7,6 +7,11 @@ settings:
 overrides:
   zod: ^4.1.11
 
+patchedDependencies:
+  '@changesets/assemble-release-plan@6.0.9':
+    hash: 57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1
+    path: patches/@changesets__assemble-release-plan.patch
+
 importers:
 
   .:
@@ -25,7 +30,7 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       '@changesets/cli':
-        specifier: ^2.29.6
+        specifier: 2.29.7
         version: 2.29.7(@types/node@24.6.1)
       drizzle-kit:
         specifier: ^0.31.5
@@ -10022,7 +10027,7 @@ snapshots:
       resolve-from: 5.0.0
       semver: 7.7.2
 
-  '@changesets/assemble-release-plan@6.0.9':
+  '@changesets/assemble-release-plan@6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)':
     dependencies:
       '@changesets/errors': 0.2.0
       '@changesets/get-dependents-graph': 2.1.3
@@ -10038,7 +10043,7 @@ snapshots:
   '@changesets/cli@2.29.7(@types/node@24.6.1)':
     dependencies:
       '@changesets/apply-release-plan': 7.0.13
-      '@changesets/assemble-release-plan': 6.0.9
+      '@changesets/assemble-release-plan': 6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)
       '@changesets/changelog-git': 0.2.1
       '@changesets/config': 3.1.1
       '@changesets/errors': 0.2.0
@@ -10091,7 +10096,7 @@ snapshots:
 
   '@changesets/get-release-plan@4.0.13':
     dependencies:
-      '@changesets/assemble-release-plan': 6.0.9
+      '@changesets/assemble-release-plan': 6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)
       '@changesets/config': 3.1.1
       '@changesets/pre': 2.0.2
       '@changesets/read': 0.6.5

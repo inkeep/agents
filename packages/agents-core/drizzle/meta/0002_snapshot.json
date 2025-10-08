@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "64b468db-7054-4d50-9cda-2a842351273e",
+  "id": "39a038ad-52c0-488f-bf8d-51883000f913",
   "prevId": "c250d6aa-b8de-4cc9-a380-7a3f57c71597",
   "tables": {
     "agent_artifact_components": {
@@ -906,15 +906,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "summary_props": {
-          "name": "summary_props",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "full_props": {
-          "name": "full_props",
+        "props": {
+          "name": "props",
           "type": "blob",
           "primaryKey": false,
           "notNull": false,
@@ -1643,185 +1636,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "function_tools": {
-      "name": "function_tools",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "function_id": {
-          "name": "function_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "function_tools_agent_fk": {
-          "name": "function_tools_agent_fk",
-          "tableFrom": "function_tools",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "function_tools_function_fk": {
-          "name": "function_tools_function_fk",
-          "tableFrom": "function_tools",
-          "tableTo": "functions",
-          "columnsFrom": [
-            "function_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "function_tools_tenant_id_project_id_graph_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "name": "function_tools_tenant_id_project_id_graph_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "functions": {
-      "name": "functions",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "input_schema": {
-          "name": "input_schema",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "execute_code": {
-          "name": "execute_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "dependencies": {
-          "name": "dependencies",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "ledger_artifacts": {
       "name": "ledger_artifacts",
       "columns": {
@@ -2238,13 +2052,6 @@
         },
         "stop_when": {
           "name": "stop_when",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sandbox_config": {
-          "name": "sandbox_config",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

@@ -206,7 +206,8 @@ export class ExecutionApiClient extends BaseApiClient {
   async chatCompletion(
     graphId: string,
     messages: any[],
-    conversationId?: string
+    conversationId?: string,
+    emitOperations?: boolean
   ): Promise<ReadableStream<Uint8Array> | string> {
     const response = await this.authenticatedFetch(`${this.apiUrl}/v1/chat/completions`, {
       method: 'POST',
@@ -215,6 +216,7 @@ export class ExecutionApiClient extends BaseApiClient {
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,
         'x-inkeep-graph-id': graphId,
+        ...(emitOperations && { 'x-emit-operations': 'true' }),
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini', // Required but will be overridden by graph config

@@ -86,6 +86,27 @@ export const ProjectModelSchema = z.object({
   summarizer: ModelSettingsSchema.optional(),
 });
 
+export const SandboxConfigSchema = z.object({
+  provider: z.enum(['vercel', 'local']),
+  runtime: z.enum(['node22', 'typescript']),
+  timeout: z.number().min(1000).max(300000).optional(),
+  vcpus: z.number().min(1).max(8).optional(),
+});
+
+export type SandboxConfig = z.infer<typeof SandboxConfigSchema>;
+
+export const FunctionToolConfigSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  inputSchema: z.record(z.string(), z.unknown()),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  execute: z.union([z.function(), z.string()]),
+});
+
+export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 'execute'> & {
+  execute: ((params: any) => Promise<any>) | string;
+};
+
 // Helper functions with better type preservation
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
@@ -563,25 +584,6 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   credential: CredentialReferenceApiInsertSchema.optional(),
 });
 
-// Function Tool Config Schema
-export const FunctionToolConfigSchema = z.object({
-  type: z.literal('function'),
-  function: z.object({
-    description: z.string(),
-    inputSchema: z.record(z.string(), z.unknown()),
-    executeCode: z.string(),
-    dependencies: z.record(z.string(), z.string()).optional(),
-    sandboxConfig: z
-      .object({
-        provider: z.enum(['vercel', 'daytona', 'local']).optional(),
-        runtime: z.enum(['node22', 'typescript']).optional(),
-        timeout: z.number().optional(),
-        vcpus: z.number().optional(),
-      })
-      .optional(),
-  }),
-});
-
 export const ToolUpdateSchema = ToolInsertSchema.partial();
 
 export const ToolApiSelectSchema = createApiSchema(ToolSelectSchema);
@@ -595,10 +597,9 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
 });
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
-// Functions are not project-scoped, so no API schemas needed
-export const FunctionApiSelectSchema = FunctionSelectSchema;
-export const FunctionApiInsertSchema = FunctionInsertSchema;
-export const FunctionApiUpdateSchema = FunctionUpdateSchema;
+export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema);
+export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema);
+export const FunctionApiUpdateSchema = createApiUpdateSchema(FunctionUpdateSchema);
 
 // === Context Config Schemas ===
 // Zod schemas for validation
@@ -635,9 +636,15 @@ export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   });
 export const ContextConfigUpdateSchema = ContextConfigInsertSchema.partial();
 
-export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema);
-export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema);
-export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema);
+export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema).omit({
+  graphId: true,
+});
+export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema).omit({
+  graphId: true,
+});
+export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema).omit({
+  graphId: true,
+});
 
 // === Agent Tool Relation Schemas ===
 export const AgentToolRelationSelectSchema = createSelectSchema(agentToolRelations);
@@ -774,6 +781,7 @@ export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
+    sandboxConfig: SandboxConfigSchema.optional(),
   })
   .omit({
     createdAt: true,

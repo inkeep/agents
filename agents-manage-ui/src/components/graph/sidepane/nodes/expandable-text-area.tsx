@@ -14,7 +14,7 @@ const PromptEditorWithAddVariables: FC<
     tooltipClassName: string;
   }
 > = ({ tooltipClassName, ...props }) => {
-  const codemirrorRef = useRef<RefValue<typeof props.ref>>(null as any);
+  const codemirrorRef = useRef<RefValue<typeof props.ref>>(null);
   const variablesText = 'Add variables';
   return (
     <div className="h-full relative">

@@ -62,23 +62,11 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getLabel = () => {
-    if (operation.type === 'data-summary') {
-      // data-summary always has operation.label
-      return operation.label;
-    } else {
-      // data-operation might need fallback
-      return getOperationLabel(operation);
-    }
+    return getOperationLabel(operation);
   };
 
   const getExpandedContent = () => {
-    if (operation.type === 'data-summary') {
-      // data-summary uses details field
-      return operation.details || {};
-    } else {
-      // data-operation uses ctx
-      return operation.ctx || operation.details || {};
-    }
+    return operation.details || {};
   };
 
   return (
@@ -295,64 +283,7 @@ function useProcessedOperations(parts: Message['parts']) {
     let textBuilder = '';
 
     for (const part of parts) {
-      if (part.type === 'data-operation') {
-        // Create semantic key for this operation
-        const { type, ctx } = part.data as any; // Cast to any to handle new operation types
-        let key: string = type;
-
-        // Skip ALL non-top-level operations (they'll be handled as inline by StreamMarkdown)
-        const isTopLevelOperation = [
-          'agent_initializing',
-          'agent_ready',
-          'completion',
-          'error',
-        ].includes(type);
-
-        // Only process top-level operations for the timeline
-        if (isTopLevelOperation) {
-          switch (type) {
-            case 'agent_initializing':
-            case 'agent_ready':
-              // Use same key so agent_ready replaces agent_initializing
-              key = `agent_lifecycle-${ctx.sessionId}`;
-              break;
-            case 'completion':
-              key = `${type}-${ctx.agent}-${ctx.iteration}`;
-              break;
-            default:
-              key = `${type}-${ctx.agent || ''}`;
-          }
-
-          if (
-            (type === 'agent_ready' || type === 'agent_initializing') &&
-            seenOperationKeys.current.has(key)
-          ) {
-            // Replace agent_initializing with agent_ready
-            setOperations((prev) =>
-              prev.map((op) =>
-                op.uniqueKey === key
-                  ? {
-                      ...part.data,
-                      id: part.id,
-                      uniqueKey: key,
-                      timestamp: op.timestamp,
-                    } // Keep original timestamp for order
-                  : op
-              )
-            );
-          } else if (!seenOperationKeys.current.has(key)) {
-            // Only add if we haven't seen this operation before
-            seenOperationKeys.current.add(key);
-            newOps.push({
-              ...part.data,
-              id: part.id,
-              uniqueKey: key, // Add the key for debugging
-              timestamp: Date.now(),
-            });
-          }
-        }
-        // Inline operations (like tool_call_summary, information_retrieved) are handled by StreamMarkdown
-      } else if (part.type === 'data-artifact') {
+      if (part.type === 'data-artifact') {
         const key = part.data.artifactId || part.data.name;
         if (!seenArtifactKeys.current.has(key)) {
           seenArtifactKeys.current.add(key);
@@ -360,6 +291,12 @@ function useProcessedOperations(parts: Message['parts']) {
         }
       } else if (part.type === 'text') {
         textBuilder += part.text || '';
+      } else if (part.type === 'data-operation' || part.type === 'data-summary') {
+        const key = part.data.type;
+        if (!seenOperationKeys.current.has(key)) {
+          seenOperationKeys.current.add(key);
+          newOps.push(part.data);
+        }
       }
     }
 
@@ -467,7 +404,6 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                 if (currentTextGroup.length > 0) {
                   groupedParts.push({ type: 'text-group', parts: currentTextGroup });
                 }
-
 
                 return groupedParts.map((group, index) => {
                   if (group.type === 'text-group') {

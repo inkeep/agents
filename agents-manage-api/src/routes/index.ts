@@ -34,11 +34,11 @@ app.route(
 );
 app.route('/projects/:projectId/graphs/:graphId/agent-data-components', agentDataComponentsRoutes);
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
-app.route('/projects/:projectId/context-configs', contextConfigsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
 app.route('/projects/:projectId/graphs/:graphId/external-agents', externalAgentsRoutes);
-app.route('/functions', functionsRoutes); // Functions are global entities
+app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 

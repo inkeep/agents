@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.15.0
+
+### Minor Changes
+
+- ad5528c: Context config route changes
+
+## 0.14.16
+
+## 0.14.15
+
 ## 0.14.14
 
 ### Patch Changes

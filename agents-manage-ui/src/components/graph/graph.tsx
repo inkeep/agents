@@ -90,7 +90,6 @@ function Flow({
   toolLookup = {},
   credentialLookup = {},
 }: GraphProps) {
-  console.log('graph', graph);
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
 
@@ -733,7 +732,7 @@ function Flow({
           <Panel position="top-right">
             <Toolbar
               onSubmit={onSubmit}
-              isPreviewDisabled={!graph?.id}
+              inPreviewDisabled={!graph?.id}
               toggleSidePane={isOpen ? backToGraph : openGraphPane}
               setShowPlayground={() => {
                 closeSidePane();

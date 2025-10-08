@@ -146,7 +146,7 @@ export interface TextareaWithSuggestionsProps extends Omit<ReactCodeMirrorProps,
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
-  ref?: RefObject<{ insertTemplateVariable: () => void }>;
+  ref?: RefObject<{ insertTemplateVariable: () => void }| null>;
 }
 
 function tryJsonParse(json: string): object {

@@ -1,8 +1,8 @@
 import type { MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
-import { tracer, setSpanWithError } from '../utils/tracer';
 import { graphSessionManager } from '../services/GraphSession';
+import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('ResponseFormatter');
 
@@ -31,7 +31,9 @@ export class ResponseFormatter {
     
     // Get the shared ArtifactParser from GraphSession
     if (artifactParserOptions?.streamRequestId) {
-      const sessionParser = graphSessionManager.getArtifactParser(artifactParserOptions.streamRequestId);
+      const sessionParser = graphSessionManager.getArtifactParser(
+        artifactParserOptions.streamRequestId
+      );
       
       if (sessionParser) {
         this.artifactParser = sessionParser;
@@ -40,7 +42,25 @@ export class ResponseFormatter {
     }
     
     // Fallback: create new parser if session parser not available (for tests, etc.)
-    this.artifactParser = new ArtifactParser(tenantId, artifactParserOptions);
+    // Try to get the shared ArtifactService from GraphSession
+    let sharedArtifactService = null;
+    if (
+      artifactParserOptions?.streamRequestId &&
+      typeof graphSessionManager.getArtifactService === 'function'
+    ) {
+      try {
+        sharedArtifactService = graphSessionManager.getArtifactService(
+          artifactParserOptions.streamRequestId
+        );
+      } catch (error) {
+        // Ignore errors in test environment or when GraphSessionManager is not available
+      }
+    }
+
+    this.artifactParser = new ArtifactParser(tenantId, {
+      ...artifactParserOptions,
+      artifactService: sharedArtifactService, // Use shared ArtifactService if available
+    });
   }
 
   /**
@@ -58,7 +78,11 @@ export class ResponseFormatter {
         });
 
         // Parse the object using unified parser, passing agentId for artifact persistence
-        const parts = await this.artifactParser.parseObject(responseObject, artifactMap, this.agentId);
+        const parts = await this.artifactParser.parseObject(
+          responseObject,
+          artifactMap,
+          this.agentId
+        );
 
         // Count and log metrics
         const uniqueArtifacts = this.countUniqueArtifacts(parts);

@@ -490,7 +490,7 @@ export const getFullGraphDefinition =
     if (graph.contextConfigId) {
       try {
         contextConfig = await getContextConfigById(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           id: graph.contextConfigId,
         });
       } catch (error) {
@@ -539,8 +539,7 @@ export const getFullGraphDefinition =
           id: artifactComponents.id,
           name: artifactComponents.name,
           description: artifactComponents.description,
-          summaryProps: artifactComponents.summaryProps,
-          fullProps: artifactComponents.fullProps,
+          props: artifactComponents.props,
         },
       });
     } catch (error) {
@@ -671,7 +670,7 @@ export const getFullGraphDefinition =
         scopes: { tenantId, projectId },
         pagination: { page: 1, limit: 1000 },
       });
-      
+
       // Build tools lookup map
       const toolsObject: Record<string, any> = {};
       for (const tool of toolsList.data) {
@@ -698,7 +697,10 @@ export const getFullGraphDefinition =
       if (functionIds.size > 0) {
         const functionsObject: Record<string, any> = {};
         for (const functionId of functionIds) {
-          const func = await getFunction(db)({ functionId });
+          const func = await getFunction(db)({
+            functionId,
+            scopes: { tenantId, projectId },
+          });
           if (func) {
             functionsObject[functionId] = {
               id: func.id,

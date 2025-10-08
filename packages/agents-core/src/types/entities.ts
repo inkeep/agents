@@ -204,8 +204,6 @@ export type FunctionApiSelect = z.infer<typeof FunctionApiSelectSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
 
-// Function Tool types removed - function tools are now part of the tools table
-
 // === Conversation Types ===
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
 export type ConversationInsert = z.infer<typeof ConversationInsertSchema>;

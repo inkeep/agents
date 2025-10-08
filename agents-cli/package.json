@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.14.14",
+  "version": "0.15.0",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -60,7 +60,6 @@
     "tsx": "^4.20.5"
   },
   "devDependencies": {
-    "@inkeep/agents-sdk": "workspace:^",
     "@types/degit": "^2.8.6",
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",

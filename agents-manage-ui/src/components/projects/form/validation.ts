@@ -1,3 +1,4 @@
+import { SandboxConfigSchema } from '@inkeep/agents-core';
 import { z } from 'zod';
 
 const modelSettingsSchema = z.object({
@@ -24,15 +25,7 @@ const projectStopWhenSchema = z
   })
   .optional();
 
-// Sandbox configuration schema
-const sandboxConfigSchema = z
-  .object({
-    provider: z.enum(['vercel', 'daytona', 'local']),
-    runtime: z.enum(['node22', 'typescript']),
-    timeout: z.number().min(1000).max(300000).optional(), // 1 second to 5 minutes
-    vcpus: z.number().min(1).max(8).optional(),
-  })
-  .optional();
+const sandboxConfigSchema = SandboxConfigSchema.optional();
 
 export const projectSchema = z.object({
   id: z

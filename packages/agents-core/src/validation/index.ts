@@ -2,4 +2,5 @@
 
 export * from './graphFull';
 export * from './id-validation';
+export * from './props-validation';
 export * from './schemas';

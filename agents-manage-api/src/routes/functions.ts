@@ -3,7 +3,6 @@ import {
   commonGetErrorResponses,
   createApiError,
   deleteFunction,
-  ErrorResponseSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
@@ -13,7 +12,7 @@ import {
   listFunctions,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantParamsSchema,
+  TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -33,7 +32,7 @@ app.openapi(
     operationId: 'list-functions',
     tags: ['Functions'],
     request: {
-      params: TenantParamsSchema,
+      params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -49,11 +48,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId } = c.req.valid('param');
+    const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      // Functions are global - list all
-      const functions = await listFunctions(dbClient)();
+      const functions = await listFunctions(dbClient)({ scopes: { tenantId, projectId } });
 
       return c.json({
         data: functions as any,
@@ -83,7 +81,7 @@ app.openapi(
     operationId: 'get-function',
     tags: ['Functions'],
     request: {
-      params: TenantParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },
     responses: {
       200: {
@@ -98,11 +96,14 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
-      // Functions are global - query by ID only
-      const functionData = await getFunction(dbClient)({ functionId: id });
+      // Functions are project-scoped
+      const functionData = await getFunction(dbClient)({
+        functionId: id,
+        scopes: { tenantId, projectId },
+      });
 
       if (!functionData) {
         return c.json(
@@ -131,7 +132,7 @@ app.openapi(
     operationId: 'create-function',
     tags: ['Functions'],
     request: {
-      params: TenantParamsSchema,
+      params: TenantProjectParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -153,22 +154,25 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId } = c.req.valid('param');
+    const { tenantId, projectId } = c.req.valid('param');
     const functionData = c.req.valid('json');
 
     try {
       // Generate ID if not provided
       const id = functionData.id || nanoid();
 
-      // Functions are global entities (no tenant/project scoping)
       await upsertFunction(dbClient)({
         data: {
           ...functionData,
           id,
         },
+        scopes: { tenantId, projectId },
       });
 
-      const created = await getFunction(dbClient)({ functionId: id });
+      const created = await getFunction(dbClient)({
+        functionId: id,
+        scopes: { tenantId, projectId },
+      });
 
       logger.info({ tenantId, functionId: id }, 'Function created');
 
@@ -183,7 +187,6 @@ app.openapi(
   }
 );
 
-// Update function
 app.openapi(
   createRoute({
     method: 'put',
@@ -192,7 +195,7 @@ app.openapi(
     operationId: 'update-function',
     tags: ['Functions'],
     request: {
-      params: TenantParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectParamsSchema.merge(IdParamsSchema),
       body: {
         content: {
           'application/json': {
@@ -214,12 +217,15 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
     const updateData = c.req.valid('json');
 
     try {
       // Check if function exists
-      const existing = await getFunction(dbClient)({ functionId: id });
+      const existing = await getFunction(dbClient)({
+        functionId: id,
+        scopes: { tenantId, projectId },
+      });
       if (!existing) {
         return c.json(
           createApiError({ code: 'not_found', message: 'Function not found' }),
@@ -227,16 +233,19 @@ app.openapi(
         ) as any;
       }
 
-      // Functions are global - update by ID only
       await upsertFunction(dbClient)({
         data: {
           ...existing,
           ...updateData,
           id,
         },
+        scopes: { tenantId, projectId },
       });
 
-      const updated = await getFunction(dbClient)({ functionId: id });
+      const updated = await getFunction(dbClient)({
+        functionId: id,
+        scopes: { tenantId, projectId },
+      });
 
       logger.info({ tenantId, functionId: id }, 'Function updated');
 
@@ -251,7 +260,6 @@ app.openapi(
   }
 );
 
-// Delete function
 app.openapi(
   createRoute({
     method: 'delete',
@@ -260,7 +268,7 @@ app.openapi(
     operationId: 'delete-function',
     tags: ['Functions'],
     request: {
-      params: TenantParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectParamsSchema.merge(IdParamsSchema),
     },
     responses: {
       204: {
@@ -270,11 +278,14 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
       // Check if function exists
-      const existing = await getFunction(dbClient)({ functionId: id });
+      const existing = await getFunction(dbClient)({
+        functionId: id,
+        scopes: { tenantId, projectId },
+      });
       if (!existing) {
         return c.json(
           createApiError({ code: 'not_found', message: 'Function not found' }),
@@ -282,8 +293,10 @@ app.openapi(
         ) as any;
       }
 
-      // Functions are global - delete by ID only
-      await deleteFunction(dbClient)({ functionId: id });
+      await deleteFunction(dbClient)({
+        functionId: id,
+        scopes: { tenantId, projectId },
+      });
 
       logger.info({ tenantId, functionId: id }, 'Function deleted');
 

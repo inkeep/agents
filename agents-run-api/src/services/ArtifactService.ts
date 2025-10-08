@@ -6,22 +6,35 @@ import {
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
-import { nanoid } from 'nanoid';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import {
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../utils/schema-validation';
 import { graphSessionManager } from './GraphSession';
 
 const logger = getLogger('ArtifactService');
 
 // Types moved from ArtifactParser
-export interface ArtifactData {
+export interface ArtifactSummaryData {
   artifactId: string;
   toolCallId: string;
   name: string;
   description: string;
   type?: string;
-  artifactSummary: any;
+  data: any;
+}
+
+export interface ArtifactFullData {
+  artifactId: string;
+  toolCallId: string;
+  name: string;
+  description: string;
+  type?: string;
+  data: any;
 }
 
 export interface ArtifactCreateRequest {
@@ -29,8 +42,7 @@ export interface ArtifactCreateRequest {
   toolCallId: string;
   type: string;
   baseSelector: string;
-  summaryProps?: Record<string, string>;
-  fullProps?: Record<string, string>;
+  detailsSelector?: Record<string, string>;
 }
 
 export interface ArtifactServiceContext {
@@ -60,6 +72,13 @@ export class ArtifactService {
    */
   static clearCaches(): void {
     ArtifactService.selectorCache.clear();
+  }
+
+  /**
+   * Update artifact components in the context
+   */
+  updateArtifactComponents(artifactComponents: ArtifactComponentApiInsert[]): void {
+    this.context.artifactComponents = artifactComponents;
   }
 
   /**
@@ -107,8 +126,10 @@ export class ArtifactService {
   /**
    * Create artifact from tool result and request data
    */
-  async createArtifact(request: ArtifactCreateRequest, agentId?: string): Promise<ArtifactData | null> {
-    
+  async createArtifact(
+    request: ArtifactCreateRequest,
+    agentId?: string
+  ): Promise<ArtifactSummaryData | null> {
     if (!this.context.sessionId) {
       logger.warn({ request }, 'No session ID available for artifact creation');
       return null;
@@ -153,10 +174,34 @@ export class ArtifactService {
         selectedData = {};
       }
 
-      // Extract summary and full data
+      // Find matching artifact component and extract preview/full schemas
+      const component = this.context.artifactComponents?.find((ac) => ac.name === request.type);
 
-      const summaryData = this.extractProps(selectedData, request.summaryProps || {});
-      let fullData = this.extractProps(selectedData, request.fullProps || {});
+      let summaryData: Record<string, any> = {};
+      let fullData: Record<string, any> = {};
+
+      if (component?.props) {
+        // Extract preview and full fields from the unified props schema
+        const previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
+        const fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
+
+        // Extract data based on schemas and details selector
+        summaryData = this.extractPropsFromSchema(
+          selectedData,
+          previewSchema,
+          request.detailsSelector || {}
+        );
+        fullData = this.extractPropsFromSchema(
+          selectedData,
+          fullSchema,
+          request.detailsSelector || {}
+        );
+      } else {
+        // Fallback: when no props schema, use the entire selected data
+        // This ensures we always have meaningful data for the artifact
+        summaryData = selectedData;
+        fullData = selectedData;
+      }
 
       // Fallback: if fullData is empty, use the entire selectedData from base selector
       const isFullDataEmpty =
@@ -179,19 +224,14 @@ export class ArtifactService {
       const cleanedSummaryData = this.cleanEscapedContent(summaryData);
       const cleanedFullData = this.cleanEscapedContent(fullData);
 
-      // Find matching artifact component for validation
-      const component = this.context.artifactComponents?.find((ac) => ac.name === request.type);
-
       // Create artifact data using cleaned data
-      const artifactData: ArtifactData = {
+      const artifactData: ArtifactSummaryData = {
         artifactId: request.artifactId,
         toolCallId: request.toolCallId,
         name: 'Processing...',
         description: 'Name and description being generated...',
         type: request.type,
-        artifactSummary: component?.summaryProps
-          ? this.filterBySchema(cleanedSummaryData, component.summaryProps)
-          : cleanedSummaryData,
+        data: cleanedSummaryData,
       };
 
       // Persist artifact to database using cleaned data
@@ -216,13 +256,13 @@ export class ArtifactService {
   }
 
   /**
-   * Get artifact data by ID and tool call ID
+   * Get artifact summary data by ID and tool call ID
    */
-  async getArtifactData(
+  async getArtifactSummary(
     artifactId: string,
     toolCallId: string,
     artifactMap?: Map<string, any>
-  ): Promise<ArtifactData | null> {
+  ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
     // Check graph session cache
@@ -232,20 +272,20 @@ export class ArtifactService {
         key
       );
       if (cachedArtifact) {
-        return this.formatArtifactData(cachedArtifact, artifactId, toolCallId);
+        return this.formatArtifactSummaryData(cachedArtifact, artifactId, toolCallId);
       }
     }
 
     // Check local cache
     if (this.createdArtifacts.has(key)) {
       const cached = this.createdArtifacts.get(key)!;
-      return this.formatArtifactData(cached, artifactId, toolCallId);
+      return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
     // Check provided artifact map
     if (artifactMap?.has(key)) {
       const artifact = artifactMap.get(key);
-      return this.formatArtifactData(artifact, artifactId, toolCallId);
+      return this.formatArtifactSummaryData(artifact, artifactId, toolCallId);
     }
 
     // Fetch from database
@@ -265,7 +305,7 @@ export class ArtifactService {
       });
 
       if (artifacts.length > 0) {
-        return this.formatArtifactData(artifacts[0], artifactId, toolCallId);
+        return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
       }
     } catch (error) {
       logger.warn(
@@ -278,16 +318,100 @@ export class ArtifactService {
   }
 
   /**
-   * Format raw artifact to standardized data format
+   * Get artifact full data by ID and tool call ID
    */
-  private formatArtifactData(artifact: any, artifactId: string, toolCallId: string): ArtifactData {
+  async getArtifactFull(
+    artifactId: string,
+    toolCallId: string,
+    artifactMap?: Map<string, any>
+  ): Promise<ArtifactFullData | null> {
+    const key = `${artifactId}:${toolCallId}`;
+
+    // Check graph session cache
+    if (this.context.streamRequestId) {
+      const cachedArtifact = await graphSessionManager.getArtifactCache(
+        this.context.streamRequestId,
+        key
+      );
+      if (cachedArtifact) {
+        return this.formatArtifactFullData(cachedArtifact, artifactId, toolCallId);
+      }
+    }
+
+    // Check local cache
+    if (this.createdArtifacts.has(key)) {
+      const cached = this.createdArtifacts.get(key)!;
+      return this.formatArtifactFullData(cached, artifactId, toolCallId);
+    }
+
+    // Check provided artifact map
+    if (artifactMap?.has(key)) {
+      const artifact = artifactMap.get(key);
+      return this.formatArtifactFullData(artifact, artifactId, toolCallId);
+    }
+
+    // Fetch from database
+    try {
+      if (!this.context.projectId || !this.context.taskId) {
+        logger.warn(
+          { artifactId, toolCallId },
+          'No projectId or taskId available for artifact lookup'
+        );
+        return null;
+      }
+
+      const artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        taskId: this.context.taskId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+      }
+    } catch (error) {
+      logger.warn(
+        { artifactId, toolCallId, taskId: this.context.taskId, error },
+        'Failed to fetch artifact'
+      );
+    }
+
+    return null;
+  }
+
+  /**
+   * Format raw artifact to standardized summary data format
+   */
+  private formatArtifactSummaryData(
+    artifact: any,
+    artifactId: string,
+    toolCallId: string
+  ): ArtifactSummaryData {
     return {
       artifactId,
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
-      artifactSummary: artifact.parts?.[0]?.data?.summary || {},
+      data: artifact.parts?.[0]?.data?.summary || {},
+    };
+  }
+
+  /**
+   * Format raw artifact to standardized full data format
+   */
+  private formatArtifactFullData(
+    artifact: any,
+    artifactId: string,
+    toolCallId: string
+  ): ArtifactFullData {
+    return {
+      artifactId,
+      toolCallId,
+      name: artifact.name || 'Processing...',
+      description: artifact.description || 'Name and description being generated...',
+      type: artifact.metadata?.artifactType || artifact.artifactType,
+      data: artifact.parts?.[0]?.data?.full || {},
     };
   }
 
@@ -302,8 +426,7 @@ export class ArtifactService {
   ): Promise<void> {
     // Use passed agentId or fall back to context agentId
     const effectiveAgentId = agentId || this.context.agentId;
-    
-    
+
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await graphSessionManager.recordEvent(
         this.context.streamRequestId,
@@ -314,14 +437,13 @@ export class ArtifactService {
           taskId: this.context.taskId,
           toolCallId: request.toolCallId,
           artifactType: request.type,
-          summaryProps: summaryData,
-          fullProps: fullData,
+          summaryData: summaryData,
+          data: fullData,
           agentId: effectiveAgentId,
           metadata: {
             toolCallId: request.toolCallId,
             baseSelector: request.baseSelector,
-            summaryProps: request.summaryProps,
-            fullProps: request.fullProps,
+            detailsSelector: request.detailsSelector,
             sessionId: this.context.sessionId,
             artifactType: request.type,
           },
@@ -332,14 +454,17 @@ export class ArtifactService {
         }
       );
     } else {
-      logger.warn({
-        artifactId: request.artifactId,
-        hasStreamRequestId: !!this.context.streamRequestId,
-        hasAgentId: !!effectiveAgentId,
-        hasTaskId: !!this.context.taskId,
-        passedAgentId: agentId,
-        contextAgentId: this.context.agentId,
-      }, 'Skipping artifact_saved event - missing required context');
+      logger.warn(
+        {
+          artifactId: request.artifactId,
+          hasStreamRequestId: !!this.context.streamRequestId,
+          hasAgentId: !!effectiveAgentId,
+          hasTaskId: !!this.context.taskId,
+          passedAgentId: agentId,
+          contextAgentId: this.context.agentId,
+        },
+        'Skipping artifact_saved event - missing required context'
+      );
     }
   }
 
@@ -349,13 +474,13 @@ export class ArtifactService {
   private async cacheArtifact(
     artifactId: string,
     toolCallId: string,
-    artifactData: ArtifactData,
+    artifactData: ArtifactSummaryData,
     fullData: Record<string, any>
   ): Promise<void> {
     const cacheKey = `${artifactId}:${toolCallId}`;
     const artifactForCache = {
       ...artifactData,
-      parts: [{ data: { summary: artifactData.artifactSummary, full: fullData } }],
+      parts: [{ data: { summary: artifactData.data, data: fullData } }],
       metadata: { artifactType: artifactData.type, toolCallId },
       taskId: this.context.taskId,
     };
@@ -416,13 +541,38 @@ export class ArtifactService {
     name: string;
     description: string;
     type: string;
-    summaryProps: Record<string, any>;
-    fullProps: Record<string, any>;
+    data: Record<string, any>;
     metadata?: Record<string, any>;
+    toolCallId?: string;
   }): Promise<void> {
-    // upsertLedgerArtifact is now imported at the top
+    // Get artifact component schema to extract preview fields
+    let summaryData = artifact.data;
+    let fullData = artifact.data;
 
-    // Use the data as-is - database layer now handles sanitization properly
+    if (this.context.artifactComponents) {
+      const artifactComponent = this.context.artifactComponents.find(
+        (ac) => ac.name === artifact.type
+      );
+      if (artifactComponent?.props) {
+        try {
+          const schema = artifactComponent.props as ExtendedJsonSchema;
+          const previewSchema = extractPreviewFields(schema);
+          const fullSchema = extractFullFields(schema);
+
+          // Extract data based on the schemas
+          summaryData = this.filterBySchema(artifact.data, previewSchema);
+          fullData = this.filterBySchema(artifact.data, fullSchema);
+        } catch (error) {
+          logger.warn(
+            {
+              artifactType: artifact.type,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+            'Failed to extract preview/full fields from schema, using full data for both'
+          );
+        }
+      }
+    }
 
     const artifactToSave = {
       artifactId: artifact.artifactId,
@@ -434,8 +584,8 @@ export class ArtifactService {
         {
           kind: 'data' as const,
           data: {
-            summary: artifact.summaryProps,
-            full: artifact.fullProps,
+            summary: summaryData,
+            full: fullData,
           },
         },
       ],
@@ -452,6 +602,7 @@ export class ArtifactService {
       },
       contextId: this.context.contextId!,
       taskId: this.context.taskId!,
+      toolCallId: artifact.toolCallId,
       artifact: artifactToSave,
     });
 
@@ -555,6 +706,53 @@ export class ArtifactService {
         const fallbackValue = item[propName];
         if (fallbackValue !== null && fallbackValue !== undefined) {
           extracted[propName] = this.cleanEscapedContent(fallbackValue);
+        }
+      }
+    }
+
+    return extracted;
+  }
+
+  /**
+   * Extract properties from data using schema-defined fields and custom selectors
+   */
+  private extractPropsFromSchema(
+    item: any,
+    schema: Record<string, any>,
+    customSelectors: Record<string, string>
+  ): Record<string, any> {
+    const extracted: Record<string, any> = {};
+
+    // First, extract from schema properties (field names)
+    if (schema.properties) {
+      for (const fieldName of Object.keys(schema.properties)) {
+        try {
+          // Check if there's a custom selector for this field
+          const customSelector = customSelectors[fieldName];
+          let rawValue;
+
+          if (customSelector) {
+            // Use custom JMESPath selector
+            const sanitizedSelector = this.sanitizeJMESPathSelector(customSelector);
+            rawValue = jmespath.search(item, sanitizedSelector);
+          } else {
+            // Default to direct field access
+            rawValue = item[fieldName];
+          }
+
+          if (rawValue !== null && rawValue !== undefined) {
+            extracted[fieldName] = this.cleanEscapedContent(rawValue);
+          }
+        } catch (error) {
+          logger.warn(
+            { fieldName, error: error instanceof Error ? error.message : 'Unknown error' },
+            'Failed to extract schema field'
+          );
+          // Fallback to direct field access
+          const fallbackValue = item[fieldName];
+          if (fallbackValue !== null && fallbackValue !== undefined) {
+            extracted[fieldName] = this.cleanEscapedContent(fallbackValue);
+          }
         }
       }
     }

@@ -1,6 +1,7 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
 import { Spline } from 'lucide-react';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useGraphActions } from '@/features/graph/state/use-graph-store';
@@ -8,7 +9,7 @@ import type { A2AEdgeData } from '../../configuration/edge-types';
 
 type RelationshipOptionProps = {
   id: string;
-  label: string;
+  label: string | React.ReactNode;
   onCheckedChange: (id: string, checked: boolean) => void;
   checked: boolean;
 };
@@ -20,9 +21,12 @@ function RelationshipOption({ id, label, onCheckedChange, checked }: Relationshi
         id={id}
         onCheckedChange={(checked) => onCheckedChange(id, checked as boolean)}
         checked={checked}
+        className="mt-[5px]"
       />
       <div className="grid gap-2">
-        <Label htmlFor={id}>{label}</Label>
+        <Label htmlFor={id} className="font-normal">
+          {label}
+        </Label>
       </div>
     </div>
   );
@@ -32,7 +36,7 @@ type RelationshipSectionProps = {
   icon: React.ReactNode;
   title: string;
   description: string;
-  options: Array<{ id: string; label: string }>;
+  options: Array<{ id: string; label: string | React.ReactNode }>;
   onCheckedChange: (id: string, checked: boolean) => void;
   checkedValues: A2AEdgeData['relationships'];
 };
@@ -131,17 +135,44 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     ? [
         {
           id: 'transferSourceToTarget',
-          label: `${sourceNode?.data.name} can transfer to itself`,
+          label: (
+            <div>
+              <Badge variant="code" className="my-0.5">
+                {sourceNode?.data.name as string}
+              </Badge>{' '}
+              can transfer to itself
+            </div>
+          ),
         },
       ]
     : [
         {
           id: 'transferSourceToTarget',
-          label: `${sourceNode?.data.name} can transfer to ${targetNode?.data.name}`,
+          label: (
+            <div>
+              <Badge variant="code" className="my-0.5">
+                {sourceNode?.data.name as string}
+              </Badge>{' '}
+              can transfer to{' '}
+              <Badge variant="code" className="my-0.5">
+                {targetNode?.data.name as string}
+              </Badge>
+            </div>
+          ),
         },
         {
           id: 'transferTargetToSource',
-          label: `${targetNode?.data.name} can transfer to ${sourceNode?.data.name}`,
+          label: (
+            <div>
+              <Badge variant="code" className="my-0.5">
+                {targetNode?.data.name as string}
+              </Badge>{' '}
+              can transfer to{' '}
+              <Badge variant="code" className="my-0.5">
+                {sourceNode?.data.name as string}
+              </Badge>
+            </div>
+          ),
         },
       ];
 
@@ -149,17 +180,44 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     ? [
         {
           id: 'delegateSourceToTarget',
-          label: `${sourceNode?.data.name} can delegate to itself`,
+          label: (
+            <div>
+              <Badge variant="code" className="my-0.5">
+                {sourceNode?.data.name as string}
+              </Badge>{' '}
+              can delegate to itself
+            </div>
+          ),
         },
       ]
     : [
         {
           id: 'delegateSourceToTarget',
-          label: `${sourceNode?.data.name} can delegate to ${targetNode?.data.name}`,
+          label: (
+            <div>
+              <Badge variant="code" className="my-0.5">
+                {sourceNode?.data.name as string}
+              </Badge>{' '}
+              can delegate to{' '}
+              <Badge variant="code" className="my-0.5">
+                {targetNode?.data.name as string}
+              </Badge>
+            </div>
+          ),
         },
         {
           id: 'delegateTargetToSource',
-          label: `${targetNode?.data.name} can delegate to ${sourceNode?.data.name}`,
+          label: (
+            <div>
+              <Badge variant="code" className="my-0.5">
+                {targetNode?.data.name as string}
+              </Badge>{' '}
+              can delegate to{' '}
+              <Badge variant="code" className="my-0.5">
+                {sourceNode?.data.name as string}
+              </Badge>
+            </div>
+          ),
         },
       ];
 

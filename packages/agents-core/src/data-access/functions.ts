@@ -1,21 +1,29 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { functions } from '../db/schema';
 import type { FunctionApiInsert } from '../types/entities';
+import type { ProjectScopeConfig } from '../types/utility';
 
 /**
- * Create or update a function (global entity - not tenant/project scoped)
+ * Create or update a function (project-scoped)
  */
 export const upsertFunction =
   (db: DatabaseClient) =>
-  async (params: { data: FunctionApiInsert }): Promise<void> => {
-    const { data } = params;
+  async (params: { data: FunctionApiInsert; scopes: ProjectScopeConfig }): Promise<void> => {
+    const { data, scopes } = params;
+    const { tenantId, projectId } = scopes;
 
     // Check if function exists
     const existingFunction = await db
       .select()
       .from(functions)
-      .where(eq(functions.id, data.id))
+      .where(
+        and(
+          eq(functions.tenantId, tenantId),
+          eq(functions.projectId, projectId),
+          eq(functions.id, data.id)
+        )
+      )
       .limit(1);
 
     if (existingFunction.length > 0) {
@@ -28,10 +36,18 @@ export const upsertFunction =
           dependencies: data.dependencies,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(functions.id, data.id));
+        .where(
+          and(
+            eq(functions.tenantId, tenantId),
+            eq(functions.projectId, projectId),
+            eq(functions.id, data.id)
+          )
+        );
     } else {
       // Create new function
       await db.insert(functions).values({
+        tenantId,
+        projectId,
         id: data.id,
         inputSchema: data.inputSchema,
         executeCode: data.executeCode,
@@ -43,34 +59,65 @@ export const upsertFunction =
   };
 
 /**
- * Get a function by ID (global entity)
+ * Get a function by ID (project-scoped)
  */
 export const getFunction =
   (db: DatabaseClient) =>
-  async (params: { functionId: string }): Promise<FunctionApiInsert | null> => {
-    const { functionId } = params;
+  async (params: {
+    functionId: string;
+    scopes: ProjectScopeConfig;
+  }): Promise<FunctionApiInsert | null> => {
+    const { functionId, scopes } = params;
+    const { tenantId, projectId } = scopes;
 
-    const result = await db.select().from(functions).where(eq(functions.id, functionId)).limit(1);
+    const result = await db
+      .select()
+      .from(functions)
+      .where(
+        and(
+          eq(functions.tenantId, tenantId),
+          eq(functions.projectId, projectId),
+          eq(functions.id, functionId)
+        )
+      )
+      .limit(1);
 
     return result[0] || null;
   };
 
 /**
- * List all functions (global entity)
+ * List all functions for a project
  */
-export const listFunctions = (db: DatabaseClient) => async (): Promise<FunctionApiInsert[]> => {
-  const result = await db.select().from(functions);
+export const listFunctions =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<FunctionApiInsert[]> => {
+    const { scopes } = params;
+    const { tenantId, projectId } = scopes;
 
-  return result;
-};
+    const result = await db
+      .select()
+      .from(functions)
+      .where(and(eq(functions.tenantId, tenantId), eq(functions.projectId, projectId)));
+
+    return result;
+  };
 
 /**
- * Delete a function (global entity)
+ * Delete a function (project-scoped)
  */
 export const deleteFunction =
   (db: DatabaseClient) =>
-  async (params: { functionId: string }): Promise<void> => {
-    const { functionId } = params;
+  async (params: { functionId: string; scopes: ProjectScopeConfig }): Promise<void> => {
+    const { functionId, scopes } = params;
+    const { tenantId, projectId } = scopes;
 
-    await db.delete(functions).where(eq(functions.id, functionId));
+    await db
+      .delete(functions)
+      .where(
+        and(
+          eq(functions.tenantId, tenantId),
+          eq(functions.projectId, projectId),
+          eq(functions.id, functionId)
+        )
+      );
   };

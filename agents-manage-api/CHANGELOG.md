@@ -1,5 +1,28 @@
 # @inkeep/agents-manage-api
 
+## 0.15.0
+
+### Minor Changes
+
+- ad5528c: Context config route changes
+
+### Patch Changes
+
+- Updated dependencies [ad5528c]
+  - @inkeep/agents-core@0.15.0
+
+## 0.14.16
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.16
+
+## 0.14.15
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.15
+
 ## 0.14.14
 
 ### Patch Changes

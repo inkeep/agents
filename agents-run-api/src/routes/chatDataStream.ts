@@ -208,6 +208,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       execute: async ({ writer }) => {
         const streamHelper = createVercelStreamHelper(writer);
         try {
+          // Check for emit operations header
+          const emitOperationsHeader = c.req.header('x-emit-operations');
+          const emitOperations = emitOperationsHeader === 'true';
+
           const executionHandler = new ExecutionHandler();
 
           const result = await executionHandler.execute({
@@ -217,6 +221,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             initialAgentId: agentId,
             requestId: `chatds-${Date.now()}`,
             sseHelper: streamHelper,
+            emitOperations,
           });
 
           if (!result.success) {

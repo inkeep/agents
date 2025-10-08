@@ -13,6 +13,22 @@ import type {
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
+
+// Type for artifact components that can have Zod schemas in props
+export interface ArtifactComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
+export interface DataComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
 import type { ArtifactComponentInterface } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
@@ -98,8 +114,16 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
   };
-  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
-  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
+  dataComponents?: () => (
+    | DataComponentApiInsert
+    | DataComponentInterface
+    | DataComponentWithZodProps
+  )[];
+  artifactComponents?: () => (
+    | ArtifactComponentApiInsert
+    | ArtifactComponentInterface
+    | ArtifactComponentWithZodProps
+  )[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
@@ -147,22 +171,7 @@ export interface FetchDefinitionConfig {
   credential?: CredentialReferenceApiInsert;
 }
 
-// Function tool configuration
-export interface FunctionToolConfig {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  dependencies?: Record<string, string>; // npm package versions
-  execute: ((params: any) => Promise<any>) | string; // Function or string to preserve formatting
-}
-
-// Sandbox configuration (project-level)
-export interface SandboxConfig {
-  provider: 'vercel' | 'daytona' | 'local';
-  runtime: 'node22' | 'typescript';
-  timeout?: number;
-  vcpus?: number;
-}
+export type { FunctionToolConfig, SandboxConfig } from '@inkeep/agents-core';
 
 export interface RequestSchemaDefinition {
   body?: z.ZodSchema<any>;

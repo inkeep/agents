@@ -54,8 +54,7 @@ export interface ComponentConfig {
 }
 
 export interface ArtifactComponentConfig extends ComponentConfig {
-  summaryProps: Record<string, unknown>;
-  fullProps: Record<string, unknown>;
+  props: Record<string, unknown>;
 }
 
 export interface DataComponentConfig extends ComponentConfig {

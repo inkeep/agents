@@ -125,10 +125,10 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   // Generate a conversation ID for this session
   const conversationId = `cli-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const messages: any[] = [];
-  let debugMode = false;
+  let emitOperations = false;
 
   console.log(chalk.gray('\n💬 Chat session started. Type "exit" or press Ctrl+C to quit.'));
-  console.log(chalk.gray('Commands: help, clear, history, reset, debug\n'));
+  console.log(chalk.gray('Commands: help, clear, history, reset, operations\n'));
 
   // Function to handle streaming response
   async function handleStreamingResponse(
@@ -190,22 +190,28 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
                       // Show debug info if enabled
                       if (showDebug && dataOp.type === 'data-operation') {
                         const opType = dataOp.data?.type || 'unknown';
-                        const ctx = dataOp.data?.ctx || {};
-                        // Format context based on operation type
-                        let ctxDisplay = '';
-                        if (opType === 'agent_thinking' || opType === 'iteration_start') {
-                          ctxDisplay = ctx.agent || JSON.stringify(ctx);
-                        } else if (opType === 'task_creation') {
-                          ctxDisplay = `agent: ${ctx.agent}`;
+                        const label = dataOp.data?.label || 'Unknown operation';
+                        const details = dataOp.data?.details || {};
+                        const agentId = details.agentId || 'unknown-agent';
+
+                        // Format display based on operation type
+                        let displayText = '';
+                        if (opType === 'completion') {
+                          displayText = `${label} (agent: ${agentId})`;
+                        } else if (opType === 'tool_execution') {
+                          const toolData = details.data || {};
+                          displayText = `${label} - ${toolData.toolName || 'unknown tool'}`;
+                        } else if (opType === 'agent_generate' || opType === 'agent_reasoning') {
+                          displayText = `${label}`;
                         } else {
-                          ctxDisplay = JSON.stringify(ctx);
+                          displayText = `${label} (${agentId})`;
                         }
 
                         // Add newline before completion operations that come after text
                         if (opType === 'completion' && hasStartedResponse) {
                           console.log(''); // Add newline before completion
                         }
-                        console.log(chalk.gray(`  [${opType}] ${ctxDisplay}`));
+                        console.log(chalk.gray(`  [${opType}] ${displayText}`));
                       }
 
                       currentPos = jsonEnd;
@@ -275,17 +281,19 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
       console.log(chalk.gray('  • clear    - Clear the screen (preserves context)'));
       console.log(chalk.gray('  • history  - Show conversation history'));
       console.log(chalk.gray('  • reset    - Reset conversation context'));
-      console.log(chalk.gray('  • debug    - Toggle debug mode (show/hide data operations)'));
+      console.log(
+        chalk.gray('  • operations - Toggle emit operations (show/hide data operations)')
+      );
       console.log(chalk.gray('  • help     - Show this help message'));
       console.log(chalk.gray('\n  Commands can be prefixed with / (e.g., /help)\n'));
       rl.prompt();
       return;
     }
 
-    if (command === 'debug') {
-      debugMode = !debugMode;
-      console.log(chalk.yellow(`\n🔧 Debug mode: ${debugMode ? 'ON' : 'OFF'}`));
-      if (debugMode) {
+    if (command === 'operations') {
+      emitOperations = !emitOperations;
+      console.log(chalk.yellow(`\n🔧 Data operations: ${emitOperations ? 'ON' : 'OFF'}`));
+      if (emitOperations) {
         console.log(chalk.gray('Data operations will be shown during responses.\n'));
       } else {
         console.log(chalk.gray('Data operations are hidden.\n'));
@@ -329,7 +337,12 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
     try {
       // Send message to API using execution API
       if (!graphId) throw new Error('No graph selected');
-      const response = await executionApi.chatCompletion(graphId, messages, conversationId);
+      const response = await executionApi.chatCompletion(
+        graphId,
+        messages,
+        conversationId,
+        emitOperations
+      );
 
       let assistantResponse: string;
       if (typeof response === 'string') {
@@ -338,7 +351,7 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
         assistantResponse = response;
       } else {
         // Streaming response
-        assistantResponse = await handleStreamingResponse(response, debugMode);
+        assistantResponse = await handleStreamingResponse(response, emitOperations);
       }
 
       // Add assistant response to history

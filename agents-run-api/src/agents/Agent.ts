@@ -43,8 +43,8 @@ import {
 } from '../data/conversations';
 
 import dbClient from '../data/db/dbClient';
-import { defaultBatchProcessor } from '../instrumentation';
 import { getLogger } from '../logger';
+import { ArtifactService } from '../services/ArtifactService';
 import { graphSessionManager } from '../services/GraphSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
@@ -809,8 +809,13 @@ export class Agent {
             continue;
           }
 
-          // Fetch the function from the global functions table
-          const functionData = await getFunction(dbClient)({ functionId });
+          const functionData = await getFunction(dbClient)({
+            functionId,
+            scopes: {
+              tenantId: this.config.tenantId || 'default',
+              projectId: this.config.projectId || 'default',
+            },
+          });
           if (!functionData) {
             logger.warn(
               { functionId, toolId: toolDef.tool.id },
@@ -890,7 +895,11 @@ export class Agent {
 
       // Get context configuration
       const contextConfig = await getContextConfigById(dbClient)({
-        scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+          graphId: this.config.graphId,
+        },
         id: this.config.contextConfigId,
       });
       if (!contextConfig) {
@@ -1218,23 +1227,34 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to get the artifact with the given artifactId. Only retrieve this when the description of the artifact is insufficient to understand the artifact and you need to see the actual artifact for more context. Please refrain from using this tool unless absolutely necessary.',
+        'Call this tool to get the complete artifact data with the given artifactId. This retrieves the full artifact content (not just the summary). Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
+        toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
       }),
-      execute: async ({ artifactId }) => {
-        logger.info({ artifactId }, 'get_artifact executed');
-        const artifact = await getLedgerArtifacts(dbClient)({
-          scopes: {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-          },
-          artifactId,
-        });
-        if (!artifact) {
-          throw new Error(`Artifact ${artifactId} not found`);
+      execute: async ({ artifactId, toolCallId }) => {
+        logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
+        
+        // Use shared ArtifactService from GraphSessionManager
+        const streamRequestId = this.getStreamRequestId();
+        const artifactService = graphSessionManager.getArtifactService(streamRequestId);
+
+        if (!artifactService) {
+          throw new Error(`ArtifactService not found for session ${streamRequestId}`);
         }
-        return { artifact: artifact[0] };
+        
+        const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
+        if (!artifactData) {
+          throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
+        }
+        
+        return { 
+          artifactId: artifactData.artifactId,
+          name: artifactData.name,
+          description: artifactData.description,
+          type: artifactData.type,
+          data: artifactData.data,
+        };
       },
     });
   }
@@ -1257,7 +1277,7 @@ export class Agent {
   }
 
   // Provide a default tool set that is always available to the agent.
-  private async getDefaultTools(sessionId?: string, streamRequestId?: string): Promise<ToolSet> {
+  private async getDefaultTools(_sessionId?: string, streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
     // Add get_reference_artifact if any agent in the graph has artifact components
@@ -1379,13 +1399,19 @@ export class Agent {
         // Check first few items for common field patterns
         obj.slice(0, 3).forEach((item) => {
           if (item && typeof item === 'object') {
-            Object.keys(item).forEach((key) => fields.add(key));
+            Object.keys(item).forEach((key) => {
+              fields.add(key);
+            });
           }
         });
       } else if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach((key) => fields.add(key));
+        Object.keys(obj).forEach((key) => {
+          fields.add(key);
+        });
         Object.values(obj).forEach((value) => {
-          findCommonFields(value, depth + 1).forEach((field) => fields.add(field));
+          findCommonFields(value, depth + 1).forEach((field) => {
+            fields.add(field);
+          });
         });
       }
       return fields;
@@ -1514,10 +1540,8 @@ export class Agent {
               '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
             baseSelector:
               "🎯 CRITICAL: Use base_selector to navigate to ONE specific item. For deeply nested structures with repeated keys, use full paths with specific filtering (e.g., \"result.data.content.items[?type=='guide' && status=='active']\")",
-            summaryProps:
-              '📝 Use relative selectors from that item (e.g., "title", "metadata.category", "properties.status")',
-            fullProps:
-              '📖 Use relative selectors for detailed data (e.g., "content.details", "specifications.data", "attributes")',
+            detailsSelector:
+              '📝 Use relative selectors for specific fields (e.g., "title", "metadata.category", "properties.status", "content.details")',
             avoidLiterals:
               '❌ NEVER use literal values - always use field selectors to extract from data',
             avoidArrays:

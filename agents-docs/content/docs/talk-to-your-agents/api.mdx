@@ -48,6 +48,10 @@ This guide shows how to call your agent graph directly over HTTP and stream resp
   Provide request context via HTTP headers only (validated against your Context Config). Do not include it in the JSON body. See [Request context](/typescript-sdk/request-context).
 </Note>
 
+### Optional Headers
+
+- **`x-emit-operations`** — Set to `true` to include detailed data operations in the response stream. Useful for debugging and monitoring agent behavior. See [Data Operations](/typescript-sdk/data-operations) for details.
+
 ### Example cURL
 
 When using an API key for auth:
@@ -57,6 +61,7 @@ curl -N \
   -X POST "http://localhost:3003/api/chat" \
   -H "Authorization: Bearer $INKEEP_API_KEY" \
   -H "Content-Type: application/json" \
+  -H "x-emit-operations: true" \
   -d '{
     "messages": [
       { "role": "user", "content": "What can you do?" }

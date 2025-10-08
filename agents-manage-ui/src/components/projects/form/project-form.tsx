@@ -1,9 +1,11 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { SandboxConfigSchema } from '@inkeep/agents-core';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import type { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
@@ -56,24 +58,9 @@ const serializeData = (data: ProjectFormData) => {
 
     return cleaned;
   };
-
-  // Type for the sandbox config before cleaning
-  type SandboxConfigInput = {
-    provider?: 'vercel' | 'daytona' | 'local';
-    runtime?: 'node22' | 'typescript';
-    timeout?: number | null;
-    vcpus?: number | null;
-  } | null | undefined;
-
-  // Type for the cleaned sandbox config
-  type CleanedSandboxConfig = {
-    provider?: 'vercel' | 'daytona' | 'local';
-    runtime?: 'node22' | 'typescript';
-    timeout?: number;
-    vcpus?: number;
-  } | undefined;
-
-  const cleanSandboxConfig = (sandboxConfig: SandboxConfigInput): CleanedSandboxConfig => {
+  const cleanSandboxConfig = (
+    sandboxConfig: z.infer<typeof SandboxConfigSchema> | null | undefined
+  ): z.infer<typeof SandboxConfigSchema> | undefined => {
     // If sandboxConfig is null, undefined, or empty object, return undefined
     if (
       !sandboxConfig ||
@@ -82,8 +69,7 @@ const serializeData = (data: ProjectFormData) => {
       return undefined;
     }
 
-    // Clean the individual properties - remove null/undefined values
-    const cleaned: Partial<NonNullable<CleanedSandboxConfig>> = {};
+    const cleaned: Partial<NonNullable<z.infer<typeof SandboxConfigSchema>>> = {};
     if (sandboxConfig.provider) {
       cleaned.provider = sandboxConfig.provider;
     }
@@ -102,7 +88,7 @@ const serializeData = (data: ProjectFormData) => {
       return undefined;
     }
 
-    return cleaned;
+    return cleaned as z.infer<typeof SandboxConfigSchema>;
   };
 
   return {

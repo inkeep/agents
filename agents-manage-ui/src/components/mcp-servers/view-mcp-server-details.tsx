@@ -191,7 +191,7 @@ export function ViewMCPServerDetails({
         {/* Server URL */}
         <div className="space-y-2">
           <ItemLabel>Server URL</ItemLabel>
-          <CopyableSingleLineCode code={(tool.config as any).mcp.server.url} />
+          {tool.config.type === 'mcp' && <CopyableSingleLineCode code={tool.config.mcp.server.url} />}
         </div>
 
         {/* Transport and Credential */}

@@ -349,6 +349,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
         logger.info({ agentId }, 'Starting execution');
 
+        // Check for emit operations header
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
+
         // Use the execution handler
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
@@ -358,6 +362,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           initialAgentId: agentId,
           requestId,
           sseHelper,
+          emitOperations,
         });
 
         logger.info(

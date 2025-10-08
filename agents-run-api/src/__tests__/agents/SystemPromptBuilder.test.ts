@@ -11,7 +11,7 @@ function createMockMcpTool(name: string, availableTools: any[]): McpTool {
     name,
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    description: undefined,
+    description: '',
     config: {
       type: 'mcp',
       mcp: { server: { url: 'http://example.com' } },

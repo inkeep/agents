@@ -351,8 +351,7 @@ export const artifactComponents = sqliteTable(
   {
     ...projectScoped,
     ...uiProperties,
-    summaryProps: blob('summary_props', { mode: 'json' }).$type<Record<string, unknown>>(),
-    fullProps: blob('full_props', { mode: 'json' }).$type<Record<string, unknown>>(),
+    props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (table) => [
@@ -448,21 +447,31 @@ export const tools = sqliteTable(
     }).onDelete('cascade'),
     // Foreign key constraint to functions table (for function tools)
     foreignKey({
-      columns: [table.functionId],
-      foreignColumns: [functions.id],
+      columns: [table.tenantId, table.projectId, table.functionId],
+      foreignColumns: [functions.tenantId, functions.projectId, functions.id],
       name: 'tools_function_fk',
     }).onDelete('cascade'),
   ]
 );
 
-// Functions table - stores reusable function code and metadata (global entity)
-export const functions = sqliteTable('functions', {
-  id: text('id').notNull().primaryKey(),
-  inputSchema: blob('input_schema', { mode: 'json' }).$type<Record<string, unknown>>(),
-  executeCode: text('execute_code').notNull(), // The actual function code
-  dependencies: blob('dependencies', { mode: 'json' }).$type<Record<string, string>>(),
-  ...timestamps,
-});
+export const functions = sqliteTable(
+  'functions',
+  {
+    ...projectScoped,
+    inputSchema: blob('input_schema', { mode: 'json' }).$type<Record<string, unknown>>(),
+    executeCode: text('execute_code').notNull(),
+    dependencies: blob('dependencies', { mode: 'json' }).$type<Record<string, string>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'functions_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
 
 export const agentToolRelations = sqliteTable(
   'agent_tool_relations',

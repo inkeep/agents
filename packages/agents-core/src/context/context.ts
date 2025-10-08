@@ -124,7 +124,7 @@ async function handleContextResolution({
 
         // 4. Get context configuration directly from database
         const contextConfig = await getContextConfigById(dbClient)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           id: agentGraph.contextConfigId,
         });
 

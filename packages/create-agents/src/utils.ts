@@ -207,7 +207,9 @@ export const createAgents = async (
 
   // Ensure models are always configured - fail if none were set
   if (Object.keys(defaultModelSettings).length === 0) {
-    p.cancel('Cannot continue without a model configuration for project. Please provide an API key for at least one AI provider.');
+    p.cancel(
+      'Cannot continue without a model configuration for project. Please provide an API key for at least one AI provider.'
+    );
     process.exit(1);
   }
 
@@ -450,7 +452,6 @@ async function setupProjectInDatabase(config: FileConfig) {
 async function setupDatabase() {
   try {
     // Run drizzle-kit migrate to apply migrations to database
-    await execAsync('pnpm db:generate');
     await execAsync('pnpm db:migrate');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
