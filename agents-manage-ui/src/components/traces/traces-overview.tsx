@@ -47,7 +47,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   } = useTracesQueryState();
 
   // Check if Signoz is configured
-  const { isConfigured: isSignozConfigured, isLoading: isSignozConfigLoading } = useSignozConfig();
+  const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
 
   const [selectedGraph, setSelectedGraph] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -304,18 +304,21 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   return (
     <div className="space-y-4">
       {/* Signoz Configuration Banner */}
-      {!isSignozConfigLoading && isSignozConfigured === false && (
+      {!isSignozConfigLoading && signozConfigError && (
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>SigNoz Configuration Required</AlertTitle>
+          <AlertTitle>SigNoz Configuration Error</AlertTitle>
           <AlertDescription>
             <p>
-              SigNoz is not configured. To view traces and use the live debugger, you need to set
-              up SigNoz. Please follow the instructions in the <ExternalLink
-              className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200 ml-0 mt-1"
-              iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
-              href={`${DOCS_BASE_URL}`}
-            >traces setup guide</ExternalLink>.
+              {signozConfigError} Please follow the instructions in the{' '}
+              <ExternalLink
+                className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200"
+                iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
+                href={`${DOCS_BASE_URL}/quick-start/traces`}
+              >
+                traces setup guide
+              </ExternalLink>
+              .
             </p>
           </AlertDescription>
         </Alert>

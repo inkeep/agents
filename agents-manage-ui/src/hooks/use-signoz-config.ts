@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 interface SignozConfigStatus {
   status: string;
   configured: boolean;
+  error?: string;
 }
 
 export function useSignozConfig() {
-  const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkConfig = async () => {
@@ -19,12 +19,10 @@ export function useSignozConfig() {
           throw new Error('Failed to check Signoz configuration');
         }
         const data: SignozConfigStatus = await response.json();
-        setIsConfigured(data.configured);
-        setError(null);
+        setConfigError(data.error || null);
       } catch (err) {
         console.error('Error checking Signoz configuration:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setIsConfigured(null);
+        setConfigError(err instanceof Error ? err.message : 'Failed to check SigNoz configuration');
       } finally {
         setIsLoading(false);
       }
@@ -33,6 +31,6 @@ export function useSignozConfig() {
     checkConfig();
   }, []);
 
-  return { isConfigured, isLoading, error };
+  return { isLoading, configError };
 }
 
