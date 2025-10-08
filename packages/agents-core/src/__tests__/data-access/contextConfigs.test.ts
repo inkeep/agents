@@ -32,7 +32,7 @@ describe('Context Configs Data Access', () => {
         projectId: testProjectId,
         name: 'Test Context Config',
         description: 'Test context configuration',
-        requestContextSchema: { type: 'object' },
+        headersSchema: { type: 'object' },
         contextVariables: {
           testVar: {
             id: 'testVar',
@@ -99,7 +99,7 @@ describe('Context Configs Data Access', () => {
         projectId: testProjectId,
         name: 'Test Context Config',
         description: 'Test context configuration',
-        requestContextSchema: null,
+        headersSchema: null,
         contextVariables: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
@@ -322,7 +322,7 @@ describe('Context Configs Data Access', () => {
         graphId: testGraphId,
         name: 'Test Context Config',
         description: 'Test context configuration',
-        requestContextSchema: { type: 'object' },
+        headersSchema: { type: 'object' },
         contextVariables: {
           testVar: {
             id: 'testVar',
@@ -363,7 +363,7 @@ describe('Context Configs Data Access', () => {
         graphId: testGraphId,
         name: 'Test Context Config',
         description: 'Test context configuration',
-        requestContextSchema: null,
+        headersSchema: null,
         contextVariables: null,
       };
 
@@ -562,9 +562,9 @@ describe('Context Configs Data Access', () => {
       );
     });
 
-    it('should handle clearing requestContextSchema', async () => {
+    it('should handle clearing headersSchema', async () => {
       const updateData = {
-        requestContextSchema: null,
+        headersSchema: null,
       };
 
       const mockUpdate = vi.fn().mockReturnValue({
@@ -574,7 +574,7 @@ describe('Context Configs Data Access', () => {
               {
                 id: 'context-1',
                 name: 'Test Config',
-                requestContextSchema: null,
+                headersSchema: null,
                 createdAt: '2024-01-01T00:00:00Z',
                 updatedAt: new Date().toISOString(),
               },
@@ -598,10 +598,10 @@ describe('Context Configs Data Access', () => {
         data: updateData,
       });
 
-      // Verify that the set method was called with null requestContextSchema
+      // Verify that the set method was called with null headersSchema
       expect(mockUpdate().set).toHaveBeenCalledWith(
         expect.objectContaining({
-          requestContextSchema: null,
+          headersSchema: null,
         })
       );
     });

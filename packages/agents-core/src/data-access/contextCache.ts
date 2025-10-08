@@ -139,9 +139,9 @@ export const cleanupTenantCache =
   };
 
 /**
- * Invalidate the request context cache for a conversation
+ * Invalidate the headers cache for a conversation
  */
-export const invalidateRequestContextCache =
+export const invalidateHeadersCache =
   (db: DatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
@@ -156,7 +156,7 @@ export const invalidateRequestContextCache =
           eq(contextCache.projectId, params.scopes.projectId),
           eq(contextCache.conversationId, params.conversationId),
           eq(contextCache.contextConfigId, params.contextConfigId),
-          eq(contextCache.contextVariableKey, 'requestContext')
+          eq(contextCache.contextVariableKey, 'headers')
         )
       );
 

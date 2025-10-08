@@ -98,7 +98,7 @@ export const createContextConfig = (db: DatabaseClient) => async (params: Contex
       graphId: params.graphId,
       name: params.name,
       description: params.description,
-      requestContextSchema: params.requestContextSchema ?? null,
+      headersSchema: params.headersSchema ?? null,
       contextVariables: contextVariables ?? null,
       createdAt: now,
       updatedAt: now,
@@ -128,9 +128,9 @@ export const updateContextConfig =
       }
     }
 
-    // Handle requestContextSchema clearing: null should remain null
-    if ('requestContextSchema' in params.data && params.data.requestContextSchema === null) {
-      processedData.requestContextSchema = null;
+    // Handle headersSchema clearing: null should remain null
+    if ('headersSchema' in params.data && params.data.headersSchema === null) {
+      processedData.headersSchema = null;
     }
 
     const updated = await db
@@ -239,7 +239,7 @@ export const upsertContextConfig =
           data: {
             name: params.data.name,
             description: params.data.description,
-            requestContextSchema: params.data.requestContextSchema,
+            headersSchema: params.data.headersSchema,
             contextVariables: params.data.contextVariables,
           },
         });

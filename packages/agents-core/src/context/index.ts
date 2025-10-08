@@ -5,7 +5,7 @@ export {
   ContextConfigBuilder,
   contextConfig,
   fetchDefinition,
-  requestContextSchema,
+  headers,
 } from './ContextConfig';
 export type { FetchResult } from './ContextFetcher';
 export { ContextFetcher } from './ContextFetcher';

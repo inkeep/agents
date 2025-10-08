@@ -74,7 +74,7 @@ async function handleContextResolution({
   projectId,
   graphId,
   conversationId,
-  requestContext,
+  headers,
   dbClient,
   credentialStores,
 }: {
@@ -82,7 +82,7 @@ async function handleContextResolution({
   projectId: string;
   graphId: string;
   conversationId: string;
-  requestContext: Record<string, unknown>;
+  headers: Record<string, unknown>;
   dbClient: DatabaseClient;
   credentialStores?: CredentialStoreRegistry;
 }): Promise<ResolvedContext | null> {
@@ -91,7 +91,7 @@ async function handleContextResolution({
     'context.handle_context_resolution',
     {
       attributes: {
-        'context.request_context_keys': Object.keys(requestContext),
+        'context.headers_keys': Object.keys(headers),
       },
     },
     async (parentSpan: Span) => {
@@ -152,7 +152,7 @@ async function handleContextResolution({
         const contextResult = await contextResolver.resolve(contextConfig, {
           triggerEvent: trigger,
           conversationId,
-          requestContext,
+          headers,
           tenantId,
         });
 

@@ -199,9 +199,9 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
 
   const extensions = useMemo(() => {
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
-    const requestContextSchema = tryJsonParse(contextConfig.requestContextSchema);
+    const headersSchema = tryJsonParse(contextConfig.headersSchema);
     const suggestions = getContextSuggestions({
-      requestContextSchema,
+      headersSchema,
       // @ts-expect-error -- todo: improve type
       contextVariables,
     });

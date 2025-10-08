@@ -5,7 +5,7 @@ import { formatJsonField } from '@/lib/utils';
 export type ExtendedFullGraphDefinition = FullGraphDefinition & {
   contextConfig?: Partial<Pick<ContextConfig, 'id' | 'name' | 'description'>> & {
     contextVariables?: Record<string, any>;
-    requestContextSchema?: Record<string, any>;
+    headersSchema?: Record<string, any>;
   };
 };
 
@@ -57,7 +57,7 @@ export function extractGraphMetadata(
       name: graph?.contextConfig?.name ?? '',
       description: graph?.contextConfig?.description ?? '',
       contextVariables: formatJsonField(graph?.contextConfig?.contextVariables) || '',
-      requestContextSchema: formatJsonField(graph?.contextConfig?.requestContextSchema) || '',
+      headersSchema: formatJsonField(graph?.contextConfig?.headersSchema) || '',
     },
   };
 }

@@ -65,10 +65,10 @@ Here is an example of a valid Context Variables JSON object:
     "name": "User Information",
     "trigger": "initialization",
     "fetchConfig": {
-      "url": "https://api.example.com/users/{{requestContext.user_id}}",
+      "url": "https://api.example.com/users/{{headers.user_id}}",
       "method": "GET",
       "headers": {
-        "Authorization": "Bearer {{requestContext.api_key}}"
+        "Authorization": "Bearer {{headers.api_key}}"
       },
       "transform": "user"
     },

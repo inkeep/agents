@@ -12,7 +12,7 @@ export function ContextConfigForm({
   contextConfig: ContextConfig;
   updateMetadata: (field: keyof GraphMetadata, value: GraphMetadata[keyof GraphMetadata]) => void;
 }) {
-  const { id, name, description, contextVariables, requestContextSchema } = contextConfig;
+  const { id, name, description, contextVariables, headersSchema } = contextConfig;
 
   const updateContextConfig = (field: keyof ContextConfig, value: string) => {
     const updatedContextConfig = {
@@ -70,10 +70,10 @@ export function ContextConfigForm({
           className=""
         />
         <ExpandableJsonEditor
-          name="requestContextSchema"
-          label="Request context schema (JSON)"
-          value={requestContextSchema}
-          onChange={(value) => updateContextConfig('requestContextSchema', value)}
+          name="headersSchema"
+          label="Headers schema (JSON)"
+          value={headersSchema}
+          onChange={(value) => updateContextConfig('headersSchema', value)}
           placeholder="{}"
           className=""
         />

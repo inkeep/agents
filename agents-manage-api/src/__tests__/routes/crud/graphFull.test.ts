@@ -63,7 +63,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     id,
     name: `Test Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
-    requestContextSchema: {
+    headersSchema: {
       type: 'object',
       properties: {
         userId: { type: 'string', description: 'User identifier' },
@@ -78,10 +78,10 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         name: `User Profile${suffix}`,
         trigger: 'initialization',
         fetchConfig: {
-          url: `https://api.example.com/users/{{requestContext.userId}}${suffix}`,
+          url: `https://api.example.com/users/{{headers.userId}}${suffix}`,
           method: 'GET',
           headers: {
-            Authorization: 'Bearer {{requestContext.sessionToken}}',
+            Authorization: 'Bearer {{headers.sessionToken}}',
           },
         },
         defaultValue: { name: `Default User${suffix}` },
@@ -1109,7 +1109,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         id: expect.stringContaining('contextConfig-'),
         name: expect.stringContaining('Test Context Config'),
         description: expect.stringContaining('Test context configuration'),
-        requestContextSchema: expect.objectContaining({
+        headersSchema: expect.objectContaining({
           type: 'object',
           properties: expect.objectContaining({
             userId: { type: 'string', description: 'User identifier' },
@@ -1336,7 +1336,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig.contextVariables).toBeNull();
     });
 
-    it('should clear requestContextSchema when set to null in full graph update', async () => {
+    it('should clear headersSchema when set to null in full graph update', async () => {
       const tenantId = createTestTenantId('full-graph-clear-request-schema');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
@@ -1353,12 +1353,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       });
       expect(createRes.status).toBe(201);
 
-      // Update to clear requestContextSchema
+      // Update to clear headersSchema
       const updateData = {
         ...graphData,
         contextConfig: {
           ...(graphData.contextConfig || {}),
-          requestContextSchema: null,
+          headersSchema: null,
         },
       };
 
@@ -1372,10 +1372,10 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
-      expect(body.data.contextConfig.requestContextSchema).toBeNull();
+      expect(body.data.contextConfig.headersSchema).toBeNull();
     });
 
-    it('should clear both contextVariables and requestContextSchema simultaneously in full graph', async () => {
+    it('should clear both contextVariables and headersSchema simultaneously in full graph', async () => {
       const tenantId = createTestTenantId('full-graph-clear-both-fields');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
@@ -1398,7 +1398,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         contextConfig: {
           ...(graphData.contextConfig || {}),
           contextVariables: null,
-          requestContextSchema: null,
+          headersSchema: null,
         },
       };
 
@@ -1413,7 +1413,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();
-      expect(body.data.contextConfig.requestContextSchema).toBeNull();
+      expect(body.data.contextConfig.headersSchema).toBeNull();
     });
 
     it('should handle empty object contextVariables as null in full graph creation', async () => {
@@ -1464,7 +1464,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         contextConfig: {
           ...(graphData.contextConfig || {}),
           contextVariables: null,
-          requestContextSchema: null,
+          headersSchema: null,
         },
       };
 
@@ -1484,7 +1484,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(getRes.status).toBe(200);
       const body = await getRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();
-      expect(body.data.contextConfig.requestContextSchema).toBeNull();
+      expect(body.data.contextConfig.headersSchema).toBeNull();
     });
   });
 

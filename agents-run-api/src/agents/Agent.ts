@@ -885,7 +885,7 @@ export class Agent {
    */
   async getResolvedContext(
     conversationId: string,
-    requestContext?: Record<string, unknown>
+    headers?: Record<string, unknown>
   ): Promise<Record<string, unknown> | null> {
     try {
       if (!this.config.contextConfigId) {
@@ -915,7 +915,7 @@ export class Agent {
       const result = await this.contextResolver.resolve(contextConfig, {
         triggerEvent: 'invocation',
         conversationId,
-        requestContext: requestContext || {},
+        headers: headers || {},
         tenantId: this.config.tenantId,
       });
 

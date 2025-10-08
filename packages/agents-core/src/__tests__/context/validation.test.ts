@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { contextConfig, fetchDefinition, requestContextSchema } from '../../context/ContextConfig';
+import { contextConfig, fetchDefinition, headers } from '../../context/ContextConfig';
 import type { DotPaths } from '../../context/validation-helpers';
 
 describe('DotPaths type utility', () => {
@@ -62,13 +62,13 @@ describe('contextConfig.toTemplate', () => {
     id: 'test',
     name: 'Test',
     graphId: 'test-graph',
-    requestContextSchema: z.object({ token: z.string() }),
+    headers: z.object({ token: z.string() }),
     contextVariables: { user: userFetcher },
   });
 
   it('should return template strings for valid paths', () => {
-    expect(config.toTemplate('requestContext')).toBe('{{requestContext}}');
-    expect(config.toTemplate('requestContext.token')).toBe('{{requestContext.token}}');
+    expect(config.toTemplate('headers')).toBe('{{headers}}');
+    expect(config.toTemplate('headers.token')).toBe('{{headers.token}}');
     expect(config.toTemplate('user')).toBe('{{user}}');
     expect(config.toTemplate('user.name')).toBe('{{user.name}}');
     expect(config.toTemplate('user.profile.bio')).toBe('{{user.profile.bio}}');
@@ -81,7 +81,7 @@ describe('contextConfig.toTemplate', () => {
     // These should compile
     config.toTemplate('user.name');
     config.toTemplate('user.profile.avatar');
-    config.toTemplate('requestContext.token');
+    config.toTemplate('headers.token');
 
     // @ts-expect-error - invalid path should cause type error
     config.toTemplate('user.invalid');
@@ -92,7 +92,7 @@ describe('contextConfig.toTemplate', () => {
   });
 });
 
-describe('requestContextSchema.toTemplate', () => {
+describe('headers.toTemplate', () => {
   const schema = z.object({
     userId: z.string(),
     session: z.object({
@@ -102,27 +102,27 @@ describe('requestContextSchema.toTemplate', () => {
     roles: z.array(z.string()),
   });
 
-  const context = requestContextSchema({ schema });
+  const headersSchema = headers({ schema });
 
-  it('should return template strings for request context paths', () => {
-    expect(context.toTemplate('userId')).toBe('{{requestContext.userId}}');
-    expect(context.toTemplate('session')).toBe('{{requestContext.session}}');
-    expect(context.toTemplate('session.id')).toBe('{{requestContext.session.id}}');
-    expect(context.toTemplate('session.expires')).toBe('{{requestContext.session.expires}}');
-    expect(context.toTemplate('roles[0]')).toBe('{{requestContext.roles[0]}}');
-    expect(context.toTemplate('roles[*]')).toBe('{{requestContext.roles[*]}}');
+  it('should return template strings for headers paths', () => {
+    expect(headersSchema.toTemplate('userId')).toBe('{{headers.userId}}');
+    expect(headersSchema.toTemplate('session')).toBe('{{headers.session}}');
+    expect(headersSchema.toTemplate('session.id')).toBe('{{headers.session.id}}');
+    expect(headersSchema.toTemplate('session.expires')).toBe('{{headers.session.expires}}');
+    expect(headersSchema.toTemplate('roles[0]')).toBe('{{headers.roles[0]}}');
+    expect(headersSchema.toTemplate('roles[*]')).toBe('{{headers.roles[*]}}');
   });
 
-  it('should enforce type safety for request context', () => {
+  it('should enforce type safety for headers', () => {
     // Valid paths
-    context.toTemplate('userId');
-    context.toTemplate('session.id');
-    context.toTemplate('roles[0]');
+    headersSchema.toTemplate('userId');
+    headersSchema.toTemplate('session.id');
+    headersSchema.toTemplate('roles[0]');
 
     // @ts-expect-error - invalid path
-    context.toTemplate('invalid');
+    headersSchema.toTemplate('invalid');
     // @ts-expect-error - invalid nested path
-    context.toTemplate('session.invalid');
+    headersSchema.toTemplate('session.invalid');
 
     expect(true).toBe(true);
   });

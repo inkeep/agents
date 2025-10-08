@@ -64,10 +64,10 @@ const chatDataStreamRoute = createRoute({
             ),
             id: z.string().optional(),
             conversationId: z.string().optional(),
-            requestContext: z
+            headers: z
               .record(z.string(), z.unknown())
               .optional()
-              .describe('Context data for template processing'),
+              .describe('Headers data for template processing'),
           }),
         },
       },
@@ -155,8 +155,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    // Get validated context from middleware (falls back to body.context if no validation)
-    const validatedContext = (c as any).get('validatedContext') || body.requestContext || {};
+    // Get validated context from middleware (falls back to body.headers if no validation)
+    const validatedContext = (c as any).get('validatedContext') || body.headers || {};
 
     const credentialStores = c.get('credentialStores');
 
@@ -166,7 +166,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       projectId,
       graphId,
       conversationId,
-      requestContext: validatedContext,
+      headers: validatedContext,
       dbClient,
       credentialStores,
     });

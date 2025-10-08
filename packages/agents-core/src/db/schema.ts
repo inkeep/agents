@@ -123,7 +123,7 @@ export const contextConfigs = sqliteTable(
     ...uiProperties,
 
     // Developer-defined Zod schema for validating incoming request context
-    requestContextSchema: blob('request_context_schema', { mode: 'json' }).$type<unknown>(), // Stores serialized Zod schema
+    headersSchema: blob('headers_schema', { mode: 'json' }).$type<unknown>(), // Stores serialized Zod schema
 
     // Object mapping template keys to fetch definitions that use request context data
     contextVariables: blob('context_variables', { mode: 'json' }).$type<

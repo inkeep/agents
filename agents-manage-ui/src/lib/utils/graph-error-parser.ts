@@ -184,7 +184,7 @@ function getFieldDisplayName(field: string): string {
     delegateSourceToTarget: 'Delegate (Source to Target)',
     contextConfig: 'Context Configuration',
     contextVariables: 'Context Variables',
-    requestContextSchema: 'Request Context Schema',
+    headersSchema: 'Headers Schema',
   };
 
   return (

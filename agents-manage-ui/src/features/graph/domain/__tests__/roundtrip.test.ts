@@ -57,7 +57,7 @@ describe('graph serialize/deserialize', () => {
         name: '',
         description: '',
         contextVariables: '',
-        requestContextSchema: '',
+        headersSchema: '',
       },
     });
 
@@ -142,7 +142,7 @@ describe('graph serialize/deserialize', () => {
         name: 'Context',
         description: 'Context description',
         contextVariables: '{}',
-        requestContextSchema: '{}',
+        headersSchema: '{}',
       },
     });
     expect(serialized.id).toBe('g1');

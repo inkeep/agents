@@ -18,13 +18,13 @@ export interface ResolvedContext {
 export interface ContextResolutionOptions {
   triggerEvent: 'initialization' | 'invocation';
   conversationId: string;
-  requestContext?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
   tenantId: string;
 }
 
 export interface ContextResolutionResult {
   resolvedContext: ResolvedContext;
-  requestContext: Record<string, unknown>;
+  headers: Record<string, unknown>;
   fetchedDefinitions: string[];
   cacheHits: string[];
   cacheMisses: string[];
@@ -92,7 +92,7 @@ export class ContextResolver {
         try {
           const result: ContextResolutionResult = {
             resolvedContext: {},
-            requestContext: options.requestContext || {},
+            headers: options.headers || {},
             fetchedDefinitions: [],
             cacheHits: [],
             cacheMisses: [],
@@ -100,18 +100,18 @@ export class ContextResolver {
             totalDurationMs: 0,
           };
 
-          // Include request context in resolved context under the key 'requestContext'
-          result.resolvedContext.requestContext = result.requestContext;
+          // Include headers in resolved context under the key 'headers'
+          result.resolvedContext.headers = result.headers;
 
-          const currentRequestContext = await this.cache.get({
+          const currentHeaders = await this.cache.get({
             conversationId: options.conversationId,
             contextConfigId: contextConfig.id,
-            contextVariableKey: 'requestContext',
+            contextVariableKey: 'headers',
           });
 
-          if (options.requestContext && Object.keys(options.requestContext).length > 0) {
-            // Invalidate the current request context
-            await this.cache.invalidateRequestContext(
+          if (options.headers && Object.keys(options.headers).length > 0) {
+            // Invalidate the current headers
+            await this.cache.invalidateHeaders(
               this.tenantId,
               this.projectId,
               options.conversationId,
@@ -123,14 +123,14 @@ export class ContextResolver {
                 conversationId: options.conversationId,
                 contextConfigId: contextConfig.id,
               },
-              'Invalidated request context in cache'
+              'Invalidated headers in cache'
             );
-            // Push the new request context to the cache
+            // Push the new headers to the cache
             await this.cache.set({
               contextConfigId: contextConfig.id,
-              contextVariableKey: 'requestContext',
+              contextVariableKey: 'headers',
               conversationId: options.conversationId,
-              value: options.requestContext,
+              value: options.headers,
               tenantId: this.tenantId,
             });
             logger.info(
@@ -138,15 +138,15 @@ export class ContextResolver {
                 conversationId: options.conversationId,
                 contextConfigId: contextConfig.id,
               },
-              'Request context set in cache'
+              'Headers set in cache'
             );
-          } else if (currentRequestContext) {
-            result.requestContext = currentRequestContext.value as Record<string, unknown>;
+          } else if (currentHeaders) {
+            result.headers = currentHeaders.value as Record<string, unknown>;
           } else {
-            result.requestContext = {};
+            result.headers = {};
           }
 
-          result.resolvedContext.requestContext = result.requestContext;
+          result.resolvedContext.headers = result.headers;
 
           // Get all context variables - we'll handle trigger events through cache invalidation
           const contextVariables = contextConfig.contextVariables || {};
@@ -184,7 +184,7 @@ export class ContextResolver {
           }
 
           // Create request hash for cache invalidation
-          const requestHash = this.createRequestHash(result.requestContext);
+          const requestHash = this.createRequestHash(result.headers);
 
           // Execute all context variables in parallel (no dependencies)
           const fetchPromises = contextVariableEntries.map(([templateKey, definition]) =>
@@ -404,16 +404,16 @@ export class ContextResolver {
   }
 
   /**
-   * Resolve the request context for a given conversation
+   * Resolve the headers for a given conversation
    */
-  async resolveRequestContext(
+  async resolveHeaders(
     conversationId: string,
     contextConfigId: string
   ): Promise<Record<string, unknown>> {
     const cachedEntry = await this.cache.get({
       conversationId: conversationId,
       contextConfigId: contextConfigId,
-      contextVariableKey: 'requestContext',
+      contextVariableKey: 'headers',
     });
 
     if (cachedEntry) {
@@ -424,10 +424,10 @@ export class ContextResolver {
   }
 
   /**
-   * Create a hash of the request context for cache invalidation
+   * Create a hash of the headers for cache invalidation
    */
-  private createRequestHash(requestContext: Record<string, unknown>): string {
-    const contextString = JSON.stringify(requestContext, Object.keys(requestContext).sort());
+  private createRequestHash(headers: Record<string, unknown>): string {
+    const contextString = JSON.stringify(headers, Object.keys(headers).sort());
     return crypto.createHash('sha256').update(contextString).digest('hex').substring(0, 16);
   }
 

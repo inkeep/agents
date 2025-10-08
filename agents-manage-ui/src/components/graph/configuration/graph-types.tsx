@@ -38,5 +38,5 @@ export type ContextConfig = {
   name: string;
   description: string;
   contextVariables: string; // JSON string
-  requestContextSchema: string; // JSON string
+  headersSchema: string; // JSON string
 };

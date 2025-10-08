@@ -56,7 +56,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     graphId,
     name: `Test Context Config${suffix}`,
     description: `Test Description${suffix}`,
-    requestContextSchema: {
+    headersSchema: {
       type: 'object',
       properties: {
         userId: { type: 'string', description: 'User identifier' },
@@ -70,10 +70,10 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         name: `User Profile${suffix}`,
         trigger: 'initialization',
         fetchConfig: {
-          url: 'https://api.example.com/users/{{requestContext.userId}}',
+          url: 'https://api.example.com/users/{{headers.userId}}',
           method: 'GET',
           headers: {
-            Authorization: 'Bearer {{requestContext.sessionToken}}',
+            Authorization: 'Bearer {{headers.sessionToken}}',
           },
         },
         defaultValue: { name: 'Anonymous User' },
@@ -177,7 +177,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       expect(body.data[0]).toMatchObject({
         name: contextConfigData.name,
         description: contextConfigData.description,
-        requestContextSchema: contextConfigData.requestContextSchema,
+        headersSchema: contextConfigData.headersSchema,
         contextVariables: contextConfigData.contextVariables,
       });
       expect(body.pagination).toEqual({
@@ -308,7 +308,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         id: contextConfigId,
         name: contextConfigData.name,
         description: contextConfigData.description,
-        requestContextSchema: contextConfigData.requestContextSchema,
+        headersSchema: contextConfigData.headersSchema,
         contextVariables: contextConfigData.contextVariables,
       });
       expect(body.data.createdAt).toBeDefined();
@@ -378,7 +378,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       expect(body.data).toMatchObject({
         name: contextConfigData.name,
         description: contextConfigData.description,
-        requestContextSchema: contextConfigData.requestContextSchema,
+        headersSchema: contextConfigData.headersSchema,
         contextVariables: contextConfigData.contextVariables,
       });
       expect(body.data.createdAt).toBeDefined();
@@ -413,7 +413,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         name: minimalData.name,
         description: minimalData.description,
       });
-      expect(body.data.requestContextSchema).toBeNull();
+      expect(body.data.headersSchema).toBeNull();
       expect(body.data.contextVariables).toBeNull();
     });
 
@@ -428,7 +428,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         graphId: testGraphId,
         name: 'Complex Context Config',
         description: 'Context config with multiple fetch definitions',
-        requestContextSchema: {
+        headersSchema: {
           type: 'object',
           properties: {
             userId: { type: 'string' },
@@ -443,7 +443,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
             name: 'User Profile',
             trigger: 'initialization',
             fetchConfig: {
-              url: 'https://api.example.com/users/{{requestContext.userId}}',
+              url: 'https://api.example.com/users/{{headers.userId}}',
               method: 'GET',
               headers: { Authorization: 'Bearer token' },
               timeout: 5000,
@@ -455,7 +455,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
             name: 'Organization Settings',
             trigger: 'invocation',
             fetchConfig: {
-              url: 'https://api.example.com/orgs/{{requestContext.orgId}}/settings',
+              url: 'https://api.example.com/orgs/{{headers.orgId}}/settings',
               method: 'GET',
             },
             defaultValue: { theme: 'default' },
@@ -502,7 +502,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const updateData = {
         name: 'Updated Context Config',
         description: 'Updated Description',
-        requestContextSchema: {
+        headersSchema: {
           type: 'object',
           properties: {
             userId: { type: 'string', description: 'Updated user identifier' },
@@ -516,10 +516,10 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
             name: 'Updated User Profile',
             trigger: 'initialization',
             fetchConfig: {
-              url: 'https://api.example.com/v2/users/{{requestContext.userId}}',
+              url: 'https://api.example.com/v2/users/{{headers.userId}}',
               method: 'GET',
               headers: {
-                Authorization: 'Bearer {{requestContext.token}}',
+                Authorization: 'Bearer {{headers.token}}',
                 'X-Version': '2.0',
               },
             },
@@ -543,7 +543,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         id: contextConfigId,
         name: updateData.name,
         description: updateData.description,
-        requestContextSchema: updateData.requestContextSchema,
+        headersSchema: updateData.headersSchema,
         contextVariables: updateData.contextVariables,
       });
     });
@@ -663,18 +663,18 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       expect(body.data.contextVariables).toBeNull();
     });
 
-    it('should handle context config with null requestContext', async () => {
-      const tenantId = createTestTenantId('context-configs-null-request-context');
+    it('should handle context config with null headersSchema', async () => {
+      const tenantId = createTestTenantId('context-configs-null-headers-schema');
       await ensureTestProject(tenantId, projectId);
       await createTestGraph({ tenantId });
       const configData = {
-        id: `null-request-context-${nanoid(6)}`,
+        id: `null-headers-schema-${nanoid(6)}`,
         tenantId,
         projectId,
         graphId: testGraphId,
-        name: 'Config with Null Request Context',
-        description: 'Test config with null request context',
-        requestContextSchema: null,
+        name: 'Config with Null Headers Schema',
+        description: 'Test config with null headers schema',
+        headersSchema: null,
       };
 
       const res = await makeRequest(
@@ -687,7 +687,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.requestContextSchema).toBeNull();
+      expect(body.data.headersSchema).toBeNull();
     });
 
     it('should preserve complex nested data structures', async () => {
@@ -701,7 +701,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         graphId: testGraphId,
         name: 'Complex Nested Config',
         description: 'Config with deeply nested structures',
-        requestContextSchema: {
+        headersSchema: {
           type: 'object',
           properties: {
             user: {
@@ -730,7 +730,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
               body: {
                 query: {
                   nested: {
-                    field: '{{requestContext.user.profile.id}}',
+                    field: '{{headers.user.profile.id}}',
                   },
                 },
               },
@@ -866,26 +866,26 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     });
 
     describe('Request Context Schema Removal', () => {
-      it('should clear requestContextSchema when set to null via update', async () => {
+      it('should clear headersSchema when set to null via update', async () => {
         const tenantId = createTestTenantId('context-configs-clear-request-schema-null');
         await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
-        // Update to clear requestContextSchema with null
+        // Update to clear headersSchema with null
         const res = await makeRequest(
           `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
-            body: JSON.stringify({ requestContextSchema: null }),
+            body: JSON.stringify({ headersSchema: null }),
           }
         );
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.data.requestContextSchema).toBeNull();
+        expect(body.data.headersSchema).toBeNull();
       });
 
-      it('should create with requestContextSchema as null', async () => {
+      it('should create with headersSchema as null', async () => {
         const tenantId = createTestTenantId('context-configs-create-null-request-schema');
         await ensureTestProject(tenantId, projectId);
         await createTestGraph({ tenantId });
@@ -896,7 +896,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
           graphId: testGraphId,
           name: 'Config with Null Request Schema',
           description: 'Test config with null request schema',
-          requestContextSchema: null,
+          headersSchema: null,
         };
 
         const res = await makeRequest(
@@ -909,17 +909,17 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         expect(res.status).toBe(201);
         const body = await res.json();
-        expect(body.data.requestContextSchema).toBeNull();
+        expect(body.data.headersSchema).toBeNull();
       });
 
-      it('should preserve non-null requestContextSchema', async () => {
+      it('should preserve non-null headersSchema', async () => {
         const tenantId = createTestTenantId('context-configs-preserve-request-schema');
         await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
-        // Update to modify but not clear requestContextSchema
+        // Update to modify but not clear headersSchema
         const updateData = {
-          requestContextSchema: {
+          headersSchema: {
             type: 'object',
             properties: {
               newField: { type: 'string' },
@@ -938,13 +938,13 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.data.requestContextSchema).toEqual(updateData.requestContextSchema);
-        expect(body.data.requestContextSchema).not.toBeNull();
+        expect(body.data.headersSchema).toEqual(updateData.headersSchema);
+        expect(body.data.headersSchema).not.toBeNull();
       });
     });
 
     describe('Combined Field Clearing', () => {
-      it('should clear both contextVariables and requestContextSchema simultaneously', async () => {
+      it('should clear both contextVariables and headersSchema simultaneously', async () => {
         const tenantId = createTestTenantId('context-configs-clear-both-fields');
         await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
@@ -956,7 +956,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
             method: 'PUT',
             body: JSON.stringify({
               contextVariables: null,
-              requestContextSchema: null,
+              headersSchema: null,
             }),
           }
         );
@@ -964,7 +964,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         expect(res.status).toBe(200);
         const body = await res.json();
         expect(body.data.contextVariables).toBeNull();
-        expect(body.data.requestContextSchema).toBeNull();
+        expect(body.data.headersSchema).toBeNull();
       });
 
       it('should handle mixed clearing and updating of fields', async () => {
@@ -972,10 +972,10 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         await ensureTestProject(tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
-        // Clear contextVariables but update requestContextSchema
+        // Clear contextVariables but update headersSchema
         const updateData = {
           contextVariables: null,
-          requestContextSchema: {
+          headersSchema: {
             type: 'object',
             properties: {
               mixedField: { type: 'boolean' },
@@ -994,7 +994,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         expect(res.status).toBe(200);
         const body = await res.json();
         expect(body.data.contextVariables).toBeNull();
-        expect(body.data.requestContextSchema).toEqual(updateData.requestContextSchema);
+        expect(body.data.headersSchema).toEqual(updateData.headersSchema);
       });
     });
 
@@ -1023,7 +1023,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         expect(res.status).toBe(201);
         const body = await res.json();
         expect(body.data.contextVariables).toBeNull();
-        expect(body.data.requestContextSchema).toBeNull();
+        expect(body.data.headersSchema).toBeNull();
       });
 
       it('should retrieve cleared fields as null consistently', async () => {
@@ -1038,7 +1038,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
             method: 'PUT',
             body: JSON.stringify({
               contextVariables: null,
-              requestContextSchema: null,
+              headersSchema: null,
             }),
           }
         );
@@ -1054,7 +1054,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         expect(getRes.status).toBe(200);
         const body = await getRes.json();
         expect(body.data.contextVariables).toBeNull();
-        expect(body.data.requestContextSchema).toBeNull();
+        expect(body.data.headersSchema).toBeNull();
       });
 
       it('should list configs with null fields correctly', async () => {
@@ -1069,7 +1069,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
             method: 'PUT',
             body: JSON.stringify({
               contextVariables: null,
-              requestContextSchema: null,
+              headersSchema: null,
             }),
           }
         );
@@ -1086,7 +1086,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const body = await listRes.json();
         expect(body.data).toHaveLength(1);
         expect(body.data[0].contextVariables).toBeNull();
-        expect(body.data[0].requestContextSchema).toBeNull();
+        expect(body.data[0].headersSchema).toBeNull();
       });
     });
   });

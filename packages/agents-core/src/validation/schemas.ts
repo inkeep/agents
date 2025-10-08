@@ -623,12 +623,12 @@ export const FetchDefinitionSchema = z.object({
 });
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
-  requestContextSchema: z.unknown().optional(),
+  headersSchema: z.unknown().optional(),
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: resourceIdSchema,
-    requestContextSchema: z.unknown().optional(),
+    headersSchema: z.unknown().optional(),
   })
   .omit({
     createdAt: true,

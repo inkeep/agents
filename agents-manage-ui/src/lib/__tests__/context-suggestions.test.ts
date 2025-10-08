@@ -4,7 +4,7 @@ import { getContextSuggestions } from '../context-suggestions';
 
 describe('getContextSuggestions', () => {
   const mockContextSchema = {
-    requestContextSchema: {
+    headersSchema: {
       type: 'object',
       properties: {
         user_id: { type: 'string' },
@@ -38,9 +38,9 @@ describe('getContextSuggestions', () => {
   it('should return all expected suggestions', () => {
     const suggestions = getContextSuggestions(mockContextSchema);
     expect(suggestions).toStrictEqual([
-      'requestContext.auth_token',
-      'requestContext.org_name',
-      'requestContext.user_id',
+      'headers.auth_token',
+      'headers.org_name',
+      'headers.user_id',
       'userName',
       'userName.name',
       'userName.preferences',
@@ -187,11 +187,11 @@ describe('getContextSuggestions', () => {
             responseSchema: z.toJSONSchema(settingsSchema),
           },
         },
-        requestContextSchema: z.toJSONSchema(z.object({ apiKey: z.string() })),
+        headersSchema: z.toJSONSchema(z.object({ apiKey: z.string() })),
       });
       expect(suggestions).toMatchInlineSnapshot(`
         [
-          "requestContext.apiKey",
+          "headers.apiKey",
           "settings",
           "settings.locale",
           "settings.theme",
