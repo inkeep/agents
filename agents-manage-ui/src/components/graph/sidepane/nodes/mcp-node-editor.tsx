@@ -61,7 +61,7 @@ export function MCPServerNodeEditor({
 
   const activeTools = getActiveTools({
     availableTools: availableTools,
-    activeTools: (toolData?.config as any)?.mcp?.activeTools,
+    activeTools: toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
   // Handle missing tool data
@@ -191,7 +191,7 @@ export function MCPServerNodeEditor({
         <Input
           id="url"
           name="url"
-          value={(toolData?.config as any)?.mcp?.server?.url || ''}
+          value={toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.server.url : ''}
           onChange={handleInputChange}
           placeholder="https://mcp.inkeep.com"
           disabled
