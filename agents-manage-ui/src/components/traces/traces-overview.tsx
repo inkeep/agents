@@ -18,8 +18,6 @@ import { GraphFilter } from './filters/graph-filter';
 import { SpanFilters } from './filters/span-filters';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
-
-
 // Time range options
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
