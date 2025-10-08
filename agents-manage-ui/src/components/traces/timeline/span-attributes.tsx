@@ -1,6 +1,9 @@
 'use client';
 
 import { Streamdown } from 'streamdown';
+import { useEffect, useRef } from 'react';
+import { cleanupDisposables, createEditor, getOrCreateModel } from '@/lib/monaco-utils';
+import '@/lib/setup-monaco-workers';
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
@@ -42,10 +45,8 @@ function separateAttributes(span: AttributeMap): SeparatedAttributes {
   const otherAttributes: AttributeMap = {};
 
   Object.entries(span).forEach(([key, value]) => {
-    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some(prefix => 
-      key.startsWith(prefix)
-    );
-    
+    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some((prefix) => key.startsWith(prefix));
+
     if (isProcessAttribute) {
       processAttributes[key] = value;
     } else {
@@ -68,7 +69,7 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   const remainingAttributes: AttributeMap = {};
 
   // Extract pinned attributes in order
-  PINNED_ATTRIBUTE_KEYS.forEach(key => {
+  PINNED_ATTRIBUTE_KEYS.forEach((key) => {
     if (key in attributes) {
       pinnedAttributes[key] = attributes[key];
     }
@@ -76,10 +77,10 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
 
   // Get remaining attributes sorted alphabetically
   const remainingKeys = Object.keys(attributes)
-    .filter(key => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
+    .filter((key) => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
     .sort();
 
-  remainingKeys.forEach(key => {
+  remainingKeys.forEach((key) => {
     remainingAttributes[key] = attributes[key];
   });
 
@@ -90,10 +91,28 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
  * Renders process attributes
  */
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
+  const ref = useRef<HTMLDivElement>(null!);
+
+  useEffect(() => {
+    const model = getOrCreateModel({
+      uri: 'process-attributes.json',
+      value: JSON.stringify(processAttributes, null, 2),
+    });
+    const editor = createEditor(ref, {
+      model,
+      readOnly: true,
+      lineNumbers: 'off',
+      wordWrap: 'on', // Toggle word wrap on resizing editors
+      // contextmenu: false, // Disable the right-click context menu
+    });
+
+    return cleanupDisposables([model, editor]);
+  }, [processAttributes]);
+
   return (
     <div>
       <h3 className="text-sm font-medium mb-2">Process Attributes</h3>
-      <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
+      <div ref={ref} className="h-50" />
     </div>
   );
 }
@@ -104,7 +123,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
 export function SpanAttributes({ span, className }: SpanAttributesProps) {
   const { processAttributes, otherAttributes, hasProcessAttributes } = separateAttributes(span);
   const sortedOtherAttributes = sortAttributes(otherAttributes);
-  
+
   // Sort process attributes alphabetically
   const sortedProcessAttributes = Object.keys(processAttributes)
     .sort()

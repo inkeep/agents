@@ -1,4 +1,4 @@
-import { editor, Uri } from 'monaco-editor';
+import { editor, Uri, type IDisposable } from 'monaco-editor';
 import type { RefObject } from 'react';
 
 export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: string }) {
@@ -38,4 +38,12 @@ export function createEditor(
     tabIndex: -1, // Do not allow tabbing into the editor, only via by pressing Enter or its container
     ...options,
   });
+}
+
+export function cleanupDisposables(disposables: IDisposable[]) {
+  return () => {
+    for (const disposable of disposables) {
+      disposable.dispose(); // remove the listener
+    }
+  };
 }
