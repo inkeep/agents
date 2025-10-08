@@ -230,12 +230,15 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         };
 
         // For function tools, add function details from functions lookup
-        if (toolType === 'function' && tool?.functionId) {
-          const func = data.functions?.[tool.functionId];
-          if (func) {
-            nodeData.inputSchema = func.inputSchema;
-            nodeData.code = func.executeCode;
-            nodeData.dependencies = func.dependencies;
+        if (toolType === 'function') {
+          const functionId = (tool as any)?.functionId;
+          if (functionId) {
+            const func = data.functions?.[functionId];
+            if (func) {
+              nodeData.inputSchema = func.inputSchema;
+              nodeData.code = func.executeCode;
+              nodeData.dependencies = func.dependencies;
+            }
           }
         }
 

@@ -63,13 +63,13 @@ app.openapi(
           total: functions.length,
           pages: 1,
         },
-      });
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId }, 'Failed to list functions');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to list functions' }),
         500
-      );
+      ) as any;
     }
   }
 );
@@ -94,14 +94,6 @@ app.openapi(
           },
         },
       },
-      404: {
-        description: 'Function not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
       ...commonGetErrorResponses,
     },
   }),
@@ -113,16 +105,16 @@ app.openapi(
       const functionData = await getFunction(dbClient)({ functionId: id });
 
       if (!functionData) {
-        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404);
+        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404) as any;
       }
 
-      return c.json({ data: functionData as any });
+      return c.json({ data: functionData as any }) as any;
     } catch (error) {
       logger.error({ error, tenantId, id }, 'Failed to get function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get function' }),
         500
-      );
+      ) as any;
     }
   }
 );
@@ -154,14 +146,6 @@ app.openapi(
           },
         },
       },
-      400: {
-        description: 'Invalid request',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
       ...commonGetErrorResponses,
     },
   }),
@@ -185,13 +169,13 @@ app.openapi(
 
       logger.info({ tenantId, functionId: id }, 'Function created');
 
-      return c.json({ data: created as any }, 201);
+      return c.json({ data: created as any }, 201) as any;
     } catch (error) {
       logger.error({ error, tenantId, functionData }, 'Failed to create function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to create function' }),
         500
-      );
+      ) as any;
     }
   }
 );
@@ -223,14 +207,6 @@ app.openapi(
           },
         },
       },
-      404: {
-        description: 'Function not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
       ...commonGetErrorResponses,
     },
   }),
@@ -242,7 +218,7 @@ app.openapi(
       // Check if function exists
       const existing = await getFunction(dbClient)({ functionId: id });
       if (!existing) {
-        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404);
+        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404) as any;
       }
 
       // Functions are global - update by ID only
@@ -258,13 +234,13 @@ app.openapi(
 
       logger.info({ tenantId, functionId: id }, 'Function updated');
 
-      return c.json({ data: updated as any });
+      return c.json({ data: updated as any }) as any;
     } catch (error) {
       logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
         500
-      );
+      ) as any;
     }
   }
 );
@@ -284,14 +260,6 @@ app.openapi(
       204: {
         description: 'Function deleted',
       },
-      404: {
-        description: 'Function not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
       ...commonGetErrorResponses,
     },
   }),
@@ -302,7 +270,7 @@ app.openapi(
       // Check if function exists
       const existing = await getFunction(dbClient)({ functionId: id });
       if (!existing) {
-        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404);
+        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404) as any;
       }
 
       // Functions are global - delete by ID only
@@ -310,13 +278,13 @@ app.openapi(
 
       logger.info({ tenantId, functionId: id }, 'Function deleted');
 
-      return c.body(null, 204);
+      return c.body(null, 204) as any;
     } catch (error) {
       logger.error({ error, tenantId, id }, 'Failed to delete function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to delete function' }),
         500
-      );
+      ) as any;
     }
   }
 );

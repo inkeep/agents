@@ -250,9 +250,20 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
     .optional(),
 });
 
+// Function API schema (inline definition)
+export const FunctionApiInsertSchema = z.object({
+  id: z.string(),
+  inputSchema: z.record(z.string(), z.unknown()).nullable(),
+  executeCode: z.string(),
+  dependencies: z.record(z.string(), z.string()).nullable(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
 // Export inferred types
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
+export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;

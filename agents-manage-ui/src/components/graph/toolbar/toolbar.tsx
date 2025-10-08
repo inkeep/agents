@@ -19,7 +19,7 @@ export function Toolbar({
   setShowPlayground,
 }: ToolbarProps) {
   const dirty = useGraphStore((state) => state.dirty);
-  const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
   const PreviewButton = (
     <Button
       disabled={dirty || isPreviewDisabled}
@@ -38,7 +38,7 @@ export function Toolbar({
       if (!isShortcutPressed) return;
       event.preventDefault();
       // Using button ref instead onSubmit to respect button's disabled state
-      saveButtonRef.current.click();
+      saveButtonRef.current?.click();
     }
 
     window.addEventListener('keydown', handleSaveShortcut);

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import type { Project } from '@inkeep/agents-sdk';
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
 import { env } from '../env';

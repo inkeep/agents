@@ -101,7 +101,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         : []),
       ...availableTools.map((tool) => ({
         value: tool.id,
-        label: `${tool.name} - ${tool.config.mcp.server.url}`,
+        label: `${tool.name} - ${(tool.config as any).mcp.server.url}`,
       })),
     ],
     [availableTools, toolsLoading]

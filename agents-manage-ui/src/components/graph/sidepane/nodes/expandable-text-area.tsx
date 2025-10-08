@@ -14,7 +14,7 @@ const PromptEditorWithAddVariables: FC<
     tooltipClassName: string;
   }
 > = ({ tooltipClassName, ...props }) => {
-  const codemirrorRef = useRef<RefValue<typeof props.ref> | null>(null);
+  const codemirrorRef = useRef<RefValue<typeof props.ref>>(null as any);
   const variablesText = 'Add variables';
   return (
     <div className="h-full relative">
@@ -30,7 +30,7 @@ const PromptEditorWithAddVariables: FC<
             )}
             type="button"
             onClick={() => {
-              codemirrorRef.current.insertTemplateVariable();
+              codemirrorRef.current?.insertTemplateVariable();
             }}
           >
             <Braces className="h-4 w-4 text-muted-foreground" />

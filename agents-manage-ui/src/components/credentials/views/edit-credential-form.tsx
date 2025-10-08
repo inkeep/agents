@@ -161,7 +161,7 @@ export function EditCredentialForm({
           )}
 
           {/* MCP Servers Using This Credential */}
-          <CredentialToolsList tools={credential.tools} tenantId={tenantId} projectId={projectId} />
+          <CredentialToolsList tools={credential.tools as any} tenantId={tenantId} projectId={projectId} />
         </div>
 
         <div className="flex gap-3 pt-4">

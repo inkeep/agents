@@ -7,30 +7,51 @@ import { z } from 'zod';
  * them with agent-builder specific utilities and types.
  */
 
-// Import and re-export client-safe schemas from @inkeep/agents-core client exports
-export {
-  // Types
-  type AgentApiInsert as AgentApi,
-  AgentApiInsertSchema as AgentApiSchema,
-  AgentGraphApiInsertSchema as AgentGraphApiSchema,
-  type AgentGraphInsert as AgentGraphApi,
+// Import core types and schemas
+import {
+  type AgentApiInsert,
+  AgentApiInsertSchema,
+  AgentGraphApiInsertSchema,
+  type AgentGraphInsert,
   ErrorResponseSchema,
   type ExternalAgentDefinition,
-  type FullGraphDefinition,
-  type InternalAgentDefinition,
-  // Core schemas
+  type FunctionApiInsert,
+  type FullGraphDefinition as CoreFullGraphDefinition,
   FullGraphDefinitionSchema,
+  type InternalAgentDefinition,
   ListResponseSchema,
-  // Response schemas
   SingleResponseSchema,
-  // Parameter schemas
   TenantParamsSchema,
-  ToolApiInsertSchema as ToolApiSchema,
-  type ToolInsert as ToolApi,
+  type ToolApiInsert,
+  ToolApiInsertSchema,
+  type ToolInsert,
 } from '@inkeep/agents-core/client-exports';
-
-import { type FullGraphDefinition, TenantParamsSchema } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
+
+// Extend FullGraphDefinition with UI-specific lookup maps
+export type FullGraphDefinition = CoreFullGraphDefinition & {
+  tools?: Record<string, ToolApiInsert>;
+  functions?: Record<string, FunctionApiInsert>;
+};
+
+// Re-export core types with aliases
+export type AgentApi = AgentApiInsert;
+export type AgentGraphApi = AgentGraphInsert;
+export type ToolApi = ToolInsert;
+export const AgentApiSchema = AgentApiInsertSchema;
+export const AgentGraphApiSchema = AgentGraphApiInsertSchema;
+export const ToolApiSchema = ToolApiInsertSchema;
+
+// Re-export types and schemas
+export {
+  ErrorResponseSchema,
+  type ExternalAgentDefinition,
+  FullGraphDefinitionSchema,
+  type InternalAgentDefinition,
+  ListResponseSchema,
+  SingleResponseSchema,
+  TenantParamsSchema,
+};
 
 // Agent-builder specific parameter schema
 export const GraphIdParamsSchema = TenantParamsSchema.extend({

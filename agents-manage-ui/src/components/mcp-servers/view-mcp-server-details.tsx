@@ -191,16 +191,16 @@ export function ViewMCPServerDetails({
         {/* Server URL */}
         <div className="space-y-2">
           <ItemLabel>Server URL</ItemLabel>
-          <CopyableSingleLineCode code={tool.config.mcp.server.url} />
+          <CopyableSingleLineCode code={(tool.config as any).mcp.server.url} />
         </div>
 
         {/* Transport and Credential */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tool.config.mcp.transport && (
+          {(tool.config as any).mcp.transport && (
             <div className="space-y-2">
               <ItemLabel>Transport Type</ItemLabel>
               <ItemValue>
-                {<Badge variant="code">{tool.config.mcp.transport.type}</Badge>}
+                {<Badge variant="code">{(tool.config as any).mcp.transport.type}</Badge>}
               </ItemValue>
             </div>
           )}
@@ -235,13 +235,13 @@ export function ViewMCPServerDetails({
           <div className="flex gap-2 items-center">
             <ItemLabel>Active Tools</ItemLabel>
             <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
-              {tool.config.mcp.activeTools === undefined
+              {(tool.config as any).mcp.activeTools === undefined
                 ? (tool.availableTools?.length ?? 0)
-                : (tool.config.mcp.activeTools?.length ?? 0)}
+                : ((tool.config as any).mcp.activeTools?.length ?? 0)}
             </Badge>
           </div>
           <ItemValue>
-            {tool.config.mcp.activeTools === undefined ? (
+            {(tool.config as any).mcp.activeTools === undefined ? (
               // All tools are active (undefined means all)
               tool.availableTools && tool.availableTools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
@@ -256,10 +256,10 @@ export function ViewMCPServerDetails({
               ) : (
                 <div className="text-sm text-muted-foreground">No tools available</div>
               )
-            ) : tool.config.mcp.activeTools && tool.config.mcp.activeTools.length > 0 ? (
+            ) : (tool.config as any).mcp.activeTools && (tool.config as any).mcp.activeTools.length > 0 ? (
               // Specific tools are active - check availability
               <div className="flex flex-wrap gap-2">
-                {tool.config.mcp.activeTools.map((toolName) => {
+                {(tool.config as any).mcp.activeTools.map((toolName) => {
                   const isAvailable =
                     tool.availableTools?.some((t) => t.name === toolName) ?? false;
                   return (
@@ -278,7 +278,7 @@ export function ViewMCPServerDetails({
         {tool.availableTools && tool.availableTools.length > 0 && (
           <AvailableToolsCard
             tools={tool.availableTools}
-            activeTools={tool.config.mcp.activeTools}
+            activeTools={(tool.config as any).mcp.activeTools}
           />
         )}
       </div>
