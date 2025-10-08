@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.14.16
+
+### Patch Changes
+
+- 6e88b76: pnpm db:generate no longer needed
+
 ## 0.14.15
 
 ## 0.14.14
