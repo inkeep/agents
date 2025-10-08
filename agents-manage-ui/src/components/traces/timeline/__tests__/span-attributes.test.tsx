@@ -500,10 +500,5 @@ describe('Span Attributes Copy Functionality', () => {
     expect(decorationPositions.some((pos) => pos.startLineNumber === 12)).toBe(true); // "baz"
     expect(decorationPositions.some((pos) => pos.startLineNumber === 15)).toBe(true); // "string": "hello"
     expect(decorationPositions.some((pos) => pos.startLineNumber === 16)).toBe(true); // "emptyString": ""
-
-    console.log('✅ Decorations successfully applied to Monaco editor!');
-    console.log(
-      'Note: DOM decorations are not visible in test environment (jsdom), but work in browser'
-    );
   });
 });

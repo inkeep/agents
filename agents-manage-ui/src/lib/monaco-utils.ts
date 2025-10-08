@@ -1,10 +1,10 @@
 import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
 import type { RefObject } from 'react';
-import * as monaco from 'monaco-editor';
 
 export function addDecorations(
   editorInstance: editor.IStandaloneCodeEditor,
-  content: string
+  content: string,
+  addedContent = ' #'
 ): {
   decorations: editor.IModelDeltaDecoration[];
   decorationCollection: editor.IEditorDecorationsCollection;
@@ -12,7 +12,7 @@ export function addDecorations(
   // Add decorations for copy icons after primitive values
   const decorations: editor.IModelDeltaDecoration[] = [];
 
-  const tokens = monaco.editor.tokenize(content, 'json');
+  const tokens = editor.tokenize(content, 'json');
 
   // Function to check if a token should show a copy icon
   const shouldShowCopyIcon = (tokenType: string): boolean => {
@@ -34,7 +34,7 @@ export function addDecorations(
       }
       // Calculate the end position of the current token
       const nextToken = lineTokens[i + 1];
-      const tokenEndOffset = nextToken ? nextToken.offset : lines[lineNumber - 1].length;
+      const tokenEndOffset = nextToken ? nextToken.offset : lines[lineNumber - 1].length - 1;
 
       const range = new Range(
         //
@@ -47,7 +47,7 @@ export function addDecorations(
         range,
         options: {
           after: {
-            content: ' ',
+            content: addedContent,
             inlineClassName: 'copy-button-icon',
           },
         },

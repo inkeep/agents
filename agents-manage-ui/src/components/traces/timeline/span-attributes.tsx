@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { renderToString } from 'react-dom/server';
-import { ClipboardCopy, SquareCheckBig } from 'lucide-react';
+import { ClipboardCopy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import '@/lib/setup-monaco-workers';
 
@@ -24,33 +24,24 @@ const copyButtonStyles = `
     margin-left: 10px;
     opacity: 0;
     cursor: pointer;
-    position: relative;
+    position: absolute;
   }
   .copy-button-icon::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
     width: 16px;
     height: 16px;
-    background-image: url("data:image/svg+xml,${encodeURIComponent(renderToString(<ClipboardCopy />))}");
+    background-image: url("data:image/svg+xml,${encodeURIComponent(
+      renderToString(<ClipboardCopy />)
+    )}");
     background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
     filter: invert(0);
   }
   /* Dark mode - invert the icon to make it white */
   .dark .copy-button-icon::before {
     filter: invert(1);
   }
-  .copy-button-icon.copied {
-    opacity: 1;
-  }
-  .copy-button-icon.copied::before {
-    background-image: url("data:image/svg+xml,${encodeURIComponent(renderToString(<SquareCheckBig stroke="#00bc7d" />))}");
-    filter: none;
-  }
-  /* Show copy button when hovering over the entire line (including field name) */
+  /* Show copy button only when hovering over the specific line */
   .view-line:hover .copy-button-icon {
     opacity: 1;
   }
@@ -199,7 +190,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     // Update height based on content
     const contentHeight = editorInstance.getContentHeight();
     ref.current.style.height = `${contentHeight}px`;
-    addDecorations(editorInstance, model.getValue());
+    addDecorations(editorInstance, model.getValue(), ' ');
 
     return cleanupDisposables([
       model,
