@@ -501,7 +501,7 @@ export class Agent {
     const mcpTools =
       this.config.tools?.filter((tool) => {
         // Only process tools that have MCP configuration
-        return tool.config?.type === 'mcp' || tool.config?.mcp;
+        return tool.config?.type === 'mcp';
       }) || [];
 
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
@@ -590,16 +590,21 @@ export class Agent {
     tool: McpTool,
     agentToolRelationHeaders?: Record<string, string>
   ): MCPToolConfig {
+    // Type guard - should only be called for MCP tools
+    if (tool.config.type !== 'mcp') {
+      throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
+    }
+
     return {
       id: tool.id,
       name: tool.name,
       description: tool.name, // Use name as description fallback
-      serverUrl: tool.config.mcp?.server?.url || '',
-      activeTools: tool.config.mcp?.activeTools,
-      mcpType: tool.config.mcp?.server?.url?.includes('api.nango.dev')
+      serverUrl: tool.config.mcp.server.url,
+      activeTools: tool.config.mcp.activeTools,
+      mcpType: tool.config.mcp.server.url.includes('api.nango.dev')
         ? MCPServerType.nango
         : MCPServerType.generic,
-      transport: tool.config.mcp?.transport,
+      transport: tool.config.mcp.transport,
       headers: {
         ...tool.headers,
         ...agentToolRelationHeaders,
@@ -674,10 +679,15 @@ export class Agent {
       );
     } else {
       // No credentials - build basic config
+      // Type guard - should only reach here for MCP tools
+      if (tool.config.type !== 'mcp') {
+        throw new Error(`Cannot build server config for non-MCP tool: ${tool.id}`);
+      }
+
       serverConfig = {
-        type: tool.config.mcp?.transport?.type || MCPTransportType.streamableHttp,
-        url: tool.config.mcp?.server?.url || '',
-        activeTools: tool.config.mcp?.activeTools,
+        type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
+        url: tool.config.mcp.server.url,
+        activeTools: tool.config.mcp.activeTools,
         selectedTools,
         headers: agentToolRelationHeaders,
       };
@@ -823,9 +833,10 @@ export class Agent {
 
               try {
                 const result = await sandboxExecutor.executeFunctionTool(toolDef.tool.id, args, {
-                  inputSchema: functionData.inputSchema,
+                  description: toolDef.tool.description || toolDef.tool.name,
+                  inputSchema: functionData.inputSchema || {},
                   executeCode: functionData.executeCode,
-                  dependencies: functionData.dependencies,
+                  dependencies: functionData.dependencies || {},
                 });
 
                 // Record the result

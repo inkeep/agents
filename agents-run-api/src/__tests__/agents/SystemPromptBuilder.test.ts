@@ -5,15 +5,23 @@ import type { SystemPromptV1 } from '../../agents/types';
 import { Phase1Config } from '../../agents/versions/v1/Phase1Config';
 
 // Helper to create mock McpTool
-function createMockMcpTool(name: string, availableTools: any[]): McpTool {
+function createMockMcpTool(name: string, availableTools: any[]): any {
   return {
     id: `tool-${name}`,
     name,
-    config: { mcp: { server: { url: 'http://example.com' } } },
+    tenantId: 'test-tenant',
+    projectId: 'test-project',
+    description: undefined,
+    config: {
+      type: 'mcp',
+      mcp: { server: { url: 'http://example.com' } },
+    },
+    functionId: undefined,
     availableTools,
+    status: 'healthy',
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as McpTool;
+  };
 }
 
 describe('SystemPromptBuilder', () => {

@@ -121,6 +121,11 @@ class OAuthService {
   }): Promise<OAuthInitiationResult> {
     const { tool, tenantId, projectId, toolId, baseUrl } = params;
 
+    // Type guard - OAuth only works with MCP tools
+    if (tool.config.type !== 'mcp') {
+      throw new Error('OAuth is only supported for MCP tools');
+    }
+
     // 1. Detect OAuth requirements
     const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);
     if (!oAuthConfig) {
@@ -175,6 +180,11 @@ class OAuthService {
     baseUrl?: string; // Optional override for the base URL
   }): Promise<TokenExchangeResult> {
     const { code, codeVerifier, clientId, tool, baseUrl } = params;
+
+    // Type guard - OAuth only works with MCP tools
+    if (tool.config.type !== 'mcp') {
+      throw new Error('OAuth is only supported for MCP tools');
+    }
 
     // Discover OAuth server endpoints from MCP server
     const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);

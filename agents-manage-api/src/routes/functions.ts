@@ -2,15 +2,19 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
+  deleteFunction,
   ErrorResponseSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  getFunction,
   IdParamsSchema,
   ListResponseSchema,
+  listFunctions,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantParamsSchema,
+  upsertFunction,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
@@ -46,33 +50,26 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId } = c.req.valid('param');
-    const { page, limit } = c.req.valid('query');
 
     try {
-      const offset = (page - 1) * limit;
-
-      // Functions are global - no tenant/project filtering
-      const functions = await dbClient
-        .select()
-        .from(dbClient.schema.functions)
-        .limit(limit)
-        .offset(offset);
-
-      const totalCount = await dbClient
-        .select({ count: dbClient.count() })
-        .from(dbClient.schema.functions);
+      // Functions are global - list all
+      const functions = await listFunctions(dbClient)();
 
       return c.json({
-        data: functions,
+        data: functions as any,
         pagination: {
-          page,
-          limit,
-          total: totalCount[0]?.count || 0,
+          page: 1,
+          limit: functions.length,
+          total: functions.length,
+          pages: 1,
         },
       });
     } catch (error) {
-      logger.error('Failed to list functions', { error, tenantId });
-      return c.json(createApiError('Failed to list functions'), 500);
+      logger.error({ error, tenantId }, 'Failed to list functions');
+      return c.json(
+        createApiError({ code: 'internal_server_error', message: 'Failed to list functions' }),
+        500
+      );
     }
   }
 );
@@ -86,7 +83,7 @@ app.openapi(
     operationId: 'get-function',
     tags: ['Functions'],
     request: {
-      params: IdParamsSchema,
+      params: TenantParamsSchema.merge(IdParamsSchema),
     },
     responses: {
       200: {
@@ -113,20 +110,19 @@ app.openapi(
 
     try {
       // Functions are global - query by ID only
-      const functionData = await dbClient
-        .select()
-        .from(dbClient.schema.functions)
-        .where(dbClient.eq(dbClient.schema.functions.id, id))
-        .limit(1);
+      const functionData = await getFunction(dbClient)({ functionId: id });
 
-      if (!functionData.length) {
-        return c.json(createApiError('Function not found'), 404);
+      if (!functionData) {
+        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404);
       }
 
-      return c.json({ data: functionData[0] });
+      return c.json({ data: functionData as any });
     } catch (error) {
-      logger.error('Failed to get function', { error, tenantId, id });
-      return c.json(createApiError('Failed to get function'), 500);
+      logger.error({ error, tenantId, id }, 'Failed to get function');
+      return c.json(
+        createApiError({ code: 'internal_server_error', message: 'Failed to get function' }),
+        500
+      );
     }
   }
 );
@@ -178,24 +174,24 @@ app.openapi(
       const id = functionData.id || nanoid();
 
       // Functions are global entities (no tenant/project scoping)
-      const newFunction = {
-        ...functionData,
-        id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      await upsertFunction(dbClient)({
+        data: {
+          ...functionData,
+          id,
+        },
+      });
 
-      const result = await dbClient
-        .insert(dbClient.schema.functions)
-        .values(newFunction)
-        .returning();
+      const created = await getFunction(dbClient)({ functionId: id });
 
-      logger.info('Function created', { tenantId, functionId: id });
+      logger.info({ tenantId, functionId: id }, 'Function created');
 
-      return c.json({ data: result[0] }, 201);
+      return c.json({ data: created as any }, 201);
     } catch (error) {
-      logger.error('Failed to create function', { error, tenantId, functionData });
-      return c.json(createApiError('Failed to create function'), 500);
+      logger.error({ error, tenantId, functionData }, 'Failed to create function');
+      return c.json(
+        createApiError({ code: 'internal_server_error', message: 'Failed to create function' }),
+        500
+      );
     }
   }
 );
@@ -209,7 +205,7 @@ app.openapi(
     operationId: 'update-function',
     tags: ['Functions'],
     request: {
-      params: IdParamsSchema,
+      params: TenantParamsSchema.merge(IdParamsSchema),
       body: {
         content: {
           'application/json': {
@@ -243,26 +239,32 @@ app.openapi(
     const updateData = c.req.valid('json');
 
     try {
-      // Functions are global - update by ID only
-      const result = await dbClient
-        .update(dbClient.schema.functions)
-        .set({
-          ...updateData,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(dbClient.eq(dbClient.schema.functions.id, id))
-        .returning();
-
-      if (!result.length) {
-        return c.json(createApiError('Function not found'), 404);
+      // Check if function exists
+      const existing = await getFunction(dbClient)({ functionId: id });
+      if (!existing) {
+        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404);
       }
 
-      logger.info('Function updated', { tenantId, functionId: id });
+      // Functions are global - update by ID only
+      await upsertFunction(dbClient)({
+        data: {
+          ...existing,
+          ...updateData,
+          id,
+        },
+      });
 
-      return c.json({ data: result[0] });
+      const updated = await getFunction(dbClient)({ functionId: id });
+
+      logger.info({ tenantId, functionId: id }, 'Function updated');
+
+      return c.json({ data: updated as any });
     } catch (error) {
-      logger.error('Failed to update function', { error, tenantId, id, updateData });
-      return c.json(createApiError('Failed to update function'), 500);
+      logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
+      return c.json(
+        createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
+        500
+      );
     }
   }
 );
@@ -276,7 +278,7 @@ app.openapi(
     operationId: 'delete-function',
     tags: ['Functions'],
     request: {
-      params: IdParamsSchema,
+      params: TenantParamsSchema.merge(IdParamsSchema),
     },
     responses: {
       204: {
@@ -297,22 +299,24 @@ app.openapi(
     const { tenantId, id } = c.req.valid('param');
 
     try {
-      // Functions are global - delete by ID only
-      const result = await dbClient
-        .delete(dbClient.schema.functions)
-        .where(dbClient.eq(dbClient.schema.functions.id, id))
-        .returning();
-
-      if (!result.length) {
-        return c.json(createApiError('Function not found'), 404);
+      // Check if function exists
+      const existing = await getFunction(dbClient)({ functionId: id });
+      if (!existing) {
+        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404);
       }
 
-      logger.info('Function deleted', { tenantId, functionId: id });
+      // Functions are global - delete by ID only
+      await deleteFunction(dbClient)({ functionId: id });
+
+      logger.info({ tenantId, functionId: id }, 'Function deleted');
 
       return c.body(null, 204);
     } catch (error) {
-      logger.error('Failed to delete function', { error, tenantId, id });
-      return c.json(createApiError('Failed to delete function'), 500);
+      logger.error({ error, tenantId, id }, 'Failed to delete function');
+      return c.json(
+        createApiError({ code: 'internal_server_error', message: 'Failed to delete function' }),
+        500
+      );
     }
   }
 );
