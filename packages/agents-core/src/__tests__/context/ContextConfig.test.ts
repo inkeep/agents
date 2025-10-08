@@ -4,8 +4,8 @@ import {
   ContextConfigBuilder,
   contextConfig,
   fetchDefinition,
-  RequestContextSchemaBuilder,
-  requestContextSchema,
+  HeadersSchemaBuilder,
+  headers,
 } from '../../context/ContextConfig';
 import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 
@@ -29,24 +29,31 @@ describe('ContextConfig', () => {
     it('should create a basic context config with minimal options', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId,
         projectId,
         graphId,
       });
 
       expect(config.getId()).toBe('test-config');
-      expect(config.getName()).toBe('Test Config');
-      expect(config.getDescription()).toBe('');
-      expect(config.getRequestContextSchema()).toBeNull();
+      expect(config.getHeadersSchema()).toBeNull();
       expect(config.getContextVariables()).toEqual({});
     });
 
-    it('should use default values for tenantId, projectId, graphId if not provided', () => {
+    it('should auto-generate ID if not provided', () => {
       const config = new ContextConfigBuilder({
-        id: 'test-config',
-        name: 'Test Config',
+        tenantId,
+        projectId,
+        graphId,
       });
+
+      const id = config.getId();
+      expect(id).toBeDefined();
+      expect(typeof id).toBe('string');
+      expect(id.length).toBeGreaterThan(0);
+    });
+
+    it('should use default values for tenantId, projectId, graphId if not provided', () => {
+      const config = new ContextConfigBuilder({});
 
       const obj = config.toObject();
       expect(obj.tenantId).toBe('default');
@@ -55,32 +62,17 @@ describe('ContextConfig', () => {
     });
 
     it('should throw error when getting ID if not set', () => {
-      const config = new ContextConfigBuilder({
-        id: '',
-        name: 'Test',
-      } as any);
+      const config = new ContextConfigBuilder({});
 
       // Override the id to empty
       (config as any).config.id = undefined;
 
       expect(() => config.getId()).toThrow('Context config ID is not set');
     });
-
-    it('should throw error when getting name if not set', () => {
-      const config = new ContextConfigBuilder({
-        id: 'test',
-        name: '',
-      } as any);
-
-      // Override the name to empty
-      (config as any).config.name = undefined;
-
-      expect(() => config.getName()).toThrow('Context config name is not set');
-    });
   });
 
-  describe('ContextConfigBuilder - Request Context Schema', () => {
-    it('should accept a Zod schema for request context', () => {
+  describe('ContextConfigBuilder - Headers Schema', () => {
+    it('should accept a Zod schema for headers', () => {
       const schema = z.object({
         userId: z.string(),
         sessionId: z.string(),
@@ -88,37 +80,35 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
-        requestContextSchema: schema,
+        headers: schema,
         tenantId,
         projectId,
         graphId,
       });
 
-      const requestSchema = config.getRequestContextSchema();
-      expect(requestSchema).toBeDefined();
-      expect(requestSchema).toHaveProperty('type');
+      const headersSchema = config.getHeadersSchema();
+      expect(headersSchema).toBeDefined();
+      expect(headersSchema).toHaveProperty('type');
     });
 
-    it('should accept a RequestContextSchemaBuilder for request context', () => {
+    it('should accept a HeadersSchemaBuilder for headers', () => {
       const schema = z.object({
         userId: z.string(),
         email: z.string().email(),
       });
 
-      const schemaBuilder = new RequestContextSchemaBuilder({ schema });
+      const schemaBuilder = new HeadersSchemaBuilder({ schema });
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
-        requestContextSchema: schemaBuilder,
+        headers: schemaBuilder,
         tenantId,
         projectId,
         graphId,
       });
 
-      const requestSchema = config.getRequestContextSchema();
-      expect(requestSchema).toBeDefined();
+      const headersSchema = config.getHeadersSchema();
+      expect(headersSchema).toBeDefined();
     });
 
     it('should convert Zod schema to JSON schema', () => {
@@ -143,7 +133,6 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         contextVariables: {
           user: {
             id: 'fetch-user',
@@ -173,7 +162,6 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         contextVariables: {
           data: {
             id: 'fetch-data',
@@ -200,7 +188,6 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         contextVariables: {
           auth: {
             id: 'fetch-auth',
@@ -227,7 +214,6 @@ describe('ContextConfig', () => {
     it('should update context (tenantId, projectId, graphId)', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId: 'old-tenant',
         projectId: 'old-project',
         graphId: 'old-graph',
@@ -246,8 +232,6 @@ describe('ContextConfig', () => {
     it('should convert builder to plain object', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
-        description: 'Test description',
         tenantId,
         projectId,
         graphId,
@@ -256,8 +240,6 @@ describe('ContextConfig', () => {
       const obj = config.toObject();
 
       expect(obj).toHaveProperty('id', 'test-config');
-      expect(obj).toHaveProperty('name', 'Test Config');
-      expect(obj).toHaveProperty('description', 'Test description');
       expect(obj).toHaveProperty('tenantId', tenantId);
       expect(obj).toHaveProperty('projectId', projectId);
       expect(obj).toHaveProperty('graphId', graphId);
@@ -274,16 +256,15 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
-        requestContextSchema: requestSchema,
+        headers: requestSchema,
         tenantId,
         projectId,
         graphId,
       });
 
       // This tests the toTemplate method
-      const template = config.toTemplate('requestContext.userId' as any);
-      expect(template).toBe('{{requestContext.userId}}');
+      const template = config.toTemplate('headers.userId' as any);
+      expect(template).toBe('{{headers.userId}}');
     });
   });
 
@@ -291,8 +272,6 @@ describe('ContextConfig', () => {
     it('should pass validation for valid config', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
-        description: 'Valid config',
         tenantId,
         projectId,
         graphId,
@@ -303,14 +282,13 @@ describe('ContextConfig', () => {
       expect(result.errors).toEqual([]);
     });
 
-    it('should fail validation if requestContext key is used in contextVariables', () => {
+    it('should fail validation if headers key is used in contextVariables', () => {
       const schema = z.object({ data: z.string() });
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         contextVariables: {
-          requestContext: {
+          headers: {
             id: 'bad-fetch',
             trigger: 'initialization' as const,
             fetchConfig: {
@@ -328,7 +306,7 @@ describe('ContextConfig', () => {
       const result = config.validate();
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        "The key 'requestContext' is reserved for the request context and cannot be used in contextVariables"
+        "The key 'headers' is reserved for the headers context and cannot be used in contextVariables"
       );
     });
   });
@@ -336,9 +314,8 @@ describe('ContextConfig', () => {
   it('should throw error if validation fails', async () => {
     const config = new ContextConfigBuilder({
       id: 'test-config',
-      name: 'Test Config',
       contextVariables: {
-        requestContext: {
+        headers: {
           id: 'bad',
           trigger: 'initialization' as const,
           fetchConfig: { url: 'test', method: 'GET' },
@@ -353,19 +330,19 @@ describe('ContextConfig', () => {
     await expect(config.init()).rejects.toThrow('Context config validation failed');
   });
 
-  describe('RequestContextSchemaBuilder', () => {
+  describe('HeadersSchemaBuilder', () => {
     it('should create schema builder with Zod schema', () => {
       const schema = z.object({
         userId: z.string(),
         email: z.string().email(),
       });
 
-      const builder = new RequestContextSchemaBuilder({ schema });
+      const builder = new HeadersSchemaBuilder({ schema });
 
       expect(builder.getSchema()).toBe(schema);
     });
 
-    it('should generate templates with requestContext prefix', () => {
+    it('should generate templates with headers prefix', () => {
       const schema = z.object({
         userId: z.string(),
         preferences: z.object({
@@ -373,10 +350,10 @@ describe('ContextConfig', () => {
         }),
       });
 
-      const builder = new RequestContextSchemaBuilder({ schema });
+      const builder = new HeadersSchemaBuilder({ schema });
 
       const template = builder.toTemplate('userId' as any);
-      expect(template).toBe('{{requestContext.userId}}');
+      expect(template).toBe('{{headers.userId}}');
     });
 
     it('should convert schema to JSON schema', () => {
@@ -385,7 +362,7 @@ describe('ContextConfig', () => {
         age: z.number(),
       });
 
-      const builder = new RequestContextSchemaBuilder({ schema });
+      const builder = new HeadersSchemaBuilder({ schema });
       const jsonSchema = builder.getJsonSchema();
 
       expect(jsonSchema).toHaveProperty('type', 'object');
@@ -397,7 +374,6 @@ describe('ContextConfig', () => {
     it('should create ContextConfigBuilder via contextConfig factory', () => {
       const config = contextConfig({
         id: 'factory-config',
-        name: 'Factory Config',
         tenantId,
         projectId,
         graphId,
@@ -407,11 +383,11 @@ describe('ContextConfig', () => {
       expect(config.getId()).toBe('factory-config');
     });
 
-    it('should create RequestContextSchemaBuilder via requestContextSchema factory', () => {
+    it('should create HeadersSchemaBuilder via headers factory', () => {
       const schema = z.object({ id: z.string() });
-      const builder = requestContextSchema({ schema });
+      const builder = headers({ schema });
 
-      expect(builder).toBeInstanceOf(RequestContextSchemaBuilder);
+      expect(builder).toBeInstanceOf(HeadersSchemaBuilder);
       expect(builder.getSchema()).toBe(schema);
     });
 
@@ -462,7 +438,6 @@ describe('ContextConfig', () => {
     it('should parse JSON error responses', async () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId,
         projectId,
         graphId,
@@ -483,7 +458,6 @@ describe('ContextConfig', () => {
     it('should parse text error responses', async () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId,
         projectId,
         graphId,
@@ -505,7 +479,6 @@ describe('ContextConfig', () => {
     it('should handle empty error responses', async () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId,
         projectId,
         graphId,
@@ -526,20 +499,19 @@ describe('ContextConfig', () => {
   });
 
   describe('Builder Methods', () => {
-    it('should support fluent API with withRequestContextSchema', () => {
+    it('should support fluent API with withHeadersSchema', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId,
         projectId,
         graphId,
       });
 
       const newSchema = { type: 'object', properties: { id: { type: 'string' } } };
-      const result = config.withRequestContextSchema(newSchema);
+      const result = config.withHeadersSchema(newSchema);
 
       expect(result).toBe(config); // Should return this for chaining
-      expect(config.getRequestContextSchema()).toEqual(newSchema);
+      expect(config.getHeadersSchema()).toEqual(newSchema);
     });
   });
 
@@ -547,7 +519,6 @@ describe('ContextConfig', () => {
     it('should handle empty context variables', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         contextVariables: {},
         tenantId,
         projectId,
@@ -562,7 +533,6 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
         tenantId,
         projectId,
         graphId,
@@ -593,14 +563,13 @@ describe('ContextConfig', () => {
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
-        name: 'Test Config',
-        requestContextSchema: complexSchema,
+        headers: complexSchema,
         tenantId,
         projectId,
         graphId,
       });
 
-      const jsonSchema = config.getRequestContextSchema();
+      const jsonSchema = config.getHeadersSchema();
       expect(jsonSchema).toBeDefined();
       expect(jsonSchema).toHaveProperty('type', 'object');
     });

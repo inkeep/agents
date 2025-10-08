@@ -4,6 +4,7 @@ import type {
   ContextFetchDefinition,
   CredentialReferenceApiInsert,
 } from '../types/index';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { convertZodToJsonSchema } from '../utils/schema-conversion';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
@@ -78,9 +79,7 @@ export interface ContextConfigBuilderOptions<
   R extends z.ZodTypeAny | undefined = undefined,
   CV = Record<string, builderFetchDefinition<z.ZodTypeAny>>,
 > {
-  id: string;
-  name: string;
-  description?: string;
+  id?: string;
   headers?: R | HeadersSchemaBuilder<R extends z.ZodTypeAny ? R : z.ZodTypeAny>;
   contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
@@ -153,11 +152,9 @@ export class ContextConfigBuilder<
     }
 
     this.config = {
-      id: options.id,
+      id: options.id || generateId(),
       tenantId: this.tenantId,
       projectId: this.projectId,
-      name: options.name,
-      description: options.description || '',
       headersSchema: headers,
       contextVariables: processedContextVariables as Record<string, ContextFetchDefinition>,
     };
@@ -205,8 +202,6 @@ export class ContextConfigBuilder<
       tenantId: this.tenantId,
       projectId: this.projectId,
       graphId: this.graphId,
-      name: this.getName(),
-      description: this.getDescription(),
       headersSchema: this.getHeadersSchema(),
       contextVariables: this.getContextVariables(),
       createdAt: new Date().toISOString(),
@@ -220,17 +215,6 @@ export class ContextConfigBuilder<
       throw new Error('Context config ID is not set');
     }
     return this.config.id;
-  }
-
-  getName(): string {
-    if (!this.config.name) {
-      throw new Error('Context config name is not set');
-    }
-    return this.config.name;
-  }
-
-  getDescription(): string {
-    return this.config.description || '';
   }
 
   getHeadersSchema() {
@@ -267,8 +251,6 @@ export class ContextConfigBuilder<
 
       ContextConfigApiUpdateSchema.parse({
         id: this.config.id,
-        name: this.config.name,
-        description: this.config.description,
         headersSchema: this.config.headersSchema,
         contextVariables: this.config.contextVariables,
       });
@@ -316,8 +298,6 @@ export class ContextConfigBuilder<
   private async upsertContextConfig(): Promise<void> {
     const configData = {
       id: this.getId(),
-      name: this.getName(),
-      description: this.getDescription(),
       headersSchema: this.getHeadersSchema(),
       contextVariables: this.getContextVariables(),
     };

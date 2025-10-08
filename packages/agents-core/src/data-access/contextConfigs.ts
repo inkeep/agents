@@ -96,8 +96,6 @@ export const createContextConfig = (db: DatabaseClient) => async (params: Contex
       tenantId: params.tenantId,
       projectId: params.projectId,
       graphId: params.graphId,
-      name: params.name,
-      description: params.description,
       headersSchema: params.headersSchema ?? null,
       contextVariables: contextVariables ?? null,
       createdAt: now,
@@ -200,19 +198,6 @@ export const countContextConfigs =
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
   };
 
-export const getContextConfigsByName =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; name: string }) => {
-    return await db.query.contextConfigs.findMany({
-      where: and(
-        eq(contextConfigs.tenantId, params.scopes.tenantId),
-        eq(contextConfigs.projectId, params.scopes.projectId),
-        eq(contextConfigs.graphId, params.scopes.graphId),
-        eq(contextConfigs.name, params.name)
-      ),
-      orderBy: [desc(contextConfigs.createdAt)],
-    });
-  };
-
 /**
  * Upsert a context config (create if it doesn't exist, update if it does)
  */
@@ -237,8 +222,6 @@ export const upsertContextConfig =
           scopes,
           id: params.data.id,
           data: {
-            name: params.data.name,
-            description: params.data.description,
             headersSchema: params.data.headersSchema,
             contextVariables: params.data.contextVariables,
           },

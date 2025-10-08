@@ -3,7 +3,7 @@ import type { FullGraphDefinition } from '@/lib/types/graph-full';
 import { formatJsonField } from '@/lib/utils';
 
 export type ExtendedFullGraphDefinition = FullGraphDefinition & {
-  contextConfig?: Partial<Pick<ContextConfig, 'id' | 'name' | 'description'>> & {
+  contextConfig?: Partial<Pick<ContextConfig, 'id'>> & {
     contextVariables?: Record<string, any>;
     headersSchema?: Record<string, any>;
   };
@@ -54,8 +54,6 @@ export function extractGraphMetadata(
       : undefined,
     contextConfig: {
       id: graph?.contextConfig?.id ?? '',
-      name: graph?.contextConfig?.name ?? '',
-      description: graph?.contextConfig?.description ?? '',
       contextVariables: formatJsonField(graph?.contextConfig?.contextVariables) || '',
       headersSchema: formatJsonField(graph?.contextConfig?.headersSchema) || '',
     },

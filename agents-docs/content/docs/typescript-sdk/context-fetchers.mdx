@@ -40,7 +40,7 @@ import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
 
 // 1. Define request schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.
-const requestHeaders = headers({
+const personalGraphHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     api_key: z.string(),
@@ -53,10 +53,10 @@ const userFetcher = fetchDefinition({
   name: "User Information",
   trigger: "initialization", // Fetch only once when a conversation is started with the graph. When set to "invocation", the fetch will be executed every time a request is made to the graph.
   fetchConfig: {
-    url: `https://api.example.com/users/${requestHeaders.toTemplate('user_id')}`,
+    url: `https://api.example.com/users/${personalGraphHeaders.toTemplate('user_id')}`,
     method: "GET",
     headers: {
-      Authorization: `Bearer ${requestHeaders.toTemplate('api_key')}`,
+      Authorization: `Bearer ${personalGraphHeaders.toTemplate('api_key')}`,
     },
     transform: "user", // Extract user from response, for example if the response is { "user": { "name": "John Doe", "email": "john.doe@example.com" } }, the transform will return the user object
   },
@@ -71,11 +71,7 @@ const userFetcher = fetchDefinition({
 
 // 3. Configure context
 const personalGraphContext = contextConfig({
-  tenantId: "your-tenant",
-  id: "user-context",
-  name: "User Context",
-  description: "Fetches user information for personalization",
-  headers: requestHeaders,
+  headers: personalGraphHeaders,
   contextVariables: {
     user: userFetcher,
   },
@@ -106,11 +102,7 @@ Use the context config's `toTemplate()` method for type-safe templating with aut
 
 ```typescript
 const personalGraphContext = contextConfig({
-  tenantId: "your-tenant",
-  id: "user-context",
-  name: "User Context",
-  description: "Fetches user information for personalization",
-  headers: requestHeaders,
+  headers: personalGraphHeaders,
   contextVariables: {
     user: userFetcher,
   },

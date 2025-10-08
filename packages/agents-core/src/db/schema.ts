@@ -120,7 +120,6 @@ export const contextConfigs = sqliteTable(
   'context_configs',
   {
     ...graphScoped,
-    ...uiProperties,
 
     // Developer-defined Zod schema for validating incoming request context
     headersSchema: blob('headers_schema', { mode: 'json' }).$type<unknown>(), // Stores serialized Zod schema

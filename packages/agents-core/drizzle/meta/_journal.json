@@ -29,6 +29,13 @@
       "when": 1759970956091,
       "tag": "0003_soft_forgotten_one",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1759950150435,
+      "tag": "0003_safe_venus",
+      "breakpoints": true
     }
   ]
 }
