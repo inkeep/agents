@@ -64,54 +64,83 @@ const agent = agent({
 });
 ```
 
-The `props` schema defines all artifact fields. Fields marked with `isPreview: true` are used in the agent's context for summaries, while all fields are stored in the database.
+## Schema Options
 
-## Automatic Artifact Creation
+Artifact components can be configured in two ways:
 
-When an agent uses a tool or delegates to another agent:
+1. **With Schema**: Define specific fields and mark preview fields with `isPreview: true`
+2. **No Schema**: Save the entire tool result as-is (no field filtering)
 
-1. The tool/agent processes the request and returns a response
-2. The response is automatically parsed according to the artifact component schema
-3. An artifact is created containing the parsed information
-4. The artifact is associated with any data components (facts, clarifying questions, etc.) that use this information
+When using a schema:
+- **Preview fields** (`isPreview: true`): Shown to agents automatically and streamed in real-time  
+- **Full fields**: Complete data available when agents request the full artifact
 
-## Using Artifacts with Data Components
+When no schema is provided, the entire tool result is saved and available to agents.
 
-Artifacts work hand-in-hand with data components to maintain traceability. For example:
+## Artifact Creation
 
-1. An agent uses a tool to fetch information
-2. The response is automatically captured as an artifact
-3. The agent creates a fact component using this information
-4. The artifact is automatically linked to the fact component
+When an agent uses a tool:
 
-This creates a clear chain of evidence showing where each piece of information originated.
+1. The tool processes the request and returns a response
+2. **The agent decides** whether to create an artifact from the tool response
+3. If created, the artifact is parsed according to the artifact component schema
+4. The artifact can be associated with any data components that reference this information
+
+## Artifacts vs Data Components
+
+**Artifacts** and **Data Components** are different:
+
+- **Artifacts**: Citations/sources from tool results stored in the database
+- **Data Components**: UI elements agents output in responses (Text, Fact, etc.)
+
+Artifacts provide the source citations that back up information in data components.
 
 ## Example Flow
 
 ```typescript
-// Example of how artifacts are created and used
-const factsAgent = agent({
-  id: "facts",
-  canUse: () => [inkeepFactsTool],
-  prompt: "Use the inkeepFactsTool to fetch information and create a fact component followed by an artifact component.",
+const searchAgent = agent({
+  id: "search",
+  canUse: () => [searchTool],
+  prompt: "Search for information and cite sources using artifacts.",
   artifactComponents: [
     {
-      id: "document-artifact",
-      // ... artifact schema definition
-    },
-  ],
-  dataComponents: [
-    {
-      id: "fact",
-      // ... fact component definition that will be linked to artifacts
+      id: "document",
+      name: "Document",
+      description: "Search result document",
+      props: {
+        type: "object",
+        properties: {
+          title: { type: "string", isPreview: true },
+          url: { type: "string", isPreview: true },
+          content: { type: "string" },
+        },
+      },
     },
   ],
 });
 ```
 
-In this example, when the `facts_tool` is used:
+## No Schema Example
 
-1. The tool returns information
-2. An artifact is automatically created with the response
-3. The agent can create fact components using this information
-4. The facts are automatically linked to their source artifacts
+```typescript
+const rawDataAgent = agent({
+  id: "raw-data",
+  canUse: () => [apiTool],
+  prompt: "Fetch data and save complete responses.",
+  artifactComponents: [
+    {
+      id: "api-response",
+      name: "API Response",
+      description: "Complete API response data",
+      // No props - saves entire tool result
+    },
+  ],
+});
+```
+
+Example flow:
+
+1. Agent uses search tool and gets results
+2. **Agent decides** to create an artifact citing the source document
+3. Artifact is stored with preview fields (title, url) shown to other agents
+4. Other agents can reference this artifact or get full content when needed

@@ -614,7 +614,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   });
 
   describe('Schema Validation', () => {
-    it('should accept valid JSON schema in summaryProps', async () => {
+    it('should accept valid JSON schema in props', async () => {
       const tenantId = createTestTenantId('artifact-components-schema-valid');
       await ensureTestProject(tenantId, projectId);
       const validSchemaData = {
@@ -642,17 +642,17 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.summaryProps).toEqual(validSchemaData.summaryProps);
+      expect(body.data.props).toEqual(validSchemaData.props);
     });
 
-    it('should accept complex nested schemas in fullProps', async () => {
+    it('should accept complex nested schemas in props', async () => {
       const tenantId = createTestTenantId('artifact-components-schema-complex');
       await ensureTestProject(tenantId, projectId);
       const complexSchemaData = {
         id: `complex-schema-component-${nanoid(6)}`,
         name: 'ComplexSchemaComponent',
         description: 'Testing complex nested JSON schema',
-        fullProps: {
+        props: {
           type: 'object',
           properties: {
             user: {
@@ -694,7 +694,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.fullProps).toEqual(complexSchemaData.fullProps);
+      expect(body.data.props).toEqual(complexSchemaData.props);
     });
   });
 });

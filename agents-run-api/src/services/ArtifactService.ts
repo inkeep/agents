@@ -10,8 +10,12 @@ import { nanoid } from 'nanoid';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import {
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../utils/schema-validation';
 import { graphSessionManager } from './GraphSession';
-import { extractPreviewFields, extractFullFields, type ExtendedJsonSchema } from '../utils/schema-validation';
 
 const logger = getLogger('ArtifactService');
 
@@ -116,8 +120,10 @@ export class ArtifactService {
   /**
    * Create artifact from tool result and request data
    */
-  async createArtifact(request: ArtifactCreateRequest, agentId?: string): Promise<ArtifactSummaryData | null> {
-    
+  async createArtifact(
+    request: ArtifactCreateRequest,
+    agentId?: string
+  ): Promise<ArtifactSummaryData | null> {
     if (!this.context.sessionId) {
       logger.warn({ request }, 'No session ID available for artifact creation');
       return null;
@@ -164,18 +170,26 @@ export class ArtifactService {
 
       // Find matching artifact component and extract preview/full schemas
       const component = this.context.artifactComponents?.find((ac) => ac.name === request.type);
-      
+
       let summaryData: Record<string, any> = {};
       let fullData: Record<string, any> = {};
-      
+
       if (component?.props) {
         // Extract preview and full fields from the unified props schema
         const previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
         const fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
-        
+
         // Extract data based on schemas and details selector
-        summaryData = this.extractPropsFromSchema(selectedData, previewSchema, request.detailsSelector || {});
-        fullData = this.extractPropsFromSchema(selectedData, fullSchema, request.detailsSelector || {});
+        summaryData = this.extractPropsFromSchema(
+          selectedData,
+          previewSchema,
+          request.detailsSelector || {}
+        );
+        fullData = this.extractPropsFromSchema(
+          selectedData,
+          fullSchema,
+          request.detailsSelector || {}
+        );
       } else {
         // Fallback: use details selector or entire selected data
         summaryData = this.extractProps(selectedData, request.detailsSelector || {});
@@ -361,7 +375,11 @@ export class ArtifactService {
   /**
    * Format raw artifact to standardized summary data format
    */
-  private formatArtifactSummaryData(artifact: any, artifactId: string, toolCallId: string): ArtifactSummaryData {
+  private formatArtifactSummaryData(
+    artifact: any,
+    artifactId: string,
+    toolCallId: string
+  ): ArtifactSummaryData {
     return {
       artifactId,
       toolCallId,
@@ -375,7 +393,11 @@ export class ArtifactService {
   /**
    * Format raw artifact to standardized full data format
    */
-  private formatArtifactFullData(artifact: any, artifactId: string, toolCallId: string): ArtifactFullData {
+  private formatArtifactFullData(
+    artifact: any,
+    artifactId: string,
+    toolCallId: string
+  ): ArtifactFullData {
     return {
       artifactId,
       toolCallId,
@@ -385,7 +407,6 @@ export class ArtifactService {
       data: artifact.parts?.[0]?.data?.full || {},
     };
   }
-
 
   /**
    * Persist artifact to database via graph session
@@ -398,8 +419,7 @@ export class ArtifactService {
   ): Promise<void> {
     // Use passed agentId or fall back to context agentId
     const effectiveAgentId = agentId || this.context.agentId;
-    
-    
+
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await graphSessionManager.recordEvent(
         this.context.streamRequestId,
@@ -410,8 +430,8 @@ export class ArtifactService {
           taskId: this.context.taskId,
           toolCallId: request.toolCallId,
           artifactType: request.type,
-          summaryProps: summaryData,
-          fullProps: fullData,
+          summaryData: summaryData,
+          data: fullData,
           agentId: effectiveAgentId,
           metadata: {
             toolCallId: request.toolCallId,
@@ -427,14 +447,17 @@ export class ArtifactService {
         }
       );
     } else {
-      logger.warn({
-        artifactId: request.artifactId,
-        hasStreamRequestId: !!this.context.streamRequestId,
-        hasAgentId: !!effectiveAgentId,
-        hasTaskId: !!this.context.taskId,
-        passedAgentId: agentId,
-        contextAgentId: this.context.agentId,
-      }, 'Skipping artifact_saved event - missing required context');
+      logger.warn(
+        {
+          artifactId: request.artifactId,
+          hasStreamRequestId: !!this.context.streamRequestId,
+          hasAgentId: !!effectiveAgentId,
+          hasTaskId: !!this.context.taskId,
+          passedAgentId: agentId,
+          contextAgentId: this.context.agentId,
+        },
+        'Skipping artifact_saved event - missing required context'
+      );
     }
   }
 
@@ -517,9 +540,11 @@ export class ArtifactService {
     // Get artifact component schema to extract preview fields
     let summaryData = artifact.data;
     let fullData = artifact.data;
-    
+
     if (this.context.artifactComponents) {
-      const artifactComponent = this.context.artifactComponents.find(ac => ac.name === artifact.type);
+      const artifactComponent = this.context.artifactComponents.find(
+        (ac) => ac.name === artifact.type
+      );
       if (artifactComponent?.props) {
         try {
           const schema = artifactComponent.props as ExtendedJsonSchema;
@@ -527,10 +552,10 @@ export class ArtifactService {
           fullData = extractFullFields(schema, artifact.data);
         } catch (error) {
           logger.warn(
-            { 
-              artifactType: artifact.type, 
-              error: error instanceof Error ? error.message : 'Unknown error' 
-            }, 
+            {
+              artifactType: artifact.type,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
             'Failed to extract preview/full fields from schema, using full data for both'
           );
         }
@@ -679,8 +704,8 @@ export class ArtifactService {
    * Extract properties from data using schema-defined fields and custom selectors
    */
   private extractPropsFromSchema(
-    item: any, 
-    schema: Record<string, any>, 
+    item: any,
+    schema: Record<string, any>,
     customSelectors: Record<string, string>
   ): Record<string, any> {
     const extracted: Record<string, any> = {};

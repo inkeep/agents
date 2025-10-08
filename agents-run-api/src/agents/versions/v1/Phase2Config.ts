@@ -264,10 +264,9 @@ IMPORTANT GUIDELINES:
         const schemaProps = ac.props?.properties
           ? Object.entries(ac.props.properties)
               .map(([key, value]: [string, any]) => {
-                // Remove isPreview flag for LLM display
-                const cleanValue = { ...value };
-                delete cleanValue.isPreview;
-                return `      - ${key}: ${cleanValue.description || 'Field from tool result'}`;
+                // Show isPreview flag for LLM display to understand field usage
+                const isPreview = value.isPreview ? ' [PREVIEW]' : ' [FULL]';
+                return `      - ${key}: ${value.description || 'Field from tool result'}${isPreview}`;
               })
               .join('\n')
           : '      No properties defined';

@@ -144,8 +144,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
             author: { type: 'string' },
             created: { type: 'string' }
           }
-        },
-    },
+        }
+      }
+    }
   });
 
   // Helper function to create full graph data with optional enhanced features
@@ -1088,8 +1089,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
             properties: expect.objectContaining({
               title: expect.any(Object),
               subtitle: expect.any(Object),
-            subtitle: expect.stringContaining('Full Subtitle'),
-            content: expect.stringContaining('Full content for artifactComponent'),
+              content: expect.any(Object),
+            }),
           }),
         });
       }

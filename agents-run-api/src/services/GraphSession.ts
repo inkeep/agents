@@ -101,8 +101,8 @@ export interface ArtifactSavedData {
   contextId?: string;
   agentId?: string;
   metadata?: Record<string, any>;
-  previewData?: Record<string, any>;
-  fullData?: Record<string, any>;
+  summaryData?: Record<string, any>;
+  data?: Record<string, any>;
 }
 
 export interface ToolExecutionData {

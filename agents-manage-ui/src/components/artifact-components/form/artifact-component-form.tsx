@@ -30,8 +30,10 @@ const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentForm
   if (!data) return defaultValues;
 
   const formatted = { ...data };
-  if (formatted.props) {
+  if (formatted.props && formatted.props !== '') {
     formatted.props = formatJsonField(formatted.props);
+  } else {
+    formatted.props = undefined;
   }
   return formatted;
 };
@@ -119,8 +121,8 @@ export function ArtifactComponentForm({
           control={form.control}
           name="props"
           label="Props (JSON schema with isPreview indicators)"
-          placeholder="Enter a valid JSON Schema with isPreview flags..."
-          isRequired
+          placeholder="Enter a valid JSON Schema with isPreview flags, or leave empty to save entire tool result..."
+          description="Optional: Define specific fields with isPreview flags, or leave empty to capture the complete tool response"
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

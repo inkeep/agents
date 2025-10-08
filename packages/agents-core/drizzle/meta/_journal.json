@@ -15,6 +15,13 @@
       "when": 1759453676635,
       "tag": "0001_eminent_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1759804621486,
+      "tag": "0002_bumpy_romulus",
+      "breakpoints": true
     }
   ]
 }

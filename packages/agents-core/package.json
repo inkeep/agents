@@ -12,7 +12,8 @@
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",
     "./client-exports": "./src/client-exports.ts",
-    "./drizzle": "./drizzle/"
+    "./drizzle": "./drizzle/",
+    "./utils/schema-conversion": "./src/utils/schema-conversion.ts"
   },
   "scripts": {
     "build": "tsup",
