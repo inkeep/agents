@@ -156,19 +156,6 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     editor.setTheme(resolvedTheme === 'dark' ? MONACO_THEME.dark : MONACO_THEME.light);
   }, [resolvedTheme]);
 
-  // Refresh decorations when copiedField changes
-  useEffect(() => {
-    if (ref.current) {
-      const editorElement = ref.current.querySelector('.monaco-editor');
-      if (editorElement) {
-        const editorInstance = (editorElement as any).__editor;
-        if (editorInstance && editorInstance.refreshDecorations) {
-          editorInstance.refreshDecorations();
-        }
-      }
-    }
-  }, [copiedField]);
-
   useEffect(() => {
     const model = getOrCreateModel({
       uri: 'process-attributes.json',
@@ -255,36 +242,6 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     // Add copy buttons after editor is ready
     setTimeout(addFieldCopyButtons, 100);
 
-    // Refresh decorations when copiedField changes
-    const refreshDecorations = () => {
-      if (!model.isDisposed()) {
-        addFieldCopyButtons();
-      }
-    };
-
-    // Store the refresh function for later use
-    (editor as any).refreshDecorations = refreshDecorations;
-
-    // Handle mouse events for copy functionality
-    const handleMouseMove = (e: any) => {
-      if (model.isDisposed()) return;
-
-      const position = e.target.position;
-      if (position) {
-        const line = model.getLineContent(position.lineNumber);
-        const fieldMatch = line.match(/^\s*"([^"]+)":\s*(.+?)(?:,|\s*$)/);
-        if (fieldMatch) {
-          const [, fieldKey, fieldValue] = fieldMatch;
-          // Show copy button on hover
-          setShowCopyButton(true);
-        }
-      }
-    };
-
-    const handleMouseLeave = () => {
-      setShowCopyButton(false);
-    };
-
     // Handle clicks on copy buttons
     const handleMouseDown = (e: any) => {
       if (model.isDisposed()) return;
@@ -304,8 +261,6 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       }
     };
 
-    editor.onMouseMove(handleMouseMove);
-    editor.onMouseLeave(handleMouseLeave);
     editor.onMouseDown(handleMouseDown);
 
     return cleanupDisposables([
@@ -320,14 +275,6 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
           // Do nothing - this prevents the command palette from opening
         },
       }),
-      // Cleanup timeout
-      {
-        dispose: () => {
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-          }
-        },
-      },
     ]);
   }, [processAttributes]);
 
