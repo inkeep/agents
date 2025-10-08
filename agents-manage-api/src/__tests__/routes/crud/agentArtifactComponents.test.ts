@@ -88,20 +88,12 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     projectId,
     name: `TestArtifactComponent${suffix}`,
     description: `Test artifact component description${suffix}`,
-    summaryProps: {
+    props: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: `Title field${suffix}` },
-        type: { type: 'string', description: `Type field${suffix}` },
-      },
-      required: ['title'],
-    },
-    fullProps: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', description: `Title field${suffix}` },
-        type: { type: 'string', description: `Type field${suffix}` },
-        content: { type: 'string', description: `Content field${suffix}` },
+        title: { type: 'string', description: `Title field${suffix}`, isPreview: true },
+        type: { type: 'string', description: `Type field${suffix}`, isPreview: true },
+        content: { type: 'string', description: `Content field${suffix}`, isPreview: false },
       },
       required: ['title', 'content'],
     },
@@ -348,8 +340,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
         id: artifactComponentId,
         name: expect.stringContaining('TestArtifactComponent'),
         description: expect.stringContaining('Test artifact component description'),
-        summaryProps: expect.any(Object),
-        fullProps: expect.any(Object),
+        props: expect.any(Object),
       });
     });
 

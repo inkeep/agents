@@ -98,22 +98,20 @@ const agent = agent({
       id: "customer-info",
       name: "CustomerInfo",
       description: "Customer information display component",
-      summaryProps: {
+      props: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Customer name" },
-        },
-        required: ["name"],
-      },
-      fullProps: {
-        type: "object",
-        properties: {
+          name: { 
+            type: "string", 
+            description: "Customer name",
+            isPreview: true,
+          },
           customer_info: {
             type: "string",
             description: "Customer information",
           },
         },
-        required: ["customer_info"],
+        required: ["name", "customer_info"],
       },
     },
   ],

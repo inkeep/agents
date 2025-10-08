@@ -225,15 +225,14 @@ export function mcpTool(config: MCPToolConfig): Tool {
  * const productCard = artifactComponent({
  *   name: 'Product Card',
  *   description: 'Display product information',
- *   summaryProps: {
- *     title: 'Product',
- *     price: '$0'
- *   },
- *   fullProps: {
- *     title: 'Product',
- *     price: '$0',
- *     description: 'Product description',
- *     image: 'product.jpg'
+ *   props: {
+ *     type: 'object',
+ *     properties: {
+ *       title: { type: 'string', isPreview: true },
+ *       price: { type: 'string', isPreview: true },
+ *       description: { type: 'string' },
+ *       image: { type: 'string' }
+ *     }
  *   }
  * });
  * ```

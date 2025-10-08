@@ -1,6 +1,6 @@
 import { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { ArtifactService, ArtifactData, ArtifactCreateRequest, ArtifactServiceContext } from './ArtifactService';
+import { ArtifactService, ArtifactSummaryData, ArtifactCreateRequest, ArtifactServiceContext } from './ArtifactService';
 
 const logger = getLogger('ArtifactParser');
 
@@ -12,15 +12,14 @@ export interface StreamPart {
 }
 
 // Re-export from service for backward compatibility
-export type { ArtifactData } from './ArtifactService';
+export type { ArtifactSummaryData, ArtifactFullData } from './ArtifactService';
 
 export interface ArtifactCreateAnnotation {
   artifactId: string;
   toolCallId: string;
   type: string;
   baseSelector: string;
-  summaryProps?: Record<string, string>;
-  fullProps?: Record<string, string>;
+  detailsSelector?: Record<string, string>;
   raw?: string; // Raw annotation text for debugging
 }
 
@@ -180,8 +179,7 @@ export class ArtifactParser {
       toolCallId: attrs.tool,
       type: attrs.type,
       baseSelector: attrs.base,
-      summaryProps: attrs.summary || {},
-      fullProps: attrs.full || {},
+      detailsSelector: attrs.details || {},
     };
   }
 
@@ -220,8 +218,7 @@ export class ArtifactParser {
       toolCallId: annotation.toolCallId,
       type: annotation.type,
       baseSelector: annotation.baseSelector,
-      summaryProps: annotation.summaryProps,
-      fullProps: annotation.fullProps,
+      detailsSelector: annotation.detailsSelector,
     };
 
     return this.artifactService.createArtifact(request, agentId);
@@ -409,7 +406,7 @@ export class ArtifactParser {
   /**
    * Extract artifact from ArtifactCreate component
    */
-  private async extractFromArtifactCreateComponent(component: any, agentId?: string): Promise<ArtifactData | null> {
+  private async extractFromArtifactCreateComponent(component: any, agentId?: string): Promise<ArtifactSummaryData | null> {
     const props = component.props;
     if (!props) {
       return null;
@@ -421,8 +418,7 @@ export class ArtifactParser {
       toolCallId: props.tool_call_id,
       type: props.type,
       baseSelector: props.base_selector,
-      summaryProps: props.summary_props || {},
-      fullProps: props.full_props || {},
+      detailsSelector: props.details_selector || {},
     };
 
     // Use existing extraction logic

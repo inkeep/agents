@@ -746,24 +746,42 @@ ${IMPORT_INSTRUCTIONS}
 REQUIREMENTS:
 1. Import artifactComponent from '@inkeep/agents-sdk'
 2. Create the artifact component using artifactComponent()
-3. Include summaryProps and fullProps from the component data
-4. Include the 'id' property to preserve the original component ID
+3. Include props from the component data with isPreview indicators
+4. Export following naming convention rules (camelCase version of ID)
+5. Include the 'id' property to preserve the original component ID
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
 
 EXAMPLE:
 import { artifactComponent } from '@inkeep/agents-sdk';
 
+// Component ID 'pdf_export' becomes export name 'pdfExport'
+export const pdfExport = artifactComponent({
+  id: 'pdf_export',
+  name: 'PDF Export',
+  description: 'Export data as PDF',
+  props: {
+    type: 'object',
+    properties: {
+      filename: { type: 'string', required: true, isPreview: true },
+      content: { type: 'object', required: true, isPreview: false }
+    }
+  }
+});
+
+EXAMPLE WITH HYPHEN ID:
+import { artifactComponent } from '@inkeep/agents-sdk';
+
+// Component ID 'order-summary' becomes export name 'orderSummary'
 export const orderSummary = artifactComponent({
   id: 'order-summary',
   name: 'Order Summary',
   description: 'Summary of customer order',
-  summaryProps: {
-    orderId: { type: 'string', required: true },
-    total: { type: 'number', required: true }
-  },
-  fullProps: {
-    orderId: { type: 'string', required: true },
-    items: { type: 'array', required: true },
-    total: { type: 'number', required: true },
+  props: {
+    type: 'object',
+    properties: {
+      orderId: { type: 'string', required: true, isPreview: true },
+      total: { type: 'number', required: true, isPreview: true },
+      items: { type: 'array', required: true, isPreview: false },
     tax: { type: 'number' }
   }
 });

@@ -68,11 +68,11 @@ When creating data components, your `props` field must be a valid JSON Schema:
 
 ## Artifact component schemas
 
-Artifact components need two schemas: `summaryProps` and `fullProps`.
+Artifact components use a single unified schema called `props` with `isPreview` indicators.
 
-### Summary props
+### Unified props schema
 
-For the summary view (what users see in lists):
+Fields marked with `isPreview: true` appear in summary views, while all fields are stored in the database:
 
 ```json
 {
@@ -80,34 +80,20 @@ For the summary view (what users see in lists):
   "properties": {
     "title": {
       "type": "string",
-      "description": "Brief title for the artifact"
+      "description": "Title of the artifact",
+      "isPreview": true
     },
     "status": {
       "type": "string",
       "enum": ["draft", "published", "archived"],
-      "description": "Current status of the artifact"
+      "description": "Current status of the artifact",
+      "isPreview": true
     },
     "createdAt": {
       "type": "string",
       "format": "date-time",
-      "description": "When the artifact was created"
-    }
-  },
-  "required": ["title", "status"]
-}
-```
-
-### Full props
-
-For the detailed view (what users see when they open the artifact):
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "title": {
-      "type": "string",
-      "description": "Full title of the artifact"
+      "description": "When the artifact was created",
+      "isPreview": true
     },
     "content": {
       "type": "string",
@@ -147,8 +133,27 @@ For the detailed view (what users see when they open the artifact):
       }
     }
   },
-  "required": ["title", "content"]
+  "required": ["title", "status", "content"]
 }
+```
+
+### Using Zod schemas with preview helpers
+
+You can also use Zod schemas with the preview helper:
+
+```typescript
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core/utils/schema-conversion';
+
+const artifactSchema = z.object({
+  title: preview(z.string().describe("Title of the artifact")),
+  status: preview(z.enum(["draft", "published", "archived"]).describe("Current status")),
+  content: z.string().describe("Main content of the artifact"),
+  metadata: z.object({
+    author: z.string().describe("Who created this artifact"),
+    version: z.string().describe("Version number")
+  })
+});
 ```
 
 ## Validation rules

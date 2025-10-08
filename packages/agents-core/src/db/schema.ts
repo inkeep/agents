@@ -343,8 +343,7 @@ export const artifactComponents = sqliteTable(
   {
     ...projectScoped,
     ...uiProperties,
-    summaryProps: blob('summary_props', { mode: 'json' }).$type<Record<string, unknown>>(),
-    fullProps: blob('full_props', { mode: 'json' }).$type<Record<string, unknown>>(),
+    props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (table) => [

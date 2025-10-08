@@ -163,8 +163,7 @@ export class Agent implements AgentInterface {
           id: comp.getId(),
           name: comp.getName(),
           description: comp.getDescription(),
-          summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
-          fullProps: comp.getFullProps?.() || comp.fullProps,
+          props: comp.getProps?.() || comp.props,
         };
       }
       // Otherwise assume it's already a plain object
@@ -381,12 +380,9 @@ export class Agent implements AgentInterface {
                 id: (artifactComponent as any).getId(),
                 name: (artifactComponent as any).getName(),
                 description: (artifactComponent as any).getDescription(),
-                summaryProps:
-                  (artifactComponent as any).getSummaryProps?.() ||
-                  (artifactComponent as any).summaryProps,
-                fullProps:
-                  (artifactComponent as any).getFullProps?.() ||
-                  (artifactComponent as any).fullProps,
+                props:
+                  (artifactComponent as any).getProps?.() ||
+                  (artifactComponent as any).props,
               }
             : artifactComponent;
         await this.createArtifactComponent(plainComponent as ArtifactComponentApiInsert);
@@ -489,8 +485,7 @@ export class Agent implements AgentInterface {
         id: component.id,
         name: component.name,
         description: component.description,
-        summaryProps: component.summaryProps,
-        fullProps: component.fullProps,
+        props: component.props,
         createdAt: component.createdAt,
         updatedAt: component.updatedAt,
       }));
@@ -504,8 +499,7 @@ export class Agent implements AgentInterface {
             id: comp.getId(),
             name: comp.getName(),
             description: comp.getDescription(),
-            summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
-            fullProps: comp.getFullProps?.() || comp.fullProps,
+            props: comp.getProps?.() || comp.props,
           };
         }
         return comp;
@@ -669,8 +663,7 @@ export class Agent implements AgentInterface {
         id: artifactComponent.id,
         name: artifactComponent.name,
         description: artifactComponent.description,
-        summaryProps: artifactComponent.summaryProps,
-        fullProps: artifactComponent.fullProps,
+        props: artifactComponent.props,
       });
 
       // Set the context from the agent

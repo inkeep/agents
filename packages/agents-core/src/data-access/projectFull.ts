@@ -787,8 +787,7 @@ export const getFullProject =
             id: component.id,
             name: component.name,
             description: component.description,
-            summaryProps: component.summaryProps,
-            fullProps: component.fullProps,
+            props: component.props,
           };
         }
         logger.info(

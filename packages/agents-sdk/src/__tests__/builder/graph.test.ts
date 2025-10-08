@@ -1361,8 +1361,13 @@ describe('AgentGraph', () => {
         id: 'artifact1',
         name: 'Artifact Component 1',
         description: 'Test artifact component',
-        summaryProps: { summary: 'test' },
-        fullProps: { full: 'test' },
+        props: {
+          type: 'object',
+          properties: {
+            summary: { type: 'string', isPreview: true },
+            full: { type: 'string', isPreview: false }
+          }
+        },
       };
 
       const agent = new Agent({

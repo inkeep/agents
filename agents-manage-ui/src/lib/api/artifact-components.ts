@@ -19,9 +19,8 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: ArtifactComponentApiSelect might have nullable props, but UI expects non-nullable
-export type ArtifactComponent = Omit<ArtifactComponentApiSelect, 'summaryProps' | 'fullProps'> & {
-  summaryProps: Record<string, any>; // Ensure summaryProps is non-nullable for UI compatibility
-  fullProps: Record<string, any>; // Ensure fullProps is non-nullable for UI compatibility
+export type ArtifactComponent = Omit<ArtifactComponentApiSelect, 'props'> & {
+  props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
 };
 
 /**
@@ -43,8 +42,7 @@ export async function fetchArtifactComponents(
     ...response,
     data: response.data.map((item) => ({
       ...item,
-      summaryProps: item.summaryProps || {},
-      fullProps: item.fullProps || {},
+      props: item.props || {},
     })),
   };
 }
@@ -67,8 +65,7 @@ export async function fetchArtifactComponent(
   // Transform the response to ensure props are non-nullable
   return {
     ...response.data,
-    summaryProps: response.data.summaryProps || {},
-    fullProps: response.data.fullProps || {},
+    props: response.data.props || {},
   };
 }
 
@@ -94,8 +91,7 @@ export async function createArtifactComponent(
   // Transform the response to ensure props are non-nullable
   return {
     ...response.data,
-    summaryProps: response.data.summaryProps || {},
-    fullProps: response.data.fullProps || {},
+    props: response.data.props || {},
   };
 }
 
@@ -121,8 +117,7 @@ export async function updateArtifactComponent(
   // Transform the response to ensure props are non-nullable
   return {
     ...response.data,
-    summaryProps: response.data.summaryProps || {},
-    fullProps: response.data.fullProps || {},
+    props: response.data.props || {},
   };
 }
 

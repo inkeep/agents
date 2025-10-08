@@ -19,24 +19,24 @@ const agent = agent({
       name: "Document Artifact",
       description:
         "Structured factual information extracted from search results",
-      summaryProps: {
+      props: {
         type: "object",
         properties: {
           title: {
             type: "string",
             description: "Title of the source document",
+            isPreview: true,
           },
-          url: { type: "string", description: "URL of the source document" },
+          url: { 
+            type: "string", 
+            description: "URL of the source document",
+            isPreview: true,
+          },
           record_type: {
             type: "string",
             description: "Type of record (documentation, blog, guide, etc.)",
+            isPreview: true,
           },
-        },
-        required: ["title", "url", "record_type"],
-      },
-      fullProps: {
-        type: "object",
-        properties: {
           content: {
             type: "array",
             items: {
@@ -57,14 +57,14 @@ const agent = agent({
               "Array of structured content blocks extracted from the document",
           },
         },
-        required: ["content"],
+        required: ["title", "url", "record_type", "content"],
       },
     },
   ],
 });
 ```
 
-The `summaryProps` is used in the agent's context. The `fullProps` is used to store extra information about the artifact, stored in the database.
+The `props` schema defines all artifact fields. Fields marked with `isPreview: true` are used in the agent's context for summaries, while all fields are stored in the database.
 
 ## Automatic Artifact Creation
 

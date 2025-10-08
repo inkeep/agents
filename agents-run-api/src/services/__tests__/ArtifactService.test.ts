@@ -36,16 +36,12 @@ describe('ArtifactService', () => {
           id: 'test-component-id',
           name: 'TestComponent',
           description: 'Test component description',
-          summaryProps: {
+          props: {
             properties: {
-              title: { type: 'string', description: 'Title' },
-              summary: { type: 'string', description: 'Summary' },
-            },
-          },
-          fullProps: {
-            properties: {
-              content: { type: 'string', description: 'Content' },
-              details: { type: 'object', description: 'Details' },
+              title: { type: 'string', description: 'Title', isPreview: true },
+              summary: { type: 'string', description: 'Summary', isPreview: true },
+              content: { type: 'string', description: 'Content', isPreview: false },
+              details: { type: 'object', description: 'Details', isPreview: false },
             },
           },
         },
@@ -157,8 +153,7 @@ describe('ArtifactService', () => {
       toolCallId: 'test-tool-call',
       type: 'TestComponent',
       baseSelector: 'result.data[0]',
-      summaryProps: { title: 'title', summary: 'summary' },
-      fullProps: { content: 'content', details: 'details' },
+      detailsSelector: { title: 'title', summary: 'summary', content: 'content', details: 'details' },
     };
 
     it('should create artifact successfully with valid tool result', async () => {
@@ -424,7 +419,7 @@ describe('ArtifactService', () => {
         toolCallId: 'test',
         type: 'TestComponent',
         baseSelector: 'result.data[?type=="test"]', // Should be sanitized to single quotes
-        summaryProps: { title: 'title' },
+        detailsSelector: { title: 'title' },
       };
 
       const result = await artifactService.createArtifact(request);
@@ -451,7 +446,7 @@ describe('ArtifactService', () => {
         toolCallId: 'test',
         type: 'TestComponent',
         baseSelector: 'result.data[?content ~ contains(@, "test")]', // Should be sanitized
-        summaryProps: { title: 'title' },
+        detailsSelector: { title: 'title' },
       };
 
       const result = await artifactService.createArtifact(request);
@@ -485,8 +480,7 @@ describe('ArtifactService', () => {
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
         baseSelector: 'result.data[0]',
-        summaryProps: { title: 'title', summary: 'summary' },
-        fullProps: { content: 'content', details: 'details' },
+        detailsSelector: { title: 'title', summary: 'summary', content: 'content', details: 'details' },
       };
 
       const result = await artifactService.createArtifact(testRequest);
@@ -526,8 +520,7 @@ describe('ArtifactService', () => {
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
         baseSelector: 'result.data[0]',
-        summaryProps: { title: 'title', summary: 'summary' },
-        fullProps: { content: 'content', details: 'details' },
+        detailsSelector: { title: 'title', summary: 'summary', content: 'content', details: 'details' },
       };
 
       const result = await serviceWithoutComponents.createArtifact(testRequest2);

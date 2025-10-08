@@ -537,8 +537,7 @@ export const getFullGraphDefinition =
           id: artifactComponents.id,
           name: artifactComponents.name,
           description: artifactComponents.description,
-          summaryProps: artifactComponents.summaryProps,
-          fullProps: artifactComponents.fullProps,
+          props: artifactComponents.props,
         },
       });
     } catch (error) {

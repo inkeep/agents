@@ -645,16 +645,14 @@ export class Project implements ProjectInterface {
             let artifactComponentId: string;
             let artifactComponentName: string;
             let artifactComponentDescription: string;
-            let artifactComponentSummaryProps: any;
-            let artifactComponentFullProps: any;
+            let artifactComponentProps: any;
 
             if (artifactComponent.getId) {
               // ArtifactComponent instance
               artifactComponentId = artifactComponent.getId();
               artifactComponentName = artifactComponent.getName();
               artifactComponentDescription = artifactComponent.getDescription() || '';
-              artifactComponentSummaryProps = artifactComponent.getSummaryProps() || {};
-              artifactComponentFullProps = artifactComponent.getFullProps() || {};
+              artifactComponentProps = artifactComponent.getProps() || {};
             } else {
               // Plain object from agent config
               artifactComponentId =
@@ -664,8 +662,7 @@ export class Project implements ProjectInterface {
                   : '');
               artifactComponentName = artifactComponent.name || '';
               artifactComponentDescription = artifactComponent.description || '';
-              artifactComponentSummaryProps = artifactComponent.summaryProps || {};
-              artifactComponentFullProps = artifactComponent.fullProps || {};
+              artifactComponentProps = artifactComponent.props || {};
             }
 
             // Only add if not already added (avoid duplicates)
@@ -674,8 +671,7 @@ export class Project implements ProjectInterface {
                 id: artifactComponentId,
                 name: artifactComponentName,
                 description: artifactComponentDescription,
-                summaryProps: artifactComponentSummaryProps,
-                fullProps: artifactComponentFullProps,
+                props: artifactComponentProps,
               };
             }
           }

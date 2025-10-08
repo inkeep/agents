@@ -5,6 +5,7 @@ import type {
   CredentialReferenceApiInsert,
 } from '../types/index';
 import { getLogger } from '../utils/logger';
+import { convertZodToJsonSchema } from '../utils/schema-conversion';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 import type { DotPaths } from './validation-helpers';
 
@@ -72,20 +73,6 @@ export type builderFetchDefinition<R extends z.ZodTypeAny> = {
   credentialReference?: CredentialReferenceApiInsert; // Reference to credential store for secure credential resolution
 };
 
-// Utility function for converting Zod schemas to JSON Schema
-export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
-  try {
-    return z.toJSONSchema(zodSchema, { target: 'draft-7' });
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Failed to convert Zod schema to JSON Schema'
-    );
-    throw new Error('Failed to convert Zod schema to JSON Schema');
-  }
-}
 
 export interface ContextConfigBuilderOptions<
   R extends z.ZodTypeAny | undefined = undefined,

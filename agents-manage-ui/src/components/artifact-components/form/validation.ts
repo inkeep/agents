@@ -35,8 +35,7 @@ export const artifactComponentSchema = z.object({
   id: idSchema,
   name: z.string().min(1, 'Name is required.'),
   description: z.string().min(1, 'Description is required.'),
-  summaryProps: jsonSchemaValidation('Summary props').optional(),
-  fullProps: jsonSchemaValidation('Full props').optional(),
+  props: jsonSchemaValidation('Props').optional(),
 });
 
 export type ArtifactComponentFormData = z.infer<typeof artifactComponentSchema>;

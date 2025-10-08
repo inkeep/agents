@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 import { SchemaProcessor } from './SchemaProcessor';
+import { extractPreviewFields, extractFullFields, type ExtendedJsonSchema } from './schema-validation';
 
 const _logger = getLogger('ArtifactComponentSchema');
 
@@ -13,17 +14,15 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
   // Convert artifact component configs to a union schema
   const componentSchemas =
     artifactComponents?.map((component) => {
-      // Convert the JSON Schema props to Zod - handle both summaryProps and fullProps
-      const summaryPropsSchema = jsonSchemaToZod(component.summaryProps);
-      const fullPropsSchema = jsonSchemaToZod(component.fullProps);
+      // Use the unified props schema directly - remove isPreview flags for LLM
+      const cleanSchema = component.props ? removePreviewFlags(component.props as ExtendedJsonSchema) : {};
+      const propsSchema = jsonSchemaToZod(cleanSchema);
 
-      // Return schema with both summary and full props
       return z
         .object({
           id: z.string().describe(component.id),
           name: z.literal(component.name).describe(component.name),
-          summaryProps: summaryPropsSchema,
-          fullProps: fullPropsSchema,
+          props: propsSchema,
         })
         .describe(`${component.name}: ${component.description}`);
     }) || [];
@@ -39,60 +38,24 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
 }
 
 /**
- * Create schema for artifact component summary props only (for quick display)
+ * Remove isPreview flags from schema properties (for LLM consumption)
  */
-export function createArtifactComponentsSummarySchema(
-  artifactComponents?: ArtifactComponentApiSelect[]
-) {
-  const componentSchemas =
-    artifactComponents?.map((component) => {
-      const summaryPropsSchema = jsonSchemaToZod(component.summaryProps);
-
-      return z
-        .object({
-          id: z.string().describe(component.id),
-          name: z.literal(component.name).describe(component.name),
-          summaryProps: summaryPropsSchema,
-        })
-        .describe(`${component.name} Summary: ${component.description}`);
-    }) || [];
-
-  if (componentSchemas.length === 0) {
-    return z.object({});
+function removePreviewFlags(schema: ExtendedJsonSchema): Record<string, any> {
+  const cleanSchema = { ...schema };
+  
+  if (cleanSchema.properties) {
+    const cleanProperties: Record<string, any> = {};
+    for (const [key, prop] of Object.entries(cleanSchema.properties)) {
+      const cleanProp = { ...prop };
+      delete cleanProp.isPreview;
+      cleanProperties[key] = cleanProp;
+    }
+    cleanSchema.properties = cleanProperties;
   }
-  if (componentSchemas.length === 1) {
-    return componentSchemas[0];
-  }
-  return z.union(componentSchemas as any);
+  
+  return cleanSchema;
 }
 
-/**
- * Create schema for artifact component full props only (for detailed display)
- */
-export function createArtifactComponentsFullSchema(
-  artifactComponents?: ArtifactComponentApiSelect[]
-) {
-  const componentSchemas =
-    artifactComponents?.map((component) => {
-      const fullPropsSchema = jsonSchemaToZod(component.fullProps);
-
-      return z
-        .object({
-          id: z.string().describe(component.id),
-          name: z.literal(component.name).describe(component.name),
-          fullProps: fullPropsSchema,
-        })
-        .describe(`${component.name} Full: ${component.description}`);
-    }) || [];
-
-  if (componentSchemas.length === 0) {
-    return z.object({});
-  }
-  if (componentSchemas.length === 1) {
-    return componentSchemas[0];
-  }
-  return z.union(componentSchemas as any);
-}
 
 /**
  * Standard artifact reference component schema for tool responses
@@ -154,9 +117,10 @@ export class ArtifactCreateSchema {
    */
   static getSchemas(artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>): z.ZodType<any>[] {
     return artifactComponents.map(component => {
-      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
-      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
-      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+      // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
+      const enhancedSchema = component.props 
+        ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
+        : { type: 'object', properties: {} };
 
       const propsSchema = {
         type: 'object',
@@ -176,10 +140,9 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
           },
-          summary_props: enhancedSummaryProps,
-          full_props: enhancedFullProps,
+          details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };
@@ -203,9 +166,10 @@ export class ArtifactCreateSchema {
     artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
   ): DataComponentInsert[] {
     return artifactComponents.map(component => {
-      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
-      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
-      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+      // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
+      const enhancedSchema = component.props 
+        ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
+        : { type: 'object', properties: {} };
 
       const propsSchema = {
         type: 'object',
@@ -225,10 +189,9 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
           },
-          summary_props: enhancedSummaryProps,
-          full_props: enhancedFullProps,
+          details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };

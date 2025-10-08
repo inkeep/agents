@@ -16,7 +16,7 @@ interface ArtifactComponentPageProps {
 export default async function ArtifactComponentPage({ params }: ArtifactComponentPageProps) {
   const { artifactComponentId, tenantId, projectId } = await params;
   const artifactComponent = await fetchArtifactComponent(tenantId, projectId, artifactComponentId);
-  const { name, description, summaryProps, fullProps } = artifactComponent;
+  const { name, description, props } = artifactComponent;
   return (
     <BodyTemplate
       breadcrumbs={[
@@ -37,8 +37,7 @@ export default async function ArtifactComponentPage({ params }: ArtifactComponen
               id: artifactComponentId,
               name,
               description: description ?? '',
-              summaryProps,
-              fullProps,
+              props,
             }}
           />
         </div>

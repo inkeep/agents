@@ -7,8 +7,13 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Test Artifact',
       description: 'Test artifact component',
-      summaryProps: { title: 'Summary' },
-      fullProps: { content: 'Full content' },
+      props: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', isPreview: true },
+          content: { type: 'string', isPreview: false }
+        }
+      },
     };
 
     const component = artifactComponent(config);
@@ -22,39 +27,45 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Complex Artifact',
       description: 'Artifact with complex props',
-      summaryProps: {
-        title: 'Complex Summary',
-        metadata: {
-          tags: ['test', 'artifact'],
-          version: '1.0.0',
-        },
-      },
-      fullProps: {
-        content: 'Detailed content',
-        sections: [
-          { title: 'Section 1', body: 'Content 1' },
-          { title: 'Section 2', body: 'Content 2' },
-        ],
-        config: {
-          theme: 'light',
-          readonly: false,
-        },
+      props: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', isPreview: true },
+          metadata: {
+            type: 'object',
+            isPreview: true,
+            properties: {
+              tags: { type: 'array', items: { type: 'string' } },
+              version: { type: 'string' }
+            }
+          },
+          content: { type: 'string', isPreview: false },
+          sections: {
+            type: 'array',
+            isPreview: false,
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                body: { type: 'string' }
+              }
+            }
+          }
+        }
       },
     };
 
     const component = artifactComponent(config);
 
     expect(component.getName()).toBe('Complex Artifact');
-    expect(component.getSummaryProps()).toEqual(config.summaryProps);
-    expect(component.getFullProps()).toEqual(config.fullProps);
+    expect(component.getProps()).toEqual(config.props);
   });
 
   it('should generate correct slug ID from name', () => {
     const config: ArtifactComponentConfig = {
       name: 'Artifact Component With Spaces & Special!@# Characters',
       description: 'Test description',
-      summaryProps: {},
-      fullProps: {},
+      props: {},
     };
 
     const component = artifactComponent(config);
@@ -65,8 +76,7 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Default Tenant Artifact',
       description: 'Artifact without tenant',
-      summaryProps: {},
-      fullProps: {},
+      props: {},
     };
 
     const component = artifactComponent(config);

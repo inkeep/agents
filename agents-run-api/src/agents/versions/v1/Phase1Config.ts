@@ -8,6 +8,7 @@ import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 
 import { getLogger } from '../../../logger';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
+import { extractPreviewFields, extractFullFields, type ExtendedJsonSchema } from '../../../utils/schema-validation';
 
 const logger = getLogger('Phase1Config');
 
@@ -183,8 +184,8 @@ SELECTOR REQUIREMENTS:
 
 CRITICAL: SELECTOR HIERARCHY
 - base_selector: Points to ONE specific item in the tool result
-- summary_props/full_props: Contain JMESPath selectors RELATIVE to the base selector
-- Example: If base="result.documents[?type=='api']" then summary_props uses "title" not "documents[0].title"
+- details_selector: Contains JMESPath selectors RELATIVE to the base selector
+- Example: If base="result.documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
 
 COMMON FAILURE POINTS (AVOID THESE):
 1. **Array Selection**: result.items (returns array) ❌
@@ -373,28 +374,22 @@ IMPORTANT GUIDELINES:
     // For text responses (annotations) - show available types with their schemas
     const typeDescriptions = artifactComponents
       .map((ac) => {
-        let summarySchema = 'No schema defined';
-        let fullSchema = 'No schema defined';
+        let schemaDescription = 'No schema defined';
         
-        if (ac.summaryProps?.properties) {
-          const summaryPropNames = Object.keys(ac.summaryProps.properties);
-          const summaryDetails = Object.entries(ac.summaryProps.properties)
-            .map(([key, value]: [string, any]) => `${key} (${value.description || value.type || 'field'})`)
+        if (ac.props?.properties) {
+          const fieldDetails = Object.entries(ac.props.properties)
+            .map(([key, value]: [string, any]) => {
+              // Remove isPreview flag for LLM display
+              const cleanValue = { ...value };
+              delete cleanValue.isPreview;
+              return `${key} (${cleanValue.description || cleanValue.type || 'field'})`;
+            })
             .join(', ');
-          summarySchema = `Required: ${summaryDetails}`;
-        }
-        
-        if (ac.fullProps?.properties) {
-          const fullPropNames = Object.keys(ac.fullProps.properties);
-          const fullDetails = Object.entries(ac.fullProps.properties)
-            .map(([key, value]: [string, any]) => `${key} (${value.description || value.type || 'field'})`)
-            .join(', ');
-          fullSchema = `Available: ${fullDetails}`;
+          schemaDescription = `Fields: ${fieldDetails}`;
         }
 
         return `  - "${ac.name}": ${ac.description || 'No description available'}
-    Summary Props: ${summarySchema}
-    Full Props: ${fullSchema}`;
+    ${schemaDescription}`;
       })
       .join('\n\n');
 
@@ -406,7 +401,7 @@ ${typeDescriptions}
 🚨 CRITICAL: SUMMARY AND FULL PROPS MUST MATCH THE ARTIFACT SCHEMA! 🚨
 - Only use property names that are defined in the artifact component schema above
 - Do NOT make up arbitrary property names like "founders", "nick_details", "year"  
-- Each artifact type has specific required fields in summaryProps and available fields in fullProps
+- Each artifact type has specific fields defined in its schema
 - Your JMESPath selectors must extract values for these exact schema-defined properties
 - Example: If schema defines "title" and "url", use summary='{"title":"title","url":"url"}' not made-up names
 

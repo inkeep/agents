@@ -15,6 +15,7 @@ import {
   type AgentStopWhen,
   AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
+  ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullGraphAgentInsertSchema,
   type GraphStopWhen,
   GraphStopWhenSchema,
@@ -145,14 +146,8 @@ export const DataComponentApiInsertSchema = z.object({
   props: z.record(z.string(), z.unknown()),
 });
 
-// Artifact Component API schemas (inline definitions)
-export const ArtifactComponentApiInsertSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  summaryProps: z.record(z.string(), z.unknown()),
-  fullProps: z.record(z.string(), z.unknown()),
-});
+// Artifact Component API schemas (re-exported from validation)
+export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
 
 // Context Config API schemas (inline definitions)
 export const ContextConfigApiInsertSchema = z.object({

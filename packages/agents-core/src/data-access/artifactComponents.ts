@@ -148,8 +148,7 @@ export const getArtifactComponentsForAgent =
         projectId: artifactComponents.projectId,
         name: artifactComponents.name,
         description: artifactComponents.description,
-        summaryProps: artifactComponents.summaryProps,
-        fullProps: artifactComponents.fullProps,
+        props: artifactComponents.props,
         createdAt: artifactComponents.createdAt,
         updatedAt: artifactComponents.updatedAt,
       })
@@ -379,8 +378,7 @@ export const upsertArtifactComponent =
         data: {
           name: params.data.name,
           description: params.data.description,
-          summaryProps: params.data.summaryProps,
-          fullProps: params.data.fullProps,
+          props: params.data.props,
         },
       });
     } else {

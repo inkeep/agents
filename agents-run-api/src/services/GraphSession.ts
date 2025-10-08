@@ -95,16 +95,14 @@ export interface ArtifactSavedData {
   taskId: string;
   toolCallId?: string;
   artifactType: string;
-  summaryData?: Record<string, any>;
-  fullData?: Record<string, any>;
   pendingGeneration?: boolean;
   tenantId?: string;
   projectId?: string;
   contextId?: string;
   agentId?: string;
   metadata?: Record<string, any>;
-  summaryProps?: Record<string, any>;
-  fullProps?: Record<string, any>;
+  previewData?: Record<string, any>;
+  fullData?: Record<string, any>;
 }
 
 export interface ToolExecutionData {
@@ -1228,6 +1226,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'graph_session.id': this.sessionId,
           'artifact.id': artifactData.artifactId,
           'artifact.type': artifactData.artifactType || 'unknown',
+          'artifact.agent_id': artifactData.agentId || 'unknown',
+          'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
+          'artifact.data': JSON.stringify(artifactData.data, null, 2),
           'tenant.id': artifactData.tenantId || 'unknown',
           'project.id': artifactData.projectId || 'unknown',
           'context.id': artifactData.contextId || 'unknown',
@@ -1293,8 +1294,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 Tool Context: ${toolContext ? JSON.stringify(toolContext, null, 2) : 'No tool context'}
 Context: ${conversationHistory?.slice(-200) || 'Processing'}
 Type: ${artifactData.artifactType || 'data'}
-Summary: ${JSON.stringify(artifactData.summaryProps, null, 2)}
-Full: ${JSON.stringify(artifactData.fullProps, null, 2)}
+Data: ${JSON.stringify(artifactData.fullData, null, 2)}
 
 Make it specific and relevant.`;
 
@@ -1381,8 +1381,8 @@ Make it specific and relevant.`;
                   'llm.operation': 'generate_object',
                   'artifact.id': artifactData.artifactId,
                   'artifact.type': artifactData.artifactType,
-                  'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
-                  'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
+                  'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
+                  'artifact.full': JSON.stringify(artifactData.fullData, null, 2),
                   'prompt.length': prompt.length,
                 },
               },
@@ -1414,8 +1414,8 @@ Make it specific and relevant.`;
                       'artifact.type': artifactData.artifactType,
                       'artifact.name': result.object.name,
                       'artifact.description': result.object.description,
-                      'artifact.summary': JSON.stringify(artifactData.summaryProps, null, 2),
-                      'artifact.full': JSON.stringify(artifactData.fullProps, null, 2),
+                      'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
+                      'artifact.full': JSON.stringify(artifactData.fullData, null, 2),
                       'generation.name_length': result.object.name.length,
                       'generation.description_length': result.object.description.length,
                       'generation.attempts': attempt,
@@ -1473,8 +1473,7 @@ Make it specific and relevant.`;
               name: result.name,
               description: result.description,
               type: artifactData.artifactType || 'source',
-              summaryProps: artifactData.summaryProps || {},
-              fullProps: artifactData.fullProps || {},
+              data: artifactData.data || {},
               metadata: artifactData.metadata || {},
             });
 
@@ -1515,8 +1514,7 @@ Make it specific and relevant.`;
                   name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
                   description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
                   type: artifactData.artifactType || 'source',
-                  summaryProps: artifactData.summaryProps || {},
-                  fullProps: artifactData.fullProps || {},
+                  data: artifactData.data || {},
                   metadata: artifactData.metadata || {},
                 });
 
