@@ -137,10 +137,7 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   return { ...pinnedAttributes, ...remainingAttributes };
 }
 
-const handleCopyFieldValue = async (
-  e: editor.IEditorMouseEvent,
-  editorInstance: editor.IStandaloneCodeEditor
-) => {
+const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const el = e.target.element;
   if (!el?.classList.contains('copy-button-icon')) {
     return;
@@ -149,9 +146,6 @@ const handleCopyFieldValue = async (
 
   const position = e.target.position;
   if (!position) return;
-
-  const model = editorInstance.getModel();
-  if (!model) return;
   const lineContent = model.getLineContent(position.lineNumber);
   const index = lineContent.indexOf(': ');
   const valueToCopy = lineContent
@@ -214,7 +208,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     return cleanupDisposables([
       model,
       editorInstance,
-      editorInstance.onMouseDown((e) => handleCopyFieldValue(e, editorInstance)),
+      editorInstance.onMouseDown(handleCopyFieldValue(model)),
       // Disable command palette by overriding the action
       editorInstance.addAction({
         id: 'disable-command-palette',
