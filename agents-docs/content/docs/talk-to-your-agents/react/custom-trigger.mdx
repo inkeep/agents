@@ -12,16 +12,17 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/cxkit-react-oss
+npm install @inkeep/agents-ui
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/cxkit-react-oss
+yarn add @inkeep/agents-ui
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/cxkit-react-oss
+pnpm add @inkeep/agents-ui
 ```
+
 </CodeGroup>
 
 ## Quick Start
@@ -33,7 +34,7 @@ pnpm add @inkeep/cxkit-react-oss
     
     ```tsx
     import { useState } from "react";
-    import { InkeepModalChat, type InkeepModalChatProps } from "@inkeep/cxkit-react-oss";
+    import { InkeepModalChat, type InkeepModalChatProps } from "@inkeep/agents-ui";
 
     function App() {
       const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,12 +61,13 @@ pnpm add @inkeep/cxkit-react-oss
       );
     }
     ```
-    
+
     **To get an API key:**
     1. Open the Visual Builder Dashboard
     2. Navigate to your Project → **API Keys**
     3. Click **Create New Key** and select your agent graph
     4. Copy the key (shown once) and store it in your environment variables
+
   </Tab>
   
   <Tab title="Development">
@@ -108,7 +110,8 @@ pnpm add @inkeep/cxkit-react-oss
       );
     }
     ```
-    
+
     **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
   </Tab>
 </Tabs>
