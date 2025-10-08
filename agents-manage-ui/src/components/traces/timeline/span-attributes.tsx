@@ -2,9 +2,16 @@
 
 import { useEffect, useRef } from 'react';
 import { Streamdown } from 'streamdown';
-import { cleanupDisposables, createEditor, getOrCreateModel } from '@/lib/monaco-utils';
+import {
+  cleanupDisposables,
+  createEditor,
+  getOrCreateModel,
+  MONACO_THEME,
+} from '@/lib/monaco-utils';
 import { cn } from '@/lib/utils';
 import '@/lib/setup-monaco-workers';
+import { editor } from 'monaco-editor';
+import { useTheme } from 'next-themes';
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
@@ -93,6 +100,10 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
  */
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   const ref = useRef<HTMLDivElement>(null!);
+  const { resolvedTheme } = useTheme();
+  useEffect(() => {
+    editor.setTheme(resolvedTheme === 'dark' ? MONACO_THEME.dark : MONACO_THEME.light);
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const model = getOrCreateModel({
@@ -106,6 +117,10 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       wordWrap: 'on', // Toggle word wrap on resizing editors
       contextmenu: false, // Disable the right-click context menu
       fontSize: 12,
+      padding: {
+        top: 16,
+        bottom: 16,
+      },
     });
     // Update height based on content
     const contentHeight = Math.min(editor.getContentHeight(), 500);
@@ -117,7 +132,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
   return (
     <div>
       <h3 className="text-sm font-medium mb-2">Process Attributes</h3>
-      <div ref={ref} />
+      <div ref={ref} className="rounded-xl overflow-hidden border" />
     </div>
   );
 }
