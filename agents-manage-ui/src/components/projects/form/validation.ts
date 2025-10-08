@@ -1,4 +1,4 @@
-import { SandboxConfigSchema } from '@inkeep/agents-core';
+import { SandboxConfigSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 const modelSettingsSchema = z.object({
