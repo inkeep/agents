@@ -12,17 +12,41 @@ import { cn } from '@/lib/utils';
 import '@/lib/setup-monaco-workers';
 import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
+import { renderToString } from 'react-dom/server';
+import { ClipboardCopy, SquareCheckBig } from 'lucide-react';
 
-// Add CSS for copy button decorations
+// Add CSS for copy button decorations with invert filter
 const copyButtonStyles = `
   .copy-button-icon {
     font-size: 14px;
     margin-left: 10px;
     opacity: 0;
     cursor: pointer;
+    position: relative;
+  }
+  .copy-button-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    background-image: url("data:image/svg+xml,${encodeURIComponent(renderToString(<ClipboardCopy />))}");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    filter: invert(0);
+  }
+  /* Dark mode - invert the icon to make it white */
+  .dark .copy-button-icon::before {
+    filter: invert(1);
   }
   .copy-button-icon.copied {
     opacity: 1;
+  }
+  .copy-button-icon.copied::before {
+    background-image: url("data:image/svg+xml,${encodeURIComponent(renderToString(<SquareCheckBig stroke="#00bc7d" />))}");
+    filter: none;
   }
   /* Show copy button when hovering over the entire line (including field name) */
   .view-line:hover .copy-button-icon {
@@ -165,7 +189,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
         return;
       }
 
-      const decorations: any[] = [];
+      const decorations: editor.IModelDeltaDecoration[] = [];
       const lines = model.getLinesContent();
 
       lines.forEach((line, lineIndex) => {
@@ -187,9 +211,8 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
             },
             options: {
               after: {
-                content: copiedField === fieldKey ? '✅' : '📋',
+                content: ' ',
                 inlineClassName: 'copy-button-icon' + (copiedField === fieldKey ? ' copied' : ''),
-                cursor: 'pointer',
               },
             },
           });
