@@ -219,9 +219,9 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         const nodeType = toolType === 'function' ? NodeType.FunctionTool : NodeType.MCP;
 
         // Populate node data with tool details from lookup
-        const nodeData: any = { 
-          toolId, 
-          agentId, 
+        const nodeData: any = {
+          toolId,
+          agentId,
           relationshipId,
           // Add tool details from lookup for proper display
           name: tool?.name,

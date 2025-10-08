@@ -1,4 +1,4 @@
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
 
 /**
  * Gets the active tools for an MCP server.
