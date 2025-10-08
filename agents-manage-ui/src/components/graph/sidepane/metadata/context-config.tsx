@@ -1,6 +1,4 @@
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { ContextConfig, GraphMetadata } from '../../configuration/graph-types';
 import { SectionHeader } from '../section';
 

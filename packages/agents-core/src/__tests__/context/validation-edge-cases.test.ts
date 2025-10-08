@@ -26,7 +26,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { deep: fetcher },
     });
@@ -63,7 +62,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { data: fetcher },
     });
@@ -91,7 +89,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { opt: fetcher },
     });
@@ -119,7 +116,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { entity: fetcher },
     });
@@ -153,7 +149,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       headers: z.object({ apiKey: z.string() }),
       contextVariables: {
@@ -181,7 +176,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { data: fetcher },
     });

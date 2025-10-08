@@ -60,7 +60,6 @@ describe('contextConfig.toTemplate', () => {
 
   const config = contextConfig({
     id: 'test',
-    name: 'Test',
     graphId: 'test-graph',
     headers: z.object({ token: z.string() }),
     contextVariables: { user: userFetcher },
