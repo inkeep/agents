@@ -35,7 +35,7 @@ app.openapi(
     operationId: 'list-agent-graphs',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema,
+      params: TenantProjectIdParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {

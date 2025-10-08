@@ -14,7 +14,7 @@ import { parseEmbeddedJson } from '../../utils/json-parser';
 const {
   getRelatedAgentsForGraphMock,
   getToolsForAgentMock,
-  getAgentByIdMock,
+  getSubAgentByIdMock: getAgentByIdMock,
   getAgentGraphMock,
   getAgentGraphByIdMock,
   getDataComponentsForAgentMock,
@@ -63,7 +63,7 @@ const {
     })
   );
 
-  const getAgentByIdMock = vi.fn(() =>
+  const getSubAgentByIdMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'test-agent',
       name: 'Test Agent',
@@ -186,7 +186,7 @@ const {
   return {
     getRelatedAgentsForGraphMock,
     getToolsForAgentMock,
-    getAgentByIdMock,
+    getSubAgentByIdMock,
     getAgentGraphMock,
     getAgentGraphByIdMock,
     getDataComponentsForAgentMock,

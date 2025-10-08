@@ -25,7 +25,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     prompt: `Test Instructions${suffix}`,
   });
 
-  // Helper function to create an agent (needed for agent artifact component relations)
+  // Helper function to create a sub-agent (needed for sub-agent artifact component relations)
   const createTestAgent = async ({
     tenantId,
     suffix = '',
@@ -55,30 +55,30 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     // Use the graphId from the created or existing graph (409 means it already exists)
     const effectiveGraphId = graphId;
 
-    const agentData = { ...createAgentData({ suffix, tenantId, projectId }) };
+    const subAgentData = { ...createAgentData({ suffix, tenantId, projectId }) };
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
       {
         method: 'POST',
-        body: JSON.stringify(agentData),
+        body: JSON.stringify(subAgentData),
       }
     );
 
     if (createRes.status !== 201) {
       const errorText = await createRes.clone().text();
       console.error(
-        'Failed to create agent:',
+        'Failed to create sub-agent:',
         createRes.status,
         errorText,
         'with data:',
-        agentData
+        subAgentData
       );
     }
 
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id, graphId: effectiveGraphId };
+    return { subAgentData, agentId: createBody.data.id, graphId: effectiveGraphId };
   };
 
   // Helper function to create test artifact component data
