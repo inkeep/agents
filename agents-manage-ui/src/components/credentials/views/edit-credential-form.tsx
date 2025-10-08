@@ -162,7 +162,7 @@ export function EditCredentialForm({
 
           {/* MCP Servers Using This Credential */}
           <CredentialToolsList
-            tools={credential.tools as any}
+            tools={credential.tools}
             tenantId={tenantId}
             projectId={projectId}
           />
