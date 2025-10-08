@@ -2551,7 +2551,9 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {}
+    "columns": {
+      "\"context_configs\".\"request_context_schema\"": "\"context_configs\".\"headers_schema\""
+    }
   },
   "internal": {
     "indexes": {}
