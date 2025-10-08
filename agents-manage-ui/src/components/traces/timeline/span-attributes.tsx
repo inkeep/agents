@@ -148,9 +148,7 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   const ref = useRef<HTMLDivElement>(null!);
   const { resolvedTheme } = useTheme();
-  const [showCopyButton, setShowCopyButton] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     editor.setTheme(resolvedTheme === 'dark' ? MONACO_THEME.dark : MONACO_THEME.light);
@@ -171,6 +169,12 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       padding: {
         top: 16,
         bottom: 16,
+      },
+      scrollbar: {
+        vertical: 'hidden', // Hide vertical scrollbar
+        horizontal: 'hidden', // Hide horizontal scrollbar
+        useShadows: false, // Disable shadow effects
+        alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
       },
     });
     // Update height based on content
@@ -226,14 +230,6 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
         const cleanValue = fieldValue.replace(/^["']|["'],?\s*$/g, '');
         await navigator.clipboard.writeText(cleanValue);
         setCopiedField(fieldKey);
-
-        // Clear previous timeout if it exists
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-
-        // Set new timeout
-        timeoutRef.current = setTimeout(() => setCopiedField(null), 2000);
       } catch (err) {
         console.error('Failed to copy field:', err);
       }
