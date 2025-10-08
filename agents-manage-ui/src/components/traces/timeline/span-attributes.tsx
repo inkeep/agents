@@ -10,7 +10,7 @@ import {
 } from '@/lib/monaco-utils';
 import { cn } from '@/lib/utils';
 import '@/lib/setup-monaco-workers';
-import { editor } from 'monaco-editor';
+import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 
 // Constants for attribute categorization and sorting
@@ -126,7 +126,19 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     const contentHeight = Math.min(editor.getContentHeight(), 500);
     ref.current.style.height = `${contentHeight}px`;
 
-    return cleanupDisposables([model, editor]);
+    return cleanupDisposables([
+      model,
+      editor,
+      // Disable command palette by overriding the action
+      editor.addAction({
+        id: 'disable-command-palette',
+        label: 'Disable Command Palette',
+        keybindings: [KeyCode.F1],
+        run() {
+          // Do nothing - this prevents the command palette from opening
+        },
+      }),
+    ]);
   }, [processAttributes]);
 
   return (
