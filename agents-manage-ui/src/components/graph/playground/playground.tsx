@@ -82,6 +82,7 @@ export const Playground = ({
               projectId={projectId}
               tenantId={tenantId}
               customHeaders={customHeaders}
+              chatActivities={chatActivities}
               key={JSON.stringify(customHeaders)}
             />
           </ResizablePanel>
