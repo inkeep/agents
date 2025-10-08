@@ -4,7 +4,6 @@ import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'luci
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
