@@ -23,6 +23,7 @@
         "types": "./dist/client-exports.d.ts",
         "import": "./dist/client-exports.js"
       },
+      "./drizzle": "./drizzle/",
       "./package.json": "./package.json"
     }
   }
