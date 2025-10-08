@@ -5,7 +5,10 @@ import {
   type DataComponentApiInsert,
   getLogger,
 } from '@inkeep/agents-core';
-import { convertZodToJsonSchemaWithPreview } from '@inkeep/agents-core/utils/schema-conversion';
+import {
+  convertZodToJsonSchemaWithPreview,
+  isZodSchema,
+} from '@inkeep/agents-core/utils/schema-conversion';
 import { ArtifactComponent } from './artifact-component';
 import { DataComponent } from './data-component';
 import { Tool } from './tool';
@@ -17,7 +20,6 @@ import type {
   AllAgentInterface,
 } from './types';
 import { isAgentMcpConfig, normalizeAgentCanUseType } from './utils/tool-normalization';
-import { isZodSchema } from './utils/zod-to-artifact-component';
 
 const logger = getLogger('agent');
 

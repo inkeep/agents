@@ -1,13 +1,28 @@
-import {
-  convertZodToJsonSchemaWithPreview,
-  extractPreviewFields as extractPreviewFieldsCore,
-} from '@inkeep/agents-core/utils/schema-conversion';
+import { convertZodToJsonSchemaWithPreview } from '@inkeep/agents-core/utils/schema-conversion';
 import Ajv from 'ajv';
 import { z } from 'zod';
 import { getLogger } from '../logger';
 
 const logger = getLogger('SchemaValidation');
 const ajv = new Ajv({ allErrors: true, strict: false });
+
+// Cache for compiled AJV validators to improve performance
+const validatorCache = new Map<string, any>();
+
+/**
+ * Clear the validator cache to free memory
+ * Useful for testing or when memory usage becomes a concern
+ */
+export function clearValidatorCache(): void {
+  validatorCache.clear();
+}
+
+/**
+ * Get the current cache size for monitoring
+ */
+export function getValidatorCacheSize(): number {
+  return validatorCache.size;
+}
 
 /**
  * Extended JSON Schema that includes preview field indicators
@@ -57,8 +72,16 @@ export function validateComponentSchema(
       };
     }
 
-    // Basic JSON Schema validation - just check it compiles with AJV
-    ajv.compile(schema);
+    // Create a cache key based on the schema content
+    const schemaKey = JSON.stringify(schema);
+
+    // Check if we already have a compiled validator for this schema
+    let validator = validatorCache.get(schemaKey);
+    if (!validator) {
+      // Compile and cache the validator
+      validator = ajv.compile(schema);
+      validatorCache.set(schemaKey, validator);
+    }
 
     // If it compiled successfully, it's a valid JSON Schema
     return {

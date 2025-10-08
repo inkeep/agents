@@ -3,6 +3,16 @@ import { getLogger } from './logger';
 
 const logger = getLogger('schema-conversion');
 
+// Type extension for Zod schemas with preview metadata
+interface PreviewZodDef {
+  inPreview?: boolean;
+}
+
+// Type for Zod schemas that can have preview metadata
+type PreviewZodType = z.ZodTypeAny & {
+  _def: PreviewZodDef;
+};
+
 /**
  * Utility function for converting Zod schemas to JSON Schema
  * Uses Zod's built-in toJSONSchema method
@@ -36,8 +46,8 @@ export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> 
  * Adds metadata to the schema definition without modifying Zod's core
  */
 export const preview = <T extends z.ZodTypeAny>(schema: T): T => {
-  // Use type assertion to safely add preview metadata
-  (schema._def as any).inPreview = true;
+  // Use proper type extension to add preview metadata
+  (schema as PreviewZodType)._def.inPreview = true;
   return schema;
 };
 
@@ -55,13 +65,20 @@ export function convertZodToJsonSchemaWithPreview(
     const shape = zodSchema.shape;
 
     for (const [key, fieldSchema] of Object.entries(shape)) {
-      if ((fieldSchema as any)?._def?.inPreview === true) {
+      if ((fieldSchema as PreviewZodType)?._def?.inPreview === true) {
         (jsonSchema.properties as any)[key].inPreview = true;
       }
     }
   }
 
   return jsonSchema;
+}
+
+/**
+ * Type guard to check if a value is a Zod schema
+ */
+export function isZodSchema(value: any): value is z.ZodObject<any> {
+  return value?._def?.type === 'object';
 }
 
 /**
