@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.24",
+    "@types/prettier": "^2.7.3",
     "@types/yarnpkg__lockfile": "^1.1.0",
     "@vitest/coverage-v8": "^2.0.0",
     "clean-package": "^2.2.0",

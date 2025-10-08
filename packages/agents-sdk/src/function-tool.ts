@@ -60,6 +60,13 @@ export class FunctionTool implements FunctionToolInterface {
   }
 
   getExecuteFunction(): (params: any) => Promise<any> {
+    // If execute is a string, we can't return it as a function
+    // This method is primarily for runtime execution, not serialization
+    if (typeof this.config.execute === 'string') {
+      throw new Error(
+        'Cannot get execute function from string-based function tool. Use serializeFunction() instead.'
+      );
+    }
     return this.config.execute;
   }
 
