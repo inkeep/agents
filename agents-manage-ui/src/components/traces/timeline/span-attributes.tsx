@@ -16,21 +16,17 @@ import { useTheme } from 'next-themes';
 // Add CSS for copy button decorations
 const copyButtonStyles = `
   .copy-button-icon {
-    font-size: 14px !important;
-    margin-left: 4px !important;
-    opacity: 0 !important;
-    transition: opacity 0.2s ease !important;
-    cursor: pointer !important;
-  }
-  .copy-button-hover {
-    opacity: 0 !important;
-  }
-  .copy-button-hover:hover {
-    opacity: 1 !important;
+    font-size: 14px;
+    margin-left: 10px;
+    opacity: 0;
+    cursor: pointer;
   }
   .copy-button-icon.copied {
-    opacity: 1 !important;
-    color: #10b981 !important;
+    opacity: 1;
+  }
+  /* Show copy button when hovering over the entire line (including field name) */
+  .view-line:hover .copy-button-icon {
+    opacity: 1;
   }
 `;
 
@@ -191,8 +187,8 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
             },
             options: {
               after: {
-                content: ` ${copiedField === fieldKey ? '✅' : '📋'}`,
-                inlineClassName: `copy-button-icon ${copiedField === fieldKey ? 'copied' : ''} copy-button-hover`,
+                content: copiedField === fieldKey ? '✅' : '📋',
+                inlineClassName: 'copy-button-icon' + (copiedField === fieldKey ? ' copied' : ''),
                 cursor: 'pointer',
               },
             },
