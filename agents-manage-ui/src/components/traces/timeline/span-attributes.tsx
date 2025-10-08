@@ -236,11 +236,35 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     }
   }, []);
 
+  const handleDownloadCode = useCallback(() => {
+    const code = ref.current.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    // Create a blob with the JSON content
+    const blob = new Blob([code], { type: 'application/json' });
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'file.json';
+    // Trigger the download
+    document.body.append(link);
+    link.click();
+    // Clean up
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast.success('File downloaded successfully');
+  }, []);
+
   return (
     <div>
       <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
         Process Attributes<Badge variant="sky">JSON</Badge>
-        <Button variant="ghost" size="icon-sm" title="Download File" className="ml-auto">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Download File"
+          className="ml-auto"
+          onClick={handleDownloadCode}
+        >
           <Download />
         </Button>
         <Button variant="ghost" size="icon-sm" title="Copy Code" onClick={handleCopyCode}>
