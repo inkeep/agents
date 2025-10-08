@@ -138,7 +138,6 @@ export function ChatWidget({
 
   // Helper function to reset the stop polling timeout
   const resetStopPollingTimeout = useCallback(() => {
-    console.log('[ChatWidget] Resetting stop polling timeout to 5 minutes');
     // Clear any existing timeout
     if (stopPollingTimeoutRef.current) {
       console.log('[ChatWidget] Clearing existing timeout');
@@ -148,22 +147,15 @@ export function ChatWidget({
     
     // Set a new timeout for 5 minutes
     stopPollingTimeoutRef.current = setTimeout(() => {
-      console.log('[ChatWidget] 5 minute timeout reached - stopping polling');
       stopPolling();
       stopPollingTimeoutRef.current = null;
     }, POLLING_TIMEOUT_MS);
-    console.log('[ChatWidget] New timeout set for 5 minutes');
   }, [stopPolling, POLLING_TIMEOUT_MS]);
 
   // Reset timeout when new activities come in AFTER assistant message received
   useEffect(() => {
-    const activityCount = chatActivities?.activities?.length || 0;
-    console.log('[ChatWidget] Activity count changed:', activityCount);
-    
-    // Only reset timeout if we've already received the assistant message
-    // This prevents resetting during the initial response streaming
-    if (hasReceivedAssistantMessageRef.current && activityCount > 0) {
-      console.log('[ChatWidget] New activities after assistant response - resetting timeout');
+    // Only reset timeout if we've already received the assistant message and new activities were added
+    if (hasReceivedAssistantMessageRef.current) {
       resetStopPollingTimeout();
     }
   }, [chatActivities?.activities?.length, resetStopPollingTimeout]);
@@ -184,16 +176,13 @@ export function ChatWidget({
         <InkeepEmbeddedChat
           baseSettings={{
             onEvent: (event: InkeepCallbackEvent) => {
-              console.log('[ChatWidget] Event received:', event.eventName);
               if (event.eventName === 'assistant_message_received') {
-                console.log('[ChatWidget] Assistant message received - marking flag and resetting timeout');
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
                 // Reset the timeout to 5 minutes after receiving an assistant message
                 resetStopPollingTimeout();
               }
               if (event.eventName === 'user_message_submitted') {
-                console.log('[ChatWidget] User message submitted - clearing timeout and starting polling');
                 // Reset the flag since we're starting a new interaction
                 hasReceivedAssistantMessageRef.current = false;
                 // Cancel any pending stop polling timeout since we need to keep polling
@@ -204,7 +193,6 @@ export function ChatWidget({
                 startPolling();
               }
               if (event.eventName === 'chat_clear_button_clicked') {
-                console.log('[ChatWidget] Chat cleared - stopping polling and resetting conversation');
                 // Reset the flag
                 hasReceivedAssistantMessageRef.current = false;
                 // Cancel any pending stop polling timeout
