@@ -140,7 +140,6 @@ export function ChatWidget({
   const resetStopPollingTimeout = useCallback(() => {
     // Clear any existing timeout
     if (stopPollingTimeoutRef.current) {
-      console.log('[ChatWidget] Clearing existing timeout');
       clearTimeout(stopPollingTimeoutRef.current);
       stopPollingTimeoutRef.current = null;
     }
@@ -162,7 +161,6 @@ export function ChatWidget({
 
   useEffect(() => {
     return () => {
-      console.log('[ChatWidget] Component unmounting - cleaning up timeout');
       if (stopPollingTimeoutRef.current) {
         clearTimeout(stopPollingTimeoutRef.current);
         stopPollingTimeoutRef.current = null;
@@ -183,7 +181,7 @@ export function ChatWidget({
                 resetStopPollingTimeout();
               }
               if (event.eventName === 'user_message_submitted') {
-                // Reset the flag since we're starting a new interaction
+                // Reset the flag
                 hasReceivedAssistantMessageRef.current = false;
                 // Cancel any pending stop polling timeout since we need to keep polling
                 if (stopPollingTimeoutRef.current) {
