@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Streamdown } from 'streamdown';
 import {
   addDecorations,
@@ -13,8 +13,9 @@ import { cn } from '@/lib/utils';
 import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { renderToString } from 'react-dom/server';
-import { ClipboardCopy } from 'lucide-react';
+import { ClipboardCopy, Copy, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import '@/lib/setup-monaco-workers';
 
@@ -224,10 +225,27 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     ]);
   }, [processAttributes]);
 
+  const handleCopyCode = useCallback(async () => {
+    const code = ref.current.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success('Copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy', error);
+      toast.error('Failed to copy to clipboard');
+    }
+  }, []);
+
   return (
     <div>
-      <h3 className="text-sm font-medium mb-2">
-        Process Attributes <Badge variant="sky">JSON</Badge>
+      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+        Process Attributes<Badge variant="sky">JSON</Badge>
+        <Button variant="ghost" size="icon-sm" title="Download File" className="ml-auto">
+          <Download />
+        </Button>
+        <Button variant="ghost" size="icon-sm" title="Copy Code" onClick={handleCopyCode}>
+          <Copy />
+        </Button>
       </h3>
       <div ref={ref} className="rounded-xl overflow-hidden border" />
     </div>
