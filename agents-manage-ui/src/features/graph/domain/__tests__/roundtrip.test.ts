@@ -1,5 +1,4 @@
 import type { Edge, Node } from '@xyflow/react';
-import { describe, expect, it } from 'vitest';
 import { EdgeType } from '@/components/graph/configuration/edge-types';
 import { NodeType } from '@/components/graph/configuration/node-types';
 import { deserializeGraphData } from '@/features/graph/domain/deserialize';
