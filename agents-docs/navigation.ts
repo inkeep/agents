@@ -10,6 +10,7 @@ export default {
             'quick-start/start-development',
             'quick-start/traces',
             'quick-start/credentials',
+            'quick-start/upgrading',
           ],
         },
         'concepts',
