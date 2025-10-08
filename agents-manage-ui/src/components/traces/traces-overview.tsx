@@ -16,8 +16,9 @@ import { ConversationStatsCard } from './conversation-stats/conversation-stats-c
 import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 import { GraphFilter } from './filters/graph-filter';
 import { SpanFilters } from './filters/span-filters';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
-const DOCS_BASE_URL = 'https://docs.inkeep.com/quick-start/traces';
+
 
 // Time range options
 const TIME_RANGES = {
