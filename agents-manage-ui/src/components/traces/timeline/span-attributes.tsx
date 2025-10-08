@@ -268,6 +268,71 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     };
 
     setTimeout(addFieldCopyButtons, 100);
+    addFieldCopyButtons();
+
+    // Handle copy button clicks
+    const handleCopyField = async (tokenText: string, tokenType: string) => {
+      try {
+        let contentToCopy = tokenText;
+        
+        // For different token types, copy different content
+        if (tokenType === 'delimiter.bracket.json') {
+          // For objects, we need to extract the complete object
+          // This is a simplified approach - you might need more sophisticated parsing
+          contentToCopy = tokenText; // Just copy the bracket for now
+        } else if (tokenType === 'delimiter.array.json') {
+          // For arrays, copy the bracket
+          contentToCopy = tokenText;
+        } else if (tokenType === 'number.json') {
+          // For numbers, copy the number
+          contentToCopy = tokenText;
+        } else if (tokenType === 'string.value.json') {
+          // For string values, copy the string (remove quotes)
+          contentToCopy = tokenText.replace(/^"|"$/g, '');
+        }
+        
+        await navigator.clipboard.writeText(contentToCopy);
+        console.log('Copied:', contentToCopy, 'type:', tokenType);
+      } catch (err) {
+        console.error('Failed to copy field:', err);
+      }
+    };
+
+    // Handle clicks on copy buttons
+    const handleMouseDown = (e: editor.IEditorMouseEvent) => {
+      if (model.isDisposed()) return;
+
+      const position = e.target.position;
+      if (position) {
+        const lineNumber = position.lineNumber;
+        const column = position.column;
+        
+        // Check if click is near a copy button (end of line)
+        const lineContent = model.getLineContent(lineNumber);
+        if (column >= lineContent.length - 1) {
+          // Find the token at this position
+          const lines = editor.tokenize(model.getValue(), 'json');
+          const line = lines[lineNumber - 1]; // Convert to 0-indexed
+          
+          if (line) {
+            // Find the last token that matches our filter
+            for (let i = line.length - 1; i >= 0; i--) {
+              const token = line[i];
+              if (['delimiter.bracket.json', 'delimiter.array.json', 'number.json', 'string.value.json'].includes(token.type)) {
+                const nextToken = line[i + 1];
+                const tokenEndOffset = nextToken ? nextToken.offset : lineContent.length;
+                const tokenText = lineContent.substring(token.offset, tokenEndOffset);
+                
+                handleCopyField(tokenText, token.type);
+                break;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    editorInstance.onMouseDown(handleMouseDown);
 
     return cleanupDisposables([
       model,
