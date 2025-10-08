@@ -12,7 +12,11 @@ import {
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
+import dynamic from 'next/dynamic';
+
+const SpanAttributes = dynamic(() =>
+  import('@/components/traces/timeline/span-attributes').then((mod) => mod.SpanAttributes)
+);
 
 export function renderPanelContent({
   selected,

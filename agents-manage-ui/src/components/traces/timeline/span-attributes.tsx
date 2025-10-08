@@ -1,8 +1,9 @@
 'use client';
 
-import { Streamdown } from 'streamdown';
 import { useEffect, useRef } from 'react';
+import { Streamdown } from 'streamdown';
 import { cleanupDisposables, createEditor, getOrCreateModel } from '@/lib/monaco-utils';
+import { cn } from '@/lib/utils';
 import '@/lib/setup-monaco-workers';
 
 // Constants for attribute categorization and sorting
@@ -103,7 +104,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       readOnly: true,
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
-      // contextmenu: false, // Disable the right-click context menu
+      contextmenu: false, // Disable the right-click context menu
     });
 
     return cleanupDisposables([model, editor]);
@@ -127,15 +128,15 @@ export function SpanAttributes({ span, className }: SpanAttributesProps) {
   // Sort process attributes alphabetically
   const sortedProcessAttributes = Object.keys(processAttributes)
     .sort()
-    .reduce((acc, key) => {
+    .reduce<AttributeMap>((acc, key) => {
       acc[key] = processAttributes[key];
       return acc;
-    }, {} as AttributeMap);
+    }, {});
   const hasOtherAttributes = Object.keys(otherAttributes).length > 0;
   const hasAnyAttributes = hasOtherAttributes || hasProcessAttributes;
 
   return (
-    <div className={`space-y-3 ${className ?? ''}`}>
+    <div className={cn('space-y-3', className)}>
       {/* Main span attributes */}
       {hasOtherAttributes && (
         <div>
