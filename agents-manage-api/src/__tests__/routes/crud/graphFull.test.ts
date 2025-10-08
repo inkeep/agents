@@ -1107,8 +1107,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig).toBeDefined();
       expect(body.data.contextConfig).toMatchObject({
         id: expect.stringContaining('contextConfig-'),
-        name: expect.stringContaining('Test Context Config'),
-        description: expect.stringContaining('Test context configuration'),
         headersSchema: expect.objectContaining({
           type: 'object',
           properties: expect.objectContaining({

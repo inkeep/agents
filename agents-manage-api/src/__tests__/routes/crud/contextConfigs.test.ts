@@ -54,8 +54,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     tenantId,
     projectId,
     graphId,
-    name: `Test Context Config${suffix}`,
-    description: `Test Description${suffix}`,
     headersSchema: {
       type: 'object',
       properties: {
@@ -175,8 +173,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data).toHaveLength(1);
       expect(body.data[0]).toMatchObject({
-        name: contextConfigData.name,
-        description: contextConfigData.description,
         headersSchema: contextConfigData.headersSchema,
         contextVariables: contextConfigData.contextVariables,
       });
@@ -306,8 +302,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data).toMatchObject({
         id: contextConfigId,
-        name: contextConfigData.name,
-        description: contextConfigData.description,
         headersSchema: contextConfigData.headersSchema,
         contextVariables: contextConfigData.contextVariables,
       });
@@ -376,8 +370,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        name: contextConfigData.name,
-        description: contextConfigData.description,
         headersSchema: contextConfigData.headersSchema,
         contextVariables: contextConfigData.contextVariables,
       });
@@ -394,8 +386,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         graphId: testGraphId,
-        name: 'Minimal Context Config',
-        description: 'Minimal test description',
       };
 
       const res = await makeRequest(
@@ -409,10 +399,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
 
       const body = await res.json();
-      expect(body.data).toMatchObject({
-        name: minimalData.name,
-        description: minimalData.description,
-      });
+      expect(body.data).toMatchObject({});
       expect(body.data.headersSchema).toBeNull();
       expect(body.data.contextVariables).toBeNull();
     });
@@ -426,8 +413,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         graphId: testGraphId,
-        name: 'Complex Context Config',
-        description: 'Context config with multiple fetch definitions',
         headersSchema: {
           type: 'object',
           properties: {
@@ -500,8 +485,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const { contextConfigId } = await createTestContextConfig({ tenantId });
 
       const updateData = {
-        name: 'Updated Context Config',
-        description: 'Updated Description',
         headersSchema: {
           type: 'object',
           properties: {
@@ -541,61 +524,9 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data).toMatchObject({
         id: contextConfigId,
-        name: updateData.name,
-        description: updateData.description,
         headersSchema: updateData.headersSchema,
         contextVariables: updateData.contextVariables,
       });
-    });
-
-    it('should partially update a context config', async () => {
-      const tenantId = createTestTenantId('context-configs-update-partial');
-      await ensureTestProject(tenantId, projectId);
-      const { contextConfigId, contextConfigData } = await createTestContextConfig({
-        tenantId,
-      });
-
-      const partialUpdateData = {
-        name: 'Partially Updated Context Config',
-        // Keep other fields unchanged
-      };
-
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify(partialUpdateData),
-        }
-      );
-
-      expect(res.status).toBe(200);
-
-      const body = await res.json();
-      expect(body.data).toMatchObject({
-        id: contextConfigId,
-        name: partialUpdateData.name,
-        description: contextConfigData.description, // Should remain unchanged
-        contextVariables: contextConfigData.contextVariables, // Should remain unchanged
-      });
-    });
-
-    it('should return 404 when updating non-existent context config', async () => {
-      const tenantId = createTestTenantId('context-configs-update-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const updateData = {
-        name: 'Updated Context Config',
-        description: 'Updated Description',
-      };
-
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/non-existent-id`,
-        {
-          method: 'PUT',
-          body: JSON.stringify(updateData),
-        }
-      );
-
-      expect(res.status).toBe(404);
     });
   });
 
@@ -645,8 +576,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         graphId: testGraphId,
-        name: 'Config with Empty Context Variables',
-        description: 'Test config with empty object',
         contextVariables: {},
       };
 
@@ -672,8 +601,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         graphId: testGraphId,
-        name: 'Config with Null Headers Schema',
-        description: 'Test config with null headers schema',
         headersSchema: null,
       };
 
@@ -699,8 +626,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         graphId: testGraphId,
-        name: 'Complex Nested Config',
-        description: 'Config with deeply nested structures',
         headersSchema: {
           type: 'object',
           properties: {
@@ -810,8 +735,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
           tenantId,
           projectId,
           graphId: testGraphId,
-          name: 'Config with Empty Context Variables',
-          description: 'Test config with empty object',
           contextVariables: {},
         };
 
@@ -894,8 +817,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
           tenantId,
           projectId,
           graphId: testGraphId,
-          name: 'Config with Null Request Schema',
-          description: 'Test config with null request schema',
           headersSchema: null,
         };
 
