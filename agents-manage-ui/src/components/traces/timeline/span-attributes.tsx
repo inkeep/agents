@@ -105,7 +105,11 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
       contextmenu: false, // Disable the right-click context menu
+      fontSize: 12,
     });
+    // Update height based on content
+    const contentHeight = Math.min(editor.getContentHeight(), 500);
+    ref.current.style.height = `${contentHeight}px`;
 
     return cleanupDisposables([model, editor]);
   }, [processAttributes]);
@@ -113,7 +117,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
   return (
     <div>
       <h3 className="text-sm font-medium mb-2">Process Attributes</h3>
-      <div ref={ref} className="h-50" />
+      <div ref={ref} />
     </div>
   );
 }
