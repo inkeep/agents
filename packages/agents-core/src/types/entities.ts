@@ -330,7 +330,7 @@ export type CanUseItem = {
 };
 
 export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
-  canUse: CanUseItem[]; // All tools (both MCP and function tools)
+  canUse: CanUseItem[];
   dataComponents?: string[];
   artifactComponents?: string[];
   canTransferTo?: string[];
