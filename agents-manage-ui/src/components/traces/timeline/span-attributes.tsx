@@ -14,6 +14,7 @@ import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { renderToString } from 'react-dom/server';
 import { ClipboardCopy, SquareCheckBig } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 // Add CSS for copy button decorations with invert filter
 const copyButtonStyles = `
@@ -158,9 +159,22 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
   useEffect(() => {
     const model = getOrCreateModel({
       uri: 'process-attributes.json',
-      value: JSON.stringify(processAttributes, null, 2),
+      value: JSON.stringify(
+        {
+          array: [1, 2, 3],
+          number: 2,
+          foo: {
+            bar: {
+              baz: '',
+            },
+          },
+          ...processAttributes,
+        },
+        null,
+        2
+      ),
     });
-    const editor = createEditor(ref, {
+    const editorInstance = createEditor(ref, {
       model,
       readOnly: true,
       lineNumbers: 'off',
@@ -179,10 +193,10 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       },
     });
     // Update height based on content
-    const contentHeight = Math.min(editor.getContentHeight(), 500);
+    const contentHeight = editorInstance.getContentHeight();
     ref.current.style.height = `${contentHeight}px`;
 
-    // Add individual field copy buttons using decorations
+    // Add individual field copy buttons using Monaco tokenization
     const addFieldCopyButtons = () => {
       // Check if model is still valid
       if (model.isDisposed()) {
@@ -190,80 +204,76 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       }
 
       const decorations: editor.IModelDeltaDecoration[] = [];
-      const lines = model.getLinesContent();
+      const lines = editor.tokenize(model.getValue(), 'json');
 
-      lines.forEach((line, lineIndex) => {
-        // Match JSON field patterns: "key": "value" or "key": value
-        const fieldMatch = line.match(/^\s*"([^"]+)":\s*(.+?)(?:,|\s*$)/);
-        if (fieldMatch) {
-          const [, fieldKey, fieldValue] = fieldMatch;
-          const lineNumber = lineIndex + 1;
-          const endColumn = line.length;
-          console.log('Found field:', fieldKey, 'on line:', lineNumber, 'line:', line);
+      // Use Monaco's tokenization to find all fields
+      for (const line of lines) {
+        for (const token of line) {
+          if (
+            ![
+              'delimiter.bracket.json',
+              'delimiter.array.json',
+              'number.json',
+              'string.value.json',
+            ].includes(token.type)
+          ) {
+            continue;
+          }
+          console.log(1, token);
 
-          // Create copy button decoration - add space and icon at the end of line
-          decorations.push({
+          // Add decoration for this token
+          const lineNumber = lines.indexOf(line) + 1; // Monaco is 1-indexed
+          const lineContent = model.getLineContent(lineNumber);
+
+          // Find the next token to determine the end position of current token
+          const tokenIndex = line.indexOf(token);
+          const nextToken = line[tokenIndex + 1];
+          const tokenEndOffset = nextToken ? nextToken.offset : lineContent.length;
+
+          // Get the actual text from the line content
+          const tokenText = lineContent.substring(token.offset, tokenEndOffset);
+
+          const decoration = {
             range: {
               startLineNumber: lineNumber,
-              startColumn: endColumn,
+              startColumn: tokenEndOffset + 1,
               endLineNumber: lineNumber,
-              endColumn: endColumn + 1,
+              endColumn: tokenEndOffset + 2,
             },
             options: {
               after: {
                 content: ' ',
-                inlineClassName: 'copy-button-icon' + (copiedField === fieldKey ? ' copied' : ''),
+                inlineClassName: 'copy-button-icon',
               },
             },
-          });
+          };
+          decorations.push(decoration);
+          console.log(
+            'Added decoration for token:',
+            tokenText,
+            'type:',
+            token.type,
+            'on line:',
+            lineNumber,
+            'offset:',
+            token.offset,
+            'endOffset:',
+            tokenEndOffset
+          );
         }
-      });
-
-      console.log('Adding decorations:', decorations.length);
-      editor.createDecorationsCollection(decorations);
-    };
-
-    // Handle copy button clicks
-    const handleCopyField = async (fieldKey: string, fieldValue: string) => {
-      try {
-        // Clean up the field value (remove quotes, commas, etc.)
-        const cleanValue = fieldValue.replace(/^["']|["'],?\s*$/g, '');
-        await navigator.clipboard.writeText(cleanValue);
-        setCopiedField(fieldKey);
-      } catch (err) {
-        console.error('Failed to copy field:', err);
       }
+
+      console.log('Adding decorations:', decorations.length, decorations);
+      editorInstance.createDecorationsCollection(decorations);
     };
 
-    // Add copy buttons after editor is ready
     setTimeout(addFieldCopyButtons, 100);
-
-    // Handle clicks on copy buttons
-    const handleMouseDown = (e: any) => {
-      if (model.isDisposed()) return;
-
-      const position = e.target.position;
-      if (position) {
-        const line = model.getLineContent(position.lineNumber);
-        const fieldMatch = line.match(/^\s*"([^"]+)":\s*(.+?)(?:,|\s*$)/);
-        if (fieldMatch) {
-          const [, fieldKey, fieldValue] = fieldMatch;
-          // Check if click is near the end of the line (where copy button is)
-          const lineLength = line.length;
-          if (position.column >= lineLength - 2) {
-            handleCopyField(fieldKey, fieldValue);
-          }
-        }
-      }
-    };
-
-    editor.onMouseDown(handleMouseDown);
 
     return cleanupDisposables([
       model,
-      editor,
+      editorInstance,
       // Disable command palette by overriding the action
-      editor.addAction({
+      editorInstance.addAction({
         id: 'disable-command-palette',
         label: 'Disable Command Palette',
         keybindings: [KeyCode.F1],
@@ -276,7 +286,9 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
 
   return (
     <div>
-      <h3 className="text-sm font-medium mb-2">Process Attributes</h3>
+      <h3 className="text-sm font-medium mb-2">
+        Process Attributes <Badge variant="sky">JSON</Badge>
+      </h3>
       <div ref={ref} className="rounded-xl overflow-hidden border" />
     </div>
   );
