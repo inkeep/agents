@@ -5,7 +5,7 @@ import type { SystemPromptV1 } from '../../agents/types';
 import { Phase1Config } from '../../agents/versions/v1/Phase1Config';
 
 // Helper to create mock McpTool
-function createMockMcpTool(name: string, availableTools: any[]): any {
+function createMockMcpTool(name: string, availableTools: any[]): McpTool {
   return {
     id: `tool-${name}`,
     name,
