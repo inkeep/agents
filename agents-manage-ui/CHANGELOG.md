@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.14.15
+
+### Patch Changes
+
+- 4c76290: Tweak styling on edge pane, graph settings label
+  - @inkeep/agents-manage-api@0.14.15
+  - @inkeep/agents-run-api@0.14.15
+  - @inkeep/agents-core@0.14.15
+
 ## 0.14.14
 
 ### Patch Changes
