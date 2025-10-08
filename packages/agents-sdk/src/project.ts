@@ -35,6 +35,9 @@ export interface ProjectConfig {
   tools?: () => Tool[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
+  credentialReferences?:
+    | (() => CredentialReferenceApiInsert[])
+    | Record<string, CredentialReferenceApiInsert>;
 }
 
 /**
@@ -104,6 +107,9 @@ export class Project implements ProjectInterface {
   private graphs: AgentGraph[] = [];
   private graphMap: Map<string, AgentGraph> = new Map();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
+  private projectTools: Tool[] = [];
+  private projectDataComponents: DataComponent[] = [];
+  private projectArtifactComponents: ArtifactComponent[] = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -123,6 +129,30 @@ export class Project implements ProjectInterface {
       // Set project context on graphs
       for (const graph of this.graphs) {
         graph.setConfig(this.tenantId, this.projectId, this.baseURL);
+      }
+    }
+
+    // Initialize project-level tools if provided
+    if (config.tools) {
+      this.projectTools = config.tools();
+    }
+
+    // Initialize project-level dataComponents if provided
+    if (config.dataComponents) {
+      this.projectDataComponents = config.dataComponents();
+    }
+
+    // Initialize project-level artifactComponents if provided
+    if (config.artifactComponents) {
+      this.projectArtifactComponents = config.artifactComponents();
+    }
+
+    // Initialize project-level credentialReferences if provided
+    if (config.credentialReferences) {
+      if (typeof config.credentialReferences === 'function') {
+        this.credentialReferences = config.credentialReferences();
+      } else {
+        this.credentialReferences = Object.values(config.credentialReferences);
       }
     }
 
@@ -676,6 +706,76 @@ export class Project implements ProjectInterface {
             }
           }
         }
+      }
+    }
+
+    // Add project-level tools, dataComponents, and artifactComponents
+    for (const tool of this.projectTools) {
+      const toolId = tool.getId();
+      if (!toolsObject[toolId]) {
+        const toolConfig: ToolApiInsert['config'] = {
+          type: 'mcp',
+          mcp: {
+            server: {
+              url: tool.config.serverUrl,
+            },
+            transport: tool.config.transport,
+            activeTools: tool.config.activeTools,
+          },
+        };
+
+        const toolData: ToolApiInsert = {
+          id: toolId,
+          name: tool.getName(),
+          config: toolConfig,
+        };
+
+        if (tool.config?.imageUrl) {
+          toolData.imageUrl = tool.config.imageUrl;
+        }
+        if (tool.config?.headers) {
+          toolData.headers = tool.config.headers;
+        }
+        const credentialId = tool.getCredentialReferenceId();
+        if (credentialId) {
+          toolData.credentialReferenceId = credentialId;
+        }
+
+        toolsObject[toolId] = toolData;
+      }
+    }
+
+    // Add project-level data components
+    for (const dataComponent of this.projectDataComponents) {
+      const dataComponentId = dataComponent.getId();
+      const dataComponentName = dataComponent.getName();
+      const dataComponentDescription = dataComponent.getDescription() || '';
+      const dataComponentProps = dataComponent.getProps() || {};
+
+      if (!dataComponentsObject[dataComponentId] && dataComponentName) {
+        dataComponentsObject[dataComponentId] = {
+          id: dataComponentId,
+          name: dataComponentName,
+          description: dataComponentDescription,
+          props: dataComponentProps,
+        };
+      }
+    }
+
+    // Add project-level artifact components
+    for (const artifactComponent of this.projectArtifactComponents) {
+      const artifactComponentId = artifactComponent.getId();
+      const artifactComponentName = artifactComponent.getName();
+      const artifactComponentDescription = artifactComponent.getDescription() || '';
+      const artifactComponentProps = artifactComponent.getProps() || {};
+
+      if (!artifactComponentsObject[artifactComponentId] && artifactComponentName) {
+        artifactComponentsObject[artifactComponentId] = {
+          id: artifactComponentId,
+          name: artifactComponentName,
+          description: artifactComponentDescription,
+          props: artifactComponentProps,
+        };
       }
     }
 

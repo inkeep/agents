@@ -3,11 +3,11 @@ import { z } from 'zod';
 import {
   ContextConfigBuilder,
   contextConfig,
-  convertZodToJsonSchema,
   fetchDefinition,
   RequestContextSchemaBuilder,
   requestContextSchema,
 } from '../../context/ContextConfig';
+import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
