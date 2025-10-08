@@ -57,7 +57,23 @@ const serializeData = (data: ProjectFormData) => {
     return cleaned;
   };
 
-  const cleanSandboxConfig = (sandboxConfig: any) => {
+  // Type for the sandbox config before cleaning
+  type SandboxConfigInput = {
+    provider?: 'vercel' | 'daytona' | 'local';
+    runtime?: 'node22' | 'typescript';
+    timeout?: number | null;
+    vcpus?: number | null;
+  } | null | undefined;
+
+  // Type for the cleaned sandbox config
+  type CleanedSandboxConfig = {
+    provider?: 'vercel' | 'daytona' | 'local';
+    runtime?: 'node22' | 'typescript';
+    timeout?: number;
+    vcpus?: number;
+  } | undefined;
+
+  const cleanSandboxConfig = (sandboxConfig: SandboxConfigInput): CleanedSandboxConfig => {
     // If sandboxConfig is null, undefined, or empty object, return undefined
     if (
       !sandboxConfig ||
@@ -67,7 +83,7 @@ const serializeData = (data: ProjectFormData) => {
     }
 
     // Clean the individual properties - remove null/undefined values
-    const cleaned: any = {};
+    const cleaned: Partial<NonNullable<CleanedSandboxConfig>> = {};
     if (sandboxConfig.provider) {
       cleaned.provider = sandboxConfig.provider;
     }
