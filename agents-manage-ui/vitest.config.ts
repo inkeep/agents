@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import path from 'node:path';
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     include: ['src/**/*.{test,spec}.ts', 'src/**/*.{test,spec}.tsx'],
     coverage: {
       provider: 'v8',
@@ -34,6 +35,15 @@ export default defineConfig({
         },
       },
     },
+    alias: [
+      {
+        // Fixes Error: Failed to resolve entry for package "monaco-editor". The package may have incorrect main/module/exports specified in its package.json.
+        find: /^monaco-editor$/,
+        replacement: path.resolve('node_modules/monaco-editor/esm/vs/editor/editor.api'),
+      },
+    ],
+    setupFiles: './setup-files',
+    globals: true,
   },
   resolve: {
     alias: {
