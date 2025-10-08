@@ -74,7 +74,6 @@ export type builderFetchDefinition<R extends z.ZodTypeAny> = {
   credentialReference?: CredentialReferenceApiInsert; // Reference to credential store for secure credential resolution
 };
 
-
 export interface ContextConfigBuilderOptions<
   R extends z.ZodTypeAny | undefined = undefined,
   CV = Record<string, builderFetchDefinition<z.ZodTypeAny>>,
