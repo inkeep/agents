@@ -1,5 +1,54 @@
-import { editor, Uri, type IDisposable } from 'monaco-editor';
+import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
 import type { RefObject } from 'react';
+
+export function addDecorations(editorInstance: editor.IStandaloneCodeEditor): {
+  decorations: editor.IModelDeltaDecoration[];
+  decorationCollection: editor.IEditorDecorationsCollection;
+} {
+  // Add decorations for copy icons after primitive values
+  const decorations: editor.IModelDeltaDecoration[] = [];
+  const model = editorInstance.getModel()!;
+
+  const tokens = editor.tokenize(model.getValue(), 'json');
+
+  // Function to check if a token should show a copy icon
+  const shouldShowCopyIcon = (tokenType: string): boolean => {
+    if (tokenType === 'string.value.json') return true;
+    if (tokenType === 'number.json') return true;
+    if (tokenType === 'keyword.json') return true;
+    return false;
+  };
+
+  // Find tokens that should have copy icons and add decorations
+  let lineNumber = 1;
+  for (const lineTokens of tokens) {
+    for (const token of lineTokens) {
+      if (shouldShowCopyIcon(token.type)) {
+        const range = new Range(lineNumber, token.offset + 1, lineNumber, token.offset + 1);
+        decorations.push({
+          range,
+          options: {
+            after: {
+              content: ' #',
+              inlineClassName: 'copy-button-icon',
+            },
+          },
+        });
+        console.log(
+          `Added decoration for ${token.type} at line ${lineNumber}, offset ${token.offset}`
+        );
+      }
+    }
+    lineNumber++;
+  }
+
+  console.log(`Total decorations created: ${decorations.length}`);
+
+  // Apply decorations to the editor
+  const decorationCollection = editorInstance.createDecorationsCollection(decorations);
+
+  return { decorations, decorationCollection };
+}
 
 export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: string }) {
   const uri = Uri.file($uri);

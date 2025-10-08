@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor';
-import { getOrCreateModel } from '@/lib/monaco-utils';
-import '@/lib/setup-workers/webpack';
+import { getOrCreateModel, addDecorations } from '@/lib/monaco-utils';
+import '@/lib/setup-monaco-workers';
 
 const obj = {
   null: null,
@@ -453,5 +453,57 @@ describe('Span Attributes Copy Functionality', () => {
         ],
       ]
     `);
+
+    expect(model.getValue()).toMatchInlineSnapshot(`
+      "{
+        "null": null,
+        "number": 1,
+        "boolean": false,
+        "array": [
+          true,
+          {
+            "foo": "bar"
+          },
+          [
+            2,
+            "baz"
+          ]
+        ],
+        "string": "hello",
+        "emptyString": ""
+      }"
+    `);
+
+    const { decorations, decorationCollection } = addDecorations(editor);
+
+    // Verify that decorations were created (we have 9 primitive values: null, 1, false, true, "bar", 2, "baz", "hello", "")
+    expect(decorations).toHaveLength(9); // Should have 9 primitive values
+
+    // Verify the decorations are applied to the editor
+    const appliedDecorations = decorationCollection.getRanges();
+    expect(appliedDecorations).toHaveLength(9);
+
+    // Verify that the decorations are positioned correctly
+    // Based on the debug output, we have decorations on these lines:
+    const decorationPositions = appliedDecorations.map((range) => ({
+      startLineNumber: range.startLineNumber,
+      startColumn: range.startColumn,
+    }));
+
+    // Verify we have decorations on the expected lines (based on actual token positions)
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 2)).toBe(true); // "null": null
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 3)).toBe(true); // "number": 1
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 4)).toBe(true); // "boolean": false
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 6)).toBe(true); // true
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 8)).toBe(true); // "foo": "bar"
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 11)).toBe(true); // 2
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 12)).toBe(true); // "baz"
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 15)).toBe(true); // "string": "hello"
+    expect(decorationPositions.some((pos) => pos.startLineNumber === 16)).toBe(true); // "emptyString": ""
+
+    console.log('✅ Decorations successfully applied to Monaco editor!');
+    console.log(
+      'Note: DOM decorations are not visible in test environment (jsdom), but work in browser'
+    );
   });
 });
