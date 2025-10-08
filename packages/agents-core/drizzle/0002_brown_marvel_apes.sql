@@ -11,6 +11,5 @@ CREATE TABLE `functions` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );--> statement-breakpoint
 ALTER TABLE `tools` ADD `description` text;--> statement-breakpoint
-ALTER TABLE `tools` ADD `function_id` text REFERENCES functions(tenant_id,project_id,id);--> statement-breakpoint
+ALTER TABLE `tools` ADD `function_id` text;--> statement-breakpoint
 ALTER TABLE `projects` ADD `sandbox_config` text;
-
