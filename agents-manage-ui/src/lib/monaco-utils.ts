@@ -29,6 +29,8 @@ export function addDecorations(
 
   for (const [index, lineTokens] of tokens.entries()) {
     const lineNumber = index + 1;
+    const lineContent = lines[lineNumber - 1];
+
     for (let i = 0; i < lineTokens.length; i++) {
       const token = lineTokens[i];
       if (!shouldShowCopyIcon(token.type)) {
@@ -36,7 +38,7 @@ export function addDecorations(
       }
       // Calculate the end position of the current token
       const nextToken = lineTokens[i + 1];
-      const tokenEndOffset = nextToken ? nextToken.offset + 1 : lines[lineNumber - 1].length;
+      const tokenEndOffset = nextToken ? nextToken.offset + 1 : lineContent.length;
 
       const range = new Range(
         //

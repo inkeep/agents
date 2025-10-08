@@ -15,6 +15,7 @@ import { useTheme } from 'next-themes';
 import { renderToString } from 'react-dom/server';
 import { ClipboardCopy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import '@/lib/setup-monaco-workers';
 
 // Add CSS for copy button decorations with invert filter
@@ -43,7 +44,7 @@ const copyButtonStyles = `
   }
   /* Show copy button only when hovering over the specific line */
   .view-line:hover .copy-button-icon {
-    opacity: 1;
+    opacity: 0.7;
   }
 `;
 
@@ -195,6 +196,26 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     return cleanupDisposables([
       model,
       editorInstance,
+      editorInstance.onMouseDown(async (e) => {
+        const el = e.target.element;
+        if (!el?.classList.contains('copy-button-icon')) {
+          return;
+        }
+        e.event.preventDefault();
+        let prevSibling = el.previousSibling;
+        if (prevSibling?.textContent === ',') prevSibling = prevSibling.previousSibling;
+        const content = prevSibling?.textContent;
+        if (!content) {
+          return;
+        }
+        const str = content.replaceAll(/(^")|"$/g, '');
+        try {
+          await navigator.clipboard.writeText(str);
+        } catch (error) {
+          console.error('Failed to copy', error);
+        }
+        toast.success('Copied to clipboard');
+      }),
       // Disable command palette by overriding the action
       editorInstance.addAction({
         id: 'disable-command-palette',
