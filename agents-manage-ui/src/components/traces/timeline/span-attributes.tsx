@@ -46,6 +46,10 @@ const copyButtonStyles = `
   .view-line:hover .copy-button-icon {
     opacity: 0.7;
   }
+  /* Hide caret */
+  .monaco-editor .cursor {
+    display: none !important;
+  }
 `;
 
 // Inject styles
@@ -143,7 +147,6 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
     return;
   }
   e.event.preventDefault();
-
   const position = e.target.position;
   if (!position) return;
   const lineContent = model.getLineContent(position.lineNumber);
