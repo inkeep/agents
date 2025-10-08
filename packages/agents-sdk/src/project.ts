@@ -35,9 +35,7 @@ export interface ProjectConfig {
   tools?: () => Tool[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
-  credentialReferences?:
-    | (() => CredentialReferenceApiInsert[])
-    | Record<string, CredentialReferenceApiInsert>;
+  credentialReferences?: () => CredentialReferenceApiInsert[];
 }
 
 /**
@@ -149,11 +147,7 @@ export class Project implements ProjectInterface {
 
     // Initialize project-level credentialReferences if provided
     if (config.credentialReferences) {
-      if (typeof config.credentialReferences === 'function') {
-        this.credentialReferences = config.credentialReferences();
-      } else {
-        this.credentialReferences = Object.values(config.credentialReferences);
-      }
+      this.credentialReferences = config.credentialReferences();
     }
 
     logger.info(
