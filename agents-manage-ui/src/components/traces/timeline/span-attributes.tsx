@@ -137,25 +137,39 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   return { ...pinnedAttributes, ...remainingAttributes };
 }
 
-const handleCopyFieldValue = async (e: editor.IEditorMouseEvent) => {
+const handleCopyFieldValue = async (
+  e: editor.IEditorMouseEvent,
+  editorInstance: editor.IStandaloneCodeEditor
+) => {
   const el = e.target.element;
   if (!el?.classList.contains('copy-button-icon')) {
     return;
   }
   e.event.preventDefault();
-  let prevSibling = el.previousSibling;
-  if (prevSibling?.textContent === ',') prevSibling = prevSibling.previousSibling;
-  const content = prevSibling?.textContent;
-  if (!content) {
-    return;
-  }
-  const str = content.replaceAll(/(^")|"$/g, '');
+
+  const position = e.target.position;
+  if (!position) return;
+
+  const model = editorInstance.getModel();
+  if (!model) return;
+  const lineContent = model.getLineContent(position.lineNumber);
+  const index = lineContent.indexOf(': ');
+  const valueToCopy = lineContent
+    .slice(index + 2)
+    .trim()
+    // Remove trailing comma if present
+    .replace(/,$/, '')
+    // Replace quotes in strings
+    .replaceAll(/(^")|("$)/g, '');
   try {
-    await navigator.clipboard.writeText(str);
+    await navigator.clipboard.writeText(valueToCopy);
+    toast.success('Copied to clipboard', {
+      description: `Value: ${valueToCopy.length > 50 ? valueToCopy.slice(0, 50) + '...' : valueToCopy}`,
+    });
   } catch (error) {
     console.error('Failed to copy', error);
+    toast.error('Failed to copy to clipboard');
   }
-  toast.success('Copied to clipboard');
 };
 
 /**
@@ -200,7 +214,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     return cleanupDisposables([
       model,
       editorInstance,
-      editorInstance.onMouseDown(handleCopyFieldValue),
+      editorInstance.onMouseDown((e) => handleCopyFieldValue(e, editorInstance)),
       // Disable command palette by overriding the action
       editorInstance.addAction({
         id: 'disable-command-palette',
