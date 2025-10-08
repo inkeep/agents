@@ -13,6 +13,22 @@ import type {
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
+
+// Type for artifact components that can have Zod schemas in props
+export interface ArtifactComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
+export interface DataComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
 import type { ArtifactComponentInterface } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
@@ -92,8 +108,16 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
   };
-  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
-  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
+  dataComponents?: () => (
+    | DataComponentApiInsert
+    | DataComponentInterface
+    | DataComponentWithZodProps
+  )[];
+  artifactComponents?: () => (
+    | ArtifactComponentApiInsert
+    | ArtifactComponentInterface
+    | ArtifactComponentWithZodProps
+  )[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 

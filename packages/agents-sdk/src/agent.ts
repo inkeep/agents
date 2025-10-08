@@ -5,6 +5,7 @@ import {
   type DataComponentApiInsert,
   getLogger,
 } from '@inkeep/agents-core';
+import { convertZodToJsonSchemaWithPreview } from '@inkeep/agents-core/utils/schema-conversion';
 import { ArtifactComponent } from './artifact-component';
 import { DataComponent } from './data-component';
 import { Tool } from './tool';
@@ -16,6 +17,7 @@ import type {
   AllAgentInterface,
 } from './types';
 import { isAgentMcpConfig, normalizeAgentCanUseType } from './utils/tool-normalization';
+import { isZodSchema } from './utils/zod-to-artifact-component';
 
 const logger = getLogger('agent');
 
@@ -148,6 +150,15 @@ export class Agent implements AgentInterface {
           props: comp.getProps(),
         };
       }
+      // If it's a plain object, check if props is a Zod schema
+      if (comp && typeof comp === 'object' && comp.props && isZodSchema(comp.props)) {
+        return {
+          id: comp.id,
+          name: comp.name,
+          description: comp.description,
+          props: convertZodToJsonSchemaWithPreview(comp.props),
+        };
+      }
       // Otherwise assume it's already a plain object
       return comp;
     });
@@ -164,6 +175,15 @@ export class Agent implements AgentInterface {
           name: comp.getName(),
           description: comp.getDescription(),
           props: comp.getProps?.() || comp.props,
+        };
+      }
+      // If it's a plain object, check if props is a Zod schema
+      if (comp && typeof comp === 'object' && comp.props && isZodSchema(comp.props)) {
+        return {
+          id: comp.id,
+          name: comp.name,
+          description: comp.description,
+          props: convertZodToJsonSchemaWithPreview(comp.props),
         };
       }
       // Otherwise assume it's already a plain object
@@ -380,9 +400,7 @@ export class Agent implements AgentInterface {
                 id: (artifactComponent as any).getId(),
                 name: (artifactComponent as any).getName(),
                 description: (artifactComponent as any).getDescription(),
-                props:
-                  (artifactComponent as any).getProps?.() ||
-                  (artifactComponent as any).props,
+                props: (artifactComponent as any).getProps?.() || (artifactComponent as any).props,
               }
             : artifactComponent;
         await this.createArtifactComponent(plainComponent as ArtifactComponentApiInsert);

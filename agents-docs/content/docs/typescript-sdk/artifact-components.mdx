@@ -8,7 +8,42 @@ icon: "TbInputSpark"
 
 ## Defining Artifact Components
 
-Artifact components are defined when creating an agent using the `artifactComponents` property:
+Artifact components are defined when creating an agent using the `artifactComponents` property. You can use either JSON Schema or Zod schemas:
+
+### Using Zod Schemas (Recommended)
+
+```typescript
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core';
+
+const agent = agent({
+  // ... other agent config
+  artifactComponents: [
+    {
+      id: "citation",
+      name: "Citation",
+      description: "Structured factual information extracted from search results",
+      props: z.object({
+        title: preview(z.string().describe("Title of the source document")),
+        url: preview(z.string().describe("URL of the source document")),
+        record_type: preview(
+          z.string().describe("Type of record (documentation, blog, guide, etc.)")
+        ),
+        content: z
+          .array(
+            z.object({
+              type: z.string().describe("Type of content (text, image, video, etc.)"),
+              text: z.string().describe("The actual text content"),
+            })
+          )
+          .describe("Array of structured content blocks extracted from the document"),
+      }),
+    },
+  ],
+});
+```
+
+### Using JSON Schema
 
 ```typescript
 const agent = agent({
@@ -17,8 +52,7 @@ const agent = agent({
     {
       id: "citation",
       name: "Citation",
-      description:
-        "Structured factual information extracted from search results",
+      description: "Structured factual information extracted from search results",
       props: {
         type: "object",
         properties: {
@@ -53,8 +87,7 @@ const agent = agent({
               },
               required: ["type", "text"],
             },
-            description:
-              "Array of structured content blocks extracted from the document",
+            description: "Array of structured content blocks extracted from the document",
           },
         },
         required: ["title", "url", "record_type", "content"],
@@ -66,13 +99,23 @@ const agent = agent({
 
 ## Schema Options
 
-Artifact components can be configured in two ways:
+Artifact components can be configured in three ways:
 
-1. **With Schema**: Define specific fields and mark preview fields with `inPreview: true`
-2. **No Schema**: Save the entire tool result as-is (no field filtering)
+1. **Zod Schema** (Recommended): Type-safe schema definition with automatic JSON Schema conversion
+2. **JSON Schema**: Traditional JSON Schema with manual `inPreview` flags
+3. **No Schema**: Save the entire tool result as-is (no field filtering)
+
+### Zod Schema Benefits
+
+- **Type Safety**: Compile-time validation of your schema
+- **Better DX**: IntelliSense support and `.describe()` for documentation
+- **Automatic Conversion**: Converts to JSON Schema automatically
+- **Preview Support**: Use `preview()` helper for `inPreview` fields
+
+### Preview Fields
 
 When using a schema:
-- **Preview fields** (`inPreview: true`): Shown to agents automatically and streamed in real-time  
+- **Preview fields** (`inPreview: true` or `preview()`): Shown to agents automatically and streamed in real-time  
 - **Full fields**: Complete data available when agents request the full artifact
 
 When no schema is provided, the entire tool result is saved and available to agents.
@@ -98,6 +141,9 @@ Artifacts provide the source citations that back up information in data componen
 ## Example Flow
 
 ```typescript
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core';
+
 const searchAgent = agent({
   id: "search",
   canUse: () => [searchTool],
@@ -107,14 +153,11 @@ const searchAgent = agent({
       id: "document",
       name: "Document",
       description: "Search result document",
-      props: {
-        type: "object",
-        properties: {
-          title: { type: "string", inPreview: true },
-          url: { type: "string", inPreview: true },
-          content: { type: "string" },
-        },
-      },
+      props: z.object({
+        title: preview(z.string().describe("Document title")),
+        url: preview(z.string().describe("Document URL")),
+        content: z.string().describe("Document content"),
+      }),
     },
   ],
 });
