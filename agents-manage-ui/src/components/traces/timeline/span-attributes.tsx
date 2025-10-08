@@ -15,18 +15,6 @@ import { useTheme } from 'next-themes';
 
 // Add CSS for copy button decorations
 const copyButtonStyles = `
-  .copy-button-decoration {
-    cursor: pointer !important;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-  }
-  .copy-button-decoration:hover {
-    opacity: 1;
-  }
-  .copy-button-decoration.copied {
-    opacity: 1;
-    color: #10b981 !important;
-  }
   .copy-button-icon {
     font-size: 14px !important;
     margin-left: 4px !important;
@@ -43,13 +31,6 @@ const copyButtonStyles = `
   .copy-button-icon.copied {
     opacity: 1 !important;
     color: #10b981 !important;
-  }
-  /* Show copy button when hovering over the line */
-  .monaco-editor .view-line:hover .copy-button-icon {
-    opacity: 0.7 !important;
-  }
-  .monaco-editor .view-line:hover .copy-button-icon:hover {
-    opacity: 1 !important;
   }
 `;
 
@@ -220,7 +201,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       });
 
       console.log('Adding decorations:', decorations.length);
-      editor.deltaDecorations([], decorations);
+      editor.createDecorationsCollection(decorations);
     };
 
     // Handle copy button clicks
