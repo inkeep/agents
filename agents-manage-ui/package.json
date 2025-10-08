@@ -40,7 +40,7 @@
     "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {
-    "monaco-editor": "0.52.2",
+    "monaco-editor": "0.54.0",
     "@codemirror/lint": "^6.8.5",
     "@ai-sdk/react": "2.0.11",
     "@codemirror/autocomplete": "^6.19.0",
@@ -103,6 +103,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@vitest/web-worker": "3.1.4",
     "vitest-canvas-mock": "^0.3.3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
