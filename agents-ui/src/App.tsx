@@ -1,5 +1,5 @@
 import './App.css';
-import { InkeepEmbeddedChat } from '@inkeep/cxkit-react-oss';
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 
 function App() {
   return (
