@@ -4,82 +4,21 @@ import { getLogger } from './logger';
 const logger = getLogger('schema-conversion');
 
 /**
- * Custom conversion function that produces clean JSON Schema without Zod metadata
- */
-function convertZodToCleanJsonSchema(schema: any): Record<string, unknown> {
-  // Handle null/undefined schemas
-  if (!schema || !schema._def) {
-    return { type: 'string' };
-  }
-
-  const def = schema._def;
-
-  // Handle different Zod schema types
-  switch (def.type) {
-    case 'object': {
-      const properties: Record<string, unknown> = {};
-      const required: string[] = [];
-
-      if (def.shape) {
-        for (const [key, value] of Object.entries(def.shape)) {
-          properties[key] = convertZodToCleanJsonSchema(value);
-          // Check if the field is required (not optional)
-          if (!(value as any)._def?.isOptional?.()) {
-            required.push(key);
-          }
-        }
-      }
-
-      return {
-        type: 'object',
-        properties,
-        ...(required.length > 0 && { required }),
-      };
-    }
-
-    case 'string':
-      return { type: 'string' };
-
-    case 'number':
-      return { type: 'number' };
-
-    case 'boolean':
-      return { type: 'boolean' };
-
-    case 'array':
-      return {
-        type: 'array',
-        items: def.element ? convertZodToCleanJsonSchema(def.element) : { type: 'string' },
-      };
-
-    case 'literal':
-      return { const: def.values?.[0] || def.value };
-
-    case 'optional':
-      return def.innerType ? convertZodToCleanJsonSchema(def.innerType) : { type: 'string' };
-
-    case 'nullable':
-      return {
-        anyOf: [
-          def.innerType ? convertZodToCleanJsonSchema(def.innerType) : { type: 'string' },
-          { type: 'null' },
-        ],
-      };
-
-    default:
-      // Fallback to basic type
-      return { type: 'string' };
-  }
-}
-
-/**
  * Utility function for converting Zod schemas to JSON Schema
- * Moved from ContextConfig.ts to be reusable
+ * Uses Zod's built-in toJSONSchema method
  */
 export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
   try {
-    // Use a custom conversion instead of z.toJSONSchema to avoid the complex metadata
-    return convertZodToCleanJsonSchema(zodSchema);
+    // Use Zod's built-in toJSONSchema method
+    const jsonSchema = z.toJSONSchema(zodSchema);
+
+    // Remove the $schema field to avoid AJV compatibility issues
+    // AJV doesn't recognize the newer JSON Schema draft versions
+    if (jsonSchema.$schema) {
+      delete jsonSchema.$schema;
+    }
+
+    return jsonSchema;
   } catch (error) {
     logger.error(
       {
