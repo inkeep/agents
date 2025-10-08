@@ -10,7 +10,7 @@ export function getActiveTools({
   activeTools,
 }: {
   availableTools: MCPTool['availableTools'];
-  activeTools: MCPTool['config']['mcp']['activeTools'];
+  activeTools: string[] | undefined;
 }): MCPTool['availableTools'] | undefined {
   if (!availableTools) return undefined;
 

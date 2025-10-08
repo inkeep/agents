@@ -105,7 +105,10 @@ app.openapi(
       const functionData = await getFunction(dbClient)({ functionId: id });
 
       if (!functionData) {
-        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404) as any;
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Function not found' }),
+          404
+        ) as any;
       }
 
       return c.json({ data: functionData as any }) as any;
@@ -218,7 +221,10 @@ app.openapi(
       // Check if function exists
       const existing = await getFunction(dbClient)({ functionId: id });
       if (!existing) {
-        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404) as any;
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Function not found' }),
+          404
+        ) as any;
       }
 
       // Functions are global - update by ID only
@@ -270,7 +276,10 @@ app.openapi(
       // Check if function exists
       const existing = await getFunction(dbClient)({ functionId: id });
       if (!existing) {
-        return c.json(createApiError({ code: 'not_found', message: 'Function not found' }), 404) as any;
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Function not found' }),
+          404
+        ) as any;
       }
 
       // Functions are global - delete by ID only

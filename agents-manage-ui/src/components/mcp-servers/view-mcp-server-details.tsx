@@ -256,10 +256,11 @@ export function ViewMCPServerDetails({
               ) : (
                 <div className="text-sm text-muted-foreground">No tools available</div>
               )
-            ) : (tool.config as any).mcp.activeTools && (tool.config as any).mcp.activeTools.length > 0 ? (
+            ) : (tool.config as any).mcp.activeTools &&
+              (tool.config as any).mcp.activeTools.length > 0 ? (
               // Specific tools are active - check availability
               <div className="flex flex-wrap gap-2">
-                {(tool.config as any).mcp.activeTools.map((toolName) => {
+                {(tool.config as any).mcp.activeTools.map((toolName: string) => {
                   const isAvailable =
                     tool.availableTools?.some((t) => t.name === toolName) ?? false;
                   return (
