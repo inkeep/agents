@@ -1,5 +1,4 @@
 import { getLogger } from '@inkeep/agents-core';
-import prettier from 'prettier';
 import type { FunctionToolConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 import { getFunctionToolDeps } from './utils/getFunctionToolDeps';
@@ -77,25 +76,11 @@ export class FunctionTool implements FunctionToolInterface {
     executeCode: string;
     dependencies: Record<string, string>;
   } {
-    // Get the code string
-    let executeCode =
+
+    const executeCode =
       typeof this.config.execute === 'string'
         ? this.config.execute
         : this.config.execute.toString();
-
-    // Format with Prettier for consistent formatting
-    try {
-      executeCode = prettier.format(executeCode, {
-        parser: 'babel',
-        semi: true,
-        singleQuote: true,
-        trailingComma: 'es5',
-        printWidth: 80,
-      });
-    } catch (error) {
-      // If formatting fails, use original code
-      logger.warn({ functionId: this.id, error }, 'Failed to format function code with Prettier');
-    }
 
     return {
       id: this.id,
