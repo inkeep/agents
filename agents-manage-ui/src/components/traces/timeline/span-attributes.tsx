@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Streamdown } from 'streamdown';
 import {
   cleanupDisposables,
@@ -12,6 +12,53 @@ import { cn } from '@/lib/utils';
 import '@/lib/setup-monaco-workers';
 import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
+
+// Add CSS for copy button decorations
+const copyButtonStyles = `
+  .copy-button-decoration {
+    cursor: pointer !important;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+  .copy-button-decoration:hover {
+    opacity: 1;
+  }
+  .copy-button-decoration.copied {
+    opacity: 1;
+    color: #10b981 !important;
+  }
+  .copy-button-icon {
+    font-size: 14px !important;
+    margin-left: 4px !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s ease !important;
+    cursor: pointer !important;
+  }
+  .copy-button-hover {
+    opacity: 0 !important;
+  }
+  .copy-button-hover:hover {
+    opacity: 1 !important;
+  }
+  .copy-button-icon.copied {
+    opacity: 1 !important;
+    color: #10b981 !important;
+  }
+  /* Show copy button when hovering over the line */
+  .monaco-editor .view-line:hover .copy-button-icon {
+    opacity: 0.7 !important;
+  }
+  .monaco-editor .view-line:hover .copy-button-icon:hover {
+    opacity: 1 !important;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = copyButtonStyles;
+  document.head.appendChild(styleSheet);
+}
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
@@ -101,9 +148,26 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   const ref = useRef<HTMLDivElement>(null!);
   const { resolvedTheme } = useTheme();
+  const [showCopyButton, setShowCopyButton] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     editor.setTheme(resolvedTheme === 'dark' ? MONACO_THEME.dark : MONACO_THEME.light);
   }, [resolvedTheme]);
+
+  // Refresh decorations when copiedField changes
+  useEffect(() => {
+    if (ref.current) {
+      const editorElement = ref.current.querySelector('.monaco-editor');
+      if (editorElement) {
+        const editorInstance = (editorElement as any).__editor;
+        if (editorInstance && editorInstance.refreshDecorations) {
+          editorInstance.refreshDecorations();
+        }
+      }
+    }
+  }, [copiedField]);
 
   useEffect(() => {
     const model = getOrCreateModel({
@@ -126,6 +190,124 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     const contentHeight = Math.min(editor.getContentHeight(), 500);
     ref.current.style.height = `${contentHeight}px`;
 
+    // Add individual field copy buttons using decorations
+    const addFieldCopyButtons = () => {
+      // Check if model is still valid
+      if (model.isDisposed()) {
+        return;
+      }
+
+      const decorations: any[] = [];
+      const lines = model.getLinesContent();
+
+      lines.forEach((line, lineIndex) => {
+        // Match JSON field patterns: "key": "value" or "key": value
+        const fieldMatch = line.match(/^\s*"([^"]+)":\s*(.+?)(?:,|\s*$)/);
+        if (fieldMatch) {
+          const [, fieldKey, fieldValue] = fieldMatch;
+          const lineNumber = lineIndex + 1;
+          const endColumn = line.length;
+          console.log('Found field:', fieldKey, 'on line:', lineNumber, 'line:', line);
+
+          // Create copy button decoration - add space and icon at the end of line
+          decorations.push({
+            range: {
+              startLineNumber: lineNumber,
+              startColumn: endColumn,
+              endLineNumber: lineNumber,
+              endColumn: endColumn + 1,
+            },
+            options: {
+              after: {
+                content: ` ${copiedField === fieldKey ? '✅' : '📋'}`,
+                inlineClassName: `copy-button-icon ${copiedField === fieldKey ? 'copied' : ''} copy-button-hover`,
+                cursor: 'pointer',
+              },
+            },
+          });
+        }
+      });
+
+      console.log('Adding decorations:', decorations.length);
+      editor.deltaDecorations([], decorations);
+    };
+
+    // Handle copy button clicks
+    const handleCopyField = async (fieldKey: string, fieldValue: string) => {
+      try {
+        // Clean up the field value (remove quotes, commas, etc.)
+        const cleanValue = fieldValue.replace(/^["']|["'],?\s*$/g, '');
+        await navigator.clipboard.writeText(cleanValue);
+        setCopiedField(fieldKey);
+
+        // Clear previous timeout if it exists
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        // Set new timeout
+        timeoutRef.current = setTimeout(() => setCopiedField(null), 2000);
+      } catch (err) {
+        console.error('Failed to copy field:', err);
+      }
+    };
+
+    // Add copy buttons after editor is ready
+    setTimeout(addFieldCopyButtons, 100);
+
+    // Refresh decorations when copiedField changes
+    const refreshDecorations = () => {
+      if (!model.isDisposed()) {
+        addFieldCopyButtons();
+      }
+    };
+
+    // Store the refresh function for later use
+    (editor as any).refreshDecorations = refreshDecorations;
+
+    // Handle mouse events for copy functionality
+    const handleMouseMove = (e: any) => {
+      if (model.isDisposed()) return;
+
+      const position = e.target.position;
+      if (position) {
+        const line = model.getLineContent(position.lineNumber);
+        const fieldMatch = line.match(/^\s*"([^"]+)":\s*(.+?)(?:,|\s*$)/);
+        if (fieldMatch) {
+          const [, fieldKey, fieldValue] = fieldMatch;
+          // Show copy button on hover
+          setShowCopyButton(true);
+        }
+      }
+    };
+
+    const handleMouseLeave = () => {
+      setShowCopyButton(false);
+    };
+
+    // Handle clicks on copy buttons
+    const handleMouseDown = (e: any) => {
+      if (model.isDisposed()) return;
+
+      const position = e.target.position;
+      if (position) {
+        const line = model.getLineContent(position.lineNumber);
+        const fieldMatch = line.match(/^\s*"([^"]+)":\s*(.+?)(?:,|\s*$)/);
+        if (fieldMatch) {
+          const [, fieldKey, fieldValue] = fieldMatch;
+          // Check if click is near the end of the line (where copy button is)
+          const lineLength = line.length;
+          if (position.column >= lineLength - 2) {
+            handleCopyField(fieldKey, fieldValue);
+          }
+        }
+      }
+    };
+
+    editor.onMouseMove(handleMouseMove);
+    editor.onMouseLeave(handleMouseLeave);
+    editor.onMouseDown(handleMouseDown);
+
     return cleanupDisposables([
       model,
       editor,
@@ -138,6 +320,14 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
           // Do nothing - this prevents the command palette from opening
         },
       }),
+      // Cleanup timeout
+      {
+        dispose: () => {
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+        },
+      },
     ]);
   }, [processAttributes]);
 
