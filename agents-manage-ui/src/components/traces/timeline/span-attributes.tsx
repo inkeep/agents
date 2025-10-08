@@ -137,6 +137,27 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   return { ...pinnedAttributes, ...remainingAttributes };
 }
 
+const handleCopyFieldValue = async (e: editor.IEditorMouseEvent) => {
+  const el = e.target.element;
+  if (!el?.classList.contains('copy-button-icon')) {
+    return;
+  }
+  e.event.preventDefault();
+  let prevSibling = el.previousSibling;
+  if (prevSibling?.textContent === ',') prevSibling = prevSibling.previousSibling;
+  const content = prevSibling?.textContent;
+  if (!content) {
+    return;
+  }
+  const str = content.replaceAll(/(^")|"$/g, '');
+  try {
+    await navigator.clipboard.writeText(str);
+  } catch (error) {
+    console.error('Failed to copy', error);
+  }
+  toast.success('Copied to clipboard');
+};
+
 /**
  * Renders process attributes
  */
@@ -151,24 +172,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
   useEffect(() => {
     const model = getOrCreateModel({
       uri: 'process-attributes.json',
-      value: JSON.stringify(
-        {
-          null: null,
-          number: 1,
-          boolean: false,
-          array: [
-            true,
-            {
-              foo: 'bar',
-            },
-            [2, 'baz'],
-          ],
-          string: 'hello',
-          emptyString: '',
-        },
-        null,
-        2
-      ),
+      value: JSON.stringify(processAttributes, null, 2),
     });
     const editorInstance = createEditor(ref, {
       model,
@@ -196,26 +200,7 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
     return cleanupDisposables([
       model,
       editorInstance,
-      editorInstance.onMouseDown(async (e) => {
-        const el = e.target.element;
-        if (!el?.classList.contains('copy-button-icon')) {
-          return;
-        }
-        e.event.preventDefault();
-        let prevSibling = el.previousSibling;
-        if (prevSibling?.textContent === ',') prevSibling = prevSibling.previousSibling;
-        const content = prevSibling?.textContent;
-        if (!content) {
-          return;
-        }
-        const str = content.replaceAll(/(^")|"$/g, '');
-        try {
-          await navigator.clipboard.writeText(str);
-        } catch (error) {
-          console.error('Failed to copy', error);
-        }
-        toast.success('Copied to clipboard');
-      }),
+      editorInstance.onMouseDown(handleCopyFieldValue),
       // Disable command palette by overriding the action
       editorInstance.addAction({
         id: 'disable-command-palette',
