@@ -71,7 +71,7 @@ app.openapi(
 
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId, agentId } = executionContext;
+    const { tenantId, projectId, graphId, subAgentId: agentId } = executionContext;
 
     console.dir('executionContext', executionContext);
     // If agentId is defined in execution context, run agent-level logic
@@ -142,7 +142,7 @@ app.post('/a2a', async (c: Context) => {
 
   // Get execution context from API key authentication
   const executionContext = getRequestExecutionContext(c);
-  const { tenantId, projectId, graphId, agentId } = executionContext;
+  const { tenantId, projectId, graphId, subAgentId: agentId } = executionContext;
 
   // If agentId is defined in execution context, run agent-level logic
   if (agentId) {
@@ -210,7 +210,7 @@ app.post('/a2a', async (c: Context) => {
         400
       );
     }
-    executionContext.agentId = graph.defaultSubAgentId;
+    executionContext.subAgentId = graph.defaultSubAgentId;
     // fetch the default agent and use it as entry point for the graph
     const credentialStores = c.get('credentialStores');
     const defaultSubAgent = await getRegisteredAgent(executionContext, credentialStores);

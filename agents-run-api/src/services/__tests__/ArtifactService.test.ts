@@ -66,7 +66,7 @@ describe('ArtifactService', () => {
         contextId: 'test-context',
         status: 'active',
         metadata: null,
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -112,7 +112,7 @@ describe('ArtifactService', () => {
             contextId: 'test-context',
             status: 'active',
             metadata: null,
-            agentId: 'test-agent',
+            subAgentId: 'test-agent',
             createdAt: '2024-01-01T00:00:00Z',
             updatedAt: '2024-01-01T00:00:00Z',
           })

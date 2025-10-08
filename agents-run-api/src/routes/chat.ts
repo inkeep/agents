@@ -6,11 +6,11 @@ import {
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
-  getAgentById,
   getAgentGraphWithdefaultSubAgent,
   getConversationId,
   getFullGraph,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
@@ -252,14 +252,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultSubAgentId,
+        subAgentId: defaultSubAgentId,
       });
     }
-    const agentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
+    const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-    const agentInfo = await getAgentById(dbClient)({
+    const agentInfo = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: agentId as string,
+      subAgentId: subAgentId,
     });
 
     if (!agentInfo) {
@@ -347,7 +347,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         // Start with the role
         await sseHelper.writeRole();
 
-        logger.info({ agentId }, 'Starting execution');
+        logger.info({ subAgentId }, 'Starting execution');
 
         // Check for emit operations header
         const emitOperationsHeader = c.req.header('x-emit-operations');
@@ -359,7 +359,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           executionContext,
           conversationId,
           userMessage,
-          initialAgentId: agentId,
+          initialAgentId: subAgentId,
           requestId,
           sseHelper,
           emitOperations,

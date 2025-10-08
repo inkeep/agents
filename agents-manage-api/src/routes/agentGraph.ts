@@ -13,12 +13,11 @@ import {
   getAgentGraphById,
   getFullGraphDefinition,
   getGraphAgentInfos,
-  IdParamsSchema,
   ListResponseSchema,
   listAgentGraphs,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectParamsSchema,
+  TenantProjectIdParamsSchema,
   updateAgentGraph,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -78,7 +77,7 @@ app.openapi(
     operationId: 'get-agent-graph',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {

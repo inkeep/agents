@@ -6,15 +6,14 @@ import {
   AgentRelationApiUpdateSchema,
   AgentRelationQuerySchema,
   commonGetErrorResponses,
-  createAgentRelation,
   createApiError,
-  deleteAgentRelation,
+  createSubAgentRelation,
+  deleteSubAgentRelation,
   ErrorResponseSchema,
   getAgentRelationById,
   getAgentRelationsBySource,
   getAgentRelationsByTarget,
   getExternalAgentRelations,
-  IdParamsSchema,
   ListResponseSchema,
   listAgentRelations,
   type Pagination,
@@ -24,7 +23,7 @@ import {
   TenantProjectGraphParamsSchema,
   updateAgentRelation,
   validateExternalAgent,
-  validateInternalAgent,
+  validateInternalSubAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
@@ -191,7 +190,7 @@ app.openapi(
     if (isExternalAgent && body.externalSubAgentId) {
       // Check if external agent exists
       const externalAgentExists = await validateExternalAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId: body.externalSubAgentId },
+        scopes: { tenantId, projectId, graphId, subAgentId: body.externalSubAgentId },
       });
       if (!externalAgentExists) {
         throw createApiError({
@@ -203,8 +202,8 @@ app.openapi(
 
     if (!isExternalAgent && body.targetSubAgentId) {
       // Check if internal agent exists
-      const internalAgentExists = await validateInternalAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId: body.targetSubAgentId },
+      const internalAgentExists = await validateInternalSubAgent(dbClient)({
+        scopes: { tenantId, projectId, graphId, subAgentId: body.targetSubAgentId },
       });
       if (!internalAgentExists) {
         throw createApiError({
@@ -252,7 +251,7 @@ app.openapi(
       relationType: body.relationType,
     };
 
-    const agentRelation = await createAgentRelation(dbClient)({
+    const agentRelation = await createSubAgentRelation(dbClient)({
       ...relationData,
     });
 
@@ -339,7 +338,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
-    const deleted = await deleteAgentRelation(dbClient)({
+    const deleted = await deleteSubAgentRelation(dbClient)({
       scopes: { tenantId, projectId, graphId },
       relationId: id,
     });

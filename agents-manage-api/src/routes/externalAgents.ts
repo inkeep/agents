@@ -9,13 +9,12 @@ import {
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
   getExternalAgent,
-  IdParamsSchema,
   ListResponseSchema,
   listExternalAgentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectGraphParamsSchema,
   TenantProjectGraphIdParamsSchema,
+  TenantProjectGraphParamsSchema,
   updateExternalAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';

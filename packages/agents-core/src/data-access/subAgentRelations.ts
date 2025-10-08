@@ -377,7 +377,7 @@ export const updateAgentRelation =
     return relation[0];
   };
 
-export const deleteAgentRelation =
+export const deleteSubAgentRelation =
   (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentRelations)
@@ -728,13 +728,13 @@ export const getAgentsForTool =
         .select({
           id: subAgentToolRelations.id,
           tenantId: subAgentToolRelations.tenantId,
-          agentId: subAgentToolRelations.subAgentId,
+          subAgentId: subAgentToolRelations.subAgentId,
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,
           createdAt: subAgentToolRelations.createdAt,
           updatedAt: subAgentToolRelations.updatedAt,
-          agent: {
+          subAgent: {
             id: subAgents.id,
             name: subAgents.name,
             description: subAgents.description,
@@ -789,7 +789,7 @@ export const getAgentsForTool =
     };
   };
 
-export const validateInternalAgent =
+export const validateInternalSubAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .select({ id: subAgents.id })

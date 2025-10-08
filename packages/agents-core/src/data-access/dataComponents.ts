@@ -284,7 +284,7 @@ export const getAgentsUsingDataComponent =
   async (params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
     return await db
       .select({
-        agentId: subAgentDataComponents.subAgentId,
+        subAgentId: subAgentDataComponents.subAgentId,
         createdAt: subAgentDataComponents.createdAt,
       })
       .from(subAgentDataComponents)

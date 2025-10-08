@@ -9,7 +9,7 @@ import {
   updateSubAgent,
 } from '../../data-access/subAgents';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 
 describe('Agent Data Access', () => {
   let db: DatabaseClient;
@@ -17,8 +17,8 @@ describe('Agent Data Access', () => {
   const testProjectId = 'test-project';
   const testGraphId = 'test-graph';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = await createTestDatabaseClient();
   });
 
   describe('createAgent', () => {
@@ -102,7 +102,7 @@ describe('Agent Data Access', () => {
       };
 
       const mockQuery = {
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(expectedAgent),
         },
       };
@@ -121,13 +121,13 @@ describe('Agent Data Access', () => {
         subAgentId: agentId,
       });
 
-      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(mockQuery.subAgents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
     it('should return null if agent not found', async () => {
       const mockQuery = {
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
       };
@@ -158,7 +158,7 @@ describe('Agent Data Access', () => {
       ];
 
       const mockQuery = {
-        agents: {
+        subAgents: {
           findMany: vi.fn().mockResolvedValue(expectedAgents),
         },
       };
@@ -176,7 +176,7 @@ describe('Agent Data Access', () => {
         },
       });
 
-      expect(mockQuery.agents.findMany).toHaveBeenCalled();
+      expect(mockQuery.subAgents.findMany).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
     });
   });
@@ -384,7 +384,7 @@ describe('Agent Data Access', () => {
 
       // Mock getAgentById to return null (agent not found after deletion)
       const mockQuery = {
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(undefined),
         },
       };

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createAgentGraph,
   deleteAgentGraph,
@@ -10,29 +10,22 @@ import {
 } from '../../../data-access/agentGraphs';
 import {
   createSubAgentRelation,
-  deleteAgentRelation,
+  deleteSubAgentRelation,
 } from '../../../data-access/subAgentRelations';
 import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import {
-  cleanupTestDatabase,
-  closeTestDatabase,
-  createTestDatabaseClient,
-} from '../../../db/test-client';
+import { createTestDatabaseClient } from '../../../db/test-client';
 import { createTestAgentData, createTestGraphData, createTestRelationData } from '../helpers';
 
 describe('Agent Graphs Data Access - Integration Tests', () => {
   let db: DatabaseClient;
-  let dbPath: string;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
-  beforeAll(async () => {
-    // Create one database for the entire test suite
-    const dbInfo = await createTestDatabaseClient('agent-graphs-integration');
-    db = dbInfo.client;
-    dbPath = dbInfo.path;
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    db = await createTestDatabaseClient();
 
     // Create test projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
@@ -47,30 +40,6 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
     }
-  });
-
-  afterEach(async () => {
-    // Clean up data between tests but keep the database file
-    await cleanupTestDatabase(db);
-
-    // Recreate test projects for all tenant IDs for next test
-    const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
-    for (const tenantId of tenantIds) {
-      await db
-        .insert(schema.projects)
-        .values({
-          tenantId: tenantId,
-          id: testProjectId,
-          name: 'Test Project',
-          description: 'Project for testing',
-        })
-        .onConflictDoNothing();
-    }
-  });
-
-  afterAll(async () => {
-    // Close database and delete the file after all tests
-    await closeTestDatabase(db, dbPath);
   });
 
   describe('createAgentGraph & getAgentGraphById', () => {
@@ -360,7 +329,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(beforeDelete).not.toBeNull();
 
       // Delete relation first (due to foreign key constraints)
-      await deleteAgentRelation(db)({
+      await deleteSubAgentRelation(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
         relationId: createdRelation.id,
       });

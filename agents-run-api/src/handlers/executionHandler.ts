@@ -135,7 +135,7 @@ export class ExecutionHandler {
           tenantId,
           projectId,
           graphId,
-          agentId: currentAgentId,
+          subAgentId: currentAgentId,
           contextId: conversationId,
           status: 'pending',
           metadata: {
@@ -410,8 +410,7 @@ export class ExecutionHandler {
                 },
                 visibility: 'user-facing',
                 messageType: 'chat',
-                agentId: currentAgentId,
-                fromAgentId: currentAgentId,
+                fromSubAgentId: currentAgentId,
                 taskId: task.id,
               });
 

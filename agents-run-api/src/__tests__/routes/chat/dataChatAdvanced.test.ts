@@ -80,10 +80,10 @@ describe('Chat Data Stream Advanced', () => {
     const tenantId = createTestTenantId(`advanced-${nanoid().slice(0, 8)}`);
     const projectId = 'default';
     const graphId = nanoid();
-    const agentId = nanoid(); // Use unique agent ID for each test
+    const subAgentId = nanoid(); // Use unique agent ID for each test
 
     // Import here to avoid circular dependencies
-    const { createAgent, createAgentGraph } = await import('@inkeep/agents-core');
+    const { createSubAgent, createAgentGraph } = await import('@inkeep/agents-core');
     const dbClient = (await import('../../../data/db/dbClient.js')).default;
     const { ensureTestProject } = await import('../../utils/testProject.js');
 
@@ -97,12 +97,12 @@ describe('Chat Data Stream Advanced', () => {
       projectId,
       name: 'Test Graph',
       description: 'Test graph for advanced data chat',
-      defaultSubAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     });
 
     // Then create agent with graphId
-    await createAgent(dbClient)({
-      id: agentId,
+    await createSubAgent(dbClient)({
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,
@@ -111,7 +111,7 @@ describe('Chat Data Stream Advanced', () => {
       prompt: 'Test instructions',
     });
 
-    return { tenantId, projectId, graphId, agentId };
+    return { tenantId, projectId, graphId, agentId: subAgentId };
   }
 
   it('streams expected completion content', async () => {

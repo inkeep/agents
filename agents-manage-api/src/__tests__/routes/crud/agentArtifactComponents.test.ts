@@ -1,6 +1,5 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
@@ -622,7 +621,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       expect(initialExistsBody.exists).toBe(false);
 
       // 2. Create association
-      const { relationId } = await createTestAgentArtifactComponentRelation({
+      const _ = await createTestAgentArtifactComponentRelation({
         tenantId,
         agentId,
         artifactComponentId,

@@ -1,5 +1,5 @@
 import type {
-  AgentApiInsert,
+  SubAgentApiInsert,
   AgentConversationHistoryConfig,
   AgentStopWhen,
   ArtifactComponentApiInsert,
@@ -99,7 +99,7 @@ export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
 export type AgentCanUseType = Tool | AgentMcpConfig | FunctionTool;
 
 // Agent configuration types
-export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
+export interface AgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
   canUse?: () => AgentCanUseType[];
   canTransferTo?: () => AgentInterface[];

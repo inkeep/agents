@@ -215,6 +215,7 @@ export const fetchComponentRelationships =
       componentTable: any;
       relationIdField: any;
       componentIdField: any;
+      subAgentIdField: any;
       selectFields: Record<string, any>;
     }
   ): Promise<Record<string, T>> => {
@@ -229,7 +230,7 @@ export const fetchComponentRelationships =
           and(
             eq(config.relationTable.tenantId, scopes.tenantId),
             eq(config.relationTable.projectId, scopes.projectId),
-            inArray(config.relationTable.agentId, agentIds)
+            inArray(config.subAgentIdField, agentIds)
           )
         );
 
@@ -318,7 +319,7 @@ export const getFullGraphDefinition =
     // Instead of collecting agent IDs from relationships and tools,
     // we should directly query for agents that belong to this graph
     // Agents are scoped to graphs via their graphId field
-    const graphAgents = await db.query.subAgents.findMany({
+    const graphSubAgents = await db.query.subAgents.findMany({
       where: and(
         eq(subAgents.tenantId, tenantId),
         eq(subAgents.projectId, projectId),
@@ -335,8 +336,8 @@ export const getFullGraphDefinition =
     }
 
     // Process internal agents from the graph
-    const processedAgents = await Promise.all(
-      graphAgents.map(async (agent) => {
+    const processedSubAgents = await Promise.all(
+      graphSubAgents.map(async (agent) => {
         if (!agent) return null;
 
         // Get relationships for this agent
@@ -356,7 +357,7 @@ export const getFullGraphDefinition =
           .filter((id): id is string => id !== null);
 
         // Get tools for this agent
-        const agentTools = await db
+        const subAgentTools = await db
           .select({
             id: tools.id,
             name: tools.name,
@@ -412,7 +413,7 @@ export const getFullGraphDefinition =
         );
 
         // Construct canUse array from agentTools
-        const canUse = agentTools.map((tool) => ({
+        const canUse = subAgentTools.map((tool) => ({
           agentToolRelationId: tool.agentToolRelationId,
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
@@ -457,7 +458,7 @@ export const getFullGraphDefinition =
     );
 
     // Filter out null results
-    const validAgents = [...processedAgents, ...externalAgents].filter(
+    const validAgents = [...processedSubAgents, ...externalAgents].filter(
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
 
@@ -503,7 +504,7 @@ export const getFullGraphDefinition =
     // let dataComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
-      const internalAgentIds = graphAgents.map((agent) => agent.id);
+      const internalAgentIds = graphSubAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
       await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
@@ -511,6 +512,7 @@ export const getFullGraphDefinition =
         componentTable: dataComponents,
         relationIdField: subAgentDataComponents.dataComponentId,
         componentIdField: dataComponents.id,
+        subAgentIdField: subAgentDataComponents.subAgentId,
         selectFields: {
           id: dataComponents.id,
           name: dataComponents.name,
@@ -527,7 +529,7 @@ export const getFullGraphDefinition =
     // let artifactComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
-      const internalAgentIds = graphAgents.map((agent) => agent.id);
+      const internalAgentIds = graphSubAgents.map((agent) => agent.id);
       const agentIds = Array.from(internalAgentIds);
 
       await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
@@ -535,6 +537,7 @@ export const getFullGraphDefinition =
         componentTable: artifactComponents,
         relationIdField: subAgentArtifactComponents.artifactComponentId,
         componentIdField: artifactComponents.id,
+        subAgentIdField: subAgentArtifactComponents.subAgentId,
         selectFields: {
           id: artifactComponents.id,
           name: artifactComponents.name,

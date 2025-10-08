@@ -16,11 +16,11 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentById,
   getAgentGraphWithdefaultSubAgent,
   getConversation,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   updateConversation,
 } from '@inkeep/agents-core';
@@ -343,9 +343,9 @@ const getServer = async (
         }
         const defaultSubAgentId = agentGraph.defaultSubAgentId;
 
-        const agentInfo = await getAgentById(dbClient)({
+        const agentInfo = await getSubAgentById(dbClient)({
           scopes: { tenantId, projectId, graphId },
-          agentId: defaultSubAgentId,
+          subAgentId: defaultSubAgentId,
         });
         if (!agentInfo) {
           return {

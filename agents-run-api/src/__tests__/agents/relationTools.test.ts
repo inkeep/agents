@@ -179,7 +179,7 @@ describe('Relationship Tools', () => {
       conversationId: 'test-conversation',
       threadId: 'test-thread',
     },
-    agent: {
+    subAgent: {
       getStreamingHelper: vi.fn().mockReturnValue(undefined),
     },
   });
@@ -198,7 +198,7 @@ describe('Relationship Tools', () => {
       conversationId: 'test-conversation',
       threadId: 'test-thread',
     },
-    agent: {
+    subAgent: {
       getStreamingHelper: vi.fn().mockReturnValue(undefined),
     },
     get credentialStoreRegistry() {
@@ -249,7 +249,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -261,7 +261,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -283,7 +283,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: differentAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -300,7 +300,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: specialAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -319,7 +319,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: invalidAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -335,7 +335,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: partialAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -596,7 +596,7 @@ describe('Relationship Tools', () => {
       const transferTool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -618,14 +618,14 @@ describe('Relationship Tools', () => {
       const tool1 = createTransferToAgentTool({
         transferConfig: agent1,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
       const tool2 = createTransferToAgentTool({
         transferConfig: agent2,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -642,7 +642,7 @@ describe('Relationship Tools', () => {
       const transferTool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });
@@ -678,7 +678,7 @@ describe('Relationship Tools', () => {
         createTransferToAgentTool({
           transferConfig: malformedConfig,
           callingAgentId: 'test-agent',
-          agent: {
+          subAgent: {
             getStreamingHelper: vi.fn().mockReturnValue(undefined),
           },
         })
@@ -687,7 +687,7 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: malformedConfig,
         callingAgentId: 'test-agent',
-        agent: {
+        subAgent: {
           getStreamingHelper: vi.fn().mockReturnValue(undefined),
         },
       });

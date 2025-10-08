@@ -19,7 +19,7 @@ vi.mock('../../../handlers/executionHandler', () => {
   };
 });
 
-import { createAgent, createAgentGraph } from '@inkeep/agents-core';
+import { createAgentGraph, createSubAgent } from '@inkeep/agents-core';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -99,7 +99,7 @@ describe('Chat Data Stream Route', () => {
     });
 
     // Then create agent with graphId
-    await createAgent(dbClient)({
+    await createSubAgent(dbClient)({
       id: agentId,
       tenantId,
       projectId,

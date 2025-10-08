@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createSubAgent,
   deleteSubAgent,
@@ -8,25 +8,18 @@ import {
 } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import {
-  cleanupTestDatabase,
-  closeTestDatabase,
-  createTestDatabaseClient,
-} from '../../../db/test-client';
+import { createTestDatabaseClient } from '../../../db/test-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
 
 describe('Agents Data Access - Integration Tests', () => {
   let db: DatabaseClient;
-  let dbPath: string;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testGraphId = 'test-graph';
 
-  beforeAll(async () => {
-    // Create one database for the entire test suite
-    const dbInfo = await createTestDatabaseClient('agents-integration');
-    db = dbInfo.client;
-    dbPath = dbInfo.path;
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    db = await createTestDatabaseClient();
 
     // Create test projects and graphs for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
@@ -69,58 +62,6 @@ describe('Agents Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
     }
-  });
-
-  afterEach(async () => {
-    // Clean up data between tests but keep the database file
-    await cleanupTestDatabase(db);
-
-    // Recreate test projects and graphs for all tenant IDs for next test
-    const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
-    for (const tenantId of tenantIds) {
-      await db
-        .insert(schema.projects)
-        .values({
-          tenantId: tenantId,
-          id: testProjectId,
-          name: 'Test Project',
-          description: 'Project for testing',
-        })
-        .onConflictDoNothing();
-
-      // Create a test graph with a temporary default agent
-      const defaultSubAgentId = 'default-agent-setup';
-      await db
-        .insert(schema.agentGraph)
-        .values({
-          tenantId: tenantId,
-          projectId: testProjectId,
-          id: testGraphId,
-          name: 'Test Graph',
-          description: 'Graph for testing',
-          defaultSubAgentId: defaultSubAgentId,
-        })
-        .onConflictDoNothing();
-
-      // Create the default agent for the graph
-      await db
-        .insert(schema.subAgents)
-        .values({
-          tenantId: tenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-          id: defaultSubAgentId,
-          name: 'Default Agent',
-          description: 'Default agent for testing',
-          prompt: 'You are a test agent',
-        })
-        .onConflictDoNothing();
-    }
-  });
-
-  afterAll(async () => {
-    // Close database and delete the file after all tests
-    await closeTestDatabase(db, dbPath);
   });
 
   describe('createAgent & getAgentById', () => {

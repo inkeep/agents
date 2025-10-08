@@ -1,16 +1,16 @@
 import {
-  type AgentApiSelect,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
-  getAgentById,
   getAgentGraphById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getRelatedAgentsForGraph,
+  getSubAgentById,
   getToolsForAgent,
   type McpTool,
   type Part,
+  type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -32,8 +32,8 @@ export interface TaskHandlerConfig {
   tenantId: string;
   projectId: string;
   graphId: string;
-  agentId: string;
-  agentSchema: AgentApiSelect;
+  subAgentId: string;
+  agentSchema: SubAgentApiSelect;
   name: string;
   baseUrl: string;
   apiKey?: string;
@@ -76,14 +76,14 @@ export const createTaskHandler = (
             projectId: config.projectId,
             graphId: config.graphId,
           },
-          agentId: config.agentId,
+          agentId: config.subAgentId,
         }),
         getToolsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
-            agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getDataComponentsForAgent(dbClient)({
@@ -91,7 +91,7 @@ export const createTaskHandler = (
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
-            agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getArtifactComponentsForAgent(dbClient)({
@@ -99,7 +99,7 @@ export const createTaskHandler = (
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
-            agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
       ]);
@@ -112,13 +112,13 @@ export const createTaskHandler = (
       const enhancedInternalRelations = await Promise.all(
         internalRelations.map(async (relation) => {
           try {
-            const relatedAgent = await getAgentById(dbClient)({
+            const relatedAgent = await getSubAgentById(dbClient)({
               scopes: {
                 tenantId: config.tenantId,
                 projectId: config.projectId,
                 graphId: config.graphId,
               },
-              agentId: relation.id,
+              subAgentId: relation.id,
             });
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
@@ -160,7 +160,7 @@ export const createTaskHandler = (
 
       const agent = new Agent(
         {
-          id: config.agentId,
+          id: config.subAgentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
           graphId: config.graphId,
@@ -263,7 +263,7 @@ export const createTaskHandler = (
             {
               taskId: task.id,
               extractedContextId: contextId,
-              agentId: config.agentId,
+              agentId: config.subAgentId,
             },
             'Extracted contextId from task ID for delegation'
           );
@@ -281,7 +281,7 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       if (isDelegation) {
         logger.info(
-          { agentId: config.agentId, taskId: task.id },
+          { agentId: config.subAgentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
 
@@ -447,13 +447,13 @@ export const createTaskHandlerConfig = async (params: {
   baseUrl: string;
   apiKey?: string;
 }): Promise<TaskHandlerConfig> => {
-  const agent = await getAgentById(dbClient)({
+  const agent = await getSubAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
       graphId: params.graphId,
     },
-    agentId: params.agentId,
+    subAgentId: params.agentId,
   });
 
   const agentGraph = await getAgentGraphById(dbClient)({
@@ -476,7 +476,7 @@ export const createTaskHandlerConfig = async (params: {
     tenantId: params.tenantId,
     projectId: params.projectId,
     graphId: params.graphId,
-    agentId: params.agentId,
+    subAgentId: params.agentId,
     agentSchema: {
       id: agent.id,
       name: agent.name,

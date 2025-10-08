@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getFullGraphDefinition } from '../../data-access/agentGraphs';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 
 describe('GraphFull Data Access - getFullGraphDefinition', () => {
   let db: DatabaseClient;
@@ -9,8 +9,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
   const testProjectId = 'test-project';
   const testGraphId = 'test-graph-1';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = await createTestDatabaseClient();
     vi.clearAllMocks();
   });
 
@@ -61,7 +61,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]), // No relations
         },
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue({
             id: 'default-agent-1',
             name: 'Default Agent',
@@ -203,7 +203,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
         },
-        agents: {
+        subAgents: {
           findFirst: vi
             .fn()
             .mockResolvedValueOnce(mockAgents[0]) // First call for agent-1
@@ -303,7 +303,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockAgent),
           findMany: vi.fn().mockResolvedValue([
             {
@@ -391,7 +391,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockAgent),
           findMany: vi.fn().mockResolvedValue([
             {
@@ -486,7 +486,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockAgent),
           findMany: vi.fn().mockResolvedValue([
             {
@@ -571,7 +571,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
         },
-        agents: {
+        subAgents: {
           findFirst: vi
             .fn()
             .mockResolvedValueOnce({

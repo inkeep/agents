@@ -157,9 +157,9 @@ describe('Validation Schemas', () => {
         tenantId: 'tenant-1',
         projectId: 'project-1',
         graphId: 'graph-1',
+        subAgentId: 'agent-1',
         contextId: 'context-1',
         status: 'pending',
-        agentId: 'agent-1',
         metadata: {
           priority: 'high',
           tags: ['urgent', 'customer'],
@@ -175,9 +175,9 @@ describe('Validation Schemas', () => {
         tenantId: 'tenant-1',
         projectId: 'project-1',
         graphId: 'graph-1',
+        subAgentId: 'agent-1',
         contextId: 'context-1',
         status: 'pending',
-        agentId: 'agent-1',
       };
 
       expect(() => TaskInsertSchema.parse(minimalTask)).not.toThrow();

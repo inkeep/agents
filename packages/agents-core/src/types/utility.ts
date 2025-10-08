@@ -260,6 +260,6 @@ export interface ExecutionContext {
   baseUrl: string;
   /** API key ID for tracking */
   apiKeyId: string;
-  /** Agent ID extracted from request headers (only for internal A2A calls) */
-  agentId?: string;
+  /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
+  subAgentId?: string;
 }

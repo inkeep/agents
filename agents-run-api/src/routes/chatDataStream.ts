@@ -6,10 +6,10 @@ import {
   createApiError,
   createMessage,
   getActiveAgentForConversation,
-  getAgentById,
   getAgentGraphWithdefaultSubAgent,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   loggerFactory,
   setActiveAgentForConversation,
@@ -139,14 +139,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultSubAgentId,
+        subAgentId: defaultSubAgentId,
       });
     }
     const agentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-    const agentInfo = await getAgentById(dbClient)({
+    const agentInfo = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: agentId as string,
+      subAgentId: agentId as string,
     });
     if (!agentInfo) {
       throw createApiError({

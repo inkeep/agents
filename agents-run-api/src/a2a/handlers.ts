@@ -199,7 +199,7 @@ async function handleMessageSend(
         graph_id: graphId || '',
         stream_request_id: params.message.metadata?.stream_request_id,
       },
-      agentId: agent.agentId,
+      subAgentId: agent.agentId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

@@ -8,10 +8,10 @@ import {
   DataComponentApiSelectSchema,
   ErrorResponseSchema,
   ExistsResponseSchema,
-  getAgentById,
   getAgentsUsingDataComponent,
   getDataComponent,
   getDataComponentsForAgent,
+  getSubAgentById,
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
@@ -27,13 +27,13 @@ const app = new OpenAPIHono();
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:agentId',
+    path: '/agent/:subAgentId',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
     tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
+        subAgentId: z.string(),
       }),
     },
     responses: {
@@ -51,10 +51,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId } = c.req.valid('param');
 
     const dataComponents = await getDataComponentsForAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
     });
 
     return c.json({ data: dataComponents });
@@ -82,7 +82,7 @@ app.openapi(
             schema: z.object({
               data: z.array(
                 z.object({
-                  agentId: z.string(),
+                  subAgentId: z.string(),
                   createdAt: z.string(),
                 })
               ),
@@ -145,17 +145,17 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, graphId } = c.req.valid('param');
-    const { agentId, dataComponentId } = c.req.valid('json');
+    const { subAgentId, dataComponentId } = c.req.valid('json');
 
     const [agent, dataComponent] = await Promise.all([
-      getAgentById(dbClient)({ scopes: { tenantId, projectId, graphId }, agentId }),
+      getSubAgentById(dbClient)({ scopes: { tenantId, projectId, graphId }, subAgentId }),
       getDataComponent(dbClient)({ scopes: { tenantId, projectId }, dataComponentId }),
     ]);
 
     if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: `Agent with id '${agentId}' not found`,
+        message: `Agent with id '${subAgentId}' not found`,
       });
     }
 
@@ -168,7 +168,7 @@ app.openapi(
 
     // Check if association already exists
     const exists = await isDataComponentAssociatedWithAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       dataComponentId,
     });
 
@@ -180,7 +180,7 @@ app.openapi(
     }
 
     const association = await associateDataComponentWithAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       dataComponentId,
     });
 
@@ -192,13 +192,13 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/:agentId/component/:dataComponentId',
+    path: '/agent/:subAgentId/component/:dataComponentId',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
     tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
+        subAgentId: z.string(),
         dataComponentId: z.string(),
       }),
     },
@@ -215,10 +215,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId, dataComponentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId, dataComponentId } = c.req.valid('param');
 
     const removed = await removeDataComponentFromAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       dataComponentId,
     });
 
@@ -240,13 +240,13 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:agentId/component/:dataComponentId/exists',
+    path: '/agent/:subAgentId/component/:dataComponentId/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
     tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
+        subAgentId: z.string(),
         dataComponentId: z.string(),
       }),
     },
@@ -263,10 +263,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId, dataComponentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId, dataComponentId } = c.req.valid('param');
 
     const exists = await isDataComponentAssociatedWithAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       dataComponentId,
     });
 

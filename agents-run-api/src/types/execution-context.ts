@@ -19,6 +19,6 @@ export function createExecutionContext(params: {
     graphId: params.graphId,
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
-    agentId: params.agentId,
+    subAgentId: params.agentId,
   };
 }

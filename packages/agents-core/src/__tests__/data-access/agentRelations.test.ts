@@ -3,8 +3,8 @@ import {
   createAgentToolRelation,
   createExternalAgentRelation,
   createSubAgentRelation,
-  deleteAgentRelation,
   deleteAgentToolRelation,
+  deleteSubAgentRelation,
   getAgentRelationById,
   getAgentRelations,
   getAgentRelationsBySource,
@@ -16,7 +16,7 @@ import {
   updateAgentRelation,
   updateAgentToolRelation,
   validateExternalAgent,
-  validateInternalAgent,
+  validateInternalSubAgent,
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
@@ -653,7 +653,7 @@ describe('Agent Relations Data Access', () => {
         delete: mockDelete,
       } as any;
 
-      const result = await deleteAgentRelation(mockDb)({
+      const result = await deleteSubAgentRelation(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -786,7 +786,7 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await validateInternalAgent(mockDb)({
+      const result = await validateInternalSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -812,7 +812,7 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await validateInternalAgent(mockDb)({
+      const result = await validateInternalSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,

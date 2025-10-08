@@ -1,5 +1,5 @@
 import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
-import { type AgentGraphSelect, getAgentById, getAgentGraphById } from '@inkeep/agents-core';
+import { type AgentGraphSelect, getAgentGraphById, getSubAgentById } from '@inkeep/agents-core';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
@@ -21,13 +21,13 @@ async function hydrateGraph({
     }
 
     // Get the default agent for this graph to create the task handler
-    const defaultSubAgent = await getAgentById(dbClient)({
+    const defaultSubAgent = await getSubAgentById(dbClient)({
       scopes: {
         tenantId: dbGraph.tenantId,
         projectId: dbGraph.projectId,
         graphId: dbGraph.id,
       },
-      agentId: dbGraph.defaultSubAgentId,
+      subAgentId: dbGraph.defaultSubAgentId,
     });
 
     if (!defaultSubAgent) {

@@ -215,7 +215,7 @@ describe('addMessage', () => {
       visibility: 'user-facing',
       messageType: 'chat',
       agentId: undefined,
-      fromAgentId: undefined,
+      fromSubAgentId: undefined,
       toAgentId: undefined,
       fromExternalAgentId: undefined,
       toExternalAgentId: undefined,
@@ -260,7 +260,7 @@ describe('addMessage', () => {
       visibility: 'user-facing',
       messageType: 'chat',
       agentId: undefined,
-      fromAgentId: 'agent-1',
+      fromSubAgentId: 'agent-1',
       toAgentId: undefined,
       fromExternalAgentId: undefined,
       toExternalAgentId: undefined,
@@ -286,7 +286,7 @@ describe('addMessage', () => {
       conversationId: 'conv-123',
       role: 'agent',
       content: { text: 'Hello! How can I help?' },
-      fromAgentId: 'agent-1',
+      fromSubAgentId: 'agent-1',
       metadata: { openai_model: 'gpt-4o' },
     });
 
@@ -306,7 +306,7 @@ describe('addMessage', () => {
       visibility: 'user-facing',
       messageType: 'a2a-request',
       agentId: undefined,
-      fromAgentId: 'agent-1',
+      fromSubAgentId: 'agent-1',
       toAgentId: 'agent-2',
       fromExternalAgentId: undefined,
       toExternalAgentId: undefined,
@@ -333,8 +333,8 @@ describe('addMessage', () => {
       role: 'agent',
       content: { text: 'Delegating task to specialist' },
       messageType: 'a2a-request',
-      fromAgentId: 'agent-1',
-      toAgentId: 'agent-2',
+      fromSubAgentId: 'agent-1',
+      toSubAgentId: 'agent-2',
       taskId: 'task-123',
     });
 
@@ -354,8 +354,8 @@ describe('addMessage', () => {
       visibility: 'external',
       messageType: 'a2a-response',
       agentId: undefined,
-      fromAgentId: undefined,
-      toAgentId: 'agent-1',
+      fromSubAgentId: undefined,
+      toSubAgentId: 'agent-1',
       fromExternalAgentId: 'external-1',
       toExternalAgentId: undefined,
       taskId: undefined,
@@ -382,7 +382,7 @@ describe('addMessage', () => {
       content: { text: 'Response from external service' },
       messageType: 'a2a-response',
       fromExternalAgentId: 'external-1',
-      toAgentId: 'agent-1',
+      toSubAgentId: 'agent-1',
       visibility: 'external',
     });
 

@@ -143,7 +143,7 @@ export const SubAgentApiSelectSchema = createGraphScopedApiSchema(SubAgentSelect
 export const SubAgentApiInsertSchema = createGraphScopedApiInsertSchema(SubAgentInsertSchema);
 export const SubAgentApiUpdateSchema = createGraphScopedApiUpdateSchema(SubAgentUpdateSchema);
 
-// === Agent Relations Schemas ===
+// === Sub Agent Relations Schemas ===
 export const AgentRelationSelectSchema = createSelectSchema(subAgentRelations);
 export const AgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
@@ -431,7 +431,7 @@ export const AgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
 ).extend({
   id: resourceIdSchema,
-  agentId: resourceIdSchema,
+  subAgentId: resourceIdSchema,
   artifactComponentId: resourceIdSchema,
 });
 export const AgentArtifactComponentUpdateSchema = AgentArtifactComponentInsertSchema.partial();
@@ -823,94 +823,61 @@ export const HeadersScopeSchema = z.object({
   }),
 });
 
+const TenantId = z.string().openapi({
+  description: 'Tenant identifier',
+  example: 'tenant_123',
+});
+
+const ProjectId = z.string().openapi({
+  description: 'Project identifier',
+  example: 'project_456',
+});
+
+const GraphId = z.string().openapi({
+  description: 'Graph identifier',
+  example: 'graph_789',
+});
+
+const SubAgentId = z.string().openapi({
+  description: 'Sub-agent identifier',
+  example: 'sub_agent_123',
+});
+
 export const TenantParamsSchema = z
   .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
+    tenantId: TenantId,
   })
   .openapi('TenantParams');
 
-export const TenantProjectParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-  })
-  .openapi('TenantProjectParams');
+export const TenantIdParamsSchema = TenantParamsSchema.extend({
+  id: resourceIdSchema,
+}).openapi('TenantIdParams');
 
-export const TenantProjectGraphParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-    graphId: z.string().openapi({
-      description: 'Graph identifier',
-      example: 'graph_789',
-    }),
-  })
-  .openapi('TenantProjectGraphParams');
+export const TenantProjectParamsSchema = TenantParamsSchema.extend({
+  projectId: ProjectId,
+}).openapi('TenantProjectParams');
 
-export const TenantProjectGraphIdParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-    graphId: z.string().openapi({
-      description: 'Graph identifier',
-      example: 'graph_789',
-    }),
+export const TenantProjectIdParamsSchema = TenantProjectParamsSchema.extend({
+  id: resourceIdSchema,
+}).openapi('TenantProjectIdParams');
+
+export const TenantProjectGraphParamsSchema = TenantProjectParamsSchema.extend({
+  graphId: GraphId,
+}).openapi('TenantProjectGraphParams');
+
+export const TenantProjectGraphIdParamsSchema = TenantProjectGraphParamsSchema.extend({
+  id: resourceIdSchema,
+}).openapi('TenantProjectGraphIdParams');
+
+export const TenantProjectGraphSubAgentParamsSchema = TenantProjectGraphParamsSchema.extend({
+  subAgentId: SubAgentId,
+}).openapi('TenantProjectGraphSubAgentParams');
+
+export const TenantProjectGraphSubAgentIdParamsSchema =
+  TenantProjectGraphSubAgentParamsSchema.extend({
     id: resourceIdSchema,
-  })
-  .openapi('TenantProjectGraphIdParams');
+  }).openapi('TenantProjectGraphSubAgentIdParams');
 
-export const TenantProjectIdParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-    id: resourceIdSchema,
-  })
-  .openapi('TenantProjectIdParams');
-
-export const TenantIdParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    id: resourceIdSchema,
-  })
-  .openapi('TenantIdParams');
-
-export const IdParamsSchema = z
-  .object({
-    id: resourceIdSchema,
-  })
-  .openapi('IdParams');
-
-// === Pagination query parameters ===
 export const PaginationQueryParamsSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),

@@ -9,11 +9,11 @@ import {
   deleteDataComponent,
   ErrorResponseSchema,
   getDataComponent,
-  IdParamsSchema,
   ListResponseSchema,
   listDataComponentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateDataComponent,
   validatePropsAsJsonSchema,
@@ -66,7 +66,7 @@ app.openapi(
     operationId: 'get-data-component-by-id',
     tags: ['Data Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -165,7 +165,7 @@ app.openapi(
     operationId: 'update-data-component',
     tags: ['Data Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -229,7 +229,7 @@ app.openapi(
     operationId: 'delete-data-component',
     tags: ['Data Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

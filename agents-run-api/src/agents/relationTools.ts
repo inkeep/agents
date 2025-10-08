@@ -46,12 +46,12 @@ Delegate a specific task to agent ${config.id} when it seems like the agent can 
 export const createTransferToAgentTool = ({
   transferConfig,
   callingAgentId,
-  agent,
+  subAgent,
   streamRequestId,
 }: {
   transferConfig: AgentConfig;
   callingAgentId: string;
-  agent: any; // Will be properly typed as Agent, but avoiding circular import
+  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   streamRequestId?: string;
 }) => {
   return tool({
@@ -102,7 +102,7 @@ export function createDelegateToAgentTool({
   contextId,
   metadata,
   sessionId,
-  agent,
+  subAgent,
   credentialStoreRegistry,
 }: {
   delegateConfig: DelegateRelation;
@@ -119,7 +119,7 @@ export function createDelegateToAgentTool({
     apiKey?: string;
   };
   sessionId?: string;
-  agent: any; // Will be properly typed as Agent, but avoiding circular import
+  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
   return tool({
@@ -276,7 +276,7 @@ export function createDelegateToAgentTool({
         },
         visibility: isInternal ? 'internal' : 'external',
         messageType: 'a2a-request',
-        fromAgentId: callingAgentId,
+        fromSubAgentId: callingAgentId,
         ...(isInternal
           ? { toAgentId: delegateConfig.config.id }
           : { toExternalAgentId: delegateConfig.config.id }),
@@ -297,9 +297,9 @@ export function createDelegateToAgentTool({
         conversationId: contextId,
         messageType: 'a2a-response',
         visibility: isInternal ? 'internal' : 'external',
-        toAgentId: callingAgentId,
+        toSubAgentId: callingAgentId,
         ...(isInternal
-          ? { fromAgentId: delegateConfig.config.id }
+          ? { fromSubAgentId: delegateConfig.config.id }
           : { fromExternalAgentId: delegateConfig.config.id }),
       });
 

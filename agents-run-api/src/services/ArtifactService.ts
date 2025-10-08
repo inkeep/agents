@@ -439,7 +439,7 @@ export class ArtifactService {
           artifactType: request.type,
           summaryData: summaryData,
           data: fullData,
-          agentId: effectiveAgentId,
+          subAgentId: effectiveAgentId,
           metadata: {
             toolCallId: request.toolCallId,
             baseSelector: request.baseSelector,

@@ -144,7 +144,7 @@ describe('External Agent Credential Handling', () => {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,
@@ -232,7 +232,7 @@ describe('External Agent Credential Handling', () => {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,
@@ -304,7 +304,7 @@ describe('External Agent Credential Handling', () => {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,
@@ -363,7 +363,7 @@ describe('External Agent Credential Handling', () => {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,

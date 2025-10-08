@@ -1,11 +1,10 @@
 import type {
-  Artifact,
   ModelSettings,
   StatusComponent,
   StatusUpdateSettings,
   SummaryEvent,
 } from '@inkeep/agents-core';
-import { getAgentById } from '@inkeep/agents-core';
+import { getSubAgentById } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -99,7 +98,7 @@ export interface ArtifactSavedData {
   tenantId?: string;
   projectId?: string;
   contextId?: string;
-  agentId?: string;
+  subAgentId?: string;
   metadata?: Record<string, any>;
   summaryData?: Record<string, any>;
   data?: Record<string, any>;
@@ -650,7 +649,6 @@ export class GraphSession {
 
     // Store references at start to prevent race conditions
     const statusUpdateState = this.statusUpdateState;
-    const graphId = this.graphId;
 
     try {
       const streamHelper = getStreamHelper(this.sessionId);
@@ -1080,7 +1078,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     const properties: Record<string, z.ZodType<any>> = {};
 
     // Always add label field
-    properties['label'] = z
+    properties.label = z
       .string()
       .describe(
         'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known? CRITICAL: Only use facts explicitly found in the activities - NEVER invent names, people, organizations, or details that are not present in the actual tool results.'
@@ -1192,7 +1190,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const data = event.data as AgentReasoningData;
           // Present as analysis without mentioning agents
           activities.push(
-            `⚙️ **Analyzing request**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Analyzing request**\n   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
           break;
         }
@@ -1201,7 +1199,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           const data = event.data as AgentGenerateData;
           // Present as response preparation without mentioning agents
           activities.push(
-            `⚙️ **Preparing response**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Preparing response**\n   Details: ${JSON.stringify(data.parts, null, 2)}`
           );
           break;
         }
@@ -1258,7 +1256,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           span.setAttributes({ 'validation.passed': true });
 
-          let mainSaveSucceeded = false;
+          const mainSaveSucceeded = false;
 
           // getFormattedConversationHistory is already imported at the top
           const conversationHistory = await getFormattedConversationHistory({
@@ -1304,15 +1302,15 @@ Make it specific and relevant.`;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
               // Try to get agent model configuration if statusUpdateState is not available
-              if (artifactData.agentId && artifactData.tenantId && artifactData.projectId) {
+              if (artifactData.subAgentId && artifactData.tenantId && artifactData.projectId) {
                 try {
-                  const agentData = await getAgentById(dbClient)({
+                  const agentData = await getSubAgentById(dbClient)({
                     scopes: {
                       tenantId: artifactData.tenantId,
                       projectId: artifactData.projectId,
                       graphId: this.graphId || '',
                     },
-                    agentId: artifactData.agentId,
+                    subAgentId: artifactData.subAgentId,
                   });
 
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
@@ -1321,7 +1319,7 @@ Make it specific and relevant.`;
                       {
                         sessionId: this.sessionId,
                         artifactId: artifactData.artifactId,
-                        agentId: artifactData.agentId,
+                        agentId: artifactData.subAgentId,
                         model: modelToUse.model,
                       },
                       'Using agent model configuration for artifact name generation'
@@ -1332,7 +1330,7 @@ Make it specific and relevant.`;
                     {
                       sessionId: this.sessionId,
                       artifactId: artifactData.artifactId,
-                      agentId: artifactData.agentId,
+                      agentId: artifactData.subAgentId,
                       error: error instanceof Error ? error.message : 'Unknown error',
                     },
                     'Failed to get agent model configuration'
@@ -1390,13 +1388,15 @@ Make it specific and relevant.`;
                   ),
                   'prompt.length': prompt.length,
                 },
-              },
-              async (generationSpan) => {
-                const maxRetries = 3;
-                let lastError: Error | null = null;
+              }
+        ,
+              async (generationSpan) =>
+        {
+          const maxRetries = 3;
+          let lastError: Error | null = null;
 
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                  try {
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
                     const result = await generateObject({
                       model,
                       prompt,
@@ -1428,56 +1428,64 @@ Make it specific and relevant.`;
                       'generation.name_length': result.object.name.length,
                       'generation.description_length': result.object.description.length,
                       'generation.attempts': attempt,
-                    });
-
-                    generationSpan.setStatus({ code: SpanStatusCode.OK });
-                    return result;
-                  } catch (error) {
-                    lastError = error instanceof Error ? error : new Error(String(error));
-
-                    logger.warn(
-                      {
-                        sessionId: this.sessionId,
-                        artifactId: artifactData.artifactId,
-                        attempt,
-                        maxRetries,
-                        error: lastError.message,
-                      },
-                      `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
-                    );
-
-                    // If this isn't the last attempt, wait before retrying
-                    if (attempt < maxRetries) {
-                      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
-                      await new Promise((resolve) => setTimeout(resolve, backoffMs));
                     }
-                  }
-                }
+            )
 
-                // All retries failed
-                setSpanWithError(
-                  generationSpan,
-                  lastError instanceof Error ? lastError : new Error(String(lastError))
-                );
-                throw new Error(
-                  `Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`
-                );
-              }
-            );
-            result = object;
+            generationSpan.setStatus({ code: SpanStatusCode.OK });
+            return result;
           }
+          catch (error)
+          {
+            lastError = error instanceof Error ? error : new Error(String(error));
 
-          // Now save the artifact using ArtifactService
-          const artifactService = new ArtifactService({
-            tenantId: artifactData.tenantId,
-            projectId: artifactData.projectId,
-            contextId: artifactData.contextId,
-            taskId: artifactData.taskId,
-            sessionId: this.sessionId,
-          });
+            logger.warn(
+              {
+                sessionId: this.sessionId,
+                artifactId: artifactData.artifactId,
+                attempt,
+                maxRetries,
+                error: lastError.message,
+              },
+              `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
+            );
 
-          try {
-            await artifactService.saveArtifact({
+            // If this isn't the last attempt, wait before retrying
+            if (attempt < maxRetries) {
+              const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            }
+          }
+        }
+
+        // All retries failed
+        setSpanWithError(
+          generationSpan,
+          lastError instanceof Error ? lastError : new Error(String(lastError))
+        );
+        throw new Error(
+          `Artifact name/description generation failed after ${maxRetries} attempts: ${lastError?.message}`
+        );
+      }
+    );
+    result = object;
+  }
+
+  // Now save the artifact using ArtifactService
+  const;
+  artifactService = new ArtifactService({
+    tenantId: artifactData.tenantId,
+    projectId: artifactData.projectId,
+    contextId: artifactData.contextId,
+    taskId: artifactData.taskId,
+    sessionId: this.sessionId,
+  });
+
+  try;
+  {
+            await
+  artifactService;
+  .
+  saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
@@ -1485,137 +1493,150 @@ Make it specific and relevant.`;
               data: artifactData.data || {},
               metadata: artifactData.metadata || {},
               toolCallId: artifactData.toolCallId,
-            });
+}
+)
 
-            mainSaveSucceeded = true;
+mainSaveSucceeded = true;
 
-            // Mark main span as successful
-            span.setAttributes({
-              'artifact.name': result.name,
-              'artifact.description': result.description,
-              'processing.success': true,
-            });
-            span.setStatus({ code: SpanStatusCode.OK });
-          } catch (saveError) {
-            logger.error(
-              {
-                sessionId: this.sessionId,
-                artifactId: artifactData.artifactId,
-                error: saveError instanceof Error ? saveError.message : 'Unknown error',
-              },
-              'Main artifact save failed, will attempt fallback'
-            );
-            // Don't throw here - let the fallback handle it
-          }
-          // Only attempt fallback save if main save failed
-          if (!mainSaveSucceeded) {
-            try {
-              if (artifactData.tenantId && artifactData.projectId) {
-                const artifactService = new ArtifactService({
-                  tenantId: artifactData.tenantId,
-                  projectId: artifactData.projectId,
-                  contextId: artifactData.contextId || 'unknown',
-                  taskId: artifactData.taskId,
-                  sessionId: this.sessionId,
-                });
+// Mark main span as successful
+span.setAttributes({
+  'artifact.name': result.name,
+  'artifact.description': result.description,
+  'processing.success': true,
+});
+span.setStatus({ code: SpanStatusCode.OK });
+} catch (saveError)
+{
+  logger.error(
+    {
+      sessionId: this.sessionId,
+      artifactId: artifactData.artifactId,
+      error: saveError instanceof Error ? saveError.message : 'Unknown error',
+    },
+    'Main artifact save failed, will attempt fallback'
+  );
+  // Don't throw here - let the fallback handle it
+}
+// Only attempt fallback save if main save failed
+if (!mainSaveSucceeded) {
+  try {
+    if (artifactData.tenantId && artifactData.projectId) {
+      const artifactService = new ArtifactService({
+        tenantId: artifactData.tenantId,
+        projectId: artifactData.projectId,
+        contextId: artifactData.contextId || 'unknown',
+        taskId: artifactData.taskId,
+        sessionId: this.sessionId,
+      });
 
-                await artifactService.saveArtifact({
-                  artifactId: artifactData.artifactId,
-                  name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
-                  description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
-                  type: artifactData.artifactType || 'source',
-                  data: artifactData.data || {},
-                  metadata: artifactData.metadata || {},
-                  toolCallId: artifactData.toolCallId,
-                });
+      await artifactService.saveArtifact({
+        artifactId: artifactData.artifactId,
+        name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
+        description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
+        type: artifactData.artifactType || 'source',
+        data: artifactData.data || {},
+        metadata: artifactData.metadata || {},
+        toolCallId: artifactData.toolCallId,
+      });
 
-                logger.info(
-                  {
-                    sessionId: this.sessionId,
-                    artifactId: artifactData.artifactId,
-                  },
-                  'Saved artifact with fallback name/description after main save failed'
-                );
-              }
-            } catch (fallbackError) {
-              // Check if this is a duplicate key error - if so, artifact may have been saved by another process
-              const isDuplicateError =
-                fallbackError instanceof Error &&
-                (fallbackError.message?.includes('UNIQUE') ||
-                  fallbackError.message?.includes('duplicate'));
+      logger.info(
+        {
+          sessionId: this.sessionId,
+          artifactId: artifactData.artifactId,
+        },
+        'Saved artifact with fallback name/description after main save failed'
+      );
+    }
+  } catch (fallbackError) {
+    // Check if this is a duplicate key error - if so, artifact may have been saved by another process
+    const isDuplicateError =
+      fallbackError instanceof Error &&
+      (fallbackError.message?.includes('UNIQUE') || fallbackError.message?.includes('duplicate'));
 
-              if (isDuplicateError) {
-                // Duplicate key - artifact already exists, no action needed
-              } else {
-                logger.error(
-                  {
-                    sessionId: this.sessionId,
-                    artifactId: artifactData.artifactId,
-                    error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
-                  },
-                  'Failed to save artifact even with fallback'
-                );
-              }
-            }
-          }
-        } catch (error) {
-          // Handle span error (this is for name/description generation errors)
-          setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
-          logger.error(
-            {
-              sessionId: this.sessionId,
-              artifactId: artifactData.artifactId,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-            'Failed to process artifact (name/description generation failed)'
-          );
-        } finally {
-          // Always end the main span
-          span.end();
-        }
-      }
-    );
+    if (isDuplicateError) {
+      // Duplicate key - artifact already exists, no action needed
+    } else {
+      logger.error(
+        {
+          sessionId: this.sessionId,
+          artifactId: artifactData.artifactId,
+          error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
+        },
+        'Failed to save artifact even with fallback'
+      );
+    }
   }
+}
+} catch (error)
+{
+  // Handle span error (this is for name/description generation errors)
+  setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
+  logger.error(
+    {
+      sessionId: this.sessionId,
+      artifactId: artifactData.artifactId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    },
+    'Failed to process artifact (name/description generation failed)'
+  );
+}
+finally
+{
+  // Always end the main span
+  span.end();
+}
+}
+    )
+}
 
   /**
    * Cache an artifact in this session for immediate access
    */
-  setArtifactCache(key: string, artifact: any): void {
-    this.artifactCache.set(key, artifact);
-    logger.debug({ sessionId: this.sessionId, key }, 'Artifact cached in session');
-  }
+  setArtifactCache(key: string, artifact: any): void
+{
+  this.artifactCache.set(key, artifact);
+  logger.debug({ sessionId: this.sessionId, key }, 'Artifact cached in session');
+}
 
-  /**
-   * Get session-scoped ArtifactService instance
-   */
-  getArtifactService(): any | null {
-    return this.artifactService || null;
-  }
+/**
+ * Get session-scoped ArtifactService instance
+ */
+getArtifactService();
+: any | null
+{
+  return this.artifactService || null;
+}
 
-  /**
-   * Get session-scoped ArtifactParser instance
-   */
-  getArtifactParser(): any | null {
-    return this.artifactParser || null;
-  }
+/**
+ * Get session-scoped ArtifactParser instance
+ */
+getArtifactParser();
+: any | null
+{
+  return this.artifactParser || null;
+}
 
-  /**
-   * Get an artifact from this session cache
-   */
-  getArtifactCache(key: string): any | null {
-    const artifact = this.artifactCache.get(key);
-    logger.debug({ sessionId: this.sessionId, key, found: !!artifact }, 'Artifact cache lookup');
-    return artifact || null;
-  }
+/**
+ * Get an artifact from this session cache
+ */
+getArtifactCache(key: string)
+: any | null
+{
+  const artifact = this.artifactCache.get(key);
+  logger.debug({ sessionId: this.sessionId, key, found: !!artifact }, 'Artifact cache lookup');
+  return artifact || null;
+}
 
-  /**
-   * Update artifact components in the shared ArtifactService
-   */
-  updateArtifactComponents(artifactComponents: any[]): void {
-    if (this.artifactService) {
-      this.artifactService.updateArtifactComponents(artifactComponents);
-    }
+/**
+ * Update artifact components in the shared ArtifactService
+ */
+updateArtifactComponents(artifactComponents: any[])
+: void
+{
+  if (this.artifactService) {
+    this.artifactService.updateArtifactComponents(artifactComponents);
   }
+}
 }
 
 /**

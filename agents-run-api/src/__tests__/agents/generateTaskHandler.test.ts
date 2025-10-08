@@ -332,7 +332,7 @@ describe('generateTaskHandler', () => {
     tenantId: 'test-tenant',
     projectId: 'test-project',
     graphId: 'test-graph',
-    agentId: 'test-agent',
+    subAgentId: 'test-agent',
     baseUrl: 'http://localhost:3000',
     agentSchema: {
       id: 'test-agent',

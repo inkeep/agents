@@ -457,7 +457,7 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              agent: this,
+              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -485,7 +485,7 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              agent: this,
+              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -622,7 +622,7 @@ export class Agent {
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
         graphId: this.config.graphId,
-        agentId: this.config.id,
+        subAgentId: this.config.id,
       },
     });
 
@@ -1708,7 +1708,7 @@ export class Agent {
               currentMessage: userMessage,
               options: historyConfig,
               filters: {
-                agentId: this.config.id,
+                subAgentId: this.config.id,
                 taskId: taskId,
               },
             });

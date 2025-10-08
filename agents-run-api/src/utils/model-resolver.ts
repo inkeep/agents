@@ -1,7 +1,12 @@
-import { type AgentSelect, getAgentGraphById, getProject, type Models } from '@inkeep/agents-core';
+import {
+  getAgentGraphById,
+  getProject,
+  type Models,
+  type SubAgentSelect,
+} from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
-async function resolveModelConfig(graphId: string, agent: AgentSelect): Promise<Models> {
+async function resolveModelConfig(graphId: string, agent: SubAgentSelect): Promise<Models> {
   // If base model is defined on the agent
   if (agent.models?.base?.model) {
     return {
