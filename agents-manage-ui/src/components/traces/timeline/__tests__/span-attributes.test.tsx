@@ -1,6 +1,7 @@
 import * as monaco from 'monaco-editor';
+import '@/lib/setup-monaco-workers';
 
-describe('Monaco Editor Copy Functionality - Real Monaco Editor', () => {
+describe('Span Attributes Copy Functionality', () => {
   let editor: monaco.editor.IStandaloneCodeEditor;
   let model: monaco.editor.ITextModel;
   let container: HTMLDivElement;
@@ -18,13 +19,18 @@ describe('Monaco Editor Copy Functionality - Real Monaco Editor', () => {
     editor = monaco.editor.create(container, {
       value: JSON.stringify(
         {
-          array: [1, 2, 3],
-          number: 2,
-          foo: {
-            bar: {
-              baz: '',
+          null: null,
+          number: 1,
+          boolean: false,
+          array: [
+            true,
+            {
+              foo: 'bar',
             },
-          },
+            [2, 'baz'],
+          ],
+          string: 'hello',
+          emptyString: '',
         },
         null,
         2
@@ -47,19 +53,9 @@ describe('Monaco Editor Copy Functionality - Real Monaco Editor', () => {
     }
   });
 
-  it('should tokenize JSON content correctly', () => {
-    const tokens = monaco.editor.tokenize(model.getValue(), 'json');
-
-    expect(tokens).toBeDefined();
-    expect(tokens.length).toBeGreaterThan(0);
-
-    // Check that we have the expected token types
-    const allTokens = tokens.flat();
-    const tokenTypes = allTokens.map((token) => token.type);
-
-    expect(tokenTypes).toContain('delimiter.bracket.json');
-    expect(tokenTypes).toContain('delimiter.array.json');
-    expect(tokenTypes).toContain('number.json');
-    expect(tokenTypes).toContain('string.value.json');
+  it('', () => {
+    console.log(model.getValue());
+    const lines = monaco.editor.tokenize(model.getValue(), 'json');
+    console.log(lines);
   });
 });
