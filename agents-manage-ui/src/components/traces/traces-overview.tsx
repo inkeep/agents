@@ -1,11 +1,14 @@
 'use client';
 
-import { ArrowRightLeft, RefreshCw, SparklesIcon, Users, Wrench } from 'lucide-react';
+import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
+import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 import { AreaChartCard } from './charts/area-chart-card';
@@ -14,6 +17,8 @@ import { ConversationStatsCard } from './conversation-stats/conversation-stats-c
 import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 import { GraphFilter } from './filters/graph-filter';
 import { SpanFilters } from './filters/span-filters';
+
+const DOCS_BASE_URL = 'https://docs.inkeep.com/quick-start/traces';
 
 // Time range options
 const TIME_RANGES = {
@@ -41,6 +46,9 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     setCustomDateRange,
     setSpanFilter,
   } = useTracesQueryState();
+
+  // Check if Signoz is configured
+  const { isConfigured: isSignozConfigured, isLoading: isSignozConfigLoading } = useSignozConfig();
 
   const [selectedGraph, setSelectedGraph] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -296,31 +304,43 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Graph Filter */}
-          <GraphFilter onSelect={setSelectedGraph} selectedValue={selectedGraph} />
-          {/* Time Range Filter */}
-          <DatePickerWithPresets
-            label="Time range"
-            onRemove={() => setSelectedTimeRange('15d')}
-            value={
-              selectedTimeRange === CUSTOM
-                ? { from: customStartDate, to: customEndDate }
-                : selectedTimeRange
-            }
-            onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-            setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
-            options={Object.entries(TIME_RANGES).map(([value, config]) => ({
-              value,
-              label: config.label,
-            }))}
-          />
-        </div>
-        <Button variant="outline" size="sm" onClick={refresh}>
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+      {/* Signoz Configuration Banner */}
+      {!isSignozConfigLoading && isSignozConfigured === false && (
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>SigNoz Configuration Required</AlertTitle>
+          <AlertDescription>
+            <p>
+              SigNoz is not configured. To view traces and use the live debugger, you need to set
+              up SigNoz. Please follow the instructions in the <ExternalLink
+              className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200 ml-0 mt-1"
+              iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
+              href={`${DOCS_BASE_URL}`}
+            >traces setup guide</ExternalLink>.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center gap-4">
+        {/* Graph Filter */}
+        <GraphFilter onSelect={setSelectedGraph} selectedValue={selectedGraph} />
+        {/* Time Range Filter */}
+        <DatePickerWithPresets
+          label="Time range"
+          onRemove={() => setSelectedTimeRange('15d')}
+          value={
+            selectedTimeRange === CUSTOM
+              ? { from: customStartDate, to: customEndDate }
+              : selectedTimeRange
+          }
+          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
+          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          options={Object.entries(TIME_RANGES).map(([value, config]) => ({
+            value,
+            label: config.label,
+          }))}
+        />
       </div>
 
       <div className="flex flex-col gap-4">
