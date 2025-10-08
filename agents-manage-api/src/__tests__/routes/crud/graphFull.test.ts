@@ -133,20 +133,20 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     props: {
       type: 'object',
       properties: {
-        title: { type: 'string', isPreview: true },
-        subtitle: { type: 'string', isPreview: true },
-        [`field${suffix}`]: { type: 'string', isPreview: true },
-        content: { type: 'string', isPreview: false },
+        title: { type: 'string', inPreview: true },
+        subtitle: { type: 'string', inPreview: true },
+        [`field${suffix}`]: { type: 'string', inPreview: true },
+        content: { type: 'string', inPreview: false },
         metadata: {
           type: 'object',
-          isPreview: false,
+          inPreview: false,
           properties: {
             author: { type: 'string' },
-            created: { type: 'string' }
-          }
-        }
-      }
-    }
+            created: { type: 'string' },
+          },
+        },
+      },
+    },
   });
 
   // Helper function to create full graph data with optional enhanced features

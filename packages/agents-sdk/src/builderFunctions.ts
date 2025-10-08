@@ -228,8 +228,8 @@ export function mcpTool(config: MCPToolConfig): Tool {
  *   props: {
  *     type: 'object',
  *     properties: {
- *       title: { type: 'string', isPreview: true },
- *       price: { type: 'string', isPreview: true },
+ *       title: { type: 'string', inPreview: true },
+ *       price: { type: 'string', inPreview: true },
  *       description: { type: 'string' },
  *       image: { type: 'string' }
  *     }

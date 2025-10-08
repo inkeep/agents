@@ -1525,9 +1525,9 @@ describe('Agent Conditional Tool Availability', () => {
         props: {
           type: 'object',
           properties: {
-            name: { type: 'string', isPreview: true },
-            details: { type: 'string', isPreview: false }
-          }
+            name: { type: 'string', inPreview: true },
+            details: { type: 'string', inPreview: false },
+          },
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

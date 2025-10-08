@@ -1,19 +1,23 @@
-import type { Artifact, ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataComponentApiInsert } from '@inkeep/agents-core';
-import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
-import { type ExtendedJsonSchema } from '../../../utils/schema-validation';
+import type {
+  Artifact,
+  ArtifactComponentApiInsert,
+  ArtifactComponentApiSelect,
+  DataComponentApiInsert,
+} from '@inkeep/agents-core';
+import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
+import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
+import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.xml?raw';
 // Import template content as raw text
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
-import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.xml?raw';
-import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
-import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
+import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
+import type { ExtendedJsonSchema } from '../../../utils/schema-validation';
 
 /**
  * Configuration for Phase 2 structured output generation
  * Handles data components, artifact creation, and JSON formatting guidance
  */
 export class Phase2Config {
-  
   private getArtifactCreationGuidance(): string {
     return `🚨 MANDATORY ARTIFACT CREATION 🚨
 You MUST create artifacts from tool results to provide citations. This is REQUIRED, not optional.
@@ -115,10 +119,10 @@ COMMON FAILURE POINTS (AVOID THESE):
     if (!shouldShowReferencingRules) {
       return '';
     }
-    
+
     // Get the shared retrieval guidance
     const sharedGuidance = artifactRetrievalGuidance;
-    
+
     // Scenario 1: Has data components AND can create artifacts
     if (hasArtifactComponents && artifactComponents && artifactComponents.length > 0) {
       return `${sharedGuidance}
@@ -202,7 +206,7 @@ COMPONENT GUIDELINES:
 - Only add Artifact reference components when citing the SAME artifact again for a different point
 - Use tool_call_id exactly as it appears in tool execution results`;
     }
-    
+
     // Scenario 2: Has data components but CANNOT create artifacts (can only reference)
     return `${sharedGuidance}
 
@@ -264,9 +268,9 @@ IMPORTANT GUIDELINES:
         const schemaProps = ac.props?.properties
           ? Object.entries(ac.props.properties)
               .map(([key, value]: [string, any]) => {
-                // Show isPreview flag for LLM display to understand field usage
-                const isPreview = value.isPreview ? ' [PREVIEW]' : ' [FULL]';
-                return `      - ${key}: ${value.description || 'Field from tool result'}${isPreview}`;
+                // Show inPreview flag for LLM display to understand field usage
+                const inPreview = value.inPreview ? ' [PREVIEW]' : ' [FULL]';
+                return `      - ${key}: ${value.description || 'Field from tool result'}${inPreview}`;
               })
               .join('\n')
           : '      No properties defined';
@@ -298,8 +302,14 @@ ${componentDescriptions}`;
       .join('\n  ');
 
     let dataComponentsSection = dataComponentsTemplate;
-    dataComponentsSection = dataComponentsSection.replace('{{DATA_COMPONENTS_LIST}}', dataComponentsDescription);
-    dataComponentsSection = dataComponentsSection.replace('{{DATA_COMPONENTS_XML}}', dataComponentsXml);
+    dataComponentsSection = dataComponentsSection.replace(
+      '{{DATA_COMPONENTS_LIST}}',
+      dataComponentsDescription
+    );
+    dataComponentsSection = dataComponentsSection.replace(
+      '{{DATA_COMPONENTS_XML}}',
+      dataComponentsXml
+    );
 
     return dataComponentsSection;
   }
@@ -396,14 +406,21 @@ ${artifactRetrievalGuidance}
     hasGraphArtifactComponents?: boolean;
     artifacts?: Artifact[];
   }): string {
-    const { corePrompt, dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
+    const {
+      corePrompt,
+      dataComponents,
+      artifactComponents,
+      hasArtifactComponents,
+      hasGraphArtifactComponents,
+      artifacts = [],
+    } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
     let allDataComponents = [...dataComponents];
     if (hasArtifactComponents && artifactComponents) {
       const artifactCreateComponents = ArtifactCreateSchema.getDataComponents(
         'tenant', // placeholder - not used in Phase2
-        '', // placeholder - not used in Phase2  
+        '', // placeholder - not used in Phase2
         artifactComponents
       );
       allDataComponents = [...dataComponents, ...artifactCreateComponents];
@@ -412,8 +429,15 @@ ${artifactRetrievalGuidance}
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);
     const artifactsSection = this.generateArtifactsSection(artifacts);
     const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
-    const artifactGuidance = this.getStructuredArtifactGuidance(hasArtifactComponents, artifactComponents, shouldShowReferencingRules);
-    const artifactTypes = this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
+    const artifactGuidance = this.getStructuredArtifactGuidance(
+      hasArtifactComponents,
+      artifactComponents,
+      shouldShowReferencingRules
+    );
+    const artifactTypes = this.getArtifactCreationInstructions(
+      hasArtifactComponents,
+      artifactComponents
+    );
 
     let phase2Prompt = systemPromptTemplate;
     phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);

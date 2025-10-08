@@ -1,6 +1,9 @@
+import {
+  convertZodToJsonSchemaWithPreview,
+  extractPreviewFields as extractPreviewFieldsCore,
+} from '@inkeep/agents-core/utils/schema-conversion';
 import Ajv from 'ajv';
 import { z } from 'zod';
-import { convertZodToJsonSchemaWithPreview, extractPreviewFields as extractPreviewFieldsCore } from '@inkeep/agents-core/utils/schema-conversion';
 import { getLogger } from '../logger';
 
 const logger = getLogger('SchemaValidation');
@@ -19,7 +22,7 @@ export interface ExtendedJsonSchema {
 export interface ExtendedJsonSchemaProperty {
   type: string;
   description?: string;
-  isPreview?: boolean; // New field to indicate if this should be shown in preview
+  inPreview?: boolean; // New field to indicate if this should be shown in preview
   [key: string]: any;
 }
 
@@ -27,8 +30,11 @@ export interface ExtendedJsonSchemaProperty {
  * Validate that a schema is valid (either JSON Schema or Zod)
  * Following the same pattern as context validation
  */
-export function validateComponentSchema(schema: any, componentName: string): { 
-  isValid: boolean; 
+export function validateComponentSchema(
+  schema: any,
+  componentName: string
+): {
+  isValid: boolean;
   error?: string;
   validatedSchema?: ExtendedJsonSchema;
 } {
@@ -39,82 +45,84 @@ export function validateComponentSchema(schema: any, componentName: string): {
       const jsonSchema = convertZodToJsonSchemaWithPreview(schema);
       return {
         isValid: true,
-        validatedSchema: jsonSchema as ExtendedJsonSchema
+        validatedSchema: jsonSchema as ExtendedJsonSchema,
       };
     }
-    
+
     // Check if it's a JSON Schema
     if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
-      return { 
-        isValid: false, 
-        error: 'Schema must be a valid JSON Schema object or Zod schema' 
+      return {
+        isValid: false,
+        error: 'Schema must be a valid JSON Schema object or Zod schema',
       };
     }
 
     // Basic JSON Schema validation - just check it compiles with AJV
     ajv.compile(schema);
-    
+
     // If it compiled successfully, it's a valid JSON Schema
-    return { 
-      isValid: true, 
-      validatedSchema: schema as ExtendedJsonSchema 
+    return {
+      isValid: true,
+      validatedSchema: schema as ExtendedJsonSchema,
     };
-    
   } catch (error) {
-    logger.error({ 
-      componentName, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }, 'Invalid component schema');
-    
-    return { 
-      isValid: false, 
-      error: error instanceof Error ? error.message : 'Invalid JSON Schema' 
+    logger.error(
+      {
+        componentName,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      'Invalid component schema'
+    );
+
+    return {
+      isValid: false,
+      error: error instanceof Error ? error.message : 'Invalid JSON Schema',
     };
   }
 }
 
 /**
- * Extract preview fields from a schema (fields marked with isPreview: true)
+ * Extract preview fields from a schema (fields marked with inPreview: true)
  */
 export function extractPreviewFields(schema: ExtendedJsonSchema): Record<string, any> {
   const previewProperties: Record<string, any> = {};
-  
+
   if (schema.properties) {
     for (const [key, prop] of Object.entries(schema.properties)) {
-      if (prop.isPreview === true) {
-        // Remove the isPreview flag for the extracted schema
+      if (prop.inPreview === true) {
+        // Remove the inPreview flag for the extracted schema
         const cleanProp = { ...prop };
-        delete cleanProp.isPreview;
+        delete cleanProp.inPreview;
         previewProperties[key] = cleanProp;
       }
     }
   }
-  
+
   return {
     type: 'object',
     properties: previewProperties,
-    required: schema.required?.filter(field => previewProperties[field])
+    required: schema.required?.filter((field) => previewProperties[field]),
   };
 }
 
 /**
- * Extract full fields from a schema (all fields, with isPreview flags removed)
+ * Extract full fields from a schema (all fields, with inPreview flags removed)
  */
 export function extractFullFields(schema: ExtendedJsonSchema): Record<string, any> {
   const fullProperties: Record<string, any> = {};
-  
+
   if (schema.properties) {
     for (const [key, prop] of Object.entries(schema.properties)) {
-      // Remove the isPreview flag for the extracted schema
+      // Remove the inPreview flag for the extracted schema
       const cleanProp = { ...prop };
-      delete cleanProp.isPreview;
+      delete cleanProp.inPreview;
       fullProperties[key] = cleanProp;
     }
   }
-  
+
   return {
     type: 'object',
     properties: fullProperties,
-    required: schema.required
+    required: schema.required,
   };
 }

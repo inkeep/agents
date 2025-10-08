@@ -129,9 +129,9 @@ export function ArtifactComponentForm({
         <JsonSchemaInput
           control={form.control}
           name="props"
-          label="Props (JSON schema with isPreview indicators)"
-          placeholder="Enter a valid JSON Schema with isPreview flags, or leave empty to save entire tool result..."
-          description="Optional: Define specific fields with isPreview flags, or leave empty to capture the complete tool response"
+          label="Props (JSON schema with inPreview indicators)"
+          placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
+          description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response"
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

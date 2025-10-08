@@ -68,11 +68,11 @@ When creating data components, your `props` field must be a valid JSON Schema:
 
 ## Artifact component schemas
 
-Artifact components use a single unified schema called `props` with `isPreview` indicators.
+Artifact components use a single unified schema called `props` with `inPreview` indicators.
 
 ### Unified props schema
 
-Fields marked with `isPreview: true` appear in summary views, while all fields are stored in the database:
+Fields marked with `inPreview: true` appear in summary views, while all fields are stored in the database:
 
 ```json
 {
@@ -81,19 +81,19 @@ Fields marked with `isPreview: true` appear in summary views, while all fields a
     "title": {
       "type": "string",
       "description": "Title of the artifact",
-      "isPreview": true
+      "inPreview": true
     },
     "status": {
       "type": "string",
       "enum": ["draft", "published", "archived"],
       "description": "Current status of the artifact",
-      "isPreview": true
+      "inPreview": true
     },
     "createdAt": {
       "type": "string",
       "format": "date-time",
       "description": "When the artifact was created",
-      "isPreview": true
+      "inPreview": true
     },
     "content": {
       "type": "string",

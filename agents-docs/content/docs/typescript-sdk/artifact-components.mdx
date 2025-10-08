@@ -25,17 +25,17 @@ const agent = agent({
           title: {
             type: "string",
             description: "Title of the source document",
-            isPreview: true,
+            inPreview: true,
           },
           url: { 
             type: "string", 
             description: "URL of the source document",
-            isPreview: true,
+            inPreview: true,
           },
           record_type: {
             type: "string",
             description: "Type of record (documentation, blog, guide, etc.)",
-            isPreview: true,
+            inPreview: true,
           },
           content: {
             type: "array",
@@ -68,11 +68,11 @@ const agent = agent({
 
 Artifact components can be configured in two ways:
 
-1. **With Schema**: Define specific fields and mark preview fields with `isPreview: true`
+1. **With Schema**: Define specific fields and mark preview fields with `inPreview: true`
 2. **No Schema**: Save the entire tool result as-is (no field filtering)
 
 When using a schema:
-- **Preview fields** (`isPreview: true`): Shown to agents automatically and streamed in real-time  
+- **Preview fields** (`inPreview: true`): Shown to agents automatically and streamed in real-time  
 - **Full fields**: Complete data available when agents request the full artifact
 
 When no schema is provided, the entire tool result is saved and available to agents.
@@ -110,8 +110,8 @@ const searchAgent = agent({
       props: {
         type: "object",
         properties: {
-          title: { type: "string", isPreview: true },
-          url: { type: "string", isPreview: true },
+          title: { type: "string", inPreview: true },
+          url: { type: "string", inPreview: true },
           content: { type: "string" },
         },
       },

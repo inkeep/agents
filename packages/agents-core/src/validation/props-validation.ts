@@ -96,7 +96,7 @@ export function validatePropsAsJsonSchema(props: any): PropsValidationResult {
 
     // Create a new AJV instance that doesn't resolve references
     const schemaValidator = new Ajv({
-      strict: false, // Allow unknown keywords like isPreview
+      strict: false, // Allow unknown keywords like inPreview
       validateSchema: true, // Validate the schema itself
       addUsedSchema: false, // Don't add schemas to the instance
     });

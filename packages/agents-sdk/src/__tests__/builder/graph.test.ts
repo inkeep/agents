@@ -133,8 +133,8 @@ vi.mock('@inkeep/agents-core', async () => {
     ...actual,
     getProject: vi.fn().mockReturnValue(() =>
       Promise.resolve({
-          tenantId: 'test-tenant',
-          models: {
+        tenantId: 'test-tenant',
+        models: {
           base: { model: 'gpt-4o' },
           structuredOutput: { model: 'gpt-4o-mini' },
           summarizer: { model: 'gpt-3.5-turbo' },
@@ -606,7 +606,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project for graph testing',
           models: {
@@ -799,7 +800,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValueOnce(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project',
           models: null,
@@ -954,7 +956,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project for graph testing',
           models: {
@@ -1108,7 +1111,8 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
-          tenantId: 'test-tenant',            id: 'test-project',
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
             description: 'Test project',
             models: {
@@ -1204,7 +1208,8 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
-          tenantId: 'test-tenant',            id: 'test-project',
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
             description: 'Test project',
             models: {
@@ -1364,9 +1369,9 @@ describe('AgentGraph', () => {
         props: {
           type: 'object',
           properties: {
-            summary: { type: 'string', isPreview: true },
-            full: { type: 'string', isPreview: false }
-          }
+            summary: { type: 'string', inPreview: true },
+            full: { type: 'string', inPreview: false },
+          },
         },
       };
 

@@ -27,28 +27,30 @@ export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> 
  */
 export const preview = <T extends z.ZodTypeAny>(schema: T): T => {
   // Use type assertion to safely add preview metadata
-  (schema._def as any).isPreview = true;
+  (schema._def as any).inPreview = true;
   return schema;
 };
 
 /**
  * Convert Zod schema to JSON Schema while preserving preview metadata
  */
-export function convertZodToJsonSchemaWithPreview(zodSchema: z.ZodTypeAny): Record<string, unknown> {
+export function convertZodToJsonSchemaWithPreview(
+  zodSchema: z.ZodTypeAny
+): Record<string, unknown> {
   // First convert to standard JSON Schema
   const jsonSchema = convertZodToJsonSchema(zodSchema);
-  
+
   // Then enhance with preview metadata for object properties
   if (zodSchema instanceof z.ZodObject && jsonSchema.properties) {
     const shape = zodSchema.shape;
-    
+
     for (const [key, fieldSchema] of Object.entries(shape)) {
-      if ((fieldSchema as any)?._def?.isPreview === true) {
-        (jsonSchema.properties as any)[key].isPreview = true;
+      if ((fieldSchema as any)?._def?.inPreview === true) {
+        (jsonSchema.properties as any)[key].inPreview = true;
       }
     }
   }
-  
+
   return jsonSchema;
 }
 
@@ -57,26 +59,26 @@ export function convertZodToJsonSchemaWithPreview(zodSchema: z.ZodTypeAny): Reco
  */
 export function extractPreviewFields(schema: any): string[] {
   const previewFields: string[] = [];
-  
+
   // Handle Zod schema
   if (schema instanceof z.ZodObject) {
     const shape = schema.shape;
     for (const [key, fieldSchema] of Object.entries(shape)) {
-      if ((fieldSchema as any)?._def?.isPreview === true) {
+      if ((fieldSchema as any)?._def?.inPreview === true) {
         previewFields.push(key);
       }
     }
     return previewFields;
   }
-  
+
   // Handle JSON Schema
   if (schema?.type === 'object' && schema.properties) {
     for (const [key, prop] of Object.entries(schema.properties)) {
-      if ((prop as any).isPreview === true) {
+      if ((prop as any).inPreview === true) {
         previewFields.push(key);
       }
     }
   }
-  
+
   return previewFields;
 }

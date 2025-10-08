@@ -38,10 +38,10 @@ describe('ArtifactService', () => {
           description: 'Test component description',
           props: {
             properties: {
-              title: { type: 'string', description: 'Title', isPreview: true },
-              summary: { type: 'string', description: 'Summary', isPreview: true },
-              content: { type: 'string', description: 'Content', isPreview: false },
-              details: { type: 'object', description: 'Details', isPreview: false },
+              title: { type: 'string', description: 'Title', inPreview: true },
+              summary: { type: 'string', description: 'Summary', inPreview: true },
+              content: { type: 'string', description: 'Content', inPreview: false },
+              details: { type: 'object', description: 'Details', inPreview: false },
             },
           },
         },
@@ -153,7 +153,12 @@ describe('ArtifactService', () => {
       toolCallId: 'test-tool-call',
       type: 'TestComponent',
       baseSelector: 'result.data[0]',
-      detailsSelector: { title: 'title', summary: 'summary', content: 'content', details: 'details' },
+      detailsSelector: {
+        title: 'title',
+        summary: 'summary',
+        content: 'content',
+        details: 'details',
+      },
     };
 
     it('should create artifact successfully with valid tool result', async () => {
@@ -369,7 +374,10 @@ describe('ArtifactService', () => {
       vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
       vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([]));
 
-      const result = await artifactService.getArtifactSummary('missing-artifact', 'missing-tool-call');
+      const result = await artifactService.getArtifactSummary(
+        'missing-artifact',
+        'missing-tool-call'
+      );
 
       expect(result).toBeNull();
     });
@@ -394,7 +402,10 @@ describe('ArtifactService', () => {
 
       vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
 
-      const result = await serviceWithoutContext.getArtifactSummary('test-artifact', 'test-tool-call');
+      const result = await serviceWithoutContext.getArtifactSummary(
+        'test-artifact',
+        'test-tool-call'
+      );
 
       expect(result).toBeNull();
     });
@@ -480,7 +491,12 @@ describe('ArtifactService', () => {
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
         baseSelector: 'result.data[0]',
-        detailsSelector: { title: 'title', summary: 'summary', content: 'content', details: 'details' },
+        detailsSelector: {
+          title: 'title',
+          summary: 'summary',
+          content: 'content',
+          details: 'details',
+        },
       };
 
       const result = await artifactService.createArtifact(testRequest);
@@ -520,7 +536,12 @@ describe('ArtifactService', () => {
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
         baseSelector: 'result.data[0]',
-        detailsSelector: { title: 'title', summary: 'summary', content: 'content', details: 'details' },
+        detailsSelector: {
+          title: 'title',
+          summary: 'summary',
+          content: 'content',
+          details: 'details',
+        },
       };
 
       const result = await serviceWithoutComponents.createArtifact(testRequest2);

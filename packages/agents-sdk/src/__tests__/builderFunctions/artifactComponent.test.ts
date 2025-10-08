@@ -10,9 +10,9 @@ describe('artifactComponent builder function', () => {
       props: {
         type: 'object',
         properties: {
-          title: { type: 'string', isPreview: true },
-          content: { type: 'string', isPreview: false }
-        }
+          title: { type: 'string', inPreview: true },
+          content: { type: 'string', inPreview: false },
+        },
       },
     };
 
@@ -30,28 +30,28 @@ describe('artifactComponent builder function', () => {
       props: {
         type: 'object',
         properties: {
-          title: { type: 'string', isPreview: true },
+          title: { type: 'string', inPreview: true },
           metadata: {
             type: 'object',
-            isPreview: true,
+            inPreview: true,
             properties: {
               tags: { type: 'array', items: { type: 'string' } },
-              version: { type: 'string' }
-            }
+              version: { type: 'string' },
+            },
           },
-          content: { type: 'string', isPreview: false },
+          content: { type: 'string', inPreview: false },
           sections: {
             type: 'array',
-            isPreview: false,
+            inPreview: false,
             items: {
               type: 'object',
               properties: {
                 title: { type: 'string' },
-                body: { type: 'string' }
-              }
-            }
-          }
-        }
+                body: { type: 'string' },
+              },
+            },
+          },
+        },
       },
     };
 

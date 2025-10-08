@@ -57,14 +57,23 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     const effectiveGraphId = graphId;
 
     const agentData = { ...createAgentData({ suffix, tenantId, projectId }) };
-    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
+    const createRes = await makeRequest(
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      }
+    );
 
     if (createRes.status !== 201) {
       const errorText = await createRes.clone().text();
-      console.error('Failed to create agent:', createRes.status, errorText, 'with data:', agentData);
+      console.error(
+        'Failed to create agent:',
+        createRes.status,
+        errorText,
+        'with data:',
+        agentData
+      );
     }
 
     expect(createRes.status).toBe(201);
@@ -91,9 +100,9 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     props: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: `Title field${suffix}`, isPreview: true },
-        type: { type: 'string', description: `Type field${suffix}`, isPreview: true },
-        content: { type: 'string', description: `Content field${suffix}`, isPreview: false },
+        title: { type: 'string', description: `Title field${suffix}`, inPreview: true },
+        type: { type: 'string', description: `Type field${suffix}`, inPreview: true },
+        content: { type: 'string', description: `Content field${suffix}`, inPreview: false },
       },
       required: ['title', 'content'],
     },
@@ -433,8 +442,14 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
       // Create multiple agents
-      const { agentId: agent1Id, graphId: graph1Id } = await createTestAgent({ tenantId, suffix: ' 1' });
-      const { agentId: agent2Id, graphId: graph2Id } = await createTestAgent({ tenantId, suffix: ' 2' });
+      const { agentId: agent1Id, graphId: graph1Id } = await createTestAgent({
+        tenantId,
+        suffix: ' 1',
+      });
+      const { agentId: agent2Id, graphId: graph2Id } = await createTestAgent({
+        tenantId,
+        suffix: ' 2',
+      });
 
       // Associate both agents with the artifact component
       await createTestAgentArtifactComponentRelation({
@@ -678,8 +693,14 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create multiple agents and artifact components
-      const { agentId: agent1Id, graphId: graph1Id } = await createTestAgent({ tenantId, suffix: ' 1' });
-      const { agentId: agent2Id, graphId: graph2Id } = await createTestAgent({ tenantId, suffix: ' 2' });
+      const { agentId: agent1Id, graphId: graph1Id } = await createTestAgent({
+        tenantId,
+        suffix: ' 1',
+      });
+      const { agentId: agent2Id, graphId: graph2Id } = await createTestAgent({
+        tenantId,
+        suffix: ' 2',
+      });
       const { artifactComponentId: ac1Id } = await createTestArtifactComponent({
         tenantId,
         suffix: ' 1',
@@ -755,8 +776,11 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId2, projectId);
 
       // Create associations in tenant 1
-      const { agentId: agent1Id, artifactComponentId: ac1Id, graphId: graph1Id } =
-        await setupTestEnvironment(tenantId1);
+      const {
+        agentId: agent1Id,
+        artifactComponentId: ac1Id,
+        graphId: graph1Id,
+      } = await setupTestEnvironment(tenantId1);
       await createTestAgentArtifactComponentRelation({
         tenantId: tenantId1,
         agentId: agent1Id,
@@ -765,8 +789,11 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       });
 
       // Create agent and artifact component in tenant 2
-      const { agentId: agent2Id, artifactComponentId: ac2Id, graphId: graph2Id } =
-        await setupTestEnvironment(tenantId2);
+      const {
+        agentId: agent2Id,
+        artifactComponentId: ac2Id,
+        graphId: graph2Id,
+      } = await setupTestEnvironment(tenantId2);
 
       // Try to query from tenant 2 - should not see tenant 1's associations
       const res = await makeRequest(

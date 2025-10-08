@@ -1,9 +1,17 @@
-import type { ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
+import type {
+  ArtifactComponentApiInsert,
+  ArtifactComponentApiSelect,
+  DataComponentInsert,
+} from '@inkeep/agents-core';
 import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 import { SchemaProcessor } from './SchemaProcessor';
-import { extractPreviewFields, extractFullFields, type ExtendedJsonSchema } from './schema-validation';
+import {
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from './schema-validation';
 
 const _logger = getLogger('ArtifactComponentSchema');
 
@@ -14,8 +22,10 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
   // Convert artifact component configs to a union schema
   const componentSchemas =
     artifactComponents?.map((component) => {
-      // Use the unified props schema directly - remove isPreview flags for LLM
-      const cleanSchema = component.props ? removePreviewFlags(component.props as ExtendedJsonSchema) : {};
+      // Use the unified props schema directly - remove inPreview flags for LLM
+      const cleanSchema = component.props
+        ? removePreviewFlags(component.props as ExtendedJsonSchema)
+        : {};
       const propsSchema = jsonSchemaToZod(cleanSchema);
 
       return z
@@ -38,24 +48,23 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
 }
 
 /**
- * Remove isPreview flags from schema properties (for LLM consumption)
+ * Remove inPreview flags from schema properties (for LLM consumption)
  */
 function removePreviewFlags(schema: ExtendedJsonSchema): Record<string, any> {
   const cleanSchema = { ...schema };
-  
+
   if (cleanSchema.properties) {
     const cleanProperties: Record<string, any> = {};
     for (const [key, prop] of Object.entries(cleanSchema.properties)) {
       const cleanProp = { ...prop };
-      delete cleanProp.isPreview;
+      delete cleanProp.inPreview;
       cleanProperties[key] = cleanProp;
     }
     cleanSchema.properties = cleanProperties;
   }
-  
+
   return cleanSchema;
 }
-
 
 /**
  * Standard artifact reference component schema for tool responses
@@ -67,8 +76,7 @@ export class ArtifactReferenceSchema {
     properties: {
       artifact_id: {
         type: 'string',
-        description:
-          'The artifact_id from your artifact:create tag. Must match exactly.',
+        description: 'The artifact_id from your artifact:create tag. Must match exactly.',
       },
       tool_call_id: {
         type: 'string',
@@ -115,10 +123,12 @@ export class ArtifactCreateSchema {
    * @param artifactComponents - The available artifact components to generate schemas for
    * @returns Array of Zod schemas, one for each artifact component
    */
-  static getSchemas(artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>): z.ZodType<any>[] {
-    return artifactComponents.map(component => {
+  static getSchemas(
+    artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
+  ): z.ZodType<any>[] {
+    return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props 
+      const enhancedSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
@@ -131,7 +141,8 @@ export class ArtifactCreateSchema {
           },
           tool_call_id: {
             type: 'string',
-            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+            description:
+              'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
           type: {
             type: 'string',
@@ -140,7 +151,8 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+            description:
+              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
           },
           details_selector: enhancedSchema,
         },
@@ -165,9 +177,9 @@ export class ArtifactCreateSchema {
     projectId: string = '',
     artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
   ): DataComponentInsert[] {
-    return artifactComponents.map(component => {
+    return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props 
+      const enhancedSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
@@ -180,7 +192,8 @@ export class ArtifactCreateSchema {
           },
           tool_call_id: {
             type: 'string',
-            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+            description:
+              'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
           type: {
             type: 'string',
@@ -189,7 +202,8 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+            description:
+              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
           },
           details_selector: enhancedSchema,
         },

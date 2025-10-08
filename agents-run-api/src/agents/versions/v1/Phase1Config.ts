@@ -1,14 +1,18 @@
 import type { Artifact, DataComponentApiInsert, McpTool } from '@inkeep/agents-core';
-// Import template content as raw text
-import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
+// Import template content as raw text
+import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
+import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
+import {
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../../../utils/schema-validation';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
-import { extractPreviewFields, extractFullFields, type ExtendedJsonSchema } from '../../../utils/schema-validation';
 
 const logger = getLogger('Phase1Config');
 
@@ -74,7 +78,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
-    
+
     const artifactsSection = this.generateArtifactsSection(
       templates,
       config.artifacts,
@@ -82,12 +86,11 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasGraphArtifactComponents
     );
-    
+
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
-
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
@@ -373,13 +376,13 @@ IMPORTANT GUIDELINES:
     const typeDescriptions = artifactComponents
       .map((ac) => {
         let schemaDescription = 'No schema defined';
-        
+
         if (ac.props?.properties) {
           const fieldDetails = Object.entries(ac.props.properties)
             .map(([key, value]: [string, any]) => {
-              // Show isPreview flag for LLM display to understand field usage
-              const isPreview = value.isPreview ? ' [PREVIEW]' : ' [FULL]';
-              return `${key} (${value.description || value.type || 'field'})${isPreview}`;
+              // Show inPreview flag for LLM display to understand field usage
+              const inPreview = value.inPreview ? ' [PREVIEW]' : ' [FULL]';
+              return `${key} (${value.description || value.type || 'field'})${inPreview}`;
             })
             .join(', ');
           schemaDescription = `Fields: ${fieldDetails}`;
@@ -420,7 +423,11 @@ ${typeDescriptions}
   ): string {
     // Show referencing rules if any agent in graph has artifact components OR if artifacts exist
     const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
-    const rules = this.getArtifactReferencingRules(hasArtifactComponents, templates, shouldShowReferencingRules);
+    const rules = this.getArtifactReferencingRules(
+      hasArtifactComponents,
+      templates,
+      shouldShowReferencingRules
+    );
     const creationInstructions = this.getArtifactCreationInstructions(
       hasArtifactComponents,
       artifactComponents

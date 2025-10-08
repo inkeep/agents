@@ -16,12 +16,12 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     props: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: `Title field${suffix}`, isPreview: true },
-        type: { type: 'string', description: `Type field${suffix}`, isPreview: true },
-        content: { type: 'string', description: `Content field${suffix}`, isPreview: false },
+        title: { type: 'string', description: `Title field${suffix}`, inPreview: true },
+        type: { type: 'string', description: `Type field${suffix}`, inPreview: true },
+        content: { type: 'string', description: `Content field${suffix}`, inPreview: false },
         metadata: {
           type: 'object',
-          isPreview: false,
+          inPreview: false,
           properties: {
             author: { type: 'string' },
             created: { type: 'string', format: 'date-time' },

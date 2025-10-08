@@ -746,7 +746,7 @@ ${IMPORT_INSTRUCTIONS}
 REQUIREMENTS:
 1. Import artifactComponent from '@inkeep/agents-sdk'
 2. Create the artifact component using artifactComponent()
-3. Include props from the component data with isPreview indicators
+3. Include props from the component data with inPreview indicators
 4. Export following naming convention rules (camelCase version of ID)
 5. Include the 'id' property to preserve the original component ID
 6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
@@ -762,8 +762,8 @@ export const pdfExport = artifactComponent({
   props: {
     type: 'object',
     properties: {
-      filename: { type: 'string', required: true, isPreview: true },
-      content: { type: 'object', required: true, isPreview: false }
+      filename: { type: 'string', required: true, inPreview: true },
+      content: { type: 'object', required: true, inPreview: false }
     }
   }
 });
@@ -779,9 +779,9 @@ export const orderSummary = artifactComponent({
   props: {
     type: 'object',
     properties: {
-      orderId: { type: 'string', required: true, isPreview: true },
-      total: { type: 'number', required: true, isPreview: true },
-      items: { type: 'array', required: true, isPreview: false },
+      orderId: { type: 'string', required: true, inPreview: true },
+      total: { type: 'number', required: true, inPreview: true },
+      items: { type: 'array', required: true, inPreview: false },
     tax: { type: 'number' }
   }
 });
