@@ -224,32 +224,18 @@ export function TimelineWrapper({
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
-  // Initialize AI messages based on view type ONLY when conversation changes
-  // Use a ref to track if we've initialized for this conversation
-  const lastInitializedConversationIdRef = useRef<string | undefined>(undefined);
-  const enableAutoScrollRef = useRef(enableAutoScroll);
-  
-  // Update ref when enableAutoScroll changes
+  // Initialize collapsed state when conversation changes
   useEffect(() => {
-    enableAutoScrollRef.current = enableAutoScroll;
-  }, [enableAutoScroll]);
-  
-  useEffect(() => {
-    // Only initialize if this is a new conversation or first load
-    if (conversationId !== lastInitializedConversationIdRef.current) {
-      lastInitializedConversationIdRef.current = conversationId;
-      
-      if (enableAutoScrollRef.current) {
-        // Live trace view: collapse all AI messages
-        setCollapsedAiMessages(new Set(aiMessageIds));
-        setAiMessagesGloballyCollapsed(true);
-      } else {
-        // Conversation details view: collapse only ai.streamText.doStream spans
-        setCollapsedAiMessages(new Set(streamTextIds));
-        setAiMessagesGloballyCollapsed(streamTextIds.length === aiMessageIds.length);
-      }
+    if (enableAutoScroll) {
+      // Live trace view: collapse all AI messages
+      setCollapsedAiMessages(new Set(aiMessageIds));
+      setAiMessagesGloballyCollapsed(true);
+    } else {
+      // Conversation details view: collapse only streaming text spans
+      setCollapsedAiMessages(new Set(streamTextIds));
+      setAiMessagesGloballyCollapsed(streamTextIds.length === aiMessageIds.length);
     }
-  }, [conversationId, aiMessageIds, streamTextIds]);
+  }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
