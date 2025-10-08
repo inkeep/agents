@@ -245,11 +245,16 @@ export function TimelineWrapper({
     
     if (newIds.length > 0) {
       // Mark these as processed
-      newIds.forEach(id => processedIdsRef.current.add(id));  
+      newIds.forEach(id => {
+        processedIdsRef.current.add(id);
+      });
+      
       // Add new IDs to collapsed set
       setCollapsedAiMessages(prev => {
         const updated = new Set(prev);
-        newIds.forEach(id => updated.add(id));
+        newIds.forEach(id => {
+          updated.add(id);
+        });
         return updated;
       });
       // Update global state
