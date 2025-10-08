@@ -1,6 +1,7 @@
-import { Bot, BotMessageSquare, Hammer } from 'lucide-react';
+import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
 import { AgentNode } from '../nodes/agent-node';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
+import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
 import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
 import type { GraphModels } from './graph-types';
@@ -46,11 +47,21 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   credentialReferenceId?: string | null;
 }
 
+export interface FunctionToolNodeData extends Record<string, unknown> {
+  functionToolId: string;
+  agentId?: string | null; // null when unconnected, string when connected to specific agent
+  name?: string;
+  description?: string;
+  code?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
 export enum NodeType {
   Agent = 'agent',
   ExternalAgent = 'external-agent',
   MCP = 'mcp',
   MCPPlaceholder = 'mcp-placeholder',
+  FunctionTool = 'function-tool',
 }
 
 export const nodeTypes = {
@@ -58,12 +69,14 @@ export const nodeTypes = {
   [NodeType.ExternalAgent]: ExternalAgentNode,
   [NodeType.MCP]: MCPNode,
   [NodeType.MCPPlaceholder]: MCPPlaceholderNode,
+  [NodeType.FunctionTool]: FunctionToolNode,
 };
 
 export const mcpNodeHandleId = 'target-mcp';
 export const agentNodeSourceHandleId = 'source-agent';
 export const agentNodeTargetHandleId = 'target-agent';
 export const externalAgentNodeTargetHandleId = 'target-external-agent';
+export const functionToolNodeHandleId = 'target-function-tool';
 
 export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   [NodeType.Agent]: {
@@ -79,6 +92,10 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.MCPPlaceholder]: {
     name: 'Select MCP server',
+  },
+  [NodeType.FunctionTool]: {
+    name: 'Function Tool',
+    agentId: null,
   },
 };
 
@@ -102,5 +119,10 @@ export const nodeTypeMap = {
     type: NodeType.MCP,
     name: 'MCP',
     Icon: Hammer,
+  },
+  [NodeType.FunctionTool]: {
+    type: NodeType.FunctionTool,
+    name: 'Function Tool',
+    Icon: Code,
   },
 };

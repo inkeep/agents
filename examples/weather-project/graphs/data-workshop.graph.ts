@@ -86,8 +86,8 @@ const fetchRandomJoke = functionTool({
       'https://official-joke-api.appspot.com/jokes/programming/random'
     );
     return {
-      setup: response.data.setup,
-      punchline: response.data.punchline,
+      setup: response.data[0].setup,
+      punchline: response.data[0].punchline,
     };
   },
 });

@@ -16,6 +16,7 @@ import {
   credentialReferences,
   dataComponents,
   externalAgents,
+  functions,
   ledgerArtifacts,
   messages,
   projects,
@@ -286,6 +287,33 @@ export const ToolSelectSchema = createSelectSchema(tools);
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: resourceIdSchema,
   imageUrl: imageUrlSchema,
+  functionId: resourceIdSchema.optional(), // For function tools, reference to global functions table
+  config: z.discriminatedUnion('type', [
+    // MCP tools
+    z.object({
+      type: z.literal('mcp'),
+      mcp: z.object({
+        server: z.object({
+          url: z.string().url(),
+        }),
+        transport: z
+          .object({
+            type: z.enum(MCPTransportType),
+            requestInit: z.record(z.string(), z.unknown()).optional(),
+            eventSourceInit: z.record(z.string(), z.unknown()).optional(),
+            reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+            sessionId: z.string().optional(),
+          })
+          .optional(),
+        activeTools: z.array(z.string()).optional(),
+      }),
+    }),
+    // Function tools (reference-only, no inline duplication)
+    z.object({
+      type: z.literal('function'),
+      // No inline function details - they're in the functions table via functionId
+    }),
+  ]),
 });
 
 // === Conversation Schemas ===
@@ -560,6 +588,18 @@ export const ToolApiSelectSchema = createApiSchema(ToolSelectSchema);
 export const ToolApiInsertSchema = createApiInsertSchema(ToolInsertSchema);
 export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema);
 
+// === Function Schemas ===
+export const FunctionSelectSchema = createSelectSchema(functions);
+export const FunctionInsertSchema = createInsertSchema(functions).extend({
+  id: resourceIdSchema,
+});
+export const FunctionUpdateSchema = FunctionInsertSchema.partial();
+
+// Functions are not project-scoped, so no API schemas needed
+export const FunctionApiSelectSchema = FunctionSelectSchema;
+export const FunctionApiInsertSchema = FunctionInsertSchema;
+export const FunctionApiUpdateSchema = FunctionUpdateSchema;
+
 // === Context Config Schemas ===
 // Zod schemas for validation
 export const FetchConfigSchema = z.object({
@@ -660,7 +700,7 @@ export const CanUseItemSchema = z.object({
 
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
   type: z.literal('internal'),
-  canUse: z.array(CanUseItemSchema),
+  canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
@@ -669,9 +709,9 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
 
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
-  // Removed project-scoped resources - these are now managed at project level:
-  // tools, credentialReferences, dataComponents, artifactComponents
-  // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
+  // Lookup maps for UI to resolve canUse items
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // Get tool name/description from toolId
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -749,7 +789,8 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 // Full Project Definition Schema - extends Project with graphs and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   graphs: z.record(z.string(), GraphWithinContextOfProjectSchema),
-  tools: z.record(z.string(), ToolApiInsertSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema), // Now includes both MCP and function tools
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Global functions
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),

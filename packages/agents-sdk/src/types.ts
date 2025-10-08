@@ -26,10 +26,15 @@ export type { ModelSettings };
 /**
  * Tool instance that may have additional metadata attached during agent processing
  */
-export type AgentTool = Tool & {
-  selectedTools?: string[];
-  headers?: Record<string, string>;
-};
+export type AgentTool =
+  | (Tool & {
+      selectedTools?: string[];
+      headers?: Record<string, string>;
+    })
+  | (FunctionTool & {
+      selectedTools?: string[];
+      headers?: Record<string, string>;
+    });
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -148,13 +153,15 @@ export interface FunctionToolConfig {
   description: string;
   inputSchema: Record<string, unknown>;
   dependencies?: Record<string, string>; // npm package versions
-  execute: (params: any) => Promise<any>;
-  sandboxConfig?: {
-    provider: 'vercel' | 'daytona' | 'local';
-    runtime: 'node22' | 'typescript';
-    timeout?: number;
-    vcpus?: number;
-  };
+  execute: ((params: any) => Promise<any>) | string; // Function or string to preserve formatting
+}
+
+// Sandbox configuration (project-level)
+export interface SandboxConfig {
+  provider: 'vercel' | 'daytona' | 'local';
+  runtime: 'node22' | 'typescript';
+  timeout?: number;
+  vcpus?: number;
 }
 
 export interface RequestSchemaDefinition {

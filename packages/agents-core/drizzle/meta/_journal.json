@@ -15,6 +15,20 @@
       "when": 1759453676635,
       "tag": "0001_eminent_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1759879314304,
+      "tag": "0002_brown_marvel_apes",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1759881192764,
+      "tag": "0003_steep_night_thrasher",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ const nodeTypes: NodeItem[] = [
   nodeTypeMap[NodeType.Agent],
   nodeTypeMap[NodeType.ExternalAgent],
   nodeTypeMap[NodeType.MCPPlaceholder],
+  nodeTypeMap[NodeType.FunctionTool],
 ];
 
 export default function NodeLibrary() {

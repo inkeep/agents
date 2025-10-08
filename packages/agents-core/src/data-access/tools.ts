@@ -170,6 +170,24 @@ export const dbResultToMcpTool = async (
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
+
+  // Only process MCP tools - skip function tools
+  if (dbResult.config.type !== 'mcp') {
+    // Return minimal tool data for non-MCP tools
+    return {
+      ...rest,
+      status: 'unknown',
+      availableTools: [],
+      capabilities: capabilities || undefined,
+      credentialReferenceId: credentialReferenceId || undefined,
+      createdAt: new Date(createdAt),
+      updatedAt: new Date(dbResult.updatedAt),
+      lastError: null,
+      headers: headers || undefined,
+      imageUrl: imageUrl || undefined,
+    };
+  }
+
   let availableTools: McpToolDefinition[] = [];
   let status: McpTool['status'] = 'unknown';
   let lastErrorComputed: string | null;

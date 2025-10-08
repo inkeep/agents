@@ -1,4 +1,5 @@
 import { getLogger } from '@inkeep/agents-core';
+import prettier from 'prettier';
 import type { FunctionToolConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 import { getFunctionToolDeps } from './utils/getFunctionToolDeps';
@@ -13,7 +14,6 @@ export interface FunctionToolInterface {
   getInputSchema(): Record<string, unknown>;
   getDependencies(): Record<string, string>;
   getExecuteFunction(): (params: any) => Promise<any>;
-  getSandboxConfig(): FunctionToolConfig['sandboxConfig'];
 }
 
 export class FunctionTool implements FunctionToolInterface {
@@ -25,7 +25,9 @@ export class FunctionTool implements FunctionToolInterface {
     this.id = generateIdFromName(config.name);
 
     if (!config.dependencies) {
-      this.config.dependencies = getFunctionToolDeps(config.name, config.execute.toString());
+      const executeCode =
+        typeof config.execute === 'string' ? config.execute : config.execute.toString();
+      this.config.dependencies = getFunctionToolDeps(config.name, executeCode);
     }
 
     logger.info(
@@ -61,35 +63,53 @@ export class FunctionTool implements FunctionToolInterface {
     return this.config.execute;
   }
 
-  getSandboxConfig(): FunctionToolConfig['sandboxConfig'] {
-    return (
-      this.config.sandboxConfig || {
-        provider: 'local',
-        runtime: 'node22',
-        timeout: 30000,
-        vcpus: 1,
-      }
-    );
+  // Serialize the function (global entity) for storage
+  serializeFunction(): {
+    id: string;
+    inputSchema: Record<string, unknown>;
+    executeCode: string;
+    dependencies: Record<string, string>;
+  } {
+    // Get the code string
+    let executeCode =
+      typeof this.config.execute === 'string'
+        ? this.config.execute
+        : this.config.execute.toString();
+
+    // Format with Prettier for consistent formatting
+    try {
+      executeCode = prettier.format(executeCode, {
+        parser: 'babel',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        printWidth: 80,
+      });
+    } catch (error) {
+      // If formatting fails, use original code
+      logger.warn({ functionId: this.id, error }, 'Failed to format function code with Prettier');
+    }
+
+    return {
+      id: this.id,
+      inputSchema: this.config.inputSchema,
+      executeCode,
+      dependencies: this.config.dependencies || {},
+    };
   }
 
-  // Serialize the function for storage
-  serialize(): {
+  // Serialize the tool (project-scoped) for storage
+  serializeTool(): {
     id: string;
     name: string;
     description: string;
-    inputSchema: Record<string, unknown>;
-    dependencies: Record<string, string>;
-    executeCode: string;
-    sandboxConfig: FunctionToolConfig['sandboxConfig'];
+    functionId: string;
   } {
     return {
       id: this.id,
       name: this.config.name,
       description: this.config.description,
-      inputSchema: this.config.inputSchema,
-      dependencies: this.config.dependencies || {},
-      executeCode: this.config.execute.toString(),
-      sandboxConfig: this.getSandboxConfig(),
+      functionId: this.id, // The function ID is the same as the tool ID in this context
     };
   }
 }

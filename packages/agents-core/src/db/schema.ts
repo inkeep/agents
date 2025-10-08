@@ -67,6 +67,14 @@ export const projects = sqliteTable(
     // Project-level stopWhen configuration that can be inherited by graphs and agents
     stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
 
+    // Project-level sandbox configuration for function execution
+    sandboxConfig: text('sandbox_config', { mode: 'json' }).$type<{
+      provider: 'vercel' | 'daytona' | 'local';
+      runtime: 'node22' | 'typescript';
+      timeout?: number;
+      vcpus?: number;
+    }>(),
+
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
@@ -393,26 +401,28 @@ export const tools = sqliteTable(
   {
     ...projectScoped,
     name: text('name').notNull(),
+    description: text('description'),
 
-    // Enhanced tool configuration - supports both MCP and function tools
+    // Tool configuration - supports both MCP and function tools
     config: blob('config', { mode: 'json' })
-      .$type<{
-        type: 'mcp' | 'function';
-        mcp?: ToolMcpConfig;
-        function?: {
-          description: string;
-          inputSchema: Record<string, unknown>;
-          executeCode: string; // Serialized function code
-          dependencies: Record<string, string>; // npm package versions
-          sandboxConfig?: {
-            provider: 'vercel' | 'daytona' | 'local';
-            runtime: 'node22' | 'typescript';
-            timeout?: number;
-            vcpus?: number;
-          };
-        };
-      }>()
+      .$type<
+        | {
+            type: 'mcp';
+            mcp: ToolMcpConfig;
+          }
+        | {
+            type: 'function';
+            function: {
+              inputSchema: Record<string, unknown>;
+              executeCode: string;
+              dependencies: Record<string, unknown>;
+            };
+          }
+      >()
       .notNull(),
+
+    // For function tools, reference the global functions table
+    functionId: text('function_id'),
 
     credentialReferenceId: text('credential_reference_id'),
 
@@ -421,7 +431,7 @@ export const tools = sqliteTable(
     // Image URL for custom tool icon (supports regular URLs and base64 encoded images)
     imageUrl: text('image_url'),
 
-    // Server capabilities and status
+    // Server capabilities and status (only for MCP tools)
     capabilities: blob('capabilities', { mode: 'json' }).$type<ToolServerCapabilities>(),
 
     lastError: text('last_error'),
@@ -435,8 +445,23 @@ export const tools = sqliteTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'tools_project_fk',
     }).onDelete('cascade'),
+    // Foreign key constraint to functions table (for function tools)
+    foreignKey({
+      columns: [table.functionId],
+      foreignColumns: [functions.id],
+      name: 'tools_function_fk',
+    }).onDelete('cascade'),
   ]
 );
+
+// Functions table - stores reusable function code and metadata (global entity)
+export const functions = sqliteTable('functions', {
+  id: text('id').notNull().primaryKey(),
+  inputSchema: blob('input_schema', { mode: 'json' }).$type<Record<string, unknown>>(),
+  executeCode: text('execute_code').notNull(), // The actual function code
+  dependencies: blob('dependencies', { mode: 'json' }).$type<Record<string, string>>(),
+  ...timestamps,
+});
 
 export const agentToolRelations = sqliteTable(
   'agent_tool_relations',
@@ -792,6 +817,10 @@ export const toolsRelations = relations(tools, ({ one, many }) => ({
     fields: [tools.credentialReferenceId],
     references: [credentialReferences.id],
   }),
+  function: one(functions, {
+    fields: [tools.functionId],
+    references: [functions.id],
+  }),
 }));
 
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
@@ -894,6 +923,11 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
     fields: [ledgerArtifacts.taskId],
     references: [tasks.id],
   }),
+}));
+
+// Functions relations
+export const functionsRelations = relations(functions, ({ many }) => ({
+  tools: many(tools),
 }));
 
 export const agentRelationsRelations = relations(agentRelations, ({ one }) => ({

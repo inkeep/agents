@@ -10,6 +10,7 @@ import {
   getContextConfigById,
   getCredentialReference,
   getFullGraphDefinition,
+  getFunction,
   getLedgerArtifacts,
   getToolsForAgent,
   graphHasArtifactComponents,
@@ -770,8 +771,9 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId || 'default',
           projectId: this.config.projectId || 'default',
+          graphId: this.config.graphId,
+          agentId: this.config.id,
         },
-        agentId: this.config.id,
       });
 
       // Extract the data array from the response
@@ -790,15 +792,28 @@ export class Agent {
 
       for (const toolDef of functionToolDefs) {
         if (toolDef.tool.config?.type === 'function') {
-          const functionTool = toolDef.tool.config.function;
-          if (!functionTool) {
+          // Get function details from global functions table via functionId
+          const functionId = toolDef.tool.functionId;
+          if (!functionId) {
+            logger.warn({ toolId: toolDef.tool.id }, 'Function tool missing functionId reference');
             continue;
           }
+
+          // Fetch the function from the global functions table
+          const functionData = await getFunction(dbClient)({ functionId });
+          if (!functionData) {
+            logger.warn(
+              { functionId, toolId: toolDef.tool.id },
+              'Function not found in functions table'
+            );
+            continue;
+          }
+
           // Convert JSON schema to Zod schema
-          const zodSchema = jsonSchemaToZod(functionTool.inputSchema);
+          const zodSchema = jsonSchemaToZod(functionData.inputSchema);
 
           const aiTool = tool({
-            description: functionTool.description,
+            description: toolDef.tool.description || toolDef.tool.name,
             inputSchema: zodSchema,
             execute: async (args, { toolCallId }) => {
               logger.debug(
@@ -807,11 +822,11 @@ export class Agent {
               );
 
               try {
-                const result = await sandboxExecutor.executeFunctionTool(
-                  toolDef.tool.id,
-                  args,
-                  functionTool
-                );
+                const result = await sandboxExecutor.executeFunctionTool(toolDef.tool.id, args, {
+                  inputSchema: functionData.inputSchema,
+                  executeCode: functionData.executeCode,
+                  dependencies: functionData.dependencies,
+                });
 
                 // Record the result
                 toolSessionManager.recordToolResult(sessionId || '', {
@@ -1809,12 +1824,12 @@ export class Agent {
                 }
                 break;
               case 'error':
-                  if (event.error instanceof Error) {
-                    throw event.error;
-                  } else {
-                    const errorMessage = (event.error as any)?.error?.message;
-                    throw new Error(errorMessage);
-                  }
+                if (event.error instanceof Error) {
+                  throw event.error;
+                } else {
+                  const errorMessage = (event.error as any)?.error?.message;
+                  throw new Error(errorMessage);
+                }
             }
           }
 

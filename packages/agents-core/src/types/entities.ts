@@ -94,6 +94,18 @@ import type {
   FullGraphAgentInsertSchema,
   FullGraphDefinitionSchema,
   FullProjectDefinitionSchema,
+  FunctionApiInsertSchema,
+  FunctionApiSelectSchema,
+  FunctionApiUpdateSchema,
+  FunctionInsertSchema,
+  FunctionSelectSchema,
+  FunctionToolApiInsertSchema,
+  FunctionToolApiSelectSchema,
+  FunctionToolApiUpdateSchema,
+  FunctionToolInsertSchema,
+  FunctionToolSelectSchema,
+  FunctionToolUpdateSchema,
+  FunctionUpdateSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -189,6 +201,22 @@ export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type ToolApiUpdate = z.infer<typeof ToolApiUpdateSchema>;
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
+
+// === Function Types ===
+export type FunctionSelect = z.infer<typeof FunctionSelectSchema>;
+export type FunctionInsert = z.infer<typeof FunctionInsertSchema>;
+export type FunctionUpdate = z.infer<typeof FunctionUpdateSchema>;
+export type FunctionApiSelect = z.infer<typeof FunctionApiSelectSchema>;
+export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
+export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
+
+// === Function Tool Types ===
+export type FunctionToolSelect = z.infer<typeof FunctionToolSelectSchema>;
+export type FunctionToolInsert = z.infer<typeof FunctionToolInsertSchema>;
+export type FunctionToolUpdate = z.infer<typeof FunctionToolUpdateSchema>;
+export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
+export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
+export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
 
 // === Conversation Types ===
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
@@ -312,7 +340,8 @@ export type CanUseItem = {
 };
 
 export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
-  canUse: CanUseItem[];
+  canUse: CanUseItem[]; // MCP tools (project-scoped)
+  functionTools?: string[]; // Function tool IDs (agent-scoped)
   dataComponents?: string[];
   artifactComponents?: string[];
   canTransferTo?: string[];

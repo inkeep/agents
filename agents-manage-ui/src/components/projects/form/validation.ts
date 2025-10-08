@@ -24,6 +24,16 @@ const projectStopWhenSchema = z
   })
   .optional();
 
+// Sandbox configuration schema
+const sandboxConfigSchema = z
+  .object({
+    provider: z.enum(['vercel', 'daytona', 'local']),
+    runtime: z.enum(['node22', 'typescript']),
+    timeout: z.number().min(1000).max(300000).optional(), // 1 second to 5 minutes
+    vcpus: z.number().min(1).max(8).optional(),
+  })
+  .optional();
+
 export const projectSchema = z.object({
   id: z
     .string()
@@ -42,6 +52,7 @@ export const projectSchema = z.object({
     .max(500, 'Description must be less than 500 characters'),
   models: projectModelsSchema,
   stopWhen: projectStopWhenSchema,
+  sandboxConfig: sandboxConfigSchema,
 });
 
 export type ProjectFormData = z.infer<typeof projectSchema>;

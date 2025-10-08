@@ -13,6 +13,7 @@ import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
+import { ProjectSandboxSection } from './project-sandbox-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { type ProjectFormData, projectSchema } from './validation';
 
@@ -56,6 +57,38 @@ const serializeData = (data: ProjectFormData) => {
     return cleaned;
   };
 
+  const cleanSandboxConfig = (sandboxConfig: any) => {
+    // If sandboxConfig is null, undefined, or empty object, return undefined
+    if (
+      !sandboxConfig ||
+      (typeof sandboxConfig === 'object' && Object.keys(sandboxConfig).length === 0)
+    ) {
+      return undefined;
+    }
+
+    // Clean the individual properties - remove null/undefined values
+    const cleaned: any = {};
+    if (sandboxConfig.provider) {
+      cleaned.provider = sandboxConfig.provider;
+    }
+    if (sandboxConfig.runtime) {
+      cleaned.runtime = sandboxConfig.runtime;
+    }
+    if (sandboxConfig.timeout !== null && sandboxConfig.timeout !== undefined) {
+      cleaned.timeout = sandboxConfig.timeout;
+    }
+    if (sandboxConfig.vcpus !== null && sandboxConfig.vcpus !== undefined) {
+      cleaned.vcpus = sandboxConfig.vcpus;
+    }
+
+    // If no valid properties, return undefined
+    if (Object.keys(cleaned).length === 0) {
+      return undefined;
+    }
+
+    return cleaned;
+  };
+
   return {
     ...data,
     models: {
@@ -78,6 +111,7 @@ const serializeData = (data: ProjectFormData) => {
         : undefined,
     },
     stopWhen: cleanStopWhen(data.stopWhen),
+    sandboxConfig: cleanSandboxConfig(data.sandboxConfig),
   };
 };
 
@@ -185,6 +219,10 @@ export function ProjectForm({
         <Separator />
 
         <ProjectStopWhenSection control={form.control} />
+
+        <Separator />
+
+        <ProjectSandboxSection control={form.control} />
 
         <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
           {onCancel && (

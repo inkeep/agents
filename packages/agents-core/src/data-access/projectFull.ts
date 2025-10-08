@@ -13,6 +13,7 @@ import { listArtifactComponents, upsertArtifactComponent } from './artifactCompo
 import { listContextConfigs } from './contextConfigs';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
+import { upsertFunction } from './functions';
 import {
   createFullGraphServerSide,
   deleteFullGraph,
@@ -121,7 +122,44 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 3: Create tools at project level if they exist
+      // Step 3: Create global functions FIRST (before tools that reference them)
+      // Note: Functions are global entities (not tenant/project scoped)
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ projectId: typed.id, functionId }, 'Creating global function');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                },
+              });
+              logger.info(
+                { projectId: typed.id, functionId },
+                'Global function created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, functionId, error },
+                'Failed to create global function'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All global functions created successfully'
+        );
+      }
+
+      // Step 4: Create tools at project level (AFTER functions since tools reference them)
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
@@ -433,7 +471,51 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 3: Update tools at project level if they exist
+      // Step 3: Update global functions FIRST (before tools that reference them)
+      // Note: Functions are global entities (not tenant/project scoped)
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'Updating global functions'
+        );
+
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ projectId: typed.id, functionId }, 'Updating global function');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                },
+              });
+              logger.info(
+                { projectId: typed.id, functionId },
+                'Global function updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, functionId, error },
+                'Failed to update global function'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All global functions updated successfully'
+        );
+      }
+
+      // Step 4: Update tools at project level (AFTER functions since tools reference them)
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
