@@ -16,7 +16,7 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentGraphWithdefaultSubAgent,
+  getAgentGraphWithDefaultSubAgent,
   getConversation,
   getConversationId,
   getRequestExecutionContext,
@@ -305,7 +305,7 @@ const getServer = async (
   const { tenantId, projectId, graphId } = executionContext;
   setupTracing(conversationId, tenantId, graphId);
 
-  const agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
+  const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
     scopes: { tenantId, projectId, graphId },
   });
 
@@ -466,7 +466,7 @@ const handleInitializationRequest = async (
   const sessionId = getConversationId();
 
   // Get the default agent for the graph
-  const agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
+  const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
     scopes: { tenantId, projectId, graphId },
   });
   if (!agentGraph) {

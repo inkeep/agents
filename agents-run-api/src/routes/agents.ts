@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
-  getAgentGraphWithdefaultSubAgent,
+  getAgentGraphWithDefaultSubAgent,
   getRequestExecutionContext,
   HeadersScopeSchema,
 } from '@inkeep/agents-core';
@@ -71,18 +71,18 @@ app.openapi(
 
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId, subAgentId: agentId } = executionContext;
+    const { tenantId, projectId, graphId, subAgentId } = executionContext;
 
     console.dir('executionContext', executionContext);
-    // If agentId is defined in execution context, run agent-level logic
-    if (agentId) {
+    // If subAgentId is defined in execution context, run agent-level logic
+    if (subAgentId) {
       logger.info(
         {
           message: 'getRegisteredAgent (agent-level)',
           tenantId,
           projectId,
           graphId,
-          agentId,
+          subAgentId,
         },
         'agent-level well-known agent.json'
       );
@@ -142,17 +142,17 @@ app.post('/a2a', async (c: Context) => {
 
   // Get execution context from API key authentication
   const executionContext = getRequestExecutionContext(c);
-  const { tenantId, projectId, graphId, subAgentId: agentId } = executionContext;
+  const { tenantId, projectId, graphId, subAgentId } = executionContext;
 
-  // If agentId is defined in execution context, run agent-level logic
-  if (agentId) {
+  // If subAgentId is defined in execution context, run agent-level logic
+  if (subAgentId) {
     logger.info(
       {
         message: 'a2a (agent-level)',
         tenantId,
         projectId,
         graphId,
-        agentId,
+        subAgentId,
       },
       'agent-level a2a endpoint'
     );
@@ -186,7 +186,7 @@ app.post('/a2a', async (c: Context) => {
     );
 
     // fetch the graph and the default agent
-    const graph = await getAgentGraphWithdefaultSubAgent(dbClient)({
+    const graph = await getAgentGraphWithDefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
     });
 

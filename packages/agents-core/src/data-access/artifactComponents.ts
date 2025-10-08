@@ -259,7 +259,7 @@ export const getAgentsUsingArtifactComponent =
     return await db
       .select({
         graphId: subAgentArtifactComponents.graphId,
-        agentId: subAgentArtifactComponents.subAgentId,
+        subAgentId: subAgentArtifactComponents.subAgentId,
         createdAt: subAgentArtifactComponents.createdAt,
       })
       .from(subAgentArtifactComponents)

@@ -29,7 +29,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithdefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -49,7 +49,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         relations: [],
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'default-agent',
         tenantId: 'test-tenant',
@@ -150,8 +150,8 @@ describe('Chat Routes', () => {
   beforeEach(async () => {
     // Don't use clearAllMocks as it clears the initial vi.mock() setup
     // Instead, just reset the specific mocks we need
-    const { getAgentGraphWithdefaultSubAgent } = await import('@inkeep/agents-core');
-    (vi.mocked(getAgentGraphWithdefaultSubAgent) as any).mockImplementation(
+    const { getAgentGraphWithDefaultSubAgent } = await import('@inkeep/agents-core');
+    (vi.mocked(getAgentGraphWithDefaultSubAgent) as any).mockImplementation(
       async (params: any) => ({
         id: 'test-graph',
         name: 'Test Graph',
@@ -265,10 +265,10 @@ describe('Chat Routes', () => {
     });
 
     it('should handle missing graph', async () => {
-      const { getAgentGraphWithdefaultSubAgent, getFullGraph } = await import(
+      const { getAgentGraphWithDefaultSubAgent, getFullGraph } = await import(
         '@inkeep/agents-core'
       );
-      vi.mocked(getAgentGraphWithdefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValueOnce(undefined)
       );
       vi.mocked(getFullGraph).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));

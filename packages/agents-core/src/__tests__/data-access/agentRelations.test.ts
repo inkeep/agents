@@ -344,7 +344,7 @@ describe('Agent Relations Data Access', () => {
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentId: 'agent-1',
+        subAgentId: 'agent-1',
       });
 
       expect(result).toEqual({

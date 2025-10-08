@@ -396,7 +396,7 @@ export const createFullGraphServerSide =
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
-                    agentId,
+                    subAgentId: agentId,
                     toolId,
                     selectedTools: toolSelection || undefined,
                     headers: headers || undefined,
@@ -1047,7 +1047,7 @@ export const updateFullGraphServerSide =
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
-                    agentId,
+                    subAgentId: agentId,
                     toolId,
                     selectedTools: toolSelection || undefined,
                     headers: headers || undefined,

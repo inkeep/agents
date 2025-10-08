@@ -33,7 +33,7 @@ export const getAgentGraphById =
     return result ?? null;
   };
 
-export const getAgentGraphWithdefaultSubAgent =
+export const getAgentGraphWithDefaultSubAgent =
   (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(

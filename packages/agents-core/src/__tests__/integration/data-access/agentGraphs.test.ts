@@ -3,7 +3,7 @@ import {
   createAgentGraph,
   deleteAgentGraph,
   getAgentGraphById,
-  getAgentGraphWithdefaultSubAgent,
+  getAgentGraphWithDefaultSubAgent,
   listAgentGraphs,
   listAgentGraphsPaginated,
   updateAgentGraph,
@@ -92,7 +92,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     });
   });
 
-  describe('getAgentGraphWithdefaultSubAgent', () => {
+  describe('getAgentGraphWithDefaultSubAgent', () => {
     it('should retrieve graph with related default agent data', async () => {
       // Create graph first (before agents, as they need graphId)
       const graphData = createTestGraphData(testTenantId, testProjectId, '2');
@@ -108,7 +108,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       const defaultSubAgent = await createSubAgent(db)(defaultSubAgentData);
 
       // Fetch with relations
-      const graphWithAgent = await getAgentGraphWithdefaultSubAgent(db)({
+      const graphWithAgent = await getAgentGraphWithDefaultSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 

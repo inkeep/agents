@@ -76,7 +76,7 @@ export const createTaskHandler = (
             projectId: config.projectId,
             graphId: config.graphId,
           },
-          agentId: config.subAgentId,
+          subAgentId: config.subAgentId,
         }),
         getToolsForAgent(dbClient)({
           scopes: {
@@ -128,7 +128,7 @@ export const createTaskHandler = (
                   projectId: config.projectId,
                   graphId: config.graphId,
                 },
-                agentId: relation.id,
+                subAgentId: relation.id,
               });
 
               // Use the optimized version that accepts pre-computed relations
@@ -443,7 +443,7 @@ export const createTaskHandlerConfig = async (params: {
   tenantId: string;
   projectId: string;
   graphId: string;
-  agentId: string;
+  subAgentId: string;
   baseUrl: string;
   apiKey?: string;
 }): Promise<TaskHandlerConfig> => {
@@ -453,7 +453,7 @@ export const createTaskHandlerConfig = async (params: {
       projectId: params.projectId,
       graphId: params.graphId,
     },
-    subAgentId: params.agentId,
+    subAgentId: params.subAgentId,
   });
 
   const agentGraph = await getAgentGraphById(dbClient)({
@@ -465,7 +465,7 @@ export const createTaskHandlerConfig = async (params: {
   });
 
   if (!agent) {
-    throw new Error(`Agent not found: ${params.agentId}`);
+    throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
   // Inherit graph models if agent doesn't have one
@@ -476,7 +476,7 @@ export const createTaskHandlerConfig = async (params: {
     tenantId: params.tenantId,
     projectId: params.projectId,
     graphId: params.graphId,
-    subAgentId: params.agentId,
+    subAgentId: params.subAgentId,
     agentSchema: {
       id: agent.id,
       name: agent.name,

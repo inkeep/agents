@@ -3,7 +3,7 @@ import {
   createAgentGraph,
   deleteAgentGraph,
   getAgentGraphById,
-  getAgentGraphWithdefaultSubAgent,
+  getAgentGraphWithDefaultSubAgent,
   listAgentGraphs,
   listAgentGraphsPaginated,
   updateAgentGraph,
@@ -100,7 +100,7 @@ describe('Agent Graph Data Access', () => {
     });
   });
 
-  describe('getAgentGraphWithdefaultSubAgent', () => {
+  describe('getAgentGraphWithDefaultSubAgent', () => {
     it('should retrieve an agent graph with default agent relation', async () => {
       const graphId = 'graph-1';
       const expectedGraph = {
@@ -122,7 +122,7 @@ describe('Agent Graph Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getAgentGraphWithdefaultSubAgent(mockDb)({
+      const result = await getAgentGraphWithDefaultSubAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
       });
 

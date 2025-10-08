@@ -7,7 +7,7 @@ const mockGetAgentGraphWithdefaultSubAgent = vi.fn();
 const mockGetContextConfigById = vi.fn();
 
 vi.mock('../../data-access/agentGraphs', () => ({
-  getAgentGraphWithdefaultSubAgent: () => mockGetAgentGraphWithdefaultSubAgent,
+  getAgentGraphWithDefaultSubAgent: () => mockGetAgentGraphWithdefaultSubAgent,
 }));
 
 vi.mock('../../data-access/contextConfigs', () => ({

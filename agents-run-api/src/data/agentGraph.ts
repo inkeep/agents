@@ -41,7 +41,7 @@ async function hydrateGraph({
       tenantId: dbGraph.tenantId,
       projectId: dbGraph.projectId,
       graphId: dbGraph.id,
-      agentId: dbGraph.defaultSubAgentId,
+      subAgentId: dbGraph.defaultSubAgentId,
       baseUrl: baseUrl,
       apiKey: apiKey,
     });

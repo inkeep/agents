@@ -6,7 +6,7 @@ import {
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
-  getAgentGraphWithdefaultSubAgent,
+  getAgentGraphWithDefaultSubAgent,
   getConversationId,
   getFullGraph,
   getRequestExecutionContext,
@@ -216,7 +216,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {
       // Fall back to legacy system
-      agentGraph = await getAgentGraphWithdefaultSubAgent(dbClient)({
+      agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
         scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {

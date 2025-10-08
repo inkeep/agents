@@ -103,7 +103,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithdefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -115,7 +115,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         updatedAt: new Date().toISOString(),
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'default-agent',
         tenantId: 'test-tenant',
@@ -216,7 +216,7 @@ describe('MCP Routes', () => {
 
     // Reset default mocks using @inkeep/agents-core
     const coreModule = await import('@inkeep/agents-core');
-    vi.mocked(coreModule.getAgentGraphWithdefaultSubAgent).mockReturnValue(
+    vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -314,7 +314,7 @@ describe('MCP Routes', () => {
 
     it('should handle agent graph not found during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentGraphWithdefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValue(null)
       );
 
@@ -336,7 +336,7 @@ describe('MCP Routes', () => {
 
     it('should handle server errors during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentGraphWithdefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockRejectedValue(new Error('Database error'))
       );
 

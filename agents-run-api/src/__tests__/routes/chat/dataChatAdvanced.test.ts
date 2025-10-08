@@ -27,7 +27,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithdefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -36,7 +36,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         defaultSubAgentId: 'test-agent',
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-agent',
         tenantId: 'test-tenant',
@@ -111,7 +111,7 @@ describe('Chat Data Stream Advanced', () => {
       prompt: 'Test instructions',
     });
 
-    return { tenantId, projectId, graphId, agentId: subAgentId };
+    return { tenantId, projectId, graphId, subAgentId };
   }
 
   it('streams expected completion content', async () => {

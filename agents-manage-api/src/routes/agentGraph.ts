@@ -18,6 +18,7 @@ import {
   PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectIdParamsSchema,
+  TenantProjectParamsSchema,
   updateAgentGraph,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -35,7 +36,7 @@ app.openapi(
     operationId: 'list-agent-graphs',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectIdParamsSchema,
+      params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -112,14 +113,14 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{graphId}/agents/{agentId}/related',
+    path: '/{graphId}/agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
     tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.extend({
         graphId: z.string(),
-        agentId: z.string(),
+        subAgentId: z.string(),
       }),
     },
     responses: {
@@ -141,12 +142,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId } = c.req.valid('param');
 
     const relatedAgents = await getGraphAgentInfos(dbClient)({
       scopes: { tenantId, projectId },
       graphId,
-      agentId,
+      agentId: subAgentId,
     });
 
     return c.json({
@@ -260,7 +261,7 @@ app.openapi(
     operationId: 'update-agent-graph',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -313,7 +314,7 @@ app.openapi(
     operationId: 'delete-agent-graph',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

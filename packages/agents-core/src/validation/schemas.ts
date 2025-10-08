@@ -650,7 +650,7 @@ export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigU
 export const AgentToolRelationSelectSchema = createSelectSchema(subAgentToolRelations);
 export const AgentToolRelationInsertSchema = createInsertSchema(subAgentToolRelations).extend({
   id: resourceIdSchema,
-  agentId: resourceIdSchema,
+  subAgentId: resourceIdSchema,
   toolId: resourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
   headers: z.record(z.string(), z.string()).nullish(),

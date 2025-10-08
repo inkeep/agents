@@ -768,7 +768,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       currentMessage: 'Test prompt',
       options: configWithScopedMode.conversationHistoryConfig,
       filters: {
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         taskId: 'test-task-id',
       },
     });

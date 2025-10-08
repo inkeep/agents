@@ -84,7 +84,7 @@ app.openapi(
             schema: z.object({
               data: z.array(
                 z.object({
-                  agentId: z.string(),
+                  subAgentId: z.string(),
                   createdAt: z.string(),
                 })
               ),
@@ -247,7 +247,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:agentId/component/:artifactComponentId/exists',
+    path: '/agent/:subAgentId/component/:artifactComponentId/exists',
     summary: 'Check if Artifact Component is Associated with Agent',
     operationId: 'check-artifact-component-agent-association',
     tags: ['Agent Artifact Component Relations'],

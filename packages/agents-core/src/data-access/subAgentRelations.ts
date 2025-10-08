@@ -197,7 +197,7 @@ export const getExternalAgentRelations =
 
 // Get all related agents (both internal and external) for a given agent
 export const getRelatedAgentsForGraph =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; agentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; subAgentId: string }) => {
     // Get internal agent relations
     const internalRelations = await db
       .select({
@@ -221,7 +221,7 @@ export const getRelatedAgentsForGraph =
           eq(subAgentRelations.tenantId, params.scopes.tenantId),
           eq(subAgentRelations.projectId, params.scopes.projectId),
           eq(subAgentRelations.graphId, params.scopes.graphId),
-          eq(subAgentRelations.sourceSubAgentId, params.agentId),
+          eq(subAgentRelations.sourceSubAgentId, params.subAgentId),
           isNotNull(subAgentRelations.targetSubAgentId)
         )
       );
@@ -253,7 +253,7 @@ export const getRelatedAgentsForGraph =
           eq(subAgentRelations.tenantId, params.scopes.tenantId),
           eq(subAgentRelations.projectId, params.scopes.projectId),
           eq(subAgentRelations.graphId, params.scopes.graphId),
-          eq(subAgentRelations.sourceSubAgentId, params.agentId),
+          eq(subAgentRelations.sourceSubAgentId, params.subAgentId),
           isNotNull(subAgentRelations.externalSubAgentId)
         )
       );

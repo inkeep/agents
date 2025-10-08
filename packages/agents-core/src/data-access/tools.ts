@@ -354,7 +354,7 @@ export const addToolToAgent =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
@@ -369,7 +369,7 @@ export const addToolToAgent =
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         graphId: params.scopes.graphId,
-        subAgentId: params.agentId,
+        subAgentId: params.subAgentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
         headers: params.headers,
@@ -383,7 +383,7 @@ export const addToolToAgent =
 
 export const removeToolFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; agentId: string; toolId: string }) => {
+  async (params: { scopes: GraphScopeConfig; subAgentId: string; toolId: string }) => {
     const [deleted] = await db
       .delete(subAgentToolRelations)
       .where(
@@ -391,7 +391,7 @@ export const removeToolFromAgent =
           eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
           eq(subAgentToolRelations.projectId, params.scopes.projectId),
           eq(subAgentToolRelations.graphId, params.scopes.graphId),
-          eq(subAgentToolRelations.subAgentId, params.agentId),
+          eq(subAgentToolRelations.subAgentId, params.subAgentId),
           eq(subAgentToolRelations.toolId, params.toolId)
         )
       )
@@ -407,7 +407,7 @@ export const upsertAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
@@ -419,7 +419,7 @@ export const upsertAgentToolRelation =
         scopes: params.scopes,
         relationId: params.relationId,
         data: {
-          agentId: params.agentId,
+          subAgentId: params.subAgentId,
           toolId: params.toolId,
           selectedTools: params.selectedTools,
           headers: params.headers,
