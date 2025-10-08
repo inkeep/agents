@@ -440,6 +440,7 @@ ${getTypeDefinitions()}
 IMPORTANT CONTEXT:
 - Agents reference resources (tools, components) by their imported variable names
 - The 'tools' field in agents contains tool IDs that must match the imported variable names
+- If contextConfig is present, it must be imported from '@inkeep/agents-core' and used to create the context config
 
 ${NAMING_CONVENTION_RULES}
 
@@ -456,6 +457,8 @@ REQUIREMENTS:
    - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
    - Placeholders contain multi-line content and require template literals
    - This prevents TypeScript syntax errors with newlines and special characters
+   - you must import { z } from 'zod' if you are using zod schemas in the graph file.
+6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
 PLACEHOLDER HANDLING EXAMPLES:
 // CORRECT - Placeholder wrapped in template literals:
@@ -466,9 +469,40 @@ prompt: '<{{agents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
 import { agent, agentGraph } from '@inkeep/agents-sdk';
+import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';
 import { weatherTool } from '../tools/weather-tool';
+import { z } from 'zod';
+
+
+const supportDescriptionFetchDefinition = fetchDefinition({
+  id: 'support-description',
+  name: 'Support Description',
+  trigger: 'initialization',
+  fetchConfig: {
+    url: 'https://api.example.com/support-description',
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer {{headers.sessionToken}}',
+    },
+    transform: 'data',
+  },
+  responseSchema: z.object({
+    description: z.string(),
+  }),
+  defaultValue: 'Support Description',
+});
+
+const supportGraphContext = contextConfig({
+  headers: z.object({
+    userId: z.string(),
+    sessionToken: z.string(),
+  }),
+  contextVariables: {
+    supportDescription: supportDescriptionDefinition,
+  },
+});
 
 const routerAgent = agent({
   id: 'router',
@@ -515,7 +549,6 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     const toolIds = new Set();
     const dataComponentIds = new Set();
     const artifactComponentIds = new Set();
-
     for (const agent of Object.values(graphData.agents || {})) {
       const agentData = agent as any;
       if (agentData.tools) {
@@ -540,6 +573,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     console.log(`[DEBUG]   - Unique tools: ${toolIds.size}`);
     console.log(`[DEBUG]   - Data components: ${dataComponentIds.size}`);
     console.log(`[DEBUG]   - Artifact components: ${artifactComponentIds.size}`);
+    console.log(`[DEBUG]   - Context config: ${graphData.contextConfig ? 'Yes' : 'No'}`);
     console.log(
       `[DEBUG]   - Has relations: ${graphData.relations ? Object.keys(graphData.relations).length : 0}`
     );
