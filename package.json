@@ -83,10 +83,11 @@
   },
   "pnpm": {
     "overrides": {
+      "@changesets/assemble-release-plan": "6.0.8",
       "zod": "^4.1.11"
     },
     "patchedDependencies": {
-      "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan.patch"
+      "@changesets/assemble-release-plan@6.0.8": "patches/@changesets__assemble-release-plan.patch"
     }
   }
 }

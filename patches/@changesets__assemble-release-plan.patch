@@ -1,9 +1,9 @@
 # Fix of changesets issue https://github.com/changesets/changesets/issues/1011
 diff --git a/dist/changesets-assemble-release-plan.cjs.js b/dist/changesets-assemble-release-plan.cjs.js
-index e07ba6e793021b6cfdec898afca517e293386ddb..ca4931119553c435199dcba3f5e37eadafa800f1 100644
+index d352e376e1bf591f67510ce341b1fbf785039914..07f7487c5ce3a4206a7b35dd7049121a98295a3c 100644
 --- a/dist/changesets-assemble-release-plan.cjs.js
 +++ b/dist/changesets-assemble-release-plan.cjs.js
-@@ -321,8 +321,7 @@ function shouldBumpMajor({
+@@ -319,8 +319,7 @@ function shouldBumpMajor({
    return depType === "peerDependencies" && nextRelease.type !== "none" && nextRelease.type !== "patch" && (
    // 1. If onlyUpdatePeerDependentsWhenOutOfRange set to true, bump major if the version is leaving the range.
    // 2. If onlyUpdatePeerDependentsWhenOutOfRange set to false, bump major regardless whether or not the version is leaving the range.
@@ -13,7 +13,7 @@ index e07ba6e793021b6cfdec898afca517e293386ddb..ca4931119553c435199dcba3f5e37ead
    !releases.has(dependent) || releases.has(dependent) && releases.get(dependent).type !== "major");
  }
 
-@@ -411,7 +410,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
+@@ -409,7 +408,7 @@ function matchFixedConstraint(releases, packagesByName, config) {
 
  function getPreVersion(version) {
    let parsed = semverParse__default["default"](version);
