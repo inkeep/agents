@@ -1,8 +1,8 @@
 import { Play, Settings } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGraphStore } from '@/features/graph/state/use-graph-store';
-import { useEffect, useRef } from 'react';
 import { isMacOs } from '@/lib/utils';
 
 interface ToolbarProps {
@@ -71,9 +71,9 @@ export function Toolbar({
       >
         {isPreviewDisabled ? 'Save' : 'Save changes'}
       </Button>
-      <Button type="button" variant="ghost" onClick={toggleSidePane}>
-        <span className="sr-only">Toggle side pane</span>
+      <Button type="button" variant="outline" onClick={toggleSidePane}>
         <Settings className="w-4 h-4" />
+        Graph Settings
       </Button>
     </div>
   );
