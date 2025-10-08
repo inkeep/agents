@@ -1,20 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Streamdown } from 'streamdown';
 import {
+  addDecorations,
   cleanupDisposables,
   createEditor,
   getOrCreateModel,
   MONACO_THEME,
 } from '@/lib/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/setup-monaco-workers';
 import { editor, KeyCode } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { renderToString } from 'react-dom/server';
 import { ClipboardCopy, SquareCheckBig } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import '@/lib/setup-monaco-workers';
 
 // Add CSS for copy button decorations with invert filter
 const copyButtonStyles = `
@@ -150,7 +151,6 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
 function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
   const ref = useRef<HTMLDivElement>(null!);
   const { resolvedTheme } = useTheme();
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     editor.setTheme(resolvedTheme === 'dark' ? MONACO_THEME.dark : MONACO_THEME.light);
@@ -161,14 +161,18 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       uri: 'process-attributes.json',
       value: JSON.stringify(
         {
-          array: [1, 2, 3],
-          number: 2,
-          foo: {
-            bar: {
-              baz: '',
+          null: null,
+          number: 1,
+          boolean: false,
+          array: [
+            true,
+            {
+              foo: 'bar',
             },
-          },
-          ...processAttributes,
+            [2, 'baz'],
+          ],
+          string: 'hello',
+          emptyString: '',
         },
         null,
         2
@@ -266,73 +270,9 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
       console.log('Adding decorations:', decorations.length, decorations);
       editorInstance.createDecorationsCollection(decorations);
     };
-
-    setTimeout(addFieldCopyButtons, 100);
     addFieldCopyButtons();
 
-    // Handle copy button clicks
-    const handleCopyField = async (tokenText: string, tokenType: string) => {
-      try {
-        let contentToCopy = tokenText;
-        
-        // For different token types, copy different content
-        if (tokenType === 'delimiter.bracket.json') {
-          // For objects, we need to extract the complete object
-          // This is a simplified approach - you might need more sophisticated parsing
-          contentToCopy = tokenText; // Just copy the bracket for now
-        } else if (tokenType === 'delimiter.array.json') {
-          // For arrays, copy the bracket
-          contentToCopy = tokenText;
-        } else if (tokenType === 'number.json') {
-          // For numbers, copy the number
-          contentToCopy = tokenText;
-        } else if (tokenType === 'string.value.json') {
-          // For string values, copy the string (remove quotes)
-          contentToCopy = tokenText.replace(/^"|"$/g, '');
-        }
-        
-        await navigator.clipboard.writeText(contentToCopy);
-        console.log('Copied:', contentToCopy, 'type:', tokenType);
-      } catch (err) {
-        console.error('Failed to copy field:', err);
-      }
-    };
-
-    // Handle clicks on copy buttons
-    const handleMouseDown = (e: editor.IEditorMouseEvent) => {
-      if (model.isDisposed()) return;
-
-      const position = e.target.position;
-      if (position) {
-        const lineNumber = position.lineNumber;
-        const column = position.column;
-        
-        // Check if click is near a copy button (end of line)
-        const lineContent = model.getLineContent(lineNumber);
-        if (column >= lineContent.length - 1) {
-          // Find the token at this position
-          const lines = editor.tokenize(model.getValue(), 'json');
-          const line = lines[lineNumber - 1]; // Convert to 0-indexed
-          
-          if (line) {
-            // Find the last token that matches our filter
-            for (let i = line.length - 1; i >= 0; i--) {
-              const token = line[i];
-              if (['delimiter.bracket.json', 'delimiter.array.json', 'number.json', 'string.value.json'].includes(token.type)) {
-                const nextToken = line[i + 1];
-                const tokenEndOffset = nextToken ? nextToken.offset : lineContent.length;
-                const tokenText = lineContent.substring(token.offset, tokenEndOffset);
-                
-                handleCopyField(tokenText, token.type);
-                break;
-              }
-            }
-          }
-        }
-      }
-    };
-
-    editorInstance.onMouseDown(handleMouseDown);
+    addDecorations(editorInstance, model.getValue());
 
     return cleanupDisposables([
       model,
