@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b3f24031-5963-467c-8833-6c4c727dc532",
-  "prevId": "39a038ad-52c0-488f-bf8d-51883000f913",
+  "id": "657e0b92-37d2-44e7-b7ac-e81525e4c4c2",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "agent_artifact_components": {
       "name": "agent_artifact_components",
@@ -906,8 +906,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "props": {
-          "name": "props",
+        "summary_props": {
+          "name": "summary_props",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "full_props": {
+          "name": "full_props",
           "type": "blob",
           "primaryKey": false,
           "notNull": false,
@@ -1123,13 +1130,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "name": {
           "name": "name",
           "type": "text",
@@ -1177,18 +1177,16 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "context_configs_graph_fk": {
-          "name": "context_configs_graph_fk",
+        "context_configs_project_fk": {
+          "name": "context_configs_project_fk",
           "tableFrom": "context_configs",
-          "tableTo": "agent_graph",
+          "tableTo": "projects",
           "columnsFrom": [
             "tenant_id",
-            "project_id",
-            "graph_id"
+            "project_id"
           ],
           "columnsTo": [
             "tenant_id",
-            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -1196,14 +1194,13 @@
         }
       },
       "compositePrimaryKeys": {
-        "context_configs_tenant_id_project_id_graph_id_id_pk": {
+        "context_configs_tenant_id_project_id_id_pk": {
           "columns": [
             "tenant_id",
             "project_id",
-            "graph_id",
             "id"
           ],
-          "name": "context_configs_tenant_id_project_id_graph_id_id_pk"
+          "name": "context_configs_tenant_id_project_id_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -1636,99 +1633,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "functions": {
-      "name": "functions",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "input_schema": {
-          "name": "input_schema",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "execute_code": {
-          "name": "execute_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "dependencies": {
-          "name": "dependencies",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "functions_project_fk": {
-          "name": "functions_project_fk",
-          "tableFrom": "functions",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "functions_tenant_id_project_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "name": "functions_tenant_id_project_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "ledger_artifacts": {
       "name": "ledger_artifacts",
       "columns": {
@@ -2150,13 +2054,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "sandbox_config": {
-          "name": "sandbox_config",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -2424,25 +2321,11 @@
           "notNull": true,
           "autoincrement": false
         },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "config": {
           "name": "config",
           "type": "blob",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "function_id": {
-          "name": "function_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "credential_reference_id": {
@@ -2509,23 +2392,6 @@
           ],
           "columnsTo": [
             "tenant_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "tools_function_fk": {
-          "name": "tools_function_fk",
-          "tableFrom": "tools",
-          "tableTo": "functions",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "function_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
             "id"
           ],
           "onDelete": "cascade",
