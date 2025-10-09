@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.16.1
+
+### Patch Changes
+
+- 0707d2d: polling fix
+- 23a4766: banner
+  - @inkeep/agents-manage-api@0.16.1
+  - @inkeep/agents-run-api@0.16.1
+  - @inkeep/agents-core@0.16.1
+
 ## 0.16.0
 
 ### Minor Changes
