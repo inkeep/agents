@@ -1,20 +1,20 @@
 ---
-title: Request Context
-sidebarTitle: Request Context
+title: Headers
+sidebarTitle: Headers
 description: Pass dynamic context to your agents via HTTP headers for personalized interactions
 icon: LuBoxes
-keywords: request context, headers, context fetchers, prompt variables, personalization
+keywords: headers, context fetchers, prompt variables, personalization
 ---
 
 ## Overview
 
-Request context allows you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent graph at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your agent system for:
+Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent graph at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your agent system for:
 
 - **Context Fetchers**: Dynamic data retrieval based on request values
 - **External Tools**: Authentication and personalization for API calls
 - **Agent Prompts**: Personalized responses using context variables
 
-## Passing request context via headers
+## Passing context via headers
 
 Include context values as HTTP headers when calling your agent API. These headers are validated against your configured schema and cached for the conversation.
 
@@ -36,9 +36,9 @@ curl -N \
   Header keys are normalized to lowercase. Define them as lowercase in your schema and reference them as lowercase in templates.
 </Note>
 
-## Configuring request context
+## Configuring headers
 
-Define a schema for your request context and configure how it's used in your agent graph.
+Define a schema for your headers and configure how it's used in your agent graph.
 You must include the headers schema in your context config.
 
 ```typescript
@@ -56,7 +56,7 @@ const personalGraphHeaders = headers({
   });
 });
 
-// Create a context fetcher that uses request values with type-safe templating
+// Create a context fetcher that uses header values with type-safe templating
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
@@ -91,9 +91,9 @@ const personalAssistant = agent({
   id: "personal-assistant",
   name: "Personal Assistant",
   description: "Personalized AI assistant",
-  prompt: `You are a helpful assistant for ${personalGraphContext.toTemplate('user.name')} from ${personalGraphContext.toTemplate('headers.org_name')}.
+  prompt: `You are a helpful assistant for ${personalGraphContext.toTemplate('user.name')} from ${personalGraphHeaders.toTemplate('org_name')}.
 
-  User ID: ${personalGraphContext.toTemplate('headers.user_id')}
+  User ID: ${personalGraphHeaders.toTemplate('user_id')}
 
   Provide personalized assistance based on their context.`,
 });
@@ -129,14 +129,14 @@ const graph = agentGraph({
   Context values persist across conversation turns. To update them, send new header values with the same conversation ID.
 </Tip>
 
-## Using request context in your agents
+## Using headers in your agents
 
-Request context values can be used in your agent prompts and fetch definitions using JSONPath template syntax `{{headers.field_name}}`.
+Header values can be used in your agent prompts and fetch definitions using JSONPath template syntax `{{headers.field_name}}`.
 You can use the headers schema's `toTemplate()` method for type-safe templating with autocomplete and validation.
 
 ### In Context Fetchers
 
-Use request values to fetch dynamic data from external APIs:
+Use header values to fetch dynamic data from external APIs:
 
 ```typescript
 // Define schema for expected headers (use lowercase keys)
@@ -184,7 +184,7 @@ const personalGraphContext = contextConfig({
 Reference context directly in agent prompts for personalization using the context config's template method:
 
 ```typescript
-// Create context config with both request context and fetchers
+// Create context config with both headers and fetchers
 const userContext = contextConfig({
   headers: requestHeaders,
   contextVariables: {
@@ -193,11 +193,11 @@ const userContext = contextConfig({
 });
 
 const assistantAgent = agent({
-  prompt: `You are an assistant for ${userContext.toTemplate('userName')} from ${userContext.toTemplate('headers.org_name')}.
+  prompt: `You are an assistant for ${userContext.toTemplate('userName')} from ${requestHeaders.toTemplate('org_name')}.
 
   User context:
-  - ID: ${userContext.toTemplate('headers.user_id')}
-  - Organization: ${userContext.toTemplate('headers.org_name')}
+  - ID: ${requestHeaders.toTemplate('user_id')}
+  - Organization: ${requestHeaders.toTemplate('org_name')}
 
   Provide help tailored to their organization's needs.`
 });
@@ -205,7 +205,7 @@ const assistantAgent = agent({
 
 ### In External Tools
 
-Configure external agents or MCP servers with dynamic headers using request context:
+Configure external agents or MCP servers with dynamic headers using the headers schema:
 
 ```typescript
 // Define schema for expected headers (use lowercase keys)
@@ -239,7 +239,7 @@ const personalGraphContext = contextConfig({
 - **Use lowercase keys**: Always define schema properties in lowercase and reference them as lowercase in templates
 - **Validate early**: Test your schema configuration with sample headers before deploying
 - **Cache wisely**: Remember that context persists per conversation - design accordingly
-- **Secure sensitive data**: For long-lived secrets, use the [Credentials](/typescript-sdk/credentials) system instead of request context
+- **Secure sensitive data**: For long-lived secrets, use the [Credentials](/typescript-sdk/credentials) system instead of headers
 - **Keep it minimal**: Only include context values that are actually needed by your agents
 
 ## Common use cases
@@ -276,9 +276,9 @@ Forward headers from your API gateway for consistent authentication:
 
 ## Troubleshooting
 
-### Invalid request context errors
+### Invalid headers errors
 
-If you receive a 400 error about invalid request context:
+If you receive a 400 error about invalid headers:
 
 1. Verify your schema matches the headers you're sending
 2. Ensure all header keys are lowercase
