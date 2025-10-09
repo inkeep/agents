@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
-import { formatJson } from '@/lib/utils';
+import { cn, formatJson } from '@/lib/utils';
 import { JsonEditor } from './json-editor';
 
 interface StandaloneJsonEditorProps {

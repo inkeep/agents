@@ -10,6 +10,7 @@ import {
 } from '@/lib/monaco-utils';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import '@/lib/setup-monaco-workers';
+import { cn } from '@/lib/utils';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const { element, position } = e.target;
@@ -38,7 +39,7 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
 };
 
 export interface JsonEditorRef {
-  model: editor.IModel | null;
+  model: editor.ITextModel | null;
 }
 
 export const JsonEditor = forwardRef<
@@ -47,11 +48,12 @@ export const JsonEditor = forwardRef<
     value: string;
     uri: `${string}.json`;
     readOnly?: boolean;
-    children: ReactNode;
+    children?: ReactNode;
+    className?: string;
   }
->(({ value, uri, readOnly = false, children }, ref) => {
+>(({ value, uri, readOnly = false, children, className }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const modelRef = useRef<editor.IModel>(null);
+  const modelRef = useRef<editor.ITextModel>(null);
   const { resolvedTheme } = useTheme();
 
   useImperativeHandle(ref, () => ({
@@ -75,6 +77,7 @@ export const JsonEditor = forwardRef<
       wordWrap: 'on', // Toggle word wrap on resizing editors
       contextmenu: false, // Disable the right-click context menu
       fontSize: 12,
+      fixedOverflowWidgets: true, // since container has overflow-hidden
       padding: {
         top: 16,
         bottom: 16,
@@ -120,15 +123,22 @@ export const JsonEditor = forwardRef<
         id: 'disable-command-palette',
         label: 'Disable Command Palette',
         keybindings: [KeyCode.F1],
-        run() {
-          // Do nothing - this prevents the command palette from opening
-        },
+        // Do nothing - this prevents the command palette from opening
+        run() {},
       })
     );
   }, []);
 
   return (
-    <div ref={containerRef} className="rounded-xl overflow-hidden border relative">
+    <div
+      //
+      ref={containerRef}
+      className={cn(
+        'rounded-xl overflow-hidden border border-input relative shadow-xs',
+        'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
+        className
+      )}
+    >
       {children}
     </div>
   );
