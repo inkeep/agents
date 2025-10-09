@@ -33,8 +33,14 @@ export const apiKeyAuth = () =>
     const proto = c.req.header('x-forwarded-proto');
     const fwdHost = c.req.header('x-forwarded-host');
     const host = fwdHost ?? c.req.header('host');
+    const reqUrl = new URL(c.req.url);
 
-    const baseUrl = proto || fwdHost ? `${proto ?? 'https'}://${host}` : new URL(c.req.url).origin;
+    const baseUrl =
+      proto && host
+        ? `${proto}://${host}`
+        : host
+          ? `${reqUrl.protocol}//${host}`
+          : `${reqUrl.origin}`;
 
     // Bypass authentication only for integration tests with specific header
     if (process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test') {
