@@ -99,7 +99,7 @@ export function serializeGraphData(
 
   for (const node of nodes) {
     if (node.type === NodeType.Agent) {
-      const agentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) || node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
@@ -154,7 +154,7 @@ export function serializeGraphData(
             } else {
               // No changes made to tool selection - preserve existing selection
               const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
                 : null;
               if (existingConfig?.toolSelection) {
                 toolSelection = existingConfig.toolSelection;
@@ -178,7 +178,7 @@ export function serializeGraphData(
             } else {
               // No changes made to headers - preserve existing headers
               const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
                 : null;
               if (existingConfig?.headers) {
                 toolHeaders = existingConfig.headers;
@@ -231,7 +231,7 @@ export function serializeGraphData(
       }
 
       const agent: ExtendedAgent = {
-        id: agentId,
+        id: subAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         prompt: node.data.prompt as string,
@@ -246,18 +246,18 @@ export function serializeGraphData(
       };
 
       if ((node.data as any).isDefault) {
-        defaultSubAgentId = agentId;
+        defaultSubAgentId = subAgentId;
       }
 
-      agents[agentId] = agent;
+      agents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
-      const agentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) || node.id;
 
       // Parse headers from JSON string to object
       const parsedHeaders = safeJsonParse(node.data.headers as string);
 
       const agent: ExternalAgent = {
-        id: agentId,
+        id: subAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         baseUrl: node.data.baseUrl as string,
@@ -267,10 +267,10 @@ export function serializeGraphData(
       };
 
       if ((node.data as any).isDefault) {
-        defaultSubAgentId = agentId;
+        defaultSubAgentId = subAgentId;
       }
 
-      agents[agentId] = agent;
+      agents[subAgentId] = agent;
     }
   }
 
@@ -451,7 +451,7 @@ export function validateSerializedData(
     });
   }
 
-  for (const [agentId, agent] of Object.entries(data.agents)) {
+  for (const [subAgentId, agent] of Object.entries(data.agents)) {
     // Only validate tools for internal agents (external agents don't have tools)
     if ('canUse' in agent && agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
@@ -464,7 +464,7 @@ export function validateSerializedData(
               message: `Tool '${toolId}' not found`,
               field: 'toolId',
               code: 'invalid_reference',
-              path: ['agents', agentId, 'canUse'],
+              path: ['agents', subAgentId, 'canUse'],
             });
           }
         }
@@ -546,7 +546,7 @@ export function validateSerializedData(
             message: `Transfer target '${targetId}' not found in agents`,
             field: 'canTransferTo',
             code: 'invalid_reference',
-            path: ['agents', agentId, 'canTransferTo'],
+            path: ['agents', subAgentId, 'canTransferTo'],
           });
         }
       }
@@ -558,7 +558,7 @@ export function validateSerializedData(
             message: `Delegate target '${targetId}' not found in agents`,
             field: 'canDelegateTo',
             code: 'invalid_reference',
-            path: ['agents', agentId, 'canDelegateTo'],
+            path: ['agents', subAgentId, 'canDelegateTo'],
           });
         }
       }

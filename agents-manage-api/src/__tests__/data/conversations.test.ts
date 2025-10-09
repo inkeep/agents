@@ -3,6 +3,8 @@ import {
   createMessage,
   getConversation,
   getConversationHistory,
+  type MessageInsert,
+  type MessageMetadata,
   updateConversation,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -209,14 +211,14 @@ describe('addMessage', () => {
     const expectedMessage = {
       id: 'msg-123',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       conversationId: 'conv-123',
       role: 'user',
       content: { text: 'Hello world' },
       visibility: 'user-facing',
       messageType: 'chat',
-      agentId: undefined,
       fromSubAgentId: undefined,
-      toAgentId: undefined,
+      toSubAgentId: undefined,
       fromExternalAgentId: undefined,
       toExternalAgentId: undefined,
       taskId: undefined,
@@ -226,7 +228,7 @@ describe('addMessage', () => {
       metadata: undefined,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
-    };
+    } satisfies MessageInsert;
 
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
@@ -254,24 +256,24 @@ describe('addMessage', () => {
     const expectedMessage = {
       id: 'msg-124',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       conversationId: 'conv-123',
       role: 'agent',
       content: { text: 'Hello! How can I help?' },
       visibility: 'user-facing',
       messageType: 'chat',
-      agentId: undefined,
       fromSubAgentId: 'agent-1',
-      toAgentId: undefined,
+      toSubAgentId: undefined,
       fromExternalAgentId: undefined,
       toExternalAgentId: undefined,
       taskId: undefined,
       parentMessageId: undefined,
       a2aTaskId: undefined,
       a2aSessionId: undefined,
-      metadata: { model: 'claude-3' },
+      metadata: { model: 'claude-3' } as MessageMetadata,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
-    };
+    } satisfies MessageInsert;
 
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
@@ -300,14 +302,14 @@ describe('addMessage', () => {
     const expectedMessage = {
       id: 'msg-125',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       conversationId: 'conv-123',
       role: 'agent',
       content: { text: 'Delegating task to specialist' },
       visibility: 'user-facing',
       messageType: 'a2a-request',
-      agentId: undefined,
       fromSubAgentId: 'agent-1',
-      toAgentId: 'agent-2',
+      toSubAgentId: 'agent-2',
       fromExternalAgentId: undefined,
       toExternalAgentId: undefined,
       taskId: 'task-123',
@@ -317,7 +319,7 @@ describe('addMessage', () => {
       metadata: undefined,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
-    };
+    } satisfies MessageInsert;
 
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
@@ -348,12 +350,12 @@ describe('addMessage', () => {
     const expectedMessage = {
       id: 'msg-126',
       tenantId: 'test-tenant',
+      projectId: 'test-project',
       conversationId: 'conv-123',
       role: 'agent',
       content: { text: 'Response from external service' },
       visibility: 'external',
       messageType: 'a2a-response',
-      agentId: undefined,
       fromSubAgentId: undefined,
       toSubAgentId: 'agent-1',
       fromExternalAgentId: 'external-1',
@@ -365,7 +367,7 @@ describe('addMessage', () => {
       metadata: undefined,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
-    };
+    } satisfies MessageInsert;
 
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({

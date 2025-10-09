@@ -37,12 +37,12 @@ export function validateToolReferences(
 
   const errors: string[] = [];
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have tools
     if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
       for (const canUseItem of agentData.canUse) {
         if (!availableToolIds.has(canUseItem.toolId)) {
-          errors.push(`Agent '${agentId}' references non-existent tool '${canUseItem.toolId}'`);
+          errors.push(`Agent '${subAgentId}' references non-existent tool '${canUseItem.toolId}'`);
         }
       }
     }
@@ -68,13 +68,13 @@ export function validateDataComponentReferences(
 
   const errors: string[] = [];
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have dataComponents
     if (isInternalAgent(agentData) && agentData.dataComponents) {
       for (const dataComponentId of agentData.dataComponents) {
         if (!availableDataComponentIds.has(dataComponentId)) {
           errors.push(
-            `Agent '${agentId}' references non-existent dataComponent '${dataComponentId}'`
+            `Agent '${subAgentId}' references non-existent dataComponent '${dataComponentId}'`
           );
         }
       }
@@ -101,13 +101,13 @@ export function validateArtifactComponentReferences(
 
   const errors: string[] = [];
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have artifactComponents
     if (isInternalAgent(agentData) && agentData.artifactComponents) {
       for (const artifactComponentId of agentData.artifactComponents) {
         if (!availableArtifactComponentIds.has(artifactComponentId)) {
           errors.push(
-            `Agent '${agentId}' references non-existent artifactComponent '${artifactComponentId}'`
+            `Agent '${subAgentId}' references non-existent artifactComponent '${artifactComponentId}'`
           );
         }
       }
@@ -124,9 +124,9 @@ export function validateArtifactComponentReferences(
  */
 export function validateAgentRelationships(graphData: FullGraphDefinition): void {
   const errors: string[] = [];
-  const availableAgentIds = new Set(Object.keys(graphData.agents));
+  const availableAgentIds = new Set(Object.keys(graphData.subAgents));
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have relationship properties
     if (isInternalAgent(agentData)) {
       // Validate transfer targets
@@ -134,7 +134,7 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
         for (const targetId of agentData.canTransferTo) {
           if (!availableAgentIds.has(targetId)) {
             errors.push(
-              `Agent '${agentId}' has transfer target '${targetId}' that doesn't exist in graph`
+              `Agent '${subAgentId}' has transfer target '${targetId}' that doesn't exist in graph`
             );
           }
         }
@@ -145,7 +145,7 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
         for (const targetId of agentData.canDelegateTo) {
           if (!availableAgentIds.has(targetId)) {
             errors.push(
-              `Agent '${agentId}' has delegation target '${targetId}' that doesn't exist in graph`
+              `Agent '${subAgentId}' has delegation target '${targetId}' that doesn't exist in graph`
             );
           }
         }
@@ -171,7 +171,7 @@ export function validateGraphStructure(
   }
 ): void {
   // Validate default agent exists (if specified)
-  if (graphData.defaultSubAgentId && !graphData.agents[graphData.defaultSubAgentId]) {
+  if (graphData.defaultSubAgentId && !graphData.subAgents[graphData.defaultSubAgentId]) {
     throw new Error(`Default agent '${graphData.defaultSubAgentId}' does not exist in agents`);
   }
 

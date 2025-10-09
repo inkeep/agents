@@ -170,7 +170,7 @@ export function createDelegateToAgentTool({
             projectId,
             graphId,
           },
-          agentId: delegateConfig.config.id,
+          subAgentId: delegateConfig.config.id,
         });
 
         // If the external agent has a credential reference ID or headers, resolve them

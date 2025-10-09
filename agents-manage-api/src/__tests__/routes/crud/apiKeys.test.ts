@@ -29,7 +29,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       name: `Test Graph ${id}`,
       description: `Test graph description for ${id}`,
       defaultSubAgentId: agent.id,
-      agents: {
+      subAgents: {
         [agent.id]: agent, // Agents should be an object keyed by ID
       },
       // Note: tools are now project-scoped and not part of the graph definition

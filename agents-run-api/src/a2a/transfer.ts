@@ -25,7 +25,7 @@ export async function executeTransfer({
   await setActiveAgentForThread(dbClient)({
     scopes: { tenantId, projectId },
     threadId,
-    agentId: targetSubAgentId,
+    subAgentId: targetSubAgentId,
   });
   return { success: true, targetSubAgentId };
 }

@@ -105,10 +105,10 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  const agentIds: string[] = Object.keys(data.agents);
-  for (const agentId of agentIds) {
-    const agent = data.agents[agentId];
-    const isDefault = agentId === data.defaultSubAgentId;
+  const subAgentIds: string[] = Object.keys(data.agents);
+  for (const subAgentId of subAgentIds) {
+    const agent = data.agents[subAgentId];
+    const isDefault = subAgentId === data.defaultSubAgentId;
     const isExternal = agent.type === 'external';
 
     const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.Agent;
@@ -192,7 +192,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         })();
 
     const agentNode: Node = {
-      id: agentId,
+      id: subAgentId,
       type: nodeType,
       position: { x: 0, y: 0 },
       data: agentNodeData,
@@ -202,8 +202,8 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   }
 
   // Create tool nodes from canUse items (using tools and functions lookups)
-  for (const agentId of agentIds) {
-    const agent = data.agents[agentId];
+  for (const subAgentId of subAgentIds) {
+    const agent = data.agents[subAgentId];
     // Check if agent has canUse property (internal agents)
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
@@ -221,7 +221,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         // Populate node data with tool details from lookup
         const nodeData: any = {
           toolId,
-          agentId,
+          subAgentId,
           relationshipId,
           // Add tool details from lookup for proper display
           name: tool?.name,
@@ -254,9 +254,9 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         const targetHandle = toolType === 'function' ? functionToolNodeHandleId : mcpNodeHandleId;
 
         const agentToToolEdge: Edge = {
-          id: `edge-${toolNodeId}-${agentId}`,
+          id: `edge-${toolNodeId}-${subAgentId}`,
           type: EdgeType.Default,
-          source: agentId,
+          source: subAgentId,
           sourceHandle: agentNodeSourceHandleId,
           target: toolNodeId,
           targetHandle,
@@ -267,7 +267,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   }
 
   const processedPairs = new Set<string>();
-  for (const sourceSubAgentId of agentIds) {
+  for (const sourceSubAgentId of subAgentIds) {
     const sourceAgent = data.agents[sourceSubAgentId];
 
     // Check if agent has relationship properties (internal agents only)

@@ -140,7 +140,7 @@ export const createTaskHandler = (
               return { ...relation, description: enhancedDescription };
             }
           } catch (error) {
-            logger.warn({ agentId: relation.id, error }, 'Failed to enhance agent description');
+            logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
           }
           return relation;
         })
@@ -263,7 +263,7 @@ export const createTaskHandler = (
             {
               taskId: task.id,
               extractedContextId: contextId,
-              agentId: config.subAgentId,
+              subAgentId: config.subAgentId,
             },
             'Extracted contextId from task ID for delegation'
           );
@@ -281,7 +281,7 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       if (isDelegation) {
         logger.info(
-          { agentId: config.subAgentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
 

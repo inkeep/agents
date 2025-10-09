@@ -31,7 +31,7 @@ export interface ActivityItem {
   name?: string;
   description: string;
   timestamp: string;
-  agentId?: string;
+  subAgentId?: string;
   agentName?: string;
   toolName?: string;
   toolResult?: string;
@@ -96,13 +96,13 @@ export interface ToolCall {
   arguments?: any;
   result?: any;
   id?: string;
-  agentId?: string;
+  subAgentId?: string;
   agentName?: string;
   toolDescription?: string;
 }
 
 export interface AgentInteraction {
-  agentId: string;
+  subAgentId: string;
   agentName: string;
   timestamp: string;
   messageCount: number;

@@ -5,7 +5,7 @@ import { AgentCard, type Artifact, type TaskState } from '@inkeep/agents-core';
 export { AgentCard };
 
 export interface RegisteredAgent {
-  agentId: string;
+  subAgentId: string;
   tenantId: string;
   projectId: string;
   graphId: string;

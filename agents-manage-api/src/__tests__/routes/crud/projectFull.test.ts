@@ -44,16 +44,16 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   // Helper function to create full graph definition
   const createTestGraphDefinition = (
     graphId: string,
-    agentId: string,
+    subAgentId: string,
     toolId: string,
     suffix = ''
   ) => ({
     id: graphId,
     name: `Test Graph${suffix}`,
     description: `Complete test graph${suffix}`,
-    defaultSubAgentId: agentId,
+    defaultSubAgentId: subAgentId,
     agents: {
-      [agentId]: createTestAgentData(agentId, suffix),
+      [subAgentId]: createTestAgentData(subAgentId, suffix),
     },
     tools: {
       [toolId]: createTestToolData(toolId, suffix),
@@ -73,7 +73,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
   // Helper function to create full project definition
   const createTestProjectDefinition = (projectId: string, suffix = '') => {
-    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
     const toolId = `tool-${nanoid()}`;
     const graphId = `graph-${nanoid()}`;
 
@@ -94,7 +94,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         stepCountIs: 50,
       },
       graphs: {
-        [graphId]: createTestGraphDefinition(graphId, agentId, toolId, suffix),
+        [graphId]: createTestGraphDefinition(graphId, subAgentId, toolId, suffix),
       },
       tools: {}, // Required field, even if empty
     };

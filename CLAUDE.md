@@ -80,7 +80,7 @@ This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent
 **Task Communication:**
 ```typescript
 // A2A JSON-RPC methods
-POST /a2a/{agentId}
+POST /a2a/{subAgentId}
 {
     method: 'tasks/send' | 'tasks/get' | 'tasks/cancel'
     params: { message, taskId, etc. }
@@ -241,7 +241,7 @@ LOG_LEVEL=debug|info|warn|error
 - **Empty Task Messages**: Ensure task messages contain actual text content
 - **Context Extraction**: For delegation scenarios, extract contextId from task ID patterns like `task_math-demo-123456-chatcmpl-789`
 - **Tool Health**: MCP tools require health checks before use
-- **Agent Discovery**: Agents register capabilities via `/.well-known/{agentId}/agent.json` endpoints
+- **Agent Discovery**: Agents register capabilities via `/.well-known/{subAgentId}/agent.json` endpoints
 
 ### File Locations
 - **Core Agents**: `/execution/src/agents/Agent.ts`, `/inkeep-chat/src/agents/generateTaskHandler.ts`

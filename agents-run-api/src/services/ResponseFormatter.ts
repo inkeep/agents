@@ -12,7 +12,7 @@ const logger = getLogger('ResponseFormatter');
  */
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
-  private agentId?: string;
+  private subAgentId?: string;
 
   constructor(
     tenantId: string,
@@ -23,24 +23,24 @@ export class ResponseFormatter {
       contextId?: string;
       artifactComponents?: any[];
       streamRequestId?: string;
-      agentId?: string;
+      subAgentId?: string;
     }
   ) {
-    // Store agentId for passing to parsing methods
-    this.agentId = artifactParserOptions?.agentId;
-    
+    // Store subAgentId for passing to parsing methods
+    this.subAgentId = artifactParserOptions?.subAgentId;
+
     // Get the shared ArtifactParser from GraphSession
     if (artifactParserOptions?.streamRequestId) {
       const sessionParser = graphSessionManager.getArtifactParser(
         artifactParserOptions.streamRequestId
       );
-      
+
       if (sessionParser) {
         this.artifactParser = sessionParser;
         return;
       }
     }
-    
+
     // Fallback: create new parser if session parser not available (for tests, etc.)
     // Try to get the shared ArtifactService from GraphSession
     let sharedArtifactService = null;
@@ -81,7 +81,7 @@ export class ResponseFormatter {
         const parts = await this.artifactParser.parseObject(
           responseObject,
           artifactMap,
-          this.agentId
+          this.subAgentId
         );
 
         // Count and log metrics
@@ -140,8 +140,12 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse text using unified parser, passing agentId for artifact persistence
-        const parts = await this.artifactParser.parseText(responseText, artifactMap, this.agentId);
+        // Parse text using unified parser, passing subAgentId for artifact persistence
+        const parts = await this.artifactParser.parseText(
+          responseText,
+          artifactMap,
+          this.subAgentId
+        );
 
         // If only one text part, return as plain text
         if (parts.length === 1 && parts[0].kind === 'text') {

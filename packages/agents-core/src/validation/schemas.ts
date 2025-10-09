@@ -715,7 +715,10 @@ export const FullGraphAgentInsertSchema = SubAgentApiInsertSchema.extend({
 });
 
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
+  subAgents: z.record(
+    z.string(),
+    z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
+  ),
   // Lookup maps for UI to resolve canUse items
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // Get tool name/description from toolId
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools

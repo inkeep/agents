@@ -30,7 +30,7 @@ describe('ArtifactService', () => {
       projectId: 'test-project',
       contextId: 'test-context',
       streamRequestId: 'test-stream-request',
-      agentId: 'test-agent',
+      subAgentId: 'test-agent',
       artifactComponents: [
         {
           id: 'test-component-id',

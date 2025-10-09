@@ -447,12 +447,19 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-tool-relations-get-agents-for-tool');
       await ensureTestProject(tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
-      const { subAgentId: agentId1, graphId } = await createTestAgent({ tenantId, suffix: ' 1' });
-      const { subAgentId: agentId2 } = await createTestAgent({ tenantId, suffix: ' 2', graphId });
+      const { subAgentId: subAgentId1, graphId } = await createTestAgent({
+        tenantId,
+        suffix: ' 1',
+      });
+      const { subAgentId: subAgentId2 } = await createTestAgent({
+        tenantId,
+        suffix: ' 2',
+        graphId,
+      });
 
       // Create relations
-      await createTestAgentToolRelation({ tenantId, subAgentId: agentId1, toolId, graphId });
-      await createTestAgentToolRelation({ tenantId, subAgentId: agentId2, toolId, graphId });
+      await createTestAgentToolRelation({ tenantId, subAgentId: subAgentId1, toolId, graphId });
+      await createTestAgentToolRelation({ tenantId, subAgentId: subAgentId2, toolId, graphId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/tool/${toolId}/agents`

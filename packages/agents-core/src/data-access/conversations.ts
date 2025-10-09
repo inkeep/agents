@@ -273,7 +273,7 @@ export const getConversationHistory =
     scopes: ProjectScopeConfig;
     conversationId: string;
     options?: ConversationHistoryConfig;
-  }): Promise<any[]> => {
+  }) => {
     const { scopes, conversationId, options = {} } = params;
     const { tenantId, projectId } = scopes;
 
@@ -361,15 +361,15 @@ export const setActiveAgentForThread =
   async ({
     scopes,
     threadId,
-    agentId,
+    subAgentId,
   }: {
     scopes: ProjectScopeConfig;
     threadId: string;
-    agentId: string;
+    subAgentId: string;
   }) => {
     return setActiveAgentForConversation(db)({
       scopes,
       conversationId: threadId,
-      subAgentId: agentId,
+      subAgentId,
     });
   };

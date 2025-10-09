@@ -9,7 +9,7 @@ import type { GraphModels } from './graph-types';
 interface NodeData {
   name: string;
   isDefault?: boolean;
-  agentId?: string | null; // Optional for MCP nodes
+  subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
 }
 
@@ -17,7 +17,7 @@ import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
 
 export interface MCPNodeData extends Record<string, unknown> {
   toolId: string;
-  agentId?: string | null; // null when unconnected, string when connected to specific agent
+  subAgentId?: string | null; // null when unconnected, string when connected to specific agent
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
   name?: string;
   imageUrl?: string;
@@ -90,7 +90,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.MCP]: {
     name: 'MCP',
-    agentId: null,
+    subAgentId: null,
     relationshipId: null,
   },
   [NodeType.MCPPlaceholder]: {

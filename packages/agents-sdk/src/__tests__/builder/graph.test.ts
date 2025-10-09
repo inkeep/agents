@@ -349,7 +349,7 @@ describe('AgentGraph', () => {
         expect.objectContaining({
           id: 'test-graph',
           name: 'Test Graph',
-          agents: expect.objectContaining({
+          subAgents: expect.objectContaining({
             'default-agent': expect.objectContaining({
               id: 'default-agent',
               name: 'Default Agent',
@@ -555,7 +555,7 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         description: 'Test description',
-        agents: {
+        subAgents: {
           'default-agent': {
             id: 'default-agent',
             name: 'Default Agent',

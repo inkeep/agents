@@ -90,9 +90,9 @@ describe('Agent Data Access', () => {
 
   describe('getAgentById', () => {
     it('should retrieve an agent by id', async () => {
-      const agentId = 'agent-1';
+      const subAgentId = 'agent-1';
       const expectedAgent = {
-        id: agentId,
+        id: subAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         graphId: testGraphId,
@@ -118,7 +118,7 @@ describe('Agent Data Access', () => {
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        subAgentId: agentId,
+        subAgentId: subAgentId,
       });
 
       expect(mockQuery.subAgents.findFirst).toHaveBeenCalled();
@@ -333,7 +333,7 @@ describe('Agent Data Access', () => {
 
   describe('updateAgent', () => {
     it('should update an agent', async () => {
-      const agentId = 'agent-1';
+      const subAgentId = 'agent-1';
       const updateData = {
         name: 'Updated Agent Name',
         description: 'Updated description',
@@ -344,7 +344,7 @@ describe('Agent Data Access', () => {
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([
               {
-                id: agentId,
+                id: subAgentId,
                 ...updateData,
                 updatedAt: new Date().toISOString(),
               },
@@ -364,7 +364,7 @@ describe('Agent Data Access', () => {
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        subAgentId: agentId,
+        subAgentId: subAgentId,
         data: updateData,
       });
 
@@ -376,7 +376,7 @@ describe('Agent Data Access', () => {
 
   describe('deleteAgent', () => {
     it('should delete an agent', async () => {
-      const agentId = 'agent-1';
+      const subAgentId = 'agent-1';
 
       const mockDelete = vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
@@ -401,7 +401,7 @@ describe('Agent Data Access', () => {
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        subAgentId: agentId,
+        subAgentId: subAgentId,
       });
 
       expect(mockDelete).toHaveBeenCalled();
@@ -424,7 +424,7 @@ describe('Agent Data Access', () => {
     });
 
     it('should retrieve multiple agents by ids', async () => {
-      const agentIds = ['agent-1', 'agent-2'];
+      const subAgentIds = ['agent-1', 'agent-2'];
       const expectedAgents = [
         { id: 'agent-1', name: 'Agent 1' },
         { id: 'agent-2', name: 'Agent 2' },
@@ -447,7 +447,7 @@ describe('Agent Data Access', () => {
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        subAgentIds: agentIds,
+        subAgentIds: subAgentIds,
       });
 
       expect(mockSelect).toHaveBeenCalled();

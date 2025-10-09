@@ -83,7 +83,7 @@ describe('Chat Data Stream Route', () => {
     const tenantId = createTestTenantId('chat-data-stream');
     const projectId = 'default';
     const graphId = nanoid();
-    const agentId = 'test-agent';
+    const subAgentId = 'test-agent';
 
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
@@ -95,12 +95,12 @@ describe('Chat Data Stream Route', () => {
       projectId,
       name: 'Test Graph',
       description: 'Test graph for data chat',
-      defaultSubAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     });
 
     // Then create agent with graphId
     await createSubAgent(dbClient)({
-      id: agentId,
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,

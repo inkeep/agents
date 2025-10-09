@@ -211,7 +211,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         projectId,
         defaultSubAgentId: fullGraph.defaultSubAgentId,
       };
-      const agentKeys = Object.keys((fullGraph.agents as Record<string, any>) || {});
+      const agentKeys = Object.keys((fullGraph.subAgents as Record<string, any>) || {});
       const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
       defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {

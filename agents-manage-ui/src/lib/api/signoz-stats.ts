@@ -326,7 +326,7 @@ class SigNozStatsAPI {
       const acc = new Map<
         string,
         {
-          agentId: string;
+          subAgentId: string;
           graphId: string;
           modelId: string;
           totalCalls: number;
@@ -345,7 +345,7 @@ class SigNozStatsAPI {
 
         const key = `${agent}::${gId}::${mId}`;
         const row = acc.get(key) || {
-          agentId: agent,
+          subAgentId: agent,
           graphId: gId,
           modelId: mId,
           totalCalls: 0,

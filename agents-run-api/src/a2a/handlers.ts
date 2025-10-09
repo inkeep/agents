@@ -155,7 +155,7 @@ async function handleMessageSend(
         logger.warn(
           {
             taskId: task.id,
-            agentId: agent.agentId,
+            subAgentId: agent.subAgentId,
             originalMessage: params.message,
           },
           'Created fallback message content for empty delegation message'
@@ -177,7 +177,7 @@ async function handleMessageSend(
         taskContextId: task.context?.conversationId,
         metadataContextId: params.message.metadata?.conversationId,
         finalContextId: effectiveContextId,
-        agentId: agent.agentId,
+        subAgentId: agent.subAgentId,
       },
       'A2A contextId resolution for delegation'
     );
@@ -195,11 +195,11 @@ async function handleMessageSend(
         message_id: params.message.messageId || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        agent_id: agent.agentId,
+        agent_id: agent.subAgentId,
         graph_id: graphId || '',
         stream_request_id: params.message.metadata?.stream_request_id,
       },
-      subAgentId: agent.agentId,
+      subAgentId: agent.subAgentId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -233,11 +233,11 @@ async function handleMessageSend(
         if (params.message.metadata?.fromAgentId) {
           // Internal agent communication
           messageData.fromAgentId = params.message.metadata.fromAgentId;
-          messageData.toAgentId = agent.agentId;
+          messageData.toAgentId = agent.subAgentId;
         } else if (params.message.metadata?.fromExternalAgentId) {
           // External agent communication
           messageData.fromExternalAgentId = params.message.metadata.fromExternalAgentId;
-          messageData.toAgentId = agent.agentId;
+          messageData.toAgentId = agent.subAgentId;
         }
 
         await createMessage(dbClient)(messageData);
@@ -246,7 +246,7 @@ async function handleMessageSend(
           {
             fromAgentId: params.message.metadata.fromAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
-            toAgentId: agent.agentId,
+            toAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
             messageType: 'a2a-request',
             taskId: task.id,
@@ -259,7 +259,7 @@ async function handleMessageSend(
             error,
             fromAgentId: params.message.metadata.fromAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
-            toAgentId: agent.agentId,
+            toAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
           },
           'Failed to store A2A message in database'
@@ -280,7 +280,7 @@ async function handleMessageSend(
           message_id: params.message.messageId || '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          agent_id: agent.agentId,
+          agent_id: agent.subAgentId,
           graph_id: graphId || '',
         },
       },
@@ -703,7 +703,7 @@ async function handleGetStatus(
 ): Promise<Response> {
   return c.json({
     jsonrpc: '2.0',
-    result: { status: 'ready', agentId: agent.agentId },
+    result: { status: 'ready', subAgentId: agent.subAgentId },
     id: request.id,
   } satisfies JsonRpcResponse);
 }

@@ -273,7 +273,7 @@ export class AgentGraph implements GraphInterface {
       name: this.graphName,
       description: this.graphDescription,
       defaultSubAgentId: this.defaultSubAgent?.getId() || '',
-      agents: agentsObject,
+      subAgents: agentsObject,
       contextConfig: this.contextConfig?.toObject(),
 
       models: this.models,
@@ -324,7 +324,7 @@ export class AgentGraph implements GraphInterface {
                   }
                   logger.debug(
                     {
-                      agentId: agent.getId(),
+                      subAgentId: agent.getId(),
                       toolName,
                       toolType: toolInstance.constructor.name,
                       skipDbRegistration,
@@ -334,7 +334,7 @@ export class AgentGraph implements GraphInterface {
                 } catch (error) {
                   logger.error(
                     {
-                      agentId: agent.getId(),
+                      subAgentId: agent.getId(),
                       toolName,
                       error: error instanceof Error ? error.message : 'Unknown error',
                     },
@@ -465,7 +465,7 @@ export class AgentGraph implements GraphInterface {
           await agent.init();
           logger.debug(
             {
-              agentId: agent.getId(),
+              subAgentId: agent.getId(),
               graphId: this.graphId,
             },
             'Agent initialized in graph'
@@ -473,7 +473,7 @@ export class AgentGraph implements GraphInterface {
         } catch (error) {
           logger.error(
             {
-              agentId: agent.getId(),
+              subAgentId: agent.getId(),
               graphId: this.graphId,
               error: error instanceof Error ? error.message : 'Unknown error',
             },
@@ -588,28 +588,28 @@ export class AgentGraph implements GraphInterface {
    * Run with a specific agent from the graph
    */
   async runWith(
-    agentId: string,
+    subAgentId: string,
     input: MessageInput,
     options?: GenerateOptions
   ): Promise<RunResult> {
     await this._init();
 
-    const agent = this.getAgent(agentId);
+    const agent = this.getAgent(subAgentId);
     if (!agent) {
-      throw new Error(`Agent '${agentId}' not found in graph`);
+      throw new Error(`Agent '${subAgentId}' not found in graph`);
     }
 
     // Only internal agents can be run directly via this method
     if (!this.isInternalAgent(agent)) {
       throw new Error(
-        `Agent '${agentId}' is an external agent and cannot be run directly. External agents are only accessible via delegation.`
+        `Agent '${subAgentId}' is an external agent and cannot be run directly. External agents are only accessible via delegation.`
       );
     }
 
     logger.info(
       {
         graphId: this.graphId,
-        agentId,
+        subAgentId,
         conversationId: options?.conversationId,
       },
       'Running with specific agent'
@@ -652,7 +652,7 @@ export class AgentGraph implements GraphInterface {
     logger.info(
       {
         graphId: this.graphId,
-        agentId: agent.getId(),
+        subAgentId: agent.getId(),
         agentType: this.isInternalAgent(agent) ? 'internal' : 'external',
       },
       'Agent added to graph'
@@ -671,7 +671,7 @@ export class AgentGraph implements GraphInterface {
       logger.info(
         {
           graphId: this.graphId,
-          agentId: agentToRemove.getId(),
+          subAgentId: agentToRemove.getId(),
         },
         'Agent removed from graph'
       );

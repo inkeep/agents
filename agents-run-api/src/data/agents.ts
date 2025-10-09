@@ -141,7 +141,7 @@ async function hydrateAgent({
     });
 
     return {
-      agentId: dbAgent.id,
+      subAgentId: dbAgent.id,
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
       graphId,
@@ -160,15 +160,15 @@ export async function getRegisteredAgent(
   executionContext: ExecutionContext,
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, graphId, subAgentId: agentId, baseUrl, apiKey } = executionContext;
+  const { tenantId, projectId, graphId, subAgentId, baseUrl, apiKey } = executionContext;
 
-  if (!agentId) {
+  if (!subAgentId) {
     throw new Error('Agent ID is required');
   }
 
   const dbAgent = await getSubAgentById(dbClient)({
     scopes: { tenantId, projectId, graphId: graphId },
-    subAgentId: agentId,
+    subAgentId: subAgentId,
   });
   if (!dbAgent) {
     return null;

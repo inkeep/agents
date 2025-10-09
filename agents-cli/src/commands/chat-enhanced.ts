@@ -106,10 +106,8 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
     if (graph.description) {
       console.log(chalk.gray(`Description: ${graph.description}`));
     }
-    if (graph.defaultSubAgentId || graph.default_agent_id) {
-      console.log(
-        chalk.gray(`Default Agent: ${graph.defaultSubAgentId || graph.default_agent_id}`)
-      );
+    if (graph.defaultSubAgentId) {
+      console.log(chalk.gray(`Default Agent: ${graph.defaultSubAgentId}`));
     }
   } catch (error) {
     spinner.fail('Failed to connect to graph');

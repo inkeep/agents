@@ -128,7 +128,7 @@ async function applyExecutionLimitsInheritance(
         'Propagating stepCountIs to agents'
       );
 
-      for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
         // Only apply to internal agents (have prompt)
         if (isInternalAgent(agentData as AgentDefinition)) {
           const agent = agentData as any;
@@ -143,7 +143,7 @@ async function applyExecutionLimitsInheritance(
             agent.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
             logger.info(
               {
-                agentId,
+                subAgentId,
                 inheritedValue: projectStopWhen.stepCountIs,
               },
               'Agent inherited stepCountIs from project'
@@ -294,16 +294,16 @@ export const createFullGraphServerSide =
       );
 
       // Step 7: Create/update internal agents (now with graphId)
-      const internalAgentPromises = Object.entries(typed.agents)
+      const internalAgentPromises = Object.entries(typed.subAgents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
-        .map(async ([agentId, agentData]) => {
+        .map(async ([subAgentId, agentData]) => {
           // Type assertion since we've filtered for internal agents
           const internalAgent = agentData as InternalAgentDefinition;
           try {
-            logger.info({ agentId }, 'Processing internal agent');
+            logger.info({ subAgentId }, 'Processing internal agent');
             await upsertSubAgent(db)({
               data: {
-                id: agentId,
+                id: subAgentId,
                 tenantId,
                 projectId,
                 graphId: finalGraphId,
@@ -315,30 +315,30 @@ export const createFullGraphServerSide =
                 stopWhen: internalAgent.stopWhen,
               },
             });
-            logger.info({ agentId }, 'Internal agent processed successfully');
+            logger.info({ subAgentId }, 'Internal agent processed successfully');
           } catch (error) {
-            logger.error({ agentId, error }, 'Failed to create/update internal agent');
+            logger.error({ subAgentId, error }, 'Failed to create/update internal agent');
             throw error;
           }
         });
 
       await Promise.all(internalAgentPromises);
-      const internalAgentCount = Object.entries(typed.agents).filter(([_, agentData]) =>
+      const internalAgentCount = Object.entries(typed.subAgents).filter(([_, agentData]) =>
         isInternalAgent(agentData)
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
       // Step 8: Create/update external agents (now with graphId)
-      const externalAgentPromises = Object.entries(typed.agents)
+      const externalAgentPromises = Object.entries(typed.subAgents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
-        .map(async ([agentId, agentData]) => {
+        .map(async ([subAgentId, agentData]) => {
           // Type assertion since we've filtered for external agents
           const externalAgent = agentData as ExternalAgentApiInsert;
           try {
-            logger.info({ agentId }, 'Processing external agent');
+            logger.info({ subAgentId }, 'Processing external agent');
             await upsertExternalAgent(db)({
               data: {
-                id: agentId,
+                id: subAgentId,
                 tenantId,
                 projectId,
                 graphId: finalGraphId,
@@ -349,15 +349,15 @@ export const createFullGraphServerSide =
                 headers: externalAgent.headers || undefined,
               },
             });
-            logger.info({ agentId }, 'External agent processed successfully');
+            logger.info({ subAgentId }, 'External agent processed successfully');
           } catch (error) {
-            logger.error({ agentId, error }, 'Failed to create/update external agent');
+            logger.error({ subAgentId, error }, 'Failed to create/update external agent');
             throw error;
           }
         });
 
       await Promise.all(externalAgentPromises);
-      const externalAgentCount = Object.entries(typed.agents).filter(([_, agentData]) =>
+      const externalAgentCount = Object.entries(typed.subAgents).filter(([_, agentData]) =>
         isExternalAgent(agentData)
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
@@ -386,26 +386,26 @@ export const createFullGraphServerSide =
       // Step 10: Create agent-tool relationships
       const agentToolPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typed.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             agentToolPromises.push(
               (async () => {
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
-                  logger.info({ agentId, toolId }, 'Processing agent-tool relation');
+                  logger.info({ subAgentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
-                    subAgentId: agentId,
+                    subAgentId: subAgentId,
                     toolId,
                     selectedTools: toolSelection || undefined,
                     headers: headers || undefined,
                     relationId: agentToolRelationId,
                   });
-                  logger.info({ agentId, toolId }, 'Agent-tool relation processed successfully');
+                  logger.info({ subAgentId, toolId }, 'Agent-tool relation processed successfully');
                 } catch (error) {
                   logger.error(
-                    { agentId, toolId: canUseItem.toolId, error },
+                    { subAgentId, toolId: canUseItem.toolId, error },
                     'Failed to create agent-tool relation'
                   );
                   // Don't throw - allow partial success for relations
@@ -418,34 +418,34 @@ export const createFullGraphServerSide =
 
       await Promise.all(agentToolPromises);
       logger.info(
-        { agentToolCount: Object.keys(typed.agents).length },
+        { agentToolCount: Object.keys(typed.subAgents).length },
         'All agent-tool relations created'
       );
 
       // Step 10: Create agent-dataComponent relationships
       const agentDataComponentPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typed.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
         if (isInternalAgent(agentData) && agentData.dataComponents) {
           for (const dataComponentId of agentData.dataComponents) {
             agentDataComponentPromises.push(
               (async () => {
                 try {
                   logger.info(
-                    { agentId, dataComponentId },
+                    { subAgentId, dataComponentId },
                     'Processing agent-data component relation'
                   );
                   await upsertAgentDataComponentRelation(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: subAgentId },
                     dataComponentId,
                   });
                   logger.info(
-                    { agentId, dataComponentId },
+                    { subAgentId, dataComponentId },
                     'Agent-data component relation processed successfully'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, dataComponentId, error },
+                    { subAgentId, dataComponentId, error },
                     'Failed to create agent-data component relation'
                   );
                   // Don't throw - allow partial success for relations
@@ -462,27 +462,27 @@ export const createFullGraphServerSide =
       // Step 11: Create agent-artifactComponent relationships
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typed.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
         if (isInternalAgent(agentData) && agentData.artifactComponents) {
           for (const artifactComponentId of agentData.artifactComponents) {
             agentArtifactComponentPromises.push(
               (async () => {
                 try {
                   logger.info(
-                    { agentId, artifactComponentId },
+                    { subAgentId, artifactComponentId },
                     'Processing agent-artifact component relation'
                   );
                   await upsertAgentArtifactComponentRelation(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: subAgentId },
                     artifactComponentId,
                   });
                   logger.info(
-                    { agentId, artifactComponentId },
+                    { subAgentId, artifactComponentId },
                     'Agent-artifact component relation processed successfully'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, artifactComponentId, error },
+                    { subAgentId, artifactComponentId, error },
                     'Failed to create agent-artifact component relation'
                   );
                   // Don't throw - allow partial success for relations
@@ -499,7 +499,7 @@ export const createFullGraphServerSide =
       // Step 12: Create agent relationships (transfer/delegation)
       const agentRelationPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typed.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
         // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
@@ -507,7 +507,7 @@ export const createFullGraphServerSide =
               (async () => {
                 try {
                   logger.info(
-                    { agentId, targetSubAgentId, type: 'transfer' },
+                    { subAgentId, targetSubAgentId, type: 'transfer' },
                     'Processing agent transfer relation'
                   );
                   await upsertAgentRelation(db)({
@@ -515,17 +515,17 @@ export const createFullGraphServerSide =
                     tenantId,
                     projectId,
                     graphId: finalGraphId,
-                    sourceSubAgentId: agentId,
+                    sourceSubAgentId: subAgentId,
                     targetSubAgentId: targetSubAgentId,
                     relationType: 'transfer',
                   });
                   logger.info(
-                    { agentId, targetSubAgentId, type: 'transfer' },
+                    { subAgentId, targetSubAgentId, type: 'transfer' },
                     'Agent transfer relation processed successfully'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, targetSubAgentId, type: 'transfer', error },
+                    { subAgentId, targetSubAgentId, type: 'transfer', error },
                     'Failed to create transfer relation'
                   );
                 }
@@ -538,14 +538,14 @@ export const createFullGraphServerSide =
         if (isInternalAgent(agentData) && agentData.canDelegateTo) {
           for (const targetSubAgentId of agentData.canDelegateTo) {
             // Check if the target agent is external by looking it up in the typed.agents
-            const targetAgentData = typed.agents[targetSubAgentId];
+            const targetAgentData = typed.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
 
             agentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
-                    { agentId, targetSubAgentId, type: 'delegate' },
+                    { subAgentId, targetSubAgentId, type: 'delegate' },
                     'Processing agent delegation relation'
                   );
                   await upsertAgentRelation(db)({
@@ -553,18 +553,18 @@ export const createFullGraphServerSide =
                     tenantId,
                     projectId,
                     graphId: finalGraphId,
-                    sourceSubAgentId: agentId,
+                    sourceSubAgentId: subAgentId,
                     targetSubAgentId: isTargetExternal ? undefined : targetSubAgentId,
                     externalSubAgentId: isTargetExternal ? targetSubAgentId : undefined,
                     relationType: 'delegate',
                   });
                   logger.info(
-                    { agentId, targetSubAgentId, type: 'delegate' },
+                    { subAgentId, targetSubAgentId, type: 'delegate' },
                     'Agent delegation relation processed successfully'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, targetSubAgentId, type: 'delegate', error },
+                    { subAgentId, targetSubAgentId, type: 'delegate', error },
                     'Failed to create delegation relation'
                   );
                 }
@@ -621,7 +621,7 @@ export const updateFullGraphServerSide =
       {
         tenantId,
         graphId: typedGraphDefinition.id,
-        agentCount: Object.keys(typedGraphDefinition.agents).length,
+        agentCount: Object.keys(typedGraphDefinition.subAgents).length,
       },
       'Updating full graph in database'
     );
@@ -769,9 +769,9 @@ export const updateFullGraphServerSide =
       );
 
       // Step 7: Create/update internal agents (now with graphId) with model cascade logic
-      const internalAgentPromises = Object.entries(typedGraphDefinition.agents)
+      const internalAgentPromises = Object.entries(typedGraphDefinition.subAgents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
-        .map(async ([agentId, agentData]) => {
+        .map(async ([subAgentId, agentData]) => {
           const internalAgent = agentData as InternalAgentDefinition;
 
           // Get the existing agent to check for inheritance
@@ -779,7 +779,7 @@ export const updateFullGraphServerSide =
           try {
             existingAgent = await db.query.subAgents.findFirst({
               where: and(
-                eq(subAgents.id, agentId),
+                eq(subAgents.id, subAgentId),
                 eq(subAgents.tenantId, tenantId),
                 eq(subAgents.projectId, projectId)
               ),
@@ -822,7 +822,7 @@ export const updateFullGraphServerSide =
                 cascadedModels[modelType] = graphModels[modelType];
                 logger.info(
                   {
-                    agentId,
+                    subAgentId,
                     modelType,
                     oldModel: agentModels[modelType].model,
                     newModel: graphModels[modelType].model,
@@ -837,10 +837,10 @@ export const updateFullGraphServerSide =
           }
 
           try {
-            logger.info({ agentId }, 'Processing internal agent');
+            logger.info({ subAgentId }, 'Processing internal agent');
             await upsertSubAgent(db)({
               data: {
-                id: agentId,
+                id: subAgentId,
                 tenantId,
                 projectId,
                 graphId: finalGraphId,
@@ -852,30 +852,30 @@ export const updateFullGraphServerSide =
                 stopWhen: internalAgent.stopWhen,
               },
             });
-            logger.info({ agentId }, 'Internal agent processed successfully');
+            logger.info({ subAgentId }, 'Internal agent processed successfully');
           } catch (error) {
-            logger.error({ agentId, error }, 'Failed to create/update internal agent');
+            logger.error({ subAgentId, error }, 'Failed to create/update internal agent');
             throw error;
           }
         });
 
       await Promise.all(internalAgentPromises);
-      const internalAgentCount = Object.entries(typedGraphDefinition.agents).filter(
+      const internalAgentCount = Object.entries(typedGraphDefinition.subAgents).filter(
         ([_, agentData]) => isInternalAgent(agentData)
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
       // Step 8: Create/update external agents (now with graphId)
-      const externalAgentPromises = Object.entries(typedGraphDefinition.agents)
+      const externalAgentPromises = Object.entries(typedGraphDefinition.subAgents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
-        .map(async ([agentId, agentData]) => {
+        .map(async ([subAgentId, agentData]) => {
           // Type assertion since we've filtered for external agents
           const externalAgent = agentData as ExternalAgentApiInsert;
           try {
-            logger.info({ agentId }, 'Processing external agent');
+            logger.info({ subAgentId }, 'Processing external agent');
             await upsertExternalAgent(db)({
               data: {
-                id: agentId,
+                id: subAgentId,
                 tenantId,
                 projectId,
                 graphId: finalGraphId,
@@ -886,21 +886,21 @@ export const updateFullGraphServerSide =
                 headers: externalAgent.headers || undefined,
               },
             });
-            logger.info({ agentId }, 'External agent processed successfully');
+            logger.info({ subAgentId }, 'External agent processed successfully');
           } catch (error) {
-            logger.error({ agentId, error }, 'Failed to create/update external agent');
+            logger.error({ subAgentId, error }, 'Failed to create/update external agent');
             throw error;
           }
         });
 
       await Promise.all(externalAgentPromises);
-      const externalAgentCount = Object.entries(typedGraphDefinition.agents).filter(
+      const externalAgentCount = Object.entries(typedGraphDefinition.subAgents).filter(
         ([_, agentData]) => isExternalAgent(agentData)
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
       // Step 8a: Delete agents that are no longer in the graph definition
-      const incomingAgentIds = new Set(Object.keys(typedGraphDefinition.agents));
+      const incomingAgentIds = new Set(Object.keys(typedGraphDefinition.subAgents));
 
       // Get existing internal agents for this graph
       const existingInternalAgents = await listSubAgents(db)({
@@ -922,9 +922,12 @@ export const updateFullGraphServerSide =
               subAgentId: agent.id,
             });
             deletedInternalCount++;
-            logger.info({ agentId: agent.id }, 'Deleted orphaned internal agent');
+            logger.info({ subAgentId: agent.id }, 'Deleted orphaned internal agent');
           } catch (error) {
-            logger.error({ agentId: agent.id, error }, 'Failed to delete orphaned internal agent');
+            logger.error(
+              { subAgentId: agent.id, error },
+              'Failed to delete orphaned internal agent'
+            );
             // Don't throw - continue with other deletions
           }
         }
@@ -937,12 +940,15 @@ export const updateFullGraphServerSide =
           try {
             await deleteExternalAgent(db)({
               scopes: { tenantId, projectId, graphId: finalGraphId },
-              agentId: agent.id,
+              subAgentId: agent.id,
             });
             deletedExternalCount++;
-            logger.info({ agentId: agent.id }, 'Deleted orphaned external agent');
+            logger.info({ subAgentId: agent.id }, 'Deleted orphaned external agent');
           } catch (error) {
-            logger.error({ agentId: agent.id, error }, 'Failed to delete orphaned external agent');
+            logger.error(
+              { subAgentId: agent.id, error },
+              'Failed to delete orphaned external agent'
+            );
             // Don't throw - continue with other deletions
           }
         }
@@ -980,7 +986,7 @@ export const updateFullGraphServerSide =
 
       // First, collect all incoming relationshipIds
       const incomingRelationshipIds = new Set<string>();
-      for (const [_agentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
+      for (const [_subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             if (canUseItem.agentToolRelationId) {
@@ -992,7 +998,7 @@ export const updateFullGraphServerSide =
 
       // Delete relationships that are not in the incoming set (for agents in this graph)
       // Use atomic deletion to avoid race conditions
-      for (const agentId of Object.keys(typedGraphDefinition.agents)) {
+      for (const subAgentId of Object.keys(typedGraphDefinition.subAgents)) {
         try {
           let deletedCount = 0;
 
@@ -1005,7 +1011,7 @@ export const updateFullGraphServerSide =
                   eq(subAgentToolRelations.tenantId, tenantId),
                   eq(subAgentToolRelations.projectId, projectId),
                   eq(subAgentToolRelations.graphId, finalGraphId),
-                  eq(subAgentToolRelations.subAgentId, agentId)
+                  eq(subAgentToolRelations.subAgentId, subAgentId)
                 )
               );
             deletedCount = result.rowsAffected || 0;
@@ -1018,7 +1024,7 @@ export const updateFullGraphServerSide =
                   eq(subAgentToolRelations.tenantId, tenantId),
                   eq(subAgentToolRelations.projectId, projectId),
                   eq(subAgentToolRelations.graphId, finalGraphId),
-                  eq(subAgentToolRelations.subAgentId, agentId),
+                  eq(subAgentToolRelations.subAgentId, subAgentId),
                   not(inArray(subAgentToolRelations.id, Array.from(incomingRelationshipIds)))
                 )
               );
@@ -1026,10 +1032,10 @@ export const updateFullGraphServerSide =
           }
 
           if (deletedCount > 0) {
-            logger.info({ agentId, deletedCount }, 'Deleted orphaned agent-tool relations');
+            logger.info({ subAgentId, deletedCount }, 'Deleted orphaned agent-tool relations');
           }
         } catch (error) {
-          logger.error({ agentId, error }, 'Failed to delete orphaned agent-tool relations');
+          logger.error({ subAgentId, error }, 'Failed to delete orphaned agent-tool relations');
           // Don't throw - allow partial success for relations
         }
       }
@@ -1037,7 +1043,7 @@ export const updateFullGraphServerSide =
       // Then upsert the incoming relationships
       const agentToolPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             agentToolPromises.push(
@@ -1047,20 +1053,20 @@ export const updateFullGraphServerSide =
                   logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
-                    subAgentId: agentId,
+                    subAgentId: subAgentId,
                     toolId,
                     selectedTools: toolSelection || undefined,
                     headers: headers || undefined,
                     relationId: agentToolRelationId,
                   });
                   logger.info(
-                    { agentId, toolId, relationId: agentToolRelationId },
+                    { subAgentId, toolId, relationId: agentToolRelationId },
                     'Agent-tool relation upserted'
                   );
                 } catch (error) {
                   logger.error(
                     {
-                      agentId,
+                      subAgentId,
                       toolId: canUseItem.toolId,
                       relationId: canUseItem.agentToolRelationId,
                       error,
@@ -1083,30 +1089,33 @@ export const updateFullGraphServerSide =
 
       // Step 10: Clear and recreate agent-dataComponent relationships
       // First, delete existing relationships for all agents in this graph
-      for (const agentId of Object.keys(typedGraphDefinition.agents)) {
+      for (const subAgentId of Object.keys(typedGraphDefinition.subAgents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
+          scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: subAgentId },
         });
       }
 
       // Then create new agent-dataComponent relationships
       const agentDataComponentPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.dataComponents) {
           for (const dataComponentId of agentData.dataComponents) {
             agentDataComponentPromises.push(
               (async () => {
                 try {
                   await associateDataComponentWithAgent(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: subAgentId },
                     dataComponentId,
                   });
 
-                  logger.info({ agentId, dataComponentId }, 'Agent-dataComponent relation created');
+                  logger.info(
+                    { subAgentId, dataComponentId },
+                    'Agent-dataComponent relation created'
+                  );
                 } catch (error) {
                   logger.error(
-                    { agentId, dataComponentId, error },
+                    { subAgentId, dataComponentId, error },
                     'Failed to create agent-dataComponent relation'
                   );
                   // Don't throw - allow partial success for relations
@@ -1125,33 +1134,33 @@ export const updateFullGraphServerSide =
 
       // Step 11: Clear and recreate agent-artifactComponent relationships
       // First, delete existing relationships for all agents in this graph
-      for (const agentId of Object.keys(typedGraphDefinition.agents)) {
+      for (const subAgentId of Object.keys(typedGraphDefinition.subAgents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
-          scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
+          scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: subAgentId },
         });
       }
 
       // Then create new agent-artifactComponent relationships
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
-      for (const [agentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.artifactComponents) {
           for (const artifactComponentId of agentData.artifactComponents) {
             agentArtifactComponentPromises.push(
               (async () => {
                 try {
                   await associateArtifactComponentWithAgent(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: agentId },
+                    scopes: { tenantId, projectId, graphId: finalGraphId, subAgentId: subAgentId },
                     artifactComponentId,
                   });
 
                   logger.info(
-                    { agentId, artifactComponentId },
+                    { subAgentId, artifactComponentId },
                     'Agent-artifactComponent relation created'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId, artifactComponentId, error },
+                    { subAgentId, artifactComponentId, error },
                     'Failed to create agent-artifactComponent relation'
                   );
                   // Don't throw - allow partial success for relations
@@ -1176,7 +1185,7 @@ export const updateFullGraphServerSide =
       // Then create new relationships
       const agentRelationPromises: Promise<void>[] = [];
 
-      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.agents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
         // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
@@ -1184,7 +1193,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   // Check if the target agent is external by looking it up in the typed.agents
-                  const targetAgentData = typedGraphDefinition.agents[targetSubAgentId];
+                  const targetAgentData = typedGraphDefinition.subAgents[targetSubAgentId];
                   const isTargetExternal = isExternalAgent(targetAgentData);
                   const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
@@ -1203,12 +1212,12 @@ export const updateFullGraphServerSide =
                   });
 
                   logger.info(
-                    { agentId: subAgentId, targetSubAgentId, isTargetExternal },
+                    { subAgentId: subAgentId, targetSubAgentId, isTargetExternal },
                     'Transfer relation created'
                   );
                 } catch (error) {
                   logger.error(
-                    { agentId: subAgentId, targetSubAgentId, error },
+                    { subAgentId: subAgentId, targetSubAgentId, error },
                     'Failed to create transfer relation'
                   );
                 }
@@ -1223,7 +1232,7 @@ export const updateFullGraphServerSide =
             // External agents can't delegate to other agents
 
             // Check if the target agent is external by looking it up in the typed.agents
-            const targetAgentData = typedGraphDefinition.agents[targetSubAgentId];
+            const targetAgentData = typedGraphDefinition.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
             const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
@@ -1306,7 +1315,7 @@ export const getFullGraph =
         {
           tenantId,
           graphId: scopes.graphId,
-          agentCount: Object.keys(graph.agents).length,
+          agentCount: Object.keys(graph.subAgents).length,
         },
         'Full graph retrieved successfully'
       );
@@ -1353,17 +1362,17 @@ export const deleteFullGraph =
       logger.info({ tenantId, graphId }, 'Agent relations deleted');
 
       // Step 2: Delete agent-tool relations for agents in this graph
-      const agentIds = Object.keys(graph.agents);
-      if (agentIds.length > 0) {
+      const subAgentIds = Object.keys(graph.subAgents);
+      if (subAgentIds.length > 0) {
         // Delete agent-tool relations for all agents in this graph
-        for (const agentId of agentIds) {
+        for (const subAgentId of subAgentIds) {
           await deleteAgentToolRelationByAgent(db)({
-            scopes: { tenantId, projectId, graphId, subAgentId: agentId },
+            scopes: { tenantId, projectId, graphId, subAgentId: subAgentId },
           });
         }
 
         logger.info(
-          { tenantId, graphId, agentCount: agentIds.length },
+          { tenantId, graphId, agentCount: subAgentIds.length },
           'Agent-tool relations deleted'
         );
       }

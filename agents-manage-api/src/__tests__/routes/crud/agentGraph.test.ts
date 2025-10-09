@@ -55,7 +55,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id };
+    return { agentData, subAgentId: createBody.data.id };
   };
 
   // Helper function to create an agent graph and return its ID
@@ -92,7 +92,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const agentGraph = await createTestAgentGraph({ tenantId });
 
       // Create a unique agent for this graph
-      const { agentId } = await createTestAgent({
+      const { subAgentId } = await createTestAgent({
         tenantId,
         graphId: agentGraph.agentGraphId,
         suffix: ` ${i}`,
@@ -103,7 +103,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
         `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraph.agentGraphId}`,
         {
           method: 'PUT',
-          body: JSON.stringify({ defaultSubAgentId: agentId }),
+          body: JSON.stringify({ defaultSubAgentId: subAgentId }),
         }
       );
 
@@ -141,12 +141,12 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphData, agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agent with the graphId
-      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
 
       // Update graph with default agent
       await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`, {
         method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: agentId }),
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
@@ -158,7 +158,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       expect(body.data).toHaveLength(1);
       expect(body.data[0]).toMatchObject({
         id: agentGraphId,
-        defaultSubAgentId: agentId,
+        defaultSubAgentId: subAgentId,
         tenantId,
       });
       expect(body.pagination).toEqual({
@@ -203,12 +203,12 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphData, agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agent with the graphId
-      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
 
       // Update graph with default agent
       await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`, {
         method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: agentId }),
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
@@ -219,7 +219,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data).toMatchObject({
         id: agentGraphId,
-        defaultSubAgentId: agentId,
+        defaultSubAgentId: subAgentId,
         tenantId,
       });
       expect(body.data.createdAt).toBeDefined();
@@ -277,8 +277,8 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
 
       // Create a temporary graph first for the agent
       const tempGraph = await createTestAgentGraph({ tenantId });
-      const { agentId } = await createTestAgent({ tenantId, graphId: tempGraph.agentGraphId });
-      const agentGraphData = createAgentGraphData({ defaultSubAgentId: agentId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: tempGraph.agentGraphId });
+      const agentGraphData = createAgentGraphData({ defaultSubAgentId: subAgentId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
         method: 'POST',
@@ -318,12 +318,12 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agents with the graphId
-      const { agentId: originalAgentId } = await createTestAgent({
+      const { subAgentId: originalAgentId } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' Original',
       });
-      const { agentId: newAgentId } = await createTestAgent({
+      const { subAgentId: newAgentId } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' New',
@@ -357,9 +357,9 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
 
       // Create a graph for the agent
       const tempGraph = await createTestAgentGraph({ tenantId });
-      const { agentId } = await createTestAgent({ tenantId, graphId: tempGraph.agentGraphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: tempGraph.agentGraphId });
       const updateData = {
-        defaultSubAgentId: agentId,
+        defaultSubAgentId: subAgentId,
       };
 
       const res = await makeRequest(
@@ -383,12 +383,12 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agent with the graphId
-      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
 
       // Update graph with default agent
       await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`, {
         method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: agentId }),
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
@@ -422,7 +422,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('GET /{graphId}/agents/{agentId}/related', () => {
+  describe('GET /{graphId}/agents/{subAgentId}/related', () => {
     it('should get related agent infos (empty initially)', async () => {
       const tenantId = createTestTenantId('agent-graphs-related-empty');
       await ensureTestProject(tenantId, projectId);
@@ -431,16 +431,16 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agent with the graphId
-      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
 
       // Update graph with default agent
       await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`, {
         method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: agentId }),
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}/agents/${agentId}/related`
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}/agents/${subAgentId}/related`
       );
       expect(res.status).toBe(200);
 
@@ -466,12 +466,12 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agent with the graphId
-      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
 
       // Update graph with default agent
       await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`, {
         method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: agentId }),
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
@@ -484,18 +484,18 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       expect(body.data).toMatchObject({
         id: agentGraphId,
         name: agentGraphId, // Using graphId as name
-        defaultSubAgentId: agentId,
+        defaultSubAgentId: subAgentId,
       });
 
       // Verify the structure contains required fields
-      expect(body.data).toHaveProperty('agents');
+      expect(body.data).toHaveProperty('subAgents');
       expect(body.data).toHaveProperty('createdAt');
       expect(body.data).toHaveProperty('updatedAt');
 
       // Verify the default agent is included in agents
-      expect(body.data.agents).toHaveProperty(agentId);
-      expect(body.data.agents[agentId]).toMatchObject({
-        id: agentId,
+      expect(body.data.subAgents).toHaveProperty(subAgentId);
+      expect(body.data.subAgents[subAgentId]).toMatchObject({
+        id: subAgentId,
         name: expect.any(String),
         description: expect.any(String),
         canDelegateTo: expect.any(Array),
@@ -532,17 +532,17 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create multiple agents with the graphId
-      const { agentId: agent1Id } = await createTestAgent({
+      const { subAgentId: agent1Id } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' 1',
       });
-      const { agentId: agent2Id } = await createTestAgent({
+      const { subAgentId: agent2Id } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' 2',
       });
-      const { agentId: agent3Id } = await createTestAgent({
+      const { subAgentId: agent3Id } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' 3',
@@ -588,20 +588,20 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
 
       const body = await res.json();
-      expect(body.data).toHaveProperty('agents');
+      expect(body.data).toHaveProperty('subAgents');
 
       // At minimum, the default agent should be present
-      expect(body.data.agents).toHaveProperty(agent1Id);
+      expect(body.data.subAgents).toHaveProperty(agent1Id);
 
       // If relationships were created successfully, other agents should be included
-      const agentIds = Object.keys(body.data.agents);
-      expect(agentIds).toContain(agent1Id);
+      const subAgentIds = Object.keys(body.data.subAgents);
+      expect(subAgentIds).toContain(agent1Id);
 
       // Verify agent structure
-      for (const agentId of agentIds) {
-        const agent = body.data.agents[agentId];
+      for (const subAgentId of subAgentIds) {
+        const agent = body.data.subAgents[subAgentId];
         expect(agent).toMatchObject({
-          id: agentId,
+          id: subAgentId,
           name: expect.any(String),
           description: expect.any(String),
           canDelegateTo: expect.any(Array),
@@ -618,7 +618,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const { agentGraphId } = await createTestAgentGraph({ tenantId });
 
       // Create agent with the graphId
-      const { agentId } = await createTestAgent({
+      const { subAgentId } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' Default',
@@ -627,7 +627,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       // Update graph with default agent
       await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`, {
         method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: agentId }),
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
@@ -638,13 +638,13 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       const body = await res.json();
 
       // Should contain exactly one agent (the default agent)
-      expect(Object.keys(body.data.agents)).toHaveLength(1);
-      expect(body.data.agents[agentId]).toBeDefined();
+      expect(Object.keys(body.data.subAgents)).toHaveLength(1);
+      expect(body.data.subAgents[subAgentId]).toBeDefined();
 
       // The default agent should have empty relationship arrays
-      expect(body.data.agents[agentId].canTransferTo).toEqual([]);
-      expect(body.data.agents[agentId].canDelegateTo).toEqual([]);
-      expect(body.data.agents[agentId].canUse).toEqual([]);
+      expect(body.data.subAgents[subAgentId].canTransferTo).toEqual([]);
+      expect(body.data.subAgents[subAgentId].canDelegateTo).toEqual([]);
+      expect(body.data.subAgents[subAgentId].canUse).toEqual([]);
     });
   });
 });

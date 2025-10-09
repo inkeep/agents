@@ -92,7 +92,7 @@ app.openapi(
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const externalAgent = await getExternalAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: id,
+      subAgentId: id,
     });
 
     if (!externalAgent) {
@@ -204,7 +204,7 @@ app.openapi(
 
     const updatedExternalAgent = await updateExternalAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: id,
+      subAgentId: id,
       data: body,
     });
 
@@ -254,7 +254,7 @@ app.openapi(
 
     const deleted = await deleteExternalAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: id,
+      subAgentId: id,
     });
 
     if (!deleted) {

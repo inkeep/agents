@@ -53,7 +53,7 @@ export interface ArtifactServiceContext {
   contextId?: string;
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
-  agentId?: string;
+  subAgentId?: string;
 }
 
 /**
@@ -128,7 +128,7 @@ export class ArtifactService {
    */
   async createArtifact(
     request: ArtifactCreateRequest,
-    agentId?: string
+    subAgentId?: string
   ): Promise<ArtifactSummaryData | null> {
     if (!this.context.sessionId) {
       logger.warn({ request }, 'No session ID available for artifact creation');
@@ -235,7 +235,7 @@ export class ArtifactService {
       };
 
       // Persist artifact to database using cleaned data
-      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, agentId);
+      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId);
 
       // Cache artifact for immediate access using cleaned data
       await this.cacheArtifact(
@@ -422,10 +422,10 @@ export class ArtifactService {
     request: ArtifactCreateRequest,
     summaryData: Record<string, any>,
     fullData: Record<string, any>,
-    agentId?: string
+    subAgentId?: string
   ): Promise<void> {
-    // Use passed agentId or fall back to context agentId
-    const effectiveAgentId = agentId || this.context.agentId;
+    // Use passed subAgentId or fall back to context subAgentId
+    const effectiveAgentId = subAgentId || this.context.subAgentId;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await graphSessionManager.recordEvent(
@@ -460,8 +460,8 @@ export class ArtifactService {
           hasStreamRequestId: !!this.context.streamRequestId,
           hasAgentId: !!effectiveAgentId,
           hasTaskId: !!this.context.taskId,
-          passedAgentId: agentId,
-          contextAgentId: this.context.agentId,
+          passedAgentId: subAgentId,
+          contextAgentId: this.context.subAgentId,
         },
         'Skipping artifact_saved event - missing required context'
       );

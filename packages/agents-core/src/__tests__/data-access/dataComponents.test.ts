@@ -592,7 +592,7 @@ describe('Data Components Data Access', () => {
         id: 'association-123',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         dataComponentId: testDataComponentId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
@@ -681,11 +681,11 @@ describe('Data Components Data Access', () => {
     it('should retrieve agents using a data component', async () => {
       const expectedAgents = [
         {
-          agentId: 'agent-1',
+          subAgentId: 'agent-1',
           createdAt: '2024-01-01T00:00:00Z',
         },
         {
-          agentId: 'agent-2',
+          subAgentId: 'agent-2',
           createdAt: '2024-01-02T00:00:00Z',
         },
       ];

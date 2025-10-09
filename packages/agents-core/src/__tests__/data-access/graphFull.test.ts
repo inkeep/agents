@@ -126,8 +126,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       expect(result?.id).toBe(testGraphId);
       expect(result?.name).toBe('Test Graph');
       expect(result?.defaultSubAgentId).toBe('default-agent-1');
-      expect(result?.agents).toHaveProperty('default-agent-1');
-      expect(result?.agents['default-agent-1']).toEqual({
+      expect(result?.subAgents).toHaveProperty('default-agent-1');
+      expect(result?.subAgents['default-agent-1']).toEqual({
         id: 'default-agent-1',
         name: 'Default Agent',
         description: 'Default agent description',
@@ -250,8 +250,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.agents).toHaveProperty('agent-1');
-      expect(result?.agents).toHaveProperty('agent-2');
+      expect(result?.subAgents).toHaveProperty('agent-1');
+      expect(result?.subAgents).toHaveProperty('agent-2');
     });
 
     it('should include tools when present', async () => {
@@ -346,7 +346,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
       });
 
-      expect((result?.agents['agent-1'] as any).canUse).toEqual([
+      expect((result?.subAgents['agent-1'] as any).canUse).toEqual([
         { toolId: 'tool-1', toolSelection: null, headers: null },
       ]);
     });
@@ -636,9 +636,9 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       });
 
       // Should only include the valid agent
-      expect(result?.agents).toHaveProperty('agent-1');
-      expect(result?.agents).not.toHaveProperty('non-existent-agent');
-      expect(Object.keys(result?.agents || {})).toHaveLength(1);
+      expect(result?.subAgents).toHaveProperty('agent-1');
+      expect(result?.subAgents).not.toHaveProperty('non-existent-agent');
+      expect(Object.keys(result?.subAgents || {})).toHaveLength(1);
     });
   });
 });

@@ -651,7 +651,7 @@ export const getToolsForAgent =
         .select({
           id: subAgentToolRelations.id,
           tenantId: subAgentToolRelations.tenantId,
-          agentId: subAgentToolRelations.subAgentId,
+          subAgentId: subAgentToolRelations.subAgentId,
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,

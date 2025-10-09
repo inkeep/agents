@@ -35,7 +35,7 @@ describe('projectFull data access', () => {
 
   const createTestProjectWithGraphs = (projectId: string): FullProjectDefinition => {
     const graphId = `graph-${nanoid()}`;
-    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
     const toolId = `tool-${nanoid()}`;
 
     return {
@@ -53,10 +53,10 @@ describe('projectFull data access', () => {
           id: graphId,
           name: 'Test Graph',
           description: 'A test graph',
-          defaultSubAgentId: agentId,
+          defaultSubAgentId: subAgentId,
           agents: {
-            [agentId]: {
-              id: agentId,
+            [subAgentId]: {
+              id: subAgentId,
               name: 'Test Agent',
               description: 'A test agent',
               prompt: 'You are a helpful assistant.',

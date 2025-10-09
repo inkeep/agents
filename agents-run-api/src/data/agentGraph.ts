@@ -71,7 +71,7 @@ async function hydrateGraph({
     };
 
     return {
-      agentId: dbGraph.id, // Use graph ID as agent ID for A2A purposes
+      subAgentId: dbGraph.id, // Use graph ID as agent ID for A2A purposes
       tenantId: dbGraph.tenantId,
       projectId: dbGraph.projectId,
       graphId: dbGraph.id,

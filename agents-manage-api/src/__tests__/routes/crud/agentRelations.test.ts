@@ -37,7 +37,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id };
+    return { agentData, subAgentId: createBody.data.id };
   };
 
   // Helper function to create test agent relation data
@@ -112,12 +112,12 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     const agentGraphId = graphBody.data.id;
 
     // Now create agents with the graphId
-    const { agentId: sourceSubAgentId } = await createTestAgent({
+    const { subAgentId: sourceSubAgentId } = await createTestAgent({
       tenantId,
       graphId: agentGraphId,
       suffix: ' Source',
     });
-    const { agentId: targetSubAgentId } = await createTestAgent({
+    const { subAgentId: targetSubAgentId } = await createTestAgent({
       tenantId,
       graphId: agentGraphId,
       suffix: ' Target',
@@ -310,7 +310,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { sourceSubAgentId, targetSubAgentId, agentGraphId } =
         await setupTestEnvironment(tenantId);
-      const { agentId: otherSourceAgentId } = await createTestAgent({
+      const { subAgentId: otherSourceAgentId } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' Other Source',
@@ -344,7 +344,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { sourceSubAgentId, targetSubAgentId, agentGraphId } =
         await setupTestEnvironment(tenantId);
-      const { agentId: otherTargetAgentId } = await createTestAgent({
+      const { subAgentId: otherTargetAgentId } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' Other Target',
@@ -378,7 +378,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { sourceSubAgentId, targetSubAgentId, agentGraphId } =
         await setupTestEnvironment(tenantId);
-      const { agentId: otherTargetId } = await createTestAgent({
+      const { subAgentId: otherTargetId } = await createTestAgent({
         tenantId,
         graphId: agentGraphId,
         suffix: ' Other Target',

@@ -148,7 +148,7 @@ export async function getScopedHistory({
       let matchesAgent = true;
       let matchesTask = true;
 
-      // Apply agent filtering if agentId is provided
+      // Apply agent filtering if subAgentId is provided
       if (filters.subAgentId) {
         matchesAgent =
           (msg.role === 'agent' && msg.visibility === 'user-facing') ||

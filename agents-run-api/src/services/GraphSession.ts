@@ -33,7 +33,7 @@ export type GraphSessionEventType =
 export interface GraphSessionEvent {
   timestamp: number;
   eventType: GraphSessionEventType;
-  agentId: string;
+  subAgentId: string;
   data: EventData;
 }
 
@@ -319,7 +319,7 @@ export class GraphSession {
   /**
    * Record an event in the session and trigger status updates if configured
    */
-  recordEvent(eventType: GraphSessionEventType, agentId: string, data: EventData): void {
+  recordEvent(eventType: GraphSessionEventType, subAgentId: string, data: EventData): void {
     // Don't record events or trigger updates if session has ended
 
     if (this.isEmitOperations) {
@@ -336,7 +336,7 @@ export class GraphSession {
         {
           sessionId: this.sessionId,
           eventType,
-          agentId,
+          subAgentId,
         },
         'Event received after session ended - ignoring'
       );
@@ -346,7 +346,7 @@ export class GraphSession {
     const event: GraphSessionEvent = {
       timestamp: Date.now(),
       eventType,
-      agentId,
+      subAgentId,
       data,
     };
 
@@ -376,8 +376,8 @@ export class GraphSession {
       // Fire and forget - process artifact completely asynchronously without any blocking
       setImmediate(() => {
         // No await, no spans at trigger level - truly fire and forget
-        // Include agentId from the event in the artifact data
-        const artifactDataWithAgent = { ...(data as ArtifactSavedData), agentId };
+        // Include subAgentId from the event in the artifact data
+        const artifactDataWithAgent = { ...(data as ArtifactSavedData), subAgentId };
         this.processArtifact(artifactDataWithAgent)
           .then(() => {
             // Remove from pending on success
@@ -505,8 +505,8 @@ export class GraphSession {
   /**
    * Get events filtered by agent
    */
-  getEventsByAgent(agentId: string): GraphSessionEvent[] {
-    return this.events.filter((event) => event.agentId === agentId);
+  getEventsByAgent(subAgentId: string): GraphSessionEvent[] {
+    return this.events.filter((event) => event.subAgentId === subAgentId);
   }
 
   /**
@@ -523,7 +523,7 @@ export class GraphSession {
 
     const agentCounts = this.events.reduce(
       (counts, event) => {
-        counts[event.agentId] = (counts[event.agentId] || 0) + 1;
+        counts[event.subAgentId] = (counts[event.subAgentId] || 0) + 1;
         return counts;
       },
       {} as Record<string, number>
@@ -1319,7 +1319,7 @@ Make it specific and relevant.`;
                       {
                         sessionId: this.sessionId,
                         artifactId: artifactData.artifactId,
-                        agentId: artifactData.subAgentId,
+                        subAgentId: artifactData.subAgentId,
                         model: modelToUse.model,
                       },
                       'Using agent model configuration for artifact name generation'
@@ -1330,7 +1330,7 @@ Make it specific and relevant.`;
                     {
                       sessionId: this.sessionId,
                       artifactId: artifactData.artifactId,
-                      agentId: artifactData.subAgentId,
+                      subAgentId: artifactData.subAgentId,
                       error: error instanceof Error ? error.message : 'Unknown error',
                     },
                     'Failed to get agent model configuration'
@@ -1719,7 +1719,7 @@ export class GraphSessionManager {
   recordEvent(
     sessionId: string,
     eventType: GraphSessionEventType,
-    agentId: string,
+    subAgentId: string,
     data: EventData
   ): void {
     const session = this.sessions.get(sessionId);
@@ -1728,7 +1728,7 @@ export class GraphSessionManager {
       return;
     }
 
-    session.recordEvent(eventType, agentId, data);
+    session.recordEvent(eventType, subAgentId, data);
   }
 
   /**

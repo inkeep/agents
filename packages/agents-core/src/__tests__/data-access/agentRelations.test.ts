@@ -673,7 +673,7 @@ describe('Agent Relations Data Access', () => {
         id: 'tool-relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: 'agent-1',
+        subAgentId: 'agent-1',
         toolId: 'tool-1',
       };
 

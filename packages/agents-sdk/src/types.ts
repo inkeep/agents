@@ -1,5 +1,4 @@
 import type {
-  SubAgentApiInsert,
   AgentConversationHistoryConfig,
   AgentStopWhen,
   ArtifactComponentApiInsert,
@@ -10,6 +9,7 @@ import type {
   McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
+  SubAgentApiInsert,
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';

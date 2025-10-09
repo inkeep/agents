@@ -147,7 +147,7 @@ app.openapi(
     const relatedAgents = await getGraphAgentInfos(dbClient)({
       scopes: { tenantId, projectId },
       graphId,
-      agentId: subAgentId,
+      subAgentId: subAgentId,
     });
 
     return c.json({
