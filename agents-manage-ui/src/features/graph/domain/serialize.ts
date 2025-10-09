@@ -207,20 +207,26 @@ export function serializeGraphData(
 
         if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
           const nodeData = functionToolNode.data as any;
-          const toolId = nodeData.toolId;
 
-          if (toolId) {
-            // Get the relationshipId if it exists
-            const relationshipId = nodeData.relationshipId;
+          const toolId = nodeData.toolId || nodeData.functionToolId || functionToolNode.id;
+          const relationshipId = nodeData.relationshipId;
 
-            // Function tools use the same simple structure as MCP tools
-            canUse.push({
-              toolId,
-              toolSelection: null, // Function tools don't have tool selection
-              headers: null, // Function tools don't have headers
-              ...(relationshipId && { agentToolRelationId: relationshipId }),
-            });
-          }
+          const functionToolData = {
+            name: nodeData.name || '',
+            description: nodeData.description || '',
+            executeCode: nodeData.code || '',
+            inputSchema: nodeData.inputSchema || {},
+            dependencies: nodeData.dependencies || {},
+          };
+
+          canUse.push({
+            toolId,
+            toolSelection: null,
+            headers: null,
+            toolType: 'function',
+            functionTool: functionToolData,
+            ...(relationshipId && { agentToolRelationId: relationshipId }),
+          } as any);
         }
       }
 
@@ -422,11 +428,27 @@ export function serializeGraphData(
   return result;
 }
 
-export function validateSerializedData(data: FullGraphDefinition): string[] {
-  const errors: string[] = [];
+interface StructuredValidationError {
+  message: string;
+  field: string;
+  code: string;
+  path: string[];
+  functionToolId?: string;
+}
+
+export function validateSerializedData(
+  data: FullGraphDefinition,
+  functionToolNodeMap?: Map<string, string>
+): StructuredValidationError[] {
+  const errors: StructuredValidationError[] = [];
 
   if (data.defaultAgentId && !data.agents[data.defaultAgentId]) {
-    errors.push(`Default agent ID '${data.defaultAgentId}' not found in agents`);
+    errors.push({
+      message: `Default agent ID '${data.defaultAgentId}' not found in agents`,
+      field: 'defaultAgentId',
+      code: 'invalid_reference',
+      path: ['defaultAgentId'],
+    });
   }
 
   for (const [agentId, agent] of Object.entries(data.agents)) {
@@ -438,7 +460,12 @@ export function validateSerializedData(data: FullGraphDefinition): string[] {
         for (const canUseItem of agent.canUse) {
           const toolId = canUseItem.toolId;
           if (!toolsData[toolId]) {
-            errors.push(`Tool '${toolId}' referenced by agent '${agentId}' not found in tools`);
+            errors.push({
+              message: `Tool '${toolId}' not found`,
+              field: 'toolId',
+              code: 'invalid_reference',
+              path: ['agents', agentId, 'canUse'],
+            });
           }
         }
       }
@@ -455,24 +482,57 @@ export function validateSerializedData(data: FullGraphDefinition): string[] {
           const functionTool = (canUseItem as any).functionTool;
 
           if (!functionTool) {
-            errors.push(
-              `Function tool '${toolId}' referenced by agent '${agentId}' is missing function tool data`
-            );
+            // Use the node map to get the React Flow node ID if available
+            const nodeId = functionToolNodeMap?.get(toolId) || toolId;
+            errors.push({
+              message: `Function tool is missing function tool data`,
+              field: 'functionTool',
+              code: 'missing_data',
+              path: ['functionTools', toolId],
+              functionToolId: nodeId,
+            });
             continue;
           }
 
+          // Use the node map to get the React Flow node ID if available
+          const nodeId = functionToolNodeMap?.get(toolId) || toolId;
+
           // Validate required fields for function tools
           if (!functionTool.name || String(functionTool.name).trim() === '') {
-            errors.push(`Function tool '${toolId}' is missing required field: name`);
+            errors.push({
+              message: 'Function tool name is required',
+              field: 'name',
+              code: 'required',
+              path: ['functionTools', toolId, 'name'],
+              functionToolId: nodeId,
+            });
           }
           if (!functionTool.description || String(functionTool.description).trim() === '') {
-            errors.push(`Function tool '${toolId}' is missing required field: description`);
+            errors.push({
+              message: 'Function tool description is required',
+              field: 'description',
+              code: 'required',
+              path: ['functionTools', toolId, 'description'],
+              functionToolId: nodeId,
+            });
           }
           if (!functionTool.executeCode || String(functionTool.executeCode).trim() === '') {
-            errors.push(`Function tool '${toolId}' is missing required field: executeCode`);
+            errors.push({
+              message: 'Function tool code is required',
+              field: 'code',
+              code: 'required',
+              path: ['functionTools', toolId, 'executeCode'],
+              functionToolId: nodeId,
+            });
           }
           if (!functionTool.inputSchema || Object.keys(functionTool.inputSchema).length === 0) {
-            errors.push(`Function tool '${toolId}' is missing required field: inputSchema`);
+            errors.push({
+              message: 'Function tool input schema is required',
+              field: 'inputSchema',
+              code: 'required',
+              path: ['functionTools', toolId, 'inputSchema'],
+              functionToolId: nodeId,
+            });
           }
         }
       }
@@ -482,14 +542,24 @@ export function validateSerializedData(data: FullGraphDefinition): string[] {
     if ('canTransferTo' in agent) {
       for (const targetId of agent.canTransferTo ?? []) {
         if (!data.agents[targetId]) {
-          errors.push(`Transfer target '${targetId}' for agent '${agentId}' not found in agents`);
+          errors.push({
+            message: `Transfer target '${targetId}' not found in agents`,
+            field: 'canTransferTo',
+            code: 'invalid_reference',
+            path: ['agents', agentId, 'canTransferTo'],
+          });
         }
       }
     }
     if ('canDelegateTo' in agent) {
       for (const targetId of agent.canDelegateTo ?? []) {
         if (!data.agents[targetId]) {
-          errors.push(`Delegate target '${targetId}' for agent '${agentId}' not found in agents`);
+          errors.push({
+            message: `Delegate target '${targetId}' not found in agents`,
+            field: 'canDelegateTo',
+            code: 'invalid_reference',
+            path: ['agents', agentId, 'canDelegateTo'],
+          });
         }
       }
     }

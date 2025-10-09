@@ -14,6 +14,7 @@ export interface ValidationErrorDetail {
 
 export interface ProcessedGraphError {
   type: 'node' | 'edge' | 'graph';
+  nodeType?: 'agent' | 'functionTool';
   nodeId?: string;
   edgeId?: string;
   field: string;
@@ -24,10 +25,13 @@ export interface ProcessedGraphError {
 
 export interface GraphErrorSummary {
   totalErrors: number;
-  nodeErrors: Record<string, ProcessedGraphError[]>;
+  agentErrors: Record<string, ProcessedGraphError[]>;
+  functionToolErrors: Record<string, ProcessedGraphError[]>;
   edgeErrors: Record<string, ProcessedGraphError[]>;
   graphErrors: ProcessedGraphError[];
   allErrors: ProcessedGraphError[];
+  // Legacy property for backward compatibility
+  nodeErrors: Record<string, ProcessedGraphError[]>;
 }
 
 /**
@@ -63,6 +67,8 @@ export function parseGraphValidationErrors(apiError: string): GraphErrorSummary 
     // Fallback for unparseable errors
     return {
       totalErrors: 1,
+      agentErrors: {},
+      functionToolErrors: {},
       nodeErrors: {},
       edgeErrors: {},
       graphErrors: [
@@ -94,12 +100,24 @@ function processValidationError(
 
   // Determine error type and extract IDs
   let type: 'node' | 'edge' | 'graph' = 'graph';
+  let nodeType: 'agent' | 'functionTool' | undefined;
   let nodeId: string | undefined;
   let edgeId: string | undefined;
   let field: string;
 
-  if (fullPath[0] === 'agents' && fullPath[1]) {
+  if ((error as any).functionToolId) {
     type = 'node';
+    nodeType = 'functionTool';
+    nodeId = (error as any).functionToolId;
+    field = (error as any).field || 'configuration';
+  } else if (fullPath[0] === 'functionTools' && fullPath[1]) {
+    type = 'node';
+    nodeType = 'functionTool';
+    nodeId = fullPath[1];
+    field = error.path.slice(2).join('.') || (error as any).field || 'configuration';
+  } else if (fullPath[0] === 'agents' && fullPath[1]) {
+    type = 'node';
+    nodeType = 'agent';
     nodeId = fullPath[1];
     field = error.path.join('.') || 'configuration';
   } else if (fullPath[0] === 'edges' && fullPath[1]) {
@@ -111,10 +129,11 @@ function processValidationError(
   }
 
   // Create user-friendly message
-  const message = createUserFriendlyMessage(error, field, type);
+  const message = createUserFriendlyMessage(error, field, type, nodeType);
 
   return {
     type,
+    nodeType,
     nodeId,
     edgeId,
     field,
@@ -130,9 +149,17 @@ function processValidationError(
 function createUserFriendlyMessage(
   error: ValidationErrorDetail,
   field: string,
-  type: 'node' | 'edge' | 'graph'
+  type: 'node' | 'edge' | 'graph',
+  nodeType?: 'agent' | 'functionTool'
 ): string {
-  const entityType = type === 'node' ? 'Agent' : type === 'edge' ? 'Connection' : 'Graph';
+  let entityType: string;
+  if (type === 'node') {
+    entityType = nodeType === 'functionTool' ? 'Function Tool' : 'Agent';
+  } else if (type === 'edge') {
+    entityType = 'Connection';
+  } else {
+    entityType = 'Graph';
+  }
   const fieldName = getFieldDisplayName(field);
 
   switch (error.code) {
@@ -196,7 +223,9 @@ function getFieldDisplayName(field: string): string {
  * Categorize processed errors by type and entity ID
  */
 function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
-  const nodeErrors: Record<string, ProcessedGraphError[]> = {};
+  const agentErrors: Record<string, ProcessedGraphError[]> = {};
+  const functionToolErrors: Record<string, ProcessedGraphError[]> = {};
+  const nodeErrors: Record<string, ProcessedGraphError[]> = {}; // Legacy support
   const edgeErrors: Record<string, ProcessedGraphError[]> = {};
   const graphErrors: ProcessedGraphError[] = [];
 
@@ -204,6 +233,21 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
     switch (error.type) {
       case 'node':
         if (error.nodeId) {
+          // Categorize by node type
+          if (error.nodeType === 'functionTool') {
+            if (!functionToolErrors[error.nodeId]) {
+              functionToolErrors[error.nodeId] = [];
+            }
+            functionToolErrors[error.nodeId].push(error);
+          } else {
+            // Default to agent errors for backward compatibility
+            if (!agentErrors[error.nodeId]) {
+              agentErrors[error.nodeId] = [];
+            }
+            agentErrors[error.nodeId].push(error);
+          }
+
+          // Also add to legacy nodeErrors for backward compatibility
           if (!nodeErrors[error.nodeId]) {
             nodeErrors[error.nodeId] = [];
           }
@@ -226,6 +270,8 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
 
   return {
     totalErrors: errors.length,
+    agentErrors,
+    functionToolErrors,
     nodeErrors,
     edgeErrors,
     graphErrors,
@@ -237,18 +283,22 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
  * Generate a concise summary message for the error toast
  */
 export function getErrorSummaryMessage(errorSummary: GraphErrorSummary): string {
-  const { totalErrors, nodeErrors, edgeErrors, graphErrors } = errorSummary;
+  const { totalErrors, agentErrors, functionToolErrors, edgeErrors, graphErrors } = errorSummary;
 
   if (totalErrors === 0) return '';
 
   const parts: string[] = [];
 
-  const nodeErrorCount = Object.keys(nodeErrors).length;
+  const agentErrorCount = Object.keys(agentErrors).length;
+  const functionToolErrorCount = Object.keys(functionToolErrors).length;
   const edgeErrorCount = Object.keys(edgeErrors).length;
   const graphErrorCount = graphErrors.length;
 
-  if (nodeErrorCount > 0) {
-    parts.push(`${nodeErrorCount} agent${nodeErrorCount > 1 ? 's' : ''}`);
+  if (agentErrorCount > 0) {
+    parts.push(`${agentErrorCount} agent${agentErrorCount > 1 ? 's' : ''}`);
+  }
+  if (functionToolErrorCount > 0) {
+    parts.push(`${functionToolErrorCount} function tool${functionToolErrorCount > 1 ? 's' : ''}`);
   }
   if (edgeErrorCount > 0) {
     parts.push(`${edgeErrorCount} connection${edgeErrorCount > 1 ? 's' : ''}`);
