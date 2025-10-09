@@ -51,9 +51,10 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
+    const container = ref.current;
     const model = getOrCreateModel({ uri, value });
     const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-    const editorInstance = createEditor(ref, {
+    const editorInstance = createEditor(container, {
       theme: monacoTheme,
       model,
       readOnly: true,
@@ -78,7 +79,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       }
       // Update height based on content
       const contentHeight = editorInstance.getContentHeight();
-      ref.current.style.height = `${contentHeight}px`;
+      container.style.height = `${contentHeight}px`;
     }
     // Wait for Monaco workers to initialize
     const timerId = setTimeout(() => {
@@ -140,13 +141,13 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   }, []);
 
   return (
-    <div>
+    <>
       <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
         {title}
         <Badge variant="sky">JSON</Badge>
       </h3>
       <div ref={ref} className="rounded-xl overflow-hidden border relative">
-        <div className="absolute end-2 top-2 flex gap-1">
+        <div className="absolute end-2 top-2 flex gap-1 z-1">
           <Button variant="ghost" size="icon-sm" title="Download File" onClick={handleDownloadCode}>
             <Download />
           </Button>
@@ -155,6 +156,6 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 };

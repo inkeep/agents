@@ -76,7 +76,7 @@ editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
 editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
 
 export function createEditor(
-  domElement: RefObject<HTMLDivElement>,
+  domElement: HTMLDivElement,
   options: editor.IStandaloneEditorConstructionOptions
 ): editor.IStandaloneCodeEditor {
   const { model } = options;
@@ -84,7 +84,7 @@ export function createEditor(
     throw new Error('options.model is required');
   }
   const language = model.uri.path.split('.').at(-1)!;
-  return editor.create(domElement.current, {
+  return editor.create(domElement, {
     language,
     automaticLayout: true,
     fontSize: 15,
