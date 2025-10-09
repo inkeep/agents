@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -11,11 +12,10 @@ import {
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-import dynamic from 'next/dynamic';
-import { JsonEditorWithCopy } from '@/components/traces/json-editor-with-copy';
+import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 
-const SpanAttributes = dynamic(() =>
-  import('@/components/traces/timeline/span-attributes').then((mod) => mod.SpanAttributes)
+const JsonEditorWithCopy = dynamic(() =>
+  import('@/components/traces/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
 );
 
 function formatJsonSafely(content: string): string {

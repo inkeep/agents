@@ -1,8 +1,11 @@
 'use client';
 
-import { Streamdown } from 'streamdown';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-import { JsonEditorWithCopy } from '@/components/traces/json-editor-with-copy';
+
+const JsonEditorWithCopy = dynamic(() =>
+  import('@/components/traces/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
+);
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
