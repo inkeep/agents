@@ -304,3 +304,7 @@ export type AgentGraphInsert = AgentGraphApiInsert;
 
 // Re-export utility types for client use
 export { CredentialStoreType, MCPTransportType };
+
+// Re-export OpenTelemetry and SigNoz constants for client-side observability and queries
+export * from './constants/otel-attributes';
+export * from './constants/signoz-queries';

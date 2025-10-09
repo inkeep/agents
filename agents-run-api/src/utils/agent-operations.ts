@@ -1,3 +1,4 @@
+import type { DataOperationEvent } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 
 // =============================================================================
@@ -37,19 +38,6 @@ export interface ErrorEvent {
   severity?: 'error' | 'warning' | 'info';
   code?: string;
   timestamp?: number;
-}
-
-/**
- * Data operation event (for emit operations)
- */
-export interface DataOperationEvent {
-  type: string;
-  label: string;
-  details: {
-    timestamp: number;
-    agentId: string;
-    data: any;
-  };
 }
 
 /**

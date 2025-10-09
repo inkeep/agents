@@ -1,8 +1,11 @@
 import type {
+  DelegationReturnedData,
+  DelegationSentData,
   ModelSettings,
   StatusComponent,
   StatusUpdateSettings,
   SummaryEvent,
+  TransferData,
 } from '@inkeep/agents-core';
 import { getSubAgentById } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -65,28 +68,6 @@ export interface AgentReasoningData {
     args?: any;
     result?: any;
   }>;
-}
-
-export interface TransferData {
-  fromAgent: string;
-  targetAgent: string;
-  reason?: string;
-  context?: any;
-}
-
-export interface DelegationSentData {
-  delegationId: string;
-  fromAgent: string;
-  targetAgent: string;
-  taskDescription: string;
-  context?: any;
-}
-
-export interface DelegationReturnedData {
-  delegationId: string;
-  fromAgent: string;
-  targetAgent: string;
-  result?: any;
 }
 
 export interface ArtifactSavedData {
@@ -213,7 +194,7 @@ export class GraphSession {
           label: this.generateEventLabel(event),
           details: {
             timestamp: event.timestamp,
-            agentId: event.subAgentId,
+            subAgentId: event.subAgentId,
             data: event.data,
           },
         };

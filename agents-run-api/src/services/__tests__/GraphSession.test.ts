@@ -138,8 +138,8 @@ describe('GraphSession', () => {
 
     it('should record transfer events', () => {
       session.recordEvent('transfer', 'router-agent', {
-        fromAgent: 'router-agent',
-        targetAgent: 'specialist-agent',
+        fromSubAgent: 'router-agent',
+        targetSubAgent: 'specialist-agent',
         reason: 'User needs specialized help',
       });
 
@@ -148,8 +148,8 @@ describe('GraphSession', () => {
         eventType: 'transfer',
         subAgentId: 'router-agent',
         data: {
-          fromAgent: 'router-agent',
-          targetAgent: 'specialist-agent',
+          fromSubAgent: 'router-agent',
+          targetSubAgent: 'specialist-agent',
           reason: 'User needs specialized help',
         },
       });
@@ -159,8 +159,8 @@ describe('GraphSession', () => {
       // Delegation sent
       session.recordEvent('delegation_sent', 'parent-agent', {
         delegationId: 'del-123',
-        fromAgent: 'parent-agent',
-        targetAgent: 'child-agent',
+        fromSubAgent: 'parent-agent',
+        targetSubAgent: 'child-agent',
         taskDescription: 'Process this data',
         context: { priority: 'high' },
       });
@@ -168,8 +168,8 @@ describe('GraphSession', () => {
       // Delegation returned
       session.recordEvent('delegation_returned', 'parent-agent', {
         delegationId: 'del-123',
-        fromAgent: 'child-agent',
-        targetAgent: 'parent-agent',
+        fromSubAgent: 'child-agent',
+        targetSubAgent: 'parent-agent',
         result: { processed: true },
       });
 
@@ -551,8 +551,8 @@ describe('GraphSession', () => {
       });
 
       session.recordEvent('transfer', 'agent-1', {
-        fromAgent: 'agent-1',
-        targetAgent: 'agent-2',
+        fromSubAgent: 'agent-1',
+        targetSubAgent: 'agent-2',
         reason: 'Specialized task',
       });
 

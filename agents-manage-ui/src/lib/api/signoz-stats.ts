@@ -688,8 +688,8 @@ class SigNozStatsAPI {
     for (const s of transferSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
-      const from = s.labels?.[SPAN_KEYS.TRANSFER_FROM_AGENT_ID];
-      const to = s.labels?.[SPAN_KEYS.TRANSFER_TO_AGENT_ID];
+      const from = s.labels?.[SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID];
+      const to = s.labels?.[SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID];
       const count = countFromSeries(s);
       if (!from || !to || !count) continue;
       const acc = ensure(id);
@@ -704,8 +704,8 @@ class SigNozStatsAPI {
     for (const s of delegationSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
-      const from = s.labels?.[SPAN_KEYS.DELEGATION_FROM_AGENT_ID];
-      const to = s.labels?.[SPAN_KEYS.DELEGATION_TO_AGENT_ID];
+      const from = s.labels?.[SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID];
+      const to = s.labels?.[SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID];
       const count = countFromSeries(s);
       if (!from || !to || !count) continue;
       const acc = ensure(id);
@@ -1404,11 +1404,11 @@ class SigNozStatsAPI {
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               {
-                key: SPAN_KEYS.TRANSFER_FROM_AGENT_ID,
+                key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               {
-                key: SPAN_KEYS.TRANSFER_TO_AGENT_ID,
+                key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
             ],
@@ -1466,11 +1466,11 @@ class SigNozStatsAPI {
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               {
-                key: SPAN_KEYS.DELEGATION_FROM_AGENT_ID,
+                key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               {
-                key: SPAN_KEYS.DELEGATION_TO_AGENT_ID,
+                key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
             ],

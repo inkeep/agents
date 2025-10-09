@@ -1,6 +1,8 @@
 // Main entry point for @inkeep/agents-core package
 
 export * from './api-client/base-client';
+export * from './constants/otel-attributes';
+export * from './constants/signoz-queries';
 export * from './context/index';
 export * from './credential-stores/index';
 export * from './credential-stuffer/index';

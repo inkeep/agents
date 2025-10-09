@@ -216,19 +216,19 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.DELEGATION_FROM_AGENT_ID,
+              key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.DELEGATION_TO_AGENT_ID,
+              key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.TRANSFER_FROM_AGENT_ID,
+              key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.TRANSFER_TO_AGENT_ID,
+              key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.TOOL_PURPOSE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
@@ -874,10 +874,10 @@ export async function GET(
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
-      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_AGENT_ID, '');
-      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_AGENT_ID, '');
-      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
-      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_AGENT_ID, '');
+      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
+      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
+      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
+      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
       // Extract tool call args and result for ALL tool calls
       const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');

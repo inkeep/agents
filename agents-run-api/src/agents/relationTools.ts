@@ -6,6 +6,7 @@ import {
   createMessage,
   getCredentialReference,
   getExternalAgent,
+  SPAN_KEYS,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
@@ -62,8 +63,8 @@ export const createTransferToAgentTool = ({
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
         activeSpan.setAttributes({
-          'transfer.from_agent_id': callingAgentId,
-          'transfer.to_agent_id': transferConfig.id ?? 'unknown',
+          [SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID]: callingAgentId,
+          [SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID]: transferConfig.id ?? 'unknown',
         });
       }
 
@@ -78,8 +79,8 @@ export const createTransferToAgentTool = ({
       // Record transfer event in GraphSession
       if (streamRequestId) {
         graphSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
-          fromAgent: callingAgentId,
-          targetAgent: transferConfig.id ?? 'unknown',
+          fromSubAgent: callingAgentId,
+          targetSubAgent: transferConfig.id ?? 'unknown',
           reason: `Transfer to ${transferConfig.name || transferConfig.id}`,
         });
       }
@@ -133,9 +134,9 @@ export function createDelegateToAgentTool({
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
         activeSpan.setAttributes({
-          'delegation.from_agent_id': callingAgentId,
-          'delegation.to_agent_id': delegateConfig.config.id ?? 'unknown',
-          'delegation.id': delegationId,
+          [SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID]: callingAgentId,
+          [SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID]: delegateConfig.config.id ?? 'unknown',
+          [SPAN_KEYS.DELEGATION_ID]: delegationId,
         });
       }
 
@@ -147,8 +148,8 @@ export function createDelegateToAgentTool({
           callingAgentId,
           {
             delegationId,
-            fromAgent: callingAgentId,
-            targetAgent: delegateConfig.config.id,
+            fromSubAgent: callingAgentId,
+            targetSubAgent: delegateConfig.config.id,
             taskDescription: input.message,
           }
         );
@@ -323,8 +324,8 @@ export function createDelegateToAgentTool({
           callingAgentId,
           {
             delegationId,
-            fromAgent: delegateConfig.config.id,
-            targetAgent: callingAgentId,
+            fromSubAgent: delegateConfig.config.id,
+            targetSubAgent: callingAgentId,
             result: response.result,
           }
         );
