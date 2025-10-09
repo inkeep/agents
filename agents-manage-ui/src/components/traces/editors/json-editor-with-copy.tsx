@@ -1,19 +1,19 @@
 import { type FC, useCallback, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, KeyCode } from 'monaco-editor';
+import { Copy, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   addDecorations,
   cleanupDisposables,
   createEditor,
   getOrCreateModel,
 } from '@/lib/monaco-utils';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Download } from 'lucide-react';
+import { MONACO_THEME_NAME } from '@/constants/theme';
 import '@/lib/setup-monaco-workers';
 import './json-editor-with-copy.css';
-import { MONACO_THEME_NAME } from '@/constants/theme';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const { element, position } = e.target;
@@ -41,11 +41,11 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
   }
 };
 
-export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; title: string }> = ({
-  value,
-  uri,
-  title,
-}) => {
+export const JsonEditorWithCopy: FC<{
+  value: string;
+  uri: `${string}.json`;
+  title: string;
+}> = ({ value, uri, title }) => {
   const ref = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
 
@@ -60,7 +60,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
     const editorInstance = createEditor(container, {
       theme: monacoTheme,
       model,
-      readOnly: true,
+      readOnly,
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
       contextmenu: false, // Disable the right-click context menu
@@ -102,7 +102,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       },
       model,
       editorInstance,
-      editorInstance.onMouseDown(handleCopyFieldValue(model)),
+      readOnly && editorInstance.onMouseDown(handleCopyFieldValue(model)),
       editorInstance.onDidContentSizeChange(updateHeight),
       // Disable command palette by overriding the action
       editorInstance.addAction({
