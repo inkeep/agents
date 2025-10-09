@@ -44,7 +44,6 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { ArtifactService } from '../services/ArtifactService';
 import { graphSessionManager } from '../services/GraphSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
@@ -1234,7 +1233,7 @@ export class Agent {
       }),
       execute: async ({ artifactId, toolCallId }) => {
         logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
-        
+
         // Use shared ArtifactService from GraphSessionManager
         const streamRequestId = this.getStreamRequestId();
         const artifactService = graphSessionManager.getArtifactService(streamRequestId);
@@ -1242,13 +1241,13 @@ export class Agent {
         if (!artifactService) {
           throw new Error(`ArtifactService not found for session ${streamRequestId}`);
         }
-        
+
         const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
         if (!artifactData) {
           throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
         }
-        
-        return { 
+
+        return {
           artifactId: artifactData.artifactId,
           name: artifactData.name,
           description: artifactData.description,
@@ -1879,6 +1878,18 @@ export class Agent {
           if (collectedParts.length > 0) {
             response.formattedContent = {
               parts: collectedParts.map((part) => ({
+                kind: part.kind,
+                ...(part.kind === 'text' && { text: part.text }),
+                ...(part.kind === 'data' && { data: part.data }),
+              })),
+            };
+          }
+
+          // Also include the streamed content for conversation history
+          const streamedContent = parser.getAllStreamedContent();
+          if (streamedContent.length > 0) {
+            response.streamedContent = {
+              parts: streamedContent.map((part: any) => ({
                 kind: part.kind,
                 ...(part.kind === 'text' && { text: part.text }),
                 ...(part.kind === 'data' && { data: part.data }),
