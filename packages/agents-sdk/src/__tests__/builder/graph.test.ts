@@ -133,8 +133,8 @@ vi.mock('@inkeep/agents-core', async () => {
     ...actual,
     getProject: vi.fn().mockReturnValue(() =>
       Promise.resolve({
-          tenantId: 'test-tenant',
-          models: {
+        tenantId: 'test-tenant',
+        models: {
           base: { model: 'gpt-4o' },
           structuredOutput: { model: 'gpt-4o-mini' },
           summarizer: { model: 'gpt-3.5-turbo' },
@@ -606,7 +606,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project for graph testing',
           models: {
@@ -618,6 +619,7 @@ describe('AgentGraph', () => {
             transferCountIs: 15,
             stepCountIs: 25,
           },
+          sandboxConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -799,11 +801,13 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValueOnce(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project',
           models: null,
           stopWhen: null,
+          sandboxConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -954,7 +958,8 @@ describe('AgentGraph', () => {
       const { getProject } = await import('@inkeep/agents-core');
       vi.mocked(getProject).mockReturnValue(() =>
         Promise.resolve({
-          tenantId: 'test-tenant',          id: 'test-project',
+          tenantId: 'test-tenant',
+          id: 'test-project',
           name: 'Test Project',
           description: 'Test project for graph testing',
           models: {
@@ -966,6 +971,7 @@ describe('AgentGraph', () => {
             transferCountIs: 15,
             stepCountIs: 25,
           },
+          sandboxConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -1108,13 +1114,15 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
-          tenantId: 'test-tenant',            id: 'test-project',
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
             description: 'Test project',
             models: {
               base: { model: 'gpt-4o' },
             },
             stopWhen: null,
+            sandboxConfig: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })
@@ -1204,7 +1212,8 @@ describe('AgentGraph', () => {
       vi.mocked(getProject).mockImplementation(
         () => () =>
           Promise.resolve({
-          tenantId: 'test-tenant',            id: 'test-project',
+            tenantId: 'test-tenant',
+            id: 'test-project',
             name: 'Test Project',
             description: 'Test project',
             models: {
@@ -1214,6 +1223,7 @@ describe('AgentGraph', () => {
               transferCountIs: 12,
               // no stepCountIs
             },
+            sandboxConfig: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })
@@ -1361,8 +1371,13 @@ describe('AgentGraph', () => {
         id: 'artifact1',
         name: 'Artifact Component 1',
         description: 'Test artifact component',
-        summaryProps: { summary: 'test' },
-        fullProps: { full: 'test' },
+        props: {
+          type: 'object',
+          properties: {
+            summary: { type: 'string', inPreview: true },
+            full: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const agent = new Agent({

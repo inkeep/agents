@@ -18,6 +18,8 @@ import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
 import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
+import { getFunction } from './functions';
+import { listTools } from './tools';
 
 export const getAgentGraphById =
   (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
@@ -488,7 +490,7 @@ export const getFullGraphDefinition =
     if (graph.contextConfigId) {
       try {
         contextConfig = await getContextConfigById(db)({
-          scopes: { tenantId, projectId },
+          scopes: { tenantId, projectId, graphId },
           id: graph.contextConfigId,
         });
       } catch (error) {
@@ -537,8 +539,7 @@ export const getFullGraphDefinition =
           id: artifactComponents.id,
           name: artifactComponents.name,
           description: artifactComponents.description,
-          summaryProps: artifactComponents.summaryProps,
-          fullProps: artifactComponents.fullProps,
+          props: artifactComponents.props,
         },
       });
     } catch (error) {
@@ -583,9 +584,7 @@ export const getFullGraphDefinition =
     if (contextConfig) {
       result.contextConfig = {
         id: contextConfig.id,
-        name: contextConfig.name,
-        description: contextConfig.description,
-        requestContextSchema: contextConfig.requestContextSchema,
+        headersSchema: contextConfig.headersSchema,
         contextVariables: contextConfig.contextVariables,
       };
     }
@@ -660,6 +659,59 @@ export const getFullGraphDefinition =
     } catch (error) {
       // Don't fail the entire request if inheritance fails
       console.warn('Failed to apply agent stepCountIs inheritance:', error);
+    }
+
+    // Add tools and functions lookups for UI
+    try {
+      // Get all tools used by agents in this graph
+      const toolsList = await listTools(db)({
+        scopes: { tenantId, projectId },
+        pagination: { page: 1, limit: 1000 },
+      });
+
+      // Build tools lookup map
+      const toolsObject: Record<string, any> = {};
+      for (const tool of toolsList.data) {
+        toolsObject[tool.id] = {
+          id: tool.id,
+          name: tool.name,
+          description: tool.description,
+          config: tool.config,
+          functionId: tool.functionId,
+          credentialReferenceId: tool.credentialReferenceId,
+          imageUrl: tool.imageUrl,
+        };
+      }
+      result.tools = toolsObject;
+
+      // Get all functions referenced by function tools
+      const functionIds = new Set<string>();
+      for (const tool of toolsList.data) {
+        if (tool.functionId) {
+          functionIds.add(tool.functionId);
+        }
+      }
+
+      if (functionIds.size > 0) {
+        const functionsObject: Record<string, any> = {};
+        for (const functionId of functionIds) {
+          const func = await getFunction(db)({
+            functionId,
+            scopes: { tenantId, projectId },
+          });
+          if (func) {
+            functionsObject[functionId] = {
+              id: func.id,
+              inputSchema: func.inputSchema,
+              executeCode: func.executeCode,
+              dependencies: func.dependencies,
+            };
+          }
+        }
+        result.functions = functionsObject;
+      }
+    } catch (error) {
+      console.warn('Failed to load tools/functions lookups:', error);
     }
 
     return result;

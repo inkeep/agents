@@ -35,8 +35,6 @@ export type GraphMetadata = {
 
 export type ContextConfig = {
   id?: string;
-  name: string;
-  description: string;
   contextVariables: string; // JSON string
-  requestContextSchema: string; // JSON string
+  headersSchema: string; // JSON string
 };

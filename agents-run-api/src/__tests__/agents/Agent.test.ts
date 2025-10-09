@@ -1522,10 +1522,12 @@ describe('Agent Conditional Tool Availability', () => {
         tenantId: 'test-tenant',
         name: 'TestComponent',
         description: 'Test component',
-        summaryProps: { type: 'object', properties: { name: { type: 'string' } } },
-        fullProps: {
+        props: {
           type: 'object',
-          properties: { name: { type: 'string' }, details: { type: 'string' } },
+          properties: {
+            name: { type: 'string', inPreview: true },
+            details: { type: 'string', inPreview: false },
+          },
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

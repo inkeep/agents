@@ -10,9 +10,9 @@ import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { listAgentGraphs } from './agentGraphs';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
-import { listContextConfigs } from './contextConfigs';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
+import { upsertFunction } from './functions';
 import {
   createFullGraphServerSide,
   deleteFullGraph,
@@ -121,7 +121,41 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 3: Create tools at project level if they exist
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ projectId: typed.id, functionId }, 'Creating project function');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                },
+                scopes: { tenantId, projectId: typed.id },
+              });
+              logger.info(
+                { projectId: typed.id, functionId },
+                'Project function created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, functionId, error },
+                'Failed to create global function'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All project functions created successfully'
+        );
+      }
+
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
@@ -433,7 +467,52 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 3: Update tools at project level if they exist
+      // Step 3: Update global functions FIRST (before tools that reference them)
+      // Note: Functions are global entities (not tenant/project scoped)
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'Updating project functions'
+        );
+
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ projectId: typed.id, functionId }, 'Updating project function');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                },
+                scopes: { tenantId, projectId: typed.id },
+              });
+              logger.info(
+                { projectId: typed.id, functionId },
+                'Project function updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, functionId, error },
+                'Failed to update global function'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All project functions updated successfully'
+        );
+      }
+
+      // Step 4: Update tools at project level (AFTER functions since tools reference them)
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
@@ -787,8 +866,7 @@ export const getFullProject =
             id: component.id,
             name: component.name,
             description: component.description,
-            summaryProps: component.summaryProps,
-            fullProps: component.fullProps,
+            props: component.props,
           };
         }
         logger.info(
@@ -799,33 +877,6 @@ export const getFullProject =
         logger.warn(
           { tenantId, projectId, error },
           'Failed to retrieve artifactComponents for project'
-        );
-      }
-
-      // Step 6: Get all contextConfigs for this project
-      const projectContextConfigs: Record<string, any> = {};
-      try {
-        const contextConfigsList = await listContextConfigs(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const config of contextConfigsList) {
-          projectContextConfigs[config.id] = {
-            id: config.id,
-            name: config.name,
-            description: config.description,
-            requestContextSchema: config.requestContextSchema,
-            contextVariables: config.contextVariables,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectContextConfigs).length },
-          'ContextConfigs retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve contextConfigs for project'
         );
       }
 

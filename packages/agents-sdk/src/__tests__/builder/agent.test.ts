@@ -317,7 +317,7 @@ describe('Agent Builder', () => {
         ],
       });
       // Set context for the agent
-      agent.setContext('test-tenant', 'test-project');
+      agent.setContext('test-tenant', 'test-project', 'test-graph');
     });
 
     it('should initialize agent and create backend entities', async () => {

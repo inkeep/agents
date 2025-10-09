@@ -16,6 +16,7 @@ const {
   getToolsForAgentMock,
   getAgentByIdMock,
   getAgentGraphMock,
+  getAgentGraphByIdMock,
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
   getProjectMock,
@@ -83,6 +84,17 @@ const {
       id: 'test-graph',
       contextConfigId: 'context-123',
       models: null,
+    })
+  );
+  const getAgentGraphByIdMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      id: 'test-graph',
+      contextConfigId: 'context-123',
+      models: {
+        base: { model: 'openai/gpt-4' },
+        structuredOutput: { model: 'openai/gpt-4' },
+        summarizer: { model: 'openai/gpt-3.5-turbo' },
+      },
     })
   );
 
@@ -176,6 +188,7 @@ const {
     getToolsForAgentMock,
     getAgentByIdMock,
     getAgentGraphMock,
+    getAgentGraphByIdMock,
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
     getProjectMock,
@@ -188,7 +201,14 @@ vi.mock('@inkeep/agents-core', () => ({
   getToolsForAgent: getToolsForAgentMock,
   getAgentById: getAgentByIdMock,
   getAgentGraph: getAgentGraphMock,
-  getAgentGraphById: getAgentGraphMock, // Add missing mock
+  getAgentGraphById: getAgentGraphByIdMock,
+  getTracer: vi.fn().mockReturnValue({
+    startSpan: vi.fn().mockReturnValue({
+      setAttributes: vi.fn(),
+      setStatus: vi.fn(),
+      end: vi.fn(),
+    }),
+  }),
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
   getProject: getProjectMock,

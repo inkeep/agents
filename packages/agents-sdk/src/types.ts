@@ -13,10 +13,27 @@ import type {
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
+
+// Type for artifact components that can have Zod schemas in props
+export interface ArtifactComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
+export interface DataComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
 import type { ArtifactComponentInterface } from './artifact-component';
 import type { AgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './externalAgent';
+import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
 
 // Re-export ModelSettings from agents-core for convenience
@@ -25,10 +42,15 @@ export type { ModelSettings };
 /**
  * Tool instance that may have additional metadata attached during agent processing
  */
-export type AgentTool = Tool & {
-  selectedTools?: string[];
-  headers?: Record<string, string>;
-};
+export type AgentTool =
+  | (Tool & {
+      selectedTools?: string[];
+      headers?: Record<string, string>;
+    })
+  | (FunctionTool & {
+      selectedTools?: string[];
+      headers?: Record<string, string>;
+    });
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -74,7 +96,7 @@ export interface ToolResult {
 }
 export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
 
-export type AgentCanUseType = Tool | AgentMcpConfig;
+export type AgentCanUseType = Tool | AgentMcpConfig | FunctionTool;
 
 // Agent configuration types
 export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
@@ -92,8 +114,16 @@ export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
     type: 'conversation' | 'episodic' | 'short_term';
     capacity?: number;
   };
-  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
-  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
+  dataComponents?: () => (
+    | DataComponentApiInsert
+    | DataComponentInterface
+    | DataComponentWithZodProps
+  )[];
+  artifactComponents?: () => (
+    | ArtifactComponentApiInsert
+    | ArtifactComponentInterface
+    | ArtifactComponentWithZodProps
+  )[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
@@ -140,6 +170,8 @@ export interface FetchDefinitionConfig {
   timeout?: number;
   credential?: CredentialReferenceApiInsert;
 }
+
+export type { FunctionToolConfig, SandboxConfig } from '@inkeep/agents-core';
 
 export interface RequestSchemaDefinition {
   body?: z.ZodSchema<any>;

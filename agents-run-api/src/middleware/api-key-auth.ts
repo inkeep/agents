@@ -29,7 +29,10 @@ export const apiKeyAuth = () =>
     const projectId = c.req.header('x-inkeep-project-id');
     const graphId = c.req.header('x-inkeep-graph-id');
     const agentId = c.req.header('x-inkeep-agent-id');
-    const baseUrl = new URL(c.req.url).origin;
+
+    const proto = c.req.header('x-forwarded-proto') ?? 'http';
+    const host = c.req.header('x-forwarded-host') ?? c.req.header('host');
+    const baseUrl = `${proto}://${host}`;
 
     // Bypass authentication only for integration tests with specific header
     if (process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test') {

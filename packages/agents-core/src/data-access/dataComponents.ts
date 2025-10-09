@@ -10,6 +10,7 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../types/index';
+import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
 /**
  * Get a data component by ID
@@ -107,6 +108,17 @@ export const listDataComponentsPaginated =
 export const createDataComponent =
   (db: DatabaseClient) =>
   async (params: DataComponentInsert): Promise<DataComponentSelect> => {
+    // Validate props as JSON Schema (required for data components)
+    if (params.props) {
+      const propsValidation = validatePropsAsJsonSchema(params.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
     const dataComponent = await db.insert(dataComponents).values(params).returning();
 
     return dataComponent[0];
@@ -122,6 +134,17 @@ export const updateDataComponent =
     dataComponentId: string;
     data: DataComponentUpdate;
   }): Promise<DataComponentSelect | null> => {
+    // Validate props as JSON Schema if provided
+    if (params.data.props !== undefined && params.data.props !== null) {
+      const propsValidation = validatePropsAsJsonSchema(params.data.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
     const now = new Date().toISOString();
 
     await db

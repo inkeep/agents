@@ -1,0 +1,14 @@
+# Fix of changesets issue https://github.com/changesets/changesets/issues/1011
+diff --git a/dist/changesets-assemble-release-plan.cjs.js b/dist/changesets-assemble-release-plan.cjs.js
+index e07ba6e793021b6cfdec898afca517e293386ddb..b6e614d5103c275919c9434c5e69d596bf71b866 100644
+--- a/dist/changesets-assemble-release-plan.cjs.js
++++ b/dist/changesets-assemble-release-plan.cjs.js
+@@ -323,7 +323,7 @@ function shouldBumpMajor({
+   // 2. If onlyUpdatePeerDependentsWhenOutOfRange set to false, bump major regardless whether or not the version is leaving the range.
+   !onlyUpdatePeerDependentsWhenOutOfRange || !semverSatisfies__default["default"](incrementVersion(nextRelease, preInfo), versionRange)) && (
+   // bump major only if the dependent doesn't already has a major release.
+-  !releases.has(dependent) || releases.has(dependent) && releases.get(dependent).type !== "major");
++  !releases.has(dependent) || releases.has(dependent) && (releases.get(dependent).type !== "major" && releases.get(dependent).type !== "minor"));
+ }
+
+ // This function takes in changesets and returns one release per

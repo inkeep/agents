@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-sdk",
-  "version": "0.14.16",
+  "version": "0.16.0",
   "description": "Agents SDK for building and managing agents in the Inkeep Agent Framework",
   "main": "src/index.ts",
   "type": "module",
@@ -19,11 +19,16 @@
   "clean-package": "./clean-package.config.json",
   "dependencies": {
     "@inkeep/agents-core": "workspace:^",
+    "@yarnpkg/lockfile": "^1.1.0",
+    "esbuild": "^0.25.10",
+    "js-yaml": "^4.1.0",
     "nanoid": "^5.1.5",
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.24",
+    "@types/yarnpkg__lockfile": "^1.1.0",
     "@vitest/coverage-v8": "^2.0.0",
     "clean-package": "^2.2.0",
     "tsx": "^4.7.1",

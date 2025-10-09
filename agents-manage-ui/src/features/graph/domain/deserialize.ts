@@ -6,6 +6,7 @@ import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
   externalAgentNodeTargetHandleId,
+  functionToolNodeHandleId,
   mcpNodeHandleId,
   NodeType,
 } from '@/components/graph/configuration/node-types';
@@ -200,24 +201,57 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
     nodes.push(agentNode);
   }
 
-  // Note: Tools are now project-scoped and not included in graph data
-  // Tool visualization will need to be handled at the project level
+  // Create tool nodes from canUse items (using tools and functions lookups)
   for (const agentId of agentIds) {
     const agent = data.agents[agentId];
     // Check if agent has canUse property (internal agents)
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
-      // Tools are project-scoped - create nodes from canUse items
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolNodeId = nanoid();
         const relationshipId = canUseItem.agentToolRelationId;
+
+        // Look up the tool to get its details
+        const tool = data.tools?.[toolId];
+        const toolType = tool?.config?.type || 'mcp'; // Default to MCP if not found
+
+        // Create the appropriate node type
+        const nodeType = toolType === 'function' ? NodeType.FunctionTool : NodeType.MCP;
+
+        // Populate node data with tool details from lookup
+        const nodeData: any = {
+          toolId,
+          agentId,
+          relationshipId,
+          // Add tool details from lookup for proper display
+          name: tool?.name,
+          description: tool?.description,
+          imageUrl: (tool as any)?.imageUrl,
+        };
+
+        // For function tools, add function details from functions lookup
+        if (toolType === 'function') {
+          const functionId = (tool as any)?.functionId;
+          if (functionId) {
+            const func = data.functions?.[functionId];
+            if (func) {
+              nodeData.inputSchema = func.inputSchema;
+              nodeData.code = func.executeCode;
+              nodeData.dependencies = func.dependencies;
+            }
+          }
+        }
+
         const toolNode: Node = {
           id: toolNodeId,
-          type: NodeType.MCP,
+          type: nodeType,
           position: { x: 0, y: 0 },
-          data: { toolId, agentId, relationshipId },
+          data: nodeData,
         };
         nodes.push(toolNode);
+
+        // Use the appropriate handle ID based on tool type
+        const targetHandle = toolType === 'function' ? functionToolNodeHandleId : mcpNodeHandleId;
 
         const agentToToolEdge: Edge = {
           id: `edge-${toolNodeId}-${agentId}`,
@@ -225,7 +259,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
           source: agentId,
           sourceHandle: agentNodeSourceHandleId,
           target: toolNodeId,
-          targetHandle: mcpNodeHandleId,
+          targetHandle,
         };
         edges.push(agentToToolEdge);
       }

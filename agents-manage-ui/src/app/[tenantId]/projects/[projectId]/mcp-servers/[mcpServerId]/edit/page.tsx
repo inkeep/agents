@@ -39,6 +39,11 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
     // Continue without credentials
   }
 
+  // Type guard - this page is only for MCP tools
+  if (mcpTool.config.type !== 'mcp') {
+    throw new Error('Invalid tool type - expected MCP tool');
+  }
+
   // Convert MCPTool to MCPToolFormData format
   const initialFormData: MCPToolFormData = {
     name: mcpTool.name,

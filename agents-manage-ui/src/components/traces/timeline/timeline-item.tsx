@@ -107,7 +107,7 @@ export function TimelineItem({
   const textColorClass =
     activity.status === 'error'
       ? 'text-red-500 hover:text-red-700'
-        : 'text-foreground hover:text-primary';
+      : 'text-foreground hover:text-primary';
 
   return (
     <div className={`flex flex-col text-muted-foreground relative text-xs`}>
@@ -392,8 +392,8 @@ export function TimelineItem({
 
           {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.aiTelemetryFunctionId && 
-            activity.toolType !== 'delegation' && 
+            activity.aiTelemetryFunctionId &&
+            activity.toolType !== 'delegation' &&
             activity.toolType !== 'transfer' && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
@@ -403,29 +403,28 @@ export function TimelineItem({
             )}
 
           {/* Error display for failed AI/Agent generations */}
-          {(activity.hasError) &&
-            activity.otelStatusDescription && (
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => onToggleAiMessageCollapse && onToggleAiMessageCollapse(activity.id)}
-                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
-                  title={isAiMessageCollapsed ? 'Expand error message' : 'Collapse error message'}
-                >
-                  {isAiMessageCollapsed ? (
-                    <ChevronRight className="h-3 w-3" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3" />
-                  )}
-                  Error Details
-                </button>
-                {!isAiMessageCollapsed && (
-                  <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                    {activity.otelStatusDescription}
-                  </Bubble>
+          {activity.hasError && activity.otelStatusDescription && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => onToggleAiMessageCollapse?.(activity.id)}
+                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
+                title={isAiMessageCollapsed ? 'Expand error message' : 'Collapse error message'}
+              >
+                {isAiMessageCollapsed ? (
+                  <ChevronRight className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
                 )}
-              </div>
-            )}
+                Error Details
+              </button>
+              {!isAiMessageCollapsed && (
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {activity.otelStatusDescription}
+                </Bubble>
+              )}
+            </div>
+          )}
 
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"

@@ -36,11 +36,11 @@ Let's create a simple context fetcher that retrieves user information:
 ```typescript
 import { z } from "zod";
 import { agent, agentGraph } from "@inkeep/agents-manage-api/builders";
-import { contextConfig, fetchDefinition, requestContextSchema } from "@inkeep/agents-core";
+import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
 
 // 1. Define request schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.
-const requestContext = requestContextSchema({
+const personalGraphHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     api_key: z.string(),
@@ -53,26 +53,27 @@ const userFetcher = fetchDefinition({
   name: "User Information",
   trigger: "initialization", // Fetch only once when a conversation is started with the graph. When set to "invocation", the fetch will be executed every time a request is made to the graph.
   fetchConfig: {
-    url: `https://api.example.com/users/${requestContext.toTemplate('user_id')}`,
+    url: `https://api.example.com/users/${personalGraphHeaders.toTemplate('user_id')}`,
     method: "GET",
     headers: {
-      Authorization: `Bearer ${requestContext.toTemplate('api_key')}`,
+      Authorization: `Bearer ${personalGraphHeaders.toTemplate('api_key')}`,
     },
-    transform: "name", // Extract user's name from response, for example if the response is { "name": "John Doe", "email": "john.doe@example.com" }, the transform will return "John Doe"
+    transform: "user", // Extract user from response, for example if the response is { "user": { "name": "John Doe", "email": "john.doe@example.com" } }, the transform will return the user object
   },
-  responseSchema: z.string(), // Used to validate the result of the transformed api response.
+  responseSchema: z.object({
+    user: z.object({
+      name: z.string(),
+      email: z.string(),
+    }),
+  }), // Used to validate the result of the transformed api response.
   defaultValue: "Unable to fetch user information",
 });
 
 // 3. Configure context
-const userContext = contextConfig({
-  tenantId: "your-tenant",
-  id: "user-context",
-  name: "User Context",
-  description: "Fetches user information for personalization",
-  requestContextSchema: requestContext,
+const personalGraphContext = contextConfig({
+  headers: personalGraphHeaders,
   contextVariables: {
-    userName: userFetcher,
+    user: userFetcher,
   },
 });
 
@@ -81,7 +82,7 @@ const personalAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
-  prompt: `Hello ${userContext.toTemplate('userName')}! I'm your personal assistant.`,
+  prompt: `Hello ${personalGraphContext.toTemplate('user.name')}! I'm your personal assistant.`,
 });
 
 // Initialize the graph
@@ -90,7 +91,7 @@ export const graph = agentGraph({
   name: "Personal Assistant Graph",
   defaultAgent: personalAgent,
   agents: () => [personalAgent],
-  contextConfig: userContext,
+  contextConfig: personalGraphContext,
 });
 ```
 
@@ -100,12 +101,8 @@ Context variables can be used in your agent prompts using JSONPath template synt
 Use the context config's `toTemplate()` method for type-safe templating with autocomplete and validation.
 
 ```typescript
-const userContext = contextConfig({
-  tenantId: "your-tenant",
-  id: "user-context",
-  name: "User Context",
-  description: "Fetches user information for personalization",
-  requestContextSchema: requestContext,
+const personalGraphContext = contextConfig({
+  headers: personalGraphHeaders,
   contextVariables: {
     user: userFetcher,
   },
@@ -115,7 +112,7 @@ const personalAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
-  prompt: `Hello ${userContext.toTemplate('user.name')}! I'm your personal assistant. I can see that you work for ${userContext.toTemplate('requestContext.org_alias')}.`,
+  prompt: `Hello ${personalGraphContext.toTemplate('user.name')}! I'm your personal assistant.`,
 });
 ```
 

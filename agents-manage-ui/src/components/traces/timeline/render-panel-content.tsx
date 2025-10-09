@@ -10,9 +10,24 @@ import {
   StatusBadge,
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
+
+// Reusable component for tool arguments/results
+function ToolDataBlock({ label, data }: { label: string; data: string }) {
+  return (
+    <LabeledBlock label={label}>
+      <Streamdown>{`\`\`\`json\n${(() => {
+        try {
+          return JSON.stringify(JSON.parse(data), null, 2);
+        } catch {
+          return data;
+        }
+      })()}\n\`\`\``}</Streamdown>
+    </LabeledBlock>
+  );
+}
 
 export function renderPanelContent({
   selected,
@@ -273,32 +288,8 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
-            {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
+            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
+            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -330,32 +321,8 @@ export function renderPanelContent({
               }
             />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
-            {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
+            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
+            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -388,32 +355,8 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
-            {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
+            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
+            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -442,32 +385,8 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
-            {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
-            )}
+            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
+            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

@@ -12,8 +12,7 @@ export interface ArtifactComponentInterface {
   getId(): ArtifactComponentType['id'];
   getName(): ArtifactComponentType['name'];
   getDescription(): ArtifactComponentType['description'];
-  getSummaryProps(): ArtifactComponentType['summaryProps'];
-  getFullProps(): ArtifactComponentType['fullProps'];
+  getProps(): ArtifactComponentType['props'];
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
 }
 
@@ -67,12 +66,8 @@ export class ArtifactComponent implements ArtifactComponentInterface {
     return this.config.description;
   }
 
-  getSummaryProps(): ArtifactComponentType['summaryProps'] {
-    return this.config.summaryProps;
-  }
-
-  getFullProps(): ArtifactComponentType['fullProps'] {
-    return this.config.fullProps;
+  getProps(): ArtifactComponentType['props'] {
+    return this.config.props;
   }
 
   // Public method to ensure artifact component exists in backend (with upsert behavior)
@@ -109,8 +104,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
       id: this.getId(),
       name: this.config.name,
       description: this.config.description,
-      summaryProps: this.config.summaryProps,
-      fullProps: this.config.fullProps,
+      props: this.config.props,
     };
 
     logger.info({ artifactComponentData }, 'artifactComponentData for create/update');

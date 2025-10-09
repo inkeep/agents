@@ -1,27 +1,16 @@
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
-
-interface Tool {
-  id: string;
-  name: string;
-  config: {
-    mcp: {
-      server: {
-        url: string;
-      };
-    };
-  };
-}
+import type { McpTool } from '@inkeep/agents-core';
 
 interface CredentialToolsListProps {
-  tools?: Tool[];
+  tools?: McpTool[];
   label?: string;
   tenantId?: string;
   projectId?: string;
 }
 
 interface ToolItemProps {
-  tool: Tool;
+  tool: McpTool;
   tenantId?: string;
   projectId?: string;
 }
@@ -37,7 +26,9 @@ function ToolItem({ tool, tenantId, projectId }: ToolItemProps) {
       <div className="flex items-center gap-3">
         <div>
           <p className="font-medium text-sm">{tool.name}</p>
-          <p className="text-xs text-muted-foreground">{tool.config.mcp.server.url}</p>
+          <p className="text-xs text-muted-foreground">
+            {tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}
+          </p>
         </div>
       </div>
     </>

@@ -54,10 +54,8 @@ describe('graph serialize/deserialize', () => {
       description: 'Graph with self-referencing agent',
       contextConfig: {
         id: '',
-        name: '',
-        description: '',
         contextVariables: '',
-        requestContextSchema: '',
+        headersSchema: '',
       },
     });
 
@@ -139,10 +137,8 @@ describe('graph serialize/deserialize', () => {
       name: 'G',
       description: 'D',
       contextConfig: {
-        name: 'Context',
-        description: 'Context description',
         contextVariables: '{}',
-        requestContextSchema: '{}',
+        headersSchema: '{}',
       },
     });
     expect(serialized.id).toBe('g1');

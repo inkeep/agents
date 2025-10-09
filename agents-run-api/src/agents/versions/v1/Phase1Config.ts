@@ -1,12 +1,17 @@
 import type { Artifact, DataComponentApiInsert, McpTool } from '@inkeep/agents-core';
-// Import template content as raw text
-import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
+// Import template content as raw text
+import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
+import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
+import {
+  type ExtendedJsonSchema,
+  extractFullFields,
+  extractPreviewFields,
+} from '../../../utils/schema-validation';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 const logger = getLogger('Phase1Config');
@@ -73,7 +78,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
-    
+
     const artifactsSection = this.generateArtifactsSection(
       templates,
       config.artifacts,
@@ -81,12 +86,11 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasGraphArtifactComponents
     );
-    
+
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
-
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
@@ -183,8 +187,8 @@ SELECTOR REQUIREMENTS:
 
 CRITICAL: SELECTOR HIERARCHY
 - base_selector: Points to ONE specific item in the tool result
-- summary_props/full_props: Contain JMESPath selectors RELATIVE to the base selector
-- Example: If base="result.documents[?type=='api']" then summary_props uses "title" not "documents[0].title"
+- details_selector: Contains JMESPath selectors RELATIVE to the base selector
+- Example: If base="result.documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
 
 COMMON FAILURE POINTS (AVOID THESE):
 1. **Array Selection**: result.items (returns array) ❌
@@ -227,24 +231,22 @@ You will create and reference artifacts using inline annotations in your text re
 
 CREATING ARTIFACTS (SERVES AS CITATION):
 Use the artifact:create annotation to extract data from tool results. The creation itself serves as a citation.
-Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" summary='{"key":"jmespath_selector"}' full='{"key":"jmespath_selector"}' />
+Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
 
-🚨 CRITICAL: SUMMARY AND FULL PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
+🚨 CRITICAL: DETAILS PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
 
 ❌ WRONG - Using literal values:
-summary='{"title":"API Documentation","type":"guide"}'
-full='{"description":"This is a comprehensive guide..."}'
+details='{"title":"API Documentation","type":"guide"}'
 
 ✅ CORRECT - Using JMESPath selectors (relative to base selector):
-summary='{"title":"metadata.title","doc_type":"document_type"}'
-full='{"description":"content.description","main_text":"content.text","author":"metadata.author"}'
+details='{"title":"metadata.title","doc_type":"document_type","description":"content.description","main_text":"content.text","author":"metadata.author"}'
 
 The selectors extract actual field values from the data structure selected by your base selector.
 
-THE summary AND full PROPERTIES MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE TOOL RESULT!
-- summary: Contains JMESPath selectors relative to the base selector
-- full: Contains JMESPath selectors relative to the base selector  
+THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE TOOL RESULT!
+- details: Contains JMESPath selectors relative to the base selector that map to artifact schema fields
 - These selectors are evaluated against the tool result to extract the actual values
+- The system automatically determines which fields are preview vs full based on the artifact schema
 - NEVER put literal values like "Inkeep" or "2023" - always use selectors like "metadata.company" or "founded_year"
 
 🚫 FORBIDDEN JMESPATH PATTERNS:
@@ -304,7 +306,7 @@ Only use artifact:ref when you need to cite the SAME artifact again for a differ
 Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base='result.documents[?type=="auth"]' summary='{"title":"metadata.title","endpoint":"api.endpoint"}' full='{"description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base='result.documents[?type=="auth"]' details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <artifact:ref id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
@@ -373,28 +375,21 @@ IMPORTANT GUIDELINES:
     // For text responses (annotations) - show available types with their schemas
     const typeDescriptions = artifactComponents
       .map((ac) => {
-        let summarySchema = 'No schema defined';
-        let fullSchema = 'No schema defined';
-        
-        if (ac.summaryProps?.properties) {
-          const summaryPropNames = Object.keys(ac.summaryProps.properties);
-          const summaryDetails = Object.entries(ac.summaryProps.properties)
-            .map(([key, value]: [string, any]) => `${key} (${value.description || value.type || 'field'})`)
+        let schemaDescription = 'No schema defined';
+
+        if (ac.props?.properties) {
+          const fieldDetails = Object.entries(ac.props.properties)
+            .map(([key, value]: [string, any]) => {
+              // Show inPreview flag for LLM display to understand field usage
+              const inPreview = value.inPreview ? ' [PREVIEW]' : ' [FULL]';
+              return `${key} (${value.description || value.type || 'field'})${inPreview}`;
+            })
             .join(', ');
-          summarySchema = `Required: ${summaryDetails}`;
-        }
-        
-        if (ac.fullProps?.properties) {
-          const fullPropNames = Object.keys(ac.fullProps.properties);
-          const fullDetails = Object.entries(ac.fullProps.properties)
-            .map(([key, value]: [string, any]) => `${key} (${value.description || value.type || 'field'})`)
-            .join(', ');
-          fullSchema = `Available: ${fullDetails}`;
+          schemaDescription = `Fields: ${fieldDetails}`;
         }
 
         return `  - "${ac.name}": ${ac.description || 'No description available'}
-    Summary Props: ${summarySchema}
-    Full Props: ${fullSchema}`;
+    ${schemaDescription}`;
       })
       .join('\n\n');
 
@@ -403,12 +398,13 @@ AVAILABLE ARTIFACT TYPES:
 
 ${typeDescriptions}
 
-🚨 CRITICAL: SUMMARY AND FULL PROPS MUST MATCH THE ARTIFACT SCHEMA! 🚨
+🚨 CRITICAL: DETAILS PROPS MUST MATCH THE ARTIFACT SCHEMA! 🚨
 - Only use property names that are defined in the artifact component schema above
 - Do NOT make up arbitrary property names like "founders", "nick_details", "year"  
-- Each artifact type has specific required fields in summaryProps and available fields in fullProps
+- Each artifact type has specific fields defined in its schema
 - Your JMESPath selectors must extract values for these exact schema-defined properties
-- Example: If schema defines "title" and "url", use summary='{"title":"title","url":"url"}' not made-up names
+- Example: If schema defines "title" and "url", use details='{"title":"title","url":"url"}' not made-up names
+- The system will automatically determine which fields are preview vs full based on schema configuration
 
 🚨 CRITICAL: USE EXACT ARTIFACT TYPE NAMES IN QUOTES! 🚨
 - MUST use the exact type name shown in quotes above
@@ -427,7 +423,11 @@ ${typeDescriptions}
   ): string {
     // Show referencing rules if any agent in graph has artifact components OR if artifacts exist
     const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
-    const rules = this.getArtifactReferencingRules(hasArtifactComponents, templates, shouldShowReferencingRules);
+    const rules = this.getArtifactReferencingRules(
+      hasArtifactComponents,
+      templates,
+      shouldShowReferencingRules
+    );
     const creationInstructions = this.getArtifactCreationInstructions(
       hasArtifactComponents,
       artifactComponents

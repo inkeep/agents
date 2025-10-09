@@ -81,18 +81,18 @@ export class TemplateEngine {
             return match; // Keep original template
           }
 
-          // Enhanced debugging for requestContext issues
-          if (trimmedPath.startsWith('requestContext.')) {
+          // Enhanced debugging for headers issues
+          if (trimmedPath.startsWith('headers.')) {
             logger.warn(
               {
                 variable: trimmedPath,
                 availableKeys: Object.keys(context),
                 contextStructure: JSON.stringify(context, null, 2),
-                requestContextContent: context.requestContext
-                  ? JSON.stringify(context.requestContext, null, 2)
+                headersContent: context.headers
+                  ? JSON.stringify(context.headers, null, 2)
                   : 'undefined',
               },
-              'RequestContext template variable debugging'
+              'Headers template variable debugging'
             );
           } else {
             logger.warn(

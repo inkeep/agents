@@ -1,6 +1,6 @@
 'use client';
-import { InkeepEmbeddedChat } from '@inkeep/cxkit-react-oss';
-import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/cxkit-react-oss/types';
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
+import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
@@ -265,7 +265,7 @@ export function ChatWidget({
   );
 }
 
-// using the built in IkpMessage component from cxkit-react-oss but leaving this here for reference / testing
+// using the built in IkpMessage component from agents-ui but leaving this here for reference / testing
 const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
   const { message, renderMarkdown, renderComponent } = props;
 

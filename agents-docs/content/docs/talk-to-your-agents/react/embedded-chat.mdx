@@ -10,16 +10,17 @@ The InkeepEmbeddedChat component provides a fully embedded chat interface that y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/cxkit-react-oss
+npm install @inkeep/agents-ui
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/cxkit-react-oss
+yarn add @inkeep/agents-ui
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/cxkit-react-oss
+pnpm add @inkeep/agents-ui
 ```
+
 </CodeGroup>
 
 ## Quick Start
@@ -30,7 +31,7 @@ pnpm add @inkeep/cxkit-react-oss
     Use an API key for secure authentication in production:
     
     ```tsx
-    import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from "@inkeep/cxkit-react-oss";
+    import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from "@inkeep/agents-ui";
 
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
@@ -43,12 +44,13 @@ pnpm add @inkeep/cxkit-react-oss
       return <InkeepEmbeddedChat {...embeddedChatProps} />;
     }
     ```
-    
+
     **To get an API key:**
     1. Open the Visual Builder Dashboard
     2. Navigate to your Project → **API Keys**
     3. Click **Create New Key** and select your agent graph
     4. Copy the key (shown once) and store it in your environment variables
+
   </Tab>
   
   <Tab title="Development">
@@ -59,7 +61,7 @@ pnpm add @inkeep/cxkit-react-oss
     import {
       InkeepEmbeddedChat,
       type InkeepEmbeddedChatProps,
-    } from "@inkeep/cxkit-react-oss";
+    } from "@inkeep/agents-ui";
 
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
@@ -76,7 +78,8 @@ pnpm add @inkeep/cxkit-react-oss
       return <InkeepEmbeddedChat {...embeddedChatProps} />;
     }
     ```
-    
+
     **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
   </Tab>
 </Tabs>

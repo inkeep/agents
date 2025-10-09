@@ -5,4 +5,5 @@
   <artifact_id>{{ARTIFACT_ID}}</artifact_id>
   <tool_call_id>{{TOOL_CALL_ID}}</tool_call_id>
   <summary_data>{{ARTIFACT_SUMMARY}}</summary_data>
+  <!-- NOTE: This shows summary/preview data only. Use get_reference_artifact tool to get complete artifact data if needed. -->
 </artifact> 

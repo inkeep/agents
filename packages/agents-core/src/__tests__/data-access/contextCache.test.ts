@@ -7,7 +7,7 @@ import {
   getContextConfigCacheEntries,
   getConversationCacheEntries,
   invalidateInvocationDefinitionsCache,
-  invalidateRequestContextCache,
+  invalidateHeadersCache,
   setCacheEntry,
 } from '../../data-access/contextCache';
 import type { DatabaseClient } from '../../db/client';
@@ -508,8 +508,8 @@ describe('Context Cache Data Access', () => {
     });
   });
 
-  describe('invalidateRequestContextCache', () => {
-    it('should invalidate request context cache successfully', async () => {
+  describe('invalidateHeadersCache', () => {
+    it('should invalidate headers cache successfully', async () => {
       const mockDelete = vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
       });
@@ -519,7 +519,7 @@ describe('Context Cache Data Access', () => {
         delete: mockDelete,
       } as any;
 
-      const result = await invalidateRequestContextCache(mockDb)({
+      const result = await invalidateHeadersCache(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -543,7 +543,7 @@ describe('Context Cache Data Access', () => {
       } as any;
 
       await expect(
-        invalidateRequestContextCache(mockDb)({
+        invalidateHeadersCache(mockDb)({
           scopes: {
             tenantId: testTenantId,
             projectId: testProjectId,

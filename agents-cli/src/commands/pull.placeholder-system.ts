@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { jsonSchemaToZod } from 'json-schema-to-zod';
 
 /**
  * Placeholder replacement system for reducing LLM prompt size
@@ -48,6 +49,18 @@ function shouldReplaceString(value: string, placeholder: string): boolean {
   return value.length >= MIN_REPLACEMENT_LENGTH && placeholder.length < value.length;
 }
 
+function isJsonSchemaPath(path: string): boolean {
+  if (path.endsWith('contextConfig.headersSchema') || path.endsWith('responseSchema')) {
+    return true;
+  }
+  return false;
+}
+
+function updateTracker(tracker: PlaceholderTracker, placeholder: string, value: any) {
+  tracker.placeholderToValue.set(placeholder, value);
+  tracker.valueToPlaceholder.set(value, placeholder);
+}
+
 /**
  * Recursively process an object to create placeholders for large string values
  */
@@ -74,14 +87,23 @@ function processObject(obj: any, tracker: PlaceholderTracker, path: string = '')
       }
 
       // Store the mapping both ways for efficient lookup
-      tracker.placeholderToValue.set(placeholder, obj);
-      tracker.valueToPlaceholder.set(obj, placeholder);
+      updateTracker(tracker, placeholder, obj);
 
       return placeholder;
     }
 
     // Return original string if not worth replacing
     return obj;
+  }
+
+  if (isJsonSchemaPath(path)) {
+    try {
+      const zodSchema = jsonSchemaToZod(obj);
+
+      return zodSchema;
+    } catch (error) {
+      console.error('Error converting JSON schema to Zod schema:', error);
+    }
   }
 
   if (Array.isArray(obj)) {

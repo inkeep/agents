@@ -167,8 +167,7 @@ describe('Cascading Delete Tests', () => {
       id: nanoid(),
       name: 'Test Artifact Component',
       description: 'Test artifact component',
-      summaryProps: {},
-      fullProps: {},
+      props: {},
     };
     await dbClient.insert(artifactComponents).values(artifactComponent);
 

@@ -183,8 +183,7 @@ describe('GraphSession', () => {
         artifactId: 'artifact-123',
         taskId: 'task-456',
         artifactType: 'chart',
-        summaryData: { title: 'Sales Chart' },
-        fullData: { chartData: [1, 2, 3] },
+        data: { title: 'Sales Chart', chartData: [1, 2, 3] },
         tenantId: 'tenant-1',
         projectId: 'project-1',
         contextId: 'context-1',
@@ -565,7 +564,7 @@ describe('GraphSession', () => {
         artifactId: 'art-1',
         taskId: 'task-1',
         artifactType: 'chart',
-        summaryData: { title: 'Test Chart' },
+        data: { title: 'Test Chart' },
       });
     });
 

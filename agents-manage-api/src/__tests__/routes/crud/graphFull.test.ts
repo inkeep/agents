@@ -59,26 +59,11 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
   });
 
   // Helper function to create test contextConfig data
-  const createTestContextConfigData = ({
+  const createTestContextConfigData = ({ id, suffix = '' }: { id: string; suffix?: string }) => ({
     id,
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-    graphId,
-  }: {
-    id: string;
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-    graphId: string;
-  }) => ({
-    id,
-    tenantId,
-    projectId,
-    graphId,
     name: `Test Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
-    requestContextSchema: {
+    headersSchema: {
       type: 'object',
       properties: {
         userId: { type: 'string', description: 'User identifier' },
@@ -93,10 +78,10 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         name: `User Profile${suffix}`,
         trigger: 'initialization',
         fetchConfig: {
-          url: `https://api.example.com/users/{{requestContext.userId}}${suffix}`,
+          url: `https://api.example.com/users/{{headers.userId}}${suffix}`,
           method: 'GET',
           headers: {
-            Authorization: 'Bearer {{requestContext.sessionToken}}',
+            Authorization: 'Bearer {{headers.sessionToken}}',
           },
         },
         defaultValue: { name: `Default User${suffix}` },
@@ -130,18 +115,21 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     id,
     name: `Test ArtifactComponent${suffix}`,
     description: `Test artifactComponent description${suffix}`,
-    summaryProps: {
-      title: `Summary Title${suffix}`,
-      subtitle: `Summary Subtitle${suffix}`,
-      [`field${suffix}`]: `value${suffix}`,
-    },
-    fullProps: {
-      title: `Full Title${suffix}`,
-      subtitle: `Full Subtitle${suffix}`,
-      content: `Full content for artifactComponent${suffix}`,
-      metadata: {
-        author: `Author${suffix}`,
-        created: new Date().toISOString(),
+    props: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', inPreview: true },
+        subtitle: { type: 'string', inPreview: true },
+        [`field${suffix}`]: { type: 'string', inPreview: true },
+        content: { type: 'string', inPreview: false },
+        metadata: {
+          type: 'object',
+          inPreview: false,
+          properties: {
+            author: { type: 'string' },
+            created: { type: 'string' },
+          },
+        },
       },
     },
   });
@@ -222,9 +210,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       graphData.contextConfig = createTestContextConfigData({
         id: contextConfigId,
         suffix: 'Main',
-        tenantId,
-        projectId: projectIdParam,
-        graphId: id,
       });
     }
 
@@ -1081,14 +1066,13 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           id: acId,
           name: expect.stringContaining('Test ArtifactComponent'),
           description: expect.stringContaining('Test artifactComponent description'),
-          summaryProps: expect.objectContaining({
-            title: expect.stringContaining('Summary Title'),
-            subtitle: expect.stringContaining('Summary Subtitle'),
-          }),
-          fullProps: expect.objectContaining({
-            title: expect.stringContaining('Full Title'),
-            subtitle: expect.stringContaining('Full Subtitle'),
-            content: expect.stringContaining('Full content for artifactComponent'),
+          props: expect.objectContaining({
+            type: 'object',
+            properties: expect.objectContaining({
+              title: expect.any(Object),
+              subtitle: expect.any(Object),
+              content: expect.any(Object),
+            }),
           }),
         });
       }
@@ -1123,9 +1107,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig).toBeDefined();
       expect(body.data.contextConfig).toMatchObject({
         id: expect.stringContaining('contextConfig-'),
-        name: expect.stringContaining('Test Context Config'),
-        description: expect.stringContaining('Test context configuration'),
-        requestContextSchema: expect.objectContaining({
+        headersSchema: expect.objectContaining({
           type: 'object',
           properties: expect.objectContaining({
             userId: { type: 'string', description: 'User identifier' },
@@ -1347,13 +1329,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           body: JSON.stringify(updateData),
         }
       );
-
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();
     });
 
-    it('should clear requestContextSchema when set to null in full graph update', async () => {
+    it('should clear headersSchema when set to null in full graph update', async () => {
       const tenantId = createTestTenantId('full-graph-clear-request-schema');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
@@ -1370,12 +1351,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       });
       expect(createRes.status).toBe(201);
 
-      // Update to clear requestContextSchema
+      // Update to clear headersSchema
       const updateData = {
         ...graphData,
         contextConfig: {
           ...(graphData.contextConfig || {}),
-          requestContextSchema: null,
+          headersSchema: null,
         },
       };
 
@@ -1389,10 +1370,10 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
-      expect(body.data.contextConfig.requestContextSchema).toBeNull();
+      expect(body.data.contextConfig.headersSchema).toBeNull();
     });
 
-    it('should clear both contextVariables and requestContextSchema simultaneously in full graph', async () => {
+    it('should clear both contextVariables and headersSchema simultaneously in full graph', async () => {
       const tenantId = createTestTenantId('full-graph-clear-both-fields');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
@@ -1415,7 +1396,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         contextConfig: {
           ...(graphData.contextConfig || {}),
           contextVariables: null,
-          requestContextSchema: null,
+          headersSchema: null,
         },
       };
 
@@ -1430,7 +1411,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const body = await updateRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();
-      expect(body.data.contextConfig.requestContextSchema).toBeNull();
+      expect(body.data.contextConfig.headersSchema).toBeNull();
     });
 
     it('should handle empty object contextVariables as null in full graph creation', async () => {
@@ -1481,7 +1462,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         contextConfig: {
           ...(graphData.contextConfig || {}),
           contextVariables: null,
-          requestContextSchema: null,
+          headersSchema: null,
         },
       };
 
@@ -1501,7 +1482,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(getRes.status).toBe(200);
       const body = await getRes.json();
       expect(body.data.contextConfig.contextVariables).toBeNull();
-      expect(body.data.contextConfig.requestContextSchema).toBeNull();
+      expect(body.data.contextConfig.headersSchema).toBeNull();
     });
   });
 

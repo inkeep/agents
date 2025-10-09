@@ -76,10 +76,8 @@ export const graphStore = create<GraphState>()(
       name: '',
       description: '',
       contextConfig: {
-        name: '',
-        description: '',
         contextVariables: '',
-        requestContextSchema: '',
+        headersSchema: '',
       },
       models: undefined,
       stopWhen: undefined,

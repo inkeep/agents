@@ -13,22 +13,15 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     id: `test-artifact-component${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
     name: `TestArtifactComponent${suffix}`,
     description: `Test artifact component description${suffix}`,
-    summaryProps: {
+    props: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: `Title field${suffix}` },
-        type: { type: 'string', description: `Type field${suffix}` },
-      },
-      required: ['title'],
-    },
-    fullProps: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', description: `Title field${suffix}` },
-        type: { type: 'string', description: `Type field${suffix}` },
-        content: { type: 'string', description: `Content field${suffix}` },
+        title: { type: 'string', description: `Title field${suffix}`, inPreview: true },
+        type: { type: 'string', description: `Type field${suffix}`, inPreview: true },
+        content: { type: 'string', description: `Content field${suffix}`, inPreview: false },
         metadata: {
           type: 'object',
+          inPreview: false,
           properties: {
             author: { type: 'string' },
             created: { type: 'string', format: 'date-time' },
@@ -116,8 +109,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(body.data[0]).toMatchObject({
         name: artifactComponentData.name,
         description: artifactComponentData.description,
-        summaryProps: artifactComponentData.summaryProps,
-        fullProps: artifactComponentData.fullProps,
+        props: artifactComponentData.props,
         tenantId,
       });
       expect(body.pagination).toEqual({
@@ -208,8 +200,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         id: artifactComponentId,
         name: artifactComponentData.name,
         description: artifactComponentData.description,
-        summaryProps: artifactComponentData.summaryProps,
-        fullProps: artifactComponentData.fullProps,
+        props: artifactComponentData.props,
         tenantId,
       });
     });
@@ -259,8 +250,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(body.data).toMatchObject({
         name: artifactComponentData.name,
         description: artifactComponentData.description,
-        summaryProps: artifactComponentData.summaryProps,
-        fullProps: artifactComponentData.fullProps,
+        props: artifactComponentData.props,
         tenantId,
       });
       expect(body.data.id).toBeTruthy();
@@ -314,8 +304,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         description: minimalData.description,
         tenantId,
       });
-      expect(body.data.summaryProps).toBeNull();
-      expect(body.data.fullProps).toBeNull();
+      expect(body.data.props).toBeNull();
     });
 
     it('should validate required fields', async () => {
@@ -394,7 +383,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const updateData = {
         name: 'UpdatedArtifactComponent',
         description: 'Updated description',
-        summaryProps: {
+        props: {
           type: 'object',
           properties: {
             updatedField: { type: 'string', description: 'Updated field' },
@@ -418,7 +407,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         id: artifactComponentId,
         name: updateData.name,
         description: updateData.description,
-        summaryProps: updateData.summaryProps,
+        props: updateData.props,
         tenantId,
       });
     });
@@ -449,8 +438,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         id: artifactComponentId,
         name: partialUpdate.name,
         description: artifactComponentData.description, // Should remain unchanged
-        summaryProps: artifactComponentData.summaryProps, // Should remain unchanged
-        fullProps: artifactComponentData.fullProps, // Should remain unchanged
+        props: artifactComponentData.props, // Should remain unchanged
         tenantId,
       });
     });
@@ -511,8 +499,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         id: artifactComponentId,
         name: artifactComponentData.name,
         description: artifactComponentData.description,
-        summaryProps: artifactComponentData.summaryProps,
-        fullProps: artifactComponentData.fullProps,
+        props: artifactComponentData.props,
         tenantId,
       });
     });
@@ -627,14 +614,14 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   });
 
   describe('Schema Validation', () => {
-    it('should accept valid JSON schema in summaryProps', async () => {
+    it('should accept valid JSON schema in props', async () => {
       const tenantId = createTestTenantId('artifact-components-schema-valid');
       await ensureTestProject(tenantId, projectId);
       const validSchemaData = {
         id: `schema-test-component-${nanoid(6)}`,
         name: 'SchemaTestComponent',
         description: 'Testing valid JSON schema',
-        summaryProps: {
+        props: {
           type: 'object',
           properties: {
             title: { type: 'string', minLength: 1 },
@@ -655,17 +642,17 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.summaryProps).toEqual(validSchemaData.summaryProps);
+      expect(body.data.props).toEqual(validSchemaData.props);
     });
 
-    it('should accept complex nested schemas in fullProps', async () => {
+    it('should accept complex nested schemas in props', async () => {
       const tenantId = createTestTenantId('artifact-components-schema-complex');
       await ensureTestProject(tenantId, projectId);
       const complexSchemaData = {
         id: `complex-schema-component-${nanoid(6)}`,
         name: 'ComplexSchemaComponent',
         description: 'Testing complex nested JSON schema',
-        fullProps: {
+        props: {
           type: 'object',
           properties: {
             user: {
@@ -707,7 +694,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.fullProps).toEqual(complexSchemaData.fullProps);
+      expect(body.data.props).toEqual(complexSchemaData.props);
     });
   });
 });
