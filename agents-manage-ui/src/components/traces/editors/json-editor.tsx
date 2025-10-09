@@ -1,7 +1,6 @@
-import { type FC, useCallback, useEffect, useRef } from 'react';
+import { type FC, type ReactNode, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, KeyCode } from 'monaco-editor';
-import { Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   addDecorations,
@@ -9,11 +8,8 @@ import {
   createEditor,
   getOrCreateModel,
 } from '@/lib/monaco-utils';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import '@/lib/setup-monaco-workers';
-import './json-editor-with-copy.css';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const { element, position } = e.target;
@@ -44,8 +40,9 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
 export const JsonEditor: FC<{
   value: string;
   uri: `${string}.json`;
-  title: string;
-}> = ({ value, uri, title }) => {
+  readOnly?: boolean;
+  children: ReactNode;
+}> = ({ value, uri, readOnly = false, children }) => {
   const ref = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
 
@@ -116,51 +113,9 @@ export const JsonEditor: FC<{
     );
   }, []);
 
-  const handleCopyCode = useCallback(async () => {
-    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
-    try {
-      await navigator.clipboard.writeText(code);
-      toast.success('Copied to clipboard');
-    } catch (error) {
-      console.error('Failed to copy', error);
-      toast.error('Failed to copy to clipboard');
-    }
-  }, []);
-
-  const handleDownloadCode = useCallback(() => {
-    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
-    // Create a blob with the JSON content
-    const blob = new Blob([code], { type: 'application/json' });
-    // Create a download link
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'file.json';
-    // Trigger the download
-    document.body.append(link);
-    link.click();
-    // Clean up
-    link.remove();
-    URL.revokeObjectURL(url);
-    toast.success('File downloaded successfully');
-  }, []);
-
   return (
-    <>
-      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-        {title}
-        <Badge variant="sky">JSON</Badge>
-      </h3>
-      <div ref={ref} className="rounded-xl overflow-hidden border relative">
-        <div className="absolute end-2 top-2 flex gap-1 z-1">
-          <Button variant="ghost" size="icon-sm" title="Download File" onClick={handleDownloadCode}>
-            <Download />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="Copy Code" onClick={handleCopyCode}>
-            <Copy />
-          </Button>
-        </div>
-      </div>
-    </>
+    <div ref={ref} className="rounded-xl overflow-hidden border relative">
+      {children}
+    </div>
   );
 };
