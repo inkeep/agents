@@ -1,4 +1,3 @@
-import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -238,7 +237,7 @@ export function renderPanelContent({
             )}
             {a.contextUrl && (
               <LabeledBlock label="Context URL">
-                <CodeBubble className=" break-all">{a.contextUrl}</CodeBubble>
+                <CodeBubble className="break-all">{a.contextUrl}</CodeBubble>
               </LabeledBlock>
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
@@ -373,17 +372,11 @@ export function renderPanelContent({
               />
             )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -414,30 +407,18 @@ export function renderPanelContent({
             )}
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
             )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
