@@ -13,10 +13,19 @@ import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
+import { JsonEditorWithCopy } from '@/components/traces/json-editor-with-copy';
 
 const SpanAttributes = dynamic(() =>
   import('@/components/traces/timeline/span-attributes').then((mod) => mod.SpanAttributes)
 );
+
+function formatJsonSafely(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
+}
 
 export function renderPanelContent({
   selected,
@@ -96,30 +105,18 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             {a.aiPromptMessages && (
-              <LabeledBlock label="Prompt messages">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.aiPromptMessages), null, 2);
-                    } catch {
-                      return a.aiPromptMessages;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.aiPromptMessages)}
+                title="Prompt messages"
+                uri="prompt-messages.json"
+              />
             )}
             {a.aiResponseToolCalls && (
-              <LabeledBlock label="Tool calls">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.aiResponseToolCalls), null, 2);
-                    } catch {
-                      return a.aiResponseToolCalls;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.aiResponseToolCalls)}
+                title="Tool calls"
+                uri="tool-calls.json"
+              />
             )}
             {/* Show error message if there's an error */}
             {a.hasError && a.otelStatusDescription && (
@@ -278,30 +275,18 @@ export function renderPanelContent({
             />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
             )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -335,30 +320,18 @@ export function renderPanelContent({
             />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
             )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -393,17 +366,11 @@ export function renderPanelContent({
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
             )}
             {a.toolCallResult && (
               <LabeledBlock label="Tool result">

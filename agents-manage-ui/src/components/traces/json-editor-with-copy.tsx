@@ -119,15 +119,18 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
         alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
       },
     });
-    // Update height based on content
-    const contentHeight = editorInstance.getContentHeight();
-    ref.current.style.height = `${contentHeight}px`;
+    function updateHeight() {
+      // Update height based on content
+      const contentHeight = editorInstance.getContentHeight();
+      ref.current.style.height = `${contentHeight}px`;
+    }
     addDecorations(editorInstance, model.getValue(), ' ');
 
     return cleanupDisposables([
       model,
       editorInstance,
       editorInstance.onMouseDown(handleCopyFieldValue(model)),
+      editorInstance.onDidContentSizeChange(updateHeight),
       // Disable command palette by overriding the action
       editorInstance.addAction({
         id: 'disable-command-palette',
