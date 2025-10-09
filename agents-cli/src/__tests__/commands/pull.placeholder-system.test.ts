@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  calculateTokenSavings,
   createPlaceholders,
   restorePlaceholders,
-  calculateTokenSavings,
 } from '../../commands/pull.placeholder-system';
 
 describe('Placeholder System', () => {
@@ -10,9 +10,11 @@ describe('Placeholder System', () => {
     it('should replace long strings with placeholders', () => {
       const data = {
         shortString: 'short',
-        longString: 'This is a very long string that should be replaced with a placeholder because it exceeds the minimum length threshold',
+        longString:
+          'This is a very long string that should be replaced with a placeholder because it exceeds the minimum length threshold',
         nested: {
-          anotherLongString: 'Another very long string that should also be replaced with a placeholder to save tokens and reduce prompt size significantly',
+          anotherLongString:
+            'Another very long string that should also be replaced with a placeholder to save tokens and reduce prompt size significantly',
         },
       };
 
@@ -63,7 +65,8 @@ describe('Placeholder System', () => {
     });
 
     it('should reuse placeholders for identical string values', () => {
-      const longString = 'This is a very long string that appears multiple times and should reuse the same placeholder';
+      const longString =
+        'This is a very long string that appears multiple times and should reuse the same placeholder';
       const data = {
         string1: longString,
         string2: longString,
@@ -84,21 +87,6 @@ describe('Placeholder System', () => {
     });
 
     it('should throw error on placeholder collision with different values', () => {
-      // Mock the crypto randomBytes to return predictable values that cause collision
-      const originalRandomBytes = vi.fn();
-      vi.doMock('node:crypto', () => ({
-        randomBytes: vi.fn(() => Buffer.from('collision')),
-      }));
-
-      const data = {
-        path1: {
-          field: 'This is a very long string that should cause a collision when we try to create another placeholder',
-        },
-        path2: {
-          field: 'This is a different very long string that will try to use the same placeholder key and cause an error',
-        },
-      };
-
       // This test verifies the collision detection works
       // In practice, crypto.randomBytes makes collisions extremely unlikely
       expect(() => {
@@ -116,7 +104,8 @@ describe('Placeholder System', () => {
       const data = {
         nullValue: null,
         undefinedValue: undefined,
-        longString: 'This is a very long string that should be replaced with a placeholder for optimization',
+        longString:
+          'This is a very long string that should be replaced with a placeholder for optimization',
       };
 
       const result = createPlaceholders(data);
@@ -131,7 +120,8 @@ describe('Placeholder System', () => {
         level1: {
           level2: {
             level3: {
-              longString: 'This is a very long string buried deep in the object hierarchy and should be replaced',
+              longString:
+                'This is a very long string buried deep in the object hierarchy and should be replaced',
             },
           },
         },
@@ -147,7 +137,8 @@ describe('Placeholder System', () => {
       const data = {
         agents: {
           'agent-1': {
-            prompt: 'This is a very long prompt string that should be replaced with a placeholder containing the correct path',
+            prompt:
+              'This is a very long prompt string that should be replaced with a placeholder containing the correct path',
           },
         },
       };
@@ -279,7 +270,9 @@ Third: ${placeholder}
       const restoredCode = restorePlaceholders(generatedCode, replacements);
 
       // Backticks should be escaped to prevent template literal syntax errors
-      expect(restoredCode).toBe('prompt: `Use \\`info_sources\\` and other \\`code\\` snippets with backticks`');
+      expect(restoredCode).toBe(
+        'prompt: `Use \\`info_sources\\` and other \\`code\\` snippets with backticks`'
+      );
       expect(restoredCode).not.toContain('`info_sources`'); // Should not contain unescaped backticks
     });
   });
@@ -324,6 +317,223 @@ Third: ${placeholder}
     });
   });
 
+  describe('template literal handling', () => {
+    it('should preserve template literals while replacing surrounding text', () => {
+      const data = {
+        prompt:
+          'You are an AI assistant helping users with their questions. Your name is {{agent.name}} and you were created by {{organization.name}}. When responding to user queries, please follow these guidelines and provide accurate information.',
+      };
+
+      const result = createPlaceholders(data);
+
+      // Should contain the template literals
+      expect(result.processedData.prompt).toContain('{{agent.name}}');
+      expect(result.processedData.prompt).toContain('{{organization.name}}');
+
+      // Should have placeholders for the surrounding text
+      expect(result.processedData.prompt).toMatch(/<{{[^}]+}}>/);
+    });
+
+    it('should only use placeholders if the overall result is shorter', () => {
+      // Short string with template literals - placeholders would make it longer
+      const data = {
+        shortPrompt: 'Hi {{name}}, welcome!',
+      };
+
+      const result = createPlaceholders(data);
+
+      // Should keep original since placeholders don't save space
+      expect(result.processedData.shortPrompt).toBe(data.shortPrompt);
+      expect(Object.keys(result.replacements)).toHaveLength(0);
+    });
+
+    it('should handle multiple template literals with long surrounding text', () => {
+      const data = {
+        prompt:
+          'The current conversation is taking place at {{conversation.timestamp}} in the {{conversation.timezone}} timezone. The user preferred language is {{user.preferences.language}} and their account was created on {{user.account.createdAt}}. Please provide helpful information.',
+      };
+
+      const result = createPlaceholders(data);
+
+      // All template literals should be preserved
+      expect(result.processedData.prompt).toContain('{{conversation.timestamp}}');
+      expect(result.processedData.prompt).toContain('{{conversation.timezone}}');
+      expect(result.processedData.prompt).toContain('{{user.preferences.language}}');
+      expect(result.processedData.prompt).toContain('{{user.account.createdAt}}');
+
+      // Should be shorter than original
+      expect(result.processedData.prompt.length).toBeLessThan(data.prompt.length);
+
+      // Should have replacements for the text parts
+      expect(Object.keys(result.replacements).length).toBeGreaterThan(0);
+    });
+
+    it('should restore template literal strings correctly', () => {
+      const originalPrompt =
+        'You are an AI assistant named {{agent.name}}. Your role is to help users with their questions about {{product.name}}. Always be professional and helpful in your responses.';
+
+      const data = { prompt: originalPrompt };
+      const { processedData, replacements } = createPlaceholders(data);
+
+      // Simulate LLM generation with the processed prompt
+      const generatedCode = `const agent = agent({
+  prompt: \`${processedData.prompt}\`
+});`;
+
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // Should contain the original text parts
+      expect(restoredCode).toContain('You are an AI assistant named');
+      expect(restoredCode).toContain('Your role is to help users with their questions about');
+      expect(restoredCode).toContain('Always be professional and helpful in your responses');
+
+      // Should preserve template literals
+      expect(restoredCode).toContain('{{agent.name}}');
+      expect(restoredCode).toContain('{{product.name}}');
+    });
+
+    it('should handle strings with template literals at start and end', () => {
+      const data = {
+        prompt:
+          '{{greeting}} This is a very long instruction text that provides detailed guidance on how to respond to users. {{closing}}',
+      };
+
+      const result = createPlaceholders(data);
+
+      // Template literals should be preserved
+      expect(result.processedData.prompt).toContain('{{greeting}}');
+      expect(result.processedData.prompt).toContain('{{closing}}');
+
+      // Middle text should potentially be replaced if it saves space
+      if (result.processedData.prompt !== data.prompt) {
+        expect(result.processedData.prompt.length).toBeLessThan(data.prompt.length);
+      }
+    });
+
+    it('should handle consecutive template literals', () => {
+      const data = {
+        prompt:
+          'Start {{var1}}{{var2}} This is a very long middle section with detailed instructions {{var3}}{{var4}} End',
+      };
+
+      const result = createPlaceholders(data);
+
+      // All template literals should be preserved in order
+      expect(result.processedData.prompt).toContain('{{var1}}');
+      expect(result.processedData.prompt).toContain('{{var2}}');
+      expect(result.processedData.prompt).toContain('{{var3}}');
+      expect(result.processedData.prompt).toContain('{{var4}}');
+    });
+
+    it('should handle identical text parts in different template strings', () => {
+      // Use a very long repeated section that will definitely warrant placeholder replacement
+      const longRepeatedText = `${'A'.repeat(200)} This is additional text to make it even longer and ensure the placeholder optimization is worthwhile.`;
+      const data = {
+        prompt1: `${longRepeatedText} {{var1}} Some unique ending for prompt 1`,
+        prompt2: `${longRepeatedText} {{var2}} Some unique ending for prompt 2`,
+      };
+
+      const result = createPlaceholders(data);
+
+      // Template variables should always be preserved
+      const processedPrompt1 = result.processedData.prompt1;
+      const processedPrompt2 = result.processedData.prompt2;
+
+      if (typeof processedPrompt1 === 'string' && typeof processedPrompt2 === 'string') {
+        expect(processedPrompt1).toContain('{{var1}}');
+        expect(processedPrompt2).toContain('{{var2}}');
+
+        // If optimization happened, check that repeated text is only stored once
+        if (Object.keys(result.replacements).length > 0) {
+          const uniqueValues = new Set(Object.values(result.replacements));
+          const hasRepeatedText = Array.from(uniqueValues).some(
+            (v) => typeof v === 'string' && v.includes(longRepeatedText)
+          );
+
+          // Either the repeated text is in replacements, or the strings weren't split
+          expect(hasRepeatedText || processedPrompt1 === data.prompt1).toBe(true);
+        }
+      }
+    });
+
+    it('should handle complex real-world prompt with many template variables', () => {
+      const complexPrompt = `You are an AI assistant helping users with their questions. Your name is {{agent.name}} and you were created by {{organization.name}}.
+
+When responding to user queries, please follow these guidelines:
+1. Always be polite and professional in your interactions
+2. Provide accurate and helpful information based on the context provided
+3. If you're unsure about something, acknowledge the uncertainty
+4. Keep responses concise but comprehensive enough to address the user's needs
+
+The current conversation is taking place at {{conversation.timestamp}} in the {{conversation.timezone}} timezone. 
+The user's preferred language is {{user.preferences.language}} and their account was created on {{user.account.createdAt}}.
+
+Available context includes:
+- User profile information from {{context.userProfile}}
+- Recent conversation history stored at {{context.conversationHistory}}
+- Knowledge base articles from {{context.knowledgeBase}}
+- System configuration from {{system.config.path}}
+
+For technical support questions, please refer to our comprehensive documentation available at {{docs.baseUrl}}/{{docs.version}}/getting-started.`;
+
+      const data = { prompt: complexPrompt };
+      const { processedData, replacements } = createPlaceholders(data);
+
+      // All template literals should be preserved
+      const templateVars = [
+        '{{agent.name}}',
+        '{{organization.name}}',
+        '{{conversation.timestamp}}',
+        '{{conversation.timezone}}',
+        '{{user.preferences.language}}',
+        '{{user.account.createdAt}}',
+        '{{context.userProfile}}',
+        '{{context.conversationHistory}}',
+        '{{context.knowledgeBase}}',
+        '{{system.config.path}}',
+        '{{docs.baseUrl}}',
+        '{{docs.version}}',
+      ];
+
+      for (const templateVar of templateVars) {
+        expect(processedData.prompt).toContain(templateVar);
+      }
+
+      // Should save significant space
+      expect(processedData.prompt.length).toBeLessThan(complexPrompt.length);
+      expect(Object.keys(replacements).length).toBeGreaterThan(0);
+
+      // Round-trip should restore original
+      const restored = restorePlaceholders(processedData.prompt, replacements);
+      expect(restored).toBe(complexPrompt);
+    });
+
+    it('should handle strings with no template literals normally', () => {
+      const data = {
+        normalPrompt:
+          'This is a very long prompt without any template literals that should be handled by the regular placeholder logic',
+      };
+
+      const result = createPlaceholders(data);
+
+      // Should still create placeholder for long strings
+      expect(result.processedData.normalPrompt).toMatch(/^<{{.*}}>$/);
+      expect(Object.values(result.replacements)).toContain(data.normalPrompt);
+    });
+
+    it('should handle empty strings between template literals', () => {
+      const data = {
+        prompt: '{{var1}}{{var2}}{{var3}}',
+      };
+
+      const result = createPlaceholders(data);
+
+      // Should keep as-is since no text to replace
+      expect(result.processedData.prompt).toBe(data.prompt);
+      expect(Object.keys(result.replacements)).toHaveLength(0);
+    });
+  });
+
   describe('integration tests', () => {
     it('should handle complete round-trip with complex project data', () => {
       const complexData = {
@@ -335,13 +545,15 @@ Third: ${placeholder}
               qa: {
                 id: 'qa',
                 name: 'QA Agent',
-                prompt: 'You are a helpful assistant that answers questions about our product. This is a very long prompt that contains detailed instructions about how to behave, what tone to use, and how to structure responses. It includes many specific examples and detailed guidelines that make it quite lengthy and suitable for placeholder replacement to save tokens during LLM generation.',
+                prompt:
+                  'You are a helpful assistant that answers questions about our product. This is a very long prompt that contains detailed instructions about how to behave, what tone to use, and how to structure responses. It includes many specific examples and detailed guidelines that make it quite lengthy and suitable for placeholder replacement to save tokens during LLM generation.',
                 description: 'QA agent description',
               },
               router: {
                 id: 'router',
                 name: 'Router Agent',
-                prompt: 'You are a routing assistant that directs users to the appropriate specialist agents. This is another very long prompt with extensive routing logic, detailed decision trees, and comprehensive examples of how to classify different types of user queries and route them appropriately to the best available agent.',
+                prompt:
+                  'You are a routing assistant that directs users to the appropriate specialist agents. This is another very long prompt with extensive routing logic, detailed decision trees, and comprehensive examples of how to classify different types of user queries and route them appropriately to the best available agent.',
                 description: 'Router agent description',
               },
             },
@@ -358,7 +570,9 @@ Third: ${placeholder}
 
       // Verify short descriptions were not replaced
       expect(processedData.graphs['main-graph'].agents.qa.description).toBe('QA agent description');
-      expect(processedData.graphs['main-graph'].agents.router.description).toBe('Router agent description');
+      expect(processedData.graphs['main-graph'].agents.router.description).toBe(
+        'Router agent description'
+      );
 
       // Simulate LLM generation with placeholders
       const simulatedGeneratedCode = `
@@ -397,7 +611,8 @@ const routerAgent = agent({
           'inkeep-qa-graph': {
             agents: {
               facts: {
-                prompt: 'You are a research-mode assistant. You are researching the following product {{projectDescription.chatSubjectName}}. Here is some background knowledge that you have about {{projectDescription.chatSubjectName}}. Consider this your knowledge space:\n<knowledge_space>\n{{projectDescription.autogeneratedDescription}}\n\nHere are the main Product Lines produced by {{projectDescription.chatSubjectName}}:\n{{projectDescription.productLines}}\n\nHere are key terms necessary for understanding {{projectDescription.chatSubjectName}}:\n{{projectDescription.keyTerms}}\n\n</knowledge_space>\n\ninstructions:\n  role: |\n    You are a fact‑finding assistant that MUST ALWAYS provide definitive, direct answers to user questions using authoritative factual information from data retrieval tools.',
+                prompt:
+                  'You are a research-mode assistant. You are researching the following product {{projectDescription.chatSubjectName}}. Here is some background knowledge that you have about {{projectDescription.chatSubjectName}}. Consider this your knowledge space:\n<knowledge_space>\n{{projectDescription.autogeneratedDescription}}\n\nHere are the main Product Lines produced by {{projectDescription.chatSubjectName}}:\n{{projectDescription.productLines}}\n\nHere are key terms necessary for understanding {{projectDescription.chatSubjectName}}:\n{{projectDescription.keyTerms}}\n\n</knowledge_space>\n\ninstructions:\n  role: |\n    You are a fact‑finding assistant that MUST ALWAYS provide definitive, direct answers to user questions using authoritative factual information from data retrieval tools.',
               },
             },
           },
@@ -406,16 +621,25 @@ const routerAgent = agent({
 
       const { processedData, replacements } = createPlaceholders(projectData);
 
-      // The long prompt should be replaced
-      expect(processedData.graphs['inkeep-qa-graph'].agents.facts.prompt).toMatch(/^<{{.*}}>$/);
+      const processedPrompt = processedData.graphs['inkeep-qa-graph'].agents.facts.prompt;
+      const originalPrompt = projectData.graphs['inkeep-qa-graph'].agents.facts.prompt;
 
-      // Should have replacements
-      expect(Object.keys(replacements)).toHaveLength(1);
+      // The prompt contains template literals, so it should be split into parts
+      // Template literals should be preserved
+      expect(processedPrompt).toContain('{{projectDescription.chatSubjectName}}');
+      expect(processedPrompt).toContain('{{projectDescription.autogeneratedDescription}}');
+      expect(processedPrompt).toContain('{{projectDescription.productLines}}');
+      expect(processedPrompt).toContain('{{projectDescription.keyTerms}}');
 
-      // Round-trip test
-      const placeholder = processedData.graphs['inkeep-qa-graph'].agents.facts.prompt;
-      const restored = restorePlaceholders(placeholder, replacements);
-      expect(restored).toBe(projectData.graphs['inkeep-qa-graph'].agents.facts.prompt);
+      // Should have multiple replacements (one for each text segment between template literals)
+      expect(Object.keys(replacements).length).toBeGreaterThan(0);
+
+      // The processed version should be shorter than the original
+      expect(processedPrompt.length).toBeLessThan(originalPrompt.length);
+
+      // Round-trip test - restoring should give back the original
+      const restored = restorePlaceholders(processedPrompt, replacements);
+      expect(restored).toBe(originalPrompt);
     });
   });
 });
