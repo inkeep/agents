@@ -56,7 +56,7 @@ export const supportGraph = agentGraph({
   id: "customer-support-graph",
   name: "Customer Support System",
   description: "Handles customer inquiries and escalates to technical teams when needed",
-  defaultAgent: supportAgent,
+  defaultSubAgent: supportAgent,
   agents: () => [supportAgent, technicalSupportAgent],
 });
 ```

@@ -467,6 +467,6 @@ Use these tools to help users with their data processing needs, calculations, an
 export const dataWorkshopGraph = agentGraph({
   id: 'data-workshop-graph',
   name: 'Data Workshop Graph',
-  defaultAgent: dataWorkshopAgent,
+  defaultSubAgent: dataWorkshopAgent,
   agents: () => [dataWorkshopAgent],
 });

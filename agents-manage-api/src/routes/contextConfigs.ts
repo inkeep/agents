@@ -10,11 +10,11 @@ import {
   createContextConfig,
   deleteContextConfig,
   getContextConfigById,
-  IdParamsSchema,
   ListResponseSchema,
   listContextConfigsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectGraphIdParamsSchema,
   TenantProjectGraphParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
@@ -66,7 +66,7 @@ app.openapi(
     operationId: 'get-context-config-by-id',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
@@ -151,7 +151,7 @@ app.openapi(
     operationId: 'update-context-config',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -201,7 +201,7 @@ app.openapi(
     operationId: 'delete-context-config',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {

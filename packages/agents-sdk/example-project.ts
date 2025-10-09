@@ -32,7 +32,7 @@ const customerSupportProject = project({
       id: 'tier1-support-graph',
       name: 'Tier 1 Support',
       description: 'Initial customer support handling',
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'tier1-agent',
         name: 'Tier 1 Support Agent',
         prompt:
@@ -62,7 +62,7 @@ const customerSupportProject = project({
       stopWhen: {
         transferCountIs: 15, // Override project default for technical issues
       },
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'technical-agent',
         name: 'Technical Support Agent',
         prompt: 'You are a technical support specialist. Provide detailed technical assistance.',
@@ -100,7 +100,7 @@ function addNewGraph() {
     id: 'billing-support-graph',
     name: 'Billing Support',
     description: 'Specialized billing and payment support',
-    defaultAgent: agent({
+    defaultSubAgent: agent({
       id: 'billing-agent',
       name: 'Billing Support Agent',
       prompt: 'You handle billing inquiries and payment issues.',

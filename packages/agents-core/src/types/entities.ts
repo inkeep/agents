@@ -1,8 +1,5 @@
 import type { z } from 'zod';
 import type {
-  AgentApiInsertSchema,
-  AgentApiSelectSchema,
-  AgentApiUpdateSchema,
   AgentArtifactComponentApiInsertSchema,
   AgentArtifactComponentApiSelectSchema,
   AgentArtifactComponentApiUpdateSchema,
@@ -21,7 +18,6 @@ import type {
   AgentGraphInsertSchema,
   AgentGraphSelectSchema,
   AgentGraphUpdateSchema,
-  AgentInsertSchema,
   AgentRelationApiInsertSchema,
   AgentRelationApiSelectSchema,
   AgentRelationApiUpdateSchema,
@@ -29,14 +25,12 @@ import type {
   AgentRelationQuerySchema,
   AgentRelationSelectSchema,
   AgentRelationUpdateSchema,
-  AgentSelectSchema,
   AgentToolRelationApiInsertSchema,
   AgentToolRelationApiSelectSchema,
   AgentToolRelationApiUpdateSchema,
   AgentToolRelationInsertSchema,
   AgentToolRelationSelectSchema,
   AgentToolRelationUpdateSchema,
-  AgentUpdateSchema,
   AllAgentSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
@@ -92,7 +86,6 @@ import type {
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullGraphAgentInsertSchema,
-  FullGraphDefinitionSchema,
   FullProjectDefinitionSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
@@ -100,6 +93,7 @@ import type {
   FunctionInsertSchema,
   FunctionSelectSchema,
   FunctionUpdateSchema,
+  GraphWithinContextOfProjectSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -121,6 +115,12 @@ import type {
   ProjectInsertSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  SubAgentApiInsertSchema,
+  SubAgentApiSelectSchema,
+  SubAgentApiUpdateSchema,
+  SubAgentInsertSchema,
+  SubAgentSelectSchema,
+  SubAgentUpdateSchema,
   TaskApiInsertSchema,
   TaskApiSelectSchema,
   TaskApiUpdateSchema,
@@ -142,12 +142,12 @@ import type {
 } from '../validation/schemas';
 
 // === Agent Types ===
-export type AgentSelect = z.infer<typeof AgentSelectSchema>;
-export type AgentInsert = z.infer<typeof AgentInsertSchema>;
-export type AgentUpdate = z.infer<typeof AgentUpdateSchema>;
-export type AgentApiSelect = z.infer<typeof AgentApiSelectSchema>;
-export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
-export type AgentApiUpdate = z.infer<typeof AgentApiUpdateSchema>;
+export type SubAgentSelect = z.infer<typeof SubAgentSelectSchema>;
+export type SubAgentInsert = z.infer<typeof SubAgentInsertSchema>;
+export type SubAgentUpdate = z.infer<typeof SubAgentUpdateSchema>;
+export type SubAgentApiSelect = z.infer<typeof SubAgentApiSelectSchema>;
+export type SubAgentApiInsert = z.infer<typeof SubAgentApiInsertSchema>;
+export type SubAgentApiUpdate = z.infer<typeof SubAgentApiUpdateSchema>;
 
 // === Agent Relation Types ===
 export type AgentRelationSelect = z.infer<typeof AgentRelationSelectSchema>;
@@ -314,7 +314,7 @@ export type LedgerArtifactApiInsert = z.infer<typeof LedgerArtifactApiInsertSche
 export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSchema>;
 
 // === Full Graph Types ===
-export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
+export type FullGraphDefinition = z.infer<typeof GraphWithinContextOfProjectSchema>;
 export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
 
 // === Full Project Types ===
@@ -327,7 +327,7 @@ export type CanUseItem = {
   agentToolRelationId?: string;
 };
 
-export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
+export type InternalAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
   canUse: CanUseItem[];
   dataComponents?: string[];
   artifactComponents?: string[];

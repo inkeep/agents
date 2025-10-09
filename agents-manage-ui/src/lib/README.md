@@ -35,7 +35,7 @@ const result = await createFullGraphAction('tenant-123', {
   id: 'my-graph',
   name: 'My Customer Service Graph',
   description: 'A graph for customer service operations',
-  defaultAgentId: 'support-agent',
+  defaultSubAgentId: 'support-agent',
   agents: {
     'support-agent': {
       id: 'support-agent',

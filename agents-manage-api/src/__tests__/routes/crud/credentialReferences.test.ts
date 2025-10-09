@@ -102,7 +102,6 @@ declare global {
 }
 
 // Now import the app after mocking
-import app from '../../../index';
 
 describe('Credential CRUD Routes - Integration Tests', () => {
   const projectId = 'default';

@@ -663,9 +663,9 @@ export class Project implements ProjectInterface {
         }
 
         // Collect data components from this agent
-        const agentDataComponents = (agent as any).getDataComponents?.();
-        if (agentDataComponents) {
-          for (const dataComponent of agentDataComponents) {
+        const subAgentDataComponents = (agent as any).getDataComponents?.();
+        if (subAgentDataComponents) {
+          for (const dataComponent of subAgentDataComponents) {
             // Handle both DataComponent instances and plain objects
             let dataComponentId: string;
             let dataComponentName: string;
@@ -701,9 +701,9 @@ export class Project implements ProjectInterface {
         }
 
         // Collect artifact components from this agent
-        const agentArtifactComponents = (agent as any).getArtifactComponents?.();
-        if (agentArtifactComponents) {
-          for (const artifactComponent of agentArtifactComponents) {
+        const subAgentArtifactComponents = (agent as any).getArtifactComponents?.();
+        if (subAgentArtifactComponents) {
+          for (const artifactComponent of subAgentArtifactComponents) {
             // Handle both ArtifactComponent instances and plain objects
             let artifactComponentId: string;
             let artifactComponentName: string;

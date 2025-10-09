@@ -13,11 +13,11 @@ describe('Artifact Components Data Operations', () => {
         await ensureTestProject(tenantId, 'default');
       });
       const projectId = 'default';
-      const agentId = 'non-existent-agent';
+      const subAgentId = 'non-existent-sub-agent';
       const graphId = 'non-existent-graph';
 
       const components = await getArtifactComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
       });
       expect(components).toEqual([]);
     });

@@ -26,7 +26,7 @@ import { ChatWidget } from '@inkeep/agents-ui';
 // Basic usage
 <ChatWidget 
   apiUrl="https://your-api-endpoint.com"
-  agentId="your-agent-id"
+  subAgentId="your-agent-id"
 />
 ```
 

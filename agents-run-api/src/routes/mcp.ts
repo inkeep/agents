@@ -16,11 +16,11 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithDefaultSubAgent,
   getConversation,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   updateConversation,
 } from '@inkeep/agents-core';
@@ -249,7 +249,7 @@ const executeAgentQuery = async (
   executionContext: ExecutionContext,
   conversationId: string,
   query: string,
-  defaultAgentId: string
+  defaultSubAgentId: string
 ): Promise<CallToolResult> => {
   const requestId = `mcp-${Date.now()}`;
   const mcpStreamHelper = createMCPStreamHelper();
@@ -259,7 +259,7 @@ const executeAgentQuery = async (
     executionContext,
     conversationId,
     userMessage: query,
-    initialAgentId: defaultAgentId,
+    initialAgentId: defaultSubAgentId,
     requestId,
     sseHelper: mcpStreamHelper,
   });
@@ -305,7 +305,7 @@ const getServer = async (
   const { tenantId, projectId, graphId } = executionContext;
   setupTracing(conversationId, tenantId, graphId);
 
-  const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+  const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
     scopes: { tenantId, projectId, graphId },
   });
 
@@ -330,7 +330,7 @@ const getServer = async (
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
-        if (!agentGraph.defaultAgentId) {
+        if (!agentGraph.defaultSubAgentId) {
           return {
             content: [
               {
@@ -341,11 +341,11 @@ const getServer = async (
             isError: true,
           };
         }
-        const defaultAgentId = agentGraph.defaultAgentId;
+        const defaultSubAgentId = agentGraph.defaultSubAgentId;
 
-        const agentInfo = await getAgentById(dbClient)({
+        const agentInfo = await getSubAgentById(dbClient)({
           scopes: { tenantId, projectId, graphId },
-          agentId: defaultAgentId,
+          subAgentId: defaultSubAgentId,
         });
         if (!agentInfo) {
           return {
@@ -384,7 +384,7 @@ const getServer = async (
 
         await processUserMessage(tenantId, projectId, conversationId, query);
 
-        return executeAgentQuery(executionContext, conversationId, query, defaultAgentId);
+        return executeAgentQuery(executionContext, conversationId, query, defaultSubAgentId);
       } catch (error) {
         return {
           content: [
@@ -466,7 +466,7 @@ const handleInitializationRequest = async (
   const sessionId = getConversationId();
 
   // Get the default agent for the graph
-  const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+  const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
     scopes: { tenantId, projectId, graphId },
   });
   if (!agentGraph) {
@@ -480,7 +480,7 @@ const handleInitializationRequest = async (
     );
   }
 
-  if (!agentGraph.defaultAgentId) {
+  if (!agentGraph.defaultSubAgentId) {
     return c.json(
       {
         jsonrpc: '2.0',
@@ -496,7 +496,7 @@ const handleInitializationRequest = async (
     id: sessionId,
     tenantId,
     projectId,
-    activeAgentId: agentGraph.defaultAgentId,
+    activeSubAgentId: agentGraph.defaultSubAgentId,
     metadata: {
       sessionData: {
         graphId,

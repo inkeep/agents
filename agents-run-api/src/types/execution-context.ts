@@ -9,7 +9,7 @@ export function createExecutionContext(params: {
   projectId: string;
   graphId: string;
   apiKeyId: string;
-  agentId?: string;
+  subAgentId?: string;
   baseUrl?: string;
 }): ExecutionContext {
   return {
@@ -19,6 +19,6 @@ export function createExecutionContext(params: {
     graphId: params.graphId,
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
-    agentId: params.agentId,
+    subAgentId: params.subAgentId,
   };
 }

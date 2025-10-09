@@ -1,4 +1,4 @@
-import { agents, createTask, tasks } from '@inkeep/agents-core';
+import { createTask, subAgents, tasks } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
@@ -23,13 +23,13 @@ describe('Delegation Task Creation Fixes', () => {
       tenantId: tenantId,
       projectId: projectId,
       name: 'Test Graph',
-      defaultAgentId: 'math-supervisor',
+      defaultSubAgentId: 'math-supervisor',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
     // Create test agents with graphId
-    await dbClient.insert(agents).values([
+    await dbClient.insert(subAgents).values([
       {
         id: 'math-supervisor',
         tenantId: tenantId,
@@ -62,7 +62,7 @@ describe('Delegation Task Creation Fixes', () => {
   afterAll(async () => {
     // Clean up test data
     await dbClient.delete(tasks);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
   });
 
   it('should create tasks with correct contextId and message content', async () => {
@@ -75,7 +75,7 @@ describe('Delegation Task Creation Fixes', () => {
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
       graphId: 'test-graph',
-      agentId: 'math-supervisor', // Use existing agent from database
+      subAgentId: 'math-supervisor', // Use existing agent from database
       contextId: conversationId,
       status: 'pending',
       metadata: {
@@ -176,7 +176,7 @@ describe('Delegation Task Creation Fixes', () => {
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
       graphId: 'test-graph',
-      agentId: 'number-producer-a',
+      subAgentId: 'number-producer-a',
       contextId: testContextId,
       status: 'working',
       metadata: {

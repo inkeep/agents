@@ -89,7 +89,7 @@ export class ArtifactParser {
       contextId?: string;
       artifactComponents?: ArtifactComponentApiInsert[];
       streamRequestId?: string;
-      agentId?: string;
+      subAgentId?: string;
       artifactService?: ArtifactService; // Allow passing existing ArtifactService
     }
   ) {
@@ -245,7 +245,7 @@ export class ArtifactParser {
    */
   private async extractFromCreateAnnotation(
     annotation: ArtifactCreateAnnotation,
-    agentId?: string
+    subAgentId?: string
   ): Promise<ArtifactSummaryData | null> {
     const request: ArtifactCreateRequest = {
       artifactId: annotation.artifactId,
@@ -255,7 +255,7 @@ export class ArtifactParser {
       detailsSelector: annotation.detailsSelector,
     };
 
-    return this.artifactService.createArtifact(request, agentId);
+    return this.artifactService.createArtifact(request, subAgentId);
   }
 
   /**
@@ -266,7 +266,7 @@ export class ArtifactParser {
   async parseText(
     text: string,
     artifactMap?: Map<string, any>,
-    agentId?: string
+    subAgentId?: string
   ): Promise<StreamPart[]> {
     // First, process any artifact:create annotations
     let processedText = text;
@@ -278,7 +278,7 @@ export class ArtifactParser {
 
     for (const annotation of createAnnotations) {
       try {
-        const artifactData = await this.extractFromCreateAnnotation(annotation, agentId);
+        const artifactData = await this.extractFromCreateAnnotation(annotation, subAgentId);
 
         if (artifactData && annotation.raw) {
           // Cache the artifact data for direct replacement
@@ -400,7 +400,7 @@ export class ArtifactParser {
   async parseObject(
     obj: any,
     artifactMap?: Map<string, any>,
-    agentId?: string
+    subAgentId?: string
   ): Promise<StreamPart[]> {
     // Handle dataComponents array
     if (obj?.dataComponents && Array.isArray(obj.dataComponents)) {
@@ -428,7 +428,7 @@ export class ArtifactParser {
           }
         } else if (this.isArtifactCreateComponent(component)) {
           // Handle ArtifactCreate component - extract artifact from tool result
-          const createData = await this.extractFromArtifactCreateComponent(component, agentId);
+          const createData = await this.extractFromArtifactCreateComponent(component, subAgentId);
           if (createData) {
             parts.push({
               kind: 'data',
@@ -475,7 +475,7 @@ export class ArtifactParser {
     }
 
     if (this.isArtifactCreateComponent(obj)) {
-      const createData = await this.extractFromArtifactCreateComponent(obj, agentId);
+      const createData = await this.extractFromArtifactCreateComponent(obj, subAgentId);
       return createData
         ? [
             {
@@ -515,7 +515,7 @@ export class ArtifactParser {
    */
   private async extractFromArtifactCreateComponent(
     component: any,
-    agentId?: string
+    subAgentId?: string
   ): Promise<ArtifactSummaryData | null> {
     const props = component.props;
     if (!props) {
@@ -532,7 +532,7 @@ export class ArtifactParser {
     };
 
     // Use existing extraction logic
-    return await this.extractFromCreateAnnotation(annotation, agentId);
+    return await this.extractFromCreateAnnotation(annotation, subAgentId);
   }
 
   /**

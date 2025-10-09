@@ -9,11 +9,11 @@ import {
   deleteArtifactComponent,
   ErrorResponseSchema,
   getArtifactComponentById,
-  IdParamsSchema,
   ListResponseSchema,
   listArtifactComponentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
@@ -67,7 +67,7 @@ app.openapi(
     operationId: 'get-artifact-component-by-id',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -185,7 +185,7 @@ app.openapi(
     operationId: 'update-artifact-component',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -262,7 +262,7 @@ app.openapi(
     operationId: 'delete-artifact-component',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

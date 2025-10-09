@@ -13,11 +13,11 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
-  IdParamsSchema,
   ListResponseSchema,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectGraphIdParamsSchema,
   TenantProjectGraphParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
@@ -37,7 +37,7 @@ app.openapi(
     request: {
       params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        agentId: z.string().optional(),
+        subAgentId: z.string().optional(),
         toolId: z.string().optional(),
       }),
     },
@@ -55,7 +55,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, graphId } = c.req.valid('param');
-    const { page, limit, agentId, toolId } = c.req.valid('query');
+    const { page, limit, subAgentId, toolId } = c.req.valid('query');
 
     let result: {
       data: AgentToolRelationSelect[];
@@ -68,9 +68,9 @@ app.openapi(
     };
 
     // Filter by agent if provided
-    if (agentId) {
+    if (subAgentId) {
       const dbResult = await getAgentToolRelationByAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         pagination: { page, limit },
       });
       result = {
@@ -115,7 +115,7 @@ app.openapi(
     operationId: 'get-agent-tool-relation',
     tags: ['Agent Tool Relations'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
@@ -132,7 +132,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const agentToolRelation = await getAgentToolRelationById(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId: id },
+      scopes: { tenantId, projectId, graphId, subAgentId: id },
       relationId: id,
     });
 
@@ -228,7 +228,7 @@ app.openapi(
     });
     const isDuplicate = existingRelations.data.some((relation) => {
       const typedRelation = relation as AgentToolRelationSelect;
-      return typedRelation.agentId === body.agentId && typedRelation.toolId === body.toolId;
+      return typedRelation.subAgentId === body.subAgentId && typedRelation.toolId === body.toolId;
     });
 
     if (isDuplicate) {
@@ -273,7 +273,7 @@ app.openapi(
     operationId: 'update-agent-tool-relation',
     tags: ['Agent Tool Relations'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -333,7 +333,7 @@ app.openapi(
     operationId: 'delete-agent-tool-relation',
     tags: ['Agent Tool Relations'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {

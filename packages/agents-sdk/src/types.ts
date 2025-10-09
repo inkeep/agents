@@ -1,5 +1,4 @@
 import type {
-  AgentApiInsert,
   AgentConversationHistoryConfig,
   AgentStopWhen,
   ArtifactComponentApiInsert,
@@ -10,6 +9,7 @@ import type {
   McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
+  SubAgentApiInsert,
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
@@ -99,7 +99,7 @@ export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
 export type AgentCanUseType = Tool | AgentMcpConfig | FunctionTool;
 
 // Agent configuration types
-export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
+export interface AgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
   canUse?: () => AgentCanUseType[];
   canTransferTo?: () => AgentInterface[];
@@ -251,7 +251,7 @@ export interface GraphConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultAgent?: AgentInterface;
+  defaultSubAgent?: AgentInterface;
   agents?: () => AllAgentInterface[];
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
@@ -344,7 +344,7 @@ export interface GraphInterface {
   generate(input: MessageInput, options?: GenerateOptions): Promise<string>;
   stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   generateStream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
-  getDefaultAgent(): AgentInterface | undefined;
+  getdefaultSubAgent(): AgentInterface | undefined;
   getAgent(name: string): AllAgentInterface | undefined;
   getAgents(): AllAgentInterface[];
   toFullGraphDefinition(): Promise<FullGraphDefinition>;

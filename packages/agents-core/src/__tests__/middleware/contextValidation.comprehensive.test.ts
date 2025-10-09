@@ -10,7 +10,7 @@ import {
 
 // Mock the data access functions directly
 vi.mock('../../data-access/agentGraphs', () => ({
-  getAgentGraphWithDefaultAgent: vi.fn(),
+  getAgentGraphWithDefaultSubAgent: vi.fn(),
 }));
 
 vi.mock('../../data-access/contextConfigs', () => ({
@@ -18,14 +18,14 @@ vi.mock('../../data-access/contextConfigs', () => ({
 }));
 
 describe('ContextValidation - Headers Only Implementation', () => {
-  let _getAgentGraphWithDefaultAgent: any;
+  let _getAgentGraphWithDefaultSubAgent: any;
   let _getContextConfigById: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     const agentGraphModule = await import('../../data-access/agentGraphs');
     const contextConfigModule = await import('../../data-access/contextConfigs');
-    _getAgentGraphWithDefaultAgent = agentGraphModule.getAgentGraphWithDefaultAgent;
+    _getAgentGraphWithDefaultSubAgent = agentGraphModule.getAgentGraphWithDefaultSubAgent;
     _getContextConfigById = contextConfigModule.getContextConfigById;
   });
 

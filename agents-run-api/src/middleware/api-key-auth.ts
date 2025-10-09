@@ -28,8 +28,7 @@ export const apiKeyAuth = () =>
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');
     const graphId = c.req.header('x-inkeep-graph-id');
-    const agentId = c.req.header('x-inkeep-agent-id');
-
+    const subAgentId = c.req.header('x-inkeep-agent-id');
     const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
     const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
     const host = fwdHost ?? c.req.header('host');
@@ -49,7 +48,7 @@ export const apiKeyAuth = () =>
       if (authHeader?.startsWith('Bearer ')) {
         try {
           executionContext = await extractContextFromApiKey(authHeader.substring(7), baseUrl);
-          executionContext.agentId = agentId;
+          executionContext.subAgentId = subAgentId;
           logger.info({}, 'Development/test environment - API key authenticated successfully');
         } catch {
           // If API key extraction fails, fallback to default context
@@ -60,7 +59,7 @@ export const apiKeyAuth = () =>
             graphId: graphId || 'test-graph',
             apiKeyId: 'test-key',
             baseUrl: baseUrl,
-            agentId: agentId,
+            subAgentId: subAgentId,
           });
           logger.info(
             {},
@@ -76,7 +75,7 @@ export const apiKeyAuth = () =>
           graphId: graphId || 'test-graph',
           apiKeyId: 'test-key',
           baseUrl: baseUrl,
-          agentId: agentId,
+          subAgentId: subAgentId,
         });
         logger.info(
           {},
@@ -116,7 +115,7 @@ export const apiKeyAuth = () =>
           graphId: graphId,
           apiKeyId: 'bypass',
           baseUrl: baseUrl,
-          agentId: agentId,
+          subAgentId: subAgentId,
         });
 
         c.set('executionContext', executionContext);
@@ -127,7 +126,7 @@ export const apiKeyAuth = () =>
         return;
       } else if (apiKey) {
         const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-        executionContext.agentId = agentId;
+        executionContext.subAgentId = subAgentId;
 
         c.set('executionContext', executionContext);
 
@@ -153,7 +152,7 @@ export const apiKeyAuth = () =>
 
     try {
       const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-      executionContext.agentId = agentId;
+      executionContext.subAgentId = subAgentId;
 
       c.set('executionContext', executionContext);
 
@@ -163,7 +162,7 @@ export const apiKeyAuth = () =>
           tenantId: executionContext.tenantId,
           projectId: executionContext.projectId,
           graphId: executionContext.graphId,
-          agentId: executionContext.agentId,
+          subAgentId: executionContext.subAgentId,
         },
         'API key authenticated successfully'
       );

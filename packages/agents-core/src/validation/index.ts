@@ -1,5 +1,6 @@
 // Re-export all validation schemas for convenience
 
+export * from './event-schemas';
 export * from './graphFull';
 export * from './id-validation';
 export * from './props-validation';

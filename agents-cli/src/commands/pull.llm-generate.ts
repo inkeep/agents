@@ -119,7 +119,7 @@ const PROJECT_JSON_EXAMPLE = `
       "id": "customer-service",
       "name": "customer-service",
       "description": "respond to customer service requests",
-      "defaultAgentId": "router",
+      "defaultSubAgentId": "router",
       "agents": {
         "refund-agent": {
           "id": "refund-agent",
@@ -540,7 +540,7 @@ export const supportGraph = agentGraph({
   id: 'support-graph',
   name: 'Support Graph',
   description: 'Multi-agent support system', // Only include if description has a value
-  defaultAgent: routerAgent,
+  defaultSubAgent: routerAgent,
   agents: () => [routerAgent, qaAgent]
 });
 

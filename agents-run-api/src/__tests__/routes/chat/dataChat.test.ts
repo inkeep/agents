@@ -19,7 +19,7 @@ vi.mock('../../../handlers/executionHandler', () => {
   };
 });
 
-import { createAgent, createAgentGraph } from '@inkeep/agents-core';
+import { createAgentGraph, createSubAgent } from '@inkeep/agents-core';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -30,16 +30,16 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultAgent: vi.fn().mockReturnValue(
+    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
         tenantId: 'test-tenant',
         projectId: 'default',
-        defaultAgentId: 'test-agent',
+        defaultSubAgentId: 'test-agent',
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-agent',
         tenantId: 'test-tenant',
@@ -61,7 +61,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     getActiveAgentForConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        activeAgentId: 'test-agent',
+        activeSubAgentId: 'test-agent',
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
@@ -83,7 +83,7 @@ describe('Chat Data Stream Route', () => {
     const tenantId = createTestTenantId('chat-data-stream');
     const projectId = 'default';
     const graphId = nanoid();
-    const agentId = 'test-agent';
+    const subAgentId = 'test-agent';
 
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
@@ -95,12 +95,12 @@ describe('Chat Data Stream Route', () => {
       projectId,
       name: 'Test Graph',
       description: 'Test graph for data chat',
-      defaultAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     });
 
     // Then create agent with graphId
-    await createAgent(dbClient)({
-      id: agentId,
+    await createSubAgent(dbClient)({
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,
