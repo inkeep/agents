@@ -9,8 +9,8 @@ import {
   getOrCreateModel,
 } from '@/lib/monaco-utils';
 import { MONACO_THEME_NAME } from '@/constants/theme';
-import '@/lib/setup-monaco-workers';
 import { cn } from '@/lib/utils';
+import '@/lib/setup-monaco-workers';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const { element, position } = e.target;
@@ -39,7 +39,7 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
 };
 
 export interface JsonEditorRef {
-  model: editor.ITextModel | null;
+  editor: editor.IStandaloneCodeEditor | null;
 }
 
 export const JsonEditor = forwardRef<
@@ -50,15 +50,22 @@ export const JsonEditor = forwardRef<
     readOnly?: boolean;
     children?: ReactNode;
     className?: string;
+    disabled?: boolean;
   }
->(({ value, uri, readOnly = false, children, className }, ref) => {
+>(({ value, uri, readOnly, children, className, disabled }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const modelRef = useRef<editor.ITextModel>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { resolvedTheme } = useTheme();
 
   useImperativeHandle(ref, () => ({
-    model: modelRef.current,
+    editor: editorRef.current,
   }));
+
+  useEffect(() => {
+    editorRef.current?.updateOptions({
+      readOnly: readOnly || disabled,
+    });
+  }, [readOnly, disabled]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
@@ -67,7 +74,6 @@ export const JsonEditor = forwardRef<
       return;
     }
     const model = getOrCreateModel({ uri, value });
-    modelRef.current = model;
     const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
     const editorInstance = createEditor(container, {
       theme: monacoTheme,
@@ -89,6 +95,7 @@ export const JsonEditor = forwardRef<
         alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
       },
     });
+    editorRef.current = editorInstance;
 
     function updateHeight() {
       if (model.isDisposed()) {
@@ -140,9 +147,6 @@ export const JsonEditor = forwardRef<
   // font-mono
   // rounded-md
   // transition-[color,box-shadow]
-  // data-disabled:cursor-not-allowed
-  // data-disabled:opacity-50
-  // data-disabled:bg-muted
   // data-invalid:border-destructive
   // aria-invalid:ring-destructive/20
   // aria-invalid:border-destructive
@@ -154,7 +158,9 @@ export const JsonEditor = forwardRef<
       className={cn(
         'rounded-[7px] overflow-hidden relative',
         'border border-input shadow-xs',
-        'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
+        disabled
+          ? 'cursor-not-allowed opacity-50 bg-muted'
+          : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         className
       )}
     >
@@ -162,3 +168,5 @@ export const JsonEditor = forwardRef<
     </div>
   );
 });
+
+JsonEditor.displayName = 'JsonEditor';
