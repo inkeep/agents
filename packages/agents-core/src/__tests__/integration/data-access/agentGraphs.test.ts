@@ -1,35 +1,31 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createAgentGraph,
   deleteAgentGraph,
   getAgentGraphById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithDefaultSubAgent,
   listAgentGraphs,
   listAgentGraphsPaginated,
   updateAgentGraph,
 } from '../../../data-access/agentGraphs';
-import { createAgentRelation, deleteAgentRelation } from '../../../data-access/agentRelations';
-import { createAgent, deleteAgent } from '../../../data-access/agents';
+import {
+  createSubAgentRelation,
+  deleteSubAgentRelation,
+} from '../../../data-access/subAgentRelations';
+import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import {
-  cleanupTestDatabase,
-  closeTestDatabase,
-  createTestDatabaseClient,
-} from '../../../db/test-client';
+import { createTestDatabaseClient } from '../../../db/test-client';
 import { createTestAgentData, createTestGraphData, createTestRelationData } from '../helpers';
 
 describe('Agent Graphs Data Access - Integration Tests', () => {
   let db: DatabaseClient;
-  let dbPath: string;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
-  beforeAll(async () => {
-    // Create one database for the entire test suite
-    const dbInfo = await createTestDatabaseClient('agent-graphs-integration');
-    db = dbInfo.client;
-    dbPath = dbInfo.path;
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    db = await createTestDatabaseClient();
 
     // Create test projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
@@ -46,30 +42,6 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     }
   });
 
-  afterEach(async () => {
-    // Clean up data between tests but keep the database file
-    await cleanupTestDatabase(db);
-
-    // Recreate test projects for all tenant IDs for next test
-    const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
-    for (const tenantId of tenantIds) {
-      await db
-        .insert(schema.projects)
-        .values({
-          tenantId: tenantId,
-          id: testProjectId,
-          name: 'Test Project',
-          description: 'Project for testing',
-        })
-        .onConflictDoNothing();
-    }
-  });
-
-  afterAll(async () => {
-    // Close database and delete the file after all tests
-    await closeTestDatabase(db, dbPath);
-  });
-
   describe('createAgentGraph & getAgentGraphById', () => {
     it('should create and retrieve an agent graph with default agent', async () => {
       // Create agent graph first (before agents, as they need graphId)
@@ -77,14 +49,14 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       const createdGraph = await createAgentGraph(db)(graphData);
 
       // Now create an agent with the graphId
-      const defaultAgentData = createTestAgentData(
+      const defaultSubAgentData = createTestAgentData(
         testTenantId,
         testProjectId,
         '1',
         createdGraph.id
       );
-      const defaultAgent = await createAgent(db)({
-        ...defaultAgentData,
+      const defaultSubAgent = await createSubAgent(db)({
+        ...defaultSubAgentData,
       });
 
       expect(createdGraph).toMatchObject(graphData);
@@ -101,9 +73,9 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(fetchedGraph).toMatchObject(graphData);
 
       // Delete the agent and graph
-      await deleteAgent(db)({
+      await deleteSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
-        agentId: defaultAgent.id,
+        subAgentId: defaultSubAgent.id,
       });
 
       await deleteAgentGraph(db)({
@@ -120,25 +92,30 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     });
   });
 
-  describe('getAgentGraphWithDefaultAgent', () => {
+  describe('getAgentGraphWithDefaultSubAgent', () => {
     it('should retrieve graph with related default agent data', async () => {
       // Create graph first (before agents, as they need graphId)
       const graphData = createTestGraphData(testTenantId, testProjectId, '2');
       await createAgentGraph(db)(graphData);
 
       // Now create agent with the graphId
-      const defaultAgentData = createTestAgentData(testTenantId, testProjectId, '2', graphData.id);
-      const defaultAgent = await createAgent(db)(defaultAgentData);
+      const defaultSubAgentData = createTestAgentData(
+        testTenantId,
+        testProjectId,
+        '2',
+        graphData.id
+      );
+      const defaultSubAgent = await createSubAgent(db)(defaultSubAgentData);
 
       // Fetch with relations
-      const graphWithAgent = await getAgentGraphWithDefaultAgent(db)({
+      const graphWithAgent = await getAgentGraphWithDefaultSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
       });
 
       // Delete the agent and graph
-      await deleteAgent(db)({
+      await deleteSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
-        agentId: defaultAgent.id,
+        subAgentId: defaultSubAgent.id,
       });
 
       await deleteAgentGraph(db)({
@@ -146,9 +123,9 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       });
 
       expect(graphWithAgent).not.toBeNull();
-      expect(graphWithAgent?.defaultAgent).toBeDefined();
-      expect(graphWithAgent?.defaultAgent?.name).toBe(defaultAgentData.name);
-      expect(graphWithAgent?.defaultAgent?.id).toBe(defaultAgent.id);
+      expect(graphWithAgent?.defaultSubAgent).toBeDefined();
+      expect(graphWithAgent?.defaultSubAgent?.name).toBe(defaultSubAgentData.name);
+      expect(graphWithAgent?.defaultSubAgent?.id).toBe(defaultSubAgent.id);
     });
   });
 
@@ -168,8 +145,13 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Create agents for the first graph (if needed)
       const firstGraphId = graphsData[0].id;
-      const defaultAgentData = createTestAgentData(testTenantId, testProjectId, '3', firstGraphId);
-      const _defaultAgent = await createAgent(db)(defaultAgentData);
+      const defaultSubAgentData = createTestAgentData(
+        testTenantId,
+        testProjectId,
+        '3',
+        firstGraphId
+      );
+      const _defaultSubAgent = await createSubAgent(db)(defaultSubAgentData);
     });
 
     it('should list all graphs for tenant', async () => {
@@ -247,7 +229,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Create agent with graphId
       const agentData = createTestAgentData(testTenantId, testProjectId, '7', graphData.id);
-      const agent = await createAgent(db)(agentData);
+      const agent = await createSubAgent(db)(agentData);
 
       // Update graph
       const updateData = {
@@ -277,7 +259,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
         id: graphData.id,
         name: updateData.name,
         description: updateData.description,
-        defaultAgentId: agent.id, // Should remain unchanged
+        defaultSubAgentId: agent.id, // Should remain unchanged
         models: updateData.models,
       });
     });
@@ -330,15 +312,15 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Create agents with graphId
       const routerAgentData = createTestAgentData(testTenantId, testProjectId, '10', graphData.id);
-      const routerAgent = await createAgent(db)(routerAgentData);
+      const routerAgent = await createSubAgent(db)(routerAgentData);
 
       const qaAgentData = createTestAgentData(testTenantId, testProjectId, '11', graphData.id);
-      const qaAgent = await createAgent(db)(qaAgentData);
+      const qaAgent = await createSubAgent(db)(qaAgentData);
 
       // Create a relation in this graph
       const relationData = createTestRelationData(testTenantId, testProjectId, '12');
 
-      const createdRelation = await createAgentRelation(db)(relationData);
+      const createdRelation = await createSubAgentRelation(db)(relationData);
 
       // Verify graph exists
       const beforeDelete = await getAgentGraphById(db)({
@@ -347,7 +329,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(beforeDelete).not.toBeNull();
 
       // Delete relation first (due to foreign key constraints)
-      await deleteAgentRelation(db)({
+      await deleteSubAgentRelation(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
         relationId: createdRelation.id,
       });
@@ -366,10 +348,10 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(afterDelete).toBeNull();
 
       // Verify agents still exist (should not cascade delete)
-      const routerStillExists = await db.query.agents.findFirst({
+      const routerStillExists = await db.query.subAgents.findFirst({
         where: (agents, { eq }) => eq(agents.id, routerAgent.id),
       });
-      const qaStillExists = await db.query.agents.findFirst({
+      const qaStillExists = await db.query.subAgents.findFirst({
         where: (agents, { eq }) => eq(agents.id, qaAgent.id),
       });
 

@@ -135,7 +135,7 @@ export class ExecutionHandler {
           tenantId,
           projectId,
           graphId,
-          agentId: currentAgentId,
+          subAgentId: currentAgentId,
           contextId: conversationId,
           status: 'pending',
           metadata: {
@@ -227,8 +227,8 @@ export class ExecutionHandler {
           conversationId,
         });
         logger.info({ activeAgent }, 'activeAgent');
-        if (activeAgent && activeAgent.activeAgentId !== currentAgentId) {
-          currentAgentId = activeAgent.activeAgentId;
+        if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
+          currentAgentId = activeAgent.activeSubAgentId;
           logger.info({ currentAgentId }, `Updated current agent to: ${currentAgentId}`);
 
           // Stream agent selection update
@@ -320,25 +320,25 @@ export class ExecutionHandler {
         if (isTransferResponse(messageResponse.result)) {
           const transferResponse = messageResponse.result;
 
-          // Extract targetAgentId from transfer response artifacts
-          const targetAgentId = (transferResponse as any).artifacts?.[0]?.parts?.[0]?.data
-            ?.targetAgentId;
+          // Extract targetSubAgentId from transfer response artifacts
+          const targetSubAgentId = (transferResponse as any).artifacts?.[0]?.parts?.[0]?.data
+            ?.targetSubAgentId;
 
           const transferReason = (transferResponse as any).artifacts?.[0]?.parts?.[1]?.text;
 
           // Transfer operation (data operations removed)
 
-          logger.info({ targetAgentId, transferReason }, 'transfer response');
+          logger.info({ targetSubAgentId, transferReason }, 'transfer response');
 
           // Update the current message to the transfer reason so as not to duplicate the user message on every transfer
           // including the xml because the fromAgent does not always directly adress the toAgent in its text
           currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
 
-          const { success, targetAgentId: newAgentId } = await executeTransfer({
+          const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,
             tenantId,
             threadId: conversationId,
-            targetAgentId,
+            targetSubAgentId,
           });
           if (success) {
             // Set fromAgentId to track which agent executed this transfer
@@ -410,8 +410,7 @@ export class ExecutionHandler {
                 },
                 visibility: 'user-facing',
                 messageType: 'chat',
-                agentId: currentAgentId,
-                fromAgentId: currentAgentId,
+                fromSubAgentId: currentAgentId,
                 taskId: task.id,
               });
 

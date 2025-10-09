@@ -4,37 +4,17 @@ import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
+import { createTestExternalAgentData } from '../../utils/testSubAgent';
 
 describe('External Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createAgentData = ({
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-    graphId,
-  }: {
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-    graphId: string;
-  }) => ({
-    id: `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
-    tenantId,
-    projectId,
-    graphId,
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    baseUrl: 'http://agent.test.com',
-  });
 
   // Helper function to create a test graph and return its ID
   const createTestGraph = async (tenantId: string) => {
     const graphData = {
       id: nanoid(),
       name: `Test Graph ${nanoid()}`,
-      defaultAgentId: null,
+      defaultSubAgentId: null,
     };
 
     const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
@@ -58,7 +38,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix, tenantId, projectId, graphId });
+    const agentData = createTestExternalAgentData({ suffix, tenantId, projectId, graphId });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
       {
@@ -69,11 +49,19 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
-    return { agentData, agentId: createBody.data.id, graphId };
+    return { agentData, subAgentId: createBody.data.id, graphId };
   };
 
   // Helper function to create multiple agents
-  const createMultipleAgents = async ({ tenantId, graphId, count }: { tenantId: string; graphId: string; count: number }) => {
+  const createMultipleAgents = async ({
+    tenantId,
+    graphId,
+    count,
+  }: {
+    tenantId: string;
+    graphId: string;
+    count: number;
+  }) => {
     const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
     for (let i = 1; i <= count; i++) {
       const agent = await createTestAgent({ tenantId, graphId, suffix: ` ${i}` });
@@ -87,7 +75,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     const graphData = {
       id: 'default',
       name: 'Default Graph',
-      defaultAgentId: null,
+      defaultSubAgentId: null,
     };
 
     // Try to create the graph, it may already exist
@@ -308,16 +296,16 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agents-get-by-id');
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
-      const { agentData, agentId } = await createTestAgent({ tenantId, graphId });
+      const { agentData, subAgentId } = await createTestAgent({ tenantId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${agentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`
       );
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: agentId,
+        id: subAgentId,
         name: agentData.name,
         description: agentData.description,
         baseUrl: agentData.baseUrl,
@@ -379,7 +367,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
 
-      const agentData = createAgentData({ tenantId, projectId, graphId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId, graphId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
@@ -407,7 +395,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
 
-      const agentData = createAgentData({ tenantId, projectId, graphId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId, graphId });
       const providedId = nanoid();
 
       const res = await makeRequest(
@@ -459,7 +447,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agents-update-success');
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
-      const { agentId } = await createTestAgent({ tenantId, graphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId });
 
       const updateData = {
         name: 'Updated Agent',
@@ -468,7 +456,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${agentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -479,7 +467,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: agentId,
+        id: subAgentId,
         name: updateData.name,
         description: updateData.description,
         baseUrl: updateData.baseUrl,
@@ -514,10 +502,10 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agents-delete-success');
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
-      const { agentId } = await createTestAgent({ tenantId, graphId });
+      const { subAgentId } = await createTestAgent({ tenantId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${agentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`,
         {
           method: 'DELETE',
         }
@@ -527,7 +515,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent is deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${agentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`
       );
       expect(getRes.status).toBe(404);
     });

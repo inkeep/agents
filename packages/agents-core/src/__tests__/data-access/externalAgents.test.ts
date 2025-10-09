@@ -127,7 +127,7 @@ describe('External Agents Data Access', () => {
 
       const result = await getExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
       });
 
       expect(mockQuery.externalAgents.findFirst).toHaveBeenCalled();
@@ -148,7 +148,7 @@ describe('External Agents Data Access', () => {
 
       const result = await getExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: 'non-existent',
+        subAgentId: 'non-existent',
       });
 
       expect(result).toBeNull();
@@ -467,7 +467,7 @@ describe('External Agents Data Access', () => {
 
       const result = await updateExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         data: updateData,
       });
 
@@ -509,7 +509,7 @@ describe('External Agents Data Access', () => {
 
       const result = await updateExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         data: updateData,
       });
 
@@ -525,7 +525,7 @@ describe('External Agents Data Access', () => {
       await expect(
         updateExternalAgent(mockDb)({
           scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-          agentId: testAgentId,
+          subAgentId: testAgentId,
           data: {},
         })
       ).rejects.toThrow('No fields to update');
@@ -551,7 +551,7 @@ describe('External Agents Data Access', () => {
 
       const result = await updateExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: 'non-existent',
+        subAgentId: 'non-existent',
         data: updateData,
       });
 
@@ -574,7 +574,7 @@ describe('External Agents Data Access', () => {
 
       const result = await deleteExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
       });
 
       expect(mockDelete).toHaveBeenCalled();
@@ -595,7 +595,7 @@ describe('External Agents Data Access', () => {
 
       const result = await deleteExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: 'non-existent',
+        subAgentId: 'non-existent',
       });
 
       expect(result).toBe(false);
@@ -618,7 +618,7 @@ describe('External Agents Data Access', () => {
 
       const result = await deleteExternalAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
       });
 
       expect(result).toBe(false);
@@ -656,7 +656,7 @@ describe('External Agents Data Access', () => {
 
       const result = await externalAgentExists(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
       });
 
       expect(result).toBe(true);
@@ -676,7 +676,7 @@ describe('External Agents Data Access', () => {
 
       const result = await externalAgentExists(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: 'non-existent',
+        subAgentId: 'non-existent',
       });
 
       expect(result).toBe(false);

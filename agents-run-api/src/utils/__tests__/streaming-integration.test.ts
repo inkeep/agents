@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ArtifactParser } from '../../services/ArtifactParser';
 import { IncrementalStreamParser } from '../../services/IncrementalStreamParser';
 import type { StreamHelper } from '../stream-helpers';
-import { ArtifactParser } from '../../services/ArtifactParser';
 
 // Mock dependencies
 vi.mock('../../services/ArtifactParser');
@@ -45,11 +45,11 @@ describe('Streaming Integration Tests', () => {
 
     // Mock ArtifactParser
     mockArtifactParser = {
-      parseObject: vi.fn().mockImplementation((obj, artifactMap, agentId) => {
+      parseObject: vi.fn().mockImplementation((obj, artifactMap, subAgentId) => {
         // Only return artifacts for components that are complete and stable
         const components = obj.dataComponents || [];
         const results = [];
-        
+
         for (const component of components) {
           if (component && component.id && component.name && component.props) {
             results.push({
@@ -58,7 +58,7 @@ describe('Streaming Integration Tests', () => {
             });
           }
         }
-        
+
         return Promise.resolve(results);
       }),
       hasIncompleteArtifact: vi.fn().mockReturnValue(false),
@@ -73,10 +73,10 @@ describe('Streaming Integration Tests', () => {
       sessionId: 'test-session',
       taskId: 'test-task',
       projectId: 'test-project',
-      agentId: 'test-agent',
-      streamRequestId: 'test-stream-request'
+      subAgentId: 'test-agent',
+      streamRequestId: 'test-stream-request',
     });
-    
+
     // Initialize artifact map
     await parser.initializeArtifactMap();
   });
@@ -87,40 +87,58 @@ describe('Streaming Integration Tests', () => {
       const deltas = [
         // Initial empty structure
         { dataComponents: [{}] },
-        
+
         // Text component starts
         { dataComponents: [{ id: 'intro' }] },
         { dataComponents: [{ id: 'intro', name: 'Text' }] },
         { dataComponents: [{ id: 'intro', name: 'Text', props: { text: 'Here' } }] },
         { dataComponents: [{ id: 'intro', name: 'Text', props: { text: 'Here is' } }] },
-        { dataComponents: [{ id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } }] },
-        { dataComponents: [{ id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } }] }, // Stable
-        
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+          ],
+        },
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+          ],
+        }, // Stable
+
         // Weather component appears
-        { dataComponents: [
-          { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
-          { id: 'weather', name: 'WeatherForecast', props: { temp: 72 } }
-        ]},
-        { dataComponents: [
-          { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
-          { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } }
-        ]},
-        { dataComponents: [
-          { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
-          { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } } // Stable
-        ]},
-        
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+            { id: 'weather', name: 'WeatherForecast', props: { temp: 72 } },
+          ],
+        },
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+            { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } },
+          ],
+        },
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+            { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } }, // Stable
+          ],
+        },
+
         // Closing text
-        { dataComponents: [
-          { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
-          { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } },
-          { id: 'outro', name: 'Text', props: { text: 'Have a great day!' } }
-        ]},
-        { dataComponents: [
-          { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
-          { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } },
-          { id: 'outro', name: 'Text', props: { text: 'Have a great day!' } } // Stable
-        ]},
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+            { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } },
+            { id: 'outro', name: 'Text', props: { text: 'Have a great day!' } },
+          ],
+        },
+        {
+          dataComponents: [
+            { id: 'intro', name: 'Text', props: { text: 'Here is the weather forecast:' } },
+            { id: 'weather', name: 'WeatherForecast', props: { temp: 72, condition: 'sunny' } },
+            { id: 'outro', name: 'Text', props: { text: 'Have a great day!' } }, // Stable
+          ],
+        },
       ];
 
       // Process all deltas
@@ -141,7 +159,7 @@ describe('Streaming Integration Tests', () => {
     it('should handle rapid text updates with character-by-character streaming', async () => {
       const textUpdates = [
         'H',
-        'He', 
+        'He',
         'Hel',
         'Hell',
         'Hello',
@@ -156,9 +174,7 @@ describe('Streaming Integration Tests', () => {
 
       for (let i = 0; i < textUpdates.length; i++) {
         await parser.processObjectDelta({
-          dataComponents: [
-            { id: 'text1', name: 'Text', props: { text: textUpdates[i] } }
-          ]
+          dataComponents: [{ id: 'text1', name: 'Text', props: { text: textUpdates[i] } }],
         });
       }
 
@@ -175,7 +191,7 @@ describe('Streaming Integration Tests', () => {
       expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
       expect(mockStreamHelper.streamText).toHaveBeenCalledWith('d', 50);
       expect(mockStreamHelper.streamText).toHaveBeenCalledWith('!', 50);
-      
+
       // Should stream every character change
       expect(mockStreamHelper.streamText).toHaveBeenCalledTimes(textUpdates.length);
     });
@@ -183,19 +199,23 @@ describe('Streaming Integration Tests', () => {
     it.skip('should handle components appearing and disappearing from deltas', async () => {
       // Component appears, then disappears, then reappears
       const deltas = [
-        { dataComponents: [
-          { id: 'comp1', name: 'Test', props: { value: 'test1' } }
-        ]},
-        { dataComponents: [
-          { id: 'comp1', name: 'Test', props: { value: 'test1' } },
-          { id: 'comp2', name: 'Test', props: { value: 'test2' } }
-        ]},
-        { dataComponents: [
-          { id: 'comp1', name: 'Test', props: { value: 'test1' } } // comp2 disappeared
-        ]},
-        { dataComponents: [
-          { id: 'comp1', name: 'Test', props: { value: 'test1' } } // comp1 stable
-        ]},
+        { dataComponents: [{ id: 'comp1', name: 'Test', props: { value: 'test1' } }] },
+        {
+          dataComponents: [
+            { id: 'comp1', name: 'Test', props: { value: 'test1' } },
+            { id: 'comp2', name: 'Test', props: { value: 'test2' } },
+          ],
+        },
+        {
+          dataComponents: [
+            { id: 'comp1', name: 'Test', props: { value: 'test1' } }, // comp2 disappeared
+          ],
+        },
+        {
+          dataComponents: [
+            { id: 'comp1', name: 'Test', props: { value: 'test1' } }, // comp1 stable
+          ],
+        },
       ];
 
       for (const delta of deltas) {
@@ -208,7 +228,7 @@ describe('Streaming Integration Tests', () => {
           dataComponents: [{ id: 'comp1', name: 'Test', props: { value: 'test1' } }],
         },
         expect.any(Map), // artifactMap
-        expect.any(String) // agentId
+        expect.any(String) // subAgentId
       );
     });
   });
@@ -216,18 +236,16 @@ describe('Streaming Integration Tests', () => {
   describe('Performance under load', () => {
     it('should handle many rapid deltas efficiently', async () => {
       const startTime = Date.now();
-      
+
       // Simulate 1000 rapid deltas
       for (let i = 0; i < 1000; i++) {
         await parser.processObjectDelta({
-          dataComponents: [
-            { id: `comp${i}`, name: 'Test', props: { value: i } }
-          ]
+          dataComponents: [{ id: `comp${i}`, name: 'Test', props: { value: i } }],
         });
       }
-      
+
       const duration = Date.now() - startTime;
-      
+
       // Should complete within reasonable time
       expect(duration).toBeLessThan(2000); // Less than 2 seconds
     });

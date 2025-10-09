@@ -6,11 +6,11 @@ import {
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithDefaultSubAgent,
   getConversationId,
   getFullGraph,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
@@ -200,7 +200,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     });
 
     let agentGraph: any;
-    let defaultAgentId: string;
+    let defaultSubAgentId: string;
 
     if (fullGraph) {
       // Use full graph system
@@ -209,14 +209,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
         name: fullGraph.name,
         tenantId,
         projectId,
-        defaultAgentId: fullGraph.defaultAgentId,
+        defaultSubAgentId: fullGraph.defaultSubAgentId,
       };
-      const agentKeys = Object.keys((fullGraph.agents as Record<string, any>) || {});
+      const agentKeys = Object.keys((fullGraph.subAgents as Record<string, any>) || {});
       const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-      defaultAgentId = (fullGraph.defaultAgentId as string) || firstAgentId; // Use first agent if no defaultAgentId
+      defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {
       // Fall back to legacy system
-      agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+      agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
         scopes: { tenantId, projectId, graphId },
       });
       if (!agentGraph) {
@@ -225,10 +225,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
           message: 'Agent graph not found',
         });
       }
-      defaultAgentId = agentGraph.defaultAgentId || '';
+      defaultSubAgentId = agentGraph.defaultSubAgentId || '';
     }
 
-    if (!defaultAgentId) {
+    if (!defaultSubAgentId) {
       throw createApiError({
         code: 'not_found',
         message: 'No default agent found in graph',
@@ -240,7 +240,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       tenantId,
       projectId,
       id: conversationId,
-      activeAgentId: defaultAgentId,
+      activeSubAgentId: defaultSubAgentId,
     });
 
     const activeAgent = await getActiveAgentForConversation(dbClient)({
@@ -252,14 +252,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultAgentId,
+        subAgentId: defaultSubAgentId,
       });
     }
-    const agentId = activeAgent?.activeAgentId || defaultAgentId;
+    const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-    const agentInfo = await getAgentById(dbClient)({
+    const agentInfo = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: agentId as string,
+      subAgentId: subAgentId,
     });
 
     if (!agentInfo) {
@@ -291,8 +291,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
         projectId,
         graphId,
         conversationId,
-        defaultAgentId,
-        activeAgentId: activeAgent?.activeAgentId || 'none',
+        defaultSubAgentId,
+        activeSubAgentId: activeAgent?.activeSubAgentId || 'none',
         hasContextConfig: !!agentGraph.contextConfigId,
         hasHeaders: !!body.headers,
         hasValidatedContext: !!validatedContext,
@@ -347,7 +347,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         // Start with the role
         await sseHelper.writeRole();
 
-        logger.info({ agentId }, 'Starting execution');
+        logger.info({ subAgentId }, 'Starting execution');
 
         // Check for emit operations header
         const emitOperationsHeader = c.req.header('x-emit-operations');
@@ -359,7 +359,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           executionContext,
           conversationId,
           userMessage,
-          initialAgentId: agentId,
+          initialAgentId: subAgentId,
           requestId,
           sseHelper,
           emitOperations,

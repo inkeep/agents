@@ -14,7 +14,7 @@ import { parseEmbeddedJson } from '../../utils/json-parser';
 const {
   getRelatedAgentsForGraphMock,
   getToolsForAgentMock,
-  getAgentByIdMock,
+  getSubAgentByIdMock: getAgentByIdMock,
   getAgentGraphMock,
   getAgentGraphByIdMock,
   getDataComponentsForAgentMock,
@@ -63,7 +63,7 @@ const {
     })
   );
 
-  const getAgentByIdMock = vi.fn(() =>
+  const getSubAgentByIdMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'test-agent',
       name: 'Test Agent',
@@ -186,7 +186,7 @@ const {
   return {
     getRelatedAgentsForGraphMock,
     getToolsForAgentMock,
-    getAgentByIdMock,
+    getSubAgentByIdMock,
     getAgentGraphMock,
     getAgentGraphByIdMock,
     getDataComponentsForAgentMock,
@@ -199,7 +199,7 @@ const {
 vi.mock('@inkeep/agents-core', () => ({
   getRelatedAgentsForGraph: getRelatedAgentsForGraphMock,
   getToolsForAgent: getToolsForAgentMock,
-  getAgentById: getAgentByIdMock,
+  getSubAgentById: getAgentByIdMock,
   getAgentGraph: getAgentGraphMock,
   getAgentGraphById: getAgentGraphByIdMock,
   getTracer: vi.fn().mockReturnValue({
@@ -332,7 +332,7 @@ describe('generateTaskHandler', () => {
     tenantId: 'test-tenant',
     projectId: 'test-project',
     graphId: 'test-graph',
-    agentId: 'test-agent',
+    subAgentId: 'test-agent',
     baseUrl: 'http://localhost:3000',
     agentSchema: {
       id: 'test-agent',
@@ -669,7 +669,7 @@ describe('generateTaskHandler', () => {
           projectId: 'test-project',
           graphId: 'test-graph',
         },
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
       });
 
       const toolsInnerMock = getToolsForAgentMock.mock.results[0]?.value;
@@ -678,7 +678,7 @@ describe('generateTaskHandler', () => {
           tenantId: 'test-tenant',
           projectId: 'test-project',
           graphId: 'test-graph',
-          agentId: 'test-agent',
+          subAgentId: 'test-agent',
         },
       });
 
@@ -688,7 +688,7 @@ describe('generateTaskHandler', () => {
           tenantId: 'test-tenant',
           projectId: 'test-project',
           graphId: 'test-graph',
-          agentId: 'test-agent',
+          subAgentId: 'test-agent',
         },
       });
     });
@@ -700,7 +700,7 @@ describe('generateTaskHandler', () => {
         tenantId: 'test-tenant',
         projectId: 'test-project',
         graphId: 'test-graph',
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
 
@@ -708,7 +708,7 @@ describe('generateTaskHandler', () => {
         tenantId: 'test-tenant',
         projectId: 'test-project',
         graphId: 'test-graph',
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         agentSchema: {
           id: 'test-agent',
           name: 'Test Agent',
@@ -754,7 +754,7 @@ describe('generateTaskHandler', () => {
           tenantId: 'test-tenant',
           projectId: 'test-project',
           graphId: 'test-graph',
-          agentId: 'non-existent',
+          subAgentId: 'non-existent',
           baseUrl: 'https://test.com',
         })
       ).rejects.toThrow('Agent not found: non-existent');
@@ -792,7 +792,7 @@ describe('generateTaskHandler', () => {
         tenantId: 'test-tenant',
         projectId: 'test-project',
         graphId: 'test-graph',
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
 
@@ -849,7 +849,7 @@ describe('generateTaskHandler', () => {
         tenantId: 'test-tenant',
         projectId: 'test-project',
         graphId: 'test-graph',
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
 
@@ -899,7 +899,7 @@ describe('generateTaskHandler', () => {
         tenantId: 'test-tenant',
         projectId: 'test-project',
         graphId: 'test-graph',
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
 

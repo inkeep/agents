@@ -36,7 +36,7 @@ describe('IncrementalStreamParser', () => {
 
     // Create the mock instance for direct access
     mockArtifactParser = {
-      parseObject: vi.fn().mockImplementation((obj, artifactMap, agentId) => {
+      parseObject: vi.fn().mockImplementation((obj, artifactMap, subAgentId) => {
         // Return the expected array format based on the component data
         const component = obj.dataComponents?.[0];
         if (!component || !component.id || !component.name) {
@@ -60,10 +60,10 @@ describe('IncrementalStreamParser', () => {
       sessionId: 'test-session',
       taskId: 'test-task',
       projectId: 'test-project',
-      agentId: 'test-agent',
-      streamRequestId: 'test-stream-request'
+      subAgentId: 'test-agent',
+      streamRequestId: 'test-stream-request',
     });
-    
+
     // Initialize artifact map
     await parser.initializeArtifactMap();
   });
@@ -248,7 +248,7 @@ describe('IncrementalStreamParser', () => {
           ],
         },
         expect.any(Map), // artifactMap
-        expect.any(String) // agentId
+        expect.any(String) // subAgentId
       );
     });
 

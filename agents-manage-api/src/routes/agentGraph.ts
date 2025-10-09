@@ -9,15 +9,15 @@ import {
   createApiError,
   deleteAgentGraph,
   ErrorResponseSchema,
-  FullGraphDefinitionSchema,
+  GraphWithinContextOfProjectSchema,
   getAgentGraphById,
   getFullGraphDefinition,
   getGraphAgentInfos,
-  IdParamsSchema,
   ListResponseSchema,
   listAgentGraphs,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgentGraph,
 } from '@inkeep/agents-core';
@@ -78,7 +78,7 @@ app.openapi(
     operationId: 'get-agent-graph',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -113,14 +113,14 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{graphId}/agents/{agentId}/related',
+    path: '/{graphId}/agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
     tags: ['Agent Graph'],
     request: {
       params: TenantProjectParamsSchema.extend({
         graphId: z.string(),
-        agentId: z.string(),
+        subAgentId: z.string(),
       }),
     },
     responses: {
@@ -142,12 +142,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId } = c.req.valid('param');
 
     const relatedAgents = await getGraphAgentInfos(dbClient)({
       scopes: { tenantId, projectId },
       graphId,
-      agentId,
+      subAgentId: subAgentId,
     });
 
     return c.json({
@@ -180,7 +180,7 @@ app.openapi(
         description: 'Full graph definition retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullGraphDefinitionSchema),
+            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
           },
         },
       },
@@ -244,7 +244,7 @@ app.openapi(
       projectId,
       id: validatedBody.id || nanoid(),
       name: validatedBody.name,
-      defaultAgentId: validatedBody.defaultAgentId,
+      defaultSubAgentId: validatedBody.defaultSubAgentId,
       contextConfigId: validatedBody.contextConfigId ?? undefined,
     });
 
@@ -261,7 +261,7 @@ app.openapi(
     operationId: 'update-agent-graph',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -289,7 +289,7 @@ app.openapi(
     const updatedGraph = await updateAgentGraph(dbClient)({
       scopes: { tenantId, projectId, graphId: id },
       data: {
-        defaultAgentId: validatedBody.defaultAgentId,
+        defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
       },
     });
@@ -314,7 +314,7 @@ app.openapi(
     operationId: 'delete-agent-graph',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

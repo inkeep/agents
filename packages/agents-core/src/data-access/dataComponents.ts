@@ -1,7 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { agentDataComponents, dataComponents } from '../db/schema';
+import { dataComponents, subAgentDataComponents } from '../db/schema';
 import type {
   AgentScopeConfig,
   DataComponentInsert,
@@ -205,13 +205,16 @@ export const getDataComponentsForAgent =
         updatedAt: dataComponents.updatedAt,
       })
       .from(dataComponents)
-      .innerJoin(agentDataComponents, eq(dataComponents.id, agentDataComponents.dataComponentId))
+      .innerJoin(
+        subAgentDataComponents,
+        eq(dataComponents.id, subAgentDataComponents.dataComponentId)
+      )
       .where(
         and(
           eq(dataComponents.tenantId, params.scopes.tenantId),
           eq(dataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId)
+          eq(subAgentDataComponents.graphId, params.scopes.graphId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )
       )
       .orderBy(desc(dataComponents.createdAt));
@@ -223,13 +226,13 @@ export const getDataComponentsForAgent =
 export const associateDataComponentWithAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; dataComponentId: string }) => {
     const association = await db
-      .insert(agentDataComponents)
+      .insert(subAgentDataComponents)
       .values({
         id: nanoid(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         graphId: params.scopes.graphId,
-        agentId: params.scopes.agentId,
+        subAgentId: params.scopes.subAgentId,
         dataComponentId: params.dataComponentId,
       })
       .returning();
@@ -244,14 +247,14 @@ export const removeDataComponentFromAgent =
   (db: DatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
-      .delete(agentDataComponents)
+      .delete(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId),
-          eq(agentDataComponents.dataComponentId, params.dataComponentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          eq(subAgentDataComponents.graphId, params.scopes.graphId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId),
+          eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
       .returning();
@@ -262,12 +265,12 @@ export const removeDataComponentFromAgent =
 export const deleteAgentDataComponentRelationByAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
-      .delete(agentDataComponents)
+      .delete(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.graphId, params.scopes.graphId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )
       );
     return (result.rowsAffected || 0) > 0;
@@ -281,18 +284,18 @@ export const getAgentsUsingDataComponent =
   async (params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
     return await db
       .select({
-        agentId: agentDataComponents.agentId,
-        createdAt: agentDataComponents.createdAt,
+        subAgentId: subAgentDataComponents.subAgentId,
+        createdAt: subAgentDataComponents.createdAt,
       })
-      .from(agentDataComponents)
+      .from(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.dataComponentId, params.dataComponentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
-      .orderBy(desc(agentDataComponents.createdAt));
+      .orderBy(desc(subAgentDataComponents.createdAt));
   };
 
 /**
@@ -302,15 +305,15 @@ export const isDataComponentAssociatedWithAgent =
   (db: DatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
-      .select({ id: agentDataComponents.id })
-      .from(agentDataComponents)
+      .select({ id: subAgentDataComponents.id })
+      .from(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId),
-          eq(agentDataComponents.dataComponentId, params.dataComponentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          eq(subAgentDataComponents.graphId, params.scopes.graphId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId),
+          eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
       .limit(1);

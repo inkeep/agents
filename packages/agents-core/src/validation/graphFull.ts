@@ -5,7 +5,7 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '../types/entities';
-import { FullGraphDefinitionSchema } from '../validation/schemas';
+import { GraphWithinContextOfProjectSchema } from '../validation/schemas';
 
 // Type guard functions
 export function isInternalAgent(agent: AgentDefinition): agent is InternalAgentDefinition {
@@ -17,8 +17,10 @@ export function isExternalAgent(agent: AgentDefinition): agent is ExternalAgentA
 }
 
 // Zod-based validation and typing using the existing schema
-export function validateAndTypeGraphData(data: unknown): z.infer<typeof FullGraphDefinitionSchema> {
-  return FullGraphDefinitionSchema.parse(data);
+export function validateAndTypeGraphData(
+  data: unknown
+): z.infer<typeof GraphWithinContextOfProjectSchema> {
+  return GraphWithinContextOfProjectSchema.parse(data);
 }
 
 /**
@@ -37,12 +39,12 @@ export function validateToolReferences(
 
   const errors: string[] = [];
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have tools
     if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
       for (const canUseItem of agentData.canUse) {
         if (!availableToolIds.has(canUseItem.toolId)) {
-          errors.push(`Agent '${agentId}' references non-existent tool '${canUseItem.toolId}'`);
+          errors.push(`Agent '${subAgentId}' references non-existent tool '${canUseItem.toolId}'`);
         }
       }
     }
@@ -68,13 +70,13 @@ export function validateDataComponentReferences(
 
   const errors: string[] = [];
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have dataComponents
     if (isInternalAgent(agentData) && agentData.dataComponents) {
       for (const dataComponentId of agentData.dataComponents) {
         if (!availableDataComponentIds.has(dataComponentId)) {
           errors.push(
-            `Agent '${agentId}' references non-existent dataComponent '${dataComponentId}'`
+            `Agent '${subAgentId}' references non-existent dataComponent '${dataComponentId}'`
           );
         }
       }
@@ -101,13 +103,13 @@ export function validateArtifactComponentReferences(
 
   const errors: string[] = [];
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have artifactComponents
     if (isInternalAgent(agentData) && agentData.artifactComponents) {
       for (const artifactComponentId of agentData.artifactComponents) {
         if (!availableArtifactComponentIds.has(artifactComponentId)) {
           errors.push(
-            `Agent '${agentId}' references non-existent artifactComponent '${artifactComponentId}'`
+            `Agent '${subAgentId}' references non-existent artifactComponent '${artifactComponentId}'`
           );
         }
       }
@@ -124,9 +126,9 @@ export function validateArtifactComponentReferences(
  */
 export function validateAgentRelationships(graphData: FullGraphDefinition): void {
   const errors: string[] = [];
-  const availableAgentIds = new Set(Object.keys(graphData.agents));
+  const availableAgentIds = new Set(Object.keys(graphData.subAgents));
 
-  for (const [agentId, agentData] of Object.entries(graphData.agents)) {
+  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
     // Only internal agents have relationship properties
     if (isInternalAgent(agentData)) {
       // Validate transfer targets
@@ -134,7 +136,7 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
         for (const targetId of agentData.canTransferTo) {
           if (!availableAgentIds.has(targetId)) {
             errors.push(
-              `Agent '${agentId}' has transfer target '${targetId}' that doesn't exist in graph`
+              `Agent '${subAgentId}' has transfer target '${targetId}' that doesn't exist in graph`
             );
           }
         }
@@ -145,7 +147,7 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
         for (const targetId of agentData.canDelegateTo) {
           if (!availableAgentIds.has(targetId)) {
             errors.push(
-              `Agent '${agentId}' has delegation target '${targetId}' that doesn't exist in graph`
+              `Agent '${subAgentId}' has delegation target '${targetId}' that doesn't exist in graph`
             );
           }
         }
@@ -171,8 +173,8 @@ export function validateGraphStructure(
   }
 ): void {
   // Validate default agent exists (if specified)
-  if (graphData.defaultAgentId && !graphData.agents[graphData.defaultAgentId]) {
-    throw new Error(`Default agent '${graphData.defaultAgentId}' does not exist in agents`);
+  if (graphData.defaultSubAgentId && !graphData.subAgents[graphData.defaultSubAgentId]) {
+    throw new Error(`Default agent '${graphData.defaultSubAgentId}' does not exist in agents`);
   }
 
   // Validate resource references if project resources are provided

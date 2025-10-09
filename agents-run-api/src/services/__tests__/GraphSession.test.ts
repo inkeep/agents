@@ -1,7 +1,7 @@
+import type { ModelSettings, StatusComponent, StatusUpdateSettings } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StatusUpdateSettings, ModelSettings, StatusComponent } from '@inkeep/agents-core';
-import { GraphSession, graphSessionManager } from '../GraphSession';
 import type { StreamHelper } from '../../utils/stream-helpers';
+import { GraphSession, graphSessionManager } from '../GraphSession';
 
 // Mock the AI SDK
 vi.mock('ai', () => ({
@@ -125,7 +125,7 @@ describe('GraphSession', () => {
       expect(session.getEvents()).toHaveLength(1);
       expect(session.getEvents()[0]).toMatchObject({
         eventType: 'agent_generate',
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         data: {
           parts: expect.arrayContaining([
             { type: 'text', content: 'Hello world' },
@@ -138,18 +138,18 @@ describe('GraphSession', () => {
 
     it('should record transfer events', () => {
       session.recordEvent('transfer', 'router-agent', {
-        fromAgent: 'router-agent',
-        targetAgent: 'specialist-agent',
+        fromSubAgent: 'router-agent',
+        targetSubAgent: 'specialist-agent',
         reason: 'User needs specialized help',
       });
 
       expect(session.getEvents()).toHaveLength(1);
       expect(session.getEvents()[0]).toMatchObject({
         eventType: 'transfer',
-        agentId: 'router-agent',
+        subAgentId: 'router-agent',
         data: {
-          fromAgent: 'router-agent',
-          targetAgent: 'specialist-agent',
+          fromSubAgent: 'router-agent',
+          targetSubAgent: 'specialist-agent',
           reason: 'User needs specialized help',
         },
       });
@@ -159,8 +159,8 @@ describe('GraphSession', () => {
       // Delegation sent
       session.recordEvent('delegation_sent', 'parent-agent', {
         delegationId: 'del-123',
-        fromAgent: 'parent-agent',
-        targetAgent: 'child-agent',
+        fromSubAgent: 'parent-agent',
+        targetSubAgent: 'child-agent',
         taskDescription: 'Process this data',
         context: { priority: 'high' },
       });
@@ -168,8 +168,8 @@ describe('GraphSession', () => {
       // Delegation returned
       session.recordEvent('delegation_returned', 'parent-agent', {
         delegationId: 'del-123',
-        fromAgent: 'child-agent',
-        targetAgent: 'parent-agent',
+        fromSubAgent: 'child-agent',
+        targetSubAgent: 'parent-agent',
         result: { processed: true },
       });
 
@@ -192,7 +192,7 @@ describe('GraphSession', () => {
       expect(session.getEvents()).toHaveLength(1);
       expect(session.getEvents()[0]).toMatchObject({
         eventType: 'artifact_saved',
-        agentId: 'agent-1',
+        subAgentId: 'agent-1',
         data: {
           artifactId: 'artifact-123',
           taskId: 'task-456',
@@ -212,7 +212,7 @@ describe('GraphSession', () => {
       expect(session.getEvents()).toHaveLength(1);
       expect(session.getEvents()[0]).toMatchObject({
         eventType: 'tool_execution',
-        agentId: 'agent-1',
+        subAgentId: 'agent-1',
         data: {
           toolName: 'search',
           args: { query: 'test query' },
@@ -332,12 +332,13 @@ describe('GraphSession', () => {
       session.initializeStatusUpdates(config, summarizerModel);
 
       // Mock the generateAndSendUpdate method to call writeSummary
-      const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
+      const mockGenerateUpdate = vi
+        .spyOn(session as any, 'generateAndSendUpdate')
         .mockImplementation(async () => {
           await mockStreamHelper.writeSummary({
             type: 'progress',
             label: 'Processing update',
-            details: { progress: '50%', status: 'working' }
+            details: { progress: '50%', status: 'working' },
           });
         });
 
@@ -354,14 +355,14 @@ describe('GraphSession', () => {
       });
 
       // Wait for async status update to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Verify writeSummary was called with correct structure including type field
       expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
         expect.objectContaining({
           type: expect.any(String),
           label: expect.any(String),
-          details: expect.any(Object)
+          details: expect.any(Object),
         })
       );
 
@@ -377,11 +378,11 @@ describe('GraphSession', () => {
             type: 'object',
             properties: {
               label: { type: 'string' },
-              progress: { type: 'number' }
+              progress: { type: 'number' },
             },
-            required: ['label']
-          }
-        }
+            required: ['label'],
+          },
+        },
       ];
 
       const config: StatusUpdateSettings = {
@@ -397,13 +398,14 @@ describe('GraphSession', () => {
       session.initializeStatusUpdates(config, summarizerModel);
 
       // Mock the structured summary generation
-      const mockGenerateUpdate = vi.spyOn(session as any, 'generateAndSendUpdate')
+      const mockGenerateUpdate = vi
+        .spyOn(session as any, 'generateAndSendUpdate')
         .mockImplementation(async () => {
           // Simulate structured operation result
           const summaryToSend = {
             type: 'status',
             label: 'Progress Update',
-            details: { progress: 75, message: 'Nearly complete' }
+            details: { progress: 75, message: 'Nearly complete' },
           };
           await mockStreamHelper.writeSummary(summaryToSend);
         });
@@ -416,7 +418,7 @@ describe('GraphSession', () => {
       });
 
       // Wait for async operation
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Verify writeSummary was called with structured data including type field
       expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
@@ -425,8 +427,8 @@ describe('GraphSession', () => {
           label: 'Progress Update',
           details: expect.objectContaining({
             progress: 75,
-            message: 'Nearly complete'
-          })
+            message: 'Nearly complete',
+          }),
         })
       );
 
@@ -549,8 +551,8 @@ describe('GraphSession', () => {
       });
 
       session.recordEvent('transfer', 'agent-1', {
-        fromAgent: 'agent-1',
-        targetAgent: 'agent-2',
+        fromSubAgent: 'agent-1',
+        targetSubAgent: 'agent-2',
         reason: 'Specialized task',
       });
 
@@ -580,10 +582,10 @@ describe('GraphSession', () => {
     });
 
     it('should filter events by agent', () => {
-      const agent1Events = session.getEvents().filter((e) => e.agentId === 'agent-1');
+      const agent1Events = session.getEvents().filter((e) => e.subAgentId === 'agent-1');
       expect(agent1Events).toHaveLength(3);
 
-      const agent2Events = session.getEvents().filter((e) => e.agentId === 'agent-2');
+      const agent2Events = session.getEvents().filter((e) => e.subAgentId === 'agent-2');
       expect(agent2Events).toHaveLength(2);
     });
 
@@ -605,8 +607,8 @@ describe('GraphSession', () => {
         label: 'Processing completed',
         details: {
           itemsProcessed: 5,
-          duration: '2.3s'
-        }
+          duration: '2.3s',
+        },
       };
 
       // This would be called by the GraphSession when streaming summary events
@@ -621,7 +623,7 @@ describe('GraphSession', () => {
     it('should handle SummaryEvent with minimal structure', () => {
       const minimalSummary = {
         type: 'update',
-        label: 'Status update'
+        label: 'Status update',
         // details is optional
       };
 
@@ -641,10 +643,10 @@ describe('GraphSession', () => {
           customField: 'custom value',
           nestedData: {
             level: 2,
-            items: ['a', 'b', 'c']
+            items: ['a', 'b', 'c'],
           },
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       expect(flexibleSummary.type).toBe('custom');
@@ -665,31 +667,31 @@ describe('GraphSession', () => {
       };
 
       session.initializeStatusUpdates(config, summarizerModel);
-      
+
       // Mock the internal method to simulate actual summary generation
       const originalGenerateUpdate = (session as any).generateAndSendUpdate;
       (session as any).generateAndSendUpdate = vi.fn().mockImplementation(async () => {
         const summaryEvent = {
           type: 'completion',
-          label: 'Processing completed', 
+          label: 'Processing completed',
           details: {
             itemsProcessed: 5,
-            duration: '2.3s'
-          }
+            duration: '2.3s',
+          },
         };
         await mockStreamHelper.writeSummary(summaryEvent);
       });
-      
+
       // Trigger an event that should cause status update
       session.recordEvent('tool_execution', 'agent-1', {
         toolName: 'search',
         args: { query: 'test query' },
         result: 'search completed',
       });
-      
+
       // Wait for async operation to complete
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       // Verify writeSummary was called with proper SummaryEvent structure including type field
       expect(mockStreamHelper.writeSummary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -697,11 +699,11 @@ describe('GraphSession', () => {
           label: 'Processing completed',
           details: expect.objectContaining({
             itemsProcessed: 5,
-            duration: '2.3s'
-          })
+            duration: '2.3s',
+          }),
         })
       );
-      
+
       // Restore original method
       (session as any).generateAndSendUpdate = originalGenerateUpdate;
     });
@@ -835,7 +837,9 @@ describe('GraphSession', () => {
 
       // Don't create session, try to initialize status updates
       expect(() => {
-        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, { model: 'test-model' });
+        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, {
+          model: 'test-model',
+        });
       }).not.toThrow();
     });
 

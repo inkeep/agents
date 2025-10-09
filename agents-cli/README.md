@@ -322,7 +322,7 @@ const assistantAgent = agent({
 export const graph = agentGraph({
   id: "my-assistant",
   name: "My Assistant Graph",
-  defaultAgent: assistantAgent,
+  defaultSubAgent: assistantAgent,
   agents: {
     assistant: assistantAgent,
   },
@@ -498,7 +498,7 @@ const assistantAgent = agent({
 export const graph = agentGraph({
   id: "my-assistant",
   name: "My Assistant",
-  defaultAgent: assistantAgent,
+  defaultSubAgent: assistantAgent,
   agents: { assistant: assistantAgent },
 });
 

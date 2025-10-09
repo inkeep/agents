@@ -84,11 +84,11 @@ export function SidePane({
     if (selectedNode) {
       const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
       // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-      const agentId = (selectedNode.data as any)?.id || selectedNode.id;
+      const subAgentId = (selectedNode.data as any)?.id || selectedNode.id;
       const errorHelpers = {
-        hasFieldError: (fieldName: string) => hasFieldError(agentId, fieldName),
-        getFieldErrorMessage: (fieldName: string) => getFieldErrorMessage(agentId, fieldName),
-        getFirstErrorField: () => getFirstErrorField(agentId),
+        hasFieldError: (fieldName: string) => hasFieldError(subAgentId, fieldName),
+        getFieldErrorMessage: (fieldName: string) => getFieldErrorMessage(subAgentId, fieldName),
+        getFirstErrorField: () => getFirstErrorField(subAgentId),
       };
 
       switch (nodeType) {

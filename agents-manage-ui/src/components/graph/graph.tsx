@@ -48,7 +48,7 @@ export type AgentToolConfig = {
   headers?: Record<string, string>;
 };
 
-// AgentToolConfigLookup: agentId -> relationshipId -> config
+// AgentToolConfigLookup: subAgentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
 
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
@@ -150,10 +150,10 @@ function Flow({
 
   // Create agent tool configuration lookup from graph data
   const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
-    if (!graph?.agents) return {} as AgentToolConfigLookup;
+    if (!graph?.subAgents) return {} as AgentToolConfigLookup;
 
     const lookup: AgentToolConfigLookup = {};
-    Object.entries(graph.agents).forEach(([agentId, agentData]) => {
+    Object.entries(graph.subAgents).forEach(([subAgentId, agentData]) => {
       if ('canUse' in agentData && agentData.canUse) {
         const toolsMap: Record<string, AgentToolConfig> = {};
         agentData.canUse.forEach((tool) => {
@@ -174,12 +174,12 @@ function Flow({
           }
         });
         if (Object.keys(toolsMap).length > 0) {
-          lookup[agentId] = toolsMap;
+          lookup[subAgentId] = toolsMap;
         }
       }
     });
     return lookup;
-  }, [graph?.agents]);
+  }, [graph?.subAgents]);
 
   const {
     screenToFlowPosition,
@@ -385,17 +385,17 @@ function Flow({
       };
     }
 
-    // Update MCP node agentId when connecting agent to MCP tool
+    // Update MCP node subAgentId when connecting agent to MCP tool
     if (
       targetHandle === mcpNodeHandleId &&
       (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId)
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
-        const agentId = params.source;
+        const subAgentId = params.source;
         updateNodeData(targetNode.id, {
           ...targetNode.data,
-          agentId,
+          subAgentId,
           relationshipId: null, // Will be set after saving to database
         });
       }
@@ -633,7 +633,7 @@ function Flow({
           currentNodes.map((node) => {
             if (node.type === NodeType.MCP) {
               const mcpNode = node as Node & { data: MCPNodeData };
-              if (mcpNode.data.agentId && mcpNode.data.toolId) {
+              if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
                 // If node already has a relationshipId, keep it (it's an existing relationship)
                 if (mcpNode.data.relationshipId) {
                   return node;
@@ -641,11 +641,14 @@ function Flow({
 
                 // For new nodes (relationshipId is null), find the first unprocessed relationship
                 // that matches this agent and tool
-                const agentId = mcpNode.data.agentId;
+                const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if ('canUse' in res.data.agents[agentId] && res.data.agents[agentId].canUse) {
-                  const matchingRelationship = res.data.agents[agentId].canUse.find(
+                if (
+                  'canUse' in res.data.subAgents[subAgentId] &&
+                  res.data.subAgents[subAgentId].canUse
+                ) {
+                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&
                       tool.agentToolRelationId &&

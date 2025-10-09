@@ -102,7 +102,7 @@ const personalAssistant = agent({
 const graph = agentGraph({
   id: "personal-graph",
   name: "Personal Assistant Graph",
-  defaultAgent: personalAssistant,
+  defaultSubAgent: personalAssistant,
   agents: () => [personalAssistant],
   contextConfig: personalGraphContext,
 });

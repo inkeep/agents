@@ -109,7 +109,7 @@ export type AgentConfig = {
   name: string;
   description: string;
   agentPrompt: string;
-  agentRelations: AgentConfig[];
+  subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
   tools?: McpTool[];
@@ -445,8 +445,8 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, agentId: string) =>
-      `${prefix}_to_${agentId.toLowerCase().replace(/\s+/g, '_')}`;
+    const createToolName = (prefix: string, subAgentId: string) =>
+      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
         const toolName = createToolName('transfer', agentConfig.id);
@@ -457,7 +457,7 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              agent: this,
+              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -485,7 +485,7 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              agent: this,
+              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -622,7 +622,7 @@ export class Agent {
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
         graphId: this.config.graphId,
-        agentId: this.config.id,
+        subAgentId: this.config.id,
       },
     });
 
@@ -730,7 +730,7 @@ export class Agent {
         logger.error(
           {
             toolName: tool.name,
-            agentId: this.config.id,
+            subAgentId: this.config.id,
             cacheKey,
             error: error instanceof Error ? error.message : String(error),
           },
@@ -763,7 +763,7 @@ export class Agent {
       logger.error(
         {
           toolName: tool.name,
-          agentId: this.config.id,
+          subAgentId: this.config.id,
           error: error instanceof Error ? error.message : String(error),
         },
         'Agent failed to connect to MCP server'
@@ -782,7 +782,7 @@ export class Agent {
           tenantId: this.config.tenantId || 'default',
           projectId: this.config.projectId || 'default',
           graphId: this.config.graphId,
-          agentId: this.config.id,
+          subAgentId: this.config.id,
         },
       });
 
@@ -996,11 +996,11 @@ export class Agent {
       }
 
       // Check if any agent in the graph has artifact components
-      return Object.values(graphDefinition.agents).some(
-        (agent) =>
-          'artifactComponents' in agent &&
-          agent.artifactComponents &&
-          agent.artifactComponents.length > 0
+      return Object.values(graphDefinition.subAgents).some(
+        (subAgent) =>
+          'artifactComponents' in subAgent &&
+          subAgent.artifactComponents &&
+          subAgent.artifactComponents.length > 0
       );
     } catch (error) {
       logger.warn(
@@ -1234,7 +1234,7 @@ export class Agent {
       }),
       execute: async ({ artifactId, toolCallId }) => {
         logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
-        
+
         // Use shared ArtifactService from GraphSessionManager
         const streamRequestId = this.getStreamRequestId();
         const artifactService = graphSessionManager.getArtifactService(streamRequestId);
@@ -1242,13 +1242,13 @@ export class Agent {
         if (!artifactService) {
           throw new Error(`ArtifactService not found for session ${streamRequestId}`);
         }
-        
+
         const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
         if (!artifactData) {
           throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
         }
-        
-        return { 
+
+        return {
           artifactId: artifactData.artifactId,
           name: artifactData.name,
           description: artifactData.description,
@@ -1277,7 +1277,7 @@ export class Agent {
   }
 
   // Provide a default tool set that is always available to the agent.
-  private async getDefaultTools(_sessionId?: string, streamRequestId?: string): Promise<ToolSet> {
+  private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
     // Add get_reference_artifact if any agent in the graph has artifact components
@@ -1658,7 +1658,7 @@ export class Agent {
                 this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
                 this.getFunctionTools(sessionId, streamRequestId),
                 Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
-                this.getDefaultTools(sessionId, streamRequestId),
+                this.getDefaultTools(streamRequestId),
               ]);
 
               childSpan.setStatus({ code: SpanStatusCode.OK });
@@ -1708,7 +1708,7 @@ export class Agent {
               currentMessage: userMessage,
               options: historyConfig,
               filters: {
-                agentId: this.config.id,
+                subAgentId: this.config.id,
                 taskId: taskId,
               },
             });
@@ -1828,7 +1828,7 @@ export class Agent {
             projectId: session?.projectId,
             artifactComponents: this.artifactComponents,
             streamRequestId: this.getStreamRequestId(),
-            agentId: this.config.id,
+            subAgentId: this.config.id,
           };
           const parser = new IncrementalStreamParser(
             streamHelper,
@@ -2151,7 +2151,7 @@ ${output}${structureHintsFormatted}`;
                 projectId: session?.projectId,
                 artifactComponents: this.artifactComponents,
                 streamRequestId: this.getStreamRequestId(),
-                agentId: this.config.id,
+                subAgentId: this.config.id,
               };
               const parser = new IncrementalStreamParser(
                 streamHelper,
@@ -2261,7 +2261,7 @@ ${output}${structureHintsFormatted}`;
             contextId,
             artifactComponents: this.artifactComponents,
             streamRequestId: this.getStreamRequestId(),
-            agentId: this.config.id,
+            subAgentId: this.config.id,
           });
 
           if (response.object) {

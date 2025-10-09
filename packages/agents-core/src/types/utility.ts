@@ -42,11 +42,11 @@ export type GraphScopeConfig = ProjectScopeConfig & {
 };
 
 export type AgentScopeConfig = GraphScopeConfig & {
-  agentId: string;
+  subAgentId: string;
 };
 export interface ConversationScopeOptions {
   taskId?: string;
-  agentId?: string;
+  subAgentId?: string;
 }
 
 export type ConversationHistoryConfig = {
@@ -260,6 +260,6 @@ export interface ExecutionContext {
   baseUrl: string;
   /** API key ID for tracking */
   apiKeyId: string;
-  /** Agent ID extracted from request headers (only for internal A2A calls) */
-  agentId?: string;
+  /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
+  subAgentId?: string;
 }

@@ -1,62 +1,51 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Project Full CRUD Routes - Integration Tests', () => {
-  // Helper function to create test agent data
-  const createTestAgentData = (id: string, suffix = '') => ({
-    id,
-    name: `Test Agent${suffix}`,
-    description: `Test agent description${suffix}`,
-    prompt: `You are a helpful assistant${suffix}.`,
-    canDelegateTo: [] as string[],
-    tools: [] as string[],
-    dataComponents: [] as string[],
-    artifactComponents: [] as string[],
-    canUse: [],
-    type: 'internal' as const,
-  });
 
   // Helper function to create test tool data
-  const createTestToolData = (id: string, suffix = '') => ({
-    id,
-    name: `Test Tool${suffix}`,
-    config: {
-      type: 'mcp',
-      mcp: {
-        server: {
-          url: `http://localhost:300${suffix || '1'}`,
+  const createTestToolData = (id: string, suffix = '') => {
+    // Remove all non-numeric characters from suffix for URL port
+    const urlSuffix = suffix.replace(/\D/g, '') || '1';
+    return {
+      id,
+      name: `Test Tool${suffix}`,
+      config: {
+        type: 'mcp',
+        mcp: {
+          server: {
+            url: `http://localhost:300${urlSuffix}`,
+          },
         },
       },
-    },
-    status: 'unknown' as const,
-    capabilities: { tools: true },
-    lastHealthCheck: new Date().toISOString(),
-    availableTools: [
-      {
-        name: `testTool${suffix}`,
-        description: `Test tool function${suffix}`,
-      },
-    ],
-  });
+      status: 'unknown' as const,
+      capabilities: { tools: true },
+      lastHealthCheck: new Date().toISOString(),
+      availableTools: [
+        {
+          name: `testTool${suffix}`,
+          description: `Test tool function${suffix}`,
+        },
+      ],
+    };
+  };
 
   // Helper function to create full graph definition
+  // NOTE: Tools should be defined at PROJECT level, not graph level
   const createTestGraphDefinition = (
     graphId: string,
-    agentId: string,
-    toolId: string,
+    subAgentId: string,
     suffix = ''
   ) => ({
     id: graphId,
     name: `Test Graph${suffix}`,
     description: `Complete test graph${suffix}`,
-    defaultAgentId: agentId,
-    agents: {
-      [agentId]: createTestAgentData(agentId, suffix),
-    },
-    tools: {
-      [toolId]: createTestToolData(toolId, suffix),
+    defaultSubAgentId: subAgentId,
+    subAgents: {
+      [subAgentId]: createTestSubAgentData({ id: subAgentId, suffix: suffix }),
     },
     credentialReferences: {},
     dataComponents: {},
@@ -73,7 +62,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
   // Helper function to create full project definition
   const createTestProjectDefinition = (projectId: string, suffix = '') => {
-    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
     const toolId = `tool-${nanoid()}`;
     const graphId = `graph-${nanoid()}`;
 
@@ -94,9 +83,11 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         stepCountIs: 50,
       },
       graphs: {
-        [graphId]: createTestGraphDefinition(graphId, agentId, toolId, suffix),
+        [graphId]: createTestGraphDefinition(graphId, subAgentId, suffix),
       },
-      tools: {}, // Required field, even if empty
+      tools: {
+        [toolId]: createTestToolData(toolId, suffix),
+      },
     };
   };
 
@@ -329,31 +320,37 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId();
       const projectId = `project-${nanoid()}`;
 
-      // Create a project with 3 graphs
+      // Create a project with 3 graphs and 3 tools
       const graph1Id = `graph-${projectId}-1`;
       const graph2Id = `graph-${projectId}-2`;
       const graph3Id = `graph-${projectId}-3`;
+      const tool1Id = `tool-${projectId}-1`;
+      const tool2Id = `tool-${projectId}-2`;
+      const tool3Id = `tool-${projectId}-3`;
 
       const originalDefinition = createTestProjectDefinition(projectId);
       originalDefinition.graphs = {
         [graph1Id]: createTestGraphDefinition(
           graph1Id,
           `agent-${graph1Id}`,
-          `tool-${graph1Id}`,
           ' 1'
         ),
         [graph2Id]: createTestGraphDefinition(
           graph2Id,
           `agent-${graph2Id}`,
-          `tool-${graph2Id}`,
           ' 2'
         ),
         [graph3Id]: createTestGraphDefinition(
           graph3Id,
           `agent-${graph3Id}`,
-          `tool-${graph3Id}`,
           ' 3'
         ),
+      };
+      // Define tools at PROJECT level, not graph level
+      originalDefinition.tools = {
+        [tool1Id]: createTestToolData(tool1Id, ' 1'),
+        [tool2Id]: createTestToolData(tool2Id, ' 2'),
+        [tool3Id]: createTestToolData(tool3Id, ' 3'),
       };
 
       // Create the project
@@ -407,24 +404,29 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId();
       const projectId = `project-${nanoid()}`;
 
-      // Create a project with 2 graphs
+      // Create a project with 2 graphs and 2 tools
       const graph1Id = `graph-${projectId}-1`;
       const graph2Id = `graph-${projectId}-2`;
+      const tool1Id = `tool-${projectId}-1`;
+      const tool2Id = `tool-${projectId}-2`;
 
       const originalDefinition = createTestProjectDefinition(projectId);
       originalDefinition.graphs = {
         [graph1Id]: createTestGraphDefinition(
           graph1Id,
           `agent-${graph1Id}`,
-          `tool-${graph1Id}`,
           ' 1'
         ),
         [graph2Id]: createTestGraphDefinition(
           graph2Id,
           `agent-${graph2Id}`,
-          `tool-${graph2Id}`,
           ' 2'
         ),
+      };
+      // Define tools at PROJECT level, not graph level
+      originalDefinition.tools = {
+        [tool1Id]: createTestToolData(tool1Id, ' 1'),
+        [tool2Id]: createTestToolData(tool2Id, ' 2'),
       };
 
       // Create the project
@@ -530,10 +532,14 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
           stepCountIs: 100,
         },
         graphs: {
-          [graph1Id]: createTestGraphDefinition(graph1Id, agent1Id, tool1Id, '-1'),
-          [graph2Id]: createTestGraphDefinition(graph2Id, agent2Id, tool2Id, '-2'),
+          [graph1Id]: createTestGraphDefinition(graph1Id, agent1Id, '-1'),
+          [graph2Id]: createTestGraphDefinition(graph2Id, agent2Id, '-2'),
         },
-        tools: {}, // Required field
+        // Define tools at PROJECT level, not graph level
+        tools: {
+          [tool1Id]: createTestToolData(tool1Id, '-1'),
+          [tool2Id]: createTestToolData(tool2Id, '-2'),
+        },
       };
 
       const response = await makeRequest(`/tenants/${tenantId}/project-full`, {

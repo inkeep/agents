@@ -4,32 +4,23 @@ import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('API Key CRUD Routes - Integration Tests', () => {
-  // Helper function to create test agent data
-  const createAgentData = ({ suffix = '' } = {}) => ({
-    id: nanoid(),
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-    tools: [], // Required for internal agents
-    canUse: [],
-    type: 'internal' as const,
-  });
 
   // Helper function to create full graph data with optional enhanced features
   const createFullGraphData = (graphId: string) => {
     const id = graphId || nanoid();
 
-    const agent = createAgentData();
+    const agent = createTestSubAgentData();
 
     const graphData: any = {
       id,
       name: `Test Graph ${id}`,
       description: `Test graph description for ${id}`,
-      defaultAgentId: agent.id,
-      agents: {
+      defaultSubAgentId: agent.id,
+      subAgents: {
         [agent.id]: agent, // Agents should be an object keyed by ID
       },
       // Note: tools are now project-scoped and not part of the graph definition
@@ -71,13 +62,10 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       ...(expiresAt && { expiresAt }),
     };
 
-    const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/api-keys`,
-      {
-        method: 'POST',
-        body: JSON.stringify(createData),
-      }
-    );
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
+      method: 'POST',
+      body: JSON.stringify(createData),
+    });
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
@@ -536,13 +524,10 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
 
       // Create API key
-      const createRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/api-keys`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ graphId }),
-        }
-      );
+      const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
+        method: 'POST',
+        body: JSON.stringify({ graphId }),
+      });
 
       const createBody = await createRes.json();
       const { apiKey, key: fullKey } = createBody.data;
