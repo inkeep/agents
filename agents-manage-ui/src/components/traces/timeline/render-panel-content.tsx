@@ -15,7 +15,7 @@ import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import { Badge } from '@/components/ui/badge';
 
 const JsonEditorWithCopy = dynamic(() =>
-  import('@/components/traces/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
+  import('@/components/traces/editors/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
 );
 
 function formatJsonSafely(content: string): string {

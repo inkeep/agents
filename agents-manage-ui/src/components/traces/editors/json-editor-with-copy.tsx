@@ -11,59 +11,16 @@ import {
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ClipboardCopy, Copy, Download } from 'lucide-react';
-import { renderToString } from 'react-dom/server';
+import { Copy, Download } from 'lucide-react';
 import '@/lib/setup-monaco-workers';
-
-// Add CSS for copy button decorations with invert filter
-const copyButtonStyles = `
-  .copy-button-icon {
-    font-size: 14px;
-    margin-left: 10px;
-    opacity: 0;
-    cursor: pointer;
-    position: absolute;
-  }
-  .copy-button-icon::before {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    background-image: url("data:image/svg+xml,${encodeURIComponent(
-      renderToString(<ClipboardCopy />)
-    )}");
-    background-size: contain;
-    filter: invert(0);
-  }
-  /* Dark mode - invert the icon to make it white */
-  .dark .copy-button-icon::before {
-    filter: invert(1);
-  }
-  /* Show copy button only when hovering over the specific line */
-  .view-line:hover .copy-button-icon {
-    opacity: 0.7;
-  }
-  /* Hide caret */
-  .monaco-editor .cursor {
-    display: none !important;
-  }
-`;
-
-// Inject styles
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = copyButtonStyles;
-  document.head.appendChild(styleSheet);
-}
+import './json-editor-with-copy.css';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
-  const el = e.target.element;
-  if (!el?.classList.contains('copy-button-icon')) {
+  const { element, position } = e.target;
+  if (!element?.classList.contains('copy-button-icon') || !position) {
     return;
   }
   e.event.preventDefault();
-  const position = e.target.position;
-  if (!position) return;
   const lineContent = model.getLineContent(position.lineNumber);
   const index = lineContent.indexOf(': ');
   const valueToCopy = lineContent
@@ -97,10 +54,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   }, [resolvedTheme]);
 
   useEffect(() => {
-    const model = getOrCreateModel({
-      uri,
-      value,
-    });
+    const model = getOrCreateModel({ uri, value });
     const editorInstance = createEditor(ref, {
       model,
       readOnly: true,
@@ -124,9 +78,12 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       const contentHeight = editorInstance.getContentHeight();
       ref.current.style.height = `${contentHeight}px`;
     }
-    addDecorations(editorInstance, model.getValue(), ' ');
+    // Wait for Monaco workers to initialize
+    setTimeout(() => {
+      addDecorations(editorInstance, value, ' ');
+    }, 1000);
 
-    return cleanupDisposables([
+    return cleanupDisposables(
       model,
       editorInstance,
       editorInstance.onMouseDown(handleCopyFieldValue(model)),
@@ -139,8 +96,8 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
         run() {
           // Do nothing - this prevents the command palette from opening
         },
-      }),
-    ]);
+      })
+    );
   }, [value, uri]);
 
   const handleCopyCode = useCallback(async () => {
