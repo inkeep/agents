@@ -846,12 +846,12 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     fields: [messages.conversationId],
     references: [conversations.id],
   }),
-  fromAgent: one(subAgents, {
+  fromSubAgent: one(subAgents, {
     fields: [messages.fromSubAgentId],
     references: [subAgents.id],
     relationName: 'sentMessages',
   }),
-  toAgent: one(subAgents, {
+  toSubAgent: one(subAgents, {
     fields: [messages.toSubAgentId],
     references: [subAgents.id],
     relationName: 'receivedMessages',
@@ -891,7 +891,7 @@ export const artifactComponentsRelations = relations(artifactComponents, ({ many
 export const subAgentArtifactComponentsRelations = relations(
   subAgentArtifactComponents,
   ({ one }) => ({
-    agent: one(subAgents, {
+    subAgent: one(subAgents, {
       fields: [subAgentArtifactComponents.subAgentId],
       references: [subAgents.id],
     }),
@@ -911,7 +911,7 @@ export const dataComponentsRelations = relations(dataComponents, ({ many, one })
 }));
 
 export const subAgentDataComponentsRelations = relations(subAgentDataComponents, ({ one }) => ({
-  agent: one(subAgents, {
+  subAgent: one(subAgents, {
     fields: [subAgentDataComponents.subAgentId],
     references: [subAgents.id],
   }),
