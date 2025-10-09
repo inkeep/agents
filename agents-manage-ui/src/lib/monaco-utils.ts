@@ -79,17 +79,35 @@ export const MONACO_THEME = {
 editor.defineTheme(MONACO_THEME.dark, {
   base: 'vs-dark',
   inherit: true,
-  rules: [],
+  rules: [
+    {
+      token: 'string.key.json',
+      foreground: '#9a86fd',
+    },
+    {
+      token: 'string.value.json',
+      foreground: '#ffb870',
+    },
+  ],
   colors: {
-    'editor.background': '#18181b',
+    'editor.background': '#ffffff05',
   },
 });
 editor.defineTheme(MONACO_THEME.light, {
   base: 'vs',
   inherit: true,
-  rules: [],
+  rules: [
+    {
+      token: 'string.key.json',
+      foreground: '#b29762',
+    },
+    {
+      token: 'string.value.json',
+      foreground: '#1659df',
+    },
+  ],
   colors: {
-    'editor.background': '#fafaf9',
+    'editor.background': '#ffffff',
   },
 });
 
