@@ -29,7 +29,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toBeUndefined();
+      expect((result.subAgents.agent1 as any).models).toBeUndefined();
     });
 
     it('should set models to undefined when models object has only whitespace values', () => {
@@ -54,7 +54,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toBeUndefined();
+      expect((result.subAgents.agent1 as any).models).toBeUndefined();
     });
 
     it('should include models object when model field has a value', () => {
@@ -79,7 +79,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toEqual({
+      expect((result.subAgents.agent1 as any).models).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: undefined,
         summarizer: undefined,
@@ -108,7 +108,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toEqual({
+      expect((result.subAgents.agent1 as any).models).toEqual({
         base: undefined,
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: undefined,
@@ -137,7 +137,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toEqual({
+      expect((result.subAgents.agent1 as any).models).toEqual({
         base: undefined,
         structuredOutput: undefined,
         summarizer: { model: 'gpt-3.5-turbo' },
@@ -166,7 +166,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toEqual({
+      expect((result.subAgents.agent1 as any).models).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: { model: 'gpt-3.5-turbo' },
@@ -191,7 +191,7 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).models).toBeUndefined();
+      expect((result.subAgents.agent1 as any).models).toBeUndefined();
     });
   });
 
@@ -231,9 +231,9 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
+      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: ['tool1', 'tool2'],
         headers: null,
@@ -277,9 +277,9 @@ describe('serializeGraphData', () => {
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       // When tempSelectedTools is null, all tools should be selected (toolSelection: null)
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
+      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: null,
         headers: null,
@@ -321,9 +321,9 @@ describe('serializeGraphData', () => {
 
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
+      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: [],
         headers: null,
@@ -366,7 +366,7 @@ describe('serializeGraphData', () => {
       const result = serializeGraphData(nodes, edges, undefined, {}, {}, {});
 
       // selectedTools should not be created if tempSelectedTools is undefined
-      expect((result.agents.agent1 as any).selectedTools).toBeUndefined();
+      expect((result.subAgents.agent1 as any).selectedTools).toBeUndefined();
     });
 
     it('should preserve existing selectedTools when tempSelectedTools is undefined', () => {
@@ -408,9 +408,9 @@ describe('serializeGraphData', () => {
 
       // When tempSelectedTools is undefined and there's an edge to MCP tool,
       // the toolSelection will be null (all tools selected by default)
-      expect((result.agents.agent1 as any).canUse).toBeDefined();
-      expect((result.agents.agent1 as any).canUse).toHaveLength(1);
-      expect((result.agents.agent1 as any).canUse[0]).toEqual({
+      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
+      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
         toolId: 'mcp1',
         toolSelection: null, // null means all tools are selected
         headers: null,

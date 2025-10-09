@@ -150,10 +150,10 @@ function Flow({
 
   // Create agent tool configuration lookup from graph data
   const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
-    if (!graph?.agents) return {} as AgentToolConfigLookup;
+    if (!graph?.subAgents) return {} as AgentToolConfigLookup;
 
     const lookup: AgentToolConfigLookup = {};
-    Object.entries(graph.agents).forEach(([subAgentId, agentData]) => {
+    Object.entries(graph.subAgents).forEach(([subAgentId, agentData]) => {
       if ('canUse' in agentData && agentData.canUse) {
         const toolsMap: Record<string, AgentToolConfig> = {};
         agentData.canUse.forEach((tool) => {
@@ -179,7 +179,7 @@ function Flow({
       }
     });
     return lookup;
-  }, [graph?.agents]);
+  }, [graph?.subAgents]);
 
   const {
     screenToFlowPosition,
@@ -644,8 +644,11 @@ function Flow({
                 const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if ('canUse' in res.data.agents[subAgentId] && res.data.agents[subAgentId].canUse) {
-                  const matchingRelationship = res.data.agents[subAgentId].canUse.find(
+                if (
+                  'canUse' in res.data.subAgents[subAgentId] &&
+                  res.data.subAgents[subAgentId].canUse
+                ) {
+                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&
                       tool.agentToolRelationId &&

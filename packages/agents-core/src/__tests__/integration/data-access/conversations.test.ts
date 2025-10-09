@@ -196,7 +196,7 @@ describe('Conversations Data Access - Integration Tests', () => {
       const originalUpdatedAt = createdConversation.updatedAt;
 
       // Wait a moment to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Update active agent
       const updatedConversation = await updateConversationActiveAgent(db)({

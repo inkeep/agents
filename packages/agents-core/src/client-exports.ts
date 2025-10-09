@@ -190,7 +190,7 @@ export const AgentGraphApiInsertSchema = z.object({
 
 // Full Graph Definition Schema - extends AgentGraph with agents and tools
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(
+  subAgents: z.record(
     z.string(),
     z.union([
       FullGraphAgentInsertSchema,

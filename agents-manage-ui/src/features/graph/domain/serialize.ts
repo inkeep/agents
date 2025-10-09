@@ -7,13 +7,10 @@ import { NodeType } from '@/components/graph/configuration/node-types';
 import type { AgentToolConfigLookup } from '@/components/graph/graph';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import type { FullGraphDefinition, InternalAgentDefinition } from '@/lib/types/graph-full';
 
-// Extract the internal agent type from the union
-type InternalAgent = Extract<
-  FullGraphDefinition['agents'][string],
-  { canUse: Array<{ toolId: string; toolSelection?: string[] | null }> }
->;
+// Use the exported InternalAgentDefinition from core
+type InternalAgent = InternalAgentDefinition;
 
 type ExternalAgent = {
   id: string;
@@ -33,6 +30,13 @@ export type ExtendedAgent =
       type: 'internal';
     })
   | ExternalAgent;
+
+// Type guard to check if an agent is an internal agent
+function isInternalAgent(
+  agent: ExtendedAgent | FullGraphDefinition['subAgents'][string]
+): agent is InternalAgent {
+  return agent.type === 'internal' && 'canUse' in agent;
+}
 
 // Note: Tools are now project-scoped, not part of FullGraphDefinition
 
@@ -91,7 +95,7 @@ export function serializeGraphData(
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup
 ): FullGraphDefinition {
-  const agents: Record<string, ExtendedAgent> = {};
+  const subAgents: Record<string, ExtendedAgent> = {};
   // Note: Tools are now project-scoped and not included in graph serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
@@ -249,7 +253,7 @@ export function serializeGraphData(
         defaultSubAgentId = subAgentId;
       }
 
-      agents[subAgentId] = agent;
+      subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
       const subAgentId = (node.data.id as string) || node.id;
 
@@ -270,7 +274,7 @@ export function serializeGraphData(
         defaultSubAgentId = subAgentId;
       }
 
-      agents[subAgentId] = agent;
+      subAgents[subAgentId] = agent;
     }
   }
 
@@ -288,8 +292,8 @@ export function serializeGraphData(
 
       const sourceSubAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
       const targetSubAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
-      const sourceAgent: ExtendedAgent = agents[sourceSubAgentId];
-      const targetAgent: ExtendedAgent = agents[targetSubAgentId];
+      const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
+      const targetAgent: ExtendedAgent = subAgents[targetSubAgentId];
 
       if (sourceAgent && targetAgent && (edge.data as any)?.relationships) {
         const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
@@ -300,7 +304,7 @@ export function serializeGraphData(
           relationshipType: 'canTransferTo' | 'canDelegateTo',
           targetId: string
         ) => {
-          if ('canUse' in agent) {
+          if (isInternalAgent(agent)) {
             if (!agent[relationshipType]) agent[relationshipType] = [];
             const subAgentRelationships = agent[relationshipType];
             if (subAgentRelationships && !subAgentRelationships.includes(targetId)) {
@@ -368,7 +372,7 @@ export function serializeGraphData(
     name: metadata?.name || 'Untitled Graph',
     description: metadata?.description || undefined,
     defaultSubAgentId,
-    agents,
+    subAgents: subAgents,
     // Note: Tools are now project-scoped and not included in FullGraphDefinition
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
@@ -442,7 +446,7 @@ export function validateSerializedData(
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
-  if (data.defaultSubAgentId && !data.agents[data.defaultSubAgentId]) {
+  if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
       message: `Default agent ID '${data.defaultSubAgentId}' not found in agents`,
       field: 'defaultSubAgentId',
@@ -451,9 +455,9 @@ export function validateSerializedData(
     });
   }
 
-  for (const [subAgentId, agent] of Object.entries(data.agents)) {
+  for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
     // Only validate tools for internal agents (external agents don't have tools)
-    if ('canUse' in agent && agent.canUse) {
+    if (isInternalAgent(agent) && agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
       const toolsData = (data as any).tools;
       if (toolsData) {
@@ -472,7 +476,7 @@ export function validateSerializedData(
     }
 
     // Validate function tools for internal agents (check canUse array for function tools)
-    if ('canUse' in agent && agent.canUse) {
+    if (isInternalAgent(agent) && agent.canUse) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolType = (canUseItem as any).toolType;
@@ -539,9 +543,9 @@ export function validateSerializedData(
     }
 
     // Only validate relationships for internal agents (external agents don't have these properties)
-    if ('canTransferTo' in agent) {
+    if (isInternalAgent(agent)) {
       for (const targetId of agent.canTransferTo ?? []) {
-        if (!data.agents[targetId]) {
+        if (!data.subAgents[targetId]) {
           errors.push({
             message: `Transfer target '${targetId}' not found in agents`,
             field: 'canTransferTo',
@@ -550,10 +554,8 @@ export function validateSerializedData(
           });
         }
       }
-    }
-    if ('canDelegateTo' in agent) {
       for (const targetId of agent.canDelegateTo ?? []) {
-        if (!data.agents[targetId]) {
+        if (!data.subAgents[targetId]) {
           errors.push({
             message: `Delegate target '${targetId}' not found in agents`,
             field: 'canDelegateTo',

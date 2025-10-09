@@ -98,7 +98,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.FunctionTool]: {
     name: 'Function Tool',
-    agentId: null,
+    subAgentId: null,
   },
 };
 
