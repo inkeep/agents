@@ -91,6 +91,8 @@ editor.defineTheme(MONACO_THEME.dark, {
   ],
   colors: {
     'editor.background': '#ffffff05',
+    // Removes blue border
+    focusBorder: '#00000000', // transparent
   },
 });
 editor.defineTheme(MONACO_THEME.light, {
@@ -107,7 +109,9 @@ editor.defineTheme(MONACO_THEME.light, {
     },
   ],
   colors: {
-    'editor.background': '#ffffff',
+    'editor.background': '#00000000', // transparent
+    // Removes blue border
+    focusBorder: '#00000000', // transparent
   },
 });
 
