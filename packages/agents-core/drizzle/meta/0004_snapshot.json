@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b3f24031-5963-467c-8833-6c4c727dc532",
-  "prevId": "39a038ad-52c0-488f-bf8d-51883000f913",
+  "id": "50cc62de-53ea-4c7e-9c29-f27af3b4b538",
+  "prevId": "b3f24031-5963-467c-8833-6c4c727dc532",
   "tables": {
     "agent_artifact_components": {
       "name": "agent_artifact_components",
@@ -1130,22 +1130,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "request_context_schema": {
-          "name": "request_context_schema",
+        "headers_schema": {
+          "name": "headers_schema",
           "type": "blob",
           "primaryKey": false,
           "notNull": false,
@@ -2551,7 +2537,9 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {}
+    "columns": {
+      "\"context_configs\".\"request_context_schema\"": "\"context_configs\".\"headers_schema\""
+    }
   },
   "internal": {
     "indexes": {}
