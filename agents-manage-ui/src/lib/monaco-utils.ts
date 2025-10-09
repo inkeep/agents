@@ -1,4 +1,3 @@
-import type { RefObject } from 'react';
 import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
 import { MONACO_THEME_DATA, MONACO_THEME_NAME } from '@/constants/theme';
 
@@ -68,7 +67,10 @@ export function addDecorations(
 export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: string }) {
   const uri = Uri.file($uri);
   const model = editor.getModel(uri);
-  const language = uri.path.split('.').at(-1)!;
+  const language = uri.path.split('.').at(-1);
+  if (!language) {
+    throw new Error(`Could not determine file language from path: "${uri.path}"`);
+  }
   return model ?? editor.createModel(value, language, uri);
 }
 
@@ -83,7 +85,10 @@ export function createEditor(
   if (!model) {
     throw new Error('options.model is required');
   }
-  const language = model.uri.path.split('.').at(-1)!;
+  const language = model.uri.path.split('.').at(-1);
+  if (!language) {
+    throw new Error(`Could not determine file language from path: "${model.uri.path}"`);
+  }
   return editor.create(domElement, {
     language,
     automaticLayout: true,

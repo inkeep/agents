@@ -33,7 +33,7 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
   try {
     await navigator.clipboard.writeText(valueToCopy);
     toast.success('Copied to clipboard', {
-      description: `Value: ${valueToCopy.length > 50 ? valueToCopy.slice(0, 50) + '...' : valueToCopy}`,
+      description: `Value: ${valueToCopy.length > 50 ? `${valueToCopy.slice(0, 50)}...'` : valueToCopy}`,
     });
   } catch (error) {
     console.error('Failed to copy', error);
@@ -46,12 +46,15 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   uri,
   title,
 }) => {
-  const ref = useRef<HTMLDivElement>(null!);
+  const ref = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
     const container = ref.current;
+    if (!container) {
+      return;
+    }
     const model = getOrCreateModel({ uri, value });
     const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
     const editorInstance = createEditor(container, {
@@ -79,7 +82,9 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       }
       // Update height based on content
       const contentHeight = editorInstance.getContentHeight();
-      container.style.height = `${contentHeight}px`;
+      if (container) {
+        container.style.height = `${contentHeight}px`;
+      }
     }
     // Wait for Monaco workers to initialize
     const timerId = setTimeout(() => {
@@ -112,7 +117,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   }, []);
 
   const handleCopyCode = useCallback(async () => {
-    const code = ref.current.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
     try {
       await navigator.clipboard.writeText(code);
       toast.success('Copied to clipboard');
@@ -123,7 +128,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   }, []);
 
   const handleDownloadCode = useCallback(() => {
-    const code = ref.current.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
     // Create a blob with the JSON content
     const blob = new Blob([code], { type: 'application/json' });
     // Create a download link
