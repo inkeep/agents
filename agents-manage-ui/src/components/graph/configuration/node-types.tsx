@@ -49,11 +49,14 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
 
 export interface FunctionToolNodeData extends Record<string, unknown> {
   functionToolId: string;
-  agentId?: string | null; // null when unconnected, string when connected to specific agent
+  toolId?: string;
+  agentId?: string | null;
+  relationshipId?: string;
   name?: string;
   description?: string;
   code?: string;
   inputSchema?: Record<string, unknown>;
+  dependencies?: Record<string, unknown>;
 }
 
 export enum NodeType {

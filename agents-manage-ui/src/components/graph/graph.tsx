@@ -580,20 +580,31 @@ function Flow({
       agentToolConfigLookup
     );
 
+    // Build a map from toolId to React Flow node ID for function tools
+    const functionToolNodeMap = new Map<string, string>();
+    nodes.forEach((node) => {
+      if (node.type === NodeType.FunctionTool) {
+        const nodeData = node.data as any;
+        const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
+        functionToolNodeMap.set(toolId, node.id);
+      }
+    });
+
     // Validate the serialized data before saving
-    const validationErrors = validateSerializedData(serializedData);
+    const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
       // Convert validation errors to the format expected by parseGraphValidationErrors
       const errorObjects = validationErrors.map((error) => ({
-        message: error,
-        field: 'general',
-        code: 'custom_validation',
-        path: [],
+        message: error.message,
+        field: error.field,
+        code: error.code,
+        path: error.path,
+        functionToolId: error.functionToolId,
       }));
 
       const errorSummary = parseGraphValidationErrors(JSON.stringify(errorObjects));
       setErrors(errorSummary);
-      toast.error(`Validation failed: ${validationErrors[0]}`);
+      toast.error(`Validation failed: ${validationErrors[0].message}`);
       return;
     }
 
