@@ -8,7 +8,40 @@ icon: "LuLayoutTemplate"
 
 ## Creating Data Components
 
-You can create data components by adding them to your agent configuration.
+You can create data components by adding them to your agent configuration. You can use either JSON Schema or Zod schemas:
+
+### Using Zod Schemas (Recommended)
+
+```typescript
+import { z } from 'zod';
+
+const taskAgent = agent({
+  id: "task-agent",
+  name: "Task Agent",
+  description: "Manages user tasks",
+  prompt: "Provide helpful answers and use data components when appropriate.",
+  dataComponents: [
+    {
+      id: "task-list",
+      name: "TaskList",
+      description: "Display user tasks with status",
+      props: z.object({
+        tasks: z
+          .array(
+            z.object({
+              id: z.string().describe("Unique task identifier"),
+              title: z.string().describe("Task title"),
+              completed: z.boolean().describe("Whether the task is completed"),
+            })
+          )
+          .describe("Array of user tasks"),
+      }),
+    },
+  ],
+});
+```
+
+### Using JSON Schema
 
 ```typescript
 const taskAgent = agent({

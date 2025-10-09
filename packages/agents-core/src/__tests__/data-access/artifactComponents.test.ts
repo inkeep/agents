@@ -38,8 +38,13 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        summaryProps: { type: 'summary' },
-        fullProps: { type: 'full' },
+        props: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', inPreview: true },
+            description: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const mockQuery = {
@@ -254,8 +259,13 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        summaryProps: { type: 'summary' },
-        fullProps: { type: 'full' },
+        props: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', inPreview: true },
+            description: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const expectedComponent = {
@@ -288,8 +298,13 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        summaryProps: { type: 'summary' },
-        fullProps: { type: 'full' },
+        props: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', inPreview: true },
+            description: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const expectedComponent = {

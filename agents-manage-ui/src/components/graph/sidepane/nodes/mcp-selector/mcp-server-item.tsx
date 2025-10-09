@@ -10,12 +10,12 @@ interface MCPServerItemProps {
 }
 
 export function MCPServerItem({ mcp, onClick }: MCPServerItemProps) {
-  const server = mcp.config?.mcp?.server;
+  const server = mcp.config?.type === 'mcp' ? (mcp.config as any).mcp?.server : undefined;
   const { id, name, availableTools, imageUrl, config } = mcp;
 
   const activeTools = getActiveTools({
     availableTools,
-    activeTools: config?.mcp?.activeTools,
+    activeTools: config?.type === 'mcp' ? (config as any).mcp?.activeTools : undefined,
   });
 
   const toolCount = activeTools?.length ?? 0;

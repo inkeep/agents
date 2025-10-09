@@ -16,6 +16,7 @@ import {
   credentialReferences,
   dataComponents,
   externalAgents,
+  functions,
   ledgerArtifacts,
   messages,
   projects,
@@ -84,6 +85,27 @@ export const ProjectModelSchema = z.object({
   structuredOutput: ModelSettingsSchema.optional(),
   summarizer: ModelSettingsSchema.optional(),
 });
+
+export const SandboxConfigSchema = z.object({
+  provider: z.enum(['vercel', 'local']),
+  runtime: z.enum(['node22', 'typescript']),
+  timeout: z.number().min(1000).max(300000).optional(),
+  vcpus: z.number().min(1).max(8).optional(),
+});
+
+export type SandboxConfig = z.infer<typeof SandboxConfigSchema>;
+
+export const FunctionToolConfigSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  inputSchema: z.record(z.string(), z.unknown()),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  execute: z.union([z.function(), z.string()]),
+});
+
+export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 'execute'> & {
+  execute: ((params: any) => Promise<any>) | string;
+};
 
 // Helper functions with better type preservation
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
@@ -286,6 +308,33 @@ export const ToolSelectSchema = createSelectSchema(tools);
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: resourceIdSchema,
   imageUrl: imageUrlSchema,
+  functionId: resourceIdSchema.optional(), // For function tools, reference to global functions table
+  config: z.discriminatedUnion('type', [
+    // MCP tools
+    z.object({
+      type: z.literal('mcp'),
+      mcp: z.object({
+        server: z.object({
+          url: z.string().url(),
+        }),
+        transport: z
+          .object({
+            type: z.enum(MCPTransportType),
+            requestInit: z.record(z.string(), z.unknown()).optional(),
+            eventSourceInit: z.record(z.string(), z.unknown()).optional(),
+            reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+            sessionId: z.string().optional(),
+          })
+          .optional(),
+        activeTools: z.array(z.string()).optional(),
+      }),
+    }),
+    // Function tools (reference-only, no inline duplication)
+    z.object({
+      type: z.literal('function'),
+      // No inline function details - they're in the functions table via functionId
+    }),
+  ]),
 });
 
 // === Conversation Schemas ===
@@ -541,6 +590,17 @@ export const ToolApiSelectSchema = createApiSchema(ToolSelectSchema);
 export const ToolApiInsertSchema = createApiInsertSchema(ToolInsertSchema);
 export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema);
 
+// === Function Schemas ===
+export const FunctionSelectSchema = createSelectSchema(functions);
+export const FunctionInsertSchema = createInsertSchema(functions).extend({
+  id: resourceIdSchema,
+});
+export const FunctionUpdateSchema = FunctionInsertSchema.partial();
+
+export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema);
+export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema);
+export const FunctionApiUpdateSchema = createApiUpdateSchema(FunctionUpdateSchema);
+
 // === Context Config Schemas ===
 // Zod schemas for validation
 export const FetchConfigSchema = z.object({
@@ -563,12 +623,12 @@ export const FetchDefinitionSchema = z.object({
 });
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
-  requestContextSchema: z.unknown().optional(),
+  headersSchema: z.unknown().optional(),
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
-    id: resourceIdSchema,
-    requestContextSchema: z.unknown().optional(),
+    id: resourceIdSchema.optional(),
+    headersSchema: z.unknown().optional(),
   })
   .omit({
     createdAt: true,
@@ -576,9 +636,15 @@ export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   });
 export const ContextConfigUpdateSchema = ContextConfigInsertSchema.partial();
 
-export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema);
-export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema);
-export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema);
+export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema).omit({
+  graphId: true,
+});
+export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema).omit({
+  graphId: true,
+});
+export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema).omit({
+  graphId: true,
+});
 
 // === Agent Tool Relation Schemas ===
 export const AgentToolRelationSelectSchema = createSelectSchema(agentToolRelations);
@@ -641,7 +707,7 @@ export const CanUseItemSchema = z.object({
 
 export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
   type: z.literal('internal'),
-  canUse: z.array(CanUseItemSchema),
+  canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
@@ -650,9 +716,9 @@ export const FullGraphAgentInsertSchema = AgentApiInsertSchema.extend({
 
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   agents: z.record(z.string(), z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])),
-  // Removed project-scoped resources - these are now managed at project level:
-  // tools, credentialReferences, dataComponents, artifactComponents
-  // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
+  // Lookup maps for UI to resolve canUse items
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // Get tool name/description from toolId
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -715,6 +781,7 @@ export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
+    sandboxConfig: SandboxConfigSchema.optional(),
   })
   .omit({
     createdAt: true,
@@ -730,7 +797,8 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 // Full Project Definition Schema - extends Project with graphs and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   graphs: z.record(z.string(), GraphWithinContextOfProjectSchema),
-  tools: z.record(z.string(), ToolApiInsertSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema), // Now includes both MCP and function tools
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Global functions
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),

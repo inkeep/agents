@@ -9,18 +9,7 @@ import { nanoid } from 'nanoid';
  */
 export interface AgentInitializingEvent {
   type: 'agent_initializing';
-  ctx: {
-    sessionId: string;
-    graphId: string;
-  };
-}
-
-/**
- * Agent ready operation event
- */
-export interface AgentReadyEvent {
-  type: 'agent_ready';
-  ctx: {
+  details: {
     sessionId: string;
     graphId: string;
   };
@@ -31,7 +20,7 @@ export interface AgentReadyEvent {
  */
 export interface CompletionEvent {
   type: 'completion';
-  ctx: {
+  details: {
     agent: string;
     iteration: number;
   };
@@ -51,12 +40,15 @@ export interface ErrorEvent {
 }
 
 /**
- * Agent thinking operation event
+ * Data operation event (for emit operations)
  */
-export interface AgentThinkingEvent {
-  type: 'agent_thinking';
-  ctx: {
-    agent: string;
+export interface DataOperationEvent {
+  type: string;
+  label: string;
+  details: {
+    timestamp: number;
+    agentId: string;
+    data: any;
   };
 }
 
@@ -65,10 +57,9 @@ export interface AgentThinkingEvent {
  */
 export type OperationEvent =
   | AgentInitializingEvent
-  | AgentReadyEvent
-  | AgentThinkingEvent
   | CompletionEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | DataOperationEvent;
 
 // =============================================================================
 // OPERATION FUNCTIONS
@@ -80,34 +71,9 @@ export type OperationEvent =
 export function agentInitializingOp(sessionId: string, graphId: string): AgentInitializingEvent {
   return {
     type: 'agent_initializing',
-    ctx: {
+    details: {
       sessionId,
       graphId,
-    },
-  };
-}
-
-/**
- * Creates an agent ready operation
- */
-export function agentReadyOp(sessionId: string, graphId: string): AgentReadyEvent {
-  return {
-    type: 'agent_ready',
-    ctx: {
-      sessionId,
-      graphId,
-    },
-  };
-}
-
-/**
- * Creates an agent thinking operation
- */
-export function agentThinkingOp(agent: string): AgentThinkingEvent {
-  return {
-    type: 'agent_thinking',
-    ctx: {
-      agent,
     },
   };
 }
@@ -118,7 +84,7 @@ export function agentThinkingOp(agent: string): AgentThinkingEvent {
 export function completionOp(agentId: string, iterations: number): CompletionEvent {
   return {
     type: 'completion',
-    ctx: {
+    details: {
       agent: agentId,
       iteration: iterations,
     },
@@ -133,8 +99,8 @@ export function completionOp(agentId: string, iterations: number): CompletionEve
  * @param code - Optional error code
  */
 export function errorOp(
-  message: string, 
-  agentId?: string, 
+  message: string,
+  agentId?: string,
   severity: 'error' | 'warning' | 'info' = 'error',
   code?: string
 ): ErrorEvent {
@@ -154,4 +120,3 @@ export function errorOp(
 export function generateToolId(): string {
   return `tool_${nanoid(8)}`;
 }
-

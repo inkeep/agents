@@ -27,6 +27,13 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createMessage: createMessageMock,
     getCredentialReference: getCredentialReferenceMock,
     getExternalAgent: getExternalAgentMock,
+    getTracer: vi.fn().mockReturnValue({
+      startSpan: vi.fn().mockReturnValue({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      }),
+    }),
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
@@ -97,7 +104,7 @@ vi.mock('../../env.js', () => ({
 
 // Mock nanoid
 vi.mock('nanoid', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     nanoid: () => 'test-nanoid-123',

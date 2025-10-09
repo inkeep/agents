@@ -5,8 +5,13 @@ import {
   type DataComponentApiInsert,
   getLogger,
 } from '@inkeep/agents-core';
+import {
+  convertZodToJsonSchemaWithPreview,
+  isZodSchema,
+} from '@inkeep/agents-core/utils/schema-conversion';
 import { ArtifactComponent } from './artifact-component';
 import { DataComponent } from './data-component';
+import { FunctionTool } from './function-tool';
 import { Tool } from './tool';
 import type {
   AgentCanUseType,
@@ -33,13 +38,15 @@ export class Agent implements AgentInterface {
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
+  private graphId: string;
   private initialized = false;
   constructor(config: AgentConfig) {
     this.config = { ...config, type: 'internal' };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    // tenantId and projectId will be set later by the graph or CLI
+    // tenantId, projectId, and graphId will be set later by the graph or CLI
     this.tenantId = 'default';
     this.projectId = 'default';
+    this.graphId = 'default';
 
     logger.info(
       {
@@ -51,10 +58,11 @@ export class Agent implements AgentInterface {
     );
   }
 
-  // Set context (tenantId, projectId, and baseURL) from external source (graph, CLI, etc)
-  setContext(tenantId: string, projectId: string, baseURL?: string): void {
+  // Set context (tenantId, projectId, graphId, and baseURL) from external source (graph, CLI, etc)
+  setContext(tenantId: string, projectId: string, graphId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
+    this.graphId = graphId;
     if (baseURL) {
       this.baseURL = baseURL;
     }
@@ -107,7 +115,7 @@ export class Agent implements AgentInterface {
           toolInstance.headers = tool.headers;
         } else {
           // Regular tool instance
-          toolInstance = tool;
+          toolInstance = tool as AgentTool;
           id = toolInstance.getId();
         }
 
@@ -148,6 +156,15 @@ export class Agent implements AgentInterface {
           props: comp.getProps(),
         };
       }
+      // If it's a plain object, check if props is a Zod schema
+      if (comp && typeof comp === 'object' && comp.props && isZodSchema(comp.props)) {
+        return {
+          id: comp.id,
+          name: comp.name,
+          description: comp.description,
+          props: convertZodToJsonSchemaWithPreview(comp.props),
+        };
+      }
       // Otherwise assume it's already a plain object
       return comp;
     });
@@ -163,8 +180,16 @@ export class Agent implements AgentInterface {
           id: comp.getId(),
           name: comp.getName(),
           description: comp.getDescription(),
-          summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
-          fullProps: comp.getFullProps?.() || comp.fullProps,
+          props: comp.getProps?.() || comp.props,
+        };
+      }
+      // If it's a plain object, check if props is a Zod schema
+      if (comp && typeof comp === 'object' && comp.props && isZodSchema(comp.props)) {
+        return {
+          id: comp.id,
+          name: comp.name,
+          description: comp.description,
+          props: convertZodToJsonSchemaWithPreview(comp.props),
         };
       }
       // Otherwise assume it's already a plain object
@@ -381,12 +406,7 @@ export class Agent implements AgentInterface {
                 id: (artifactComponent as any).getId(),
                 name: (artifactComponent as any).getName(),
                 description: (artifactComponent as any).getDescription(),
-                summaryProps:
-                  (artifactComponent as any).getSummaryProps?.() ||
-                  (artifactComponent as any).summaryProps,
-                fullProps:
-                  (artifactComponent as any).getFullProps?.() ||
-                  (artifactComponent as any).fullProps,
+                props: (artifactComponent as any).getProps?.() || (artifactComponent as any).props,
               }
             : artifactComponent;
         await this.createArtifactComponent(plainComponent as ArtifactComponentApiInsert);
@@ -489,8 +509,7 @@ export class Agent implements AgentInterface {
         id: component.id,
         name: component.name,
         description: component.description,
-        summaryProps: component.summaryProps,
-        fullProps: component.fullProps,
+        props: component.props,
         createdAt: component.createdAt,
         updatedAt: component.updatedAt,
       }));
@@ -504,8 +523,7 @@ export class Agent implements AgentInterface {
             id: comp.getId(),
             name: comp.getName(),
             description: comp.getDescription(),
-            summaryProps: comp.getSummaryProps?.() || comp.summaryProps,
-            fullProps: comp.getFullProps?.() || comp.fullProps,
+            props: comp.getProps?.() || comp.props,
           };
         }
         return comp;
@@ -554,8 +572,146 @@ export class Agent implements AgentInterface {
     }
   }
 
+  private async createFunctionTool(toolId: string, functionTool: FunctionTool): Promise<void> {
+    try {
+      // Serialize the function and get tool data
+      const functionData = functionTool.serializeFunction();
+      const toolData = functionTool.serializeTool();
+
+      const functionUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/functions`;
+      logger.info(
+        {
+          agentId: this.getId(),
+          toolId,
+          functionUrl,
+        },
+        'Attempting to create global function'
+      );
+
+      const functionResponse = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: functionData.id,
+          inputSchema: functionData.inputSchema,
+          executeCode: functionData.executeCode,
+          dependencies: functionData.dependencies,
+        }),
+      });
+
+      logger.info(
+        {
+          agentId: this.getId(),
+          toolId,
+          functionStatus: functionResponse.status,
+          functionStatusText: functionResponse.statusText,
+        },
+        'Function creation response received'
+      );
+
+      if (!functionResponse.ok) {
+        const errorText = await functionResponse.text();
+        logger.error(
+          {
+            agentId: this.getId(),
+            toolId,
+            functionStatus: functionResponse.status,
+            functionStatusText: functionResponse.statusText,
+            errorText,
+          },
+          'Function creation failed'
+        );
+        throw new Error(`Failed to create function: ${functionResponse.status} ${errorText}`);
+      }
+
+      // Create a tool with type 'function' at project level
+      const toolUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`;
+      logger.info(
+        {
+          agentId: this.getId(),
+          toolId,
+          toolUrl,
+        },
+        'Attempting to create function tool'
+      );
+
+      const toolResponse = await fetch(toolUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: toolData.id,
+          name: toolData.name,
+          description: toolData.description,
+          functionId: toolData.functionId,
+          config: {
+            type: 'function',
+            // No inline function details - reference via functionId only
+          },
+        }),
+      });
+
+      logger.info(
+        {
+          agentId: this.getId(),
+          toolId,
+          toolStatus: toolResponse.status,
+          toolStatusText: toolResponse.statusText,
+        },
+        'Tool creation response received'
+      );
+
+      if (!toolResponse.ok) {
+        const errorText = await toolResponse.text();
+        logger.error(
+          {
+            agentId: this.getId(),
+            toolId,
+            toolStatus: toolResponse.status,
+            toolStatusText: toolResponse.statusText,
+            errorText,
+          },
+          'Tool creation failed'
+        );
+        throw new Error(`Failed to create tool: ${toolResponse.status} ${errorText}`);
+      }
+
+      // Create agent-tool relation
+      await this.createAgentToolRelation(toolData.id);
+
+      logger.info(
+        {
+          agentId: this.getId(),
+          functionId: functionData.id,
+          toolId: toolData.id,
+        },
+        'Function and tool created successfully'
+      );
+    } catch (error) {
+      logger.error(
+        {
+          agentId: this.getId(),
+          toolId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        'Failed to create function tool'
+      );
+      throw error;
+    }
+  }
+
   private async createTool(toolId: string, toolConfig: AgentCanUseType): Promise<void> {
     try {
+      // Check if this is a FunctionTool instance
+      if (toolConfig instanceof FunctionTool) {
+        await this.createFunctionTool(toolId, toolConfig);
+        return;
+      }
+
       // Check if this is a function tool (has type: 'function')
       if ((toolConfig as any).type === 'function') {
         logger.info(
@@ -669,8 +825,7 @@ export class Agent implements AgentInterface {
         id: artifactComponent.id,
         name: artifactComponent.name,
         description: artifactComponent.description,
-        summaryProps: artifactComponent.summaryProps,
-        fullProps: artifactComponent.fullProps,
+        props: artifactComponent.props,
       });
 
       // Set the context from the agent

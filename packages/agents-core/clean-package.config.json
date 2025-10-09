@@ -23,6 +23,11 @@
         "types": "./dist/client-exports.d.ts",
         "import": "./dist/client-exports.js"
       },
+      "./utils/schema-conversion": {
+        "types": "./dist/utils/schema-conversion.d.ts",
+        "import": "./dist/utils/schema-conversion.js"
+      },
+      "./drizzle": "./drizzle/",
       "./package.json": "./package.json"
     }
   }

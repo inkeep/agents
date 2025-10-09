@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { validateRequestContext, type ParsedHttpRequest } from '../../middleware/contextValidation';
+import { validateHeaders, type ParsedHttpRequest } from '../../middleware/contextValidation';
 import { dbClient } from '../setup';
 
 // Mock the data access functions
@@ -14,7 +14,7 @@ vi.mock('../../data-access/contextConfigs', () => ({
   getContextConfigById: () => mockGetContextConfigById,
 }));
 
-describe('validateRequestContext - Integration with Flattened Headers', () => {
+describe('validateHeaders - Integration with Flattened Headers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -37,7 +37,7 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
 
     mockGetContextConfigById.mockResolvedValue({
       id: 'test-config',
-      requestContextSchema: headersSchema,
+      headersSchema: headersSchema,
     });
 
     // Test request with headers
@@ -49,7 +49,7 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       },
     };
 
-    const result = await validateRequestContext({
+    const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
       graphId: 'graph1',
@@ -85,7 +85,7 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
 
     mockGetContextConfigById.mockResolvedValue({
       id: 'test-config',
-      requestContextSchema: headersSchema,
+      headersSchema: headersSchema,
     });
 
     const parsedRequest: ParsedHttpRequest = {
@@ -95,7 +95,7 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       },
     };
 
-    const result = await validateRequestContext({
+    const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
       graphId: 'graph1',
@@ -120,7 +120,7 @@ describe('validateRequestContext - Integration with Flattened Headers', () => {
       headers: { 'any-header': 'any-value' },
     };
 
-    const result = await validateRequestContext({
+    const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
       graphId: 'graph1',

@@ -5,7 +5,7 @@ import {
   clearConversationCache,
   getCacheEntry,
   invalidateInvocationDefinitionsCache,
-  invalidateRequestContextCache,
+  invalidateHeadersCache,
   setCacheEntry,
 } from '../data-access/index';
 import type { DatabaseClient } from '../db/client';
@@ -246,13 +246,13 @@ export class ContextCache {
     });
   }
 
-  async invalidateRequestContext(
+  async invalidateHeaders(
     tenantId: string,
     projectId: string,
     conversationId: string,
     contextConfigId: string
   ): Promise<void> {
-    await invalidateRequestContextCache(this.dbClient)({
+    await invalidateHeadersCache(this.dbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       contextConfigId,

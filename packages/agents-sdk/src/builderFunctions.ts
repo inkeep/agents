@@ -13,11 +13,12 @@ import type {
   MCPServerConfig,
 } from './builders';
 import { DataComponent } from './data-component';
+import { FunctionTool } from './function-tool';
 import { AgentGraph } from './graph';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
 import { Tool } from './tool';
-import type { AgentConfig, GraphConfig } from './types';
+import type { AgentConfig, FunctionToolConfig, GraphConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 /**
@@ -225,15 +226,14 @@ export function mcpTool(config: MCPToolConfig): Tool {
  * const productCard = artifactComponent({
  *   name: 'Product Card',
  *   description: 'Display product information',
- *   summaryProps: {
- *     title: 'Product',
- *     price: '$0'
- *   },
- *   fullProps: {
- *     title: 'Product',
- *     price: '$0',
- *     description: 'Product description',
- *     image: 'product.jpg'
+ *   props: {
+ *     type: 'object',
+ *     properties: {
+ *       title: { type: 'string', inPreview: true },
+ *       price: { type: 'string', inPreview: true },
+ *       description: { type: 'string' },
+ *       image: { type: 'string' }
+ *     }
  *   }
  * });
  * ```
@@ -285,4 +285,50 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
     selectedTools: config.selectedTools,
     headers: config.headers,
   };
+}
+
+// ============================================================================
+// Function Tool Builders
+// ============================================================================
+/**
+ * Creates a function tool that executes user-defined code in a sandboxed environment.
+ *
+ * Function tools allow users to define custom logic that runs securely in isolated
+ * environments. Dependencies are installed automatically in the sandbox.
+ *
+ * @param config - Function tool configuration
+ * @returns A FunctionTool instance
+ *
+ * @example
+ * ```typescript
+ * const calculatorTool = functionTool({
+ *   name: 'calculator',
+ *   description: 'Performs basic math operations',
+ *   inputSchema: {
+ *     type: 'object',
+ *     properties: {
+ *       operation: { type: 'string', enum: ['add', 'subtract', 'multiply', 'divide'] },
+ *       a: { type: 'number' },
+ *       b: { type: 'number' }
+ *     },
+ *     required: ['operation', 'a', 'b']
+ *   },
+ *   dependencies: {
+ *     'lodash': '^4.17.21'
+ *   },
+ *   execute: async (params) => {
+ *     const { operation, a, b } = params;
+ *     switch (operation) {
+ *       case 'add': return { result: a + b };
+ *       case 'subtract': return { result: a - b };
+ *       case 'multiply': return { result: a * b };
+ *       case 'divide': return { result: a / b };
+ *       default: throw new Error(`Unknown operation: ${operation}`);
+ *     }
+ *   }
+ * });
+ * ```
+ */
+export function functionTool(config: FunctionToolConfig): FunctionTool {
+  return new FunctionTool(config);
 }

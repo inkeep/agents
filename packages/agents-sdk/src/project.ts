@@ -11,12 +11,11 @@ const logger = getLogger('project');
 
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
+import { FunctionTool } from './function-tool';
 import type { AgentGraph } from './graph';
 import { updateFullProjectViaAPI } from './projectFullClient';
-
 import type { Tool } from './tool';
-
-import type { AgentTool, ModelSettings } from './types';
+import type { AgentTool, ModelSettings, SandboxConfig } from './types';
 
 /**
  * Project configuration interface for the SDK
@@ -31,10 +30,12 @@ export interface ProjectConfig {
     summarizer?: ModelSettings;
   };
   stopWhen?: StopWhen;
+  sandboxConfig?: SandboxConfig;
   graphs?: () => AgentGraph[];
   tools?: () => Tool[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
+  credentialReferences?: () => CredentialReferenceApiInsert[];
 }
 
 /**
@@ -101,9 +102,13 @@ export class Project implements ProjectInterface {
     summarizer?: ModelSettings;
   };
   private stopWhen?: StopWhen;
+  private sandboxConfig?: SandboxConfig;
   private graphs: AgentGraph[] = [];
   private graphMap: Map<string, AgentGraph> = new Map();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
+  private projectTools: Tool[] = [];
+  private projectDataComponents: DataComponent[] = [];
+  private projectArtifactComponents: ArtifactComponent[] = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -114,6 +119,7 @@ export class Project implements ProjectInterface {
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.models = config.models;
     this.stopWhen = config.stopWhen;
+    this.sandboxConfig = config.sandboxConfig;
 
     // Initialize graphs if provided
     if (config.graphs) {
@@ -124,6 +130,26 @@ export class Project implements ProjectInterface {
       for (const graph of this.graphs) {
         graph.setConfig(this.tenantId, this.projectId, this.baseURL);
       }
+    }
+
+    // Initialize project-level tools if provided
+    if (config.tools) {
+      this.projectTools = config.tools();
+    }
+
+    // Initialize project-level dataComponents if provided
+    if (config.dataComponents) {
+      this.projectDataComponents = config.dataComponents();
+    }
+
+    // Initialize project-level artifactComponents if provided
+    if (config.artifactComponents) {
+      this.projectArtifactComponents = config.artifactComponents();
+    }
+
+    // Initialize project-level credentialReferences if provided
+    if (config.credentialReferences) {
+      this.credentialReferences = config.credentialReferences();
     }
 
     logger.info(
@@ -449,6 +475,7 @@ export class Project implements ProjectInterface {
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
     const graphsObject: Record<string, any> = {};
     const toolsObject: Record<string, ToolApiInsert> = {};
+    const functionsObject: Record<string, any> = {};
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
@@ -561,41 +588,77 @@ export class Project implements ProjectInterface {
         const agentTools = agent.getTools();
         for (const [, toolInstance] of Object.entries(agentTools)) {
           // toolInstance is now properly typed as AgentTool from getTools()
-          const actualTool: AgentTool = toolInstance;
+          const actualTool: AgentTool | FunctionTool = toolInstance;
           const toolId = actualTool.getId();
 
-          // Only add if not already added (avoid duplicates across graphs)
-          if (!toolsObject[toolId]) {
-            const toolConfig: ToolApiInsert['config'] = {
-              type: 'mcp',
-              mcp: {
-                server: {
-                  url: actualTool.config.serverUrl,
-                },
-                transport: actualTool.config.transport,
-                activeTools: actualTool.config.activeTools,
-              },
-            };
-
-            const toolData: ToolApiInsert = {
-              id: toolId,
-              name: actualTool.getName(),
-              config: toolConfig,
-            };
-
-            // Add additional fields if available
-            if (actualTool.config?.imageUrl) {
-              toolData.imageUrl = actualTool.config.imageUrl;
-            }
-            if (actualTool.config?.headers) {
-              toolData.headers = actualTool.config.headers;
-            }
-            const credentialId = actualTool.getCredentialReferenceId();
-            if (credentialId) {
-              toolData.credentialReferenceId = credentialId;
+          // Handle function tools and MCP tools
+          if (
+            actualTool.constructor.name === 'FunctionTool' &&
+            actualTool instanceof FunctionTool
+          ) {
+            // Add to functions object (global entity)
+            if (!functionsObject[toolId]) {
+              const functionData = actualTool.serializeFunction();
+              functionsObject[toolId] = functionData;
             }
 
-            toolsObject[toolId] = toolData;
+            // Also add to tools object with type 'function' (reference-only, no duplication)
+            if (!toolsObject[toolId]) {
+              const toolData = actualTool.serializeTool();
+
+              const toolConfig: ToolApiInsert['config'] = {
+                type: 'function',
+                // No inline function details - they're in the functions table via functionId
+              };
+
+              toolsObject[toolId] = {
+                id: toolData.id,
+                name: toolData.name,
+                description: toolData.description,
+                functionId: toolData.functionId,
+                config: toolConfig,
+              };
+            }
+          } else {
+            // Add to tools object (MCP tools)
+            if (!toolsObject[toolId]) {
+              // Type guard to ensure this is a Tool (MCP tool)
+              if ('config' in actualTool && 'serverUrl' in actualTool.config) {
+                const mcpTool = actualTool as any; // Cast to access MCP-specific properties
+                const toolConfig: ToolApiInsert['config'] = {
+                  type: 'mcp',
+                  mcp: {
+                    server: {
+                      url: mcpTool.config.serverUrl,
+                    },
+                    transport: mcpTool.config.transport,
+                    activeTools: mcpTool.config.activeTools,
+                  },
+                };
+
+                const toolData: ToolApiInsert = {
+                  id: toolId,
+                  name: actualTool.getName(),
+                  config: toolConfig,
+                };
+
+                // Add additional fields if available
+                if (mcpTool.config?.imageUrl) {
+                  toolData.imageUrl = mcpTool.config.imageUrl;
+                }
+                if (mcpTool.config?.headers) {
+                  toolData.headers = mcpTool.config.headers;
+                }
+                if ('getCredentialReferenceId' in actualTool) {
+                  const credentialId = (actualTool as any).getCredentialReferenceId();
+                  if (credentialId) {
+                    toolData.credentialReferenceId = credentialId;
+                  }
+                }
+
+                toolsObject[toolId] = toolData;
+              }
+            }
           }
         }
 
@@ -645,16 +708,14 @@ export class Project implements ProjectInterface {
             let artifactComponentId: string;
             let artifactComponentName: string;
             let artifactComponentDescription: string;
-            let artifactComponentSummaryProps: any;
-            let artifactComponentFullProps: any;
+            let artifactComponentProps: any;
 
             if (artifactComponent.getId) {
               // ArtifactComponent instance
               artifactComponentId = artifactComponent.getId();
               artifactComponentName = artifactComponent.getName();
               artifactComponentDescription = artifactComponent.getDescription() || '';
-              artifactComponentSummaryProps = artifactComponent.getSummaryProps() || {};
-              artifactComponentFullProps = artifactComponent.getFullProps() || {};
+              artifactComponentProps = artifactComponent.getProps() || {};
             } else {
               // Plain object from agent config
               artifactComponentId =
@@ -664,8 +725,7 @@ export class Project implements ProjectInterface {
                   : '');
               artifactComponentName = artifactComponent.name || '';
               artifactComponentDescription = artifactComponent.description || '';
-              artifactComponentSummaryProps = artifactComponent.summaryProps || {};
-              artifactComponentFullProps = artifactComponent.fullProps || {};
+              artifactComponentProps = artifactComponent.props || {};
             }
 
             // Only add if not already added (avoid duplicates)
@@ -674,12 +734,81 @@ export class Project implements ProjectInterface {
                 id: artifactComponentId,
                 name: artifactComponentName,
                 description: artifactComponentDescription,
-                summaryProps: artifactComponentSummaryProps,
-                fullProps: artifactComponentFullProps,
+                props: artifactComponentProps,
               };
             }
           }
         }
+      }
+    }
+
+    // Add project-level tools, dataComponents, and artifactComponents
+    for (const tool of this.projectTools) {
+      const toolId = tool.getId();
+      if (!toolsObject[toolId]) {
+        const toolConfig: ToolApiInsert['config'] = {
+          type: 'mcp',
+          mcp: {
+            server: {
+              url: tool.config.serverUrl,
+            },
+            transport: tool.config.transport,
+            activeTools: tool.config.activeTools,
+          },
+        };
+
+        const toolData: ToolApiInsert = {
+          id: toolId,
+          name: tool.getName(),
+          config: toolConfig,
+        };
+
+        if (tool.config?.imageUrl) {
+          toolData.imageUrl = tool.config.imageUrl;
+        }
+        if (tool.config?.headers) {
+          toolData.headers = tool.config.headers;
+        }
+        const credentialId = tool.getCredentialReferenceId();
+        if (credentialId) {
+          toolData.credentialReferenceId = credentialId;
+        }
+
+        toolsObject[toolId] = toolData;
+      }
+    }
+
+    // Add project-level data components
+    for (const dataComponent of this.projectDataComponents) {
+      const dataComponentId = dataComponent.getId();
+      const dataComponentName = dataComponent.getName();
+      const dataComponentDescription = dataComponent.getDescription() || '';
+      const dataComponentProps = dataComponent.getProps() || {};
+
+      if (!dataComponentsObject[dataComponentId] && dataComponentName) {
+        dataComponentsObject[dataComponentId] = {
+          id: dataComponentId,
+          name: dataComponentName,
+          description: dataComponentDescription,
+          props: dataComponentProps,
+        };
+      }
+    }
+
+    // Add project-level artifact components
+    for (const artifactComponent of this.projectArtifactComponents) {
+      const artifactComponentId = artifactComponent.getId();
+      const artifactComponentName = artifactComponent.getName();
+      const artifactComponentDescription = artifactComponent.getDescription() || '';
+      const artifactComponentProps = artifactComponent.getProps() || {};
+
+      if (!artifactComponentsObject[artifactComponentId] && artifactComponentName) {
+        artifactComponentsObject[artifactComponentId] = {
+          id: artifactComponentId,
+          name: artifactComponentName,
+          description: artifactComponentDescription,
+          props: artifactComponentProps,
+        };
       }
     }
 
@@ -709,8 +838,10 @@ export class Project implements ProjectInterface {
       description: this.projectDescription || '',
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
+      sandboxConfig: this.sandboxConfig,
       graphs: graphsObject,
       tools: toolsObject,
+      functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
       artifactComponents:

@@ -30,11 +30,11 @@ const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentForm
   if (!data) return defaultValues;
 
   const formatted = { ...data };
-  if (formatted.summaryProps) {
-    formatted.summaryProps = formatJsonField(formatted.summaryProps);
-  }
-  if (formatted.fullProps) {
-    formatted.fullProps = formatJsonField(formatted.fullProps);
+  // Handle both null and undefined props, as well as empty strings
+  if (formatted.props && formatted.props !== '' && formatted.props !== null) {
+    formatted.props = formatJsonField(formatted.props);
+  } else {
+    formatted.props = undefined;
   }
   return formatted;
 };
@@ -63,7 +63,15 @@ export function ArtifactComponentForm({
 
   const onSubmit = async (data: ArtifactComponentFormData) => {
     try {
-      const payload = { ...data } as ArtifactComponent;
+      // Format the data before submission to handle empty props properly
+      const formattedData = formatFormData(data);
+      const payload = { ...formattedData } as ArtifactComponent;
+
+      // Explicitly set props to null if it's undefined to ensure it gets cleared
+      if (payload.props === undefined) {
+        payload.props = null;
+      }
+
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
@@ -120,17 +128,10 @@ export function ArtifactComponentForm({
         />
         <JsonSchemaInput
           control={form.control}
-          name="summaryProps"
-          label="Summary props (JSON schema)"
-          placeholder="Enter a valid JSON Schema..."
-          isRequired
-        />
-        <JsonSchemaInput
-          control={form.control}
-          name="fullProps"
-          label="Full props (JSON schema)"
-          placeholder="Enter a valid JSON Schema..."
-          isRequired
+          name="props"
+          label="Props (JSON schema with inPreview indicators)"
+          placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
+          description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response"
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

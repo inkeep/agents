@@ -58,6 +58,11 @@ function extractInputSchema(toolDef: any): any {
 
 // Helper function to convert McpTool to MCPToolConfig format for CredentialStuffer
 const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
+  // Type guard - this function should only be called for MCP tools
+  if (tool.config.type !== 'mcp') {
+    throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
+  }
+
   return {
     id: tool.id,
     name: tool.name,
@@ -77,6 +82,11 @@ const discoverToolsFromServer = async (
   dbClient: DatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<McpToolDefinition[]> => {
+  // Type guard - this function should only be called for MCP tools
+  if (tool.config.type !== 'mcp') {
+    throw new Error(`Cannot discover tools from non-MCP tool: ${tool.id}`);
+  }
+
   try {
     const credentialReferenceId = tool.credentialReferenceId;
     let serverConfig: McpServerConfig;
@@ -170,6 +180,25 @@ export const dbResultToMcpTool = async (
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
+
+  // Only process MCP tools - skip function tools
+  if (dbResult.config.type !== 'mcp') {
+    // Return minimal tool data for non-MCP tools
+    return {
+      ...rest,
+      functionId: rest.functionId || undefined, // Convert null to undefined
+      status: 'unknown',
+      availableTools: [],
+      capabilities: capabilities || undefined,
+      credentialReferenceId: credentialReferenceId || undefined,
+      createdAt: new Date(createdAt),
+      updatedAt: new Date(dbResult.updatedAt),
+      lastError: null,
+      headers: headers || undefined,
+      imageUrl: imageUrl || undefined,
+    };
+  }
+
   let availableTools: McpToolDefinition[] = [];
   let status: McpTool['status'] = 'unknown';
   let lastErrorComputed: string | null;
@@ -210,6 +239,7 @@ export const dbResultToMcpTool = async (
 
   return {
     ...rest,
+    functionId: rest.functionId || undefined, // Convert null to undefined
     status,
     availableTools,
     capabilities: capabilities || undefined,

@@ -1,5 +1,5 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Loader2, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
@@ -224,19 +224,49 @@ export function TimelineWrapper({
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
-  // Initialize AI messages based on view type when activities change
+  // Track which messages we've already processed
+  const processedIdsRef = useRef<Set<string>>(new Set());
+  const lastConversationRef = useRef<string | undefined>(undefined);
+  
   useEffect(() => {
-    if (enableAutoScroll) {
-      // Live trace view: collapse all AI messages
-      setCollapsedAiMessages(new Set(aiMessageIds));
-      setAiMessagesGloballyCollapsed(true);
-    } else {
-      // Conversation details view: collapse only ai.streamText.doStream spans
-      setCollapsedAiMessages(new Set(streamTextIds));
-      setAiMessagesGloballyCollapsed(streamTextIds.length === aiMessageIds.length);
+    // Reset when conversation changes
+    if (conversationId !== lastConversationRef.current) {
+      lastConversationRef.current = conversationId;
+      processedIdsRef.current = new Set();
+      setCollapsedAiMessages(new Set());
+      setAiMessagesGloballyCollapsed(false);
     }
-  }, [aiMessageIds, streamTextIds, enableAutoScroll]);
-
+    
+    // Determine which IDs to auto-collapse based on view type
+    const idsToProcess = enableAutoScroll ? aiMessageIds : streamTextIds;
+    
+    // Find new IDs that haven't been processed yet
+    const newIds = idsToProcess.filter(id => !processedIdsRef.current.has(id));
+    
+    if (newIds.length > 0) {
+      // Mark these as processed
+      newIds.forEach(id => {
+        processedIdsRef.current.add(id);
+      });
+      
+      // Add new IDs to collapsed set
+      setCollapsedAiMessages(prev => {
+        const updated = new Set(prev);
+        newIds.forEach(id => {
+          updated.add(id);
+        });
+        return updated;
+      });
+      // Update global state
+      const allProcessed = idsToProcess.every(id => processedIdsRef.current.has(id));
+      if (enableAutoScroll) {
+        setAiMessagesGloballyCollapsed(allProcessed && aiMessageIds.length > 0);
+      } else {
+        setAiMessagesGloballyCollapsed(allProcessed && streamTextIds.length === aiMessageIds.length && aiMessageIds.length > 0);
+      }
+    }
+  }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
+  
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
     setCollapsedAiMessages(new Set());

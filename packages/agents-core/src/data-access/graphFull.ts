@@ -230,6 +230,7 @@ export const createFullGraphServerSide =
           const contextConfig = await upsertContextConfig(db)({
             data: {
               ...typed.contextConfig,
+              graphId: finalGraphId,
               tenantId,
               projectId,
             },
@@ -707,6 +708,7 @@ export const updateFullGraphServerSide =
           const contextConfig = await upsertContextConfig(db)({
             data: {
               ...typedGraphDefinition.contextConfig,
+              graphId: finalGraphId,
               tenantId,
               projectId,
             },
@@ -1042,6 +1044,7 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
+                  logger.info({ agentId, toolId }, 'Processing agent-tool relation');
                   await upsertAgentToolRelation(db)({
                     scopes: { tenantId, projectId, graphId: finalGraphId },
                     agentId,

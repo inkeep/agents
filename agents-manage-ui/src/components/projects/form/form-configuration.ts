@@ -24,4 +24,10 @@ export const defaultValues: ProjectFormData = {
     },
   },
   stopWhen: undefined,
+  sandboxConfig: {
+    provider: 'local',
+    runtime: 'node22',
+    timeout: 30000,
+    vcpus: 1,
+  },
 };

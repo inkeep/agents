@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.14.13",
+  "version": "0.16.2",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -36,8 +36,8 @@
     "@babel/parser": "^7.23.0",
     "@babel/types": "^7.23.0",
     "@clack/prompts": "^0.11.0",
-    "@inkeep/agents-sdk": "workspace:^",
     "@inkeep/agents-core": "workspace:^",
+    "@inkeep/agents-sdk": "workspace:^",
     "@libsql/client": "^0.15.7",
     "ai": "5.0.11",
     "ast-types": "^0.14.2",
@@ -51,6 +51,7 @@
     "fs-extra": "^11.2.0",
     "inquirer": "^9.2.12",
     "inquirer-autocomplete-prompt": "^3.0.1",
+    "json-schema-to-zod": "^2.6.1",
     "ora": "^8.0.1",
     "picocolors": "^1.1.1",
     "pino": "^9.11.0",
@@ -66,14 +67,14 @@
     "@types/node": "^20.10.0",
     "@types/prompts": "^2.4.9",
     "@vitest/coverage-v8": "^3.2.4",
+    "pino-pretty": "^13.1.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
-    "pino-pretty": "^13.1.1"
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "zod": "^4.1.11",
-    "@inkeep/agents-manage-ui": "*"
+    "@inkeep/agents-manage-ui": "*",
+    "zod": "^4.1.11"
   },
   "engines": {
     "node": ">=22.0.0"

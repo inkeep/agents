@@ -11,6 +11,7 @@ interface GenericInputProps<T extends FieldValues> {
   placeholder?: string;
   type?: string;
   min?: string;
+  max?: string;
   disabled?: boolean;
   description?: string;
   isRequired?: boolean;
@@ -23,6 +24,7 @@ export function GenericInput<T extends FieldValues>({
   placeholder,
   type = 'text',
   min,
+  max,
   disabled,
   description,
   isRequired = false,
@@ -40,6 +42,7 @@ export function GenericInput<T extends FieldValues>({
           type={type}
           placeholder={placeholder}
           min={min}
+          max={max}
           disabled={disabled}
           {...field}
           value={field.value ?? ''}

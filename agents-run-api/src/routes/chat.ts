@@ -82,11 +82,11 @@ const chatCompletionsRoute = createRoute({
             conversationId: z.string().optional().describe('Conversation ID for multi-turn chat'),
             tools: z.array(z.string()).optional().describe('Available tools'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
-            requestContext: z
+            headers: z
               .record(z.string(), z.unknown())
               .optional()
               .describe(
-                'Context data for template processing (validated against context config schema)'
+                'Headers data for template processing (validated against context config schema)'
               ),
           }),
         },
@@ -269,8 +269,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     }
 
-    // Get validated context from middleware (falls back to body.context if no validation)
-    const validatedContext = (c as any).get('validatedContext') || body.requestContext || {};
+    // Get validated context from middleware (falls back to body.headers if no validation)
+    const validatedContext = (c as any).get('validatedContext') || body.headers || {};
 
     const credentialStores = c.get('credentialStores');
 
@@ -280,7 +280,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       projectId,
       graphId,
       conversationId,
-      requestContext: validatedContext,
+      headers: validatedContext,
       dbClient,
       credentialStores,
     });
@@ -294,7 +294,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         defaultAgentId,
         activeAgentId: activeAgent?.activeAgentId || 'none',
         hasContextConfig: !!agentGraph.contextConfigId,
-        hasRequestContext: !!body.requestContext,
+        hasHeaders: !!body.headers,
         hasValidatedContext: !!validatedContext,
         validatedContextKeys: Object.keys(validatedContext),
       },
@@ -349,6 +349,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
         logger.info({ agentId }, 'Starting execution');
 
+        // Check for emit operations header
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
+
         // Use the execution handler
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
@@ -358,6 +362,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           initialAgentId: agentId,
           requestId,
           sseHelper,
+          emitOperations,
         });
 
         logger.info(

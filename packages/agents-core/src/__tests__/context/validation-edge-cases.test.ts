@@ -26,7 +26,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { deep: fetcher },
     });
@@ -63,7 +62,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { data: fetcher },
     });
@@ -91,7 +89,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { opt: fetcher },
     });
@@ -119,7 +116,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { entity: fetcher },
     });
@@ -153,9 +149,8 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
-      requestContextSchema: z.object({ apiKey: z.string() }),
+      headers: z.object({ apiKey: z.string() }),
       contextVariables: {
         user: userFetcher,
         settings: settingsFetcher,
@@ -163,7 +158,7 @@ describe('toTemplate edge cases', () => {
     });
 
     // All context variables should be accessible
-    expect(config.toTemplate('requestContext.apiKey')).toBe('{{requestContext.apiKey}}');
+    expect(config.toTemplate('headers.apiKey')).toBe('{{headers.apiKey}}');
     expect(config.toTemplate('user.name')).toBe('{{user.name}}');
     expect(config.toTemplate('settings.theme')).toBe('{{settings.theme}}');
   });
@@ -181,7 +176,6 @@ describe('toTemplate edge cases', () => {
 
     const config = contextConfig({
       id: 'test',
-      name: 'Test',
       graphId: 'test-graph',
       contextVariables: { data: fetcher },
     });

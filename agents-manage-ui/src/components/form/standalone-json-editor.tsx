@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { createLlmSchemaTemplate } from '@/lib/json-schema-validation';
+import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { formatJson } from '@/lib/utils';
 import { JsonEditor } from './json-editor';
 
@@ -26,7 +26,7 @@ export function StandaloneJsonEditor(props: StandaloneJsonEditorProps) {
   };
 
   const handleInsertTemplate = () => {
-    const template = createLlmSchemaTemplate();
+    const template = createSchemaTemplate();
     props.onChange(template);
   };
 

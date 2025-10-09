@@ -4,7 +4,9 @@ import type {
   ContextFetchDefinition,
   CredentialReferenceApiInsert,
 } from '../types/index';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
+import { convertZodToJsonSchema } from '../utils/schema-conversion';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 import type { DotPaths } from './validation-helpers';
 
@@ -20,29 +22,29 @@ export type ExtractSchemasFromCV<CV> = {
 export type InferContextFromSchemas<CZ> = {
   [K in keyof CZ]: CZ[K] extends z.ZodTypeAny ? z.infer<CZ[K]> : never;
 };
-export type MergeRequestContext<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
-  ? { requestContext: z.infer<R> }
+export type MergeHeaders<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
+  ? { headers: z.infer<R> }
   : {};
-type FullContext<R extends z.ZodTypeAny | undefined, CV> = MergeRequestContext<R> &
+type FullContext<R extends z.ZodTypeAny | undefined, CV> = MergeHeaders<R> &
   InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
 
 export type AllowedPaths<R extends z.ZodTypeAny | undefined, CV> = DotPaths<FullContext<R, CV>>;
 
-// Request Context Schema Builder
-export interface RequestContextSchemaBuilderOptions<R extends z.ZodTypeAny> {
+// Headers Schema Builder
+export interface HeadersSchemaBuilderOptions<R extends z.ZodTypeAny> {
   schema: R;
 }
 
-export class RequestContextSchemaBuilder<R extends z.ZodTypeAny> {
+export class HeadersSchemaBuilder<R extends z.ZodTypeAny> {
   private schema: R;
 
-  constructor(options: RequestContextSchemaBuilderOptions<R>) {
+  constructor(options: HeadersSchemaBuilderOptions<R>) {
     this.schema = options.schema;
   }
 
-  /** Template function for request context paths with type-safe autocomplete */
-  toTemplate<P extends DotPaths<z.infer<R>>>(path: P): `{{requestContext.${P}}}` {
-    return `{{requestContext.${path}}}` as `{{requestContext.${P}}}`;
+  /** Template function for headers paths with type-safe autocomplete */
+  toTemplate<P extends DotPaths<z.infer<R>>>(path: P): `{{headers.${P}}}` {
+    return `{{headers.${path}}}` as `{{headers.${P}}}`;
   }
 
   getSchema(): R {
@@ -72,29 +74,12 @@ export type builderFetchDefinition<R extends z.ZodTypeAny> = {
   credentialReference?: CredentialReferenceApiInsert; // Reference to credential store for secure credential resolution
 };
 
-// Utility function for converting Zod schemas to JSON Schema
-export function convertZodToJsonSchema(zodSchema: any): Record<string, unknown> {
-  try {
-    return z.toJSONSchema(zodSchema, { target: 'draft-7' });
-  } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      'Failed to convert Zod schema to JSON Schema'
-    );
-    throw new Error('Failed to convert Zod schema to JSON Schema');
-  }
-}
-
 export interface ContextConfigBuilderOptions<
   R extends z.ZodTypeAny | undefined = undefined,
   CV = Record<string, builderFetchDefinition<z.ZodTypeAny>>,
 > {
-  id: string;
-  name: string;
-  description?: string;
-  requestContextSchema?: R | RequestContextSchemaBuilder<R extends z.ZodTypeAny ? R : z.ZodTypeAny>;
+  id?: string;
+  headers?: R | HeadersSchemaBuilder<R extends z.ZodTypeAny ? R : z.ZodTypeAny>;
   contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
   projectId?: string;
@@ -118,24 +103,24 @@ export class ContextConfigBuilder<
     this.graphId = options.graphId || 'default';
     this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 
-    // Convert request headers schema to JSON schema if provided
-    let requestContextSchema: any;
-    if (options.requestContextSchema) {
-      // Handle both RequestContextSchemaBuilder and direct Zod schema
+    // Convert headers schema to JSON schema if provided
+    let headers: any;
+    if (options.headers) {
+      // Handle both HeadersSchemaBuilder and direct Zod schema
       const actualSchema =
-        options.requestContextSchema instanceof RequestContextSchemaBuilder
-          ? options.requestContextSchema.getSchema()
-          : options.requestContextSchema;
+        options.headers instanceof HeadersSchemaBuilder
+          ? options.headers.getSchema()
+          : options.headers;
 
       logger.info(
         {
-          requestContextSchema: options.requestContextSchema,
+          headers: options.headers,
         },
-        'Converting request headers schema to JSON Schema for database storage'
+        'Converting headers schema to JSON Schema for database storage'
       );
 
       // Convert to JSON schema for database storage
-      requestContextSchema = convertZodToJsonSchema(actualSchema);
+      headers = convertZodToJsonSchema(actualSchema);
     }
 
     // Convert contextVariables responseSchemas to JSON schemas for database storage
@@ -166,12 +151,10 @@ export class ContextConfigBuilder<
     }
 
     this.config = {
-      id: options.id,
+      id: options.id || generateId(),
       tenantId: this.tenantId,
       projectId: this.projectId,
-      name: options.name,
-      description: options.description || '',
-      requestContextSchema,
+      headersSchema: headers,
       contextVariables: processedContextVariables as Record<string, ContextFetchDefinition>,
     };
 
@@ -188,10 +171,11 @@ export class ContextConfigBuilder<
    * Set the context (tenantId, projectId, graphId) for this context config
    * Called by graph.setConfig() when the graph is configured
    */
-  setContext(tenantId: string, projectId: string, graphId: string): void {
+  setContext(tenantId: string, projectId: string, graphId: string, baseURL: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.graphId = graphId;
+    this.baseURL = baseURL;
     // Update the config object as well
     this.config.tenantId = tenantId;
     this.config.projectId = projectId;
@@ -217,9 +201,7 @@ export class ContextConfigBuilder<
       tenantId: this.tenantId,
       projectId: this.projectId,
       graphId: this.graphId,
-      name: this.getName(),
-      description: this.getDescription(),
-      requestContextSchema: this.getRequestContextSchema(),
+      headersSchema: this.getHeadersSchema(),
       contextVariables: this.getContextVariables(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -234,19 +216,8 @@ export class ContextConfigBuilder<
     return this.config.id;
   }
 
-  getName(): string {
-    if (!this.config.name) {
-      throw new Error('Context config name is not set');
-    }
-    return this.config.name;
-  }
-
-  getDescription(): string {
-    return this.config.description || '';
-  }
-
-  getRequestContextSchema() {
-    return this.config.requestContextSchema || null;
+  getHeadersSchema() {
+    return this.config.headersSchema || null;
   }
 
   getContextVariables(): Record<string, ContextFetchDefinition> {
@@ -254,8 +225,8 @@ export class ContextConfigBuilder<
   }
 
   // Builder methods for fluent API
-  withRequestContextSchema(schema: any): this {
-    this.config.requestContextSchema = schema;
+  withHeadersSchema(schema: any): this {
+    this.config.headersSchema = schema;
     return this;
   }
 
@@ -266,22 +237,20 @@ export class ContextConfigBuilder<
   // Validation method
   validate(): { valid: boolean; errors: string[] } {
     try {
-      // Validate 'requestContext' key is not used in contextVariables
+      // Validate 'headers' key is not used in contextVariables
       const contextVariables = this.config.contextVariables || {};
-      if ('requestContext' in contextVariables) {
+      if ('headers' in contextVariables) {
         return {
           valid: false,
           errors: [
-            "The key 'requestContext' is reserved for the request context and cannot be used in contextVariables",
+            "The key 'headers' is reserved for the headers context and cannot be used in contextVariables",
           ],
         };
       }
 
       ContextConfigApiUpdateSchema.parse({
         id: this.config.id,
-        name: this.config.name,
-        description: this.config.description,
-        requestContextSchema: this.config.requestContextSchema,
+        headersSchema: this.config.headersSchema,
         contextVariables: this.config.contextVariables,
       });
       return { valid: true, errors: [] };
@@ -328,16 +297,14 @@ export class ContextConfigBuilder<
   private async upsertContextConfig(): Promise<void> {
     const configData = {
       id: this.getId(),
-      name: this.getName(),
-      description: this.getDescription(),
-      requestContextSchema: this.getRequestContextSchema(),
+      headersSchema: this.getHeadersSchema(),
       contextVariables: this.getContextVariables(),
     };
 
     try {
       // First try to update (in case config exists)
       const updateResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/crud/context-configs/${this.getId()}`,
+        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/graphs/${this.graphId}/context-configs/${this.getId()}`,
         {
           method: 'PUT',
           headers: {
@@ -367,7 +334,7 @@ export class ContextConfigBuilder<
         );
 
         const createResponse = await fetch(
-          `${this.baseURL}/tenants/${this.tenantId}/crud/context-configs`,
+          `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/graphs/${this.graphId}/context-configs`,
           {
             method: 'POST',
             headers: {
@@ -434,11 +401,11 @@ export function contextConfig<
   return new ContextConfigBuilder<R, CV>(options);
 }
 
-// Factory function for creating request context schema builders
-export function requestContextSchema<R extends z.ZodTypeAny>(
-  options: RequestContextSchemaBuilderOptions<R>
-): RequestContextSchemaBuilder<R> {
-  return new RequestContextSchemaBuilder<R>(options);
+// Factory function for creating headers schema builders
+export function headers<R extends z.ZodTypeAny>(
+  options: HeadersSchemaBuilderOptions<R>
+): HeadersSchemaBuilder<R> {
+  return new HeadersSchemaBuilder<R>(options);
 }
 
 // Helper function to create fetch definitions

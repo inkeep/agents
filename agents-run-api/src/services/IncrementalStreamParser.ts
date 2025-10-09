@@ -65,9 +65,25 @@ export class IncrementalStreamParser {
     }
 
     // Fallback: create new parser if session parser not available (for tests, etc.)
+    // Try to get the shared ArtifactService from GraphSession
+    let sharedArtifactService = null;
+    if (
+      artifactParserOptions?.streamRequestId &&
+      typeof graphSessionManager.getArtifactService === 'function'
+    ) {
+      try {
+        sharedArtifactService = graphSessionManager.getArtifactService(
+          artifactParserOptions.streamRequestId
+        );
+      } catch (error) {
+        // Ignore errors in test environment or when GraphSessionManager is not available
+      }
+    }
+
     this.artifactParser = new ArtifactParser(tenantId, {
       ...artifactParserOptions,
       contextId,
+      artifactService: sharedArtifactService, // Use shared ArtifactService if available
     });
   }
 
@@ -239,9 +255,13 @@ export class IncrementalStreamParser {
    */
   private async streamComponent(component: any): Promise<void> {
     // Stream as regular data component (Text components handled elsewhere)
-    const parts = await this.artifactParser.parseObject({
-      dataComponents: [component],
-    }, this.artifactMap, this.agentId);
+    const parts = await this.artifactParser.parseObject(
+      {
+        dataComponents: [component],
+      },
+      this.artifactMap,
+      this.agentId
+    );
 
     // Ensure parts is an array before iterating
     if (!Array.isArray(parts)) {
@@ -346,9 +366,13 @@ export class IncrementalStreamParser {
         // Stream any complete components that haven't been streamed yet
         // Skip Text components as they've already been streamed incrementally
         if (!hasBeenStreamed && this.isComponentComplete(component) && component.name !== 'Text') {
-          const parts = await this.artifactParser.parseObject({
-            dataComponents: [component],
-          }, this.artifactMap, this.agentId);
+          const parts = await this.artifactParser.parseObject(
+            {
+              dataComponents: [component],
+            },
+            this.artifactMap,
+            this.agentId
+          );
 
           for (const part of parts) {
             await this.streamPart(part);
@@ -446,7 +470,11 @@ export class IncrementalStreamParser {
     }
 
     // No incomplete artifacts, parse the entire buffer
-    const parts = await this.artifactParser.parseText(workingBuffer, this.artifactMap, this.agentId);
+    const parts = await this.artifactParser.parseText(
+      workingBuffer,
+      this.artifactMap,
+      this.agentId
+    );
 
     // Check last part - if it's text, it might be incomplete
     if (parts.length > 0 && parts[parts.length - 1].kind === 'text') {

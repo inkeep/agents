@@ -1,9 +1,9 @@
-import { type FC, type RefObject, useRef, type ComponentProps } from 'react';
-import { ExpandableField } from '@/components/form/expandable-field';
-import { Button } from '@/components/ui/button';
 import { Braces } from 'lucide-react';
-import { TooltipTrigger, Tooltip, TooltipContent } from '@/components/ui/tooltip';
+import { type ComponentProps, type FC, type RefObject, useRef } from 'react';
+import { ExpandableField } from '@/components/form/expandable-field';
 import { PromptEditor } from '@/components/form/prompt-editor';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 // Extract inner type from RefObject<T>
@@ -14,7 +14,7 @@ const PromptEditorWithAddVariables: FC<
     tooltipClassName: string;
   }
 > = ({ tooltipClassName, ...props }) => {
-  const codemirrorRef = useRef<RefValue<typeof props.ref>>(null!);
+  const codemirrorRef = useRef<RefValue<typeof props.ref>>(null);
   const variablesText = 'Add variables';
   return (
     <div className="h-full relative">
@@ -30,16 +30,14 @@ const PromptEditorWithAddVariables: FC<
             )}
             type="button"
             onClick={() => {
-              codemirrorRef.current.insertTemplateVariable();
+              codemirrorRef.current?.insertTemplateVariable();
             }}
           >
             <Braces className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">{variablesText}</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>
-          {variablesText}
-        </TooltipContent>
+        <TooltipContent>{variablesText}</TooltipContent>
       </Tooltip>
     </div>
   );

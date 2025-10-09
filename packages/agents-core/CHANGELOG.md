@@ -1,5 +1,39 @@
 # @inkeep/agents-core
 
+## 0.16.2
+
+### Patch Changes
+
+- 4df3308: fix schema conversion export
+
+## 0.16.1
+
+## 0.16.0
+
+### Minor Changes
+
+- 5c3bbec: Request context refactor
+
+### Patch Changes
+
+- 35e6c9e: Updated Artifact Schema
+
+## 0.15.0
+
+### Minor Changes
+
+- ad5528c: Context config route changes
+
+## 0.14.16
+
+## 0.14.15
+
+## 0.14.14
+
+### Patch Changes
+
+- 8fe8c3e: exports drizzle
+
 ## 0.14.13
 
 ## 0.14.12

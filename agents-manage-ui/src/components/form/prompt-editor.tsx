@@ -146,7 +146,7 @@ export interface TextareaWithSuggestionsProps extends Omit<ReactCodeMirrorProps,
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
-  ref?: RefObject<{ insertTemplateVariable: () => void }>;
+  ref?: RefObject<{ insertTemplateVariable: () => void }| null>;
 }
 
 function tryJsonParse(json: string): object {
@@ -199,9 +199,9 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
 
   const extensions = useMemo(() => {
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
-    const requestContextSchema = tryJsonParse(contextConfig.requestContextSchema);
+    const headersSchema = tryJsonParse(contextConfig.headersSchema);
     const suggestions = getContextSuggestions({
-      requestContextSchema,
+      headersSchema,
       // @ts-expect-error -- todo: improve type
       contextVariables,
     });

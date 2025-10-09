@@ -1,5 +1,75 @@
 # @inkeep/agents-manage-ui
 
+## 0.16.2
+
+### Patch Changes
+
+- Updated dependencies [4df3308]
+  - @inkeep/agents-core@0.16.2
+  - @inkeep/agents-manage-api@0.16.2
+  - @inkeep/agents-run-api@0.16.2
+
+## 0.16.1
+
+### Patch Changes
+
+- 0707d2d: polling fix
+- 23a4766: banner
+  - @inkeep/agents-manage-api@0.16.1
+  - @inkeep/agents-run-api@0.16.1
+  - @inkeep/agents-core@0.16.1
+
+## 0.16.0
+
+### Minor Changes
+
+- 5c3bbec: Request context refactor
+
+### Patch Changes
+
+- 35e6c9e: Updated Artifact Schema
+- Updated dependencies [5c3bbec]
+- Updated dependencies [35e6c9e]
+- Updated dependencies [e88e98c]
+  - @inkeep/agents-core@0.16.0
+  - @inkeep/agents-manage-api@0.16.0
+  - @inkeep/agents-run-api@0.16.0
+
+## 0.15.0
+
+### Patch Changes
+
+- Updated dependencies [ad5528c]
+  - @inkeep/agents-core@0.15.0
+  - @inkeep/agents-manage-api@0.15.0
+  - @inkeep/agents-run-api@0.15.0
+
+## 0.14.16
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.14.16
+- @inkeep/agents-run-api@0.14.16
+- @inkeep/agents-core@0.14.16
+
+## 0.14.15
+
+### Patch Changes
+
+- 4c76290: Tweak styling on edge pane, graph settings label
+  - @inkeep/agents-manage-api@0.14.15
+  - @inkeep/agents-run-api@0.14.15
+  - @inkeep/agents-core@0.14.15
+
+## 0.14.14
+
+### Patch Changes
+
+- Updated dependencies [8fe8c3e]
+  - @inkeep/agents-core@0.14.14
+  - @inkeep/agents-manage-api@0.14.14
+  - @inkeep/agents-run-api@0.14.14
+
 ## 0.14.13
 
 ### Patch Changes

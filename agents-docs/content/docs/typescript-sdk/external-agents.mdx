@@ -74,7 +74,7 @@ const supportExternal = externalAgent({
 
   // Optional - Static or dynamic headers
   headers: {
-    Authorization: "{{requestContext.Authorization}}",
+    Authorization: "{{headers.Authorization}}",
   },
 
   // Optional - Credential Reference

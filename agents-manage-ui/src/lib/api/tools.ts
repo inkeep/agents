@@ -45,7 +45,8 @@ export async function fetchMCPTools(
     `tenants/${tenantId}/projects/${projectId}/tools?${params}`
   );
 
-  return response.data;
+  // Filter to only return MCP tools (config.type === 'mcp')
+  return response.data.filter((tool) => tool.config?.type === 'mcp');
 }
 
 /**

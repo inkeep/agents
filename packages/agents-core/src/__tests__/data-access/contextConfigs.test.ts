@@ -4,7 +4,6 @@ import {
   createContextConfig,
   deleteContextConfig,
   getContextConfigById,
-  getContextConfigsByName,
   hasContextConfig,
   listContextConfigs,
   listContextConfigsPaginated,
@@ -30,9 +29,7 @@ describe('Context Configs Data Access', () => {
         id: contextConfigId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Context Config',
-        description: 'Test context configuration',
-        requestContextSchema: { type: 'object' },
+        headersSchema: { type: 'object' },
         contextVariables: {
           testVar: {
             id: 'testVar',
@@ -57,6 +54,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await getContextConfigById(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -83,6 +81,7 @@ describe('Context Configs Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
+          graphId: testGraphId,
         },
         id: 'non-existent',
       });
@@ -95,9 +94,7 @@ describe('Context Configs Data Access', () => {
         id: 'context-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Context Config',
-        description: 'Test context configuration',
-        requestContextSchema: null,
+        headersSchema: null,
         contextVariables: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
@@ -116,6 +113,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await getContextConfigById(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -131,14 +129,12 @@ describe('Context Configs Data Access', () => {
       const expectedConfigs = [
         {
           id: 'context-1',
-          name: 'Config 1',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
           contextVariables: null,
         },
         {
           id: 'context-2',
-          name: 'Config 2',
           createdAt: '2024-01-02T00:00:00Z',
           updatedAt: '2024-01-02T00:00:00Z',
           contextVariables: { testVar: { id: 'test' } },
@@ -158,6 +154,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigs(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -174,14 +171,12 @@ describe('Context Configs Data Access', () => {
       const expectedConfigs = [
         {
           id: 'context-1',
-          name: 'Config 1',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
           contextVariables: null,
         },
         {
           id: 'context-2',
-          name: 'Config 2',
           createdAt: '2024-01-02T00:00:00Z',
           updatedAt: '2024-01-02T00:00:00Z',
           contextVariables: {},
@@ -216,6 +211,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigsPaginated(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -234,7 +230,7 @@ describe('Context Configs Data Access', () => {
     });
 
     it('should handle default pagination options', async () => {
-      const expectedConfigs = [{ id: 'context-1', name: 'Config 1' }];
+      const expectedConfigs = [{ id: 'context-1' }];
 
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedConfigs, [{ count: '1' }]]);
 
@@ -257,6 +253,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigsPaginated(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -292,6 +289,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigsPaginated(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -313,9 +311,7 @@ describe('Context Configs Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         graphId: testGraphId,
-        name: 'Test Context Config',
-        description: 'Test context configuration',
-        requestContextSchema: { type: 'object' },
+        headersSchema: { type: 'object' },
         contextVariables: {
           testVar: {
             id: 'testVar',
@@ -354,9 +350,7 @@ describe('Context Configs Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         graphId: testGraphId,
-        name: 'Test Context Config',
-        description: 'Test context configuration',
-        requestContextSchema: null,
+        headersSchema: null,
         contextVariables: null,
       };
 
@@ -388,8 +382,6 @@ describe('Context Configs Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         graphId: testGraphId,
-        name: 'Test Context Config',
-        description: 'Test context configuration',
         contextVariables: {}, // Empty object should become null
       };
 
@@ -426,8 +418,6 @@ describe('Context Configs Data Access', () => {
     it('should update a context config', async () => {
       const configId = 'context-1';
       const updateData = {
-        name: 'Updated Context Config',
-        description: 'Updated description',
         contextVariables: {
           newVar: {
             id: 'newVar',
@@ -459,6 +449,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await updateContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -467,8 +458,7 @@ describe('Context Configs Data Access', () => {
       });
 
       expect(mockUpdate).toHaveBeenCalled();
-      expect(result.name).toBe(updateData.name);
-      expect(result.description).toBe(updateData.description);
+      expect(result.contextVariables).toEqual(updateData.contextVariables);
     });
 
     it('should handle clearing contextVariables with null', async () => {
@@ -482,7 +472,6 @@ describe('Context Configs Data Access', () => {
             returning: vi.fn().mockResolvedValue([
               {
                 id: 'context-1',
-                name: 'Test Config',
                 contextVariables: null,
                 createdAt: '2024-01-01T00:00:00Z',
                 updatedAt: new Date().toISOString(),
@@ -499,6 +488,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await updateContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -520,7 +510,6 @@ describe('Context Configs Data Access', () => {
             returning: vi.fn().mockResolvedValue([
               {
                 id: 'context-1',
-                name: 'Test Config',
                 contextVariables: null,
                 createdAt: '2024-01-01T00:00:00Z',
                 updatedAt: new Date().toISOString(),
@@ -537,6 +526,7 @@ describe('Context Configs Data Access', () => {
 
       await updateContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -552,9 +542,9 @@ describe('Context Configs Data Access', () => {
       );
     });
 
-    it('should handle clearing requestContextSchema', async () => {
+    it('should handle clearing headersSchema', async () => {
       const updateData = {
-        requestContextSchema: null,
+        headersSchema: null,
       };
 
       const mockUpdate = vi.fn().mockReturnValue({
@@ -563,8 +553,7 @@ describe('Context Configs Data Access', () => {
             returning: vi.fn().mockResolvedValue([
               {
                 id: 'context-1',
-                name: 'Test Config',
-                requestContextSchema: null,
+                headersSchema: null,
                 createdAt: '2024-01-01T00:00:00Z',
                 updatedAt: new Date().toISOString(),
               },
@@ -580,6 +569,7 @@ describe('Context Configs Data Access', () => {
 
       await updateContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -587,10 +577,10 @@ describe('Context Configs Data Access', () => {
         data: updateData,
       });
 
-      // Verify that the set method was called with null requestContextSchema
+      // Verify that the set method was called with null headersSchema
       expect(mockUpdate().set).toHaveBeenCalledWith(
         expect.objectContaining({
-          requestContextSchema: null,
+          headersSchema: null,
         })
       );
     });
@@ -613,6 +603,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await deleteContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -642,6 +633,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await deleteContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -670,6 +662,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await deleteContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -687,8 +680,6 @@ describe('Context Configs Data Access', () => {
         id: configId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Config',
-        description: 'Test description',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -706,6 +697,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await hasContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -729,6 +721,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await hasContextConfig(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -754,6 +747,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await countContextConfigs(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -777,6 +771,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await countContextConfigs(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -799,6 +794,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await countContextConfigs(mockDb)({
         scopes: {
+          graphId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -808,68 +804,4 @@ describe('Context Configs Data Access', () => {
     });
   });
 
-  describe('getContextConfigsByName', () => {
-    it('should get context configs by name', async () => {
-      const configName = 'Test Config';
-      const expectedConfigs = [
-        {
-          id: 'context-1',
-          name: configName,
-          tenantId: testTenantId,
-          projectId: testProjectId,
-        },
-        {
-          id: 'context-2',
-          name: configName,
-          tenantId: testTenantId,
-          projectId: testProjectId,
-        },
-      ];
-
-      const mockQuery = {
-        contextConfigs: {
-          findMany: vi.fn().mockResolvedValue(expectedConfigs),
-        },
-      };
-
-      const mockDb = {
-        ...db,
-        query: mockQuery,
-      } as any;
-
-      const result = await getContextConfigsByName(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-        },
-        name: configName,
-      });
-
-      expect(mockQuery.contextConfigs.findMany).toHaveBeenCalled();
-      expect(result).toEqual(expectedConfigs);
-    });
-
-    it('should return empty array when no configs found by name', async () => {
-      const mockQuery = {
-        contextConfigs: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-      };
-
-      const mockDb = {
-        ...db,
-        query: mockQuery,
-      } as any;
-
-      const result = await getContextConfigsByName(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-        },
-        name: 'Non-existent Config',
-      });
-
-      expect(result).toEqual([]);
-    });
-  });
 });
