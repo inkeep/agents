@@ -880,7 +880,11 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
   }),
 }));
 
-export const artifactComponentsRelations = relations(artifactComponents, ({ many }) => ({
+export const artifactComponentsRelations = relations(artifactComponents, ({ many, one }) => ({
+  project: one(projects, {
+    fields: [artifactComponents.tenantId, artifactComponents.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
   subAgentRelations: many(subAgentArtifactComponents),
 }));
 

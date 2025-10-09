@@ -782,7 +782,7 @@ export class Agent {
           tenantId: this.config.tenantId || 'default',
           projectId: this.config.projectId || 'default',
           graphId: this.config.graphId,
-          agentId: this.config.id,
+          subAgentId: this.config.id,
         },
       });
 
