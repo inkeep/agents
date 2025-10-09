@@ -24,6 +24,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const [inputSchema, setInputSchema] = useState(
     nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : ''
   );
+  const [dependencies, setDependencies] = useState(
+    nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : ''
+  );
 
   // Sync local state with node data when node changes
   useEffect(() => {
@@ -31,6 +34,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     setDescription(String(nodeData.description || ''));
     setCode(String(nodeData.code || ''));
     setInputSchema(nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : '');
+    setDependencies(nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : '');
   }, [nodeData]);
 
   // Handle input schema changes with JSON validation
@@ -39,7 +43,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
       setInputSchema(value);
 
       if (!value?.trim()) {
-        // Empty value - set to undefined (no default value)
         updatePath('inputSchema', undefined);
         return;
       }
@@ -48,8 +51,27 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         const parsed = JSON.parse(value);
         updatePath('inputSchema', parsed);
       } catch {
-        // Invalid JSON - don't update the field value
-        // The user will see the error in the UI
+        // Invalid JSON - don't update
+      }
+    },
+    [updatePath]
+  );
+
+  // Handle dependencies changes with JSON validation
+  const handleDependenciesChange = useCallback(
+    (value: string) => {
+      setDependencies(value);
+
+      if (!value?.trim()) {
+        updatePath('dependencies', undefined);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(value);
+        updatePath('dependencies', parsed);
+      } catch {
+        // Invalid JSON - don't update
       }
     },
     [updatePath]
@@ -149,6 +171,21 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         />
         {getFieldError('inputSchema') && (
           <p className="text-sm text-red-600">{getFieldError('inputSchema')}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="text-sm font-medium">Dependencies (Optional)</div>
+        <StandaloneJsonEditor
+          value={dependencies}
+          onChange={handleDependenciesChange}
+          placeholder={`{
+  "axios": "^1.6.0",
+  "lodash": "^4.17.21"
+}`}
+        />
+        {getFieldError('dependencies') && (
+          <p className="text-sm text-red-600">{getFieldError('dependencies')}</p>
         )}
       </div>
     </div>
