@@ -311,8 +311,6 @@ export const createFullProjectServerSide =
             // Note: GraphWithinContextOfProjectSchema uses 'agents', but FullGraphDefinitionSchema uses 'subAgents'
             const graphDataWithProjectResources = {
               ...graphData,
-              agents: undefined, // Remove 'agents' property from GraphWithinContextOfProjectSchema
-              subAgents: graphData.subAgents, // Map 'agents' to 'subAgents' for FullGraphDefinitionSchema
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
@@ -713,8 +711,6 @@ export const updateFullProjectServerSide =
             // Note: GraphWithinContextOfProjectSchema uses 'agents', but FullGraphDefinitionSchema uses 'subAgents'
             const graphDataWithProjectResources = {
               ...graphData,
-              agents: undefined, // Remove 'agents' property from GraphWithinContextOfProjectSchema
-              subAgents: graphData.subAgents, // Map 'agents' to 'subAgents' for FullGraphDefinitionSchema
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
