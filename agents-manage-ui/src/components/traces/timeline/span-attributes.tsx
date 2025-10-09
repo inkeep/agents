@@ -1,11 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-
-const JsonEditorWithCopy = dynamic(() =>
-  import('@/components/traces/editors/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
-);
+import { JsonEditorWithCopy } from '@/components/traces/editors/json-editor-with-copy';
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;

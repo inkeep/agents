@@ -109,7 +109,7 @@ export function createEditor(
 /**
  * Cleanup various monaco-editor disposables functions
  */
-export function cleanupDisposables(...disposables: (IDisposable | false)[]) {
+export function cleanupDisposables(...disposables: (IDisposable | false | undefined)[]) {
   return () => {
     for (const disposable of disposables) {
       if (!disposable) continue;

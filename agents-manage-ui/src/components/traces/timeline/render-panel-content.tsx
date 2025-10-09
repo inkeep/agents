@@ -13,10 +13,7 @@ import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import { Badge } from '@/components/ui/badge';
-
-const JsonEditorWithCopy = dynamic(() =>
-  import('@/components/traces/editors/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
-);
+import { JsonEditorWithCopy } from '@/components/traces/editors/json-editor-with-copy';
 
 function formatJsonSafely(content: string): string {
   try {

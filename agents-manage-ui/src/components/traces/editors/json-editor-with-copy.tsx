@@ -14,7 +14,7 @@ export const JsonEditorWithCopy: FC<Props> = ({ title, uri, value }) => {
   const editorRef = useRef<JsonEditorRef>(null);
 
   const handleCopyCode = useCallback(async () => {
-    const code = editorRef.current?.model?.getValue() ?? '';
+    const code = editorRef.current?.editor?.getValue() ?? '';
     try {
       await navigator.clipboard.writeText(code);
       toast.success('Copied to clipboard');
@@ -25,7 +25,7 @@ export const JsonEditorWithCopy: FC<Props> = ({ title, uri, value }) => {
   }, []);
 
   const handleDownloadCode = useCallback(() => {
-    const code = editorRef.current?.model?.getValue() ?? '';
+    const code = editorRef.current?.editor?.getValue() ?? '';
     // Create a blob with the JSON content
     const blob = new Blob([code], { type: 'application/json' });
     // Create a download link
