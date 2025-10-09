@@ -1,5 +1,5 @@
-import { type ComponentProps, type FC, useCallback } from 'react';
-import { JsonEditor } from './json-editor';
+import { type ComponentProps, type FC, useCallback, useRef } from 'react';
+import { JsonEditor, type JsonEditorRef } from './json-editor';
 import { Button } from '@/components/ui/button';
 import { Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,8 +11,10 @@ type Props = Pick<ComponentProps<typeof JsonEditor>, 'uri' | 'value'> & {
 };
 
 export const JsonEditorWithCopy: FC<Props> = ({ title, uri, value }) => {
+  const editorRef = useRef<JsonEditorRef>(null);
+
   const handleCopyCode = useCallback(async () => {
-    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    const code = editorRef.current?.model?.getValue() ?? '';
     try {
       await navigator.clipboard.writeText(code);
       toast.success('Copied to clipboard');
@@ -23,7 +25,7 @@ export const JsonEditorWithCopy: FC<Props> = ({ title, uri, value }) => {
   }, []);
 
   const handleDownloadCode = useCallback(() => {
-    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    const code = editorRef.current?.model?.getValue() ?? '';
     // Create a blob with the JSON content
     const blob = new Blob([code], { type: 'application/json' });
     // Create a download link
@@ -46,7 +48,7 @@ export const JsonEditorWithCopy: FC<Props> = ({ title, uri, value }) => {
         {title}
         <Badge variant="sky">JSON</Badge>
       </h3>
-      <JsonEditor uri={uri} value={value} readOnly>
+      <JsonEditor ref={editorRef} uri={uri} value={value} readOnly>
         <div className="absolute end-2 top-2 flex gap-1 z-1">
           <Button variant="ghost" size="icon-sm" title="Download File" onClick={handleDownloadCode}>
             <Download />

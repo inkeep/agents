@@ -1,4 +1,4 @@
-import { type FC, type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, KeyCode } from 'monaco-editor';
 import { toast } from 'sonner';
@@ -37,22 +37,35 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
   }
 };
 
-export const JsonEditor: FC<{
-  value: string;
-  uri: `${string}.json`;
-  readOnly?: boolean;
-  children: ReactNode;
-}> = ({ value, uri, readOnly = false, children }) => {
-  const ref = useRef<HTMLDivElement>(null);
+export interface JsonEditorRef {
+  model: editor.IModel | null;
+}
+
+export const JsonEditor = forwardRef<
+  JsonEditorRef,
+  {
+    value: string;
+    uri: `${string}.json`;
+    readOnly?: boolean;
+    children: ReactNode;
+  }
+>(({ value, uri, readOnly = false, children }, ref) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const modelRef = useRef<editor.IModel>(null);
   const { resolvedTheme } = useTheme();
+
+  useImperativeHandle(ref, () => ({
+    model: modelRef.current,
+  }));
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    const container = ref.current;
+    const container = containerRef.current;
     if (!container) {
       return;
     }
     const model = getOrCreateModel({ uri, value });
+    modelRef.current = model;
     const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
     const editorInstance = createEditor(container, {
       theme: monacoTheme,
@@ -73,6 +86,7 @@ export const JsonEditor: FC<{
         alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
       },
     });
+
     function updateHeight() {
       if (model.isDisposed()) {
         return;
@@ -114,8 +128,8 @@ export const JsonEditor: FC<{
   }, []);
 
   return (
-    <div ref={ref} className="rounded-xl overflow-hidden border relative">
+    <div ref={containerRef} className="rounded-xl overflow-hidden border relative">
       {children}
     </div>
   );
-};
+});

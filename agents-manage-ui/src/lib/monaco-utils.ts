@@ -110,9 +110,11 @@ export function createEditor(
 /**
  * Cleanup various monaco-editor disposables functions
  */
-export function cleanupDisposables(...disposables: IDisposable[]) {
+export function cleanupDisposables(...disposables: (IDisposable | false)[]) {
   return () => {
     for (const disposable of disposables) {
+      if (!disposable) continue;
+
       disposable.dispose(); // remove the listener
     }
   };
