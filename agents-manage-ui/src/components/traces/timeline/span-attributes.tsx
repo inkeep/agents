@@ -103,10 +103,11 @@ export function SpanAttributes({ span, className }: SpanAttributesProps) {
     <div className={cn('space-y-3', className)}>
       {/* Main span attributes */}
       {hasOtherAttributes && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Advanced Span Attributes</h3>
-          <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
-        </div>
+        <JsonEditorWithCopy
+          value={JSON.stringify(sortedOtherAttributes, null, 2)}
+          uri="advanced-span-attributes.json"
+          title="Advanced Span Attributes"
+        />
       )}
 
       {/* Process attributes section */}
