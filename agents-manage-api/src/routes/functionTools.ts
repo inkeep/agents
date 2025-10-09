@@ -8,7 +8,6 @@ import {
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   getFunctionToolById,
-  IdParamsSchema,
   ListResponseSchema,
   listFunctionTools,
   PaginationQueryParamsSchema,
@@ -16,6 +15,7 @@ import {
   TenantProjectGraphParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
+import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -79,7 +79,7 @@ app.openapi(
     tags: ['Function Tools'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        id: IdParamsSchema.shape.id,
+        id: z.string(),
       }),
     },
     responses: {
@@ -190,7 +190,7 @@ app.openapi(
     tags: ['Function Tools'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        id: IdParamsSchema.shape.id,
+        id: z.string(),
       }),
       body: {
         content: {
@@ -257,7 +257,7 @@ app.openapi(
     tags: ['Function Tools'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        id: IdParamsSchema.shape.id,
+        id: z.string(),
       }),
     },
     responses: {
