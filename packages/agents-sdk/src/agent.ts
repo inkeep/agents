@@ -38,15 +38,13 @@ export class SubAgent implements SubAgentInterface {
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
-  private graphId: string;
   private initialized = false;
   constructor(config: SubAgentConfig) {
     this.config = { ...config, type: 'internal' };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
-    // tenantId, projectId, and graphId will be set later by the graph or CLI
+    // tenantId and projectId will be set later by the graph or CLI
     this.tenantId = 'default';
     this.projectId = 'default';
-    this.graphId = 'default';
 
     logger.info(
       {
@@ -58,11 +56,10 @@ export class SubAgent implements SubAgentInterface {
     );
   }
 
-  // Set context (tenantId, projectId, graphId, and baseURL) from external source (graph, CLI, etc)
-  setContext(tenantId: string, projectId: string, graphId: string, baseURL?: string): void {
+  // Set context (tenantId, projectId, and baseURL) from external source (graph, CLI, etc)
+  setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
-    this.graphId = graphId;
     if (baseURL) {
       this.baseURL = baseURL;
     }

@@ -9,7 +9,6 @@ import type {
   ModelSettings,
   StatusUpdateSettings,
   SubAgentApiInsert,
-  SubAgentStopWhen,
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
@@ -104,16 +103,6 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   canUse?: () => SubAgentCanUseType[];
   canTransferTo?: () => SubAgentInterface[];
   canDelegateTo?: () => AllSubAgentInterface[];
-  models?: {
-    base?: ModelSettings;
-    structuredOutput?: ModelSettings;
-    summarizer?: ModelSettings;
-  };
-  stopWhen?: SubAgentStopWhen;
-  memory?: {
-    type: 'conversation' | 'episodic' | 'short_term';
-    capacity?: number;
-  };
   dataComponents?: () => (
     | DataComponentApiInsert
     | DataComponentInterface

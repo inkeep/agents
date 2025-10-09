@@ -39,7 +39,7 @@ describe('agent builder function', () => {
     };
 
     const testAgent = subAgent(config);
-    testAgent.setContext('test-tenant', 'test-project', 'test-graph');
+    testAgent.setContext('test-tenant', 'test-project');
 
     expect(testAgent.getName()).toBe('Full Config Agent');
     expect(testAgent.getId()).toBe('full-config-agent');
