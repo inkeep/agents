@@ -715,6 +715,58 @@ function buildConversationListPayload(
             },
           ]
         ),
+
+        artifactProcessing: listQuery(
+          QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.ARTIFACT_PROCESSING,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_TYPE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_DATA,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -752,6 +804,7 @@ export async function GET(
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
+    const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
 
     // Categorize spans with errors into critical errors vs warnings
     const CRITICAL_ERROR_SPAN_NAMES = [
@@ -798,7 +851,8 @@ export async function GET(
         | 'context_resolution'
         | 'user_message'
         | 'ai_assistant_message'
-        | 'ai_model_streamed_text';
+        | 'ai_model_streamed_text'
+        | 'artifact_processing';
       name: string;
       description: string;
       timestamp: string;
@@ -840,13 +894,21 @@ export async function GET(
       // ai generation specifics
       aiResponseToolCalls?: string;
       aiPromptMessages?: string;
-      // save_tool_result specifics
+      // save_tool_result specifics (legacy)
       saveResultSaved?: boolean;
       saveArtifactType?: string;
       saveArtifactName?: string;
       saveArtifactDescription?: string;
       saveSummaryData?: Record<string, any>;
       saveTotalArtifacts?: number;
+      // artifact processing specifics
+      artifactId?: string;
+      artifactType?: string;
+      artifactName?: string;
+      artifactDescription?: string;
+      artifactData?: string;
+      artifactAgentId?: string;
+      artifactToolCallId?: string;
       saveOperationId?: string;
       saveToolCallId?: string;
       saveFunctionId?: string;
@@ -1152,6 +1214,35 @@ export async function GET(
         result: hasError
           ? 'Context fetch failed'
           : getString(span, SPAN_KEYS.HTTP_URL, 'Unknown URL'),
+      });
+    }
+
+    // artifact processing
+    for (const span of artifactProcessingSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const artifactName = getString(span, SPAN_KEYS.ARTIFACT_NAME, '');
+      const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
+      const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
+
+      activities.push({
+        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        type: 'artifact_processing',
+        name: 'Artifact Processing',
+        description: 'Artifact processed',
+        timestamp: span.timestamp,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        agentId: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || undefined,
+        agentName: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || 'Unknown Agent',
+        result: hasError
+          ? 'Artifact processing failed'
+          : 'Artifact processed successfully',
+        artifactId: getString(span, SPAN_KEYS.ARTIFACT_ID, '') || undefined,
+        artifactType: artifactType || undefined,
+        artifactName: artifactName || undefined,
+        artifactDescription: artifactDescription || undefined,
+        artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
+        artifactAgentId: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || undefined,
+        artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
       });
     }
 

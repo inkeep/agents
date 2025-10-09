@@ -154,10 +154,7 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="Message content">
-              <Bubble>{a.messageContent || 'Message content not available'}</Bubble>
-            </LabeledBlock>
-            <Info label="Message length" value={`${a.messageContent?.length || 0} characters`} />
+            <Info label="Message content" value={a.messageContent} />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -179,7 +176,6 @@ export function renderPanelContent({
             <Info label="Agent" value={a.agentName || 'Unknown'} />
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
-            <Info label="Message id" value={<Badge variant="code">{a.id}</Badge>} />
           </Section>
           <Divider />
           {SignozButton}
@@ -233,18 +229,8 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From agent">
-              <Badge variant="code">
-                {a.delegationFromAgentId || a.agentName || 'Unknown Agent'}
-              </Badge>
-            </LabeledBlock>
-            <LabeledBlock label="To agent">
-              <Badge variant="code">
-                {a.delegationToAgentId ||
-                  a.toolName?.replace('delegate_to_', '') ||
-                  'Unknown Target'}
-              </Badge>
-            </LabeledBlock>
+              <Info label="From agent" value={a.delegationFromAgentId || 'Unknown Agent'} />
+              <Info label="To agent" value={a.delegationToAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -328,9 +314,7 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
-            <LabeledBlock label="Purpose">
-              <Bubble className="b">{a.toolPurpose || 'No purpose information available'}</Bubble>
-            </LabeledBlock>
+            <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
@@ -405,6 +389,65 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'artifact_processing':
+      return (
+        <>
+          <Section>
+            {a.artifactName && <Info label="Name" value={a.artifactName} />}
+            {a.artifactType && <Info label="Type" value={a.artifactType} />}
+            {a.artifactDescription && <Info label="Description" value={a.artifactDescription} />}
+            {a.artifactData && (
+              <LabeledBlock label="Data">
+                <CodeBubble className="max-h-60 overflow-y-auto">
+                  <Streamdown>{`\`\`\`json\n${(() => {
+                    try {
+                      const parsed = JSON.parse(a.artifactData);
+                      // Check if this is a baseSelector wrapper and extract the inner content
+                      if (parsed?.baseSelector?.type === 'text' && parsed.baseSelector.text !== undefined) {
+                        const innerContent = parsed.baseSelector.text;
+                        // Always render as formatted JSON
+                        return JSON.stringify(innerContent, null, 2);
+                      }
+                      // Otherwise render the full parsed data as JSON
+                      return JSON.stringify(parsed, null, 2);
+                    } catch {
+                      // If parsing fails, show raw data
+                      return a.artifactData;
+                    }
+                  })()}\n\`\`\``}</Streamdown>
+                </CodeBubble>
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
+            {a.artifactAgentId && <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />}
+            {a.artifactId && (
+              <Info
+                label="Artifact ID"
+                value={
+                  <Badge variant="code" className="">
+                    {a.artifactId}
+                  </Badge>
+                }
+              />
+            )}
+            {a.artifactToolCallId && (
+              <Info
+                label="Tool call ID"
+                value={
+                  <Badge variant="code" className="">
+                    {a.artifactToolCallId}
+                  </Badge>
+                }
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
