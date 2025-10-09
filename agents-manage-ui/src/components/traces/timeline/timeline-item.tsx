@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
-import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
