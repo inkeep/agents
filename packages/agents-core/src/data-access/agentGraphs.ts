@@ -424,7 +424,7 @@ export const getFullGraphDefinition =
               eq(agentFunctionToolRelations.tenantId, tenantId),
               eq(agentFunctionToolRelations.projectId, projectId),
               eq(agentFunctionToolRelations.graphId, graphId),
-              eq(agentFunctionToolRelations.agentId, agent.id)
+              eq(agentFunctionToolRelations.subAgentId, agent.id)
             )
           );
 

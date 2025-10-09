@@ -503,7 +503,7 @@ export const createFullGraphServerSide =
                     logger.info({ subAgentId, toolId }, 'Processing agent-function tool relation');
                     await upsertSubAgentFunctionToolRelation(db)({
                       scopes: { tenantId, projectId, graphId: finalGraphId },
-                      agentId: subAgentId,
+                      subAgentId,
                       functionToolId: toolId,
                       relationId: agentToolRelationId,
                     });
