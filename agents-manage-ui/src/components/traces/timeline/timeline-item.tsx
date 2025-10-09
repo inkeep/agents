@@ -270,22 +270,8 @@ export function TimelineItem({
                       <div className="text-emerald-900 dark:text-emerald-300 whitespace-pre-wrap break-words">
                         {(() => {
                           try {
-                            const parsed = JSON.parse(activity.artifactData);
-                            // Check if this is a baseSelector wrapper and extract the inner content
-                            if (parsed?.baseSelector?.type === 'text' && parsed.baseSelector.text !== undefined) {
-                              const innerContent = parsed.baseSelector.text;
-                              // If it's a string, render directly with newlines preserved
-                              if (typeof innerContent === 'string') {
-                                return innerContent;
-                              }
-                              // If it's an object, render as readable text (key: value pairs)
-                              return Object.entries(innerContent)
-                                .map(([key, value]) => `${key}: ${value}`)
-                                .join('\n');
-                            }
-                            return JSON.stringify(parsed, null, 2);
+                            return JSON.stringify(JSON.parse(activity.artifactData), null, 2);
                           } catch {
-                            // If parsing fails, show raw data
                             return activity.artifactData;
                           }
                         })()}

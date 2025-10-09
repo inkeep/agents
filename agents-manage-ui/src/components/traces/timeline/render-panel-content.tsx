@@ -409,19 +409,10 @@ export function renderPanelContent({
             {a.artifactData && (
               <LabeledBlock label="Data">
                 <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
+                <Streamdown>{`\`\`\`json\n${(() => {
                     try {
-                      const parsed = JSON.parse(a.artifactData);
-                      // Check if this is a baseSelector wrapper and extract the inner content
-                      if (parsed?.baseSelector?.type === 'text' && parsed.baseSelector.text !== undefined) {
-                        const innerContent = parsed.baseSelector.text;
-                        // Always render as formatted JSON
-                        return JSON.stringify(innerContent, null, 2);
-                      }
-                      // Otherwise render the full parsed data as JSON
-                      return JSON.stringify(parsed, null, 2);
+                      return JSON.stringify(JSON.parse(a.artifactData), null, 2);
                     } catch {
-                      // If parsing fails, show raw data
                       return a.artifactData;
                     }
                   })()}\n\`\`\``}</Streamdown>
