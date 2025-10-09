@@ -14,7 +14,7 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
 
   describe('streamed content handling', () => {
     it('should prefer streamed content over artifacts for conversation history', () => {
-      const mockMessageResponse = {
+      const mockMessageResponse: any = {
         result: {
           streamedContent: {
             parts: [
@@ -31,7 +31,7 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
       };
 
       // Simulate the logic from ExecutionHandler
-      let responseParts = [];
+      let responseParts: any[] = [];
 
       // Check if we have streamed content from the IncrementalStreamParser
       if (mockMessageResponse.result.streamedContent?.parts) {
@@ -50,7 +50,7 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
     });
 
     it('should fallback to artifacts when streamed content is not available', () => {
-      const mockMessageResponse = {
+      const mockMessageResponse: any = {
         result: {
           artifacts: [
             {
@@ -64,7 +64,7 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
       };
 
       // Simulate the logic from ExecutionHandler
-      let responseParts = [];
+      let responseParts: any[] = [];
 
       // Check if we have streamed content from the IncrementalStreamParser
       if (mockMessageResponse.result.streamedContent?.parts) {
@@ -83,12 +83,12 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
     });
 
     it('should handle empty response gracefully', () => {
-      const mockMessageResponse = {
+      const mockMessageResponse: any = {
         result: {},
       };
 
       // Simulate the logic from ExecutionHandler
-      let responseParts = [];
+      let responseParts: any[] = [];
 
       // Check if we have streamed content from the IncrementalStreamParser
       if (mockMessageResponse.result.streamedContent?.parts) {
@@ -105,7 +105,7 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
     });
 
     it('should extract text content correctly from streamed parts', () => {
-      const streamedParts = [
+      const streamedParts: any[] = [
         { kind: 'text', text: 'Hello, ' },
         { kind: 'text', text: 'world!' },
         { kind: 'data', data: { type: 'component', id: 'test' } },
@@ -124,7 +124,7 @@ describe('ExecutionHandler - Conversation History with Streamed Content', () => 
     });
 
     it('should map streamed parts to database format correctly', () => {
-      const streamedParts = [
+      const streamedParts: any[] = [
         { kind: 'text', text: 'Hello, world!' },
         { kind: 'data', data: { type: 'component', id: 'test' } },
       ];
