@@ -1,5 +1,12 @@
 # @inkeep/agents-sdk
 
+## 0.16.3
+
+### Patch Changes
+
+- d296913: fix bundle
+  - @inkeep/agents-core@0.16.3
+
 ## 0.16.2
 
 ### Patch Changes
