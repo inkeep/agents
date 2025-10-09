@@ -248,26 +248,6 @@ describe('ContextConfig', () => {
     });
   });
 
-  describe('ContextConfigBuilder - toTemplate', () => {
-    it('should generate template strings for valid paths', () => {
-      const requestSchema = z.object({
-        userId: z.string(),
-      });
-
-      const config = new ContextConfigBuilder({
-        id: 'test-config',
-        headers: requestSchema,
-        tenantId,
-        projectId,
-        graphId,
-      });
-
-      // This tests the toTemplate method
-      const template = config.toTemplate('headers.userId' as any);
-      expect(template).toBe('{{headers.userId}}');
-    });
-  });
-
   describe('ContextConfigBuilder - Validation', () => {
     it('should pass validation for valid config', () => {
       const config = new ContextConfigBuilder({
