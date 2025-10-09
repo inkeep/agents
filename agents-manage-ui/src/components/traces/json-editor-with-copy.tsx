@@ -84,7 +84,7 @@ const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorM
   }
 };
 
-export const JsonEditorWithCopy: FC<{ value: string; uri: string; title: string }> = ({
+export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; title: string }> = ({
   value,
   uri,
   title,

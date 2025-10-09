@@ -477,7 +477,7 @@ describe('Span Attributes Copy Functionality', () => {
     const { decorations, decorationCollection } = addDecorations(editor, model.getValue());
 
     // Verify that decorations were created (we have 9 primitive values: null, 1, false, true, "bar", 2, "baz", "hello", "")
-    expect(decorations).toHaveLength(9); // Should have 9 primitive values
+    expect(decorations).toHaveLength(9);
 
     // Verify the decorations are applied to the editor
     const appliedDecorations = decorationCollection.getRanges();
