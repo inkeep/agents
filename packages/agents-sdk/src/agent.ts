@@ -51,7 +51,7 @@ export class Agent implements AgentInterface {
     logger.info(
       {
         tenantId: this.tenantId,
-        agentId: this.config.id,
+        subAgentId: this.config.id,
         agentName: config.name,
       },
       'Agent constructor initialized'
@@ -247,7 +247,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
         },
         'Agent initialized successfully'
       );
@@ -256,7 +256,7 @@ export class Agent implements AgentInterface {
     } catch (error) {
       logger.error(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to initialize agent'
@@ -292,7 +292,7 @@ export class Agent implements AgentInterface {
     if (updateResponse.ok) {
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
         },
         'Agent updated successfully'
       );
@@ -303,7 +303,7 @@ export class Agent implements AgentInterface {
     if (updateResponse.status === 404) {
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
         },
         'Agent not found, creating new agent'
       );
@@ -325,7 +325,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
         },
         'Agent created successfully'
       );
@@ -423,7 +423,7 @@ export class Agent implements AgentInterface {
       const existingComponents: DataComponentApiInsert[] = [];
       // const existingComponents = await getDataComponentsForAgent(dbClient)({
       //   scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      //   agentId: this.getId(),
+      //   subAgentId: this.getId(),
       // });
 
       // Convert database format to config format
@@ -475,7 +475,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           dbComponentCount: dbDataComponents.length,
           configComponentCount: configComponents.length,
           totalComponentCount: uniqueComponents.length,
@@ -485,7 +485,7 @@ export class Agent implements AgentInterface {
     } catch (error) {
       logger.error(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to load data components from database'
@@ -501,7 +501,7 @@ export class Agent implements AgentInterface {
       const existingComponents: ArtifactComponentApiInsert[] = [];
       // const existingComponents = await getArtifactComponentsForAgent(dbClient)({
       //   scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      //   agentId: this.getId(),
+      //   subAgentId: this.getId(),
       // });
 
       // Convert database format to config format
@@ -553,7 +553,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           dbComponentCount: dbArtifactComponents.length,
           configComponentCount: configComponents.length,
           totalComponentCount: uniqueComponents.length,
@@ -563,7 +563,7 @@ export class Agent implements AgentInterface {
     } catch (error) {
       logger.error(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to load artifact components from database'
@@ -716,7 +716,7 @@ export class Agent implements AgentInterface {
       if ((toolConfig as any).type === 'function') {
         logger.info(
           {
-            agentId: this.getId(),
+            subAgentId: this.getId(),
             toolId,
           },
           'Skipping function tool creation - will be handled at runtime'
@@ -758,7 +758,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           toolId: tool.getId(),
         },
         'Tool created and linked to agent'
@@ -766,7 +766,7 @@ export class Agent implements AgentInterface {
     } catch (error) {
       logger.error(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           toolId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
@@ -797,7 +797,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           dataComponentId: dc.getId(),
         },
         'DataComponent created and linked to agent'
@@ -805,7 +805,7 @@ export class Agent implements AgentInterface {
     } catch (error) {
       logger.error(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           dataComponentName: dataComponent.name,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
@@ -839,7 +839,7 @@ export class Agent implements AgentInterface {
 
       logger.info(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           artifactComponentId: ac.getId(),
         },
         'ArtifactComponent created and linked to agent'
@@ -847,7 +847,7 @@ export class Agent implements AgentInterface {
     } catch (error) {
       logger.error(
         {
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           artifactComponentName: artifactComponent.name,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
@@ -869,7 +869,7 @@ export class Agent implements AgentInterface {
         body: JSON.stringify({
           id: `${this.getId()}-dc-${dataComponentId}`,
           tenantId: this.tenantId,
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           dataComponentId: dataComponentId,
         }),
       }
@@ -883,7 +883,7 @@ export class Agent implements AgentInterface {
 
     logger.info(
       {
-        agentId: this.getId(),
+        subAgentId: this.getId(),
         dataComponentId,
       },
       'Created agent-dataComponent relation'
@@ -901,7 +901,7 @@ export class Agent implements AgentInterface {
         body: JSON.stringify({
           id: crypto.randomUUID(),
           tenantId: this.tenantId,
-          agentId: this.getId(),
+          subAgentId: this.getId(),
           artifactComponentId: artifactComponentId,
         }),
       }
@@ -915,7 +915,7 @@ export class Agent implements AgentInterface {
 
     logger.info(
       {
-        agentId: this.getId(),
+        subAgentId: this.getId(),
         artifactComponentId,
       },
       'Created agent-artifactComponent relation'
@@ -931,7 +931,7 @@ export class Agent implements AgentInterface {
       id: string;
       tenantId: string;
       projectId: string;
-      agentId: string;
+      subAgentId: string;
       toolId: string;
       selectedTools?: string[];
       headers?: Record<string, string>;
@@ -939,7 +939,7 @@ export class Agent implements AgentInterface {
       id: `${this.getId()}-tool-${toolId}`,
       tenantId: this.tenantId,
       projectId: this.projectId,
-      agentId: this.getId(),
+      subAgentId: this.getId(),
       toolId: toolId,
     };
 

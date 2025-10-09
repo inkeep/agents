@@ -27,16 +27,16 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultAgent: vi.fn().mockReturnValue(
+    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
         tenantId: 'test-tenant',
         projectId: 'default',
-        defaultAgentId: 'test-agent',
+        defaultSubAgentId: 'test-agent',
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-agent',
         tenantId: 'test-tenant',
@@ -58,7 +58,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     getActiveAgentForConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        activeAgentId: 'test-agent',
+        activeSubAgentId: 'test-agent',
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
@@ -80,10 +80,10 @@ describe('Chat Data Stream Advanced', () => {
     const tenantId = createTestTenantId(`advanced-${nanoid().slice(0, 8)}`);
     const projectId = 'default';
     const graphId = nanoid();
-    const agentId = nanoid(); // Use unique agent ID for each test
+    const subAgentId = nanoid(); // Use unique agent ID for each test
 
     // Import here to avoid circular dependencies
-    const { createAgent, createAgentGraph } = await import('@inkeep/agents-core');
+    const { createSubAgent, createAgentGraph } = await import('@inkeep/agents-core');
     const dbClient = (await import('../../../data/db/dbClient.js')).default;
     const { ensureTestProject } = await import('../../utils/testProject.js');
 
@@ -97,12 +97,12 @@ describe('Chat Data Stream Advanced', () => {
       projectId,
       name: 'Test Graph',
       description: 'Test graph for advanced data chat',
-      defaultAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     });
 
     // Then create agent with graphId
-    await createAgent(dbClient)({
-      id: agentId,
+    await createSubAgent(dbClient)({
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,
@@ -111,7 +111,7 @@ describe('Chat Data Stream Advanced', () => {
       prompt: 'Test instructions',
     });
 
-    return { tenantId, projectId, graphId, agentId };
+    return { tenantId, projectId, graphId, subAgentId };
   }
 
   it('streams expected completion content', async () => {

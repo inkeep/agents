@@ -599,7 +599,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/projects/{projectId}/agents/{graphId}/{agentId}/.well-known/agent.json": {
+    "/tenants/{tenantId}/projects/{projectId}/agents/{graphId}/{subAgentId}/.well-known/agent.json": {
       "get": {
         "tags": ["a2a"],
         "parameters": [
@@ -624,7 +624,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           }
         ],
@@ -2279,19 +2279,19 @@
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "sourceAgentId",
+            "name": "sourceSubAgentId",
             "in": "query"
           },
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "targetAgentId",
+            "name": "targetSubAgentId",
             "in": "query"
           },
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "externalAgentId",
+            "name": "externalSubAgentId",
             "in": "query"
           }
         ],
@@ -2310,12 +2310,12 @@
                         "properties": {
                           "id": { "type": "string" },
                           "graphId": { "type": "string" },
-                          "sourceAgentId": { "type": "string" },
-                          "targetAgentId": {
+                          "sourceSubAgentId": { "type": "string" },
+                          "targetSubAgentId": {
                             "type": "string",
                             "nullable": true
                           },
-                          "externalAgentId": {
+                          "externalSubAgentId": {
                             "type": "string",
                             "nullable": true
                           },
@@ -2330,9 +2330,9 @@
                         "required": [
                           "id",
                           "graphId",
-                          "sourceAgentId",
-                          "targetAgentId",
-                          "externalAgentId",
+                          "sourceSubAgentId",
+                          "targetSubAgentId",
+                          "externalSubAgentId",
                           "relationType",
                           "createdAt",
                           "updatedAt"
@@ -2439,15 +2439,15 @@
                 "type": "object",
                 "properties": {
                   "graphId": { "type": "string" },
-                  "sourceAgentId": { "type": "string" },
-                  "targetAgentId": { "type": "string", "nullable": true },
-                  "externalAgentId": { "type": "string", "nullable": true },
+                  "sourceSubAgentId": { "type": "string" },
+                  "targetSubAgentId": { "type": "string", "nullable": true },
+                  "externalSubAgentId": { "type": "string", "nullable": true },
                   "relationType": {
                     "type": "string",
                     "enum": ["transfer", "delegate"]
                   }
                 },
-                "required": ["graphId", "sourceAgentId"]
+                "required": ["graphId", "sourceSubAgentId"]
               }
             }
           }
@@ -2465,9 +2465,9 @@
                       "properties": {
                         "id": { "type": "string" },
                         "graphId": { "type": "string" },
-                        "sourceAgentId": { "type": "string" },
-                        "targetAgentId": { "type": "string", "nullable": true },
-                        "externalAgentId": {
+                        "sourceSubAgentId": { "type": "string" },
+                        "targetSubAgentId": { "type": "string", "nullable": true },
+                        "externalSubAgentId": {
                           "type": "string",
                           "nullable": true
                         },
@@ -2482,9 +2482,9 @@
                       "required": [
                         "id",
                         "graphId",
-                        "sourceAgentId",
-                        "targetAgentId",
-                        "externalAgentId",
+                        "sourceSubAgentId",
+                        "targetSubAgentId",
+                        "externalSubAgentId",
                         "relationType",
                         "createdAt",
                         "updatedAt"
@@ -2592,9 +2592,9 @@
                       "properties": {
                         "id": { "type": "string" },
                         "graphId": { "type": "string" },
-                        "sourceAgentId": { "type": "string" },
-                        "targetAgentId": { "type": "string", "nullable": true },
-                        "externalAgentId": {
+                        "sourceSubAgentId": { "type": "string" },
+                        "targetSubAgentId": { "type": "string", "nullable": true },
+                        "externalSubAgentId": {
                           "type": "string",
                           "nullable": true
                         },
@@ -2609,9 +2609,9 @@
                       "required": [
                         "id",
                         "graphId",
-                        "sourceAgentId",
-                        "targetAgentId",
-                        "externalAgentId",
+                        "sourceSubAgentId",
+                        "targetSubAgentId",
+                        "externalSubAgentId",
                         "relationType",
                         "createdAt",
                         "updatedAt"
@@ -2711,9 +2711,9 @@
                 "type": "object",
                 "properties": {
                   "graphId": { "type": "string" },
-                  "sourceAgentId": { "type": "string" },
-                  "targetAgentId": { "type": "string", "nullable": true },
-                  "externalAgentId": { "type": "string", "nullable": true },
+                  "sourceSubAgentId": { "type": "string" },
+                  "targetSubAgentId": { "type": "string", "nullable": true },
+                  "externalSubAgentId": { "type": "string", "nullable": true },
                   "relationType": {
                     "type": "string",
                     "enum": ["transfer", "delegate"]
@@ -2736,9 +2736,9 @@
                       "properties": {
                         "id": { "type": "string" },
                         "graphId": { "type": "string" },
-                        "sourceAgentId": { "type": "string" },
-                        "targetAgentId": { "type": "string", "nullable": true },
-                        "externalAgentId": {
+                        "sourceSubAgentId": { "type": "string" },
+                        "targetSubAgentId": { "type": "string", "nullable": true },
+                        "externalSubAgentId": {
                           "type": "string",
                           "nullable": true
                         },
@@ -2753,9 +2753,9 @@
                       "required": [
                         "id",
                         "graphId",
-                        "sourceAgentId",
-                        "targetAgentId",
-                        "externalAgentId",
+                        "sourceSubAgentId",
+                        "targetSubAgentId",
+                        "externalSubAgentId",
                         "relationType",
                         "createdAt",
                         "updatedAt"
@@ -2921,7 +2921,7 @@
                           "id": { "type": "string" },
                           "name": { "type": "string" },
                           "description": { "type": "string", "nullable": true },
-                          "defaultAgentId": { "type": "string" },
+                          "defaultSubAgentId": { "type": "string" },
                           "contextConfigId": {
                             "type": "string",
                             "nullable": true
@@ -2967,7 +2967,7 @@
                           "id",
                           "name",
                           "description",
-                          "defaultAgentId",
+                          "defaultSubAgentId",
                           "contextConfigId",
                           "modelSettings",
                           "statusUpdates",
@@ -3084,7 +3084,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -3142,7 +3142,7 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": { "type": "string" },
+                        "defaultSubAgentId": { "type": "string" },
                         "contextConfigId": {
                           "type": "string",
                           "nullable": true
@@ -3182,7 +3182,7 @@
                         "id",
                         "name",
                         "description",
-                        "defaultAgentId",
+                        "defaultSubAgentId",
                         "contextConfigId",
                         "modelSettings",
                         "statusUpdates",
@@ -3293,7 +3293,7 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": { "type": "string" },
+                        "defaultSubAgentId": { "type": "string" },
                         "contextConfigId": {
                           "type": "string",
                           "nullable": true
@@ -3333,7 +3333,7 @@
                         "id",
                         "name",
                         "description",
-                        "defaultAgentId",
+                        "defaultSubAgentId",
                         "contextConfigId",
                         "modelSettings",
                         "statusUpdates",
@@ -3443,7 +3443,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -3500,7 +3500,7 @@
                         "id": { "type": "string" },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": { "type": "string" },
+                        "defaultSubAgentId": { "type": "string" },
                         "contextConfigId": {
                           "type": "string",
                           "nullable": true
@@ -3540,7 +3540,7 @@
                         "id",
                         "name",
                         "description",
-                        "defaultAgentId",
+                        "defaultSubAgentId",
                         "contextConfigId",
                         "modelSettings",
                         "statusUpdates",
@@ -3656,7 +3656,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{graphId}/agents/{agentId}/related": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-graphs/{graphId}/agents/{subAgentId}/related": {
       "get": {
         "summary": "Get Related Agent Infos",
         "operationId": "get-related-agent-infos",
@@ -3683,7 +3683,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           }
         ],
@@ -3828,7 +3828,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -4454,7 +4454,7 @@
           {
             "schema": { "type": "string" },
             "required": false,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "query"
           },
           {
@@ -4478,15 +4478,15 @@
                         "type": "object",
                         "properties": {
                           "id": { "type": "string" },
-                          "agentId": { "type": "string" },
+                          "subAgentId": { "type": "string" },
                           "toolId": { "type": "string" },
                           "createdAt": { "type": "string" },
                           "updatedAt": { "type": "string" }
                         },
-                        "required": ["id", "agentId", "toolId", "createdAt", "updatedAt"],
+                        "required": ["id", "subAgentId", "toolId", "createdAt", "updatedAt"],
                         "example": {
                           "id": "rel-12345",
-                          "agentId": "customer-support-agent",
+                          "subAgentId": "customer-support-agent",
                           "toolId": "github-mcp-tool",
                           "createdAt": "2024-01-01T00:00:00Z",
                           "updatedAt": "2024-01-01T00:00:00Z"
@@ -4599,7 +4599,7 @@
                     "pattern": "^[a-zA-Z0-9_-]+$",
                     "description": "URL-safe resource identifier"
                   },
-                  "agentId": {
+                  "subAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -4614,9 +4614,9 @@
                     "description": "URL-safe resource identifier"
                   }
                 },
-                "required": ["id", "agentId", "toolId"],
+                "required": ["id", "subAgentId", "toolId"],
                 "example": {
-                  "agentId": "customer-support-agent",
+                  "subAgentId": "customer-support-agent",
                   "toolId": "github-mcp-tool"
                 }
               }
@@ -4635,15 +4635,15 @@
                       "type": "object",
                       "properties": {
                         "id": { "type": "string" },
-                        "agentId": { "type": "string" },
+                        "subAgentId": { "type": "string" },
                         "toolId": { "type": "string" },
                         "createdAt": { "type": "string" },
                         "updatedAt": { "type": "string" }
                       },
-                      "required": ["id", "agentId", "toolId", "createdAt", "updatedAt"],
+                      "required": ["id", "subAgentId", "toolId", "createdAt", "updatedAt"],
                       "example": {
                         "id": "rel-12345",
-                        "agentId": "customer-support-agent",
+                        "subAgentId": "customer-support-agent",
                         "toolId": "github-mcp-tool",
                         "createdAt": "2024-01-01T00:00:00Z",
                         "updatedAt": "2024-01-01T00:00:00Z"
@@ -4750,15 +4750,15 @@
                       "type": "object",
                       "properties": {
                         "id": { "type": "string" },
-                        "agentId": { "type": "string" },
+                        "subAgentId": { "type": "string" },
                         "toolId": { "type": "string" },
                         "createdAt": { "type": "string" },
                         "updatedAt": { "type": "string" }
                       },
-                      "required": ["id", "agentId", "toolId", "createdAt", "updatedAt"],
+                      "required": ["id", "subAgentId", "toolId", "createdAt", "updatedAt"],
                       "example": {
                         "id": "rel-12345",
-                        "agentId": "customer-support-agent",
+                        "subAgentId": "customer-support-agent",
                         "toolId": "github-mcp-tool",
                         "createdAt": "2024-01-01T00:00:00Z",
                         "updatedAt": "2024-01-01T00:00:00Z"
@@ -4864,7 +4864,7 @@
                     "pattern": "^[a-zA-Z0-9_-]+$",
                     "description": "URL-safe resource identifier"
                   },
-                  "agentId": {
+                  "subAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -4896,15 +4896,15 @@
                       "type": "object",
                       "properties": {
                         "id": { "type": "string" },
-                        "agentId": { "type": "string" },
+                        "subAgentId": { "type": "string" },
                         "toolId": { "type": "string" },
                         "createdAt": { "type": "string" },
                         "updatedAt": { "type": "string" }
                       },
-                      "required": ["id", "agentId", "toolId", "createdAt", "updatedAt"],
+                      "required": ["id", "subAgentId", "toolId", "createdAt", "updatedAt"],
                       "example": {
                         "id": "rel-12345",
-                        "agentId": "customer-support-agent",
+                        "subAgentId": "customer-support-agent",
                         "toolId": "github-mcp-tool",
                         "createdAt": "2024-01-01T00:00:00Z",
                         "updatedAt": "2024-01-01T00:00:00Z"
@@ -5018,7 +5018,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/agent/{agentId}/tools": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-tool-relations/agent/{subAgentId}/tools": {
       "get": {
         "summary": "Get Tools for Agent",
         "operationId": "get-tools-for-agent",
@@ -5039,7 +5039,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           },
           {
@@ -5074,15 +5074,15 @@
                         "type": "object",
                         "properties": {
                           "id": { "type": "string" },
-                          "agentId": { "type": "string" },
+                          "subAgentId": { "type": "string" },
                           "toolId": { "type": "string" },
                           "createdAt": { "type": "string" },
                           "updatedAt": { "type": "string" }
                         },
-                        "required": ["id", "agentId", "toolId", "createdAt", "updatedAt"],
+                        "required": ["id", "subAgentId", "toolId", "createdAt", "updatedAt"],
                         "example": {
                           "id": "rel-12345",
-                          "agentId": "customer-support-agent",
+                          "subAgentId": "customer-support-agent",
                           "toolId": "github-mcp-tool",
                           "createdAt": "2024-01-01T00:00:00Z",
                           "updatedAt": "2024-01-01T00:00:00Z"
@@ -5221,15 +5221,15 @@
                         "type": "object",
                         "properties": {
                           "id": { "type": "string" },
-                          "agentId": { "type": "string" },
+                          "subAgentId": { "type": "string" },
                           "toolId": { "type": "string" },
                           "createdAt": { "type": "string" },
                           "updatedAt": { "type": "string" }
                         },
-                        "required": ["id", "agentId", "toolId", "createdAt", "updatedAt"],
+                        "required": ["id", "subAgentId", "toolId", "createdAt", "updatedAt"],
                         "example": {
                           "id": "rel-12345",
-                          "agentId": "customer-support-agent",
+                          "subAgentId": "customer-support-agent",
                           "toolId": "github-mcp-tool",
                           "createdAt": "2024-01-01T00:00:00Z",
                           "updatedAt": "2024-01-01T00:00:00Z"
@@ -5312,7 +5312,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:agentId": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:subAgentId": {
       "get": {
         "summary": "Get Artifact Components for Agent",
         "operationId": "get-artifact-components-for-agent",
@@ -5333,7 +5333,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           }
         ],
@@ -5470,10 +5470,10 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "agentId": { "type": "string" },
+                          "subAgentId": { "type": "string" },
                           "createdAt": { "type": "string" }
                         },
-                        "required": ["agentId", "createdAt"]
+                        "required": ["subAgentId", "createdAt"]
                       }
                     }
                   },
@@ -5565,7 +5565,7 @@
                     "pattern": "^[a-zA-Z0-9_-]+$",
                     "description": "URL-safe resource identifier"
                   },
-                  "agentId": {
+                  "subAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -5580,7 +5580,7 @@
                     "description": "URL-safe resource identifier"
                   }
                 },
-                "required": ["agentId", "artifactComponentId"]
+                "required": ["subAgentId", "artifactComponentId"]
               }
             }
           }
@@ -5597,11 +5597,11 @@
                       "type": "object",
                       "properties": {
                         "id": { "type": "string" },
-                        "agentId": { "type": "string" },
+                        "subAgentId": { "type": "string" },
                         "artifactComponentId": { "type": "string" },
                         "createdAt": { "type": "string" }
                       },
-                      "required": ["id", "agentId", "artifactComponentId", "createdAt"]
+                      "required": ["id", "subAgentId", "artifactComponentId", "createdAt"]
                     }
                   },
                   "required": ["data"]
@@ -5676,7 +5676,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:agentId/component/:artifactComponentId": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:subAgentId/component/:artifactComponentId": {
       "delete": {
         "summary": "Remove Artifact Component from Agent",
         "operationId": "remove-artifact-component-from-agent",
@@ -5697,7 +5697,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           },
           {
@@ -5774,7 +5774,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:agentId/component/:artifactComponentId/exists": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-artifact-components/agent/:subAgentId/component/:artifactComponentId/exists": {
       "get": {
         "summary": "Check if Artifact Component is Associated with Agent",
         "operationId": "check-artifact-component-agent-association",
@@ -5795,7 +5795,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           },
           {
@@ -5869,7 +5869,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:agentId": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:subAgentId": {
       "get": {
         "summary": "Get Data Components for Agent",
         "operationId": "get-data-components-for-agent",
@@ -5890,7 +5890,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           }
         ],
@@ -6015,10 +6015,10 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "agentId": { "type": "string" },
+                          "subAgentId": { "type": "string" },
                           "createdAt": { "type": "string" }
                         },
-                        "required": ["agentId", "createdAt"]
+                        "required": ["subAgentId", "createdAt"]
                       }
                     }
                   },
@@ -6110,7 +6110,7 @@
                     "pattern": "^[a-zA-Z0-9_-]+$",
                     "description": "URL-safe resource identifier"
                   },
-                  "agentId": {
+                  "subAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -6125,7 +6125,7 @@
                     "description": "URL-safe resource identifier"
                   }
                 },
-                "required": ["id", "agentId", "dataComponentId"]
+                "required": ["id", "subAgentId", "dataComponentId"]
               }
             }
           }
@@ -6142,11 +6142,11 @@
                       "type": "object",
                       "properties": {
                         "id": { "type": "string" },
-                        "agentId": { "type": "string" },
+                        "subAgentId": { "type": "string" },
                         "dataComponentId": { "type": "string" },
                         "createdAt": { "type": "string" }
                       },
-                      "required": ["id", "agentId", "dataComponentId", "createdAt"]
+                      "required": ["id", "subAgentId", "dataComponentId", "createdAt"]
                     }
                   },
                   "required": ["data"]
@@ -6221,7 +6221,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:agentId/component/:dataComponentId": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:subAgentId/component/:dataComponentId": {
       "delete": {
         "summary": "Remove Data Component from Agent",
         "operationId": "remove-data-component-from-agent",
@@ -6242,7 +6242,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           },
           {
@@ -6319,7 +6319,7 @@
         }
       }
     },
-    "/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:agentId/component/:dataComponentId/exists": {
+    "/tenants/{tenantId}/crud/projects/{projectId}/agent-data-components/agent/:subAgentId/component/:dataComponentId/exists": {
       "get": {
         "summary": "Check if Data Component is Associated with Agent",
         "operationId": "check-data-component-agent-association",
@@ -6340,7 +6340,7 @@
           {
             "schema": { "type": "string" },
             "required": true,
-            "name": "agentId",
+            "name": "subAgentId",
             "in": "path"
           },
           {
@@ -13602,7 +13602,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -14127,7 +14127,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -14777,7 +14777,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -15404,7 +15404,7 @@
                   },
                   "name": { "type": "string" },
                   "description": { "type": "string", "nullable": true },
-                  "defaultAgentId": {
+                  "defaultSubAgentId": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
@@ -15929,7 +15929,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,
@@ -16485,7 +16485,7 @@
                         },
                         "name": { "type": "string" },
                         "description": { "type": "string", "nullable": true },
-                        "defaultAgentId": {
+                        "defaultSubAgentId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255,

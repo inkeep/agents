@@ -1,12 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import {
-  agentArtifactComponents,
-  agentDataComponents,
   agentGraph,
-  agentRelations,
-  agents,
-  agentToolRelations,
   artifactComponents,
   contextCache,
   contextConfigs,
@@ -17,6 +12,11 @@ import {
   ledgerArtifacts,
   messages,
   projects,
+  subAgentArtifactComponents,
+  subAgentDataComponents,
+  subAgentRelations,
+  subAgents,
+  subAgentToolRelations,
   taskRelations,
   tasks,
   tools,
@@ -49,9 +49,9 @@ export const listProjects =
     // Fallback to scanning all tables for backward compatibility
     const projectIdSets = await Promise.all([
       db
-        .selectDistinct({ projectId: agents.projectId })
-        .from(agents)
-        .where(eq(agents.tenantId, params.tenantId)),
+        .selectDistinct({ projectId: subAgents.projectId })
+        .from(subAgents)
+        .where(eq(subAgents.tenantId, params.tenantId)),
       db
         .selectDistinct({ projectId: agentGraph.projectId })
         .from(agentGraph)
@@ -69,21 +69,21 @@ export const listProjects =
         .from(externalAgents)
         .where(eq(externalAgents.tenantId, params.tenantId)),
       db
-        .selectDistinct({ projectId: agentRelations.projectId })
-        .from(agentRelations)
-        .where(eq(agentRelations.tenantId, params.tenantId)),
+        .selectDistinct({ projectId: subAgentRelations.projectId })
+        .from(subAgentRelations)
+        .where(eq(subAgentRelations.tenantId, params.tenantId)),
       db
-        .selectDistinct({ projectId: agentToolRelations.projectId })
-        .from(agentToolRelations)
-        .where(eq(agentToolRelations.tenantId, params.tenantId)),
+        .selectDistinct({ projectId: subAgentToolRelations.projectId })
+        .from(subAgentToolRelations)
+        .where(eq(subAgentToolRelations.tenantId, params.tenantId)),
       db
-        .selectDistinct({ projectId: agentDataComponents.projectId })
-        .from(agentDataComponents)
-        .where(eq(agentDataComponents.tenantId, params.tenantId)),
+        .selectDistinct({ projectId: subAgentDataComponents.projectId })
+        .from(subAgentDataComponents)
+        .where(eq(subAgentDataComponents.tenantId, params.tenantId)),
       db
-        .selectDistinct({ projectId: agentArtifactComponents.projectId })
-        .from(agentArtifactComponents)
-        .where(eq(agentArtifactComponents.tenantId, params.tenantId)),
+        .selectDistinct({ projectId: subAgentArtifactComponents.projectId })
+        .from(subAgentArtifactComponents)
+        .where(eq(subAgentArtifactComponents.tenantId, params.tenantId)),
       db
         .selectDistinct({ projectId: dataComponents.projectId })
         .from(dataComponents)
@@ -188,7 +188,7 @@ export const getProjectResourceCounts =
     // Count resources in parallel
     const [agentResults, graphResults, toolResults, contextConfigResults, externalAgentResults] =
       await Promise.all([
-        db.select({ count: agents.id }).from(agents).where(whereClause(agents)),
+        db.select({ count: subAgents.id }).from(subAgents).where(whereClause(subAgents)),
         db.select({ count: agentGraph.id }).from(agentGraph).where(whereClause(agentGraph)),
         db.select({ count: tools.id }).from(tools).where(whereClause(tools)),
         db
@@ -221,7 +221,7 @@ export const projectExists =
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
 
     const checks = [
-      db.select({ id: agents.id }).from(agents).where(whereClause(agents)).limit(1),
+      db.select({ id: subAgents.id }).from(subAgents).where(whereClause(subAgents)).limit(1),
       db.select({ id: agentGraph.id }).from(agentGraph).where(whereClause(agentGraph)).limit(1),
       db.select({ id: tools.id }).from(tools).where(whereClause(tools)).limit(1),
       db
@@ -437,8 +437,8 @@ async function cascadeStopWhenUpdates(
   // Update agents if stepCountIs changed
   if (oldStopWhen?.stepCountIs !== newStopWhen?.stepCountIs) {
     // Find all agents that inherited the old stepCountIs value
-    const agentsToUpdate = await db.query.agents.findMany({
-      where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
+    const agentsToUpdate = await db.query.subAgents.findMany({
+      where: and(eq(subAgents.tenantId, tenantId), eq(subAgents.projectId, projectId)),
     });
 
     for (const agent of agentsToUpdate) {
@@ -451,16 +451,16 @@ async function cascadeStopWhenUpdates(
         };
 
         await db
-          .update(agents)
+          .update(subAgents)
           .set({
             stopWhen: updatedStopWhen,
             updatedAt: new Date().toISOString(),
           })
           .where(
             and(
-              eq(agents.tenantId, tenantId),
-              eq(agents.projectId, projectId),
-              eq(agents.id, agent.id)
+              eq(subAgents.tenantId, tenantId),
+              eq(subAgents.projectId, projectId),
+              eq(subAgents.id, agent.id)
             )
           );
       }

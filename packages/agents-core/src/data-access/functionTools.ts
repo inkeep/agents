@@ -180,12 +180,12 @@ export const upsertFunctionTool =
     }
   };
 
-export const getFunctionToolsForAgent = (db: DatabaseClient) => {
+export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
   return async (params: {
     scopes: { tenantId: string; projectId: string; graphId: string };
-    agentId: string;
+    subAgentId: string;
   }) => {
-    const { scopes, agentId } = params;
+    const { scopes, subAgentId } = params;
     const { tenantId, projectId, graphId } = scopes;
 
     try {
@@ -204,7 +204,7 @@ export const getFunctionToolsForAgent = (db: DatabaseClient) => {
             eq(agentFunctionToolRelations.tenantId, tenantId),
             eq(agentFunctionToolRelations.projectId, projectId),
             eq(agentFunctionToolRelations.graphId, graphId),
-            eq(agentFunctionToolRelations.agentId, agentId)
+            eq(agentFunctionToolRelations.subAgentId, subAgentId)
           )
         );
 
@@ -220,7 +220,7 @@ export const getFunctionToolsForAgent = (db: DatabaseClient) => {
       };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, graphId, agentId, error },
+        { tenantId, projectId, graphId, subAgentId, error },
         'Failed to get function tools for agent'
       );
       throw error;
@@ -231,36 +231,40 @@ export const getFunctionToolsForAgent = (db: DatabaseClient) => {
 /**
  * Upsert an agent-function tool relation (create if it doesn't exist, update if it does)
  */
-export const upsertAgentFunctionToolRelation =
+export const upsertSubAgentFunctionToolRelation =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
     functionToolId: string;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
     // If relationId is provided, update that specific relationship
     if (params.relationId) {
-      return await updateAgentFunctionToolRelation(db)({
+      return await updateSubAgentFunctionToolRelation(db)({
         scopes: params.scopes,
         relationId: params.relationId,
         data: {
-          agentId: params.agentId,
+          subAgentId: params.subAgentId,
           functionToolId: params.functionToolId,
         },
       });
     }
 
     // No relationId provided - always create a new relationship
-    return await addFunctionToolToAgent(db)(params);
+    return await addFunctionToolToSubAgent(db)(params);
   };
 
 /**
  * Add a function tool to an agent
  */
-export const addFunctionToolToAgent = (db: DatabaseClient) => {
-  return async (params: { scopes: GraphScopeConfig; agentId: string; functionToolId: string }) => {
-    const { scopes, agentId, functionToolId } = params;
+export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
+  return async (params: {
+    scopes: GraphScopeConfig;
+    subAgentId: string;
+    functionToolId: string;
+  }) => {
+    const { scopes, subAgentId, functionToolId } = params;
     const { tenantId, projectId, graphId } = scopes;
 
     try {
@@ -271,19 +275,19 @@ export const addFunctionToolToAgent = (db: DatabaseClient) => {
         tenantId,
         projectId,
         graphId,
-        agentId,
+        subAgentId,
         functionToolId,
       });
 
       logger.info(
-        { tenantId, projectId, graphId, agentId, functionToolId, relationId },
+        { tenantId, projectId, graphId, subAgentId, functionToolId, relationId },
         'Function tool added to agent'
       );
 
       return { id: relationId };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, graphId, agentId, functionToolId, error },
+        { tenantId, projectId, graphId, subAgentId, functionToolId, error },
         'Failed to add function tool to agent'
       );
       throw error;
@@ -294,12 +298,12 @@ export const addFunctionToolToAgent = (db: DatabaseClient) => {
 /**
  * Update an agent-function tool relation
  */
-export const updateAgentFunctionToolRelation = (db: DatabaseClient) => {
+export const updateSubAgentFunctionToolRelation = (db: DatabaseClient) => {
   return async (params: {
     scopes: GraphScopeConfig;
     relationId: string;
     data: {
-      agentId: string;
+      subAgentId: string;
       functionToolId: string;
     };
   }) => {
@@ -310,7 +314,7 @@ export const updateAgentFunctionToolRelation = (db: DatabaseClient) => {
       await db
         .update(agentFunctionToolRelations)
         .set({
-          agentId: data.agentId,
+          subAgentId: data.subAgentId,
           functionToolId: data.functionToolId,
         })
         .where(

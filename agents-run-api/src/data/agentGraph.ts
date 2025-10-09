@@ -1,5 +1,5 @@
 import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
-import { type AgentGraphSelect, getAgentById, getAgentGraphById } from '@inkeep/agents-core';
+import { type AgentGraphSelect, getAgentGraphById, getSubAgentById } from '@inkeep/agents-core';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
@@ -15,23 +15,25 @@ async function hydrateGraph({
   apiKey?: string;
 }): Promise<RegisteredAgent> {
   try {
-    // Check if defaultAgentId exists
-    if (!dbGraph.defaultAgentId) {
+    // Check if defaultSubAgentId exists
+    if (!dbGraph.defaultSubAgentId) {
       throw new Error(`Graph ${dbGraph.id} does not have a default agent configured`);
     }
 
     // Get the default agent for this graph to create the task handler
-    const defaultAgent = await getAgentById(dbClient)({
+    const defaultSubAgent = await getSubAgentById(dbClient)({
       scopes: {
         tenantId: dbGraph.tenantId,
         projectId: dbGraph.projectId,
         graphId: dbGraph.id,
       },
-      agentId: dbGraph.defaultAgentId,
+      subAgentId: dbGraph.defaultSubAgentId,
     });
 
-    if (!defaultAgent) {
-      throw new Error(`Default agent ${dbGraph.defaultAgentId} not found for graph ${dbGraph.id}`);
+    if (!defaultSubAgent) {
+      throw new Error(
+        `Default agent ${dbGraph.defaultSubAgentId} not found for graph ${dbGraph.id}`
+      );
     }
 
     // Create task handler for the default agent
@@ -39,7 +41,7 @@ async function hydrateGraph({
       tenantId: dbGraph.tenantId,
       projectId: dbGraph.projectId,
       graphId: dbGraph.id,
-      agentId: dbGraph.defaultAgentId,
+      subAgentId: dbGraph.defaultSubAgentId,
       baseUrl: baseUrl,
       apiKey: apiKey,
     });
@@ -69,7 +71,7 @@ async function hydrateGraph({
     };
 
     return {
-      agentId: dbGraph.id, // Use graph ID as agent ID for A2A purposes
+      subAgentId: dbGraph.id, // Use graph ID as agent ID for A2A purposes
       tenantId: dbGraph.tenantId,
       projectId: dbGraph.projectId,
       graphId: dbGraph.id,

@@ -50,8 +50,8 @@ export async function saveA2AMessageResponse(
     conversationId: string;
     messageType: 'a2a-response' | 'a2a-request';
     visibility: 'internal' | 'external' | 'user-facing';
-    fromAgentId?: string;
-    toAgentId?: string;
+    fromSubAgentId?: string;
+    toSubAgentId?: string;
     fromExternalAgentId?: string;
     toExternalAgentId?: string;
     a2aTaskId?: string;
@@ -100,8 +100,8 @@ export async function saveA2AMessageResponse(
     },
     visibility: params.visibility,
     messageType: params.messageType,
-    fromAgentId: params.fromAgentId,
-    toAgentId: params.toAgentId,
+    fromSubAgentId: params.fromSubAgentId,
+    toSubAgentId: params.toSubAgentId,
     fromExternalAgentId: params.fromExternalAgentId,
     toExternalAgentId: params.toExternalAgentId,
     a2aTaskId: params.a2aTaskId,
@@ -136,7 +136,7 @@ export async function getScopedHistory({
     });
 
     // If no filters provided, return all messages
-    if (!filters || (!filters.agentId && !filters.taskId)) {
+    if (!filters || (!filters.subAgentId && !filters.taskId)) {
       return messages;
     }
 
@@ -148,12 +148,12 @@ export async function getScopedHistory({
       let matchesAgent = true;
       let matchesTask = true;
 
-      // Apply agent filtering if agentId is provided
-      if (filters.agentId) {
+      // Apply agent filtering if subAgentId is provided
+      if (filters.subAgentId) {
         matchesAgent =
           (msg.role === 'agent' && msg.visibility === 'user-facing') ||
-          msg.toAgentId === filters.agentId ||
-          msg.fromAgentId === filters.agentId;
+          msg.toAgentId === filters.subAgentId ||
+          msg.fromAgentId === filters.subAgentId;
       }
 
       // Apply task filtering if taskId is provided
@@ -163,11 +163,11 @@ export async function getScopedHistory({
 
       // For combined filtering (both agent and task), both must match
       // For single filtering, only the relevant one needs to match
-      if (filters.agentId && filters.taskId) {
+      if (filters.subAgentId && filters.taskId) {
         return matchesAgent && matchesTask;
       }
 
-      if (filters.agentId) {
+      if (filters.subAgentId) {
         return matchesAgent;
       }
 
@@ -336,8 +336,14 @@ export async function getConversationScopedArtifacts(params: {
 
     // Extract message IDs from visible messages (skip truncation summaries)
     const visibleMessageIds = visibleMessages
-      .filter(msg => !(msg.messageType === 'system' && msg.content?.text?.includes('Previous conversation history truncated')))
-      .map(msg => msg.id);
+      .filter(
+        (msg) =>
+          !(
+            msg.messageType === 'system' &&
+            msg.content?.text?.includes('Previous conversation history truncated')
+          )
+      )
+      .map((msg) => msg.id);
 
     if (visibleMessageIds.length === 0) {
       return [];
@@ -349,7 +355,7 @@ export async function getConversationScopedArtifacts(params: {
 
     // Get task IDs directly from the visible messages
     const visibleTaskIds = visibleMessages
-      .map(msg => msg.taskId)
+      .map((msg) => msg.taskId)
       .filter((taskId): taskId is string => Boolean(taskId)); // Filter out null/undefined taskIds
 
     // Get artifacts only from these visible tasks
@@ -384,7 +390,7 @@ export async function getConversationScopedArtifacts(params: {
       },
       'Failed to get conversation-scoped artifacts'
     );
-    
+
     // Return empty array on error rather than falling back to all artifacts
     // This is safer - better to have no artifacts than incorrect ones
     return [];

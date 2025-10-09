@@ -3,7 +3,7 @@ import {
   createAgentGraph,
   deleteAgentGraph,
   getAgentGraphById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithDefaultSubAgent,
   listAgentGraphs,
   listAgentGraphsPaginated,
   updateAgentGraph,
@@ -100,7 +100,7 @@ describe('Agent Graph Data Access', () => {
     });
   });
 
-  describe('getAgentGraphWithDefaultAgent', () => {
+  describe('getAgentGraphWithDefaultSubAgent', () => {
     it('should retrieve an agent graph with default agent relation', async () => {
       const graphId = 'graph-1';
       const expectedGraph = {
@@ -108,7 +108,7 @@ describe('Agent Graph Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Graph',
-        defaultAgent: { id: 'agent-1', name: 'Default Agent' },
+        defaultSubAgent: { id: 'agent-1', name: 'Default Agent' },
       };
 
       const mockQuery = {
@@ -122,7 +122,7 @@ describe('Agent Graph Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getAgentGraphWithDefaultAgent(mockDb)({
+      const result = await getAgentGraphWithDefaultSubAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId },
       });
 
@@ -221,7 +221,7 @@ describe('Agent Graph Data Access', () => {
         projectId: testProjectId,
         name: 'Test Graph',
         description: 'A test graph',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
       };
 
       const mockInsert = vi.fn().mockReturnValue({
@@ -244,7 +244,7 @@ describe('Agent Graph Data Access', () => {
         id: 'graph-1',
         name: graphData.name,
         description: graphData.description,
-        defaultAgentId: graphData.defaultAgentId,
+        defaultSubAgentId: graphData.defaultSubAgentId,
       });
     });
 
@@ -255,7 +255,7 @@ describe('Agent Graph Data Access', () => {
         projectId: testProjectId,
         name: 'Test Graph',
         description: 'Test description',
-        defaultAgentId: 'agent-1',
+        defaultSubAgentId: 'agent-1',
       };
 
       const mockInsert = vi.fn().mockReturnValue({

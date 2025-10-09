@@ -41,7 +41,7 @@ export class DataComponent implements DataComponentInterface {
     );
   }
 
-  // Set context (tenantId, projectId, and baseURL) from external source (agent, graph, CLI, etc)
+  // Set context (tenantId, projectId, and baseURL) from external source (sub-agent, graph, CLI, etc)
   setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;

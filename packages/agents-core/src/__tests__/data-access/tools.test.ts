@@ -283,7 +283,7 @@ describe('Tools Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -302,7 +302,7 @@ describe('Tools Data Access', () => {
 
       const result = await addToolToAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
       });
 
@@ -315,7 +315,7 @@ describe('Tools Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
         createdAt: expect.any(String),
@@ -335,7 +335,7 @@ describe('Tools Data Access', () => {
 
       const result = await addToolToAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
       });
@@ -350,7 +350,7 @@ describe('Tools Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
         createdAt: expect.any(String),
@@ -370,7 +370,7 @@ describe('Tools Data Access', () => {
 
       const result = await addToolToAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
       });
@@ -389,7 +389,7 @@ describe('Tools Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         headers,
         createdAt: expect.any(String),
@@ -409,7 +409,7 @@ describe('Tools Data Access', () => {
 
       const result = await addToolToAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         headers,
       });
@@ -428,7 +428,7 @@ describe('Tools Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
         headers,
@@ -449,7 +449,7 @@ describe('Tools Data Access', () => {
 
       const result = await addToolToAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
         headers,
@@ -466,7 +466,7 @@ describe('Tools Data Access', () => {
         id: 'rel-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
       };
 
@@ -483,7 +483,7 @@ describe('Tools Data Access', () => {
 
       const result = await removeToolFromAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         toolId: testToolId,
       });
 

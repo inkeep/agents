@@ -53,9 +53,9 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { getNodeErrors, hasNodeErrors } = useGraphErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-  const agentId = data.id || id;
-  const nodeErrors = getNodeErrors(agentId);
-  const hasErrors = hasNodeErrors(agentId);
+  const subAgentId = data.id || id;
+  const nodeErrors = getNodeErrors(subAgentId);
+  const hasErrors = hasNodeErrors(subAgentId);
 
   const dataComponentNames = useMemo(
     () =>

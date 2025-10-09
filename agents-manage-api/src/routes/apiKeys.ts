@@ -11,11 +11,11 @@ import {
   ErrorResponseSchema,
   generateApiKey,
   getApiKeyById,
-  IdParamsSchema,
   ListResponseSchema,
   listApiKeysPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
@@ -80,7 +80,7 @@ app.openapi(
     operationId: 'get-api-key-by-id',
     tags: ['API Keys'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -208,7 +208,7 @@ app.openapi(
     operationId: 'update-api-key',
     tags: ['API Keys'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -271,7 +271,7 @@ app.openapi(
     operationId: 'delete-api-key',
     tags: ['API Keys'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

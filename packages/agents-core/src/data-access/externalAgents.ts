@@ -27,14 +27,14 @@ export const getExternalAgent =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
   }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
         eq(externalAgents.projectId, params.scopes.projectId),
         eq(externalAgents.graphId, params.scopes.graphId),
-        eq(externalAgents.id, params.agentId)
+        eq(externalAgents.id, params.subAgentId)
       ),
     });
 
@@ -139,7 +139,7 @@ export const updateExternalAgent =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
     data: Partial<ExternalAgentUpdate>;
   }): Promise<ExternalAgentSelect | null> => {
     const updateData: Partial<ExternalAgentUpdate> = {
@@ -171,7 +171,7 @@ export const updateExternalAgent =
           eq(externalAgents.tenantId, params.scopes.tenantId),
           eq(externalAgents.projectId, params.scopes.projectId),
           eq(externalAgents.graphId, params.scopes.graphId),
-          eq(externalAgents.id, params.agentId)
+          eq(externalAgents.id, params.subAgentId)
         )
       )
       .returning();
@@ -193,14 +193,14 @@ export const upsertExternalAgent =
 
     const existing = await getExternalAgent(db)({
       scopes,
-      agentId: params.data.id,
+      subAgentId: params.data.id,
     });
 
     if (existing) {
       // Update existing external agent
       const updated = await updateExternalAgent(db)({
         scopes,
-        agentId: params.data.id,
+        subAgentId: params.data.id,
         data: {
           name: params.data.name,
           description: params.data.description,
@@ -224,7 +224,7 @@ export const upsertExternalAgent =
  */
 export const deleteExternalAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; agentId: string }): Promise<boolean> => {
+  async (params: { scopes: GraphScopeConfig; subAgentId: string }): Promise<boolean> => {
     try {
       const result = await db
         .delete(externalAgents)
@@ -233,7 +233,7 @@ export const deleteExternalAgent =
             eq(externalAgents.tenantId, params.scopes.tenantId),
             eq(externalAgents.projectId, params.scopes.projectId),
             eq(externalAgents.graphId, params.scopes.graphId),
-            eq(externalAgents.id, params.agentId)
+            eq(externalAgents.id, params.subAgentId)
           )
         )
         .returning();
@@ -250,7 +250,7 @@ export const deleteExternalAgent =
  */
 export const externalAgentExists =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; agentId: string }): Promise<boolean> => {
+  async (params: { scopes: GraphScopeConfig; subAgentId: string }): Promise<boolean> => {
     const agent = await getExternalAgent(db)(params);
     return agent !== null;
   };

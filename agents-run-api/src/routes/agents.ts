@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithDefaultSubAgent,
   getRequestExecutionContext,
   HeadersScopeSchema,
 } from '@inkeep/agents-core';
@@ -71,18 +71,18 @@ app.openapi(
 
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId, agentId } = executionContext;
+    const { tenantId, projectId, graphId, subAgentId } = executionContext;
 
     console.dir('executionContext', executionContext);
-    // If agentId is defined in execution context, run agent-level logic
-    if (agentId) {
+    // If subAgentId is defined in execution context, run agent-level logic
+    if (subAgentId) {
       logger.info(
         {
           message: 'getRegisteredAgent (agent-level)',
           tenantId,
           projectId,
           graphId,
-          agentId,
+          subAgentId,
         },
         'agent-level well-known agent.json'
       );
@@ -142,17 +142,17 @@ app.post('/a2a', async (c: Context) => {
 
   // Get execution context from API key authentication
   const executionContext = getRequestExecutionContext(c);
-  const { tenantId, projectId, graphId, agentId } = executionContext;
+  const { tenantId, projectId, graphId, subAgentId } = executionContext;
 
-  // If agentId is defined in execution context, run agent-level logic
-  if (agentId) {
+  // If subAgentId is defined in execution context, run agent-level logic
+  if (subAgentId) {
     logger.info(
       {
         message: 'a2a (agent-level)',
         tenantId,
         projectId,
         graphId,
-        agentId,
+        subAgentId,
       },
       'agent-level a2a endpoint'
     );
@@ -186,7 +186,7 @@ app.post('/a2a', async (c: Context) => {
     );
 
     // fetch the graph and the default agent
-    const graph = await getAgentGraphWithDefaultAgent(dbClient)({
+    const graph = await getAgentGraphWithDefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
     });
 
@@ -200,7 +200,7 @@ app.post('/a2a', async (c: Context) => {
         404
       );
     }
-    if (!graph.defaultAgentId) {
+    if (!graph.defaultSubAgentId) {
       return c.json(
         {
           jsonrpc: '2.0',
@@ -210,12 +210,12 @@ app.post('/a2a', async (c: Context) => {
         400
       );
     }
-    executionContext.agentId = graph.defaultAgentId;
+    executionContext.subAgentId = graph.defaultSubAgentId;
     // fetch the default agent and use it as entry point for the graph
     const credentialStores = c.get('credentialStores');
-    const defaultAgent = await getRegisteredAgent(executionContext, credentialStores);
+    const defaultSubAgent = await getRegisteredAgent(executionContext, credentialStores);
 
-    if (!defaultAgent) {
+    if (!defaultSubAgent) {
       return c.json(
         {
           jsonrpc: '2.0',
@@ -227,7 +227,7 @@ app.post('/a2a', async (c: Context) => {
     }
 
     // Use the existing a2aHandler with the default agent as a registered agent
-    return a2aHandler(c, defaultAgent);
+    return a2aHandler(c, defaultSubAgent);
   }
 });
 

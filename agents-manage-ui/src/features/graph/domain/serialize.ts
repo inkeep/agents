@@ -7,13 +7,10 @@ import { NodeType } from '@/components/graph/configuration/node-types';
 import type { AgentToolConfigLookup } from '@/components/graph/graph';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import type { FullGraphDefinition, InternalAgentDefinition } from '@/lib/types/graph-full';
 
-// Extract the internal agent type from the union
-type InternalAgent = Extract<
-  FullGraphDefinition['agents'][string],
-  { canUse: Array<{ toolId: string; toolSelection?: string[] | null }> }
->;
+// Use the exported InternalAgentDefinition from core
+type InternalAgent = InternalAgentDefinition;
 
 type ExternalAgent = {
   id: string;
@@ -33,6 +30,13 @@ export type ExtendedAgent =
       type: 'internal';
     })
   | ExternalAgent;
+
+// Type guard to check if an agent is an internal agent
+function isInternalAgent(
+  agent: ExtendedAgent | FullGraphDefinition['subAgents'][string]
+): agent is InternalAgent {
+  return agent.type === 'internal' && 'canUse' in agent;
+}
 
 // Note: Tools are now project-scoped, not part of FullGraphDefinition
 
@@ -91,24 +95,24 @@ export function serializeGraphData(
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup
 ): FullGraphDefinition {
-  const agents: Record<string, ExtendedAgent> = {};
-  // Note: MCP Tools are now project-scoped and not included in graph serialization
+  const subAgents: Record<string, ExtendedAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
+  // Note: Tools are now project-scoped and not included in graph serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
-  let defaultAgentId = '';
+  let defaultSubAgentId = '';
 
   for (const node of nodes) {
     if (node.type === NodeType.Agent) {
-      const agentId = (node.data.id as string) || node.id;
-      const agentDataComponents = (node.data.dataComponents as string[]) || [];
-      const agentArtifactComponents = (node.data.artifactComponents as string[]) || [];
+      const subAgentId = (node.data.id as string) || node.id;
+      const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
+      const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
-      agentDataComponents.forEach((componentId) => {
+      subAgentDataComponents.forEach((componentId) => {
         usedDataComponents.add(componentId);
       });
-      agentArtifactComponents.forEach((componentId) => {
+      subAgentArtifactComponents.forEach((componentId) => {
         usedArtifactComponents.add(componentId);
       });
       // Process models - only include if it has non-empty, non-whitespace values
@@ -156,7 +160,7 @@ export function serializeGraphData(
             } else {
               // No changes made to tool selection - preserve existing selection
               const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
                 : null;
               if (existingConfig?.toolSelection) {
                 toolSelection = existingConfig.toolSelection;
@@ -180,7 +184,7 @@ export function serializeGraphData(
             } else {
               // No changes made to headers - preserve existing headers
               const existingConfig = relationshipId
-                ? agentToolConfigLookup?.[agentId]?.[relationshipId]
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
                 : null;
               if (existingConfig?.headers) {
                 toolHeaders = existingConfig.headers;
@@ -247,33 +251,33 @@ export function serializeGraphData(
       }
 
       const agent: ExtendedAgent = {
-        id: agentId,
+        id: subAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         prompt: node.data.prompt as string,
         canUse,
         canTransferTo: [],
         canDelegateTo: [],
-        dataComponents: agentDataComponents,
-        artifactComponents: agentArtifactComponents,
+        dataComponents: subAgentDataComponents,
+        artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
         type: 'internal',
         ...(stopWhen && { stopWhen }),
       };
 
       if ((node.data as any).isDefault) {
-        defaultAgentId = agentId;
+        defaultSubAgentId = subAgentId;
       }
 
-      agents[agentId] = agent;
+      subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
-      const agentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) || node.id;
 
       // Parse headers from JSON string to object
       const parsedHeaders = safeJsonParse(node.data.headers as string);
 
       const agent: ExternalAgent = {
-        id: agentId,
+        id: subAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         baseUrl: node.data.baseUrl as string,
@@ -283,10 +287,10 @@ export function serializeGraphData(
       };
 
       if ((node.data as any).isDefault) {
-        defaultAgentId = agentId;
+        defaultSubAgentId = subAgentId;
       }
 
-      agents[agentId] = agent;
+      subAgents[subAgentId] = agent;
     }
   }
 
@@ -302,10 +306,10 @@ export function serializeGraphData(
       const sourceAgentNode = nodes.find((node) => node.id === edge.source);
       const targetAgentNode = nodes.find((node) => node.id === edge.target);
 
-      const sourceAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
-      const targetAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
-      const sourceAgent: ExtendedAgent = agents[sourceAgentId];
-      const targetAgent: ExtendedAgent = agents[targetAgentId];
+      const sourceSubAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
+      const targetSubAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
+      const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
+      const targetAgent: ExtendedAgent = subAgents[targetSubAgentId];
 
       if (sourceAgent && targetAgent && (edge.data as any)?.relationships) {
         const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
@@ -316,29 +320,29 @@ export function serializeGraphData(
           relationshipType: 'canTransferTo' | 'canDelegateTo',
           targetId: string
         ) => {
-          if ('canUse' in agent) {
+          if (isInternalAgent(agent)) {
             if (!agent[relationshipType]) agent[relationshipType] = [];
-            const agentRelationships = agent[relationshipType];
-            if (agentRelationships && !agentRelationships.includes(targetId)) {
-              agentRelationships.push(targetId);
+            const subAgentRelationships = agent[relationshipType];
+            if (subAgentRelationships && !subAgentRelationships.includes(targetId)) {
+              subAgentRelationships.push(targetId);
             }
           }
         };
 
         // Process transfer relationships
         if (relationships.transferSourceToTarget) {
-          addRelationship(sourceAgent, 'canTransferTo', targetAgentId);
+          addRelationship(sourceAgent, 'canTransferTo', targetSubAgentId);
         }
         if (relationships.transferTargetToSource) {
-          addRelationship(targetAgent, 'canTransferTo', sourceAgentId);
+          addRelationship(targetAgent, 'canTransferTo', sourceSubAgentId);
         }
 
         // Process delegation relationships
         if (relationships.delegateSourceToTarget) {
-          addRelationship(sourceAgent, 'canDelegateTo', targetAgentId);
+          addRelationship(sourceAgent, 'canDelegateTo', targetSubAgentId);
         }
         if (relationships.delegateTargetToSource) {
-          addRelationship(targetAgent, 'canDelegateTo', sourceAgentId);
+          addRelationship(targetAgent, 'canDelegateTo', sourceSubAgentId);
         }
       }
     }
@@ -383,11 +387,11 @@ export function serializeGraphData(
     id: metadata?.id || nanoid(),
     name: metadata?.name || 'Untitled Graph',
     description: metadata?.description || undefined,
-    defaultAgentId,
-    agents,
-    // Note: MCP Tools are now project-scoped and not included in FullGraphDefinition
+    defaultSubAgentId,
+    subAgents: subAgents,
     ...(Object.keys(functionTools).length > 0 && { functionTools }),
     ...(Object.keys(functions).length > 0 && { functions }),
+    // Note: Tools are now project-scoped and not included in FullGraphDefinition
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
   };
@@ -460,18 +464,18 @@ export function validateSerializedData(
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
-  if (data.defaultAgentId && !data.agents[data.defaultAgentId]) {
+  if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultAgentId}' not found in agents`,
-      field: 'defaultAgentId',
+      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents`,
+      field: 'defaultSubAgentId',
       code: 'invalid_reference',
-      path: ['defaultAgentId'],
+      path: ['defaultSubAgentId'],
     });
   }
 
-  for (const [agentId, agent] of Object.entries(data.agents)) {
+  for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
     // Only validate tools for internal agents (external agents don't have tools)
-    if ('canUse' in agent && agent.canUse) {
+    if (isInternalAgent(agent) && agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
       const toolsData = (data as any).tools;
       if (toolsData) {
@@ -482,7 +486,7 @@ export function validateSerializedData(
               message: `Tool '${toolId}' not found`,
               field: 'toolId',
               code: 'invalid_reference',
-              path: ['agents', agentId, 'canUse'],
+              path: ['agents', subAgentId, 'canUse'],
             });
           }
         }
@@ -490,7 +494,7 @@ export function validateSerializedData(
     }
 
     // Validate function tools for internal agents (check canUse array for function tools)
-    if ('canUse' in agent && agent.canUse) {
+    if (isInternalAgent(agent) && agent.canUse) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolType = (canUseItem as any).toolType;
@@ -557,26 +561,24 @@ export function validateSerializedData(
     }
 
     // Only validate relationships for internal agents (external agents don't have these properties)
-    if ('canTransferTo' in agent) {
+    if (isInternalAgent(agent)) {
       for (const targetId of agent.canTransferTo ?? []) {
-        if (!data.agents[targetId]) {
+        if (!data.subAgents[targetId]) {
           errors.push({
             message: `Transfer target '${targetId}' not found in agents`,
             field: 'canTransferTo',
             code: 'invalid_reference',
-            path: ['agents', agentId, 'canTransferTo'],
+            path: ['agents', subAgentId, 'canTransferTo'],
           });
         }
       }
-    }
-    if ('canDelegateTo' in agent) {
       for (const targetId of agent.canDelegateTo ?? []) {
-        if (!data.agents[targetId]) {
+        if (!data.subAgents[targetId]) {
           errors.push({
             message: `Delegate target '${targetId}' not found in agents`,
             field: 'canDelegateTo',
             code: 'invalid_reference',
-            path: ['agents', agentId, 'canDelegateTo'],
+            path: ['agents', subAgentId, 'canDelegateTo'],
           });
         }
       }

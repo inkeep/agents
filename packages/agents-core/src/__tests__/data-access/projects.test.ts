@@ -90,10 +90,10 @@ describe('Projects Data Access', () => {
         [{ projectId: testProjectId1 }], // tools (duplicate)
         [], // contextConfigs (empty)
         [{ projectId: testProjectId2 }], // externalAgents (duplicate)
-        [], // agentRelations
+        [], // subAgentRelations
         [], // agentToolRelations
-        [], // agentDataComponents
-        [], // agentArtifactComponents
+        [], // subAgentDataComponents
+        [], // subAgentArtifactComponents
         [], // dataComponents
         [], // artifactComponents
         [], // tasks

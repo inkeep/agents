@@ -2,6 +2,7 @@ import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/rea
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { useShallow } from 'zustand/react/shallow';
 import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
 import { mcpNodeHandleId, NodeType } from '@/components/graph/configuration/node-types';
 import type { AgentToolConfigLookup } from '@/components/graph/graph';
@@ -9,7 +10,6 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { MCPTool } from '@/lib/types/tools';
 import type { GraphErrorSummary } from '@/lib/utils/graph-error-parser';
-import { useShallow } from 'zustand/react/shallow';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -171,12 +171,12 @@ export const graphStore = create<GraphState>()(
           for (const removeChange of removeChanges) {
             const edgeToRemove = state.edges.find((e) => e.id === removeChange.id);
             if (edgeToRemove && edgeToRemove.targetHandle === mcpNodeHandleId) {
-              // Find the target MCP node and clear its agentId
+              // Find the target MCP node and clear its subAgentId
               const mcpNode = state.nodes.find((n) => n.id === edgeToRemove.target);
               if (mcpNode && mcpNode.type === NodeType.MCP) {
                 updatedNodes = updatedNodes.map((n) =>
                   n.id === mcpNode.id
-                    ? { ...n, data: { ...n.data, agentId: null, relationshipId: null } }
+                    ? { ...n, data: { ...n.data, subAgentId: null, relationshipId: null } }
                     : n
                 );
               }

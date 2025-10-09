@@ -6,7 +6,7 @@ import {
   deleteFullGraph,
   ErrorResponseSchema,
   type FullGraphDefinition,
-  FullGraphDefinitionSchema,
+  GraphWithinContextOfProjectSchema,
   getFullGraph,
   SingleResponseSchema,
   TenantProjectParamsSchema,
@@ -53,7 +53,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: FullGraphDefinitionSchema,
+            schema: GraphWithinContextOfProjectSchema,
           },
         },
       },
@@ -63,7 +63,7 @@ app.openapi(
         description: 'Full graph created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullGraphDefinitionSchema),
+            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
           },
         },
       },
@@ -83,7 +83,7 @@ app.openapi(
     const graphData = c.req.valid('json');
 
     // Validate the graph data
-    const validatedGraphData = FullGraphDefinitionSchema.parse(graphData);
+    const validatedGraphData = GraphWithinContextOfProjectSchema.parse(graphData);
 
     // Create the full graph using the server-side data layer operations
     const createdGraph = await createFullGraphServerSide(dbClient, logger)(
@@ -113,7 +113,7 @@ app.openapi(
         description: 'Full graph found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullGraphDefinitionSchema),
+            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
           },
         },
       },
@@ -170,7 +170,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: FullGraphDefinitionSchema,
+            schema: GraphWithinContextOfProjectSchema,
           },
         },
       },
@@ -180,7 +180,7 @@ app.openapi(
         description: 'Full graph updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullGraphDefinitionSchema),
+            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
           },
         },
       },
@@ -188,7 +188,7 @@ app.openapi(
         description: 'Full graph created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullGraphDefinitionSchema),
+            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
           },
         },
       },
@@ -201,7 +201,7 @@ app.openapi(
 
     try {
       // Validate the graph data
-      const validatedGraphData = FullGraphDefinitionSchema.parse(graphData);
+      const validatedGraphData = GraphWithinContextOfProjectSchema.parse(graphData);
 
       // Validate that the URL graphId matches the data.id
       if (graphId !== validatedGraphData.id) {
