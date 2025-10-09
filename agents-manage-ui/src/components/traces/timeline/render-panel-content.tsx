@@ -39,14 +39,7 @@ export function renderPanelContent({
     const e = selected.item;
     return (
       <Section>
-        <Info
-          label="Tool name"
-          value={
-            <Badge variant="code" className="">
-              {e.toolName}
-            </Badge>
-          }
-        />
+        <Info label="Tool name" value={<Badge variant="code">{e.toolName}</Badge>} />
         <LabeledBlock label="Error message">
           <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             {e.error}
@@ -57,14 +50,7 @@ export function renderPanelContent({
             {e.failureReason}
           </Bubble>
         </LabeledBlock>
-        <Info
-          label="Span ID"
-          value={
-            <Badge variant="code" className="">
-              {e.spanId}
-            </Badge>
-          }
-        />
+        <Info label="Span ID" value={<Badge variant="code">{e.spanId}</Badge>} />
         <Info label="Timestamp" value={formatDateTime(e.timestamp)} />
       </Section>
     );
@@ -165,7 +151,7 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="Message content">
-              <Bubble className="">{a.messageContent || 'Message content not available'}</Bubble>
+              <Bubble>{a.messageContent || 'Message content not available'}</Bubble>
             </LabeledBlock>
             <Info label="Message length" value={`${a.messageContent?.length || 0} characters`} />
             <StatusBadge status={a.status} />
@@ -189,14 +175,7 @@ export function renderPanelContent({
             <Info label="Agent" value={a.agentName || 'Unknown'} />
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
-            <Info
-              label="Message id"
-              value={
-                <Badge variant="code" className="">
-                  {a.id}
-                </Badge>
-              }
-            />
+            <Info label="Message id" value={<Badge variant="code">{a.id}</Badge>} />
           </Section>
           <Divider />
           {SignozButton}
@@ -221,9 +200,7 @@ export function renderPanelContent({
           <Section>
             {a.contextAgentGraphId && (
               <LabeledBlock label="Agent graph id">
-                <Badge variant="code" className="">
-                  {a.contextAgentGraphId}
-                </Badge>
+                <Badge variant="code">{a.contextAgentGraphId}</Badge>
               </LabeledBlock>
             )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
@@ -253,12 +230,12 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="From agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.delegationFromAgentId || a.agentName || 'Unknown Agent'}
               </Badge>
             </LabeledBlock>
             <LabeledBlock label="To agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.delegationToAgentId ||
                   a.toolName?.replace('delegate_to_', '') ||
                   'Unknown Target'}
@@ -266,11 +243,7 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
@@ -300,22 +273,18 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="From agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.transferFromAgentId || a.agentName || 'Unknown Agent'}
               </Badge>
             </LabeledBlock>
             <LabeledBlock label="To agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown target'}
               </Badge>
             </LabeledBlock>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
@@ -346,11 +315,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -392,11 +357,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -435,11 +396,7 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiStreamTextModel || 'Unknown'} />} />
             <Info
               label="Operation id"
-              value={
-                <Badge variant="code" className="">
-                  {a.aiStreamTextOperationId || 'Unknown'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.aiStreamTextOperationId || 'Unknown'}</Badge>}
             />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
