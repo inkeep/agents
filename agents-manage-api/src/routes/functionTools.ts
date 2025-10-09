@@ -7,7 +7,6 @@ import {
   FunctionToolApiInsertSchema,
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
-  FunctionToolSelectSchema,
   getFunctionToolById,
   IdParamsSchema,
   ListResponseSchema,
@@ -59,7 +58,7 @@ app.openapi(
         pagination: { page, limit },
       });
 
-      return c.json(result);
+      return c.json(result) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, graphId }, 'Failed to list function tools');
       return c.json(
@@ -111,7 +110,7 @@ app.openapi(
         );
       }
 
-      return c.json({ data: functionTool });
+      return c.json({ data: functionTool }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, graphId, id }, 'Failed to get function tool');
       return c.json(
@@ -167,7 +166,7 @@ app.openapi(
         },
       });
 
-      return c.json({ data: functionTool }, 201);
+      return c.json({ data: functionTool }, 201) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, graphId, body }, 'Failed to create function tool');
       return c.json(
@@ -231,7 +230,7 @@ app.openapi(
         );
       }
 
-      return c.json({ data: functionTool });
+      return c.json({ data: functionTool }) as any;
     } catch (error) {
       logger.error(
         { error, tenantId, projectId, graphId, id, body },

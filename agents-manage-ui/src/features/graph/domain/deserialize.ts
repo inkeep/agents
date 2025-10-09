@@ -227,7 +227,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
             relationshipId,
             name: mcpTool.name,
             description: mcpTool.description,
-            imageUrl: mcpTool.imageUrl,
+            imageUrl: (mcpTool as any).imageUrl,
           };
         } else if (functionTool) {
           // Function tool

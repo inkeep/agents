@@ -19,27 +19,30 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   });
 
   // Helper function to create test tool data
-  const createTestToolData = (id: string, suffix = '') => ({
-    id,
-    name: `Test Tool${suffix}`,
-    config: {
-      type: 'mcp',
-      mcp: {
-        server: {
-          url: `http://localhost:300${suffix || '1'}`,
+  const createTestToolData = (id: string, suffix = '') => {
+    const portSuffix = suffix.replace(/\D/g, '') || '1';
+    return {
+      id,
+      name: `Test Tool${suffix}`,
+      config: {
+        type: 'mcp',
+        mcp: {
+          server: {
+            url: `http://localhost:300${portSuffix}`,
+          },
         },
       },
-    },
-    status: 'unknown' as const,
-    capabilities: { tools: true },
-    lastHealthCheck: new Date().toISOString(),
-    availableTools: [
-      {
-        name: `testTool${suffix}`,
-        description: `Test tool function${suffix}`,
-      },
-    ],
-  });
+      status: 'unknown' as const,
+      capabilities: { tools: true },
+      lastHealthCheck: new Date().toISOString(),
+      availableTools: [
+        {
+          name: `testTool${suffix}`,
+          description: `Test tool function${suffix}`,
+        },
+      ],
+    };
+  };
 
   // Helper function to create full graph definition
   const createTestGraphDefinition = (
@@ -327,7 +330,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should delete graphs that are removed from the project definition', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 3 graphs
       const graph1Id = `graph-${projectId}-1`;
@@ -361,6 +364,15 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         method: 'POST',
         body: JSON.stringify(originalDefinition),
       });
+      if (createRes.status !== 201) {
+        const errorBody = await createRes.json();
+        console.error('Failed to create project (test 1):', {
+          status: createRes.status,
+          error: errorBody,
+          projectId,
+          graphIds: Object.keys(originalDefinition.graphs),
+        });
+      }
       expect(createRes.status).toBe(201);
 
       // Verify all 3 graphs exist
@@ -405,7 +417,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should handle removing all graphs from a project', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 2 graphs
       const graph1Id = `graph-${projectId}-1`;
@@ -428,10 +440,11 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       // Create the project
-      await makeRequest(`/tenants/${tenantId}/project-full`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/project-full`, {
         method: 'POST',
         body: JSON.stringify(originalDefinition),
       });
+      expect(createRes.status).toBe(201);
 
       // Update project to have no graphs
       const updatedDefinition = {
@@ -507,7 +520,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('Project with Complex Graph Structure', () => {
     it('should handle project with multiple graphs and complex relationships', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a more complex project with multiple graphs
       const agent1Id = `agent-${nanoid()}`;
@@ -541,6 +554,15 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         body: JSON.stringify(complexProject),
       });
 
+      if (response.status !== 201) {
+        const errorBody = await response.json();
+        console.error('Failed to create complex project:', {
+          status: response.status,
+          error: errorBody,
+          projectId,
+          graphIds: Object.keys(complexProject.graphs),
+        });
+      }
       expect(response.status).toBe(201);
       const body = await response.json();
       expect(body.data.graphs).toBeDefined();
