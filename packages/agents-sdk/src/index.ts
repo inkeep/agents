@@ -1,7 +1,6 @@
-export { Agent } from './agent';
+export { SubAgent as Agent } from './agent';
 export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {
-  agent,
   agentGraph,
   agentMcp,
   artifactComponent,
@@ -11,15 +10,16 @@ export {
   mcpServer,
   mcpTool,
   project,
+  subAgent as agent,
 } from './builderFunctions';
+export { transfer } from './builders';
 export {
-  credentialRef,
-  isCredentialReference,
   type CredentialReference,
+  credentialRef,
   type ExtractCredentialIds,
+  isCredentialReference,
   type UnionCredentialIds,
 } from './credential-ref';
-export { transfer } from './builders';
 export { DataComponent, type DataComponentInterface } from './data-component';
 export {
   createEnvironmentSettings,

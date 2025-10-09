@@ -14,11 +14,11 @@ import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
 import { Tool } from './tool';
 import type {
-  AgentCanUseType,
-  AgentConfig,
-  AgentInterface,
   AgentTool,
-  AllAgentInterface,
+  AllSubAgentInterface,
+  SubAgentCanUseType,
+  SubAgentConfig,
+  SubAgentInterface,
 } from './types';
 import { isAgentMcpConfig, normalizeAgentCanUseType } from './utils/tool-normalization';
 
@@ -32,15 +32,15 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
   return value as T | undefined;
 }
 
-export class Agent implements AgentInterface {
-  public config: AgentConfig;
+export class SubAgent implements SubAgentInterface {
+  public config: SubAgentConfig;
   public readonly type = 'internal' as const;
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
   private graphId: string;
   private initialized = false;
-  constructor(config: AgentConfig) {
+  constructor(config: SubAgentConfig) {
     this.config = { ...config, type: 'internal' };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     // tenantId, projectId, and graphId will be set later by the graph or CLI
@@ -135,11 +135,11 @@ export class Agent implements AgentInterface {
     this.config.models = models;
   }
 
-  getTransfers(): AgentInterface[] {
+  getTransfers(): SubAgentInterface[] {
     return typeof this.config.canTransferTo === 'function' ? this.config.canTransferTo() : [];
   }
 
-  getDelegates(): AllAgentInterface[] {
+  getDelegates(): AllSubAgentInterface[] {
     return typeof this.config.canDelegateTo === 'function' ? this.config.canDelegateTo() : [];
   }
 
@@ -204,7 +204,7 @@ export class Agent implements AgentInterface {
     this.config.canUse = () => [...existingTools, tool];
   }
 
-  addTransfer(...agents: AgentInterface[]): void {
+  addTransfer(...agents: SubAgentInterface[]): void {
     if (typeof this.config.canTransferTo === 'function') {
       // If already a function, we need to combine the results
       const existingTransfers = this.config.canTransferTo;
@@ -215,7 +215,7 @@ export class Agent implements AgentInterface {
     }
   }
 
-  addDelegate(...agents: AllAgentInterface[]): void {
+  addDelegate(...agents: AllSubAgentInterface[]): void {
     if (typeof this.config.canDelegateTo === 'function') {
       const existingDelegates = this.config.canDelegateTo;
       this.config.canDelegateTo = () => [...existingDelegates(), ...agents];
@@ -704,7 +704,7 @@ export class Agent implements AgentInterface {
     }
   }
 
-  private async createTool(toolId: string, toolConfig: AgentCanUseType): Promise<void> {
+  private async createTool(toolId: string, toolConfig: SubAgentCanUseType): Promise<void> {
     try {
       // Check if this is a FunctionTool instance
       if (toolConfig instanceof FunctionTool) {
@@ -974,6 +974,6 @@ export class Agent implements AgentInterface {
 }
 
 // Factory function for creating agents - similar to contextConfig() pattern
-export function agent(config: AgentConfig): Agent {
-  return new Agent(config);
+export function agent(config: SubAgentConfig): SubAgent {
+  return new SubAgent(config);
 }

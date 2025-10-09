@@ -580,7 +580,7 @@ export class Project implements ProjectInterface {
       }
 
       // Collect tools from all agents in this graph
-      for (const agent of graph.getAgents()) {
+      for (const agent of graph.getSubAgents()) {
         if (agent.type === 'external') {
           continue; // Skip external agents
         }

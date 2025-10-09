@@ -115,7 +115,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       name: 'Test Graph',
       description: 'A test graph for refactor validation',
       defaultSubAgent: agent1,
-      agents: () => [agent1, agent2],
+      subAgents: () => [agent1, agent2],
     });
 
     // Initialize the graph
@@ -180,7 +180,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       name: 'Component Graph',
       description: 'A graph with component mode enabled',
       defaultSubAgent: agent1,
-      agents: () => [agent1],
+      subAgents: () => [agent1],
     });
 
     await graph.init();
@@ -222,7 +222,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       id: graphId,
       name: 'Standalone Graph',
       defaultSubAgent: standaloneAgent,
-      agents: () => [standaloneAgent],
+      subAgents: () => [standaloneAgent],
     });
 
     await graph.init();
@@ -261,7 +261,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       id: graphId,
       name: 'Legacy Graph',
       defaultSubAgent: agent1,
-      agents: () => [agent1],
+      subAgents: () => [agent1],
     });
 
     // Verify that the initLegacy method exists and can be called
@@ -292,7 +292,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       id: graphId,
       name: 'Error Graph',
       defaultSubAgent: agent1,
-      agents: () => [agent1],
+      subAgents: () => [agent1],
     });
 
     // Expect initialization to throw the error

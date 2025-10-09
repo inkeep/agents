@@ -43,12 +43,12 @@ export const StopWhenSchema = z.object({
 export const GraphStopWhenSchema = StopWhenSchema.pick({ transferCountIs: true });
 
 // Subset for agent level (only step count)
-export const AgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true });
+export const SubAgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true });
 
 // Type inference for use in database schema and elsewhere
 export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type GraphStopWhen = z.infer<typeof GraphStopWhenSchema>;
-export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
+export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
@@ -154,7 +154,9 @@ export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations
 });
 export const SubAgentRelationUpdateSchema = SubAgentRelationInsertSchema.partial();
 
-export const SubAgentRelationApiSelectSchema = createGraphScopedApiSchema(SubAgentRelationSelectSchema);
+export const SubAgentRelationApiSelectSchema = createGraphScopedApiSchema(
+  SubAgentRelationSelectSchema
+);
 export const SubAgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
   SubAgentRelationInsertSchema
 )
@@ -182,7 +184,7 @@ export const SubAgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
   })
   .refine(
     (data) => {
-      // Only validate agent IDs if either is provided in the update
+      // Only validate sub-agent IDs if either is provided in the update
       const hasTarget = data.targetSubAgentId != null;
       const hasExternal = data.externalSubAgentId != null;
 
@@ -196,7 +198,7 @@ export const SubAgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
     },
     {
       message:
-        'Must specify exactly one of targetSubAgentId or externalSubAgentId when updating agent relationships',
+        'Must specify exactly one of targetSubAgentId or externalSubAgentId when updating sub-agent relationships',
       path: ['targetSubAgentId', 'externalSubAgentId'],
     }
   );
@@ -434,7 +436,8 @@ export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentId: resourceIdSchema,
   artifactComponentId: resourceIdSchema,
 });
-export const SubAgentArtifactComponentUpdateSchema = SubAgentArtifactComponentInsertSchema.partial();
+export const SubAgentArtifactComponentUpdateSchema =
+  SubAgentArtifactComponentInsertSchema.partial();
 
 export const SubAgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
   SubAgentArtifactComponentSelectSchema

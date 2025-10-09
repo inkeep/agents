@@ -468,5 +468,5 @@ export const dataWorkshopGraph = agentGraph({
   id: 'data-workshop-graph',
   name: 'Data Workshop Graph',
   defaultSubAgent: dataWorkshopAgent,
-  agents: () => [dataWorkshopAgent],
+  subAgents: () => [dataWorkshopAgent],
 });

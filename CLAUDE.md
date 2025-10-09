@@ -100,7 +100,7 @@ const agent = agent({
 
 export const graph = agentGraph({
     defaultSubAgent: routerAgent,
-    agents: [routerAgent, qaAgent, orderAgent]
+    subAgents: () => [routerAgent, qaAgent, orderAgent]
     // No tenantId or apiUrl needed - CLI injects from inkeep.config.ts
 });
 // No graph.init() call - CLI handles initialization when pushing

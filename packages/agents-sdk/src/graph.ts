@@ -9,8 +9,7 @@ import {
 } from '@inkeep/agents-core';
 import { updateFullGraphViaAPI } from './graphFullClient';
 import type {
-  AgentInterface,
-  AllAgentInterface,
+  AllSubAgentInterface,
   ExternalAgentInterface,
   GenerateOptions,
   GraphConfig,
@@ -19,6 +18,7 @@ import type {
   ModelSettings,
   RunResult,
   StreamResponse,
+  SubAgentInterface,
 } from './types';
 
 const logger = getLogger('graph');
@@ -32,9 +32,9 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
 }
 
 export class AgentGraph implements GraphInterface {
-  private agents: AllAgentInterface[] = [];
-  private agentMap: Map<string, AllAgentInterface> = new Map();
-  private defaultSubAgent?: AgentInterface;
+  private subAgents: AllSubAgentInterface[] = [];
+  private agentMap: Map<string, AllSubAgentInterface> = new Map();
+  private defaultSubAgent?: SubAgentInterface;
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
@@ -85,12 +85,12 @@ export class AgentGraph implements GraphInterface {
           transferCountIs: config.stopWhen.transferCountIs,
         }
       : undefined;
-    this.agents = resolveGetter(config.agents) || [];
-    this.agentMap = new Map(this.agents.map((agent) => [agent.getId(), agent]));
+    this.subAgents = resolveGetter(config.subAgents) || [];
+    this.agentMap = new Map(this.subAgents.map((agent) => [agent.getId(), agent]));
 
     // Add default agent to map
     if (this.defaultSubAgent) {
-      this.agents.push(this.defaultSubAgent);
+      this.subAgents.push(this.defaultSubAgent);
       this.agentMap.set(this.defaultSubAgent.getId(), this.defaultSubAgent);
     }
 
@@ -103,7 +103,7 @@ export class AgentGraph implements GraphInterface {
       {
         graphId: this.graphId,
         tenantId: this.tenantId,
-        agentCount: this.agents.length,
+        agentCount: this.subAgents.length,
         defaultSubAgent: this.defaultSubAgent?.getName(),
       },
       'AgentGraph created'
@@ -124,9 +124,9 @@ export class AgentGraph implements GraphInterface {
     this.baseURL = apiUrl;
 
     // Propagate tenantId, projectId, and apiUrl to all agents and their tools
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       if (this.isInternalAgent(agent)) {
-        const internalAgent = agent as AgentInterface;
+        const internalAgent = agent as SubAgentInterface;
         // Set the context on the agent
         if (internalAgent.setContext) {
           internalAgent.setContext(tenantId, projectId, apiUrl);
@@ -173,10 +173,10 @@ export class AgentGraph implements GraphInterface {
   async toFullGraphDefinition(): Promise<FullGraphDefinition> {
     const agentsObject: Record<string, any> = {};
 
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       if (this.isInternalAgent(agent)) {
         // Handle internal agents
-        const internalAgent = agent as AgentInterface;
+        const internalAgent = agent as SubAgentInterface;
 
         // Get agent relationships
         const transfers = internalAgent.getTransfers();
@@ -292,13 +292,13 @@ export class AgentGraph implements GraphInterface {
 
     const toolInitPromises: Promise<void>[] = [];
 
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       // Skip external agents as they don't have getTools method
-      if (!(agent as AgentInterface).getTools) {
+      if (!(agent as SubAgentInterface).getTools) {
         continue;
       }
 
-      const internalAgent = agent as AgentInterface;
+      const internalAgent = agent as SubAgentInterface;
       const agentTools = internalAgent.getTools();
 
       for (const [toolName, toolInstance] of Object.entries(agentTools)) {
@@ -368,7 +368,7 @@ export class AgentGraph implements GraphInterface {
     logger.info(
       {
         graphId: this.graphId,
-        agentCount: this.agents.length,
+        agentCount: this.subAgents.length,
       },
       'Initializing agent graph using new graph endpoint'
     );
@@ -436,7 +436,7 @@ export class AgentGraph implements GraphInterface {
     logger.info(
       {
         graphId: this.graphId,
-        agentCount: this.agents.length,
+        agentCount: this.subAgents.length,
       },
       'Initializing agent graph'
     );
@@ -457,7 +457,7 @@ export class AgentGraph implements GraphInterface {
       }
 
       // Step 3: Initialize all agents
-      const initPromises = this.agents.map(async (agent) => {
+      const initPromises = this.subAgents.map(async (agent) => {
         try {
           // Set the graphId on the agent config before initialization
           (agent as any).config.graphId = this.graphId;
@@ -502,7 +502,7 @@ export class AgentGraph implements GraphInterface {
       logger.info(
         {
           graphId: this.graphId,
-          agentCount: this.agents.length,
+          agentCount: this.subAgents.length,
         },
         'Agent graph initialized successfully'
       );
@@ -633,20 +633,20 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get an agent by name (unified method for all agent types)
    */
-  getAgent(name: string): AllAgentInterface | undefined {
+  getAgent(name: string): AllSubAgentInterface | undefined {
     return this.agentMap.get(name);
   }
 
   /**
    * Add an agent to the graph
    */
-  addAgent(agent: AgentInterface): void {
-    this.agents.push(agent);
+  addSubAgent(agent: SubAgentInterface): void {
+    this.subAgents.push(agent);
     this.agentMap.set(agent.getId(), agent);
 
     // Apply immediate model inheritance if graph has models
     if (this.models && this.isInternalAgent(agent)) {
-      this.propagateModelSettingsToAgent(agent as AgentInterface);
+      this.propagateModelSettingsToAgent(agent as SubAgentInterface);
     }
 
     logger.info(
@@ -662,11 +662,11 @@ export class AgentGraph implements GraphInterface {
   /**
    * Remove an agent from the graph
    */
-  removeAgent(id: string): boolean {
+  removeSubAgent(id: string): boolean {
     const agentToRemove = this.agentMap.get(id);
     if (agentToRemove) {
       this.agentMap.delete(agentToRemove.getId());
-      this.agents = this.agents.filter((agent) => agent.getId() !== agentToRemove.getId());
+      this.subAgents = this.subAgents.filter((agent) => agent.getId() !== agentToRemove.getId());
 
       logger.info(
         {
@@ -685,23 +685,23 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get all agents in the graph
    */
-  getAgents(): AllAgentInterface[] {
-    return this.agents;
+  getSubAgents(): AllSubAgentInterface[] {
+    return this.subAgents;
   }
 
   /**
    * Get all agent ids (unified method for all agent types)
    */
-  getAgentIds(): string[] {
+  getSubAgentIds(): string[] {
     return Array.from(this.agentMap.keys());
   }
 
   /**
    * Set the default agent
    */
-  setdefaultSubAgent(agent: AgentInterface): void {
+  setdefaultSubAgent(agent: SubAgentInterface): void {
     this.defaultSubAgent = agent;
-    this.addAgent(agent); // Ensure it's in the graph
+    this.addSubAgent(agent); // Ensure it's in the graph
 
     logger.info(
       {
@@ -715,7 +715,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get the default agent
    */
-  getdefaultSubAgent(): AgentInterface | undefined {
+  getdefaultSubAgent(): SubAgentInterface | undefined {
     return this.defaultSubAgent;
   }
 
@@ -791,7 +791,7 @@ export class AgentGraph implements GraphInterface {
     tenantId: string;
   } {
     return {
-      agentCount: this.agents.length,
+      agentCount: this.subAgents.length,
       defaultSubAgent: this.defaultSubAgent?.getName() || null,
       initialized: this.initialized,
       graphId: this.graphId,
@@ -805,7 +805,7 @@ export class AgentGraph implements GraphInterface {
   validate(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (this.agents.length === 0) {
+    if (this.subAgents.length === 0) {
       errors.push('Graph must contain at least one agent');
     }
 
@@ -815,7 +815,7 @@ export class AgentGraph implements GraphInterface {
 
     // Validate agent names are unique
     const names = new Set<string>();
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       const name = agent.getName();
       if (names.has(name)) {
         errors.push(`Duplicate agent name: ${name}`);
@@ -824,7 +824,7 @@ export class AgentGraph implements GraphInterface {
     }
 
     // Validate agent relationships (transfer and delegation) for internal agents only
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       if (!this.isInternalAgent(agent)) continue; // Skip external agents for relationship validation
 
       // Validate transfer relationships
@@ -864,7 +864,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Type guard to check if an agent is an internal AgentInterface
    */
-  isInternalAgent(agent: AllAgentInterface): agent is AgentInterface {
+  isInternalAgent(agent: AllSubAgentInterface): agent is SubAgentInterface {
     // Internal agents have getTransfers, getDelegates, and other AgentInterface methods
     // External agents only have basic identification methods
     return 'getTransfers' in agent && typeof (agent as any).getTransfers === 'function';
@@ -947,9 +947,9 @@ export class AgentGraph implements GraphInterface {
     await this.applyStopWhenInheritance();
 
     // Propagate to agents
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       if (this.isInternalAgent(agent)) {
-        this.propagateModelSettingsToAgent(agent as AgentInterface);
+        this.propagateModelSettingsToAgent(agent as SubAgentInterface);
       }
     }
   }
@@ -981,9 +981,9 @@ export class AgentGraph implements GraphInterface {
 
     // Propagate stepCountIs from project to agents
     if (projectStopWhen?.stepCountIs !== undefined) {
-      for (const agent of this.agents) {
+      for (const agent of this.subAgents) {
         if (this.isInternalAgent(agent)) {
-          const internalAgent = agent as AgentInterface;
+          const internalAgent = agent as SubAgentInterface;
 
           // Initialize agent stopWhen if it doesn't exist
           if (!internalAgent.config.stopWhen) {
@@ -1011,7 +1011,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Propagate graph-level model settings to agents (supporting partial inheritance)
    */
-  private propagateModelSettingsToAgent(agent: AgentInterface): void {
+  private propagateModelSettingsToAgent(agent: SubAgentInterface): void {
     if (this.models) {
       // Initialize agent models if they don't exist
       if (!agent.config.models) {
@@ -1035,9 +1035,9 @@ export class AgentGraph implements GraphInterface {
    * Immediately propagate graph-level models to all agents during construction
    */
   private propagateImmediateModelSettings(): void {
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       if (this.isInternalAgent(agent)) {
-        this.propagateModelSettingsToAgent(agent as AgentInterface);
+        this.propagateModelSettingsToAgent(agent as SubAgentInterface);
       }
     }
   }
@@ -1045,7 +1045,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Type guard to check if an agent is an external AgentInterface
    */
-  isExternalAgent(agent: AllAgentInterface): agent is ExternalAgentInterface {
+  isExternalAgent(agent: AllSubAgentInterface): agent is ExternalAgentInterface {
     return !this.isInternalAgent(agent);
   }
 
@@ -1253,7 +1253,7 @@ export class AgentGraph implements GraphInterface {
     const allRelationPromises: Promise<void>[] = [];
 
     // Collect all relation creation promises from all agents
-    for (const agent of this.agents) {
+    for (const agent of this.subAgents) {
       if (this.isInternalAgent(agent)) {
         // Create internal transfer relations
         const transfers = agent.getTransfers();
@@ -1271,7 +1271,7 @@ export class AgentGraph implements GraphInterface {
           } else {
             // Must be an internal agent (AgentInterface)
             allRelationPromises.push(
-              this.createInternalAgentRelation(agent, delegate as AgentInterface, 'delegate')
+              this.createInternalAgentRelation(agent, delegate as SubAgentInterface, 'delegate')
             );
           }
         }
@@ -1317,8 +1317,8 @@ export class AgentGraph implements GraphInterface {
   }
 
   private async createInternalAgentRelation(
-    sourceAgent: AgentInterface,
-    targetAgent: AgentInterface,
+    sourceAgent: SubAgentInterface,
+    targetAgent: SubAgentInterface,
     relationType: 'transfer' | 'delegate'
   ): Promise<void> {
     try {
@@ -1380,7 +1380,7 @@ export class AgentGraph implements GraphInterface {
   }
 
   private async createExternalAgentRelation(
-    sourceAgent: AgentInterface,
+    sourceAgent: SubAgentInterface,
     externalAgent: ExternalAgentInterface,
     relationType: 'transfer' | 'delegate'
   ): Promise<void> {
@@ -1448,7 +1448,7 @@ export class AgentGraph implements GraphInterface {
    * Create external agents in the database
    */
   private async createExternalAgents(): Promise<void> {
-    const externalAgents = this.agents.filter((agent) => this.isExternalAgent(agent));
+    const externalAgents = this.subAgents.filter((agent) => this.isExternalAgent(agent));
 
     logger.info(
       {

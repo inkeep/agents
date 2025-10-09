@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Agent } from '../../agent';
+import { SubAgent } from '../../agent';
 import { ExternalAgent } from '../../externalAgent';
 import { Tool } from '../../tool';
-import type { AgentConfig } from '../../types';
+import type { SubAgentConfig } from '../../types';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -43,21 +43,21 @@ describe('Agent Builder', () => {
 
   describe('Constructor', () => {
     it('should initialize with basic config', () => {
-      const config: AgentConfig = {
+      const config: SubAgentConfig = {
         id: 'test-agent',
         name: 'Test Agent',
         description: 'Test agent description',
         prompt: 'You are a helpful test agent',
       };
 
-      const agent = new Agent(config);
+      const agent = new SubAgent(config);
 
       expect(agent.getName()).toBe('Test Agent');
       expect(agent.getId()).toBe('test-agent');
     });
 
     it('should use provided ID', () => {
-      const agent = new Agent({
+      const agent = new SubAgent({
         id: 'custom-id-123',
         name: 'Customer Support Agent v2',
         description: 'Customer support agent description',
@@ -68,7 +68,7 @@ describe('Agent Builder', () => {
     });
 
     it('should handle tools in config', () => {
-      const config: AgentConfig = {
+      const config: SubAgentConfig = {
         id: 'tool-agent',
         name: 'Tool Agent',
         description: 'Tool agent description',
@@ -76,7 +76,7 @@ describe('Agent Builder', () => {
         canUse: () => [mockTool],
       };
 
-      const agent = new Agent(config);
+      const agent = new SubAgent(config);
       const tools = agent.getTools();
 
       expect(tools).toHaveProperty('testTool');
@@ -84,14 +84,14 @@ describe('Agent Builder', () => {
     });
 
     it('should handle function-based relationships', () => {
-      const transferAgent = new Agent({
+      const transferAgent = new SubAgent({
         id: 'transfer-agent',
         name: 'Transfer Agent',
         description: 'Transfer agent description',
         prompt: 'Transfer agent prompt',
       });
 
-      const config: AgentConfig = {
+      const config: SubAgentConfig = {
         id: 'source-agent',
         name: 'Source Agent',
         description: 'Source agent description',
@@ -99,7 +99,7 @@ describe('Agent Builder', () => {
         canTransferTo: () => [transferAgent],
       };
 
-      const agent = new Agent(config);
+      const agent = new SubAgent(config);
       const transfers = agent.getTransfers();
 
       expect(transfers).toHaveLength(1);
@@ -108,10 +108,10 @@ describe('Agent Builder', () => {
   });
 
   describe('Tool Management', () => {
-    let agent: Agent;
+    let agent: SubAgent;
 
     beforeEach(() => {
-      agent = new Agent({
+      agent = new SubAgent({
         id: 'test-agent',
         name: 'Test Agent',
         description: 'Test agent description',
@@ -140,27 +140,27 @@ describe('Agent Builder', () => {
   });
 
   describe('Agent Relationships', () => {
-    let sourceAgent: Agent;
-    let transferAgent: Agent;
-    let delegateAgent: Agent;
+    let sourceAgent: SubAgent;
+    let transferAgent: SubAgent;
+    let delegateAgent: SubAgent;
     let externalAgent: ExternalAgent;
 
     beforeEach(() => {
-      sourceAgent = new Agent({
+      sourceAgent = new SubAgent({
         id: 'source-agent',
         name: 'Source Agent',
         description: 'Source agent description',
         prompt: 'Source agent',
       });
 
-      transferAgent = new Agent({
+      transferAgent = new SubAgent({
         id: 'transfer-agent',
         name: 'Transfer Agent',
         description: 'Transfer agent description',
         prompt: 'Handles transferred tasks',
       });
 
-      delegateAgent = new Agent({
+      delegateAgent = new SubAgent({
         id: 'delegate-agent',
         name: 'Delegate Agent',
         description: 'Delegate agent description',
@@ -184,7 +184,7 @@ describe('Agent Builder', () => {
     });
 
     it('should add multiple transfer relationships', () => {
-      const secondTransfer = new Agent({
+      const secondTransfer = new SubAgent({
         id: 'second-transfer',
         name: 'Second Transfer Agent',
         description: 'Second transfer description',
@@ -200,7 +200,7 @@ describe('Agent Builder', () => {
     });
 
     it('should add transfers to existing canTransferTo function', () => {
-      const existingTransfer = new Agent({
+      const existingTransfer = new SubAgent({
         id: 'existing-transfer',
         name: 'Existing Transfer Agent',
         description: 'Existing transfer description',
@@ -246,26 +246,26 @@ describe('Agent Builder', () => {
   });
 
   describe('Description Methods', () => {
-    let sourceAgent: Agent;
-    let _transferAgent: Agent;
-    let _delegateAgent: Agent;
+    let sourceAgent: SubAgent;
+    let _transferAgent: SubAgent;
+    let _delegateAgent: SubAgent;
 
     beforeEach(() => {
-      sourceAgent = new Agent({
+      sourceAgent = new SubAgent({
         id: 'source-agent',
         name: 'Source Agent',
         description: 'Main agent that handles requests',
         prompt: 'You are the main agent',
       });
 
-      _transferAgent = new Agent({
+      _transferAgent = new SubAgent({
         id: 'transfer-agent',
         name: 'Transfer Agent',
         description: 'Specialized agent for transfers',
         prompt: 'You handle transfers',
       });
 
-      _delegateAgent = new Agent({
+      _delegateAgent = new SubAgent({
         id: 'delegate-agent',
         name: 'Delegate Agent',
         description: 'Specialized agent for delegations',
@@ -279,7 +279,7 @@ describe('Agent Builder', () => {
     });
 
     it('should return empty string for missing description', () => {
-      const agentWithoutDesc = new Agent({
+      const agentWithoutDesc = new SubAgent({
         id: 'no-desc-agent',
         name: 'No Description Agent',
         description: '',
@@ -292,7 +292,7 @@ describe('Agent Builder', () => {
   });
 
   describe('Initialization', () => {
-    let agent: Agent;
+    let agent: SubAgent;
 
     beforeEach(() => {
       const testTool = new Tool({
@@ -302,7 +302,7 @@ describe('Agent Builder', () => {
         serverUrl: 'http://localhost:3000',
       });
 
-      agent = new Agent({
+      agent = new SubAgent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'Test instructions',
@@ -380,7 +380,7 @@ describe('Agent Builder', () => {
     it('should use custom base URL from environment', () => {
       process.env.INKEEP_API_URL = 'https://custom-api.example.com';
 
-      const agent = new Agent({
+      const agent = new SubAgent({
         id: 'custom-url-agent',
         name: 'Custom URL Agent',
         description: 'Custom URL agent description',
@@ -396,7 +396,7 @@ describe('Agent Builder', () => {
     it('should fallback to default URL', () => {
       delete process.env.INKEEP_API_URL;
 
-      const agent = new Agent({
+      const agent = new SubAgent({
         id: 'default-url-agent',
         name: 'Default URL Agent',
         description: 'Default URL agent description',

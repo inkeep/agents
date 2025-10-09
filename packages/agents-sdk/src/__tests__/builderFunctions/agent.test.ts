@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { agent } from '../../builderFunctions';
-import type { AgentConfig } from '../../types';
+import { subAgent } from '../../builderFunctions';
+import type { SubAgentConfig } from '../../types';
 
 describe('agent builder function', () => {
   it('should create an agent with required config', () => {
-    const config: AgentConfig = {
+    const config: SubAgentConfig = {
       id: 'test-agent',
       name: 'Test Agent',
       description: 'Test description',
       prompt: 'You are a helpful test agent',
     };
 
-    const testAgent = agent(config);
+    const testAgent = subAgent(config);
 
     expect(testAgent.getName()).toBe('Test Agent');
     expect(testAgent.getId()).toBe('test-agent');
@@ -23,22 +23,22 @@ describe('agent builder function', () => {
       description: 'Agent without ID',
       prompt: 'Test prompt',
       // id is missing
-    } as AgentConfig;
+    } as SubAgentConfig;
 
-    expect(() => agent(config)).toThrow(
-      'Agent ID is required. Agents must have stable IDs for consistency across deployments.'
+    expect(() => subAgent(config)).toThrow(
+      'Sub-Agent ID is required. Sub-Agents must have stable IDs for consistency across deployments.'
     );
   });
 
   it('should create an agent with all optional fields', () => {
-    const config: AgentConfig = {
+    const config: SubAgentConfig = {
       id: 'full-config-agent',
       name: 'Full Config Agent',
       description: 'Agent with all config options',
       prompt: 'Comprehensive test agent',
     };
 
-    const testAgent = agent(config);
+    const testAgent = subAgent(config);
     testAgent.setContext('test-tenant', 'test-project', 'test-graph');
 
     expect(testAgent.getName()).toBe('Full Config Agent');
@@ -52,7 +52,7 @@ describe('agent builder function', () => {
       description: 'A test data component',
     };
 
-    const config: AgentConfig = {
+    const config: SubAgentConfig = {
       id: 'component-agent',
       name: 'Component Agent',
       description: 'Agent with data components',
@@ -60,7 +60,7 @@ describe('agent builder function', () => {
       dataComponents: () => [mockDataComponent],
     };
 
-    const testAgent = agent(config);
+    const testAgent = subAgent(config);
 
     expect(testAgent.getName()).toBe('Component Agent');
     expect(typeof testAgent.config.dataComponents).toBe('function');
@@ -68,14 +68,14 @@ describe('agent builder function', () => {
 
   it('should create an agent with transfer relationships', () => {
     // Create a transfer target agent first
-    const transferAgent = agent({
+    const transferAgent = subAgent({
       id: 'transfer-target',
       name: 'Transfer Target',
       description: 'Target for transfers',
       prompt: 'Handles transferred tasks',
     });
 
-    const config: AgentConfig = {
+    const config: SubAgentConfig = {
       id: 'source-agent',
       name: 'Source Agent',
       description: 'Agent that can transfer',
@@ -83,7 +83,7 @@ describe('agent builder function', () => {
       canTransferTo: () => [transferAgent],
     };
 
-    const testAgent = agent(config);
+    const testAgent = subAgent(config);
 
     expect(testAgent.getName()).toBe('Source Agent');
     expect(typeof testAgent.config.canTransferTo).toBe('function');

@@ -116,7 +116,7 @@ examples/
      id: "my-graph",
      name: "My Graph",
      defaultSubAgent: myAgent,
-     agents: () => [myAgent],
+     subAgents: () => [myAgent],
      // No tenantId or apiUrl needed - CLI will inject them
    });
    // No graph.init() call - CLI handles initialization

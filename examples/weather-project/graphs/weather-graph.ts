@@ -32,5 +32,5 @@ export const weatherGraph = agentGraph({
   id: 'weather-graph',
   name: 'Weather graph',
   defaultSubAgent: weatherAssistant,
-  agents: () => [geocoderAgent, weatherAssistant, weatherForecaster],
+  subAgents: () => [geocoderAgent, weatherAssistant, weatherForecaster],
 });

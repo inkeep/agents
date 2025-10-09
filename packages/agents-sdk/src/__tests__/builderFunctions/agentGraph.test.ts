@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { Agent } from '../../agent';
+import { SubAgent } from '../../agent';
 import { agentGraph } from '../../builderFunctions';
 import type { GraphConfig } from '../../types';
 
 describe('agentGraph builder function', () => {
   it('should create an AgentGraph with basic config', () => {
-    const agent = new Agent({
+    const agent = new SubAgent({
       id: 'test-agent',
       name: 'Test Agent',
       description: 'Test description',
@@ -15,24 +15,24 @@ describe('agentGraph builder function', () => {
     const config: GraphConfig = {
       id: 'test-graph',
       name: 'Test Graph',
-      agents: () => [agent],
+      subAgents: () => [agent],
     };
 
     const graph = agentGraph(config);
 
     expect(graph.getName()).toBe('Test Graph');
-    expect(graph.getAgents()).toContain(agent);
+    expect(graph.getSubAgents()).toContain(agent);
   });
 
   it('should create an AgentGraph with multiple agents', () => {
-    const agent1 = new Agent({
+    const agent1 = new SubAgent({
       id: 'agent-1',
       name: 'Agent 1',
       description: 'First agent',
       prompt: 'First agent prompt',
     });
 
-    const agent2 = new Agent({
+    const agent2 = new SubAgent({
       id: 'agent-2',
       name: 'Agent 2',
       description: 'Second agent',
@@ -42,19 +42,19 @@ describe('agentGraph builder function', () => {
     const config: GraphConfig = {
       id: 'multi-agent-graph',
       name: 'Multi Agent Graph',
-      agents: () => [agent1, agent2],
+      subAgents: () => [agent1, agent2],
     };
 
     const graph = agentGraph(config);
 
     expect(graph.getName()).toBe('Multi Agent Graph');
-    expect(graph.getAgents()).toContain(agent1);
-    expect(graph.getAgents()).toContain(agent2);
-    expect(graph.getAgents()).toHaveLength(2);
+    expect(graph.getSubAgents()).toContain(agent1);
+    expect(graph.getSubAgents()).toContain(agent2);
+    expect(graph.getSubAgents()).toHaveLength(2);
   });
 
   it('should create an AgentGraph with additional config options', () => {
-    const agent = new Agent({
+    const agent = new SubAgent({
       id: 'config-agent',
       name: 'Config Agent',
       description: 'Agent with config',
@@ -65,7 +65,7 @@ describe('agentGraph builder function', () => {
       id: 'configured-graph',
       name: 'Configured Graph',
       description: 'A graph with description',
-      agents: () => [agent],
+      subAgents: () => [agent],
     };
 
     const graph = agentGraph(config);
