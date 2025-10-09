@@ -55,7 +55,7 @@ function detectOrphanedToolsInGraph(
 
     const activeTools = getActiveTools({
       availableTools: toolData.availableTools,
-      activeTools: toolData.config?.mcp?.activeTools,
+      activeTools: (toolData.config as any)?.mcp?.activeTools,
     });
 
     const selectedTools = getCurrentSelectedToolsForNode(node, agentToolConfigLookup, []);

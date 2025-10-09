@@ -129,7 +129,7 @@ export function MCPToolItem({
 
   const activeTools = getActiveTools({
     availableTools: tool.availableTools,
-    activeTools: tool.config?.mcp?.activeTools,
+    activeTools: tool.config.type === 'mcp' ? tool.config.mcp.activeTools : undefined,
   });
 
   return (
@@ -157,7 +157,7 @@ export function MCPToolItem({
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">
-          <URLDisplay url={tool.config.mcp.server.url} />
+          <URLDisplay url={tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''} />
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">

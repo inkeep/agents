@@ -7,22 +7,22 @@ import { isMacOs } from '@/lib/utils';
 
 interface ToolbarProps {
   onSubmit: () => void;
-  isPreviewDisabled?: boolean;
+  inPreviewDisabled?: boolean;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
 }
 
 export function Toolbar({
   onSubmit,
-  isPreviewDisabled,
+  inPreviewDisabled,
   toggleSidePane,
   setShowPlayground,
 }: ToolbarProps) {
   const dirty = useGraphStore((state) => state.dirty);
-  const saveButtonRef = useRef<HTMLButtonElement>(null!);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
   const PreviewButton = (
     <Button
-      disabled={dirty || isPreviewDisabled}
+      disabled={dirty || inPreviewDisabled}
       variant="outline"
       type="button"
       onClick={() => setShowPlayground(true)}
@@ -38,7 +38,7 @@ export function Toolbar({
       if (!isShortcutPressed) return;
       event.preventDefault();
       // Using button ref instead onSubmit to respect button's disabled state
-      saveButtonRef.current.click();
+      saveButtonRef.current?.click();
     }
 
     window.addEventListener('keydown', handleSaveShortcut);
@@ -49,7 +49,7 @@ export function Toolbar({
 
   return (
     <div className="flex gap-2">
-      {dirty || isPreviewDisabled ? (
+      {dirty || inPreviewDisabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <div>{PreviewButton}</div>
@@ -66,10 +66,10 @@ export function Toolbar({
       <Button
         onClick={onSubmit}
         variant={dirty ? 'default' : 'outline'}
-        disabled={!dirty && !isPreviewDisabled}
+        disabled={!dirty && !inPreviewDisabled}
         ref={saveButtonRef}
       >
-        {isPreviewDisabled ? 'Save' : 'Save changes'}
+        {inPreviewDisabled ? 'Save' : 'Save changes'}
       </Button>
       <Button type="button" variant="outline" onClick={toggleSidePane}>
         <Settings className="w-4 h-4" />

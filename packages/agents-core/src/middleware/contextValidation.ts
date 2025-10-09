@@ -281,9 +281,9 @@ export async function validateHttpRequestHeaders(
 }
 
 /**
- * Fetches the request context from the context cache if it exists
+ * Fetches the headers from the context cache if it exists
  */
-async function fetchExistingRequestContext({
+async function fetchExistingHeaders({
   tenantId,
   projectId,
   contextConfig,
@@ -298,29 +298,29 @@ async function fetchExistingRequestContext({
   dbClient: DatabaseClient;
   credentialStores?: CredentialStoreRegistry;
 }) {
-  //If no request context is provided, but this is a continued conversation first try to get the request context from the context cache
+  //If no headers are provided, but this is a continued conversation first try to get the headers from the context cache
   const contextResolver = new ContextResolver(tenantId, projectId, dbClient, credentialStores);
-  const requestContext = await contextResolver.resolveRequestContext(
+  const headers = await contextResolver.resolveHeaders(
     conversationId,
     contextConfig.id
   );
-  if (Object.keys(requestContext).length > 0) {
+  if (Object.keys(headers).length > 0) {
     return {
       valid: true,
       errors: [],
-      validatedContext: requestContext,
+      validatedContext: headers,
     };
   }
   throw new Error(
-    'No request context found in cache. Please provide requestContext in request body.'
+    'No headers found in cache. Please provide headers in request.'
   );
 }
 
 /**
- * Validates request context against the JSON Schema stored in context configuration
+ * Validates headers against the JSON Schema stored in context configuration
  * Supports both legacy simple schemas and new comprehensive HTTP request schemas
  */
-export async function validateRequestContext({
+export async function validateHeaders({
   tenantId,
   projectId,
   graphId,
@@ -355,7 +355,7 @@ export async function validateRequestContext({
 
     // Get context configuration
     const contextConfig = await getContextConfigById(dbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectId, graphId },
       id: agentGraph.contextConfigId,
     });
 
@@ -372,11 +372,11 @@ export async function validateRequestContext({
       };
     }
 
-    // If no request context schema is defined, any context is valid
-    if (!contextConfig.requestContextSchema) {
+    // If no headers schema is defined, any context is valid
+    if (!contextConfig.headersSchema) {
       logger.debug(
         { contextConfigId: contextConfig.id },
-        'No request context schema defined, accepting any context'
+        'No headers schema defined, accepting any context'
       );
       return {
         valid: true,
@@ -387,18 +387,18 @@ export async function validateRequestContext({
 
     // Validate headers against the schema
     try {
-      const schema = contextConfig.requestContextSchema;
+      const schema = contextConfig.headersSchema;
       logger.debug({ contextConfigId: contextConfig.id }, 'Using headers schema validation');
 
-      // For headers schema, expect the requestContext to have headers
+      // For headers schema, expect the headers in the request
       const httpRequest = parsedRequest;
       const validationResult = await validateHttpRequestHeaders(schema, httpRequest);
       if (validationResult.valid) {
         return validationResult;
       }
-      //If the request context is not valid, try to fetch it from the context cache
+      //If the headers are not valid, try to fetch them from the context cache
       try {
-        return await fetchExistingRequestContext({
+        return await fetchExistingHeaders({
           tenantId,
           projectId,
           contextConfig,
@@ -408,8 +408,8 @@ export async function validateRequestContext({
         });
       } catch (_error) {
         validationResult.errors.push({
-          field: 'requestContext',
-          message: 'Failed to fetch request context from cache',
+          field: 'headers',
+          message: 'Failed to fetch headers from cache',
         });
         return validationResult;
       }
@@ -439,7 +439,7 @@ export async function validateRequestContext({
         graphId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
-      'Failed to validate request context'
+      'Failed to validate headers'
     );
 
     return {
@@ -489,7 +489,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
       } as ParsedHttpRequest;
 
       // Validate the context
-      const validationResult = await validateRequestContext({
+      const validationResult = await validateHeaders({
         tenantId,
         projectId,
         graphId,
@@ -506,9 +506,9 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
             graphId,
             errors: validationResult.errors,
           },
-          'Request context validation failed'
+          'Headers validation failed'
         );
-        const errorMessage = `Invalid request context: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
+        const errorMessage = `Invalid headers: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
         throw createApiError({
           code: 'bad_request',
           message: errorMessage,

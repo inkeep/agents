@@ -25,7 +25,7 @@ export interface SystemPromptV1 {
 
 export interface ToolData {
   name: string;
-  description?: string;
+  description?: string | null;
   inputSchema?: Record<string, unknown>; // JSON Schema format (MCP compatible)
   usageGuidelines?: string;
 }

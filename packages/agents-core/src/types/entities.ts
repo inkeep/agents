@@ -94,6 +94,12 @@ import type {
   FullGraphAgentInsertSchema,
   FullGraphDefinitionSchema,
   FullProjectDefinitionSchema,
+  FunctionApiInsertSchema,
+  FunctionApiSelectSchema,
+  FunctionApiUpdateSchema,
+  FunctionInsertSchema,
+  FunctionSelectSchema,
+  FunctionUpdateSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -189,6 +195,14 @@ export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type ToolApiUpdate = z.infer<typeof ToolApiUpdateSchema>;
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
+
+// === Function Types ===
+export type FunctionSelect = z.infer<typeof FunctionSelectSchema>;
+export type FunctionInsert = z.infer<typeof FunctionInsertSchema>;
+export type FunctionUpdate = z.infer<typeof FunctionUpdateSchema>;
+export type FunctionApiSelect = z.infer<typeof FunctionApiSelectSchema>;
+export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
+export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
 
 // === Conversation Types ===
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
@@ -309,6 +323,8 @@ export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
 export type CanUseItem = {
   toolId: string;
   toolSelection?: string[] | null;
+  headers?: Record<string, string> | null;
+  agentToolRelationId?: string;
 };
 
 export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {

@@ -107,7 +107,7 @@ export function AvailableToolsCard({
   activeTools,
 }: {
   tools: MCPTool['availableTools'];
-  activeTools: MCPTool['config']['mcp']['activeTools'];
+  activeTools: string[] | undefined;
 }) {
   if (!tools) return null; // parent component already makes sure to handle this
 

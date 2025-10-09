@@ -3,7 +3,7 @@
  */
 
 export interface ContextSchema {
-  requestContextSchema?: Record<string, any>;
+  headersSchema?: Record<string, any>;
   contextVariables?: Record<
     string,
     {
@@ -73,11 +73,11 @@ function extractPathsFromSchema(
 export function getContextSuggestions(contextSchema: ContextSchema): string[] {
   const suggestions: string[] = [];
 
-  // Add requestContext properties (but not the top-level object)
-  if (contextSchema.requestContextSchema?.properties) {
-    const requestContextPaths = extractPathsFromSchema(contextSchema.requestContextSchema);
-    for (const path of requestContextPaths) {
-      suggestions.push(`requestContext.${path}`);
+  // Add headers properties (but not the top-level object)
+  if (contextSchema.headersSchema?.properties) {
+    const headersPaths = extractPathsFromSchema(contextSchema.headersSchema);
+    for (const path of headersPaths) {
+      suggestions.push(`headers.${path}`);
     }
   }
 

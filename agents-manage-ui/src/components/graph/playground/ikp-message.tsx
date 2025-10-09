@@ -1,4 +1,4 @@
-import type { Message } from '@inkeep/cxkit-react-oss/types';
+import type { Message } from '@inkeep/agents-ui/types';
 import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import supersub from 'remark-supersub';

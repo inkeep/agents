@@ -81,10 +81,12 @@ async function signozQuery(payload: any): Promise<SigNozResp> {
       timeout: 30000,
     });
     const json = response.data as SigNozResp;
-    const responseData = json?.data?.result ? json.data.result.map((r) => ({
-      queryName: r.queryName,
-      count: r.list?.length,
-    })) : [];
+    const responseData = json?.data?.result
+      ? json.data.result.map((r) => ({
+          queryName: r.queryName,
+          count: r.list?.length,
+        }))
+      : [];
     logger.debug({ responseData }, 'SigNoz response (truncated)');
     return json;
   } catch (e) {
@@ -295,7 +297,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.CONTEXT_REQUEST_KEYS,
+              key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -353,7 +355,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.CONTEXT_REQUEST_KEYS,
+              key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -817,7 +819,7 @@ export async function GET(
       // context resolution
       contextConfigId?: string;
       contextAgentGraphId?: string;
-      contextRequestKeys?: string[];
+      contextHeadersKeys?: string[];
       contextTrigger?: string;
       contextStatusDescription?: string;
       contextUrl?: string;
@@ -861,12 +863,12 @@ export async function GET(
     // tool calls → activities
     for (const span of toolCallSpans) {
       const name = getString(span, SPAN_KEYS.AI_TOOL_CALL_NAME, 'Unknown Tool');
-      
+
       // Skip thinking_complete tool calls from the timeline
       if (name === 'thinking_complete') {
         continue;
       }
-      
+
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
@@ -960,7 +962,7 @@ export async function GET(
 
       // context keys maybe JSON
       let keys: string[] | undefined;
-      const rawKeys = getField(span, SPAN_KEYS.CONTEXT_REQUEST_KEYS);
+      const rawKeys = getField(span, SPAN_KEYS.CONTEXT_HEADERS_KEYS);
       try {
         if (typeof rawKeys === 'string') keys = JSON.parse(rawKeys);
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
@@ -977,7 +979,7 @@ export async function GET(
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
         contextAgentGraphId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
-        contextRequestKeys: keys,
+        contextHeadersKeys: keys,
       });
     }
 
@@ -990,7 +992,7 @@ export async function GET(
 
       // context keys maybe JSON
       let keys: string[] | undefined;
-      const rawKeys = getField(span, SPAN_KEYS.CONTEXT_REQUEST_KEYS);
+      const rawKeys = getField(span, SPAN_KEYS.CONTEXT_HEADERS_KEYS);
       try {
         if (typeof rawKeys === 'string') keys = JSON.parse(rawKeys);
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
@@ -1007,7 +1009,7 @@ export async function GET(
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
         contextAgentGraphId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
-        contextRequestKeys: keys,
+        contextHeadersKeys: keys,
       });
     }
 
@@ -1056,11 +1058,11 @@ export async function GET(
     for (const span of aiGenerationSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
-      
+
       // Extract ai.response.toolCalls and ai.prompt.messages for ai.generateText.doGenerate spans
       const aiResponseToolCalls = getString(span, SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, '');
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
-      
+
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.AI_GENERATION,

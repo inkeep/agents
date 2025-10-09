@@ -16,6 +16,7 @@ import {
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateDataComponent,
+  validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
@@ -130,6 +131,20 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
+    // Validate props as JSON Schema (required for data components)
+    if (body.props) {
+      const propsValidation = validatePropsAsJsonSchema(body.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
+      }
+    }
+
     const dataComponentData = {
       ...body,
       tenantId,
@@ -174,6 +189,20 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
+
+    // Validate props as JSON Schema if provided
+    if (body.props !== undefined && body.props !== null) {
+      const propsValidation = validatePropsAsJsonSchema(body.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
+      }
+    }
 
     const updatedDataComponent = await updateDataComponent(dbClient)({
       scopes: { tenantId, projectId },

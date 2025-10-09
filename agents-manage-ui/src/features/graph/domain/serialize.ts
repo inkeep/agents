@@ -115,11 +115,11 @@ export function serializeGraphData(
 
       const stopWhen = (node.data as any).stopWhen;
 
-      // Build canUse array from edges connecting this agent to MCP nodes
+      // Build canUse array from edges connecting this agent to tool nodes (MCP and Function)
       const canUse: Array<{
         toolId: string;
         toolSelection?: string[] | null;
-        headers?: Record<string, string>;
+        headers?: Record<string, string> | null;
         agentToolRelationId?: string;
       }> = [];
 
@@ -165,7 +165,7 @@ export function serializeGraphData(
             }
 
             const tempHeaders = (mcpNode.data as any).tempHeaders;
-            let toolHeaders: Record<string, string> = {};
+            let toolHeaders: Record<string, string> | null = null;
 
             if (tempHeaders !== undefined) {
               if (
@@ -189,6 +189,35 @@ export function serializeGraphData(
               toolId,
               toolSelection,
               headers: toolHeaders,
+              ...(relationshipId && { agentToolRelationId: relationshipId }),
+            });
+          }
+        }
+      }
+
+      // Find edges from this agent to Function Tool nodes
+      const agentToFunctionToolEdges = edges.filter(
+        (edge) =>
+          edge.source === node.id &&
+          nodes.some((n) => n.id === edge.target && n.type === NodeType.FunctionTool)
+      );
+
+      for (const edge of agentToFunctionToolEdges) {
+        const functionToolNode = nodes.find((n) => n.id === edge.target);
+
+        if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
+          const nodeData = functionToolNode.data as any;
+          const toolId = nodeData.toolId;
+
+          if (toolId) {
+            // Get the relationshipId if it exists
+            const relationshipId = nodeData.relationshipId;
+
+            // Function tools use the same simple structure as MCP tools
+            canUse.push({
+              toolId,
+              toolSelection: null, // Function tools don't have tool selection
+              headers: null, // Function tools don't have headers
               ...(relationshipId && { agentToolRelationId: relationshipId }),
             });
           }
@@ -295,20 +324,18 @@ export function serializeGraphData(
 
   const parsedContextVariables = safeJsonParse(metadata?.contextConfig?.contextVariables);
 
-  const parsedRequestContextSchema = safeJsonParse(metadata?.contextConfig?.requestContextSchema);
+  const parsedHeadersSchema = safeJsonParse(metadata?.contextConfig?.headersSchema);
 
   const hasContextConfig =
     metadata?.contextConfig &&
-    ((metadata.contextConfig.name && metadata.contextConfig.name.trim() !== '') ||
-      (metadata.contextConfig.description && metadata.contextConfig.description.trim() !== '') ||
-      (parsedContextVariables &&
-        typeof parsedContextVariables === 'object' &&
-        parsedContextVariables !== null &&
-        Object.keys(parsedContextVariables).length > 0) ||
-      (parsedRequestContextSchema &&
-        typeof parsedRequestContextSchema === 'object' &&
-        parsedRequestContextSchema !== null &&
-        Object.keys(parsedRequestContextSchema).length > 0));
+    ((parsedContextVariables &&
+      typeof parsedContextVariables === 'object' &&
+      parsedContextVariables !== null &&
+      Object.keys(parsedContextVariables).length > 0) ||
+      (parsedHeadersSchema &&
+        typeof parsedHeadersSchema === 'object' &&
+        parsedHeadersSchema !== null &&
+        Object.keys(parsedHeadersSchema).length > 0));
 
   const dataComponents: Record<string, DataComponent> = {};
   if (dataComponentLookup) {
@@ -387,9 +414,7 @@ export function serializeGraphData(
     (result as any).contextConfigId = contextConfigId;
     (result as any).contextConfig = {
       id: contextConfigId,
-      name: metadata.contextConfig.name || '',
-      description: metadata.contextConfig.description || '',
-      requestContextSchema: parsedRequestContextSchema,
+      headersSchema: parsedHeadersSchema,
       contextVariables: parsedContextVariables,
     };
   }
@@ -414,6 +439,40 @@ export function validateSerializedData(data: FullGraphDefinition): string[] {
           const toolId = canUseItem.toolId;
           if (!toolsData[toolId]) {
             errors.push(`Tool '${toolId}' referenced by agent '${agentId}' not found in tools`);
+          }
+        }
+      }
+    }
+
+    // Validate function tools for internal agents (check canUse array for function tools)
+    if ('canUse' in agent && agent.canUse) {
+      for (const canUseItem of agent.canUse) {
+        const toolId = canUseItem.toolId;
+        const toolType = (canUseItem as any).toolType;
+
+        // Only validate function tools
+        if (toolType === 'function') {
+          const functionTool = (canUseItem as any).functionTool;
+
+          if (!functionTool) {
+            errors.push(
+              `Function tool '${toolId}' referenced by agent '${agentId}' is missing function tool data`
+            );
+            continue;
+          }
+
+          // Validate required fields for function tools
+          if (!functionTool.name || String(functionTool.name).trim() === '') {
+            errors.push(`Function tool '${toolId}' is missing required field: name`);
+          }
+          if (!functionTool.description || String(functionTool.description).trim() === '') {
+            errors.push(`Function tool '${toolId}' is missing required field: description`);
+          }
+          if (!functionTool.executeCode || String(functionTool.executeCode).trim() === '') {
+            errors.push(`Function tool '${toolId}' is missing required field: executeCode`);
+          }
+          if (!functionTool.inputSchema || Object.keys(functionTool.inputSchema).length === 0) {
+            errors.push(`Function tool '${toolId}' is missing required field: inputSchema`);
           }
         }
       }

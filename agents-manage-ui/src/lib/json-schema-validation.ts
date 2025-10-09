@@ -284,9 +284,9 @@ export function validateDataAgainstSchema(data: any, schema: any): ValidationRes
 }
 
 /**
- * Helper function to create a basic LLM-compatible schema template
+ * Helper function to create a basic schema template
  */
-export function createLlmSchemaTemplate(): string {
+export function createSchemaTemplate(): string {
   const template = {
     type: 'object',
     properties: {

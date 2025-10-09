@@ -297,7 +297,7 @@ const executeAgentQuery = async (
  * Creates and configures an MCP server for the given context
  */
 const getServer = async (
-  requestContext: Record<string, unknown>,
+  headers: Record<string, unknown>,
   executionContext: ExecutionContext,
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
@@ -364,7 +364,7 @@ const getServer = async (
           projectId,
           graphId,
           conversationId,
-          requestContext,
+          headers,
           dbClient,
           credentialStores,
         });
@@ -376,7 +376,7 @@ const getServer = async (
             graphId,
             conversationId,
             hasContextConfig: !!agentGraph.contextConfigId,
-            hasRequestContext: !!requestContext,
+            hasHeaders: !!headers,
             hasValidatedContext: !!resolvedContext,
           },
           'parameters'

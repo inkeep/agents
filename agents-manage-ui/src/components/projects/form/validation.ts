@@ -1,3 +1,4 @@
+import { SandboxConfigSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 const modelSettingsSchema = z.object({
@@ -24,6 +25,8 @@ const projectStopWhenSchema = z
   })
   .optional();
 
+const sandboxConfigSchema = SandboxConfigSchema.optional();
+
 export const projectSchema = z.object({
   id: z
     .string()
@@ -42,6 +45,7 @@ export const projectSchema = z.object({
     .max(500, 'Description must be less than 500 characters'),
   models: projectModelsSchema,
   stopWhen: projectStopWhenSchema,
+  sandboxConfig: sandboxConfigSchema,
 });
 
 export type ProjectFormData = z.infer<typeof projectSchema>;

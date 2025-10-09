@@ -42,33 +42,38 @@ export async function createTestDatabaseClient(
 
   const db = drizzle(client, { schema });
 
-  // Initialize schema by running migration SQL
+  // Initialize schema by running ALL migration SQL files
   try {
-    // Find the first migration file dynamically (drizzle uses random names)
     const drizzleDir = join(__dirname, '../../drizzle');
     const files = readdirSync(drizzleDir);
-    const migrationFile = files.find((f) => f.startsWith('0000_') && f.endsWith('.sql'));
 
-    if (!migrationFile) {
-      throw new Error('No migration file found. Run: pnpm drizzle-kit generate');
+    // Find all SQL migration files and sort them
+    const migrationFiles = files.filter((f) => f.endsWith('.sql')).sort(); // This sorts 0000_, 0001_, 0002_, etc. in order
+
+    if (migrationFiles.length === 0) {
+      throw new Error('No migration files found. Run: pnpm drizzle-kit generate');
     }
 
-    const migrationPath = join(drizzleDir, migrationFile);
-    const migrationSql = readFileSync(migrationPath, 'utf8');
+    // Run all migrations in order
+    for (const migrationFile of migrationFiles) {
+      const migrationPath = join(drizzleDir, migrationFile);
+      const migrationSql = readFileSync(migrationPath, 'utf8');
 
-    // Parse and execute SQL statements
-    const statements = migrationSql
-      .split('-->')
-      .map((s) => s.replace(/statement-breakpoint/g, '').trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--'));
+      // Parse and execute SQL statements
+      const statements = migrationSql
+        .split('-->')
+        .map((s) => s.replace(/statement-breakpoint/g, '').trim())
+        .filter((s) => s.length > 0 && !s.startsWith('--'));
 
-    for (const statement of statements) {
-      if (
-        statement.includes('CREATE TABLE') ||
-        statement.includes('CREATE INDEX') ||
-        statement.includes('CREATE UNIQUE INDEX')
-      ) {
-        await db.run(sql.raw(statement));
+      for (const statement of statements) {
+        try {
+          await db.run(sql.raw(statement));
+        } catch (error) {
+          // Ignore errors for statements that might fail (like DROP TABLE if not exists)
+          if (!statement.includes('DROP TABLE')) {
+            throw error;
+          }
+        }
       }
     }
   } catch (error) {
@@ -91,6 +96,7 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
     'task_relations',
     'agent_relations',
     'agent_graph',
+    'agent_tool_relations',
     'tools',
     'agents',
     'api_keys',
@@ -98,12 +104,13 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
     'ledger_artifacts',
     'agent_artifact_components',
     'agent_data_components',
-    'agent_tool_relations',
     'artifact_components',
     'context_configs',
     'credential_references',
     'data_components',
     'external_agents',
+    'functions', // Global functions table
+    'projects',
   ];
 
   for (const table of cleanupTables) {

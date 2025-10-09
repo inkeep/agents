@@ -11,6 +11,7 @@ import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
   type ExternalAgentNodeData,
+  type FunctionToolNodeData,
   type MCPNodeData,
   NodeType,
   nodeTypeMap,
@@ -21,6 +22,7 @@ import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
 import { AgentNodeEditor } from './nodes/agent-node-editor';
 import { ExternalAgentNodeEditor } from './nodes/external-agent-node-editor';
+import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
 import { MCPServerNodeEditor } from './nodes/mcp-node-editor';
 import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 
@@ -117,6 +119,11 @@ export function SidePane({
               selectedNode={selectedNode as Node<MCPNodeData>}
               agentToolConfigLookup={agentToolConfigLookup}
             />
+          );
+        }
+        case NodeType.FunctionTool: {
+          return (
+            <FunctionToolNodeEditor selectedNode={selectedNode as Node<FunctionToolNodeData>} />
           );
         }
         default:
