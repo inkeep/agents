@@ -158,7 +158,6 @@ describe('toTemplate edge cases', () => {
     });
 
     // All context variables should be accessible
-    expect(config.toTemplate('headers.apiKey')).toBe('{{headers.apiKey}}');
     expect(config.toTemplate('user.name')).toBe('{{user.name}}');
     expect(config.toTemplate('settings.theme')).toBe('{{settings.theme}}');
   });

@@ -140,9 +140,9 @@ const { messages, sendMessage, status } = useChat({
 });
 ```
 
-## Request Context
+##  Headers
 
-To pass request context (validated against your Context Config), include it as custom headers:
+To pass required headers (validated against your Context Config), include them as custom headers:
 
 ```tsx
 const { messages, sendMessage } = useChat({
@@ -157,7 +157,7 @@ const { messages, sendMessage } = useChat({
 ```
 
 <Note>
-  Request context must be passed via headers, not in the request body. See [Request Context](/typescript-sdk/request-context) for details.
+   See [Headers](/typescript-sdk/headers) for details.
 </Note>
 
 ## Complete Example
@@ -287,7 +287,7 @@ NEXT_PUBLIC_GRAPH_ID=your-graph-id
   <Card title="Via API" icon="LuNetwork" href="/talk-to-your-agents/api">
     Learn about the underlying HTTP API and streaming protocol.
   </Card>
-  <Card title="Request Context" icon="LuSettings" href="/typescript-sdk/request-context">
+  <Card title="Headers" icon="LuSettings" href="/typescript-sdk/headers">
     Pass user context to personalize agent responses.
   </Card>
 </Cards>

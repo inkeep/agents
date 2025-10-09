@@ -22,13 +22,10 @@ export type ExtractSchemasFromCV<CV> = {
 export type InferContextFromSchemas<CZ> = {
   [K in keyof CZ]: CZ[K] extends z.ZodTypeAny ? z.infer<CZ[K]> : never;
 };
-export type MergeHeaders<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
-  ? { headers: z.infer<R> }
-  : {};
-type FullContext<R extends z.ZodTypeAny | undefined, CV> = MergeHeaders<R> &
-  InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
 
-export type AllowedPaths<R extends z.ZodTypeAny | undefined, CV> = DotPaths<FullContext<R, CV>>;
+type FullContext<CV> = InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
+
+export type AllowedPaths<CV> = DotPaths<FullContext<CV>>;
 
 // Headers Schema Builder
 export interface HeadersSchemaBuilderOptions<R extends z.ZodTypeAny> {
@@ -231,7 +228,7 @@ export class ContextConfigBuilder<
   }
 
   /** 4) The function you ship: path autocomplete + validation, returns {{path}} */
-  toTemplate<P extends AllowedPaths<R, CV>>(path: P): `{{${P}}}` {
+  toTemplate<P extends AllowedPaths<CV>>(path: P): `{{${P}}}` {
     return `{{${path}}}` as `{{${P}}}`;
   }
   // Validation method

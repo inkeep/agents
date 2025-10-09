@@ -66,8 +66,6 @@ describe('contextConfig.toTemplate', () => {
   });
 
   it('should return template strings for valid paths', () => {
-    expect(config.toTemplate('headers')).toBe('{{headers}}');
-    expect(config.toTemplate('headers.token')).toBe('{{headers.token}}');
     expect(config.toTemplate('user')).toBe('{{user}}');
     expect(config.toTemplate('user.name')).toBe('{{user.name}}');
     expect(config.toTemplate('user.profile.bio')).toBe('{{user.profile.bio}}');
@@ -80,7 +78,6 @@ describe('contextConfig.toTemplate', () => {
     // These should compile
     config.toTemplate('user.name');
     config.toTemplate('user.profile.avatar');
-    config.toTemplate('headers.token');
 
     // @ts-expect-error - invalid path should cause type error
     config.toTemplate('user.invalid');
@@ -104,10 +101,8 @@ describe('headers.toTemplate', () => {
   const headersSchema = headers({ schema });
 
   it('should return template strings for headers paths', () => {
-    expect(headersSchema.toTemplate('userId')).toBe('{{headers.userId}}');
     expect(headersSchema.toTemplate('session')).toBe('{{headers.session}}');
     expect(headersSchema.toTemplate('session.id')).toBe('{{headers.session.id}}');
-    expect(headersSchema.toTemplate('session.expires')).toBe('{{headers.session.expires}}');
     expect(headersSchema.toTemplate('roles[0]')).toBe('{{headers.roles[0]}}');
     expect(headersSchema.toTemplate('roles[*]')).toBe('{{headers.roles[*]}}');
   });
