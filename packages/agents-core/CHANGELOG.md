@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.16.2
+
+### Patch Changes
+
+- 4df3308: fix schema conversion export
+
 ## 0.16.1
 
 ## 0.16.0
