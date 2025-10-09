@@ -134,11 +134,9 @@ export const JsonEditor = forwardRef<
   // [&>.cm-editor]:!bg-transparent
   // dark:[&>.cm-editor]:!bg-input/30
   // [&>.cm-editor]:!outline-none
-  // [&>.cm-editor]:rounded-[7px]
   // [&>.cm-editor]:px-3
   // [&>.cm-editor]:py-2
   // leading-2
-  // text-xs
   // font-mono
   // rounded-md
   // transition-[color,box-shadow]
@@ -147,14 +145,14 @@ export const JsonEditor = forwardRef<
   // data-disabled:bg-muted
   // data-invalid:border-destructive
   // aria-invalid:ring-destructive/20
+  // aria-invalid:border-destructive
   // dark:aria-invalid:ring-destructive/40
-  // aria-invalid:border-destructive',
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'rounded-xl overflow-hidden relative',
+        'rounded-[7px] overflow-hidden relative',
         'border border-input shadow-xs',
         'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         className
