@@ -20,11 +20,12 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
   });
 
   // Helper function to create test agent graph data
-  const createAgentGraphData = ({ defaultAgentId = null }: { defaultAgentId?: string | null } = {}) => {
+  const createAgentGraphData = ({ defaultAgentId = null, description }: { defaultAgentId?: string | null; description?: string } = {}) => {
     const id = nanoid();
     return {
       id,
       name: id, // Use the same ID as the name for test consistency
+      description: description || undefined,
       defaultAgentId,
       contextConfigId: null, // Set to null since it's optional and we don't need it for these tests
     };
@@ -644,6 +645,127 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       expect(body.data.agents[agentId].canTransferTo).toEqual([]);
       expect(body.data.agents[agentId].canDelegateTo).toEqual([]);
       expect(body.data.agents[agentId].canUse).toEqual([]);
+    });
+  });
+
+  describe('Description consistency between endpoints', () => {
+    it('should return consistent description in both list and single graph endpoints', async () => {
+      const tenantId = createTestTenantId('agent-graphs-description-consistency');
+      await ensureTestProject(tenantId, projectId);
+
+      // Create graph with specific description like the user reported
+      const testDescription = 'this is my graph';
+      const { agentGraphData, agentGraphId } = await createTestAgentGraph({
+        tenantId,
+      });
+
+      // Update the graph with the description via PUT request
+      const updateRes = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            defaultAgentId: agentGraphData.defaultAgentId,
+            description: testDescription
+          }),
+        }
+      );
+      expect(updateRes.status).toBe(200);
+
+      // Create agent for the graph
+      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+
+      // Update graph with default agent
+      await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ defaultAgentId: agentId }),
+        }
+      );
+
+      // Test 1: List all graphs endpoint (should return stored description)
+      const listRes = await app.request(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs`
+      );
+      expect(listRes.status).toBe(200);
+      const listBody = await listRes.json();
+      const graphFromList = listBody.data.find((g: any) => g.id === agentGraphId);
+      expect(graphFromList).toBeDefined();
+      expect(graphFromList.description).toBe(testDescription);
+
+      // Test 2: Single graph endpoint (should return same description)
+      const singleRes = await app.request(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`
+      );
+      expect(singleRes.status).toBe(200);
+      const singleBody = await singleRes.json();
+      expect(singleBody.data.description).toBe(testDescription);
+
+      // Test 3: Full graph endpoint (should return same description)
+      const fullRes = await app.request(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}/full`
+      );
+      expect(fullRes.status).toBe(200);
+      const fullBody = await fullRes.json();
+      expect(fullBody.data.description).toBe(testDescription);
+
+      // All descriptions should be identical
+      expect(graphFromList.description).toBe(singleBody.data.description);
+      expect(singleBody.data.description).toBe(fullBody.data.description);
+
+      // None should have the fallback pattern
+      expect(graphFromList.description).not.toContain('Agent graph');
+      expect(singleBody.data.description).not.toContain('Agent graph');
+      expect(fullBody.data.description).not.toContain('Agent graph');
+    });
+
+    it('should handle null/empty descriptions consistently', async () => {
+      const tenantId = createTestTenantId('agent-graphs-empty-description');
+      await ensureTestProject(tenantId, projectId);
+
+      // Create graph without description (should be undefined/null)
+      const { agentGraphData, agentGraphId } = await createTestAgentGraph({
+        tenantId,
+      });
+
+      // Create agent for the graph
+      const { agentId } = await createTestAgent({ tenantId, graphId: agentGraphId });
+
+      // Update graph with default agent
+      await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ defaultAgentId: agentId }),
+        }
+      );
+
+      // Test all endpoints return consistent empty/null description
+      const listRes = await app.request(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs`
+      );
+      const listBody = await listRes.json();
+      const graphFromList = listBody.data.find((g: any) => g.id === agentGraphId);
+
+      const singleRes = await app.request(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`
+      );
+      const singleBody = await singleRes.json();
+
+      const fullRes = await app.request(
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}/full`
+      );
+      const fullBody = await fullRes.json();
+
+      // All should be consistent (either null, undefined, or empty string)
+      expect(graphFromList.description).toBe(singleBody.data.description);
+      expect(singleBody.data.description).toBe(fullBody.data.description);
+
+      // None should have the fallback pattern when description is intentionally empty
+      expect(graphFromList.description || '').not.toContain('Agent graph');
+      expect(singleBody.data.description || '').not.toContain('Agent graph');
+      expect(fullBody.data.description || '').not.toContain('Agent graph');
     });
   });
 });
