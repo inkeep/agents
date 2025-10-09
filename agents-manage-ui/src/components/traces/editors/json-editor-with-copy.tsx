@@ -1,12 +1,11 @@
 import { type FC, useCallback, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
-import { editor, KeyCode } from 'monaco-editor';
+import { type editor, KeyCode } from 'monaco-editor';
 import {
   addDecorations,
   cleanupDisposables,
   createEditor,
   getOrCreateModel,
-  MONACO_THEME,
 } from '@/lib/monaco-utils';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Download } from 'lucide-react';
 import '@/lib/setup-monaco-workers';
 import './json-editor-with-copy.css';
+import { MONACO_THEME_NAME } from '@/constants/theme';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const { element, position } = e.target;
@@ -49,13 +49,12 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   const ref = useRef<HTMLDivElement>(null!);
   const { resolvedTheme } = useTheme();
 
-  useEffect(() => {
-    editor.setTheme(resolvedTheme === 'dark' ? MONACO_THEME.dark : MONACO_THEME.light);
-  }, [resolvedTheme]);
-
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
     const model = getOrCreateModel({ uri, value });
+    const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
     const editorInstance = createEditor(ref, {
+      theme: monacoTheme,
       model,
       readOnly: true,
       lineNumbers: 'off',
@@ -74,16 +73,27 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       },
     });
     function updateHeight() {
+      if (model.isDisposed()) {
+        return;
+      }
       // Update height based on content
       const contentHeight = editorInstance.getContentHeight();
       ref.current.style.height = `${contentHeight}px`;
     }
     // Wait for Monaco workers to initialize
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
+      if (model.isDisposed()) {
+        return;
+      }
       addDecorations(editorInstance, value, ' ');
     }, 1000);
 
     return cleanupDisposables(
+      {
+        dispose() {
+          clearTimeout(timerId);
+        },
+      },
       model,
       editorInstance,
       editorInstance.onMouseDown(handleCopyFieldValue(model)),
@@ -98,7 +108,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
         },
       })
     );
-  }, [value, uri]);
+  }, []);
 
   const handleCopyCode = useCallback(async () => {
     const code = ref.current.querySelector('.monaco-scrollable-element')?.textContent ?? '';
@@ -134,20 +144,17 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
         {title}
         <Badge variant="sky">JSON</Badge>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Download File"
-          className="ml-auto"
-          onClick={handleDownloadCode}
-        >
-          <Download />
-        </Button>
-        <Button variant="ghost" size="icon-sm" title="Copy Code" onClick={handleCopyCode}>
-          <Copy />
-        </Button>
       </h3>
-      <div ref={ref} className="rounded-xl overflow-hidden border" />
+      <div ref={ref} className="rounded-xl overflow-hidden border relative">
+        <div className="absolute end-2 top-2 flex gap-1">
+          <Button variant="ghost" size="icon-sm" title="Download File" onClick={handleDownloadCode}>
+            <Download />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="Copy Code" onClick={handleCopyCode}>
+            <Copy />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

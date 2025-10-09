@@ -1,5 +1,6 @@
-import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
 import type { RefObject } from 'react';
+import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
+import { MONACO_THEME_DATA, MONACO_THEME_NAME } from '@/constants/theme';
 
 // Function to check if a token should show a copy icon
 function shouldShowCopyIcon(tokenType: string): boolean {
@@ -71,49 +72,8 @@ export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: str
   return model ?? editor.createModel(value, language, uri);
 }
 
-export const MONACO_THEME = {
-  dark: 'inkeep-dark',
-  light: 'inkeep-light',
-};
-
-editor.defineTheme(MONACO_THEME.dark, {
-  base: 'vs-dark',
-  inherit: true,
-  rules: [
-    {
-      token: 'string.key.json',
-      foreground: '#9a86fd',
-    },
-    {
-      token: 'string.value.json',
-      foreground: '#ffb870',
-    },
-  ],
-  colors: {
-    'editor.background': '#ffffff05',
-    // Removes blue border
-    focusBorder: '#00000000', // transparent
-  },
-});
-editor.defineTheme(MONACO_THEME.light, {
-  base: 'vs',
-  inherit: true,
-  rules: [
-    {
-      token: 'string.key.json',
-      foreground: '#b29762',
-    },
-    {
-      token: 'string.value.json',
-      foreground: '#1659df',
-    },
-  ],
-  colors: {
-    'editor.background': '#00000000', // transparent
-    // Removes blue border
-    focusBorder: '#00000000', // transparent
-  },
-});
+editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
+editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
 
 export function createEditor(
   domElement: RefObject<HTMLDivElement>,
