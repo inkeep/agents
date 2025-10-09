@@ -154,7 +154,7 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="Message content" value={a.messageContent} />
+            <Info label="Message content" value={a.messageContent || 'Message content not available'} />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -200,7 +200,9 @@ export function renderPanelContent({
           <Section>
             {a.contextAgentGraphId && (
               <LabeledBlock label="Agent graph id">
-                <Badge variant="code">{a.contextAgentGraphId}</Badge>
+                <Badge variant="code">
+                  {a.contextAgentGraphId}
+                </Badge>
               </LabeledBlock>
             )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
@@ -432,7 +434,7 @@ export function renderPanelContent({
               <Info
                 label="Artifact ID"
                 value={
-                  <Badge variant="code" className="">
+                  <Badge variant="code">
                     {a.artifactId}
                   </Badge>
                 }
@@ -442,7 +444,7 @@ export function renderPanelContent({
               <Info
                 label="Tool call ID"
                 value={
-                  <Badge variant="code" className="">
+                  <Badge variant="code">
                     {a.artifactToolCallId}
                   </Badge>
                 }

@@ -194,12 +194,16 @@ export function TimelineItem({
 
           {/* context fetch url */}
           {activity.type === 'context_fetch' && activity.toolResult && (
-            <Bubble className="break-all">{activity.toolResult}</Bubble>
+            <div className="mb-1">
+              <Badge variant="code" className="break-all">{activity.toolResult}</Badge>
+            </div>
           )}
 
           {/* context resolution URL */}
           {activity.type === 'context_resolution' && activity.contextUrl && (
-            <CodeBubble className=" break-all">{activity.contextUrl}</CodeBubble>
+            <div className="mb-1">
+              <Badge variant="code" className="break-all">{activity.contextUrl}</Badge>
+            </div>
           )}
 
           {/* delegation flow */}
