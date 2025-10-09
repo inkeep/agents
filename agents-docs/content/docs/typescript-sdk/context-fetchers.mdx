@@ -12,7 +12,7 @@ Context fetchers allow you to embed real-time data from external APIs into your 
 
 - **Dynamic data retrieval**: Fetch real-time data from APIs.
 - **Dynamic Prompting**: Use dynamic data in your agent prompts
-- **Request context integration**: Use request-specific parameters to customize data fetching.
+- **Headers integration**: Use headers-specific parameters to customize data fetching.
 - **Data transformation**: Transform API responses into the exact format your agent needs.
 
 ## Context Fetchers vs Tools
@@ -38,7 +38,7 @@ import { z } from "zod";
 import { agent, agentGraph } from "@inkeep/agents-manage-api/builders";
 import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
 
-// 1. Define request schema for headers validation. All header keys are converted to lowercase.
+// 1. Define a schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.
 const personalGraphHeaders = headers({
   schema: z.object({
@@ -144,4 +144,4 @@ transform: "items[0].name"; // Result: "First Item"
 
 ## Related documentation
 
-- [Request Context](/typescript-sdk/request-context) - Learn how to pass dynamic context to your agents via HTTP headers
+- [Headers](/typescript-sdk/headers) - Learn how to pass dynamic context to your agents via HTTP headers
