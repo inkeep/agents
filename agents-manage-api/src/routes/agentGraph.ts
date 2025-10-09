@@ -9,7 +9,7 @@ import {
   createApiError,
   deleteAgentGraph,
   ErrorResponseSchema,
-  FullGraphDefinitionSchema,
+  GraphWithinContextOfProjectSchema,
   getAgentGraphById,
   getFullGraphDefinition,
   getGraphAgentInfos,
@@ -180,7 +180,7 @@ app.openapi(
         description: 'Full graph definition retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullGraphDefinitionSchema),
+            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
           },
         },
       },

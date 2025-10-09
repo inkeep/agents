@@ -312,7 +312,7 @@ export const createFullProjectServerSide =
             const graphDataWithProjectResources = {
               ...graphData,
               agents: undefined, // Remove 'agents' property from GraphWithinContextOfProjectSchema
-              subAgents: graphData.agents, // Map 'agents' to 'subAgents' for FullGraphDefinitionSchema
+              subAgents: graphData.subAgents, // Map 'agents' to 'subAgents' for FullGraphDefinitionSchema
               tools: typed.tools || {}, // Pass project-level resources for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
@@ -713,7 +713,7 @@ export const updateFullProjectServerSide =
             const graphDataWithProjectResources = {
               ...graphData,
               agents: undefined, // Remove 'agents' property from GraphWithinContextOfProjectSchema
-              subAgents: graphData.agents, // Map 'agents' to 'subAgents' for FullGraphDefinitionSchema
+              subAgents: graphData.subAgents, // Map 'agents' to 'subAgents' for FullGraphDefinitionSchema
               tools: typed.tools || {}, // Pass project-level resources for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},

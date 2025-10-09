@@ -86,7 +86,6 @@ import type {
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullGraphAgentInsertSchema,
-  FullGraphDefinitionSchema,
   FullProjectDefinitionSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
@@ -94,6 +93,7 @@ import type {
   FunctionInsertSchema,
   FunctionSelectSchema,
   FunctionUpdateSchema,
+  GraphWithinContextOfProjectSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -314,7 +314,7 @@ export type LedgerArtifactApiInsert = z.infer<typeof LedgerArtifactApiInsertSche
 export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSchema>;
 
 // === Full Graph Types ===
-export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
+export type FullGraphDefinition = z.infer<typeof GraphWithinContextOfProjectSchema>;
 export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
 
 // === Full Project Types ===

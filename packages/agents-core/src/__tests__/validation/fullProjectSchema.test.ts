@@ -22,7 +22,7 @@ describe('FullProjectDefinitionSchema', () => {
         name: 'Test Graph',
         description: 'A test graph',
         defaultSubAgentId: 'agent-1',
-        agents: {
+        subAgents: {
           'agent-1': {
             id: 'agent-1',
             name: 'Test Agent',
@@ -124,7 +124,7 @@ describe('FullProjectDefinitionSchema', () => {
           id: 'invalid-graph',
           name: 'Invalid Graph',
           // Missing description
-          agents: 'not-an-object', // Should be object
+          subAgents: 'not-an-object', // Should be object
         },
       },
     };

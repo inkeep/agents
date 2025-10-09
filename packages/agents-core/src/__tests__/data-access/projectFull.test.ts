@@ -54,7 +54,7 @@ describe('projectFull data access', () => {
           name: 'Test Graph',
           description: 'A test graph',
           defaultSubAgentId: subAgentId,
-          agents: {
+          subAgents: {
             [subAgentId]: {
               id: subAgentId,
               name: 'Test Agent',

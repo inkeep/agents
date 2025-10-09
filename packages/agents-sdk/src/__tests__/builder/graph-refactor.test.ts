@@ -193,8 +193,8 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     const graphs = calledProjectData?.graphs || {};
     const firstGraphId = Object.keys(graphs)[0];
     const agentInstructions =
-      firstGraphId && graphs[firstGraphId].agents['component-agent']
-        ? (graphs[firstGraphId].agents['component-agent'] as any).prompt
+      firstGraphId && graphs[firstGraphId].subAgents['component-agent']
+        ? (graphs[firstGraphId].subAgents['component-agent'] as any).prompt
         : '';
 
     // Instructions should be preserved as originally specified
@@ -236,7 +236,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     // The Agent.getId() method now returns the config.id directly
     // Agent was created with id: 'standalone'
-    expect(calledGraphData?.agents.standalone).toMatchObject({
+    expect(calledGraphData?.subAgents.standalone).toMatchObject({
       id: 'standalone',
       canTransferTo: [],
       canDelegateTo: [],

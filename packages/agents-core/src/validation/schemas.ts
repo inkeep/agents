@@ -714,29 +714,16 @@ export const FullGraphAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canDelegateTo: z.array(z.string()).optional(),
 });
 
-export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
-  ),
-  // Lookup maps for UI to resolve canUse items
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // Get tool name/description from toolId
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  contextConfig: z.optional(ContextConfigApiInsertSchema),
-  statusUpdates: z.optional(StatusUpdateSchema),
-  models: ModelSchema.optional(),
-  stopWhen: GraphStopWhenSchema.optional(),
-  graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
-});
-
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(
+  subAgents: z.record(
     z.string(),
     z.discriminatedUnion('type', [
       FullGraphAgentInsertSchema,
       ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
     ])
   ),
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // Get tool name/description from toolId
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
