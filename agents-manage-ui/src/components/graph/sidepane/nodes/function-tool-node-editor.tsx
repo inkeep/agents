@@ -175,7 +175,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
       </div>
 
       <div className="space-y-2">
-        <div className="text-sm font-medium">Dependencies (Optional)</div>
+        <div className="text-sm font-medium">Dependencies</div>
         <StandaloneJsonEditor
           value={dependencies}
           onChange={handleDependenciesChange}

@@ -1,5 +1,18 @@
 # @inkeep/agents-cli
 
+## 0.17.0
+
+### Minor Changes
+
+- 94c0c18: Only allow headers template creation through headers builder
+
+### Patch Changes
+
+- Updated dependencies [94c0c18]
+  - @inkeep/agents-core@0.17.0
+  - @inkeep/agents-manage-ui@0.17.0
+  - @inkeep/agents-sdk@0.17.0
+
 ## 0.16.3
 
 ### Patch Changes
