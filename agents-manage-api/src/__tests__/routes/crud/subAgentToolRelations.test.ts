@@ -115,7 +115,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
     const agentData = { ...createTestSubAgentData({ suffix }) };
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/sub-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -176,7 +176,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
   }) => {
     const relationData = createAgentToolRelationData({ subAgentId, toolId, graphId });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
       {
         method: 'POST',
         body: JSON.stringify(relationData),
@@ -206,7 +206,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const relationData = createAgentToolRelationData({ graphId, subAgentId, toolId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -231,7 +231,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       // Create first relation
       const relationData = createAgentToolRelationData({ graphId, subAgentId, toolId });
       const firstRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -242,7 +242,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       // Try to create duplicate
       const duplicateData = createAgentToolRelationData({ graphId, subAgentId, toolId });
       const duplicateRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(duplicateData),
@@ -256,7 +256,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const graphId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -273,7 +273,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const graphId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`
       );
       expect(res.status).toBe(200);
 
@@ -294,7 +294,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`
       );
       expect(res.status).toBe(200);
 
@@ -321,7 +321,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await createTestAgentToolRelation({ tenantId, subAgentId: otherAgentId, toolId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations?subAgentId=${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?subAgentId=${subAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -344,7 +344,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await createTestAgentToolRelation({ tenantId, subAgentId, toolId: otherToolId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations?toolId=${toolId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?toolId=${toolId}`
       );
       expect(res.status).toBe(200);
 
@@ -368,7 +368,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
       // Test first page with limit 2
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -383,7 +383,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -411,7 +411,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/${relationId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`
       );
       expect(res.status).toBe(200);
 
@@ -426,7 +426,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const graphId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/non-existent-id`
       );
       expect(res.status).toBe(404);
     });
@@ -452,7 +452,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await createTestAgentToolRelation({ tenantId, subAgentId: subAgentId2, toolId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/tool/${toolId}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/tool/${toolId}/sub-agents`
       );
       expect(res.status).toBe(200);
 
@@ -468,7 +468,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const graphId = 'default';
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/tool/${toolId}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/tool/${toolId}/sub-agents`
       );
       expect(res.status).toBe(200);
 
@@ -496,7 +496,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/${relationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -513,7 +513,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const graphId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify({ toolId: 'some-tool-id' }),
@@ -534,7 +534,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/${relationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`,
         {
           method: 'PUT',
           body: JSON.stringify({}),
@@ -557,7 +557,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/${relationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`,
         {
           method: 'DELETE',
         }
@@ -566,7 +566,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
       // Verify it's deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/${relationId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -576,7 +576,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const graphId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/non-existent-id`,
         {
           method: 'DELETE',
         }
@@ -599,7 +599,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -622,7 +622,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -640,7 +640,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations?page=1&limit=100`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=1&limit=100`
       );
       expect(res.status).toBe(200);
 
@@ -656,7 +656,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-tool-relations?page=10&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=10&limit=10`
       );
       expect(res.status).toBe(200);
 

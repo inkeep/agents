@@ -9,10 +9,10 @@ import {
   tools,
 } from '../db/schema';
 import type {
-  AgentRelationInsert,
-  AgentRelationUpdate,
-  AgentToolRelationUpdate,
-  ExternalAgentRelationInsert,
+  SubAgentRelationInsert,
+  SubAgentRelationUpdate,
+  SubAgentToolRelationUpdate,
+  ExternalSubAgentRelationInsert,
 } from '../types/entities';
 import type { AgentScopeConfig, GraphScopeConfig, PaginationConfig } from '../types/utility';
 
@@ -266,7 +266,7 @@ export const getRelatedAgentsForGraph =
   };
 
 export const createSubAgentRelation =
-  (db: DatabaseClient) => async (params: AgentRelationInsert) => {
+  (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
     // Validate that exactly one of targetSubAgentId or externalSubAgentId is provided
     const hasTargetAgent = params.targetSubAgentId != null;
     const hasExternalAgent = params.externalSubAgentId != null;
@@ -325,7 +325,7 @@ export const getAgentRelationByParams =
 /**
  * Upsert agent relation (create if it doesn't exist, no-op if it does)
  */
-export const upsertAgentRelation = (db: DatabaseClient) => async (params: AgentRelationInsert) => {
+export const upsertAgentRelation = (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
   // Check if relation already exists
   const existing = await getAgentRelationByParams(db)({
     scopes: { tenantId: params.tenantId, projectId: params.projectId, graphId: params.graphId },
@@ -346,7 +346,7 @@ export const upsertAgentRelation = (db: DatabaseClient) => async (params: AgentR
 
 // Create external agent relation (convenience function)
 export const createExternalAgentRelation =
-  (db: DatabaseClient) => async (params: ExternalAgentRelationInsert) => {
+  (db: DatabaseClient) => async (params: ExternalSubAgentRelationInsert) => {
     return await createSubAgentRelation(db)({
       ...params,
       targetSubAgentId: undefined,
@@ -355,7 +355,7 @@ export const createExternalAgentRelation =
 
 export const updateAgentRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; relationId: string; data: AgentRelationUpdate }) => {
+  async (params: { scopes: GraphScopeConfig; relationId: string; data: SubAgentRelationUpdate }) => {
     const updateData = {
       ...params.data,
       updatedAt: new Date().toISOString(),
@@ -444,7 +444,7 @@ export const updateAgentToolRelation =
   async (params: {
     scopes: GraphScopeConfig;
     relationId: string;
-    data: AgentToolRelationUpdate;
+    data: SubAgentToolRelationUpdate;
   }) => {
     const updateData = {
       ...params.data,

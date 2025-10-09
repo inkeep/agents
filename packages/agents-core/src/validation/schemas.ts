@@ -143,20 +143,20 @@ export const SubAgentApiSelectSchema = createGraphScopedApiSchema(SubAgentSelect
 export const SubAgentApiInsertSchema = createGraphScopedApiInsertSchema(SubAgentInsertSchema);
 export const SubAgentApiUpdateSchema = createGraphScopedApiUpdateSchema(SubAgentUpdateSchema);
 
-// === Sub Agent Relations Schemas ===
-export const AgentRelationSelectSchema = createSelectSchema(subAgentRelations);
-export const AgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
+// === SubAgent Relations Schemas ===
+export const SubAgentRelationSelectSchema = createSelectSchema(subAgentRelations);
+export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
   graphId: resourceIdSchema,
   sourceSubAgentId: resourceIdSchema,
   targetSubAgentId: resourceIdSchema.optional(),
   externalSubAgentId: resourceIdSchema.optional(),
 });
-export const AgentRelationUpdateSchema = AgentRelationInsertSchema.partial();
+export const SubAgentRelationUpdateSchema = SubAgentRelationInsertSchema.partial();
 
-export const AgentRelationApiSelectSchema = createGraphScopedApiSchema(AgentRelationSelectSchema);
-export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
-  AgentRelationInsertSchema
+export const SubAgentRelationApiSelectSchema = createGraphScopedApiSchema(SubAgentRelationSelectSchema);
+export const SubAgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
+  SubAgentRelationInsertSchema
 )
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES),
@@ -174,8 +174,8 @@ export const AgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
     }
   );
 
-export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
-  AgentRelationUpdateSchema
+export const SubAgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
+  SubAgentRelationUpdateSchema
 )
   .extend({
     relationType: z.enum(VALID_RELATION_TYPES).optional(),
@@ -201,22 +201,22 @@ export const AgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
     }
   );
 
-export const AgentRelationQuerySchema = z.object({
+export const SubAgentRelationQuerySchema = z.object({
   sourceSubAgentId: z.string().optional(),
   targetSubAgentId: z.string().optional(),
   externalSubAgentId: z.string().optional(),
 });
 
-// === External Agent Relations Schemas ===
-export const ExternalAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
+// === External SubAgent Relations Schemas ===
+export const ExternalSubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
   graphId: resourceIdSchema,
   sourceSubAgentId: resourceIdSchema,
   externalSubAgentId: resourceIdSchema,
 });
 
-export const ExternalAgentRelationApiInsertSchema = createApiInsertSchema(
-  ExternalAgentRelationInsertSchema
+export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
+  ExternalSubAgentRelationInsertSchema
 );
 
 // === Agent Graph Schemas ===
@@ -387,23 +387,23 @@ export const DataComponentApiSelectSchema = createApiSchema(DataComponentSelectS
 export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema);
 export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentUpdateSchema);
 
-// === Agent Data Component Schemas ===
+// === SubAgent Data Component Schemas ===
 
-export const AgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
-export const AgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
-export const AgentDataComponentUpdateSchema = AgentDataComponentInsertSchema.partial();
+export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
+export const SubAgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
+export const SubAgentDataComponentUpdateSchema = SubAgentDataComponentInsertSchema.partial();
 
-export const AgentDataComponentApiSelectSchema = createGraphScopedApiSchema(
-  AgentDataComponentSelectSchema
+export const SubAgentDataComponentApiSelectSchema = createGraphScopedApiSchema(
+  SubAgentDataComponentSelectSchema
 );
-export const AgentDataComponentApiInsertSchema = AgentDataComponentInsertSchema.omit({
+export const SubAgentDataComponentApiInsertSchema = SubAgentDataComponentInsertSchema.omit({
   tenantId: true,
   projectId: true,
   id: true,
   createdAt: true,
 });
-export const AgentDataComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
-  AgentDataComponentUpdateSchema
+export const SubAgentDataComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
+  SubAgentDataComponentUpdateSchema
 );
 
 // === Artifact Component Schemas ===
@@ -424,29 +424,29 @@ export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 );
 
-// === Agent Artifact Component Schemas ===
+// === SubAgent Artifact Component Schemas ===
 
-export const AgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
-export const AgentArtifactComponentInsertSchema = createInsertSchema(
+export const SubAgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
+export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
 ).extend({
   id: resourceIdSchema,
   subAgentId: resourceIdSchema,
   artifactComponentId: resourceIdSchema,
 });
-export const AgentArtifactComponentUpdateSchema = AgentArtifactComponentInsertSchema.partial();
+export const SubAgentArtifactComponentUpdateSchema = SubAgentArtifactComponentInsertSchema.partial();
 
-export const AgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
-  AgentArtifactComponentSelectSchema
+export const SubAgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
+  SubAgentArtifactComponentSelectSchema
 );
-export const AgentArtifactComponentApiInsertSchema = AgentArtifactComponentInsertSchema.omit({
+export const SubAgentArtifactComponentApiInsertSchema = SubAgentArtifactComponentInsertSchema.omit({
   tenantId: true,
   projectId: true,
   id: true,
   createdAt: true,
 });
-export const AgentArtifactComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
-  AgentArtifactComponentUpdateSchema
+export const SubAgentArtifactComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
+  SubAgentArtifactComponentUpdateSchema
 );
 
 // === External Agent Schemas ===
@@ -646,9 +646,9 @@ export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigU
   graphId: true,
 });
 
-// === Agent Tool Relation Schemas ===
-export const AgentToolRelationSelectSchema = createSelectSchema(subAgentToolRelations);
-export const AgentToolRelationInsertSchema = createInsertSchema(subAgentToolRelations).extend({
+// === SubAgent Tool Relation Schemas ===
+export const SubAgentToolRelationSelectSchema = createSelectSchema(subAgentToolRelations);
+export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolRelations).extend({
   id: resourceIdSchema,
   subAgentId: resourceIdSchema,
   toolId: resourceIdSchema,
@@ -656,16 +656,16 @@ export const AgentToolRelationInsertSchema = createInsertSchema(subAgentToolRela
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
-export const AgentToolRelationUpdateSchema = AgentToolRelationInsertSchema.partial();
+export const SubAgentToolRelationUpdateSchema = SubAgentToolRelationInsertSchema.partial();
 
-export const AgentToolRelationApiSelectSchema = createGraphScopedApiSchema(
-  AgentToolRelationSelectSchema
+export const SubAgentToolRelationApiSelectSchema = createGraphScopedApiSchema(
+  SubAgentToolRelationSelectSchema
 );
-export const AgentToolRelationApiInsertSchema = createGraphScopedApiInsertSchema(
-  AgentToolRelationInsertSchema
+export const SubAgentToolRelationApiInsertSchema = createGraphScopedApiInsertSchema(
+  SubAgentToolRelationInsertSchema
 );
-export const AgentToolRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
-  AgentToolRelationUpdateSchema
+export const SubAgentToolRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
+  SubAgentToolRelationUpdateSchema
 );
 
 // === Ledger Artifact Schemas ===

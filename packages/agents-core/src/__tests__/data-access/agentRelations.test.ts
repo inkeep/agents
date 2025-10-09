@@ -20,7 +20,7 @@ import {
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
-import type { AgentRelationInsert } from '../../types/index';
+import type { SubAgentRelationInsert } from '../../types/index';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
@@ -471,7 +471,7 @@ describe('Agent Relations Data Access', () => {
     });
 
     it('should throw error when both target and external agent are specified', async () => {
-      const relationData: AgentRelationInsert = {
+      const relationData: SubAgentRelationInsert = {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
