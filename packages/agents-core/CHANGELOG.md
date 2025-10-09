@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.16.0
+
+### Minor Changes
+
+- 5c3bbec: Request context refactor
+
+### Patch Changes
+
+- 35e6c9e: Updated Artifact Schema
+
 ## 0.15.0
 
 ### Minor Changes

@@ -1,5 +1,21 @@
 # @inkeep/agents-manage-ui
 
+## 0.16.0
+
+### Minor Changes
+
+- 5c3bbec: Request context refactor
+
+### Patch Changes
+
+- 35e6c9e: Updated Artifact Schema
+- Updated dependencies [5c3bbec]
+- Updated dependencies [35e6c9e]
+- Updated dependencies [e88e98c]
+  - @inkeep/agents-core@0.16.0
+  - @inkeep/agents-manage-api@0.16.0
+  - @inkeep/agents-run-api@0.16.0
+
 ## 0.15.0
 
 ### Patch Changes
