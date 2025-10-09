@@ -310,7 +310,8 @@ export const createFullProjectServerSide =
             // for validation, even though they're stored at the project level
             const graphDataWithProjectResources = {
               ...graphData,
-              tools: typed.tools || {}, // Pass project-level resources for validation
+              tools: typed.tools || {}, // Pass project-level MCP tools for validation
+              functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
               credentialReferences: typed.credentialReferences || {},
@@ -708,7 +709,8 @@ export const updateFullProjectServerSide =
             // for validation, even though they're stored at the project level
             const graphDataWithProjectResources = {
               ...graphData,
-              tools: typed.tools || {}, // Pass project-level resources for validation
+              tools: typed.tools || {}, // Pass project-level MCP tools for validation
+              functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
               credentialReferences: typed.credentialReferences || {},

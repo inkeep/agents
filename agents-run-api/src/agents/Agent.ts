@@ -11,6 +11,7 @@ import {
   getCredentialReference,
   getFullGraphDefinition,
   getFunction,
+  getFunctionToolsForAgent,
   getLedgerArtifacts,
   getToolsForAgent,
   graphHasArtifactComponents,
@@ -44,7 +45,6 @@ import {
 
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { ArtifactService } from '../services/ArtifactService';
 import { graphSessionManager } from '../services/GraphSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
@@ -776,23 +776,19 @@ export class Agent {
     const functionTools: ToolSet = {};
 
     try {
-      // Get function tools from database
-      const toolsForAgent = await getToolsForAgent(dbClient)({
+      // Load function tools from the new functionTools API
+      const functionToolsForAgent = await getFunctionToolsForAgent(dbClient)({
         scopes: {
-          tenantId: this.config.tenantId || 'default',
-          projectId: this.config.projectId || 'default',
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
           graphId: this.config.graphId,
-          agentId: this.config.id,
         },
+        agentId: this.config.id,
       });
 
-      // Extract the data array from the response
-      const toolsData = toolsForAgent.data || [];
+      const functionToolsData = functionToolsForAgent.data || [];
 
-      // Filter for function tools
-      const functionToolDefs = toolsData.filter((tool) => tool.tool.config.type === 'function');
-
-      if (functionToolDefs.length === 0) {
+      if (functionToolsData.length === 0) {
         return functionTools;
       }
 
@@ -800,77 +796,78 @@ export class Agent {
       const { LocalSandboxExecutor } = await import('../tools/LocalSandboxExecutor');
       const sandboxExecutor = LocalSandboxExecutor.getInstance();
 
-      for (const toolDef of functionToolDefs) {
-        if (toolDef.tool.config?.type === 'function') {
-          // Get function details from global functions table via functionId
-          const functionId = toolDef.tool.functionId;
-          if (!functionId) {
-            logger.warn({ toolId: toolDef.tool.id }, 'Function tool missing functionId reference');
-            continue;
-          }
-
-          const functionData = await getFunction(dbClient)({
-            functionId,
-            scopes: {
-              tenantId: this.config.tenantId || 'default',
-              projectId: this.config.projectId || 'default',
-            },
-          });
-          if (!functionData) {
-            logger.warn(
-              { functionId, toolId: toolDef.tool.id },
-              'Function not found in functions table'
-            );
-            continue;
-          }
-
-          // Convert JSON schema to Zod schema
-          const zodSchema = jsonSchemaToZod(functionData.inputSchema);
-
-          const aiTool = tool({
-            description: toolDef.tool.description || toolDef.tool.name,
-            inputSchema: zodSchema,
-            execute: async (args, { toolCallId }) => {
-              logger.debug(
-                { toolName: toolDef.tool.name, toolCallId, args },
-                'Function Tool Called'
-              );
-
-              try {
-                const result = await sandboxExecutor.executeFunctionTool(toolDef.tool.id, args, {
-                  description: toolDef.tool.description || toolDef.tool.name,
-                  inputSchema: functionData.inputSchema || {},
-                  executeCode: functionData.executeCode,
-                  dependencies: functionData.dependencies || {},
-                });
-
-                // Record the result
-                toolSessionManager.recordToolResult(sessionId || '', {
-                  toolCallId,
-                  toolName: toolDef.tool.name,
-                  args,
-                  result,
-                  timestamp: Date.now(),
-                });
-
-                return { result, toolCallId };
-              } catch (error) {
-                logger.error(
-                  { toolName: toolDef.tool.name, toolCallId, error },
-                  'Function tool execution failed'
-                );
-                throw error;
-              }
-            },
-          });
-
-          functionTools[toolDef.tool.name] = this.wrapToolWithStreaming(
-            toolDef.tool.name,
-            aiTool,
-            streamRequestId || '',
-            'tool'
+      for (const functionToolDef of functionToolsData) {
+        // Get function details from global functions table via functionId
+        const functionId = functionToolDef.functionId;
+        if (!functionId) {
+          logger.warn(
+            { functionToolId: functionToolDef.id },
+            'Function tool missing functionId reference'
           );
+          continue;
         }
+
+        const functionData = await getFunction(dbClient)({
+          functionId,
+          scopes: {
+            tenantId: this.config.tenantId || 'default',
+            projectId: this.config.projectId || 'default',
+          },
+        });
+        if (!functionData) {
+          logger.warn(
+            { functionId, functionToolId: functionToolDef.id },
+            'Function not found in functions table'
+          );
+          continue;
+        }
+
+        // Convert JSON schema to Zod schema
+        const zodSchema = jsonSchemaToZod(functionData.inputSchema);
+
+        const aiTool = tool({
+          description: functionToolDef.description || functionToolDef.name,
+          inputSchema: zodSchema,
+          execute: async (args, { toolCallId }) => {
+            logger.debug(
+              { toolName: functionToolDef.name, toolCallId, args },
+              'Function Tool Called'
+            );
+
+            try {
+              const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
+                description: functionToolDef.description || functionToolDef.name,
+                inputSchema: functionData.inputSchema || {},
+                executeCode: functionData.executeCode,
+                dependencies: functionData.dependencies || {},
+              });
+
+              // Record the result
+              toolSessionManager.recordToolResult(sessionId || '', {
+                toolCallId,
+                toolName: functionToolDef.name,
+                args,
+                result,
+                timestamp: Date.now(),
+              });
+
+              return { result, toolCallId };
+            } catch (error) {
+              logger.error(
+                { toolName: functionToolDef.name, toolCallId, error },
+                'Function tool execution failed'
+              );
+              throw error;
+            }
+          },
+        });
+
+        functionTools[functionToolDef.name] = this.wrapToolWithStreaming(
+          functionToolDef.name,
+          aiTool,
+          streamRequestId || '',
+          'tool'
+        );
       }
     } catch (error) {
       logger.error({ error }, 'Failed to load function tools from database');
@@ -1234,7 +1231,7 @@ export class Agent {
       }),
       execute: async ({ artifactId, toolCallId }) => {
         logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
-        
+
         // Use shared ArtifactService from GraphSessionManager
         const streamRequestId = this.getStreamRequestId();
         const artifactService = graphSessionManager.getArtifactService(streamRequestId);
@@ -1242,13 +1239,13 @@ export class Agent {
         if (!artifactService) {
           throw new Error(`ArtifactService not found for session ${streamRequestId}`);
         }
-        
+
         const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
         if (!artifactData) {
           throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
         }
-        
-        return { 
+
+        return {
           artifactId: artifactData.artifactId,
           name: artifactData.name,
           description: artifactData.description,

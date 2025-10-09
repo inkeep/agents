@@ -7,6 +7,7 @@ import {
   getProject,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
+import { FunctionTool } from './function-tool';
 import { updateFullGraphViaAPI } from './graphFullClient';
 import type {
   AgentInterface,
@@ -172,6 +173,8 @@ export class AgentGraph implements GraphInterface {
    */
   async toFullGraphDefinition(): Promise<FullGraphDefinition> {
     const agentsObject: Record<string, any> = {};
+    const functionToolsObject: Record<string, any> = {};
+    const functionsObject: Record<string, any> = {};
 
     for (const agent of this.agents) {
       if (this.isInternalAgent(agent)) {
@@ -200,6 +203,30 @@ export class AgentGraph implements GraphInterface {
           }
 
           tools.push(toolId);
+
+          // Handle function tools - collect them for graph-level functionTools and functions
+          if (
+            toolInstance.constructor.name === 'FunctionTool' &&
+            toolInstance instanceof FunctionTool
+          ) {
+            // Add to functions object (global entity)
+            if (!functionsObject[toolId]) {
+              const functionData = toolInstance.serializeFunction();
+              functionsObject[toolId] = functionData;
+            }
+
+            // Add to functionTools object (graph-scoped)
+            if (!functionToolsObject[toolId]) {
+              const toolData = toolInstance.serializeTool();
+              functionToolsObject[toolId] = {
+                id: toolData.id,
+                name: toolData.name,
+                description: toolData.description,
+                functionId: toolData.functionId,
+                graphId: this.graphId, // Include graphId for graph-scoped function tools
+              };
+            }
+          }
         }
 
         // Convert dataComponents to the expected format (agent.dataComponents should be an array of dataComponent IDs)
@@ -275,7 +302,8 @@ export class AgentGraph implements GraphInterface {
       defaultAgentId: this.defaultAgent?.getId() || '',
       agents: agentsObject,
       contextConfig: this.contextConfig?.toObject(),
-
+      ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
+      ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
       graphPrompt: this.graphPrompt,

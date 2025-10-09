@@ -4,11 +4,13 @@ import type { DatabaseClient } from '../db/client';
 import {
   agentArtifactComponents,
   agentDataComponents,
+  agentFunctionToolRelations,
   agentGraph,
   agents,
   agentToolRelations,
   artifactComponents,
   dataComponents,
+  functionTools,
   projects,
   tools,
 } from '../db/schema';
@@ -19,6 +21,7 @@ import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
+import { listFunctionTools } from './functionTools';
 import { listTools } from './tools';
 
 export const getAgentGraphById =
@@ -355,7 +358,7 @@ export const getFullGraphDefinition =
           .map((rel) => rel.targetAgentId || rel.externalAgentId) // Delegations can be to internal or external agents
           .filter((id): id is string => id !== null);
 
-        // Get tools for this agent
+        // Get MCP tools for this agent
         const agentTools = await db
           .select({
             id: tools.id,
@@ -391,6 +394,39 @@ export const getFullGraphDefinition =
             )
           );
 
+        // Get function tools for this agent
+        const agentFunctionTools = await db
+          .select({
+            id: functionTools.id,
+            name: functionTools.name,
+            description: functionTools.description,
+            functionId: functionTools.functionId,
+            createdAt: functionTools.createdAt,
+            updatedAt: functionTools.updatedAt,
+            tenantId: functionTools.tenantId,
+            projectId: functionTools.projectId,
+            graphId: functionTools.graphId,
+            agentToolRelationId: agentFunctionToolRelations.id,
+          })
+          .from(agentFunctionToolRelations)
+          .innerJoin(
+            functionTools,
+            and(
+              eq(agentFunctionToolRelations.functionToolId, functionTools.id),
+              eq(agentFunctionToolRelations.tenantId, functionTools.tenantId),
+              eq(agentFunctionToolRelations.projectId, functionTools.projectId),
+              eq(agentFunctionToolRelations.graphId, functionTools.graphId)
+            )
+          )
+          .where(
+            and(
+              eq(agentFunctionToolRelations.tenantId, tenantId),
+              eq(agentFunctionToolRelations.projectId, projectId),
+              eq(agentFunctionToolRelations.graphId, graphId),
+              eq(agentFunctionToolRelations.agentId, agent.id)
+            )
+          );
+
         // Get dataComponents for this agent
         const agentDataComponentRelations = await db.query.agentDataComponents.findMany({
           where: and(
@@ -411,13 +447,22 @@ export const getFullGraphDefinition =
           (rel) => rel.artifactComponentId
         );
 
-        // Construct canUse array from agentTools
-        const canUse = agentTools.map((tool) => ({
+        // Construct canUse array from both MCP tools and function tools
+        const mcpToolCanUse = agentTools.map((tool) => ({
           agentToolRelationId: tool.agentToolRelationId,
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
           headers: tool.headers || null,
         }));
+
+        const functionToolCanUse = agentFunctionTools.map((tool) => ({
+          agentToolRelationId: tool.agentToolRelationId,
+          toolId: tool.id,
+          toolSelection: null, // Function tools don't have tool selection
+          headers: null, // Function tools don't have headers
+        }));
+
+        const canUse = [...mcpToolCanUse, ...functionToolCanUse];
 
         return {
           id: agent.id,
@@ -677,18 +722,35 @@ export const getFullGraphDefinition =
           name: tool.name,
           description: tool.description,
           config: tool.config,
-          functionId: tool.functionId,
           credentialReferenceId: tool.credentialReferenceId,
           imageUrl: tool.imageUrl,
         };
       }
       result.tools = toolsObject;
 
+      // Get function tools for this graph
+      const functionToolsList = await listFunctionTools(db)({
+        scopes: { tenantId, projectId, graphId },
+        pagination: { page: 1, limit: 1000 },
+      });
+
+      // Build function tools lookup map
+      const functionToolsObject: Record<string, any> = {};
+      for (const functionTool of functionToolsList.data) {
+        functionToolsObject[functionTool.id] = {
+          id: functionTool.id,
+          name: functionTool.name,
+          description: functionTool.description,
+          functionId: functionTool.functionId,
+        };
+      }
+      result.functionTools = functionToolsObject;
+
       // Get all functions referenced by function tools
       const functionIds = new Set<string>();
-      for (const tool of toolsList.data) {
-        if (tool.functionId) {
-          functionIds.add(tool.functionId);
+      for (const functionTool of functionToolsList.data) {
+        if (functionTool.functionId) {
+          functionIds.add(functionTool.functionId);
         }
       }
 

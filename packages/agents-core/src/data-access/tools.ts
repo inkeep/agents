@@ -186,7 +186,6 @@ export const dbResultToMcpTool = async (
     // Return minimal tool data for non-MCP tools
     return {
       ...rest,
-      functionId: rest.functionId || undefined, // Convert null to undefined
       status: 'unknown',
       availableTools: [],
       capabilities: capabilities || undefined,
@@ -239,7 +238,6 @@ export const dbResultToMcpTool = async (
 
   return {
     ...rest,
-    functionId: rest.functionId || undefined, // Convert null to undefined
     status,
     availableTools,
     capabilities: capabilities || undefined,

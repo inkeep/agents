@@ -14,6 +14,7 @@ import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
+import functionToolsRoutes from './functionTools';
 import graphFullRoutes from './graphFull';
 import projectsRoutes from './projects';
 import toolsRoutes from './tools';
@@ -38,6 +39,7 @@ app.route('/projects/:projectId/graphs/:graphId/context-configs', contextConfigs
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
 app.route('/projects/:projectId/graphs/:graphId/external-agents', externalAgentsRoutes);
+app.route('/projects/:projectId/graphs/:graphId/function-tools', functionToolsRoutes);
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);

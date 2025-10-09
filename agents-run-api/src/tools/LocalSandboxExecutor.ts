@@ -466,13 +466,26 @@ export class LocalSandboxExecutor {
 const execute = ${executeCode};
 const args = ${JSON.stringify(args)};
 
-execute(args)
-  .then(result => {
+try {
+  const result = execute(args);
+  
+  // Handle both sync and async functions
+  if (result && typeof result.then === 'function') {
+    // Async function - result is a Promise
+    result
+      .then(result => {
+        console.log(JSON.stringify({ success: true, result }));
+      })
+      .catch(error => {
+        console.log(JSON.stringify({ success: false, error: error.message }));
+      });
+  } else {
+    // Sync function - result is immediate
     console.log(JSON.stringify({ success: true, result }));
-  })
-  .catch(error => {
-    console.log(JSON.stringify({ success: false, error: error.message }));
-  });
+  }
+} catch (error) {
+  console.log(JSON.stringify({ success: false, error: error.message }));
+}
 `;
   }
 }

@@ -13,6 +13,7 @@ export * from './credentialReferences';
 export * from './dataComponents';
 export * from './externalAgents';
 export * from './functions';
+export * from './functionTools';
 export * from './graphFull';
 export * from './ledgerArtifacts';
 export * from './messages';
