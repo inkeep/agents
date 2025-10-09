@@ -3,6 +3,7 @@
 import {
   Activity,
   ArrowLeft,
+  Copy,
   ExternalLink as ExternalLinkIcon,
   MessageSquare,
   TriangleAlert,
@@ -20,10 +21,12 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
+import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { toast } from 'sonner';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -34,8 +37,33 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
   const { tenantId, projectId } = useParams();
   const { SIGNOZ_URL } = useRuntimeConfig();
+
+  const handleCopyTrace = async () => {
+    if (!conversation) return;
+
+    setIsCopying(true);
+    try {
+      const result = await copyTraceToClipboard(conversation);
+      if (result.success) {
+        toast.success('Trace copied to clipboard', {
+          description: 'The prettified OTEL trace has been copied successfully.',
+        });
+      } else {
+        toast.error('Failed to copy trace', {
+          description: result.error || 'An unknown error occurred',
+        });
+      }
+    } catch (err) {
+      toast.error('Failed to copy trace', {
+        description: err instanceof Error ? err.message : 'An unknown error occurred',
+      });
+    } finally {
+      setIsCopying(false);
+    }
+  };
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
@@ -115,6 +143,16 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               {conversation.graphName ? `${conversation.graphName}` : conversation.graphId}
             </ExternalLink>
           )}
+          <Button
+            onClick={handleCopyTrace}
+            variant="outline"
+            size="sm"
+            disabled={isCopying}
+            className="flex items-center gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            {isCopying ? 'Copying...' : 'Copy Trace'}
+          </Button>
           <SignozLink conversationId={conversationId} />
         </div>
       </div>
