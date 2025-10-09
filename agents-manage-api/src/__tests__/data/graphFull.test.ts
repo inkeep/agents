@@ -9,6 +9,7 @@ import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { ensureTestProject } from '../utils/testProject';
+import { createTestExternalAgentData, createTestSubAgentData } from '../utils/testSubAgent';
 import { createTestTenantId } from '../utils/testTenant';
 
 // Mock the logger to reduce noise in tests
@@ -22,20 +23,6 @@ vi.mock('../../logger.js', () => ({
 }));
 
 describe('Graph Full Service Layer - Unit Tests', () => {
-  // Helper function to create test agent data
-  const createTestSubAgentData = (id: string, suffix = '') => ({
-    id,
-    name: `Test Agent${suffix}`,
-    description: `Test agent description${suffix}`,
-    prompt: `You are a helpful assistant${suffix}.`,
-    canDelegateTo: [] as string[],
-    canTransferTo: [] as string[],
-    dataComponents: [] as string[],
-    artifactComponents: [] as string[],
-    tools: [] as string[], // Array of tool IDs, not tool objects
-    canUse: [] as { toolId: string; toolSelection?: string[] | null }[], // Required field for internal agents
-    type: 'internal' as const,
-  });
 
   // Helper function to create test tool data
   // const createTestToolData = (id: string, suffix = '') => ({
@@ -82,15 +69,6 @@ describe('Graph Full Service Layer - Unit Tests', () => {
   //   },
   // });
 
-  // Helper function to create test external agent data
-  const createTestExternalAgentData = (id: string, suffix = '') => ({
-    id,
-    name: `External Agent${suffix}`,
-    description: `External agent description${suffix}`,
-    baseUrl: `https://external-service${suffix}.example.com`,
-    type: 'external' as const,
-  });
-
   // Helper function to create test context config data
   const createTestContextConfigData = (id: string, graphId: string, suffix = '') => ({
     id,
@@ -122,8 +100,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
     const dataComponentId1 = `datacomponent-${id}-1`;
     const contextConfigId = `context-${id}`;
 
-    const subAgent1 = createTestSubAgentData(subAgentId1, ' Router');
-    const subAgent2 = createTestSubAgentData(subAgentId2, ' Specialist');
+    const subAgent1 = createTestSubAgentData({ id: subAgentId1, suffix: ' Router' });
+    const subAgent2 = createTestSubAgentData({ id: subAgentId2, suffix: ' Specialist' });
     // const tool1 = createTestToolData(toolId1, '1');
 
     // Set up relationships
@@ -158,7 +136,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
     // Add external agents if requested
     if (options.includeExternalAgents) {
-      graphData.subAgents[externalSubAgentId] = createTestExternalAgentData(externalSubAgentId, '');
+      graphData.subAgents[externalSubAgentId] = createTestExternalAgentData({ id: externalSubAgentId });
     }
 
     // Note: DataComponents are now project-scoped and should be created separately
@@ -264,7 +242,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
-            ...createTestSubAgentData(subAgentId, ' Standalone'),
+            ...createTestSubAgentData({ id: subAgentId, suffix: ' Standalone' }),
             name: 'Single Agent',
             description: 'A standalone agent',
           },
@@ -358,11 +336,11 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Find external subAgent
       const externalAgent = Object.values(result.subAgents).find((subAgent) =>
-        subAgent.type === 'external' && subAgent.baseUrl?.includes('external-service')
+        subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
       if (externalAgent && externalAgent.type === 'external') {
-        expect(externalAgent.baseUrl).toContain('external-service');
+        expect(externalAgent.baseUrl).toContain('api.example.com');
       }
 
       // Verify internal subAgent can hand off to external subAgent
@@ -424,7 +402,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Verify external subAgent exists
       const externalAgent = Object.values(result.subAgents).find((subAgent) =>
-        subAgent.type === 'external' && subAgent.baseUrl?.includes('external-service')
+        subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });
@@ -548,7 +526,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
         ...graphData,
         subAgents: {
           ...graphData.subAgents,
-          [newSubAgentId]: createTestSubAgentData(newSubAgentId, ' New Agent'),
+          [newSubAgentId]: createTestSubAgentData({ id: newSubAgentId, suffix: ' New Agent' }),
         },
       };
 
@@ -637,7 +615,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Find external agent
       const externalAgent = Object.values(result.subAgents).find((subAgent) =>
-        subAgent.type === 'external' && subAgent.baseUrl?.includes('external-service')
+        subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });

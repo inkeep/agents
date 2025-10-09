@@ -2,25 +2,11 @@ import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Graph Full CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createTestAgentData = (id: string, suffix = '') => ({
-    id,
-    name: `Test Agent${suffix}`,
-    description: `Test agent description${suffix}`,
-    prompt: `You are a helpful assistant${suffix}.`,
-    canDelegateTo: [] as string[],
-    canTransferTo: [] as string[],
-    tools: [] as any[],
-    dataComponents: [] as string[],
-    artifactComponents: [] as string[],
-    canUse: [] as { toolId: string }[],
-    type: 'internal' as const,
-  });
 
   // Helper function to create test tool data
   const createTestToolData = (id: string, suffix = '') => ({
@@ -89,26 +75,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     },
   });
 
-  // Helper function to create test external agent data
-  const createTestExternalAgentData = ({
-    id,
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-  }: {
-    id: string;
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-  }) => ({
-    id,
-    tenantId,
-    projectId,
-    type: 'external' as const,
-    name: `Test External Agent${suffix}`,
-    description: `Test external agent description${suffix}`,
-    baseUrl: `https://api.example.com/external-agent${suffix.toLowerCase()}`,
-  });
 
   // Helper function to create test artifactComponent data
   const createTestArtifactComponentData = (id: string, suffix = '') => ({
@@ -152,8 +118,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     const toolId1 = `tool-${id}-1`;
     const toolId2 = `tool-${id}-2`;
 
-    const agent1 = createTestAgentData(subAgentId1, ' Router');
-    const agent2 = createTestAgentData(subAgentId2, ' Specialist');
+    const agent1 = createTestSubAgentData({ id: subAgentId1, suffix: ' Router' });
+    const agent2 = createTestSubAgentData({ id: subAgentId2, suffix: ' Specialist' });
     const tool1 = createTestToolData(toolId1, '1');
     const tool2 = createTestToolData(toolId2, '2');
 
@@ -303,7 +269,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
-            ...createTestAgentData(subAgentId, ' Standalone'),
+            ...createTestSubAgentData({ id: subAgentId, suffix: ' Standalone' }),
             name: 'Single Agent',
             description: 'A standalone agent',
           },
@@ -627,7 +593,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         ...graphData,
         subAgents: {
           ...graphData.subAgents,
-          [newAgentId]: createTestAgentData(newAgentId, ' New Agent'),
+          [newAgentId]: createTestSubAgentData({ id: newAgentId, suffix: ' New Agent' }),
         },
       };
 
@@ -734,8 +700,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         ...graphData,
         subAgents: {
           ...graphData.subAgents,
-          [agent3Id]: createTestAgentData(agent3Id, ' Agent 3'),
-          [agent4Id]: createTestAgentData(agent4Id, ' Agent 4'),
+          [agent3Id]: createTestSubAgentData({ id: agent3Id, suffix: ' Agent 3' }),
+          [agent4Id]: createTestSubAgentData({ id: agent4Id, suffix: ' Agent 4' }),
         },
       };
 
@@ -846,7 +812,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
-            ...createTestAgentData(subAgentId, ' Multi-Tool'),
+            ...createTestSubAgentData({ id: subAgentId, suffix: ' Multi-Tool' }),
             name: 'Multi-Tool Agent',
             description: 'Agent with multiple tools',
             tools: [tool1Id, tool2Id], // Tool IDs, not objects
@@ -890,13 +856,13 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         defaultSubAgentId: agent1Id,
         subAgents: {
           [agent1Id]: {
-            ...createTestAgentData(agent1Id, ' First'),
+            ...createTestSubAgentData({ id: agent1Id, suffix: ' First' }),
             name: 'Agent 1',
             description: 'First agent',
             canTransferTo: [agent2Id], // Add circular relationship
           },
           [agent2Id]: {
-            ...createTestAgentData(agent2Id, ' Second'),
+            ...createTestSubAgentData({ id: agent2Id, suffix: ' Second' }),
             name: 'Agent 2',
             description: 'Second agent',
             canTransferTo: [agent1Id], // Add circular relationship
@@ -932,7 +898,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       for (let i = 1; i <= agentCount; i++) {
         const subAgentId = `agent-${graphId}-${i}`;
         subAgentIds.push(subAgentId);
-        agents[subAgentId] = createTestAgentData(subAgentId, ` ${i}`);
+        agents[subAgentId] = createTestSubAgentData({ id: subAgentId, suffix: ` ${i}` });
       }
 
       // Set up relationships (each agent can transfer to the next one)

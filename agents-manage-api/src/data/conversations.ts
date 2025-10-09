@@ -110,7 +110,7 @@ export async function saveA2AMessageResponse(
 }
 
 /**
- * Applies filtering based on agent, task, or both criteria
+ * Applies filtering based on sub-agent, task, or both criteria
  * Returns the filtered messages array
  */
 export async function getScopedHistory({

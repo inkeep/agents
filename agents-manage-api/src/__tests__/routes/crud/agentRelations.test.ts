@@ -3,18 +3,11 @@ import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestAgentRelationData, createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Agent Relation CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createAgentData = ({ suffix = '' } = {}) => ({
-    id: nanoid(),
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-  });
 
   // Helper function to create an agent (needed for agent relations)
   const createTestAgent = async ({
@@ -26,7 +19,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix });
+    const agentData = createTestSubAgentData({ suffix });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agents`,
       {
@@ -39,25 +32,6 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     const createBody = await createRes.json();
     return { agentData, subAgentId: createBody.data.id };
   };
-
-  // Helper function to create test agent relation data
-  const createAgentRelationData = ({
-    graphId,
-    sourceSubAgentId,
-    targetSubAgentId,
-    relationType = 'transfer',
-  }: {
-    graphId: string;
-    sourceSubAgentId: string;
-    targetSubAgentId: string;
-    relationType?: 'transfer' | 'delegate';
-  }) => ({
-    id: nanoid(),
-    graphId,
-    sourceSubAgentId,
-    targetSubAgentId,
-    relationType,
-  });
 
   // Helper function to create an agent relation
   const createTestAgentRelation = async ({
@@ -73,7 +47,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     targetSubAgentId: string;
     relationType?: 'transfer' | 'delegate';
   }) => {
-    const agentRelationData = createAgentRelationData({
+    const agentRelationData = createTestAgentRelationData({
       graphId,
       sourceSubAgentId,
       targetSubAgentId,
@@ -143,7 +117,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceSubAgentId, targetSubAgentId, agentGraphId } =
         await setupTestEnvironment(tenantId);
 
-      const agentRelationData = createAgentRelationData({
+      const agentRelationData = createTestAgentRelationData({
         graphId: agentGraphId,
         sourceSubAgentId,
         targetSubAgentId,
@@ -217,7 +191,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceSubAgentId, targetSubAgentId, agentGraphId } =
         await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentRelationData({
+      const relationData = createTestAgentRelationData({
         graphId: agentGraphId,
         sourceSubAgentId,
         targetSubAgentId,
@@ -243,7 +217,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceSubAgentId, targetSubAgentId, agentGraphId } =
         await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentRelationData({
+      const relationData = createTestAgentRelationData({
         graphId: agentGraphId,
         sourceSubAgentId,
         targetSubAgentId,

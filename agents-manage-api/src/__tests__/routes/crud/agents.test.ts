@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Agent CRUD Routes - Integration Tests', () => {
@@ -24,15 +25,6 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     return body.data.id;
   };
 
-  // Helper function to create test agent data
-  const createAgentData = ({ suffix = '', graphId }: { suffix?: string; graphId: string }) => ({
-    id: `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-    graphId,
-  });
-
   // Helper function to create an agent and return its ID
   const createTestAgent = async ({
     tenantId,
@@ -43,7 +35,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix, graphId });
+    const agentData = createTestSubAgentData({ suffix, graphId });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agents`,
       {
@@ -356,7 +348,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agents-create-success');
       await ensureTestProject(tenantId, 'default');
       const graphId = await createTestGraph(tenantId);
-      const agentData = createAgentData({ graphId });
+      const agentData = createTestSubAgentData({ graphId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agents`,
@@ -383,7 +375,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agents-create-with-id');
       await ensureTestProject(tenantId, 'default');
       const graphId = await createTestGraph(tenantId);
-      const agentData = createAgentData({ graphId });
+      const agentData = createTestSubAgentData({ graphId });
       const providedId = nanoid();
 
       const res = await makeRequest(

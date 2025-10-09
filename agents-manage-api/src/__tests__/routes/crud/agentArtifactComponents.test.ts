@@ -2,28 +2,11 @@ import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createAgentData = ({
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-  }: {
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-  } = {}) => ({
-    id: nanoid(),
-    tenantId,
-    projectId,
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-  });
 
   // Helper function to create a sub-agent (needed for sub-agent artifact component relations)
   const createTestAgent = async ({
@@ -55,7 +38,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     // Use the graphId from the created or existing graph (409 means it already exists)
     const effectiveGraphId = graphId;
 
-    const subAgentData = { ...createAgentData({ suffix, tenantId, projectId }) };
+    const subAgentData = { ...createTestSubAgentData({ suffix, tenantId, projectId }) };
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
       {

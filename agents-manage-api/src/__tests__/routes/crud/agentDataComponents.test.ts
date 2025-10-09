@@ -2,21 +2,11 @@ import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createAgentData = ({ suffix = '', tenantId = '' } = {}) => ({
-    id: `test-agent${suffix}-${tenantId}`,
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-    canUse: [],
-    type: 'internal' as const,
-    tools: [],
-  });
 
   // Helper function to create an agent (needed for agent data component relations)
   const createTestAgent = async ({
@@ -49,7 +39,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       effectiveGraphId = graphRes.status === 201 ? effectiveGraphId : 'default';
     }
 
-    const agentData = { ...createAgentData({ suffix, tenantId }) };
+    const agentData = { ...createTestSubAgentData({ suffix, tenantId }) };
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
       {

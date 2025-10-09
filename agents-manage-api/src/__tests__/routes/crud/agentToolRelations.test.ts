@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock the MCP client to avoid external dependencies
@@ -51,17 +52,6 @@ vi.mock('@inkeep/agents-core', async () => {
 
 describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createAgentData = ({ suffix = '' } = {}) => ({
-    id: nanoid(),
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-    type: 'internal' as const,
-    tools: [],
-    canUse: [],
-  });
 
   // Helper function to create test tool data
   const createToolData = ({ suffix = '' } = {}) => ({
@@ -123,7 +113,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       expect(graphRes.status).toBe(201);
     }
 
-    const agentData = { ...createAgentData({ suffix }) };
+    const agentData = { ...createTestSubAgentData({ suffix }) };
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
       {

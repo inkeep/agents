@@ -4,30 +4,10 @@ import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
+import { createTestExternalAgentData } from '../../utils/testSubAgent';
 
 describe('External Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data
-  const createAgentData = ({
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-    graphId,
-  }: {
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-    graphId: string;
-  }) => ({
-    id: `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
-    tenantId,
-    projectId,
-    graphId,
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    baseUrl: 'http://agent.test.com',
-  });
 
   // Helper function to create a test graph and return its ID
   const createTestGraph = async (tenantId: string) => {
@@ -58,7 +38,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix, tenantId, projectId, graphId });
+    const agentData = createTestExternalAgentData({ suffix, tenantId, projectId, graphId });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
       {
@@ -387,7 +367,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
 
-      const agentData = createAgentData({ tenantId, projectId, graphId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId, graphId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
@@ -415,7 +395,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
 
-      const agentData = createAgentData({ tenantId, projectId, graphId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId, graphId });
       const providedId = nanoid();
 
       const res = await makeRequest(

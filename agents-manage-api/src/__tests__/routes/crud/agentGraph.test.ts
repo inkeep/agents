@@ -3,21 +3,11 @@ import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Agent Graph CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-
-  // Helper function to create test agent data (needed for creating default agents)
-  const createAgentData = ({ suffix = '' }: { suffix?: string }) => ({
-    id: nanoid(),
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-    type: 'internal' as const,
-    tools: [],
-    canUse: [],
-  });
 
   // Helper function to create test agent graph data
   const createAgentGraphData = ({
@@ -44,7 +34,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createAgentData({ suffix });
+    const agentData = createTestSubAgentData({ suffix });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agents`,
       {

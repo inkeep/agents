@@ -1,22 +1,10 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Project Full CRUD Routes - Integration Tests', () => {
-  // Helper function to create test agent data
-  const createTestAgentData = (id: string, suffix = '') => ({
-    id,
-    name: `Test Agent${suffix}`,
-    description: `Test agent description${suffix}`,
-    prompt: `You are a helpful assistant${suffix}.`,
-    canDelegateTo: [] as string[],
-    tools: [] as string[],
-    dataComponents: [] as string[],
-    artifactComponents: [] as string[],
-    canUse: [],
-    type: 'internal' as const,
-  });
 
   // Helper function to create test tool data
   const createTestToolData = (id: string, suffix = '') => ({
@@ -53,7 +41,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     description: `Complete test graph${suffix}`,
     defaultSubAgentId: subAgentId,
     subAgents: {
-      [subAgentId]: createTestAgentData(subAgentId, suffix),
+      [subAgentId]: createTestSubAgentData({ id: subAgentId, suffix: suffix }),
     },
     tools: {
       [toolId]: createTestToolData(toolId, suffix),

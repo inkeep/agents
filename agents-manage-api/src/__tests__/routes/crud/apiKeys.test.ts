@@ -4,25 +4,16 @@ import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
+import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('API Key CRUD Routes - Integration Tests', () => {
-  // Helper function to create test agent data
-  const createAgentData = ({ suffix = '' } = {}) => ({
-    id: nanoid(),
-    name: `Test Agent${suffix}`,
-    description: `Test Description${suffix}`,
-    prompt: `Test Instructions${suffix}`,
-    tools: [], // Required for internal agents
-    canUse: [],
-    type: 'internal' as const,
-  });
 
   // Helper function to create full graph data with optional enhanced features
   const createFullGraphData = (graphId: string) => {
     const id = graphId || nanoid();
 
-    const agent = createAgentData();
+    const agent = createTestSubAgentData();
 
     const graphData: any = {
       id,

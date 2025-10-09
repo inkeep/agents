@@ -438,20 +438,20 @@ export const getFullGraphDefinition =
 
     const externalAgents = await Promise.all(
       Array.from(externalSubAgentIds).map(async (subAgentId) => {
-        const agent = await getExternalAgent(db)({
+        const subAgent = await getExternalAgent(db)({
           scopes: { tenantId, projectId, graphId },
           subAgentId: subAgentId,
         });
-        if (!agent) return null;
+        if (!subAgent) return null;
 
         // External agents need to match the FullGraphAgentSchema structure
         return {
-          id: agent.id,
-          name: agent.name,
-          description: agent.description,
-          baseUrl: agent.baseUrl,
-          headers: agent.headers,
-          credentialReferenceId: agent.credentialReferenceId,
+          id: subAgent.id,
+          name: subAgent.name,
+          description: subAgent.description,
+          baseUrl: subAgent.baseUrl,
+          headers: subAgent.headers,
+          credentialReferenceId: subAgent.credentialReferenceId,
           type: 'external',
         };
       })
@@ -612,7 +612,7 @@ export const getFullGraphDefinition =
 
         // Propagate stepCountIs from project to agents
         if (projectStopWhen?.stepCountIs !== undefined) {
-          for (const [subAgentId, agentData] of Object.entries(result.agents)) {
+          for (const [subAgentId, agentData] of Object.entries(result.subAgents)) {
             // Only apply to internal agents (not external agents with baseUrl)
             if (agentData && typeof agentData === 'object' && !('baseUrl' in agentData)) {
               const agent = agentData as any;
@@ -647,8 +647,8 @@ export const getFullGraphDefinition =
 
                   // Update the in-memory agent data to reflect the persisted values
                   // This ensures the UI gets the updated data
-                  result.agents[subAgentId] = {
-                    ...result.agents[subAgentId],
+                  result.subAgents[subAgentId] = {
+                    ...result.subAgents[subAgentId],
                     stopWhen: agent.stopWhen,
                   };
                 } catch (dbError) {
