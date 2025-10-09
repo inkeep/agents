@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.17.0
+
+### Patch Changes
+
+- 9dd08c6: fixes-https-http-fwd
+- Updated dependencies [94c0c18]
+  - @inkeep/agents-core@0.17.0
+
 ## 0.16.3
 
 ### Patch Changes
