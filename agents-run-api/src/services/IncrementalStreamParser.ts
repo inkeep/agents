@@ -28,6 +28,7 @@ export class IncrementalStreamParser {
   private componentSnapshots = new Map<string, string>();
   private artifactMap?: Map<string, any>;
   private subAgentId?: string;
+  private allStreamedContent: StreamPart[] = [];
 
   // Memory management constants
   private static readonly MAX_SNAPSHOT_SIZE = 100; // Max number of snapshots to keep
@@ -224,10 +225,14 @@ export class IncrementalStreamParser {
             await this.streamHelper.streamText(newText, 50);
 
             // Still collect for final response
-            this.collectedParts.push({
+            const textPart: StreamPart = {
               kind: 'text',
               text: newText,
-            });
+            };
+            this.collectedParts.push(textPart);
+
+            // Also collect for conversation history
+            this.allStreamedContent.push(textPart);
           }
 
           // Don't mark as streamed yet - let it keep streaming incrementally
@@ -414,10 +419,14 @@ export class IncrementalStreamParser {
         .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
 
       if (cleanedText) {
-        this.collectedParts.push({
+        const textPart: StreamPart = {
           kind: 'text',
           text: cleanedText,
-        });
+        };
+        this.collectedParts.push(textPart);
+
+        // Also collect for conversation history
+        this.allStreamedContent.push(textPart);
 
         await this.streamHelper.streamText(cleanedText, 50);
       }
@@ -436,6 +445,13 @@ export class IncrementalStreamParser {
    */
   getCollectedParts(): StreamPart[] {
     return [...this.collectedParts];
+  }
+
+  /**
+   * Get all streamed content that was actually sent to the user
+   */
+  getAllStreamedContent(): StreamPart[] {
+    return [...this.allStreamedContent];
   }
 
   /**
@@ -516,11 +532,20 @@ export class IncrementalStreamParser {
     // Collect for final response with size limit enforcement
     this.collectedParts.push({ ...part });
 
+    // Also collect for conversation history - this represents what was actually streamed to the user
+    this.allStreamedContent.push({ ...part });
+
     // Enforce size limit to prevent memory leaks
     if (this.collectedParts.length > IncrementalStreamParser.MAX_COLLECTED_PARTS) {
       // Remove oldest parts (keep last N parts)
       const excess = this.collectedParts.length - IncrementalStreamParser.MAX_COLLECTED_PARTS;
       this.collectedParts.splice(0, excess);
+    }
+
+    // Also enforce size limit for streamed content
+    if (this.allStreamedContent.length > IncrementalStreamParser.MAX_COLLECTED_PARTS) {
+      const excess = this.allStreamedContent.length - IncrementalStreamParser.MAX_COLLECTED_PARTS;
+      this.allStreamedContent.splice(0, excess);
     }
 
     if (!this.hasStartedRole) {

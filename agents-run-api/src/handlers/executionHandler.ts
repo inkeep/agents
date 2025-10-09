@@ -359,10 +359,28 @@ export class ExecutionHandler {
           continue;
         }
 
-        const responseParts =
-          (messageResponse.result as any).artifacts?.flatMap(
-            (artifact: any) => artifact.parts || []
-          ) || [];
+        // Use streamed content for conversation history (what was actually sent to the user)
+        let responseParts = [];
+
+        // Check if we have streamed content from the IncrementalStreamParser
+        if ((messageResponse.result as any).streamedContent?.parts) {
+          responseParts = (messageResponse.result as any).streamedContent.parts;
+          logger.info(
+            { partsCount: responseParts.length },
+            'Using streamed content for conversation history'
+          );
+        } else {
+          // Fallback to artifacts if no streamed content available
+          responseParts =
+            (messageResponse.result as any).artifacts?.flatMap(
+              (artifact: any) => artifact.parts || []
+            ) || [];
+          logger.info(
+            { partsCount: responseParts.length },
+            'Using artifacts for conversation history (fallback)'
+          );
+        }
+
         if (responseParts && responseParts.length > 0) {
           // Log graph session data after completion response
           const graphSessionData = graphSessionManager.getSession(requestId);
