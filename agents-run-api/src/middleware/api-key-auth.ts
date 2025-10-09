@@ -30,8 +30,8 @@ export const apiKeyAuth = () =>
     const graphId = c.req.header('x-inkeep-graph-id');
     const agentId = c.req.header('x-inkeep-agent-id');
 
-    const proto = c.req.header('x-forwarded-proto');
-    const fwdHost = c.req.header('x-forwarded-host');
+    const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
+    const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
     const host = fwdHost ?? c.req.header('host');
     const reqUrl = new URL(c.req.url);
 
