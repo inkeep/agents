@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   ArrowUpRight,
-  CheckCircle,
   ChevronDown,
   ChevronRight,
   Cpu,
@@ -28,16 +27,6 @@ import { Badge } from '@/components/ui/badge';
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
   return words.length > nWords ? `${words.slice(0, nWords).join(' ')}...` : s;
-}
-function truncateChars(s: string, n: number) {
-  return s.length > n ? `${s.slice(0, n)}...` : s;
-}
-
-function _isAiMessage(activity: ActivityItem): boolean {
-  return (
-    activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
-  );
 }
 
 function statusIcon(
