@@ -3,9 +3,8 @@
 import { type FC, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
-import { cn, formatJson } from '@/lib/utils';
-import { JsonEditor } from './json-editor';
-import { JsonEditor as JsonEditor2 } from '@/components/editors/json-editor';
+import { formatJson } from '@/lib/utils';
+import { JsonEditor } from '@/components/editors/json-editor';
 
 interface StandaloneJsonEditorProps {
   value?: string;
@@ -68,32 +67,15 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   );
 
   return (
-    <>
-      <JsonEditor2
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        disabled={disabled}
-        readOnly={readOnly}
-        aria-invalid={ariaInvalid}
-        uri="foo.json"
-      >
-        <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
-      </JsonEditor2>
-      <div
-        data-slot="json-editor"
-        className={cn('space-y-3 relative overflow-hidden p-1', className)}
-      >
-        <div className="flex items-center gap-2 absolute top-3 right-3 z-10">{actions}</div>
-        <JsonEditor
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          disabled={disabled}
-          readOnly={readOnly}
-          aria-invalid={ariaInvalid}
-        />
-      </div>
-    </>
+    <JsonEditor
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      disabled={disabled}
+      readOnly={readOnly}
+      aria-invalid={ariaInvalid}
+    >
+      <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
+    </JsonEditor>
   );
 };
