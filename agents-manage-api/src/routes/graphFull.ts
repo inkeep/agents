@@ -159,7 +159,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/{graphId}',
+    path: '/{agentId}',
     summary: 'Update Full Graph',
     operationId: 'update-full-graph',
     tags: ['Full Graph'],

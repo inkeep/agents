@@ -103,7 +103,7 @@ describe('ApiClient', () => {
         statusText: 'Not Found',
       });
 
-      await expect(apiClient.listAgents()).rejects.toThrow('Failed to list graphs: Not Found');
+      await expect(apiClient.listAgents()).rejects.toThrow('Failed to list agents: Not Found');
     });
 
     it('should throw error when tenant ID is not configured', async () => {
@@ -249,7 +249,7 @@ describe('ApiClient', () => {
       };
 
       await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
-        'Graph must have an id property'
+        'Agent must have an id property'
       );
     });
 
@@ -266,7 +266,7 @@ describe('ApiClient', () => {
       });
 
       await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
-        'Failed to push graph: Bad Request\nInvalid graph definition'
+        'Failed to push agent: Bad Request\nInvalid graph definition'
       );
     });
 

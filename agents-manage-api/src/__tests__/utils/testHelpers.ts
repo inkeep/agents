@@ -139,29 +139,26 @@ export function createTestContextConfigDataFull({
     id || `test-context-config${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
   return {
     id: configId,
-    tenantId,
-    projectId,
-    agentId,
-    name: `Test Context Config${suffix}`,
-    description: `Test context configuration${suffix}`,
+    // Note: tenantId, projectId, agentId, name, and description are NOT part of context config schema
+    // Context configs only have: id, headersSchema, contextVariables
     headersSchema: {
       type: 'object',
       properties: {
         userId: { type: 'string', description: 'User identifier' },
         sessionToken: { type: 'string', description: 'Session token' },
         ...(suffix
-          ? { [`param${suffix}`]: { type: 'string', description: `Test parameter${suffix}` } }
+          ? { [`param${suffix.replace(/\s+/g, '')}`]: { type: 'string', description: `Test parameter${suffix}` } }
           : {}),
       },
       required: ['userId'],
     },
     contextVariables: {
-      [`userProfile${suffix}`]: {
-        id: `user-profile${suffix}`,
+      [`userProfile${suffix.replace(/\s+/g, '')}`]: {
+        id: `user-profile${suffix.replace(/\s+/g, '-')}`,
         name: `User Profile${suffix}`,
         trigger: 'initialization',
         fetchConfig: {
-          url: `https://api.example.com/users/{{headers.userId}}${suffix}`,
+          url: `https://api.example.com/users/{{headers.userId}}${suffix.replace(/\s+/g, '-')}`,
           method: 'GET',
           headers: {
             Authorization: 'Bearer {{headers.sessionToken}}',

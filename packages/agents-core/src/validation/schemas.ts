@@ -637,7 +637,8 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: resourceIdSchema.optional(),
-    headersSchema: z.unknown().optional(),
+    headersSchema: z.unknown().nullable().optional(),
+    contextVariables: z.unknown().nullable().optional(),
   })
   .omit({
     createdAt: true,

@@ -96,8 +96,8 @@ export const createContextConfig = (db: DatabaseClient) => async (params: Contex
       tenantId: params.tenantId,
       projectId: params.projectId,
       agentId: params.agentId,
-      headersSchema: params.headersSchema ?? null,
-      contextVariables: contextVariables ?? null,
+      headersSchema: (params.headersSchema ?? null) as any,
+      contextVariables: (contextVariables ?? null) as any,
       createdAt: now,
       updatedAt: now,
     })
@@ -134,7 +134,7 @@ export const updateContextConfig =
     const updated = await db
       .update(contextConfigs)
       .set({
-        ...processedData,
+        ...(processedData as any),
         updatedAt: now,
       })
       .where(
