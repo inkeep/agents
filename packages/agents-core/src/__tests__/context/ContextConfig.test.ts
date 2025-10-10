@@ -242,7 +242,7 @@ describe('ContextConfig', () => {
       expect(obj).toHaveProperty('id', 'test-config');
       expect(obj).toHaveProperty('tenantId', tenantId);
       expect(obj).toHaveProperty('projectId', projectId);
-      expect(obj).toHaveProperty('graphId', graphId);
+      expect(obj).toHaveProperty('agentId', graphId);
       expect(obj).toHaveProperty('createdAt');
       expect(obj).toHaveProperty('updatedAt');
     });

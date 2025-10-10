@@ -31,7 +31,7 @@ describe('Agent Graph Data Access', () => {
       };
 
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(expectedGraph),
         },
       };
@@ -45,13 +45,13 @@ describe('Agent Graph Data Access', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
       });
 
-      expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedGraph);
     });
 
     it('should return null if graph not found', async () => {
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
       };
@@ -81,7 +81,7 @@ describe('Agent Graph Data Access', () => {
       };
 
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(expectedGraph),
         },
       };
@@ -95,7 +95,7 @@ describe('Agent Graph Data Access', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
       });
 
-      expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedGraph);
     });
   });
@@ -112,7 +112,7 @@ describe('Agent Graph Data Access', () => {
       };
 
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(expectedGraph),
         },
       };
@@ -126,7 +126,7 @@ describe('Agent Graph Data Access', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
       });
 
-      expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedGraph);
     });
   });
@@ -139,7 +139,7 @@ describe('Agent Graph Data Access', () => {
       ];
 
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findMany: vi.fn().mockResolvedValue(expectedGraphs),
         },
       };
@@ -152,7 +152,7 @@ describe('Agent Graph Data Access', () => {
       const result = await listAgents(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
-      expect(mockQuery.agentGraph.findMany).toHaveBeenCalled();
+      expect(mockQuery.agents.findMany).toHaveBeenCalled();
       expect(result).toEqual(expectedGraphs);
     });
   });
@@ -361,7 +361,7 @@ describe('Agent Graph Data Access', () => {
 
       // Mock getAgentGraphById to return null (graph not found after deletion)
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
       };
