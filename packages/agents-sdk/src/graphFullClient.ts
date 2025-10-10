@@ -9,6 +9,23 @@ import { getLogger } from '@inkeep/agents-core';
 const logger = getLogger('graphFullClient');
 
 /**
+ * Serialize error response to human-readable string
+ * Always returns the complete error without truncation
+ */
+function serializeErrorResponse(error: any): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    // Always stringify the full object to avoid losing any error details
+    return JSON.stringify(error, null, 2);
+  }
+
+  return String(error);
+}
+
+/**
  * Create a full graph via HTTP API
  */
 export async function createFullGraphViaAPI(
@@ -43,7 +60,9 @@ export async function createFullGraphViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -52,10 +71,19 @@ export async function createFullGraphViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to create graph via API'
     );
@@ -111,7 +139,9 @@ export async function updateFullGraphViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -120,10 +150,19 @@ export async function updateFullGraphViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to update graph via API'
     );
@@ -187,7 +226,9 @@ export async function getFullGraphViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -196,10 +237,19 @@ export async function getFullGraphViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to get graph via API'
     );
@@ -253,7 +303,9 @@ export async function deleteFullGraphViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -262,10 +314,19 @@ export async function deleteFullGraphViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to delete graph via API'
     );

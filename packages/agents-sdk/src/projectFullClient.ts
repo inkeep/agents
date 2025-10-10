@@ -8,6 +8,23 @@ import { apiFetch, type FullProjectDefinition, getLogger } from '@inkeep/agents-
 const logger = getLogger('projectFullClient');
 
 /**
+ * Serialize error response to human-readable string
+ * Always returns the complete error without truncation
+ */
+function serializeErrorResponse(error: any): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    // Always stringify the full object to avoid losing any error details
+    return JSON.stringify(error, null, 2);
+  }
+
+  return String(error);
+}
+
+/**
  * Create a full project via HTTP API
  */
 export async function createFullProjectViaAPI(
@@ -60,7 +77,9 @@ export async function createFullProjectViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -69,10 +88,19 @@ export async function createFullProjectViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to create project via API'
     );
@@ -146,7 +174,9 @@ export async function updateFullProjectViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -155,10 +185,19 @@ export async function updateFullProjectViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to update project via API'
     );
@@ -226,7 +265,9 @@ export async function getFullProjectViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -235,10 +276,19 @@ export async function getFullProjectViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to get project via API'
     );
@@ -296,7 +346,9 @@ export async function deleteFullProjectViaAPI(
     try {
       const errorJson = JSON.parse(errorText);
       if (errorJson.error) {
-        errorMessage = errorJson.error;
+        errorMessage = serializeErrorResponse(errorJson.error);
+      } else if (errorJson.message) {
+        errorMessage = serializeErrorResponse(errorJson.message);
       }
     } catch {
       // Use the text as-is if not JSON
@@ -305,10 +357,19 @@ export async function deleteFullProjectViaAPI(
       }
     }
 
+    let parsedError: any;
+    try {
+      const errorJson = JSON.parse(errorText);
+      parsedError = errorJson.error || errorJson;
+    } catch {
+      parsedError = errorText;
+    }
+
     logger.error(
       {
         status: response.status,
         error: errorMessage,
+        rawError: parsedError,
       },
       'Failed to delete project via API'
     );
