@@ -931,11 +931,16 @@ export async function GET(
         }
       }
 
+      const statusMessage = hasError
+        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
+          getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
+        : '';
+
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.TOOL_CALL,
         name,
-        description: `Called ${name}`,
+        description: hasError && statusMessage ? statusMessage : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),

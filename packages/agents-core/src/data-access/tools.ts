@@ -152,7 +152,7 @@ const discoverToolsFromServer = async (
 
     await client.connect();
 
-    // Get tools from the MCP client
+    // Get tools from the MCP client. Does not take into account "active" / "selected" tools.
     const serverTools = await client.tools();
 
     await client.disconnect();

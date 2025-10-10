@@ -41,6 +41,15 @@ const getNangoClient = () => {
 };
 
 /**
+ * Check if Nango is properly configured
+ * Returns true if NANGO_SECRET_KEY is set and not empty
+ */
+export async function isNangoConfigured(): Promise<boolean> {
+  const secretKey = process.env.NANGO_SECRET_KEY;
+  return !!(secretKey && secretKey.trim() !== '');
+}
+
+/**
  * Fetch all available Nango providers
  */
 export async function fetchNangoProviders(): Promise<ApiProvider[]> {

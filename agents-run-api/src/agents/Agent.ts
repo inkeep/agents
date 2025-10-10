@@ -41,7 +41,6 @@ import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
 } from '../data/conversations';
-
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { graphSessionManager } from '../services/GraphSession';
@@ -742,6 +741,47 @@ export class Agent {
     // For all cases (cached, locked, or newly created), get the tools
     const tools = await client.tools();
 
+    // Record event if no tools are available
+    if (!tools || Object.keys(tools).length === 0) {
+      const streamRequestId = this.getStreamRequestId();
+      if (streamRequestId) {
+        tracer.startActiveSpan(
+          'ai.toolCall',
+          {
+            attributes: {
+              'ai.toolCall.name': tool.name,
+              'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
+              'ai.toolCall.result': JSON.stringify({
+                status: 'no_tools_available',
+                message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
+                originalToolName: tool.name,
+              }),
+              'ai.toolType': 'mcp',
+              'ai.agentName': this.config.name || 'unknown',
+              'conversation.id': this.conversationId || 'unknown',
+              'graph.id': this.config.graphId || 'unknown',
+              'tenant.id': this.config.tenantId || 'unknown',
+              'project.id': this.config.projectId || 'unknown',
+            },
+          },
+          (span) => {
+            setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
+            graphSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+              toolName: tool.name,
+              args: { operation: 'mcp_tool_discovery' },
+              result: {
+                status: 'no_tools_available',
+                message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
+              },
+            });
+            span.end();
+          }
+        );
+      }
+    }
+
     return tools;
   }
 
@@ -767,6 +807,18 @@ export class Agent {
         },
         'Agent failed to connect to MCP server'
       );
+      if (error instanceof Error) {
+        if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
+          const errorMessage = 'Connection refused. Please check if the MCP server is running.';
+          throw new Error(errorMessage);
+        } else if (error.message.includes('404')) {
+          const errorMessage = 'Error accessing endpoint (HTTP 404)';
+          throw new Error(errorMessage);
+        } else {
+          throw new Error(`MCP server connection failed: ${error.message}`);
+        }
+      }
+
       throw error;
     }
   }
