@@ -25,7 +25,7 @@ import { nanoid } from 'nanoid';
 export function createTestSubAgentData({
   id,
   suffix = '',
-  graphId,
+  agentId,
   tenantId,
   projectId,
   tools = [],
@@ -37,7 +37,7 @@ export function createTestSubAgentData({
 }: {
   id?: string;
   suffix?: string;
-  graphId?: string;
+  agentId?: string;
   tenantId?: string;
   projectId?: string;
   tools?: string[];
@@ -51,10 +51,10 @@ export function createTestSubAgentData({
   dataComponents?: string[];
   artifactComponents?: string[];
 } = {}) {
-  const agentId = id || `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
+  const subAgentId = id || `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
 
   const baseData: any = {
-    id: agentId,
+    id: subAgentId,
     name: `Test Agent${suffix}`,
     description: `Test agent description${suffix}`,
     prompt: `You are a helpful assistant${suffix}.`,
@@ -63,7 +63,7 @@ export function createTestSubAgentData({
   };
 
   // Only add optional fields if they're provided
-  if (graphId !== undefined) baseData.graphId = graphId;
+  if (agentId !== undefined) baseData.agentId = agentId;
   if (tenantId !== undefined) baseData.tenantId = tenantId;
   if (projectId !== undefined) baseData.projectId = projectId;
   if (tools.length > 0 || canUse.length === 0) baseData.tools = tools;
@@ -83,7 +83,7 @@ export function createTestSubAgentData({
  * @param options.suffix - Optional suffix to append to name/description
  * @param options.tenantId - Optional tenant ID
  * @param options.projectId - Optional project ID
- * @param options.graphId - Optional graph ID
+ * @param options.agentId - Optional agent ID
  * @param options.baseUrl - Base URL for the external agent (defaults to example URL)
  * @param options.headers - Optional headers for the external agent
  * @param options.credentialReferenceId - Optional credential reference ID
@@ -94,7 +94,7 @@ export function createTestSubAgentData({
  * const externalAgent = createTestExternalAgentData({
  *   id: 'ext-agent-1',
  *   suffix: ' External',
- *   agentId: 'my-graph',
+ *   agentId: 'my-agent',
  *   baseUrl: 'https://api.example.com'
  * });
  * ```

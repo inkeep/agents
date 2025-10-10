@@ -28,14 +28,14 @@ export const getApiKeyByPublicId = (db: DatabaseClient) => async (publicId: stri
 };
 
 export const listApiKeys =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId?: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
 
-    if (params.graphId) {
-      conditions.push(eq(apiKeys.agentId, params.graphId));
+    if (params.agentId) {
+      conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
     return await db.query.apiKeys.findMany({
@@ -49,7 +49,7 @@ export const listApiKeysPaginated =
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
-    graphId?: string;
+    agentId?: string;
   }): Promise<{
     data: ApiKeySelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
@@ -62,8 +62,8 @@ export const listApiKeysPaginated =
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
-    if (params.graphId) {
-      conditions.push(eq(apiKeys.agentId, params.graphId));
+    if (params.agentId) {
+      conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
     const whereClause = and(...conditions);
@@ -185,14 +185,14 @@ export const updateApiKeyLastUsed =
 
 export const countApiKeys =
   (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; graphId?: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; agentId?: string }): Promise<number> => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
 
-    if (params.graphId) {
-      conditions.push(eq(apiKeys.agentId, params.graphId));
+    if (params.agentId) {
+      conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
     const result = await db

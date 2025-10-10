@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   AgentApiInsertSchema,
@@ -6,13 +5,13 @@ import {
   AgentApiUpdateSchema,
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
-  createAgentGraph,
+  createAgent,
   createApiError,
-  deleteAgentGraph,
+  deleteAgent,
   ErrorResponseSchema,
   getAgentById,
   getFullGraphDefinition,
-  getGraphAgentInfos,
+  getAgentSubAgentInfos,
   ListResponseSchema,
   listAgents,
   PaginationQueryParamsSchema,
@@ -20,7 +19,7 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  updateAgentGraph,
+  updateAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -114,7 +113,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{graphId}/agents/{subAgentId}/related',
+    path: '/{graphId}/sub-agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
     tags: ['Agent Graph'],
@@ -145,9 +144,9 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, graphId, subAgentId } = c.req.valid('param');
 
-    const relatedAgents = await getGraphAgentInfos(dbClient)({
+    const relatedAgents = await getAgentSubAgentInfos(dbClient)({
       scopes: { tenantId, projectId },
-      graphId,
+      agentId: graphId,
       subAgentId: subAgentId,
     });
 
@@ -238,7 +237,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const graph = await createAgentGraph(dbClient)({
+    const graph = await createAgent(dbClient)({
       tenantId,
       projectId,
       id: validatedBody.id || nanoid(),
@@ -285,7 +284,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const updatedGraph = await updateAgentGraph(dbClient)({
+    const updatedGraph = await updateAgent(dbClient)({
       scopes: { tenantId, projectId, agentId: id },
       data: {
         defaultSubAgentId: validatedBody.defaultSubAgentId,
@@ -331,7 +330,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const deleted = await deleteAgentGraph(dbClient)({
+    const deleted = await deleteAgent(dbClient)({
       scopes: { tenantId, projectId, agentId: id },
     });
 

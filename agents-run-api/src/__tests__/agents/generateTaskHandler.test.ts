@@ -197,9 +197,10 @@ const {
 });
 
 vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForGraph: getRelatedAgentsForGraphMock,
+  getRelatedAgentsForAgent: getRelatedAgentsForGraphMock,
   getToolsForAgent: getToolsForAgentMock,
   getSubAgentById: getAgentByIdMock,
+  getAgentById: getAgentGraphMock,
   getAgentGraph: getAgentGraphMock,
   getAgentGraphById: getAgentGraphByIdMock,
   getTracer: vi.fn().mockReturnValue({
@@ -667,7 +668,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-graph',
         },
         subAgentId: 'test-agent',
       });
@@ -677,7 +678,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-graph',
           subAgentId: 'test-agent',
         },
       });
@@ -687,7 +688,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-graph',
           subAgentId: 'test-agent',
         },
       });
@@ -699,7 +700,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -753,7 +754,7 @@ describe('generateTaskHandler', () => {
         createTaskHandlerConfig({
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-graph',
           subAgentId: 'non-existent',
           baseUrl: 'https://test.com',
         })
@@ -791,7 +792,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -848,7 +849,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -898,7 +899,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });

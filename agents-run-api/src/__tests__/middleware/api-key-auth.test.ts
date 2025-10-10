@@ -150,7 +150,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_test_1234567890abcdef.verylongsecretkey',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        graphId: 'graph_123',
+        agentId: 'graph_123',
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });
@@ -213,7 +213,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'test-bypass-secret',
         tenantId: 'tenant-123',
         projectId: 'project-456',
-        graphId: 'graph-789',
+        agentId: 'graph-789',
         apiKeyId: 'bypass',
         baseUrl: expect.stringContaining('http'),
       });
@@ -255,7 +255,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_prod_differentkey123456.verylongsecretkey',
         tenantId: 'tenant_456',
         projectId: 'project_456',
-        graphId: 'graph_456',
+        agentId: 'graph_456',
         apiKeyId: 'key_456',
       });
       expect(validateAndGetApiKey).toHaveBeenCalledWith(
@@ -358,7 +358,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_test_1234567890abcdef.verylongsecretkey',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        graphId: 'graph_123',
+        agentId: 'graph_123',
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });

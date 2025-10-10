@@ -35,7 +35,7 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        agentId: z.string().optional().describe('Filter by graph ID'),
+        agentId: z.string().optional().describe('Filter by agent ID'),
       }),
     },
     responses: {
@@ -59,7 +59,7 @@ app.openapi(
     const result = await listApiKeysPaginated(dbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
-      graphId: agentId,
+      agentId: agentId,
     });
     // Remove sensitive fields from response
     const sanitizedData = result.data.map(({ keyHash, tenantId, projectId, ...apiKey }) => apiKey);

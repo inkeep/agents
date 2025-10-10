@@ -58,7 +58,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     expiresAt?: string;
   }) => {
     const createData = {
-      graphId,
+      agentId: graphId,
       ...(expiresAt && { expiresAt }),
     };
 
@@ -124,7 +124,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       // Verify API key structure (should not include keyHash or actual key)
       const firstApiKey = body.data[0];
       expect(firstApiKey).toHaveProperty('id');
-      expect(firstApiKey).toHaveProperty('graphId', graphId);
+      expect(firstApiKey).toHaveProperty('agentId', graphId);
       expect(firstApiKey).toHaveProperty('publicId');
       expect(firstApiKey).toHaveProperty('keyPrefix');
       expect(firstApiKey).toHaveProperty('createdAt');
@@ -134,7 +134,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       expect(firstApiKey).not.toHaveProperty('projectId'); // Should not expose projectId in API
     });
 
-    it('should filter API keys by graphId', async () => {
+    it('should filter API keys by agentId', async () => {
       const tenantId = createTestTenantId('api-keys-filter-graph');
       await ensureTestProject(tenantId, 'project-1');
       const { graphId: graph1, projectId } = await createTestGraphAndAgent(tenantId, 'project-1');
@@ -145,13 +145,13 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       await createTestApiKey({ tenantId, projectId, graphId: graph2 });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/api-keys?graphId=${graph1}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?agentId=${graph1}`
       );
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].graphId).toBe(graph1);
+      expect(body.data[0].agentId).toBe(graph1);
     });
 
     it('should handle pagination correctly', async () => {
@@ -194,7 +194,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data.id).toBe(apiKey.id);
-      expect(body.data.graphId).toBe(graphId);
+      expect(body.data.agentId).toBe(graphId);
       expect(body.data.publicId).toBe(apiKey.publicId);
       expect(body.data).not.toHaveProperty('keyHash'); // Should never expose hash
     });
@@ -238,7 +238,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
 
       const createData = {
-        graphId,
+        agentId: graphId,
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
@@ -255,7 +255,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Verify API key structure
       const apiKey = body.data.apiKey;
-      expect(apiKey.graphId).toBe(graphId);
+      expect(apiKey.agentId).toBe(graphId);
       expect(apiKey.publicId).toBeDefined();
       expect(apiKey.publicId).toHaveLength(12);
       expect(apiKey.keyPrefix).toBeDefined();
@@ -286,7 +286,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       const expiresAt = '2025-12-31T23:59:59Z';
       const createData = {
-        graphId,
+        agentId: graphId,
         expiresAt,
       };
 
@@ -301,14 +301,14 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       expect(body.data.apiKey.expiresAt).toBe(expiresAt);
     });
 
-    it('should handle invalid graphId', async () => {
+    it('should handle invalid agentId', async () => {
       const tenantId = createTestTenantId('api-keys-create-invalid-graph');
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
       const invalidGraphId = `invalid-${nanoid()}`;
 
       const createData = {
-        graphId: invalidGraphId,
+        agentId: invalidGraphId,
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
@@ -317,7 +317,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         expectError: true,
       });
 
-      expect(res.status).toBe(400); // Invalid graphId returns Bad Request
+      expect(res.status).toBe(400); // Invalid agentId returns Bad Request
     });
   });
 
@@ -526,7 +526,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       // Create API key
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
         method: 'POST',
-        body: JSON.stringify({ graphId }),
+        body: JSON.stringify({ agentId: graphId }),
       });
 
       const createBody = await createRes.json();

@@ -40,7 +40,7 @@ async function hydrateGraph({
     const taskHandlerConfig = await createTaskHandlerConfig({
       tenantId: dbGraph.tenantId,
       projectId: dbGraph.projectId,
-      graphId: dbGraph.id,
+      agentId: dbGraph.id,
       subAgentId: dbGraph.defaultSubAgentId,
       baseUrl: baseUrl,
       apiKey: apiKey,

@@ -1,5 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import agentGraphRoutes from './agent';
+import agentRoutes from './agent';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
 import contextConfigsRoutes from './contextConfigs';
@@ -26,7 +26,7 @@ app.route('/projects', projectsRoutes);
 // Mount existing routes under project scope
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
-app.route('/projects/:projectId/agents', agentGraphRoutes);
+app.route('/projects/:projectId/agents', agentRoutes);
 app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-tool-relations',
   subAgentToolRelationsRoutes
@@ -50,6 +50,6 @@ app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 
 // Mount new full graph routes
-app.route('/projects/:projectId/graph', graphFullRoutes);
+app.route('/projects/:projectId/agent', graphFullRoutes);
 
 export default app;

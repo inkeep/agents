@@ -442,57 +442,57 @@ export const deserializeTaskHandlerConfig = (configJson: string): TaskHandlerCon
 export const createTaskHandlerConfig = async (params: {
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   subAgentId: string;
   baseUrl: string;
   apiKey?: string;
 }): Promise<TaskHandlerConfig> => {
-  const agent = await getSubAgentById(dbClient)({
+  const subAgent = await getSubAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
-      agentId: params.graphId,
+      agentId: params.agentId,
     },
     subAgentId: params.subAgentId,
   });
 
-  const agentGraph = await getAgentById(dbClient)({
+  const agent = await getAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
-      agentId: params.graphId,
+      agentId: params.agentId,
     },
   });
 
-  if (!agent) {
+  if (!subAgent) {
     throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
   // Inherit graph models if agent doesn't have one
-  const effectiveModels = await resolveModelConfig(params.graphId, agent);
-  const effectiveConversationHistoryConfig = agent.conversationHistoryConfig || { mode: 'full' };
+  const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
+  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
 
   return {
     tenantId: params.tenantId,
     projectId: params.projectId,
-    graphId: params.graphId,
+    graphId: params.agentId,
     subAgentId: params.subAgentId,
     agentSchema: {
-      id: agent.id,
-      name: agent.name,
-      description: agent.description,
-      prompt: agent.prompt,
+      id: subAgent.id,
+      name: subAgent.name,
+      description: subAgent.description,
+      prompt: subAgent.prompt,
       models: effectiveModels,
       conversationHistoryConfig: effectiveConversationHistoryConfig || null,
-      stopWhen: agent.stopWhen || null,
-      createdAt: agent.createdAt,
-      updatedAt: agent.updatedAt,
+      stopWhen: subAgent.stopWhen || null,
+      createdAt: subAgent.createdAt,
+      updatedAt: subAgent.updatedAt,
     },
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
-    name: agent.name,
-    description: agent.description,
+    name: subAgent.name,
+    description: subAgent.description,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
-    contextConfigId: agentGraph?.contextConfigId || undefined,
+    contextConfigId: agent?.contextConfigId || undefined,
   };
 };

@@ -143,7 +143,7 @@ describe('resolveModelConfig', () => {
         scopes: {
           tenantId: 'tenant-123',
           projectId: 'project-123',
-          graphId: 'graph-123',
+          agentId: 'graph-123',
         },
       });
     });
