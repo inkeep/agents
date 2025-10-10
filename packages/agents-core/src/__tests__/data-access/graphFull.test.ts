@@ -18,7 +18,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
     it('should return null when graph is not found', async () => {
       // Mock the database query to return null for graph lookup
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
         projects: {
@@ -36,7 +36,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       });
 
       expect(result).toBeNull();
-      expect(mockQuery.agentGraph.findFirst).toHaveBeenCalled();
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
     });
 
     it('should return basic graph definition with default agent only', async () => {
@@ -55,7 +55,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
       // Mock database queries
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
         subAgentRelations: {
@@ -82,7 +82,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
               models: null,
               tenantId: testTenantId,
               projectId: testProjectId,
-              graphId: testGraphId,
+              agentId: testGraphId,
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -162,7 +162,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           targetSubAgentId: 'agent-2',
           externalSubAgentId: null,
           relationType: 'transfer',
-          graphId: testGraphId,
+          agentId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -197,7 +197,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
       // Mock database queries
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
         subAgentRelations: {
@@ -211,7 +211,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue(
             mockAgents.map((agent) => ({
               ...agent,
-              graphId: testGraphId,
+              agentId: testGraphId,
             }))
           ),
         },
@@ -297,7 +297,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
       // Mock database queries
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
         subAgentRelations: {
@@ -308,7 +308,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue([
             {
               ...mockAgent,
-              graphId: testGraphId,
+              agentId: testGraphId,
             },
           ]),
         },
@@ -401,7 +401,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
       // Mock database queries
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
         subAgentRelations: {
@@ -412,7 +412,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue([
             {
               ...mockAgent,
-              graphId: testGraphId,
+              agentId: testGraphId,
             },
           ]),
         },
@@ -496,7 +496,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
       // Mock database queries
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
         subAgentRelations: {
@@ -507,7 +507,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue([
             {
               ...mockAgent,
-              graphId: testGraphId,
+              agentId: testGraphId,
             },
           ]),
         },
@@ -571,7 +571,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           targetSubAgentId: 'non-existent-agent',
           externalSubAgentId: null,
           relationType: 'transfer',
-          graphId: testGraphId,
+          agentId: testGraphId,
           tenantId: testTenantId,
           projectId: testProjectId,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -581,7 +581,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
       // Mock database queries
       const mockQuery = {
-        agentGraph: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(mockGraph),
         },
         subAgentRelations: {
@@ -611,7 +611,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
               models: null,
               tenantId: testTenantId,
               projectId: testProjectId,
-              graphId: testGraphId,
+              agentId: testGraphId,
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
