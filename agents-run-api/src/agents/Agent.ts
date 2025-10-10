@@ -12,6 +12,7 @@ import {
   getFunction,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
+  getProject,
   getToolsForAgent,
   graphHasArtifactComponents,
   listTaskIdsByContextId,
@@ -24,6 +25,7 @@ import {
   type MessageContent,
   type ModelSettings,
   type Models,
+  type SandboxConfig,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -887,11 +889,24 @@ export class Agent {
             );
 
             try {
+              // Get project sandbox config
+              const project = await getProject(dbClient)({
+                scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
+              });
+
+              const defaultSandboxConfig: SandboxConfig = {
+                provider: 'local',
+                runtime: 'node22',
+                timeout: 30000,
+                vcpus: 1,
+              };
+
               const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
                 description: functionToolDef.description || functionToolDef.name,
                 inputSchema: functionData.inputSchema || {},
                 executeCode: functionData.executeCode,
                 dependencies: functionData.dependencies || {},
+                sandboxConfig: project?.sandboxConfig || defaultSandboxConfig,
               });
 
               // Record the result
