@@ -1,5 +1,6 @@
-import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
+import { editor, Uri, type IDisposable, Range, languages } from 'monaco-editor';
 import { MONACO_THEME_DATA, MONACO_THEME_NAME } from '@/constants/theme';
+import monacoCompatibleSchema from './dynamic-ref-compatible-json-schema.json';
 
 // Function to check if a token should show a copy icon
 function shouldShowCopyIcon(tokenType: string): boolean {
@@ -75,6 +76,20 @@ export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: str
 
 editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
 editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
+
+languages.json.jsonDefaults.setDiagnosticsOptions({
+  // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
+  // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
+  schemas: [
+    {
+      // Configure JSON language service with Monaco-compatible schema
+      uri: 'https://json-schema.org/draft/2020-12/schema',
+      fileMatch: ['*.json'],
+      schema: monacoCompatibleSchema,
+    },
+  ],
+  enableSchemaRequest: true,
+});
 
 export function createEditor(
   domElement: HTMLDivElement,
