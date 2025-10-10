@@ -28,7 +28,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       },
     };
 
-    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
       method: 'POST',
       body: JSON.stringify(graphData),
     });

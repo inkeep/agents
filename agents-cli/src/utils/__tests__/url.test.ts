@@ -86,7 +86,7 @@ describe('buildGraphViewUrl', () => {
       'graph.with.dots'
     );
     expect(result).toBe(
-      'http://localhost:3000/tenant-123/projects/project_456/agents/agent.with.dots'
+      'http://localhost:3000/tenant-123/projects/project_456/agents/graph.with.dots'
     );
   });
 
