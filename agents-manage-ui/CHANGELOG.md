@@ -1,5 +1,29 @@
 # @inkeep/agents-manage-ui
 
+## 0.18.0
+
+### Minor Changes
+
+- 091c56a: introduce new JSON editor with copying field functionality powered by pure Monaco Editor
+- 3684a31: Rename Agents to SubAgents
+
+### Patch Changes
+
+- 9cc2641: - Fix form submission for artifacts with props
+- 81d5a7e: Template variable preservation in placeholders
+- 2165d9b: improve errors and fix bug
+- e91f4bc: fix `<div> cannot be a descendant of <p>.` in `/traces/conversations` page
+- 7363d66: Delete unused `SimpleThemeToggle` component
+- 9bdf630: Fixed streamed non final output text tracking
+- Updated dependencies [81d5a7e]
+- Updated dependencies [2165d9b]
+- Updated dependencies [1600323]
+- Updated dependencies [3684a31]
+- Updated dependencies [9bdf630]
+  - @inkeep/agents-manage-api@0.18.0
+  - @inkeep/agents-run-api@0.18.0
+  - @inkeep/agents-core@0.18.0
+
 ## 0.17.0
 
 ### Patch Changes

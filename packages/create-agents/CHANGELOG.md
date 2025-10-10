@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.18.0
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+
 ## 0.17.0
 
 ## 0.16.3
