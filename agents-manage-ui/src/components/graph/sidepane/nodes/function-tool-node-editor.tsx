@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StandaloneJsonEditor } from '@/components/form/standalone-json-editor';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
+import { ExpandableTextArea } from './expandable-text-area';
 import { InputField, TextareaField } from './form-fields';
 
 interface FunctionToolNodeEditorProps {
@@ -89,10 +90,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
   // Handle code changes
   const handleCodeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newCode = e.target.value;
-      setCode(newCode);
-      updatePath('code', newCode);
+    (value: string) => {
+      setCode(value);
+      updatePath('code', value);
     },
     [updatePath]
   );
@@ -134,23 +134,30 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         maxHeight="max-h-32"
       />
 
-      <TextareaField
-        ref={(el) => setFieldRef('code', el)}
+      <ExpandableTextArea
         id="function-tool-code"
-        name="code"
         label="Code"
         value={code}
         onChange={handleCodeChange}
         placeholder="Enter function code here..."
-        error={getFieldError('code')}
+        data-invalid={getFieldError('code') ? '' : undefined}
         isRequired
-        className="min-h-[200px] font-mono text-sm"
+        className="font-mono text-sm data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
       />
+      <p className="text-sm text-muted-foreground">
+        JavaScript function code to be executed by the tool. The function will receive arguments
+        based on the input schema and should return a result.
+      </p>
+      {getFieldError('code') && <p className="text-sm text-red-600">{getFieldError('code')}</p>}
 
       <div className="space-y-2">
         <div className="text-sm font-medium">
           Input Schema <span className="text-red-500">*</span>
         </div>
+        <p className="text-sm text-muted-foreground">
+          JSON schema defining the parameters that the function will receive. This defines the
+          structure and validation rules for the function's input arguments.
+        </p>
         <StandaloneJsonEditor
           value={inputSchema}
           onChange={handleInputSchemaChange}
@@ -176,6 +183,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Dependencies</div>
+        <p className="text-sm text-muted-foreground">
+          External npm packages that the function code requires. These packages will be installed
+          before executing the function.
+        </p>
         <StandaloneJsonEditor
           value={dependencies}
           onChange={handleDependenciesChange}
@@ -191,4 +202,3 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     </div>
   );
 }
-

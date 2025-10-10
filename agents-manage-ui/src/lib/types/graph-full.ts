@@ -13,11 +13,11 @@ import {
   AgentApiInsertSchema,
   AgentGraphApiInsertSchema,
   type AgentGraphInsert,
+  type FullGraphDefinition as CoreFullGraphDefinition,
   ErrorResponseSchema,
   type ExternalAgentDefinition,
-  type FunctionApiInsert,
-  type FullGraphDefinition as CoreFullGraphDefinition,
   FullGraphDefinitionSchema,
+  type FunctionApiInsert,
   type InternalAgentDefinition,
   ListResponseSchema,
   SingleResponseSchema,
@@ -31,6 +31,7 @@ import type { SingleResponse } from './response';
 // Extend FullGraphDefinition with UI-specific lookup maps
 export type FullGraphDefinition = CoreFullGraphDefinition & {
   tools?: Record<string, ToolApiInsert>;
+  functionTools?: Record<string, any>; // Function tools are graph-scoped
   functions?: Record<string, FunctionApiInsert>;
 };
 

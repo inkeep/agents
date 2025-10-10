@@ -12,6 +12,7 @@ import {
   dataComponents,
   externalAgents,
   functions,
+  functionTools,
   ledgerArtifacts,
   messages,
   projects,
@@ -310,33 +311,24 @@ export const ToolSelectSchema = createSelectSchema(tools);
 export const ToolInsertSchema = createInsertSchema(tools).extend({
   id: resourceIdSchema,
   imageUrl: imageUrlSchema,
-  functionId: resourceIdSchema.optional(), // For function tools, reference to global functions table
-  config: z.discriminatedUnion('type', [
-    // MCP tools
-    z.object({
-      type: z.literal('mcp'),
-      mcp: z.object({
-        server: z.object({
-          url: z.string().url(),
-        }),
-        transport: z
-          .object({
-            type: z.enum(MCPTransportType),
-            requestInit: z.record(z.string(), z.unknown()).optional(),
-            eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-            reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
-            sessionId: z.string().optional(),
-          })
-          .optional(),
-        activeTools: z.array(z.string()).optional(),
+  config: z.object({
+    type: z.literal('mcp'),
+    mcp: z.object({
+      server: z.object({
+        url: z.string().url(),
       }),
+      transport: z
+        .object({
+          type: z.enum(MCPTransportType),
+          requestInit: z.record(z.string(), z.unknown()).optional(),
+          eventSourceInit: z.record(z.string(), z.unknown()).optional(),
+          reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+          sessionId: z.string().optional(),
+        })
+        .optional(),
+      activeTools: z.array(z.string()).optional(),
     }),
-    // Function tools (reference-only, no inline duplication)
-    z.object({
-      type: z.literal('function'),
-      // No inline function details - they're in the functions table via functionId
-    }),
-  ]),
+  }),
 });
 
 // === Conversation Schemas ===
@@ -593,6 +585,20 @@ export const ToolApiSelectSchema = createApiSchema(ToolSelectSchema);
 export const ToolApiInsertSchema = createApiInsertSchema(ToolInsertSchema);
 export const ToolApiUpdateSchema = createApiUpdateSchema(ToolUpdateSchema);
 
+// === Function Tool Schemas ===
+export const FunctionToolSelectSchema = createSelectSchema(functionTools);
+
+export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend({
+  id: resourceIdSchema,
+});
+
+export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
+
+export const FunctionToolApiSelectSchema = createApiSchema(FunctionToolSelectSchema);
+export const FunctionToolApiInsertSchema =
+  createGraphScopedApiInsertSchema(FunctionToolInsertSchema);
+export const FunctionToolApiUpdateSchema = createApiUpdateSchema(FunctionToolUpdateSchema);
+
 // === Function Schemas ===
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
@@ -717,6 +723,22 @@ export const FullGraphAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canDelegateTo: z.array(z.string()).optional(),
 });
 
+export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
+  subAgents: z.record(
+    z.string(),
+    z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
+  ),
+  // Lookup maps for UI to resolve canUse items
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (graph-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+  contextConfig: z.optional(ContextConfigApiInsertSchema),
+  statusUpdates: z.optional(StatusUpdateSchema),
+  models: ModelSchema.optional(),
+  stopWhen: GraphStopWhenSchema.optional(),
+  graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
+});
+
 export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
   subAgents: z.record(
     z.string(),
@@ -725,8 +747,10 @@ export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.exten
       ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
     ])
   ),
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // Get tool name/description from toolId
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
+  // Lookup maps for UI to resolve canUse items
+  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (graph-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -790,8 +814,8 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 // Full Project Definition Schema - extends Project with graphs and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   graphs: z.record(z.string(), GraphWithinContextOfProjectSchema),
-  tools: z.record(z.string(), ToolApiInsertSchema), // Now includes both MCP and function tools
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Global functions
+  tools: z.record(z.string(), ToolApiInsertSchema), // MCP tools (project-scoped)
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Functions (project-scoped)
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),

@@ -8,7 +8,7 @@ import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('function-tool');
 
-export const getFunctionToolDeps = (name: string, code: string): Record<string, string> => {
+export const getFunctionToolDeps = (name: string, code: string): Record<string, string | false> => {
   const { dependencies, warnings } = buildToolManifestFromCodeTS(code);
   if (warnings.length > 0) {
     logger.warn({ warnings }, `FunctionTool dependencies warnings for ${name}`);
@@ -17,7 +17,7 @@ export const getFunctionToolDeps = (name: string, code: string): Record<string, 
 };
 
 type VersionResult = { exact: string } | { range: string; unresolved: true };
-export type ToolManifest = { dependencies: Record<string, string>; warnings: string[] };
+export type ToolManifest = { dependencies: Record<string, string | false>; warnings: string[] };
 
 const NODE_BUILTINS = new Set(builtinModules.concat(builtinModules.map((m) => `node:${m}`)));
 
@@ -162,18 +162,22 @@ export function buildToolManifestFromCodeTS(
 ): ToolManifest {
   const deps = collectDepsFromCodeTS(code);
   const warnings: string[] = [];
-  const dependencies: Record<string, string> = {};
+  const dependencies: Record<string, string | false> = {};
   for (const pkg of deps) {
-    const v = resolveInstalledVersion(pkg, projectRoot);
-    if (!v) {
-      warnings.push(`Could not resolve version for "${pkg}"`);
-      continue;
-    }
-    if ('unresolved' in v) {
-      warnings.push(`Using range for "${pkg}" -> ${v.range} (no lockfile / not installed)`);
-      dependencies[pkg] = v.range;
-    } else {
-      dependencies[pkg] = v.exact;
+    try {
+      const v = resolveInstalledVersion(pkg, projectRoot);
+      if (!v) {
+        warnings.push(`Could not resolve version for "${pkg}"`);
+        continue;
+      }
+      if ('unresolved' in v) {
+        warnings.push(`Using range for "${pkg}" -> ${v.range} (no lockfile / not installed)`);
+        dependencies[pkg] = v.range;
+      } else {
+        dependencies[pkg] = v.exact;
+      }
+    } catch {
+      dependencies[pkg] = false;
     }
   }
   return { dependencies, warnings };

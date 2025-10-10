@@ -662,7 +662,6 @@ export const getToolsForAgent =
             name: tools.name,
             description: tools.description,
             config: tools.config,
-            functionId: tools.functionId,
             createdAt: tools.createdAt,
             updatedAt: tools.updatedAt,
             capabilities: tools.capabilities,

@@ -92,6 +92,9 @@ import type {
   FunctionApiUpdateSchema,
   FunctionInsertSchema,
   FunctionSelectSchema,
+  FunctionToolApiInsertSchema,
+  FunctionToolApiSelectSchema,
+  FunctionToolApiUpdateSchema,
   FunctionUpdateSchema,
   GraphWithinContextOfProjectSchema,
   LedgerArtifactApiInsertSchema,
@@ -203,6 +206,10 @@ export type FunctionUpdate = z.infer<typeof FunctionUpdateSchema>;
 export type FunctionApiSelect = z.infer<typeof FunctionApiSelectSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
+
+export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
+export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
+export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
 
 // === Conversation Types ===
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;

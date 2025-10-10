@@ -475,6 +475,7 @@ export class Project implements ProjectInterface {
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
     const graphsObject: Record<string, any> = {};
     const toolsObject: Record<string, ToolApiInsert> = {};
+    const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
@@ -602,21 +603,15 @@ export class Project implements ProjectInterface {
               functionsObject[toolId] = functionData;
             }
 
-            // Also add to tools object with type 'function' (reference-only, no duplication)
-            if (!toolsObject[toolId]) {
+            // Add to functionTools object (function tools are now separate)
+            if (!functionToolsObject[toolId]) {
               const toolData = actualTool.serializeTool();
 
-              const toolConfig: ToolApiInsert['config'] = {
-                type: 'function',
-                // No inline function details - they're in the functions table via functionId
-              };
-
-              toolsObject[toolId] = {
+              functionToolsObject[toolId] = {
                 id: toolData.id,
                 name: toolData.name,
                 description: toolData.description,
                 functionId: toolData.functionId,
-                config: toolConfig,
               };
             }
           } else {

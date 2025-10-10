@@ -96,6 +96,8 @@ export function serializeGraphData(
   agentToolConfigLookup?: AgentToolConfigLookup
 ): FullGraphDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
+  const functionTools: Record<string, any> = {};
+  const functions: Record<string, any> = {};
   // Note: Tools are now project-scoped and not included in graph serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
@@ -212,25 +214,39 @@ export function serializeGraphData(
         if (functionToolNode && functionToolNode.type === NodeType.FunctionTool) {
           const nodeData = functionToolNode.data as any;
 
-          const toolId = nodeData.toolId || nodeData.functionToolId || functionToolNode.id;
+          const functionToolId = nodeData.functionToolId || nodeData.toolId || functionToolNode.id;
           const relationshipId = nodeData.relationshipId;
 
+          // Get the function ID from the node data (should reference existing function)
+          const functionId = nodeData.functionId || functionToolId;
+
+          // Create function tool entry
           const functionToolData = {
+            id: functionToolId,
+            name: nodeData.name || '',
+            description: nodeData.description || '',
+            functionId: functionId, // Reference to existing function
+          };
+
+          // Always create function entry to ensure it exists
+          const functionData = {
+            id: functionId,
             name: nodeData.name || '',
             description: nodeData.description || '',
             executeCode: nodeData.code || '',
             inputSchema: nodeData.inputSchema || {},
             dependencies: nodeData.dependencies || {},
           };
+          functions[functionId] = functionData;
+
+          functionTools[functionToolId] = functionToolData;
 
           canUse.push({
-            toolId,
+            toolId: functionToolId,
             toolSelection: null,
             headers: null,
-            toolType: 'function',
-            functionTool: functionToolData,
             ...(relationshipId && { agentToolRelationId: relationshipId }),
-          } as any);
+          });
         }
       }
 
@@ -373,6 +389,8 @@ export function serializeGraphData(
     description: metadata?.description || undefined,
     defaultSubAgentId,
     subAgents: subAgents,
+    ...(Object.keys(functionTools).length > 0 && { functionTools }),
+    ...(Object.keys(functions).length > 0 && { functions }),
     // Note: Tools are now project-scoped and not included in FullGraphDefinition
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),

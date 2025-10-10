@@ -401,27 +401,12 @@ export const tools = sqliteTable(
     name: text('name').notNull(),
     description: text('description'),
 
-    // Tool configuration - supports both MCP and function tools
     config: blob('config', { mode: 'json' })
-      .$type<
-        | {
-            type: 'mcp';
-            mcp: ToolMcpConfig;
-          }
-        | {
-            type: 'function';
-            // function property is optional since we use reference-only architecture (functionId)
-            function?: {
-              inputSchema: Record<string, unknown>;
-              executeCode: string;
-              dependencies: Record<string, unknown>;
-            };
-          }
-      >()
+      .$type<{
+        type: 'mcp';
+        mcp: ToolMcpConfig;
+      }>()
       .notNull(),
-
-    // For function tools, reference the global functions table
-    functionId: text('function_id'),
 
     credentialReferenceId: text('credential_reference_id'),
 
@@ -444,11 +429,30 @@ export const tools = sqliteTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'tools_project_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to functions table (for function tools)
+  ]
+);
+
+export const functionTools = sqliteTable(
+  'function_tools',
+  {
+    ...graphScoped,
+    name: text('name').notNull(),
+    description: text('description'),
+    functionId: text('function_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.graphId],
+      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+      name: 'function_tools_graph_fk',
+    }).onDelete('cascade'),
+    // Foreign key constraint to functions table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.functionId],
       foreignColumns: [functions.tenantId, functions.projectId, functions.id],
-      name: 'tools_function_fk',
+      name: 'function_tools_function_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -489,11 +493,41 @@ export const subAgentToolRelations = sqliteTable(
       foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
       name: 'sub_agent_tool_relations_agent_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to tools table
+    // Foreign key constraint to tools table (MCP tools)
     foreignKey({
       columns: [table.tenantId, table.projectId, table.toolId],
       foreignColumns: [tools.tenantId, tools.projectId, tools.id],
       name: 'sub_agent_tool_relations_tool_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+// Junction table for agent-function tool relations
+export const agentFunctionToolRelations = sqliteTable(
+  'agent_function_tool_relations',
+  {
+    ...subAgentScoped,
+    functionToolId: text('function_tool_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    // Foreign key constraint to agents table
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
+      name: 'agent_function_tool_relations_agent_fk',
+    }).onDelete('cascade'),
+    // Foreign key constraint to functionTools table
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.graphId, table.functionToolId],
+      foreignColumns: [
+        functionTools.tenantId,
+        functionTools.projectId,
+        functionTools.graphId,
+        functionTools.id,
+      ],
+      name: 'agent_function_tool_relations_function_tool_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -693,6 +727,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   subAgents: many(subAgents),
   agentGraphs: many(agentGraph),
   tools: many(tools),
+  functions: many(functions),
   contextConfigs: many(contextConfigs),
   externalAgents: many(externalAgents),
   conversations: many(conversations),
@@ -756,11 +791,12 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
     relationName: 'associatedAgent',
   }),
   toolRelations: many(subAgentToolRelations),
+  functionToolRelations: many(agentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
 }));
 
-export const agentGraphRelations = relations(agentGraph, ({ one }) => ({
+export const agentGraphRelations = relations(agentGraph, ({ one, many }) => ({
   project: one(projects, {
     fields: [agentGraph.tenantId, agentGraph.projectId],
     references: [projects.tenantId, projects.id],
@@ -773,6 +809,7 @@ export const agentGraphRelations = relations(agentGraph, ({ one }) => ({
     fields: [agentGraph.contextConfigId],
     references: [contextConfigs.id],
   }),
+  functionTools: many(functionTools),
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
@@ -822,10 +859,6 @@ export const toolsRelations = relations(tools, ({ one, many }) => ({
   credentialReference: one(credentialReferences, {
     fields: [tools.credentialReferenceId],
     references: [credentialReferences.id],
-  }),
-  function: one(functions, {
-    fields: [tools.functionId],
-    references: [functions.id],
   }),
 }));
 
@@ -934,7 +967,7 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
 
 // Functions relations
 export const functionsRelations = relations(functions, ({ many }) => ({
-  tools: many(tools),
+  functionTools: many(functionTools),
 }));
 
 export const subAgentRelationsRelations = relations(subAgentRelations, ({ one }) => ({
@@ -957,3 +990,35 @@ export const subAgentRelationsRelations = relations(subAgentRelations, ({ one })
     references: [externalAgents.id],
   }),
 }));
+
+// FunctionTools relations
+export const functionToolsRelations = relations(functionTools, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [functionTools.tenantId, functionTools.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  graph: one(agentGraph, {
+    fields: [functionTools.tenantId, functionTools.projectId, functionTools.graphId],
+    references: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+  }),
+  function: one(functions, {
+    fields: [functionTools.tenantId, functionTools.projectId, functionTools.functionId],
+    references: [functions.tenantId, functions.projectId, functions.id],
+  }),
+  agentRelations: many(agentFunctionToolRelations),
+}));
+
+// AgentFunctionToolRelations relations
+export const agentFunctionToolRelationsRelations = relations(
+  agentFunctionToolRelations,
+  ({ one }) => ({
+    agent: one(subAgents, {
+      fields: [agentFunctionToolRelations.subAgentId],
+      references: [subAgents.id],
+    }),
+    functionTool: one(functionTools, {
+      fields: [agentFunctionToolRelations.functionToolId],
+      references: [functionTools.id],
+    }),
+  })
+);

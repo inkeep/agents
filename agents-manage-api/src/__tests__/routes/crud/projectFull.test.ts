@@ -5,7 +5,6 @@ import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Project Full CRUD Routes - Integration Tests', () => {
-
   // Helper function to create test tool data
   const createTestToolData = (id: string, suffix = '') => {
     // Remove all non-numeric characters from suffix for URL port
@@ -35,11 +34,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
   // Helper function to create full graph definition
   // NOTE: Tools should be defined at PROJECT level, not graph level
-  const createTestGraphDefinition = (
-    graphId: string,
-    subAgentId: string,
-    suffix = ''
-  ) => ({
+  const createTestGraphDefinition = (graphId: string, subAgentId: string, suffix = '') => ({
     id: graphId,
     name: `Test Graph${suffix}`,
     description: `Complete test graph${suffix}`,
@@ -318,7 +313,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should delete graphs that are removed from the project definition', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 3 graphs and 3 tools
       const graph1Id = `graph-${projectId}-1`;
@@ -330,21 +325,9 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       const originalDefinition = createTestProjectDefinition(projectId);
       originalDefinition.graphs = {
-        [graph1Id]: createTestGraphDefinition(
-          graph1Id,
-          `agent-${graph1Id}`,
-          ' 1'
-        ),
-        [graph2Id]: createTestGraphDefinition(
-          graph2Id,
-          `agent-${graph2Id}`,
-          ' 2'
-        ),
-        [graph3Id]: createTestGraphDefinition(
-          graph3Id,
-          `agent-${graph3Id}`,
-          ' 3'
-        ),
+        [graph1Id]: createTestGraphDefinition(graph1Id, `agent-${graph1Id}`, ' 1'),
+        [graph2Id]: createTestGraphDefinition(graph2Id, `agent-${graph2Id}`, ' 2'),
+        [graph3Id]: createTestGraphDefinition(graph3Id, `agent-${graph3Id}`, ' 3'),
       };
       // Define tools at PROJECT level, not graph level
       originalDefinition.tools = {
@@ -358,6 +341,15 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         method: 'POST',
         body: JSON.stringify(originalDefinition),
       });
+      if (createRes.status !== 201) {
+        const errorBody = await createRes.json();
+        console.error('Failed to create project (test 1):', {
+          status: createRes.status,
+          error: errorBody,
+          projectId,
+          graphIds: Object.keys(originalDefinition.graphs),
+        });
+      }
       expect(createRes.status).toBe(201);
 
       // Verify all 3 graphs exist
@@ -402,7 +394,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should handle removing all graphs from a project', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 2 graphs and 2 tools
       const graph1Id = `graph-${projectId}-1`;
@@ -412,16 +404,8 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       const originalDefinition = createTestProjectDefinition(projectId);
       originalDefinition.graphs = {
-        [graph1Id]: createTestGraphDefinition(
-          graph1Id,
-          `agent-${graph1Id}`,
-          ' 1'
-        ),
-        [graph2Id]: createTestGraphDefinition(
-          graph2Id,
-          `agent-${graph2Id}`,
-          ' 2'
-        ),
+        [graph1Id]: createTestGraphDefinition(graph1Id, `agent-${graph1Id}`, ' 1'),
+        [graph2Id]: createTestGraphDefinition(graph2Id, `agent-${graph2Id}`, ' 2'),
       };
       // Define tools at PROJECT level, not graph level
       originalDefinition.tools = {
@@ -430,10 +414,11 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       };
 
       // Create the project
-      await makeRequest(`/tenants/${tenantId}/project-full`, {
+      const createRes = await makeRequest(`/tenants/${tenantId}/project-full`, {
         method: 'POST',
         body: JSON.stringify(originalDefinition),
       });
+      expect(createRes.status).toBe(201);
 
       // Update project to have no graphs
       const updatedDefinition = {
@@ -509,7 +494,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('Project with Complex Graph Structure', () => {
     it('should handle project with multiple graphs and complex relationships', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a more complex project with multiple graphs
       const agent1Id = `agent-${nanoid()}`;
@@ -547,6 +532,15 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         body: JSON.stringify(complexProject),
       });
 
+      if (response.status !== 201) {
+        const errorBody = await response.json();
+        console.error('Failed to create complex project:', {
+          status: response.status,
+          error: errorBody,
+          projectId,
+          graphIds: Object.keys(complexProject.graphs),
+        });
+      }
       expect(response.status).toBe(201);
       const body = await response.json();
       expect(body.data.graphs).toBeDefined();

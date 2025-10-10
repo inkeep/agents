@@ -186,7 +186,6 @@ export const dbResultToMcpTool = async (
     // Return minimal tool data for non-MCP tools
     return {
       ...rest,
-      functionId: rest.functionId || undefined, // Convert null to undefined
       status: 'unknown',
       availableTools: [],
       capabilities: capabilities || undefined,
@@ -239,7 +238,6 @@ export const dbResultToMcpTool = async (
 
   return {
     ...rest,
-    functionId: rest.functionId || undefined, // Convert null to undefined
     status,
     availableTools,
     capabilities: capabilities || undefined,
@@ -403,7 +401,7 @@ export const removeToolFromAgent =
 /**
  * Upsert agent-tool relation (create if it doesn't exist, update if it does)
  */
-export const upsertAgentToolRelation =
+export const upsertSubAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;

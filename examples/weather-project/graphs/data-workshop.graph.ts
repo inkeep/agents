@@ -29,7 +29,6 @@ const generateRandomQuote = functionTool({
     properties: {},
     required: [],
   },
-  // No external dependencies - uses built-in JavaScript Math
   execute: async () => {
     const quotes = [
       { text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
@@ -79,7 +78,7 @@ const fetchRandomJoke = functionTool({
     required: [],
   },
   // Only needed if you want to use a particualr version of a package, otherwise it will scan your local version
-  dependencies: { axios: '^1.6.0' },
+  // dependencies: { axios: '^1.6.0' },
   execute: async () => {
     const axios = require('axios');
     const response = await axios.get(
@@ -104,7 +103,6 @@ const calculateBMI = functionTool({
     },
     required: ['weight', 'height'],
   },
-  // No external dependencies - uses built-in JavaScript Math
   execute: async (params: { weight: number; height: number }) => {
     const bmi = params.weight / (params.height * params.height);
 

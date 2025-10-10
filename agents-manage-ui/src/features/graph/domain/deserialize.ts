@@ -211,12 +211,11 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         const toolNodeId = nanoid();
         const relationshipId = canUseItem.agentToolRelationId;
 
-        // Look up the tool to get its details
-        const tool = data.tools?.[toolId];
-        const toolType = tool?.config?.type || 'mcp'; // Default to MCP if not found
+        // Get tool details from lookup
+        const tool = data.tools?.[toolId] || data.functionTools?.[toolId];
 
-        // Create the appropriate node type
-        const nodeType = toolType === 'function' ? NodeType.FunctionTool : NodeType.MCP;
+        // Determine node type based on tool type
+        const nodeType = data.tools?.[toolId] ? NodeType.MCP : NodeType.FunctionTool;
 
         // Populate node data with tool details from lookup
         const nodeData: any = {
@@ -229,10 +228,12 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
           imageUrl: (tool as any)?.imageUrl,
         };
 
-        // For function tools, add function details from functions lookup
-        if (toolType === 'function') {
-          const functionId = (tool as any)?.functionId;
+        // Add function details for function tools
+        if (nodeType === NodeType.FunctionTool && data.functionTools?.[toolId]) {
+          const functionTool = data.functionTools[toolId];
+          const functionId = functionTool.functionId;
           if (functionId) {
+            nodeData.functionId = functionId; // Store functionId in node data
             const func = data.functions?.[functionId];
             if (func) {
               nodeData.inputSchema = func.inputSchema;
@@ -240,6 +241,11 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
               nodeData.dependencies = func.dependencies;
             }
           }
+        }
+
+        if (!tool) {
+          // Tool not found - skip
+          continue;
         }
 
         const toolNode: Node = {
@@ -251,7 +257,8 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         nodes.push(toolNode);
 
         // Use the appropriate handle ID based on tool type
-        const targetHandle = toolType === 'function' ? functionToolNodeHandleId : mcpNodeHandleId;
+        const targetHandle =
+          nodeType === NodeType.FunctionTool ? functionToolNodeHandleId : mcpNodeHandleId;
 
         const agentToToolEdge: Edge = {
           id: `edge-${toolNodeId}-${subAgentId}`,

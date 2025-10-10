@@ -34,6 +34,8 @@ import {
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
+import { upsertFunction } from './functions';
+import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
 import {
   createSubAgentRelation,
   deleteAgentRelationsByGraph,
@@ -41,7 +43,7 @@ import {
   upsertAgentRelation,
 } from './subAgentRelations';
 import { deleteSubAgent, listSubAgents, upsertSubAgent } from './subAgents';
-import { upsertAgentToolRelation } from './tools';
+import { upsertSubAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
 export interface GraphLogger {
@@ -191,9 +193,8 @@ export const createFullGraphServerSide =
         'CredentialReferences are project-scoped - skipping credential reference creation in graph'
       );
 
-      // Note: Tools are now project-scoped and should be created separately
-      // They are no longer part of the graph definition
-      logger.info({}, 'Tools are project-scoped - skipping tool creation in graph');
+      // Note: MCP Tools are now project-scoped and should be created separately
+      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in graph');
 
       // Step 3: Create the graph metadata FIRST (before agents, as they need graphId)
       let finalGraphId: string;
@@ -293,6 +294,96 @@ export const createFullGraphServerSide =
         'ArtifactComponents are project-scoped - skipping artifactComponent creation in graph'
       );
 
+      // Step 6: Create functions (project-scoped) - must be created before function tools
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'Creating functions for graph'
+        );
+
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ graphId: finalGraphId, functionId }, 'Creating function for graph');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                  id: functionId,
+                },
+                scopes: { tenantId, projectId },
+              });
+              logger.info({ graphId: finalGraphId, functionId }, 'Function created successfully');
+            } catch (error) {
+              logger.error(
+                { graphId: finalGraphId, functionId, error },
+                'Failed to create function for graph'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All functions created successfully'
+        );
+      }
+
+      // Step 7: Create function tools (graph-scoped)
+      if (typed.functionTools && Object.keys(typed.functionTools).length > 0) {
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionToolCount: Object.keys(typed.functionTools).length,
+          },
+          'Creating function tools for graph'
+        );
+
+        const functionToolPromises = Object.entries(typed.functionTools).map(
+          async ([functionToolId, functionToolData]) => {
+            try {
+              logger.info(
+                { graphId: finalGraphId, functionToolId },
+                'Creating function tool in graph'
+              );
+              await upsertFunctionTool(db)({
+                data: {
+                  ...functionToolData,
+                  id: functionToolId,
+                },
+                scopes: { tenantId, projectId, graphId: finalGraphId },
+              });
+              logger.info(
+                { graphId: finalGraphId, functionToolId },
+                'Function tool created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { graphId: finalGraphId, functionToolId, error },
+                'Failed to create function tool in graph'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionToolPromises);
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionToolCount: Object.keys(typed.functionTools).length,
+          },
+          'All function tools created successfully'
+        );
+      }
+
       // Step 7: Create/update internal agents (now with graphId)
       const internalAgentPromises = Object.entries(typed.subAgents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
@@ -383,7 +474,7 @@ export const createFullGraphServerSide =
         }
       }
 
-      // Step 10: Create agent-tool relationships
+      // Step 10: Create agent-tool relationships (both MCP tools and function tools)
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
@@ -393,16 +484,49 @@ export const createFullGraphServerSide =
               (async () => {
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
-                  logger.info({ subAgentId, toolId }, 'Processing agent-tool relation');
-                  await upsertAgentToolRelation(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId },
-                    subAgentId: subAgentId,
-                    toolId,
-                    selectedTools: toolSelection || undefined,
-                    headers: headers || undefined,
-                    relationId: agentToolRelationId,
-                  });
-                  logger.info({ subAgentId, toolId }, 'Agent-tool relation processed successfully');
+                  // Check if this is a function tool or MCP tool
+                  const isFunctionTool = typed.functionTools && toolId in typed.functionTools;
+
+                  logger.info(
+                    {
+                      subAgentId,
+                      toolId,
+                      hasFunctionTools: !!typed.functionTools,
+                      functionToolKeys: typed.functionTools ? Object.keys(typed.functionTools) : [],
+                      isFunctionTool,
+                    },
+                    'Processing canUse item'
+                  );
+
+                  if (isFunctionTool) {
+                    // Create agent-function tool relation
+                    logger.info({ subAgentId, toolId }, 'Processing agent-function tool relation');
+                    await upsertSubAgentFunctionToolRelation(db)({
+                      scopes: { tenantId, projectId, graphId: finalGraphId },
+                      subAgentId,
+                      functionToolId: toolId,
+                      relationId: agentToolRelationId,
+                    });
+                    logger.info(
+                      { subAgentId, toolId },
+                      'Agent-function tool relation processed successfully'
+                    );
+                  } else {
+                    // Create agent-MCP tool relation
+                    logger.info({ subAgentId, toolId }, 'Processing agent-MCP tool relation');
+                    await upsertSubAgentToolRelation(db)({
+                      scopes: { tenantId, projectId, graphId: finalGraphId },
+                      subAgentId,
+                      toolId,
+                      selectedTools: toolSelection || undefined,
+                      headers: headers || undefined,
+                      relationId: agentToolRelationId,
+                    });
+                    logger.info(
+                      { subAgentId, toolId },
+                      'Agent-MCP tool relation processed successfully'
+                    );
+                  }
                 } catch (error) {
                   logger.error(
                     { subAgentId, toolId: canUseItem.toolId, error },
@@ -649,7 +773,7 @@ export const updateFullGraphServerSide =
           { graphId: typedGraphDefinition.id },
           'Graph does not exist, creating new graph'
         );
-        return createFullGraphServerSide(db)(scopes, graphData);
+        return createFullGraphServerSide(db, logger)(scopes, graphData);
       }
 
       // Store existing graph models for cascade comparison
@@ -662,8 +786,8 @@ export const updateFullGraphServerSide =
       );
 
       // Step 2: Create/update tools (agents depend on them)
-      // Note: Tools are now project-scoped and should be created separately
-      logger.info({}, 'Tools are project-scoped - skipping tool creation in graph update');
+      // Note: MCP Tools are now project-scoped and should be created separately
+      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in graph update');
 
       // Step 3: Get or create the graph metadata FIRST (before agents, as they need graphId)
       let finalGraphId: string;
@@ -767,6 +891,102 @@ export const updateFullGraphServerSide =
         {},
         'ArtifactComponents are project-scoped - skipping artifactComponent update in graph'
       );
+
+      // Step 6: Create/update functions (project-scoped) - must be updated before function tools
+      if (
+        typedGraphDefinition.functions &&
+        Object.keys(typedGraphDefinition.functions).length > 0
+      ) {
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionCount: Object.keys(typedGraphDefinition.functions).length,
+          },
+          'Updating functions for graph'
+        );
+
+        const functionPromises = Object.entries(typedGraphDefinition.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ graphId: finalGraphId, functionId }, 'Updating function for graph');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                  id: functionId,
+                },
+                scopes: { tenantId, projectId },
+              });
+              logger.info({ graphId: finalGraphId, functionId }, 'Function updated successfully');
+            } catch (error) {
+              logger.error(
+                { graphId: finalGraphId, functionId, error },
+                'Failed to update function for graph'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionCount: Object.keys(typedGraphDefinition.functions).length,
+          },
+          'All functions updated successfully'
+        );
+      }
+
+      // Step 7: Create/update function tools (graph-scoped)
+      if (
+        typedGraphDefinition.functionTools &&
+        Object.keys(typedGraphDefinition.functionTools).length > 0
+      ) {
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionToolCount: Object.keys(typedGraphDefinition.functionTools).length,
+          },
+          'Updating function tools for graph'
+        );
+
+        const functionToolPromises = Object.entries(typedGraphDefinition.functionTools).map(
+          async ([functionToolId, functionToolData]) => {
+            try {
+              logger.info(
+                { graphId: finalGraphId, functionToolId },
+                'Updating function tool in graph'
+              );
+              await upsertFunctionTool(db)({
+                data: {
+                  ...functionToolData,
+                  id: functionToolId,
+                },
+                scopes: { tenantId, projectId, graphId: finalGraphId },
+              });
+              logger.info(
+                { graphId: finalGraphId, functionToolId },
+                'Function tool updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { graphId: finalGraphId, functionToolId, error },
+                'Failed to update function tool in graph'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionToolPromises);
+        logger.info(
+          {
+            graphId: finalGraphId,
+            functionToolCount: Object.keys(typedGraphDefinition.functionTools).length,
+          },
+          'All function tools updated successfully'
+        );
+      }
 
       // Step 7: Create/update internal agents (now with graphId) with model cascade logic
       const internalAgentPromises = Object.entries(typedGraphDefinition.subAgents)
@@ -1050,19 +1270,41 @@ export const updateFullGraphServerSide =
               (async () => {
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
-                  logger.info({ subAgentId, toolId }, 'Processing agent-tool relation');
-                  await upsertAgentToolRelation(db)({
-                    scopes: { tenantId, projectId, graphId: finalGraphId },
-                    subAgentId: subAgentId,
-                    toolId,
-                    selectedTools: toolSelection || undefined,
-                    headers: headers || undefined,
-                    relationId: agentToolRelationId,
-                  });
-                  logger.info(
-                    { subAgentId, toolId, relationId: agentToolRelationId },
-                    'Agent-tool relation upserted'
-                  );
+
+                  // Check if this is a function tool or MCP tool
+                  const isFunctionTool =
+                    typedGraphDefinition.functionTools &&
+                    toolId in typedGraphDefinition.functionTools;
+
+                  if (isFunctionTool) {
+                    // Create agent-function tool relation
+                    logger.info({ subAgentId, toolId }, 'Processing agent-function tool relation');
+                    await upsertSubAgentFunctionToolRelation(db)({
+                      scopes: { tenantId, projectId, graphId: finalGraphId },
+                      subAgentId,
+                      functionToolId: toolId,
+                      relationId: agentToolRelationId,
+                    });
+                    logger.info(
+                      { subAgentId, toolId, relationId: agentToolRelationId },
+                      'Agent-function tool relation upserted'
+                    );
+                  } else {
+                    // Create agent-MCP tool relation
+                    logger.info({ subAgentId, toolId }, 'Processing agent-MCP tool relation');
+                    await upsertSubAgentToolRelation(db)({
+                      scopes: { tenantId, projectId, graphId: finalGraphId },
+                      subAgentId,
+                      toolId,
+                      selectedTools: toolSelection || undefined,
+                      headers: headers || undefined,
+                      relationId: agentToolRelationId,
+                    });
+                    logger.info(
+                      { subAgentId, toolId, relationId: agentToolRelationId },
+                      'Agent-MCP tool relation upserted'
+                    );
+                  }
                 } catch (error) {
                   logger.error(
                     {

@@ -323,6 +323,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
         },
       };
 
+      // Create separate mocks for MCP tools and function tools queries
+      let queryCallCount = 0;
       const mockDb = {
         ...db,
         query: mockQuery,
@@ -333,12 +335,26 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
             }),
           }),
         }),
-        select: vi.fn().mockReturnValue({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(mockTools),
-            }),
-          }),
+        select: vi.fn().mockImplementation(() => {
+          queryCallCount++;
+          // First call returns MCP tools, second call returns empty function tools
+          if (queryCallCount === 1) {
+            return {
+              from: vi.fn().mockReturnValue({
+                innerJoin: vi.fn().mockReturnValue({
+                  where: vi.fn().mockResolvedValue(mockTools),
+                }),
+              }),
+            };
+          } else {
+            return {
+              from: vi.fn().mockReturnValue({
+                innerJoin: vi.fn().mockReturnValue({
+                  where: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            };
+          }
         }),
       } as any;
 
@@ -347,7 +363,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       });
 
       expect((result?.subAgents['agent-1'] as any).canUse).toEqual([
-        { toolId: 'tool-1', toolSelection: null, headers: null },
+        { agentToolRelationId: undefined, toolId: 'tool-1', toolSelection: null, headers: null },
       ]);
     });
 
