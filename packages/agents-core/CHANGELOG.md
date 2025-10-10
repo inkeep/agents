@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.18.0
+
+### Minor Changes
+
+- 1600323: rename agents to subAgents within the agents-sdk
+- 3684a31: Rename Agents to SubAgents
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+- 2165d9b: improve errors and fix bug
+- 9bdf630: Fixed streamed non final output text tracking
+
 ## 0.17.0
 
 ### Minor Changes

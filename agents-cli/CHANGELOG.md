@@ -1,5 +1,28 @@
 # @inkeep/agents-cli
 
+## 0.18.0
+
+### Minor Changes
+
+- 3684a31: Rename Agents to SubAgents
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+- 9bdf630: Fixed streamed non final output text tracking
+- Updated dependencies [091c56a]
+- Updated dependencies [9cc2641]
+- Updated dependencies [81d5a7e]
+- Updated dependencies [2165d9b]
+- Updated dependencies [e91f4bc]
+- Updated dependencies [1600323]
+- Updated dependencies [3684a31]
+- Updated dependencies [7363d66]
+- Updated dependencies [9bdf630]
+  - @inkeep/agents-manage-ui@0.18.0
+  - @inkeep/agents-core@0.18.0
+  - @inkeep/agents-sdk@0.18.0
+
 ## 0.17.0
 
 ### Minor Changes
