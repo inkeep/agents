@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
-import { createTestAgentGraphData } from '../../utils/testHelpers';
+import { createTestAgentData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';

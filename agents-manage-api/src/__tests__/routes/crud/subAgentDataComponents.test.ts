@@ -118,7 +118,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     const relationData = createTestAgentDataComponentData({
       subAgentId,
       dataComponentId,
-      graphId,
+      agentId: graphId,
     });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components`,

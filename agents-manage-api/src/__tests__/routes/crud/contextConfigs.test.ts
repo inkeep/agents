@@ -62,7 +62,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       suffix,
       tenantId,
       projectId,
-      graphId: testGraphId,
+      agentId: testGraphId,
     });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
