@@ -9,7 +9,7 @@ export interface ChatOptions {
   config?: string;
 }
 
-export async function chatCommand(graphId: string, options: ChatOptions) {
+export async function chatCommand(agentId: string, options: ChatOptions) {
   const managementApi = await ManagementApiClient.create(options.url, options.config);
   const executionApi = await ExecutionApiClient.create(options.url, options.config);
 

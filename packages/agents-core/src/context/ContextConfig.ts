@@ -176,7 +176,7 @@ export class ContextConfigBuilder<
     // Update the config object as well
     this.config.tenantId = tenantId;
     this.config.projectId = projectId;
-    this.config.graphId = graphId;
+    this.config.agentId = graphId;
 
     logger.info(
       {
@@ -197,7 +197,7 @@ export class ContextConfigBuilder<
       id: this.getId(),
       tenantId: this.tenantId,
       projectId: this.projectId,
-      graphId: this.graphId,
+      agentId: this.graphId,
       headersSchema: this.getHeadersSchema(),
       contextVariables: this.getContextVariables(),
       createdAt: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
+import { createTestContextConfigDataFull } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';
@@ -31,76 +32,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       },
     ],
   });
-
-  // Helper function to create test dataComponent data
-  const createTestDataComponentData = (id: string, suffix = '') => ({
-    id,
-    name: `Test DataComponent${suffix}`,
-    description: `Test dataComponent description${suffix}`,
-    props: {
-      endpoint: `https://api.example.com/data${suffix}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      transform: `data => ({ result: data.${suffix.toLowerCase() || 'main'} })`,
-    },
-  });
-
-  // Helper function to create test contextConfig data
-  const createTestContextConfigData = ({ id, suffix = '' }: { id: string; suffix?: string }) => ({
-    id,
-    name: `Test Context Config${suffix}`,
-    description: `Test context configuration${suffix}`,
-    headersSchema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', description: 'User identifier' },
-        sessionToken: { type: 'string', description: 'Session token' },
-        [`param${suffix}`]: { type: 'string', description: `Test parameter${suffix}` },
-      },
-      required: ['userId'],
-    },
-    contextVariables: {
-      [`userProfile${suffix}`]: {
-        id: `user-profile${suffix}`,
-        name: `User Profile${suffix}`,
-        trigger: 'initialization',
-        fetchConfig: {
-          url: `https://api.example.com/users/{{headers.userId}}${suffix}`,
-          method: 'GET',
-          headers: {
-            Authorization: 'Bearer {{headers.sessionToken}}',
-          },
-        },
-        defaultValue: { name: `Default User${suffix}` },
-      },
-    },
-  });
-
-
-  // Helper function to create test artifactComponent data
-  const createTestArtifactComponentData = (id: string, suffix = '') => ({
-    id,
-    name: `Test ArtifactComponent${suffix}`,
-    description: `Test artifactComponent description${suffix}`,
-    props: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', inPreview: true },
-        subtitle: { type: 'string', inPreview: true },
-        [`field${suffix}`]: { type: 'string', inPreview: true },
-        content: { type: 'string', inPreview: false },
-        metadata: {
-          type: 'object',
-          inPreview: false,
-          properties: {
-            author: { type: 'string' },
-            created: { type: 'string' },
-          },
-        },
-      },
-    },
-  });
-
   // Helper function to create full graph data with optional enhanced features
   const createFullGraphData = (
     graphId?: string,
@@ -174,9 +105,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     // Add contextConfig if requested
     if (options?.includeContextConfig) {
       const contextConfigId = `contextConfig-${id}`;
-      graphData.contextConfig = createTestContextConfigData({
+      graphData.contextConfig = createTestContextConfigDataFull({
         id: contextConfigId,
-        suffix: 'Main',
+        suffix: ' Main',
       });
     }
 

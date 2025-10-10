@@ -12,12 +12,12 @@ import { CredentialStoreType, MCPTransportType } from './types';
 // === Reusable StopWhen Schemas ===
 // Import from validation schemas
 import {
+  type AgentStopWhen,
+  AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullGraphAgentInsertSchema,
   type FunctionApiInsertSchema,
-  type GraphStopWhen,
-  GraphStopWhenSchema,
   type ModelSettings,
   ModelSettingsSchema,
   type StopWhen,
@@ -32,10 +32,10 @@ export { validatePropsAsJsonSchema } from './validation/props-validation';
 // Re-export StopWhen schemas and types for client usage
 export {
   StopWhenSchema,
-  GraphStopWhenSchema,
+  AgentStopWhenSchema as GraphStopWhenSchema,
   SubAgentStopWhenSchema as AgentStopWhenSchema,
   type StopWhen,
-  type GraphStopWhen,
+  type AgentStopWhen as GraphStopWhen,
   type SubAgentStopWhen as AgentStopWhen,
 };
 

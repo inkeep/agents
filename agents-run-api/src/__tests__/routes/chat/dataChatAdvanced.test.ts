@@ -105,7 +105,7 @@ describe('Chat Data Stream Advanced', () => {
       id: subAgentId,
       tenantId,
       projectId,
-      graphId,
+      agentId: graphId,
       name: 'Test Agent',
       description: 'Test agent',
       prompt: 'Test instructions',

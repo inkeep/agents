@@ -25,7 +25,7 @@ describe('ContextValidation - Headers Only Implementation', () => {
     vi.clearAllMocks();
     const agentGraphModule = await import('../../data-access/agentGraphs');
     const contextConfigModule = await import('../../data-access/contextConfigs');
-    _getAgentGraphWithDefaultSubAgent = agentGraphModule.getAgentGraphWithDefaultSubAgent;
+    _getAgentGraphWithDefaultSubAgent = agentGraphModule.getAgentWithDefaultSubAgent;
     _getContextConfigById = contextConfigModule.getContextConfigById;
   });
 

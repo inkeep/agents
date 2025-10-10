@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
+import { createTestContextConfigDataFull } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
@@ -38,47 +39,6 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     }
   };
 
-  // Helper function to create test context config data
-  const createContextConfigData = ({
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-    graphId = 'test-graph',
-  }: {
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-    graphId?: string;
-  } = {}) => ({
-    id: `test-context-config${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
-    tenantId,
-    projectId,
-    graphId,
-    headersSchema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', description: 'User identifier' },
-        sessionToken: { type: 'string', description: 'Session token' },
-      },
-      required: ['userId'],
-    },
-    contextVariables: {
-      userProfile: {
-        id: `user-profile${suffix}`,
-        name: `User Profile${suffix}`,
-        trigger: 'initialization',
-        fetchConfig: {
-          url: 'https://api.example.com/users/{{headers.userId}}',
-          method: 'GET',
-          headers: {
-            Authorization: 'Bearer {{headers.sessionToken}}',
-          },
-        },
-        defaultValue: { name: 'Anonymous User' },
-      },
-    },
-  });
-
   // Helper function to create a context config and return its ID
   const createTestContextConfig = async ({
     tenantId,
@@ -98,7 +58,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       }
     }
 
-    const contextConfigData = createContextConfigData({
+    const contextConfigData = createTestContextConfigDataFull({
       suffix,
       tenantId,
       projectId,
@@ -356,7 +316,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('context-configs-create-success');
       await ensureTestProject(tenantId, projectId);
       await createTestGraph({ tenantId });
-      const contextConfigData = createContextConfigData({ tenantId, projectId });
+      const contextConfigData = createTestContextConfigDataFull({ tenantId, projectId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,

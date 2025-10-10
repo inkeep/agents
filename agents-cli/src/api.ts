@@ -1,5 +1,10 @@
 // Import shared API client from agents-core
-import { type AgentGraphApiInsert, type AgentGraphApiSelect, apiFetch, OPENAI_MODELS } from '@inkeep/agents-core';
+import {
+  type AgentApiInsert,
+  type AgentApiSelect,
+  apiFetch,
+  OPENAI_MODELS,
+} from '@inkeep/agents-core';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -87,7 +92,7 @@ export class ManagementApiClient extends BaseApiClient {
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
   }
 
-  async listGraphs(): Promise<AgentGraphApiSelect[]> {
+  async listGraphs(): Promise<AgentApiSelect[]> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
@@ -106,29 +111,29 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data || [];
   }
 
-  async getGraph(graphId: string): Promise<AgentGraphApiSelect | null> {
+  async getGraph(agentId: string): Promise<AgentApiSelect | null> {
     // Since there's no dedicated GET endpoint for graphs,
     // we check if the graph exists in the CRUD endpoint
     const graphs = await this.listGraphs();
-    const graph = graphs.find((g) => g.id === graphId);
+    const graph = graphs.find((g) => g.id === agentId);
 
     // If found in CRUD, return it as a valid graph
     // The graph is usable for chat even without a dedicated GET endpoint
     return graph || null;
   }
 
-  async pushGraph(graphDefinition: AgentGraphApiInsert): Promise<any> {
+  async pushGraph(graphDefinition: AgentApiInsert): Promise<any> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
-    const graphId = graphDefinition.id;
-    if (!graphId) {
+    const agentId = graphDefinition.id;
+    if (!agentId) {
       throw new Error('Graph must have an id property');
     }
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
         method: 'PUT',
         body: JSON.stringify({
@@ -204,7 +209,7 @@ export class ExecutionApiClient extends BaseApiClient {
   }
 
   async chatCompletion(
-    graphId: string,
+    agentId: string,
     messages: any[],
     conversationId?: string,
     emitOperations?: boolean
@@ -215,7 +220,7 @@ export class ExecutionApiClient extends BaseApiClient {
         Accept: 'text/event-stream',
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,
-        'x-inkeep-graph-id': graphId,
+        'x-inkeep-agent-id': agentId,
         ...(emitOperations && { 'x-emit-operations': 'true' }),
       },
       body: JSON.stringify({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
+import { createTestAgentDataComponentData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -106,21 +106,6 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create test agent data component relation data
-  const createAgentDataComponentData = ({
-    subAgentId,
-    dataComponentId,
-    graphId = 'default',
-  }: {
-    subAgentId: string;
-    dataComponentId: string;
-    graphId?: string;
-  }) => ({
-    id: `${subAgentId}-${dataComponentId}`,
-    subAgentId,
-    dataComponentId,
-    graphId,
-  });
-
   // Helper function to create an agent data component relation
   const createTestAgentDataComponentRelation = async ({
     tenantId,
@@ -133,7 +118,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     dataComponentId: string;
     graphId: string;
   }) => {
-    const relationData = createAgentDataComponentData({
+    const relationData = createTestAgentDataComponentData({
       subAgentId,
       dataComponentId,
       graphId,
@@ -169,7 +154,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { subAgentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentDataComponentData({
+      const relationData = createTestAgentDataComponentData({
         subAgentId,
         dataComponentId,
       });
@@ -211,7 +196,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { subAgentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentDataComponentData({
+      const relationData = createTestAgentDataComponentData({
         subAgentId,
         dataComponentId,
       });

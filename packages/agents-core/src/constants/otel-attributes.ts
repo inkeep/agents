@@ -70,7 +70,7 @@ export const SPAN_KEYS = {
   // Context attributes
   CONTEXT_URL: 'context.url',
   CONTEXT_CONFIG_ID: 'context.context_config_id',
-  CONTEXT_AGENT_GRAPH_ID: 'context.agent_graph_id',
+  CONTEXT_AGENT_GRAPH_ID: 'context.agent_id',
   CONTEXT_HEADERS_KEYS: 'context.headers_keys',
 
   // Message attributes

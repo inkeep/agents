@@ -143,7 +143,7 @@ export function ChatWidget({
       clearTimeout(stopPollingTimeoutRef.current);
       stopPollingTimeoutRef.current = null;
     }
-    
+
     // Set a new timeout for 5 minutes
     stopPollingTimeoutRef.current = setTimeout(() => {
       stopPolling();
@@ -251,7 +251,7 @@ export function ChatWidget({
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
-              'x-inkeep-graph-id': graphId,
+              'x-inkeep-agent-id': graphId,
               Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },

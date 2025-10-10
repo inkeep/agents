@@ -14,12 +14,12 @@ When `ENVIRONMENT=development`:
 - Must include scope headers:
   - `x-inkeep-tenant-id`
   - `x-inkeep-project-id`
-  - `x-inkeep-graph-id`
+  - `x-inkeep-agent-id`
 
 ```bash
 curl -H "x-inkeep-tenant-id: tenant-123" \
      -H "x-inkeep-project-id: project-456" \
-     -H "x-inkeep-graph-id: graph-789" \
+     -H "x-inkeep-agent-id: graph-789" \
      https://localhost:3003/v1/chat/completions
 ```
 
@@ -48,7 +48,7 @@ When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is se
 curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
      -H "x-inkeep-tenant-id: tenant-123" \
      -H "x-inkeep-project-id: project-456" \
-     -H "x-inkeep-graph-id: graph-789" \
+     -H "x-inkeep-agent-id: graph-789" \
      https://run-api.example.com/chat/completions
 ```
 

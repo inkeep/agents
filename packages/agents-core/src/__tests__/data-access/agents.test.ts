@@ -15,7 +15,7 @@ describe('Agent Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
   beforeEach(async () => {
     db = await createTestDatabaseClient();
@@ -23,19 +23,19 @@ describe('Agent Data Access', () => {
 
   describe('createAgent', () => {
     it('should create a new agent', async () => {
-      const agentData = {
+      const subAgentData = {
         id: 'agent-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        name: 'Test Agent',
-        description: 'A test agent',
+        agentId: testAgentId,
+        name: 'Test Sub Agent',
+        description: 'A test sub agent',
         prompt: 'Test prompt',
       };
 
       const mockInsert = vi.fn().mockReturnValue({
         values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([agentData]),
+          returning: vi.fn().mockResolvedValue([subAgentData]),
         }),
       });
 
@@ -45,15 +45,15 @@ describe('Agent Data Access', () => {
       } as any;
 
       const result = await createSubAgent(mockDb)({
-        ...agentData,
+        ...subAgentData,
       });
 
       expect(mockInsert).toHaveBeenCalled();
       expect(result).toMatchObject({
         id: 'agent-1',
-        name: agentData.name,
-        description: agentData.description,
-        prompt: agentData.prompt,
+        name: subAgentData.name,
+        description: subAgentData.description,
+        prompt: subAgentData.prompt,
       });
     });
 
@@ -63,7 +63,7 @@ describe('Agent Data Access', () => {
         id: customId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         name: 'Custom Agent',
         description: 'Custom agent description',
         prompt: 'Custom prompt',
@@ -95,7 +95,7 @@ describe('Agent Data Access', () => {
         id: subAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        graphId: testAgentId,
         name: 'Test Agent',
         description: 'Test description',
         prompt: 'Test prompt',
@@ -116,7 +116,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentId: subAgentId,
       });
@@ -141,7 +141,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentId: 'non-existent',
       });
@@ -172,7 +172,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
@@ -221,7 +221,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         pagination: { page: 1, limit: 5 },
       });
@@ -273,7 +273,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         pagination: {},
       });
@@ -321,7 +321,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         pagination: { limit: 200 }, // Request more than max
       });
@@ -362,7 +362,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentId: subAgentId,
         data: updateData,
@@ -399,7 +399,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentId: subAgentId,
       });
@@ -415,7 +415,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentIds: [],
       });
@@ -445,7 +445,7 @@ describe('Agent Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentIds: subAgentIds,
       });

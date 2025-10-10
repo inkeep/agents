@@ -6,7 +6,7 @@ import {
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
-  getAgentGraphWithDefaultSubAgent,
+  getAgentWithDefaultSubAgent,
   getConversationId,
   getFullGraph,
   getRequestExecutionContext,
@@ -180,12 +180,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     getLogger('chat').debug(
       {
         tenantId,
-        graphId,
+        agentId,
       },
       'Extracted chat parameters from API key context'
     );
@@ -196,7 +196,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
     // Get the graph from the full graph system first, fall back to legacy system
     const fullGraph = await getFullGraph(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
     });
 
     let agentGraph: any;
@@ -216,8 +216,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
       defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {
       // Fall back to legacy system
-      agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+      agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId },
       });
       if (!agentGraph) {
         throw createApiError({
@@ -258,7 +258,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
     const agentInfo = await getSubAgentById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       subAgentId: subAgentId,
     });
 
@@ -278,7 +278,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     await handleContextResolution({
       tenantId,
       projectId,
-      graphId,
+      agentId,
       conversationId,
       headers: validatedContext,
       dbClient,
@@ -289,7 +289,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       {
         tenantId,
         projectId,
-        graphId,
+        agentId,
         conversationId,
         defaultSubAgentId,
         activeSubAgentId: activeAgent?.activeSubAgentId || 'none',

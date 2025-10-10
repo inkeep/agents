@@ -28,7 +28,7 @@ describe('projectFull data access', () => {
       stepCountIs: 50,
     },
     tools: {},
-    graphs: {}, // Start with empty graphs for basic testing
+    agents: {}, // Start with empty graphs for basic testing
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
@@ -48,7 +48,7 @@ describe('projectFull data access', () => {
       stopWhen: {
         transferCountIs: 5,
       },
-      graphs: {
+      agents: {
         [graphId]: {
           id: graphId,
           name: 'Test Graph',
@@ -119,8 +119,8 @@ describe('projectFull data access', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
-      expect(result.graphs).toBeDefined();
-      expect(Object.keys(result.graphs)).toHaveLength(1);
+      expect(result.agents).toBeDefined();
+      expect(Object.keys(result.agents)).toHaveLength(1);
     });
 
     it('should handle projects with minimal data', async () => {
@@ -135,7 +135,7 @@ describe('projectFull data access', () => {
             providerOptions: {},
           },
         },
-        graphs: {},
+        agents: {},
         tools: {},
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -149,7 +149,7 @@ describe('projectFull data access', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
       expect(result.name).toBe('Minimal Project');
-      expect(result.graphs).toEqual({});
+      expect(result.agents).toEqual({});
     });
   });
 
@@ -207,7 +207,7 @@ describe('projectFull data access', () => {
 
       expect(result).toBeDefined();
       if (result) {
-        expect(result.graphs).toBeDefined();
+        expect(result.agents).toBeDefined();
       }
       // Note: The actual graph count depends on implementation
       // This test verifies structure, not exact content

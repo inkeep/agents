@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
+import { createTestAgentArtifactComponentData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -113,21 +114,6 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create test agent artifact component relation data
-  const createAgentArtifactComponentData = ({
-    subAgentId,
-    artifactComponentId,
-    graphId = 'default',
-  }: {
-    subAgentId: string;
-    artifactComponentId: string;
-    graphId?: string;
-  }) => ({
-    subAgentId: subAgentId,
-    artifactComponentId,
-    graphId,
-    // tenantId and projectId are extracted from URL path, not body
-  });
-
   // Helper function to create an agent artifact component relation
   const createTestAgentArtifactComponentRelation = async ({
     tenantId,
@@ -140,7 +126,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     artifactComponentId: string;
     graphId?: string;
   }) => {
-    const relationData = createAgentArtifactComponentData({
+    const relationData = createTestAgentArtifactComponentData({
       subAgentId: subAgentId,
       artifactComponentId,
       graphId,
@@ -176,7 +162,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { subAgentId, artifactComponentId, graphId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentArtifactComponentData({
+      const relationData = createTestAgentArtifactComponentData({
         subAgentId,
         artifactComponentId,
         graphId,
@@ -219,7 +205,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { subAgentId, artifactComponentId, graphId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentArtifactComponentData({
+      const relationData = createTestAgentArtifactComponentData({
         subAgentId,
         artifactComponentId,
         graphId,
@@ -253,7 +239,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const { graphId } = await createTestAgent({ tenantId });
       const nonExistentSubAgentId = nanoid();
 
-      const relationData = createAgentArtifactComponentData({
+      const relationData = createTestAgentArtifactComponentData({
         subAgentId: nonExistentSubAgentId,
         artifactComponentId,
       });
@@ -275,7 +261,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const { subAgentId, graphId } = await createTestAgent({ tenantId });
       const nonExistentArtifactComponentId = nanoid();
 
-      const relationData = createAgentArtifactComponentData({
+      const relationData = createTestAgentArtifactComponentData({
         subAgentId,
         artifactComponentId: nonExistentArtifactComponentId,
       });

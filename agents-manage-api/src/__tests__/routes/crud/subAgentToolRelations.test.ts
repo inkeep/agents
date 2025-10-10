@@ -1,6 +1,7 @@
 import { MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
+import { createTestAgentToolRelationData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -146,22 +147,6 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     return { toolData, toolId: createBody.data.id };
   };
 
-  // Helper function to create test agent tool relation data
-  const createAgentToolRelationData = ({
-    graphId,
-    subAgentId,
-    toolId,
-  }: {
-    graphId: string;
-    subAgentId: string;
-    toolId: string;
-  }) => ({
-    id: nanoid(),
-    graphId,
-    subAgentId,
-    toolId,
-  });
-
   // Helper function to create an agent tool relation
   const createTestAgentToolRelation = async ({
     tenantId,
@@ -174,7 +159,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     subAgentId: string;
     toolId: string;
   }) => {
-    const relationData = createAgentToolRelationData({ subAgentId, toolId, graphId });
+    const relationData = createTestAgentToolRelationData({ subAgentId, toolId, graphId });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
       {
@@ -203,7 +188,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentToolRelationData({ graphId, subAgentId, toolId });
+      const relationData = createTestAgentToolRelationData({ graphId, subAgentId, toolId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
@@ -229,7 +214,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
 
       // Create first relation
-      const relationData = createAgentToolRelationData({ graphId, subAgentId, toolId });
+      const relationData = createTestAgentToolRelationData({ graphId, subAgentId, toolId });
       const firstRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {
@@ -240,7 +225,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       expect(firstRes.status).toBe(201);
 
       // Try to create duplicate
-      const duplicateData = createAgentToolRelationData({ graphId, subAgentId, toolId });
+      const duplicateData = createTestAgentToolRelationData({ graphId, subAgentId, toolId });
       const duplicateRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
         {

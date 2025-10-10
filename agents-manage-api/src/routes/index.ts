@@ -1,8 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import agentGraphRoutes from './agentGraph';
-// Import existing route modules (others can be added as they're created)
-import subAgentsRoutes from './subAgents';
-import subAgentToolRelationsRoutes from './subAgentToolRelations';
+import agentGraphRoutes from './agent';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
 import contextConfigsRoutes from './contextConfigs';
@@ -16,6 +13,9 @@ import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentRelationsRoutes from './subAgentRelations';
+// Import existing route modules (others can be added as they're created)
+import subAgentsRoutes from './subAgents';
+import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import toolsRoutes from './tools';
 
 const app = new OpenAPIHono();
@@ -24,24 +24,27 @@ const app = new OpenAPIHono();
 app.route('/projects', projectsRoutes);
 
 // Mount existing routes under project scope
-app.route('/projects/:projectId/graphs/:graphId/sub-agents', subAgentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/sub-agent-relations', subAgentRelationsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
 app.route('/projects/:projectId/agent-graphs', agentGraphRoutes);
-app.route('/projects/:projectId/graphs/:graphId/sub-agent-tool-relations', subAgentToolRelationsRoutes);
 app.route(
-  '/projects/:projectId/graphs/:graphId/sub-agent-artifact-components',
+  '/projects/:projectId/agents/:agentId/sub-agent-tool-relations',
+  subAgentToolRelationsRoutes
+);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agent-artifact-components',
   subAgentArtifactComponentsRoutes
 );
 app.route(
-  '/projects/:projectId/graphs/:graphId/sub-agent-data-components',
+  '/projects/:projectId/agents/:agentId/sub-agent-data-components',
   subAgentDataComponentsRoutes
 );
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/context-configs', contextConfigsRoutes);
+app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/external-agents', externalAgentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/function-tools', functionToolsRoutes);
+app.route('/projects/:projectId/agents/:agentId/external-agents', externalAgentsRoutes);
+app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRoutes);
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);

@@ -48,21 +48,21 @@ describe('buildGraphViewUrl', () => {
   it('should build correct URL with provided base URL', () => {
     const result = buildGraphViewUrl('http://localhost:3000', tenantId, projectId, graphId);
     expect(result).toBe(
-      'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph'
+      'http://localhost:3000/test-tenant/projects/test-project/agents/test-graph'
     );
   });
 
   it('should use default URL when manageUiUrl is undefined', () => {
     const result = buildGraphViewUrl(undefined, tenantId, projectId, graphId);
     expect(result).toBe(
-      'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph'
+      'http://localhost:3000/test-tenant/projects/test-project/agents/test-graph'
     );
   });
 
   it('should handle trailing slashes in base URL', () => {
     const result = buildGraphViewUrl('http://localhost:3000/', tenantId, projectId, graphId);
     expect(result).toBe(
-      'http://localhost:3000/test-tenant/projects/test-project/graphs/test-graph'
+      'http://localhost:3000/test-tenant/projects/test-project/agents/test-graph'
     );
   });
 
@@ -74,7 +74,7 @@ describe('buildGraphViewUrl', () => {
       graphId
     );
     expect(result).toBe(
-      'https://app.example.com/dashboard/test-tenant/projects/test-project/graphs/test-graph'
+      'https://app.example.com/dashboard/test-tenant/projects/test-project/agents/test-graph'
     );
   });
 
@@ -86,7 +86,7 @@ describe('buildGraphViewUrl', () => {
       'graph.with.dots'
     );
     expect(result).toBe(
-      'http://localhost:3000/tenant-123/projects/project_456/graphs/graph.with.dots'
+      'http://localhost:3000/tenant-123/projects/project_456/agents/agent.with.dots'
     );
   });
 
@@ -104,7 +104,7 @@ describe('buildGraphViewUrl', () => {
       'prod-graph'
     );
     expect(result).toBe(
-      'https://manage.inkeep.com/prod-tenant/projects/prod-project/graphs/prod-graph'
+      'https://manage.inkeep.com/prod-tenant/projects/prod-project/agents/prod-graph'
     );
   });
 });

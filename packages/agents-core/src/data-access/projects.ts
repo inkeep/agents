@@ -1,7 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import {
-  agentGraph,
+  agents,
   artifactComponents,
   contextCache,
   contextConfigs,
@@ -53,9 +53,9 @@ export const listProjects =
         .from(subAgents)
         .where(eq(subAgents.tenantId, params.tenantId)),
       db
-        .selectDistinct({ projectId: agentGraph.projectId })
-        .from(agentGraph)
-        .where(eq(agentGraph.tenantId, params.tenantId)),
+        .selectDistinct({ projectId: agents.projectId })
+        .from(agents)
+        .where(eq(agents.tenantId, params.tenantId)),
       db
         .selectDistinct({ projectId: tools.projectId })
         .from(tools)
@@ -189,7 +189,7 @@ export const getProjectResourceCounts =
     const [agentResults, graphResults, toolResults, contextConfigResults, externalAgentResults] =
       await Promise.all([
         db.select({ count: subAgents.id }).from(subAgents).where(whereClause(subAgents)),
-        db.select({ count: agentGraph.id }).from(agentGraph).where(whereClause(agentGraph)),
+        db.select({ count: agents.id }).from(agents).where(whereClause(agents)),
         db.select({ count: tools.id }).from(tools).where(whereClause(tools)),
         db
           .select({ count: contextConfigs.id })
@@ -222,7 +222,7 @@ export const projectExists =
 
     const checks = [
       db.select({ id: subAgents.id }).from(subAgents).where(whereClause(subAgents)).limit(1),
-      db.select({ id: agentGraph.id }).from(agentGraph).where(whereClause(agentGraph)).limit(1),
+      db.select({ id: agents.id }).from(agents).where(whereClause(agents)).limit(1),
       db.select({ id: tools.id }).from(tools).where(whereClause(tools)).limit(1),
       db
         .select({ id: contextConfigs.id })
@@ -401,8 +401,8 @@ async function cascadeStopWhenUpdates(
   // Update graphs if transferCountIs changed
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
     // Find all graphs that inherited the old transferCountIs value
-    const graphsToUpdate = await db.query.agentGraph.findMany({
-      where: and(eq(agentGraph.tenantId, tenantId), eq(agentGraph.projectId, projectId)),
+    const graphsToUpdate = await db.query.agents.findMany({
+      where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
     });
 
     for (const graph of graphsToUpdate) {
@@ -418,16 +418,16 @@ async function cascadeStopWhenUpdates(
         };
 
         await db
-          .update(agentGraph)
+          .update(agents)
           .set({
             stopWhen: updatedStopWhen,
             updatedAt: new Date().toISOString(),
           })
           .where(
             and(
-              eq(agentGraph.tenantId, tenantId),
-              eq(agentGraph.projectId, projectId),
-              eq(agentGraph.id, graph.id)
+              eq(agents.tenantId, tenantId),
+              eq(agents.projectId, projectId),
+              eq(agents.id, graph.id)
             )
           );
       }

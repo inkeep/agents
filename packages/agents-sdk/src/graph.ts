@@ -1,8 +1,8 @@
 import {
+  type AgentStopWhen,
   type CredentialReferenceApiInsert,
   createDatabaseClient,
   type FullGraphDefinition,
-  type GraphStopWhen,
   getLogger,
   getProject,
   OPENAI_MODELS,
@@ -53,7 +53,7 @@ export class AgentGraph implements GraphInterface {
   };
   private statusUpdateSettings?: StatusUpdateSettings;
   private graphPrompt?: string;
-  private stopWhen?: GraphStopWhen;
+  private stopWhen?: AgentStopWhen;
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
   constructor(config: GraphConfig) {
@@ -307,7 +307,7 @@ export class AgentGraph implements GraphInterface {
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
-      graphPrompt: this.graphPrompt,
+      prompt: this.graphPrompt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -791,7 +791,7 @@ export class AgentGraph implements GraphInterface {
   /**
    * Get the graph's stopWhen configuration
    */
-  getStopWhen(): GraphStopWhen {
+  getStopWhen(): AgentStopWhen {
     return this.stopWhen || { transferCountIs: 10 };
   }
 

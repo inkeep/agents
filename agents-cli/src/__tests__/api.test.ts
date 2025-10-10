@@ -226,7 +226,7 @@ describe('ApiClient', () => {
       const result = await apiClient.pushGraph(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/graph/test-graph',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-graph',
         {
           method: 'PUT',
           headers: {
@@ -305,7 +305,7 @@ describe('ApiClient', () => {
       await clientWithApiKey.pushGraph(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/graph/test-graph',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-graph',
         {
           method: 'PUT',
           headers: {
@@ -486,7 +486,7 @@ describe('ApiClient', () => {
           Authorization: 'Bearer test-run-key-789',
           'x-inkeep-tenant-id': 'test-tenant-id',
           'x-inkeep-project-id': 'test-project-id',
-          'x-inkeep-graph-id': 'test-graph',
+          'x-inkeep-agent-id': 'test-graph',
         },
         body: JSON.stringify({
           model: 'openai/gpt-4.1-mini-2025-04-14',

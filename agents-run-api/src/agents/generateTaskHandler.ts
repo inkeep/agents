@@ -2,7 +2,7 @@ import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
-  getAgentGraphById,
+  getAgentById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getRelatedAgentsForGraph,
@@ -74,7 +74,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.graphId,
           },
           subAgentId: config.subAgentId,
         }),
@@ -82,7 +82,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.graphId,
             subAgentId: config.subAgentId,
           },
         }),
@@ -90,7 +90,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.graphId,
             subAgentId: config.subAgentId,
           },
         }),
@@ -98,7 +98,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.graphId,
             subAgentId: config.subAgentId,
           },
         }),
@@ -116,7 +116,7 @@ export const createTaskHandler = (
               scopes: {
                 tenantId: config.tenantId,
                 projectId: config.projectId,
-                graphId: config.graphId,
+                agentId: config.graphId,
               },
               subAgentId: relation.id,
             });
@@ -126,7 +126,7 @@ export const createTaskHandler = (
                 scopes: {
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  graphId: config.graphId,
+                  agentId: config.graphId,
                 },
                 subAgentId: relation.id,
               });
@@ -451,16 +451,16 @@ export const createTaskHandlerConfig = async (params: {
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
-      graphId: params.graphId,
+      agentId: params.graphId,
     },
     subAgentId: params.subAgentId,
   });
 
-  const agentGraph = await getAgentGraphById(dbClient)({
+  const agentGraph = await getAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
-      graphId: params.graphId,
+      agentId: params.graphId,
     },
   });
 

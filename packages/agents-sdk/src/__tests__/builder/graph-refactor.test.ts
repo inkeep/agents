@@ -190,7 +190,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     // Verify that the agent instructions are preserved (component mode is deprecated)
     const calledProjectData = updateSpy.mock.calls[0][3]; // 4th argument is projectData (tenantId, apiUrl, projectId, projectData)
-    const graphs = calledProjectData?.graphs || {};
+    const graphs = calledProjectData?.agents || {};
     const firstGraphId = Object.keys(graphs)[0];
     const agentInstructions =
       firstGraphId && graphs[firstGraphId].subAgents['component-agent']
@@ -230,7 +230,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     expect(updateSpy).toHaveBeenCalled();
 
     const calledProjectData = updateSpy.mock.calls[0][3]; // 4th argument is projectData
-    const graphs = calledProjectData?.graphs || {};
+    const graphs = calledProjectData?.agents || {};
     const firstGraphId = Object.keys(graphs)[0];
     const calledGraphData = firstGraphId ? graphs[firstGraphId] : undefined;
 

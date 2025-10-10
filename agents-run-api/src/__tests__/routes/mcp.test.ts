@@ -280,7 +280,7 @@ describe('MCP Routes', () => {
           'mcp-protocol-version': '2025-06-18',
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
-          'x-inkeep-graph-id': graphId,
+          'x-inkeep-agent-id': graphId,
         },
         body: JSON.stringify({
           jsonrpc: '2.0',

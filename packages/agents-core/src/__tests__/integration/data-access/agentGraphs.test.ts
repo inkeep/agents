@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  createAgentGraph,
-  deleteAgentGraph,
-  getAgentGraphById,
-  getAgentGraphWithDefaultSubAgent,
-  listAgentGraphs,
-  listAgentGraphsPaginated,
-  updateAgentGraph,
+  createAgent,
+  deleteAgent,
+  getAgentById,
+  getAgentWithDefaultSubAgent,
+  listAgents,
+  listAgentsPaginated,
+  updateAgent,
 } from '../../../data-access/agentGraphs';
 import {
   createSubAgentRelation,
@@ -46,7 +46,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should create and retrieve an agent graph with default agent', async () => {
       // Create agent graph first (before agents, as they need graphId)
       const graphData = createTestGraphData(testTenantId, testProjectId, '1');
-      const createdGraph = await createAgentGraph(db)(graphData);
+      const createdGraph = await createAgent(db)(graphData);
 
       // Now create an agent with the graphId
       const defaultSubAgentData = createTestAgentData(
@@ -65,8 +65,8 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(createdGraph.updatedAt).toBeDefined();
 
       // Retrieve the graph
-      const fetchedGraph = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      const fetchedGraph = await getAgentById(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
 
       expect(fetchedGraph).not.toBeNull();
@@ -74,18 +74,18 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
       // Delete the agent and graph
       await deleteSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
         subAgentId: defaultSubAgent.id,
       });
 
-      await deleteAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      await deleteAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
     });
 
     it('should return null when graph not found', async () => {
-      const result = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: 'non-existent-graph' },
+      const result = await getAgentById(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: 'non-existent-graph' },
       });
 
       expect(result).toBeNull();
@@ -96,7 +96,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should retrieve graph with related default agent data', async () => {
       // Create graph first (before agents, as they need graphId)
       const graphData = createTestGraphData(testTenantId, testProjectId, '2');
-      await createAgentGraph(db)(graphData);
+      await createAgent(db)(graphData);
 
       // Now create agent with the graphId
       const defaultSubAgentData = createTestAgentData(
@@ -108,18 +108,18 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       const defaultSubAgent = await createSubAgent(db)(defaultSubAgentData);
 
       // Fetch with relations
-      const graphWithAgent = await getAgentGraphWithDefaultSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      const graphWithAgent = await getAgentWithDefaultSubAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
 
       // Delete the agent and graph
       await deleteSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
         subAgentId: defaultSubAgent.id,
       });
 
-      await deleteAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      await deleteAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
 
       expect(graphWithAgent).not.toBeNull();
@@ -140,7 +140,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       ];
 
       for (const graphData of graphsData) {
-        await createAgentGraph(db)(graphData);
+        await createAgent(db)(graphData);
       }
 
       // Create agents for the first graph (if needed)
@@ -155,7 +155,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     });
 
     it('should list all graphs for tenant', async () => {
-      const graphs = await listAgentGraphs(db)({
+      const graphs = await listAgents(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
@@ -172,9 +172,9 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should maintain tenant isolation in listing', async () => {
       const otherTenantGraphData = createTestGraphData('other-tenant', testProjectId, '6');
       // Create graph for different tenant
-      await createAgentGraph(db)(otherTenantGraphData);
+      await createAgent(db)(otherTenantGraphData);
 
-      const mainTenantGraphs = await listAgentGraphs(db)({
+      const mainTenantGraphs = await listAgents(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
@@ -184,7 +184,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
 
     it('should handle pagination correctly', async () => {
       // Test first page
-      const page1 = await listAgentGraphsPaginated(db)({
+      const page1 = await listAgentsPaginated(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         pagination: {
           limit: 2,
@@ -195,7 +195,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(page1.data).toHaveLength(2);
 
       // Test second page
-      const page2 = await listAgentGraphsPaginated(db)({
+      const page2 = await listAgentsPaginated(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         pagination: {
           limit: 2,
@@ -213,7 +213,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     });
 
     it('should handle pagination without limit/offset', async () => {
-      const result = await listAgentGraphsPaginated(db)({
+      const result = await listAgentsPaginated(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
@@ -225,7 +225,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should update graph properties and maintain relationships', async () => {
       // Create graph first
       const graphData = createTestGraphData(testTenantId, testProjectId, '7');
-      const _createdGraph = await createAgentGraph(db)(graphData);
+      const _createdGraph = await createAgent(db)(graphData);
 
       // Create agent with graphId
       const agentData = createTestAgentData(testTenantId, testProjectId, '7', graphData.id);
@@ -250,9 +250,9 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
         },
       };
 
-      const updatedGraph = await updateAgentGraph(db)({
+      const updatedGraph = await updateAgent(db)({
         data: updateData,
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
 
       expect(updatedGraph).toMatchObject({
@@ -267,11 +267,11 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should handle model settings clearing', async () => {
       const graphData = createTestGraphData(testTenantId, testProjectId, '8');
 
-      await createAgentGraph(db)(graphData);
+      await createAgent(db)(graphData);
 
       // Update to clear model settings (set to null)
-      const updatedGraph = await updateAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      const updatedGraph = await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
         data: {
           models: null,
         },
@@ -283,11 +283,11 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should maintain tenant isolation during updates', async () => {
       const tenant1GraphData = createTestGraphData('tenant-1', testProjectId, '9');
 
-      await createAgentGraph(db)(tenant1GraphData);
+      await createAgent(db)(tenant1GraphData);
 
       // Try to update from different tenant
-      const result = await updateAgentGraph(db)({
-        scopes: { tenantId: 'tenant-2', projectId: testProjectId, graphId: tenant1GraphData.id },
+      const result = await updateAgent(db)({
+        scopes: { tenantId: 'tenant-2', projectId: testProjectId, agentId: tenant1GraphData.id },
         data: {
           name: 'Hacked Name',
         },
@@ -296,8 +296,8 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       expect(result).toBeNull();
 
       // Verify original is unchanged
-      const original = await getAgentGraphById(db)({
-        scopes: { tenantId: 'tenant-1', projectId: testProjectId, graphId: tenant1GraphData.id },
+      const original = await getAgentById(db)({
+        scopes: { tenantId: 'tenant-1', projectId: testProjectId, agentId: tenant1GraphData.id },
       });
 
       expect(original?.name).toBe('Test Agent Graph 9');
@@ -308,7 +308,7 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should delete graph and clean up relationships', async () => {
       // Create graph first (before agents, as they need graphId)
       const graphData = createTestGraphData(testTenantId, testProjectId, '12');
-      const _createdGraph = await createAgentGraph(db)(graphData);
+      const _createdGraph = await createAgent(db)(graphData);
 
       // Create agents with graphId
       const routerAgentData = createTestAgentData(testTenantId, testProjectId, '10', graphData.id);
@@ -323,27 +323,27 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
       const createdRelation = await createSubAgentRelation(db)(relationData);
 
       // Verify graph exists
-      const beforeDelete = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      const beforeDelete = await getAgentById(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
       expect(beforeDelete).not.toBeNull();
 
       // Delete relation first (due to foreign key constraints)
       await deleteSubAgentRelation(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
         relationId: createdRelation.id,
       });
 
       // Delete graph
-      const deleteResult = await deleteAgentGraph(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      const deleteResult = await deleteAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
 
       expect(deleteResult).toBe(true);
 
       // Verify deletion
-      const afterDelete = await getAgentGraphById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: graphData.id },
+      const afterDelete = await getAgentById(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphData.id },
       });
       expect(afterDelete).toBeNull();
 
@@ -362,16 +362,16 @@ describe('Agent Graphs Data Access - Integration Tests', () => {
     it('should maintain tenant isolation during deletion', async () => {
       const tenant1GraphData = createTestGraphData('tenant-1', testProjectId, '13');
 
-      await createAgentGraph(db)(tenant1GraphData);
+      await createAgent(db)(tenant1GraphData);
 
       // Try to delete from different tenant
-      await deleteAgentGraph(db)({
-        scopes: { tenantId: 'tenant-2', projectId: testProjectId, graphId: tenant1GraphData.id },
+      await deleteAgent(db)({
+        scopes: { tenantId: 'tenant-2', projectId: testProjectId, agentId: tenant1GraphData.id },
       });
 
       // Verify graph still exists
-      const stillExists = await getAgentGraphById(db)({
-        scopes: { tenantId: 'tenant-1', projectId: testProjectId, graphId: tenant1GraphData.id },
+      const stillExists = await getAgentById(db)({
+        scopes: { tenantId: 'tenant-1', projectId: testProjectId, agentId: tenant1GraphData.id },
       });
 
       expect(stillExists).not.toBeNull();

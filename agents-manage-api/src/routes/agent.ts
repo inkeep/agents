@@ -1,22 +1,23 @@
 // @ts-nocheck
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentGraphApiInsertSchema,
-  AgentGraphApiSelectSchema,
-  AgentGraphApiUpdateSchema,
+  AgentApiInsertSchema,
+  AgentApiSelectSchema,
+  AgentApiUpdateSchema,
+  AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgentGraph,
   createApiError,
   deleteAgentGraph,
   ErrorResponseSchema,
-  GraphWithinContextOfProjectSchema,
-  getAgentGraphById,
+  getAgentById,
   getFullGraphDefinition,
   getGraphAgentInfos,
   ListResponseSchema,
-  listAgentGraphs,
+  listAgents,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgentGraph,
@@ -44,7 +45,7 @@ app.openapi(
         description: 'List of agent graphs retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(AgentGraphApiSelectSchema),
+            schema: ListResponseSchema(AgentApiSelectSchema),
           },
         },
       },
@@ -56,7 +57,7 @@ app.openapi(
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const graphs = await listAgentGraphs(dbClient)({ scopes: { tenantId, projectId } });
+    const graphs = await listAgents(dbClient)({ scopes: { tenantId, projectId } });
     return c.json({
       data: graphs,
       pagination: {
@@ -85,7 +86,7 @@ app.openapi(
         description: 'Agent graph found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentGraphApiSelectSchema),
+            schema: SingleResponseSchema(AgentApiSelectSchema),
           },
         },
       },
@@ -94,8 +95,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const graph = await getAgentGraphById(dbClient)({
-      scopes: { tenantId, projectId, graphId: id },
+    const graph = await getAgentById(dbClient)({
+      scopes: { tenantId, projectId, agentId: id },
     });
 
     if (!graph) {
@@ -166,21 +167,19 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{graphId}/full',
+    path: '/{agentId}/full',
     summary: 'Get Full Graph Definition',
     operationId: 'get-full-graph-definition',
     tags: ['Agent Graph'],
     request: {
-      params: TenantProjectParamsSchema.extend({
-        graphId: z.string(),
-      }),
+      params: TenantProjectAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Full graph definition retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
+            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
           },
         },
       },
@@ -188,10 +187,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
 
     const fullGraph = await getFullGraphDefinition(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
     });
 
     if (!fullGraph) {
@@ -218,7 +217,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentGraphApiInsertSchema,
+            schema: AgentApiInsertSchema,
           },
         },
       },
@@ -228,7 +227,7 @@ app.openapi(
         description: 'Agent graph created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentGraphApiSelectSchema),
+            schema: SingleResponseSchema(AgentApiSelectSchema),
           },
         },
       },
@@ -265,7 +264,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentGraphApiUpdateSchema,
+            schema: AgentApiUpdateSchema,
           },
         },
       },
@@ -275,7 +274,7 @@ app.openapi(
         description: 'Agent graph updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentGraphApiSelectSchema),
+            schema: SingleResponseSchema(AgentApiSelectSchema),
           },
         },
       },
@@ -287,7 +286,7 @@ app.openapi(
     const validatedBody = c.req.valid('json');
 
     const updatedGraph = await updateAgentGraph(dbClient)({
-      scopes: { tenantId, projectId, graphId: id },
+      scopes: { tenantId, projectId, agentId: id },
       data: {
         defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
@@ -333,7 +332,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const deleted = await deleteAgentGraph(dbClient)({
-      scopes: { tenantId, projectId, graphId: id },
+      scopes: { tenantId, projectId, agentId: id },
     });
 
     if (!deleted) {

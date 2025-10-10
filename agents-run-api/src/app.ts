@@ -195,7 +195,7 @@ function createExecutionHono(
       return next();
     }
 
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
@@ -209,7 +209,7 @@ function createExecutionHono(
 
     const entries = Object.fromEntries(
       Object.entries({
-        'graph.id': graphId,
+        'agent.id': agentId,
         'tenant.id': tenantId,
         'project.id': projectId,
         'conversation.id': conversationId,

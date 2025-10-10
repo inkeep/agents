@@ -487,7 +487,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
       });
@@ -524,7 +524,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
@@ -554,7 +554,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
@@ -585,7 +585,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
@@ -653,7 +653,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
@@ -682,7 +682,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
@@ -715,7 +715,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
         },
       });
 
@@ -744,7 +744,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
         },
       });
 
@@ -773,7 +773,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
         },
       });
 
@@ -867,7 +867,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
       });
@@ -892,7 +892,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
       });

@@ -92,7 +92,7 @@ async function handleMessageSend(
   try {
     const params = request.params as MessageSendParams;
     const executionContext = getRequestExecutionContext(c);
-    const { graphId } = executionContext;
+    const { agentId } = executionContext;
 
     // Convert to our internal task format
     const task: A2ATask = {
@@ -108,7 +108,7 @@ async function handleMessageSend(
         conversationId: params.message.contextId,
         metadata: {
           blocking: params.configuration?.blocking ?? false,
-          custom: { graph_id: graphId || '' },
+          custom: { agent_id: agentId || '' },
           // Pass through streaming metadata from the original message
           ...params.message.metadata,
         },
@@ -187,7 +187,7 @@ async function handleMessageSend(
       id: task.id,
       tenantId: agent.tenantId,
       projectId: agent.projectId,
-      graphId: graphId || '',
+      agentId: agentId || '',
       contextId: effectiveContextId,
       status: 'working',
       metadata: {
@@ -195,8 +195,8 @@ async function handleMessageSend(
         message_id: params.message.messageId || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        agent_id: agent.subAgentId,
-        graph_id: graphId || '',
+        sub_agent_id: agent.subAgentId,
+        agent_id: agentId || '',
         stream_request_id: params.message.metadata?.stream_request_id,
       },
       subAgentId: agent.subAgentId,
@@ -280,8 +280,8 @@ async function handleMessageSend(
           message_id: params.message.messageId || '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          agent_id: agent.subAgentId,
-          graph_id: graphId || '',
+          sub_agent_id: agent.subAgentId,
+          agent_id: agentId || '',
         },
       },
     });
@@ -408,7 +408,7 @@ async function handleMessageStream(
   try {
     const params = request.params as MessageSendParams;
     const executionContext = getRequestExecutionContext(c);
-    const { graphId } = executionContext;
+    const { agentId } = executionContext;
 
     // Check if agent supports streaming
     if (!agent.agentCard.capabilities.streaming) {
@@ -436,7 +436,7 @@ async function handleMessageStream(
         conversationId: params.message.contextId,
         metadata: {
           blocking: false, // Streaming is always non-blocking
-          custom: { graph_id: graphId || '' },
+          custom: { agent_id: agentId || '' },
         },
       },
     };

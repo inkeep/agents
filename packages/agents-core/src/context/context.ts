@@ -1,6 +1,6 @@
 import {
   type DatabaseClient,
-  getAgentGraphWithDefaultSubAgent,
+  getAgentWithDefaultSubAgent,
   getContextConfigById,
   getConversation,
   updateConversation,
@@ -72,7 +72,7 @@ async function handleContextConfigChange(
 async function handleContextResolution({
   tenantId,
   projectId,
-  graphId,
+  agentId,
   conversationId,
   headers,
   dbClient,
@@ -80,7 +80,7 @@ async function handleContextResolution({
 }: {
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   conversationId: string;
   headers: Record<string, unknown>;
   dbClient: DatabaseClient;
@@ -100,11 +100,11 @@ async function handleContextResolution({
 
       try {
         // 1. Get graph's context config
-        agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-          scopes: { tenantId, projectId, graphId },
+        agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+          scopes: { tenantId, projectId, agentId: agentId },
         });
         if (!agentGraph?.contextConfigId) {
-          logger.debug({ graphId }, 'No context config found for graph');
+          logger.debug({ graphId: agentId }, 'No context config found for graph');
           return null;
         }
 
@@ -113,7 +113,7 @@ async function handleContextResolution({
           tenantId,
           projectId,
           conversationId,
-          graphId,
+          agentId,
           agentGraph.contextConfigId,
           dbClient,
           credentialStores
@@ -124,7 +124,7 @@ async function handleContextResolution({
 
         // 4. Get context configuration directly from database
         const contextConfig = await getContextConfigById(dbClient)({
-          scopes: { tenantId, projectId, graphId },
+          scopes: { tenantId, projectId, agentId: agentId },
           id: agentGraph.contextConfigId,
         });
 
@@ -187,7 +187,7 @@ async function handleContextResolution({
         logger.info(
           {
             conversationId,
-            graphId,
+            graphId: agentId,
             contextConfigId: contextConfig.id,
             trigger,
             resolvedKeys: Object.keys(resolvedContext),

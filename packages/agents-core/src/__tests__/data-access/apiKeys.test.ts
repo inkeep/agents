@@ -1,3 +1,4 @@
+import type { ApiKeyInsert } from '@inkeep/agents-core/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   countApiKeys,
@@ -39,11 +40,11 @@ describe('API Keys Data Access', () => {
         id: apiKeyId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testGraphId,
         publicId: 'pub-1',
         keyPrefix: 'ik_test',
         keyHash: 'hash123',
-      };
+      } satisfies ApiKeyInsert;
 
       const mockQuery = {
         apiKeys: {
@@ -328,12 +329,12 @@ describe('API Keys Data Access', () => {
         id: 'key-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testGraphId,
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
         expiresAt: '2024-12-31T23:59:59Z',
-      };
+      } satisfies ApiKeyInsert;
 
       const expectedApiKey = {
         ...apiKeyData,
@@ -365,11 +366,11 @@ describe('API Keys Data Access', () => {
         id: 'key-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testGraphId,
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
-      };
+      } satisfies ApiKeyInsert;
 
       const expectedApiKey = {
         ...apiKeyData,

@@ -192,19 +192,19 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
                         const opType = dataOp.data?.type || 'unknown';
                         const label = dataOp.data?.label || 'Unknown operation';
                         const details = dataOp.data?.details || {};
-                        const agentId = details.agentId || 'unknown-agent';
+                        const subAgentId = details.subAgentId || 'unknown-agent';
 
                         // Format display based on operation type
                         let displayText = '';
                         if (opType === 'completion') {
-                          displayText = `${label} (agent: ${agentId})`;
+                          displayText = `${label} (sub-agent: ${subAgentId})`;
                         } else if (opType === 'tool_execution') {
                           const toolData = details.data || {};
                           displayText = `${label} - ${toolData.toolName || 'unknown tool'}`;
                         } else if (opType === 'agent_generate' || opType === 'agent_reasoning') {
                           displayText = `${label}`;
                         } else {
-                          displayText = `${label} (${agentId})`;
+                          displayText = `${label} (${subAgentId})`;
                         }
 
                         // Add newline before completion operations that come after text

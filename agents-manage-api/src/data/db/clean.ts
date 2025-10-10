@@ -1,5 +1,5 @@
 import {
-  agentGraph,
+  agents,
   artifactComponents,
   contextCache,
   contextConfigs,
@@ -45,7 +45,7 @@ export async function cleanDatabase() {
       { table: subAgentDataComponents, name: 'sub_agent_data_components' },
       { table: subAgentToolRelations, name: 'sub_agent_tool_relations' },
       { table: subAgentRelations, name: 'sub_agent_relations' },
-      { table: agentGraph, name: 'agent_graph' },
+      { table: agents, name: 'agent_graph' },
       { table: artifactComponents, name: 'artifact_components' },
       { table: dataComponents, name: 'data_components' },
       { table: tools, name: 'tools' },

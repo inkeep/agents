@@ -1,5 +1,5 @@
-import type { AgentGraphInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
 import { OPENAI_MODELS } from '../../constants/models';
+import type { AgentInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
 
 export const createTestAgentData = (
   tenantId: string,
@@ -11,7 +11,7 @@ export const createTestAgentData = (
     id: `default-agent-${suffix}`,
     tenantId,
     projectId,
-    graphId: graphId || `test-graph-${suffix}`,
+    agentId: graphId || `test-graph-${suffix}`,
     name: `Default Agent ${suffix}`,
     description: 'The default agent for the graph',
     prompt: 'Route requests appropriately',
@@ -27,7 +27,7 @@ export const createTestRelationData = (
     id: `test-relation-${suffix}`,
     tenantId,
     projectId,
-    graphId: `test-graph-${suffix}`,
+    agentId: `test-graph-${suffix}`,
     sourceSubAgentId: `default-agent-${suffix}`,
     targetSubAgentId: `default-agent-${suffix}`,
     relationType: 'transfer' as const,
@@ -38,7 +38,7 @@ export const createTestGraphData = (
   tenantId: string,
   projectId: string,
   suffix: string
-): AgentGraphInsert => {
+): AgentInsert => {
   return {
     id: `test-graph-${suffix}`,
     tenantId,

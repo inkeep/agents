@@ -1332,7 +1332,7 @@ Make it specific and relevant.`;
                     scopes: {
                       tenantId: artifactData.tenantId,
                       projectId: artifactData.projectId,
-                      graphId: this.graphId || '',
+                      agentId: this.graphId || '',
                     },
                     subAgentId: artifactData.subAgentId,
                   });

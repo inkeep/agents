@@ -477,7 +477,7 @@ export class Agent {
               callingAgentId: this.config.id,
               tenantId: this.config.tenantId,
               projectId: this.config.projectId,
-              graphId: this.config.graphId,
+              agentId: this.config.graphId,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -622,7 +622,7 @@ export class Agent {
       scopes: {
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
-        graphId: this.config.graphId,
+        agentId: this.config.graphId,
         subAgentId: this.config.id,
       },
     });
@@ -835,7 +835,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.graphId,
         },
         subAgentId: this.config.id,
       });
@@ -962,7 +962,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.graphId,
         },
         id: this.config.contextConfigId,
       });
@@ -1025,11 +1025,11 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.graphId,
         },
       });
 
-      return graphDefinition?.graphPrompt || undefined;
+      return graphDefinition?.prompt || undefined;
     } catch (error) {
       logger.warn(
         {
@@ -1051,7 +1051,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.graphId,
         },
       });
 
@@ -1650,7 +1650,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.graphId,
         },
       });
     } catch (error) {
