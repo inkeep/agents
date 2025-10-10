@@ -20,7 +20,7 @@ export const MONACO_THEME_DATA: Record<'dark' | 'light', editor.IStandaloneTheme
       },
     ],
     colors: {
-      'editor.background': '#ffffff08',
+      'editor.background': '#00000000', // transparent
       // Removes blue border
       focusBorder: '#00000000', // transparent
       'editor.placeholder.foreground': '#9797a1',

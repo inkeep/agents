@@ -52,6 +52,7 @@ interface JsonEditorProps {
   onChange?: (value: string) => void;
   ref?: Ref<JsonEditorRef>;
   placeholder?: string;
+  'aria-invalid'?: boolean;
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({
@@ -64,6 +65,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   disabled,
   onChange,
   placeholder,
+  'aria-invalid': ariaInvalid,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
@@ -171,29 +173,23 @@ export const JsonEditor: FC<JsonEditorProps> = ({
 
   // h-full
   // [&>.cm-editor]:max-h-[inherit]
-  // [&>.cm-editor]:!bg-transparent
-  // dark:[&>.cm-editor]:!bg-input/30
-  // [&>.cm-editor]:!outline-none
   // [&>.cm-editor]:px-3
   // [&>.cm-editor]:py-2
   // leading-2
   // font-mono
   // rounded-md
-  // transition-[color,box-shadow]
-  // data-invalid:border-destructive
-  // aria-invalid:ring-destructive/20
-  // aria-invalid:border-destructive
-  // dark:aria-invalid:ring-destructive/40
 
   return (
     <div
       ref={containerRef}
+      aria-invalid={ariaInvalid}
       className={cn(
-        'rounded-[7px] overflow-hidden relative',
+        'rounded-[7px] relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
+        'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className
       )}
     >
