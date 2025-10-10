@@ -1,6 +1,15 @@
 'use client';
 
-import { Streamdown } from 'streamdown';
+import dynamic from 'next/dynamic';
+import { cn } from '@/lib/utils';
+
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
+);
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
@@ -30,10 +39,6 @@ interface SeparatedAttributes {
   hasProcessAttributes: boolean;
 }
 
-interface ProcessAttributesSectionProps {
-  processAttributes: AttributeMap;
-}
-
 /**
  * Separates span attributes into process-related and other attributes
  */
@@ -42,10 +47,8 @@ function separateAttributes(span: AttributeMap): SeparatedAttributes {
   const otherAttributes: AttributeMap = {};
 
   Object.entries(span).forEach(([key, value]) => {
-    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some(prefix => 
-      key.startsWith(prefix)
-    );
-    
+    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some((prefix) => key.startsWith(prefix));
+
     if (isProcessAttribute) {
       processAttributes[key] = value;
     } else {
@@ -68,7 +71,7 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   const remainingAttributes: AttributeMap = {};
 
   // Extract pinned attributes in order
-  PINNED_ATTRIBUTE_KEYS.forEach(key => {
+  PINNED_ATTRIBUTE_KEYS.forEach((key) => {
     if (key in attributes) {
       pinnedAttributes[key] = attributes[key];
     }
@@ -76,26 +79,14 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
 
   // Get remaining attributes sorted alphabetically
   const remainingKeys = Object.keys(attributes)
-    .filter(key => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
+    .filter((key) => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
     .sort();
 
-  remainingKeys.forEach(key => {
+  remainingKeys.forEach((key) => {
     remainingAttributes[key] = attributes[key];
   });
 
   return { ...pinnedAttributes, ...remainingAttributes };
-}
-
-/**
- * Renders process attributes
- */
-function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
-  return (
-    <div>
-      <h3 className="text-sm font-medium mb-2">Process Attributes</h3>
-      <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
-    </div>
-  );
 }
 
 /**
@@ -104,30 +95,35 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
 export function SpanAttributes({ span, className }: SpanAttributesProps) {
   const { processAttributes, otherAttributes, hasProcessAttributes } = separateAttributes(span);
   const sortedOtherAttributes = sortAttributes(otherAttributes);
-  
+
   // Sort process attributes alphabetically
   const sortedProcessAttributes = Object.keys(processAttributes)
     .sort()
-    .reduce((acc, key) => {
+    .reduce<AttributeMap>((acc, key) => {
       acc[key] = processAttributes[key];
       return acc;
-    }, {} as AttributeMap);
+    }, {});
   const hasOtherAttributes = Object.keys(otherAttributes).length > 0;
   const hasAnyAttributes = hasOtherAttributes || hasProcessAttributes;
 
   return (
-    <div className={`space-y-3 ${className ?? ''}`}>
+    <div className={cn('space-y-3', className)}>
       {/* Main span attributes */}
       {hasOtherAttributes && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Advanced Span Attributes</h3>
-          <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
-        </div>
+        <JsonEditorWithCopy
+          value={JSON.stringify(sortedOtherAttributes, null, 2)}
+          uri="advanced-span-attributes.json"
+          title="Advanced Span Attributes"
+        />
       )}
 
       {/* Process attributes section */}
       {hasProcessAttributes && (
-        <ProcessAttributesSection processAttributes={sortedProcessAttributes} />
+        <JsonEditorWithCopy
+          value={JSON.stringify(sortedProcessAttributes, null, 2)}
+          uri="process-attributes.json"
+          title="Process Attributes"
+        />
       )}
 
       {/* Empty state */}

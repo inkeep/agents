@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatDate, formatDateAgo } from '../format-date';
 
 // Mock console.warn to avoid noise in test output
