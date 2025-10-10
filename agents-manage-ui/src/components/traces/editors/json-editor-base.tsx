@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useTheme } from 'next-themes';
-import { type editor, KeyCode } from 'monaco-editor';
+import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
 import { toast } from 'sonner';
 import {
   addDecorations,
@@ -107,23 +107,9 @@ export const JsonEditor = forwardRef<
         container.style.height = `${contentHeight}px`;
       }
     }
-    // Wait for Monaco workers to initialize
-    const timerId = setTimeout(() => {
-      if (model.isDisposed()) {
-        return;
-      }
-      addDecorations(editorInstance, value, ' ');
-    }, 1000);
-
-    return cleanupDisposables(
-      {
-        dispose() {
-          clearTimeout(timerId);
-        },
-      },
+    const disposables: IDisposable[] = [
       model,
       editorInstance,
-      readOnly && editorInstance.onMouseDown(handleCopyFieldValue(model)),
       editorInstance.onDidContentSizeChange(updateHeight),
       // Disable command palette by overriding the action
       editorInstance.addAction({
@@ -132,8 +118,26 @@ export const JsonEditor = forwardRef<
         keybindings: [KeyCode.F1],
         // Do nothing - this prevents the command palette from opening
         run() {},
-      })
-    );
+      }),
+    ];
+    if (readOnly) {
+      // Wait for Monaco workers to initialize
+      const timerId = setTimeout(() => {
+        if (model.isDisposed()) {
+          return;
+        }
+        addDecorations(editorInstance, value, ' ');
+      }, 1000);
+      disposables.push(
+        {
+          dispose() {
+            clearTimeout(timerId);
+          },
+        },
+        editorInstance.onMouseDown(handleCopyFieldValue(model))
+      );
+    }
+    return cleanupDisposables(disposables);
   }, []);
 
   // h-full
