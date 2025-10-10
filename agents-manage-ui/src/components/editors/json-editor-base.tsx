@@ -1,4 +1,5 @@
-import { type ReactNode, type FC, type Ref, useEffect, useRef, useImperativeHandle } from 'react';
+import type { ReactNode, FC, Ref } from 'react';
+import { useEffect, useRef, useImperativeHandle, useId } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
 import { toast } from 'sonner';
@@ -44,7 +45,7 @@ export interface JsonEditorRef {
 
 interface JsonEditorProps {
   value?: string;
-  uri: `${string}.json`;
+  uri?: `${string}.json`;
   readOnly?: boolean;
   children?: ReactNode;
   className?: string;
@@ -58,7 +59,7 @@ interface JsonEditorProps {
 export const JsonEditor: FC<JsonEditorProps> = ({
   ref,
   value = '',
-  uri,
+  uri = `${useId().replaceAll('_', '')}.json`,
   readOnly,
   children,
   className,
