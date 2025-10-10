@@ -16,6 +16,9 @@ import './json-editor-with-copy.css';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
+  if (model.isDisposed()) {
+    return;
+  }
   const { element, position } = e.target;
   if (!element?.classList.contains('copy-button-icon') || !position) {
     return;
@@ -47,6 +50,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   title,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { resolvedTheme } = useTheme();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
@@ -76,6 +80,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
         alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
       },
     });
+    editorRef.current = editorInstance;
     function updateHeight() {
       if (model.isDisposed()) {
         return;
@@ -117,7 +122,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   }, []);
 
   const handleCopyCode = useCallback(async () => {
-    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    const code = editorRef.current?.getValue() || '';
     try {
       await navigator.clipboard.writeText(code);
       toast.success('Copied to clipboard');
@@ -128,7 +133,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
   }, []);
 
   const handleDownloadCode = useCallback(() => {
-    const code = ref.current?.querySelector('.monaco-scrollable-element')?.textContent ?? '';
+    const code = editorRef.current?.getValue() || '';
     // Create a blob with the JSON content
     const blob = new Blob([code], { type: 'application/json' });
     // Create a download link

@@ -14,8 +14,12 @@ import type { ConversationDetail, SelectedPanel } from '@/components/traces/time
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import { Badge } from '@/components/ui/badge';
 
-const JsonEditorWithCopy = dynamic(() =>
-  import('@/components/traces/editors/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
 );
 
 function formatJsonSafely(content: string): string {

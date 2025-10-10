@@ -3,8 +3,12 @@
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 
-const JsonEditorWithCopy = dynamic(() =>
-  import('@/components/traces/editors/json-editor-with-copy').then((mod) => mod.JsonEditorWithCopy)
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
 );
 
 // Constants for attribute categorization and sorting
