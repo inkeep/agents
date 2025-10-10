@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getFullGraphDefinition } from '../../data-access/agentGraphs';
+import { getFullGraphDefinition } from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
 import { createTestDatabaseClient } from '../../db/test-client';
 

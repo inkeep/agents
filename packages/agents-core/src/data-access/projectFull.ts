@@ -8,7 +8,7 @@ import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
-import { listAgents } from './agentGraphs';
+import { listAgents } from './agents';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';

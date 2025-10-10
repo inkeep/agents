@@ -2,7 +2,7 @@ import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
 import { ContextResolver } from '../context/ContextResolver';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getAgentWithDefaultSubAgent } from '../data-access/agentGraphs';
+import { getAgentWithDefaultSubAgent } from '../data-access/agents';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect } from '../types/entities';
