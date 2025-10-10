@@ -88,6 +88,7 @@ export default {
       group: 'API Reference',
       icon: 'LuBookOpen',
       pages: [
+        'api-reference',
         {
           group: 'Authentication',
           icon: 'LuLock',
@@ -96,7 +97,8 @@ export default {
             'api-reference/authentication/manage-api',
           ],
         },
-        'api-reference',
+        'api-reference/run-api',
+        'api-reference/manage-api',
       ],
     },
     /**
