@@ -35,7 +35,7 @@ describe('Project', () => {
     id: 'test-project',
     name: 'Test Project',
     description: 'A test project',
-    graphs: {},
+    agents: {},
   };
 
   beforeEach(() => {
@@ -104,7 +104,7 @@ describe('Project', () => {
       expect(project.getStopWhen()).toBeUndefined();
     });
 
-    it('should initialize graphs if provided in config', () => {
+    it('should initialize agents if provided in config', () => {
       const mockGraph = new AgentGraph(graphConfig);
       vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
 
@@ -509,7 +509,7 @@ describe('Project', () => {
         description: 'A test project',
         models: projectConfig.models,
         stopWhen: projectConfig.stopWhen,
-        graphs: {
+        agents: {
           'test-graph': mockGraphDef1,
           'test-graph-2': mockGraphDef2,
         },
@@ -520,7 +520,7 @@ describe('Project', () => {
       expect(fullProjectDef.updatedAt).toBeDefined();
     });
 
-    it('should handle projects with no graphs', async () => {
+    it('should handle projects with no agents', async () => {
       const project = new Project(projectConfig);
       const fullProjectDef = await (project as any).toFullProjectDefinition();
 
@@ -530,7 +530,7 @@ describe('Project', () => {
         description: 'A test project',
         models: projectConfig.models,
         stopWhen: projectConfig.stopWhen,
-        graphs: {},
+        agents: {},
         credentialReferences: undefined,
       });
     });

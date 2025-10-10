@@ -1,9 +1,9 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentToolRelationApiInsertSchema,
-  AgentToolRelationApiSelectSchema,
-  AgentToolRelationApiUpdateSchema,
-  type AgentToolRelationSelect,
+  SubAgentToolRelationApiInsertSchema,
+  SubAgentToolRelationApiSelectSchema,
+  SubAgentToolRelationApiUpdateSchema,
+  type SubAgentToolRelationSelect,
   commonGetErrorResponses,
   createAgentToolRelation,
   createApiError,
@@ -46,7 +46,7 @@ app.openapi(
         description: 'List of agent tool relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(AgentToolRelationApiSelectSchema),
+            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
           },
         },
       },
@@ -58,7 +58,7 @@ app.openapi(
     const { page, limit, subAgentId, toolId } = c.req.valid('query');
 
     let result: {
-      data: AgentToolRelationSelect[];
+      data: SubAgentToolRelationSelect[];
       pagination: {
         page: number;
         limit: number;
@@ -122,7 +122,7 @@ app.openapi(
         description: 'Agent tool relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentToolRelationApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
           },
         },
       },
@@ -166,7 +166,7 @@ app.openapi(
         description: 'Agents for tool retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(AgentToolRelationApiSelectSchema),
+            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
           },
         },
       },
@@ -200,7 +200,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentToolRelationApiInsertSchema,
+            schema: SubAgentToolRelationApiInsertSchema,
           },
         },
       },
@@ -210,7 +210,7 @@ app.openapi(
         description: 'Agent tool relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentToolRelationApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
           },
         },
       },
@@ -227,7 +227,7 @@ app.openapi(
       pagination: { limit: 1000 },
     });
     const isDuplicate = existingRelations.data.some((relation) => {
-      const typedRelation = relation as AgentToolRelationSelect;
+      const typedRelation = relation as SubAgentToolRelationSelect;
       return typedRelation.subAgentId === body.subAgentId && typedRelation.toolId === body.toolId;
     });
 
@@ -277,7 +277,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentToolRelationApiUpdateSchema,
+            schema: SubAgentToolRelationApiUpdateSchema,
           },
         },
       },
@@ -287,7 +287,7 @@ app.openapi(
         description: 'Agent tool relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentToolRelationApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
           },
         },
       },
@@ -307,20 +307,20 @@ app.openapi(
       });
     }
 
-    const updatedAgentToolRelation = await updateAgentToolRelation(dbClient)({
+    const updatedSubAgentToolRelation = await updateAgentToolRelation(dbClient)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
       data: body,
     });
 
-    if (!updatedAgentToolRelation) {
+    if (!updatedSubAgentToolRelation) {
       throw createApiError({
         code: 'not_found',
         message: 'Agent tool relation not found',
       });
     }
 
-    return c.json({ data: updatedAgentToolRelation });
+    return c.json({ data: updatedSubAgentToolRelation });
   }
 );
 

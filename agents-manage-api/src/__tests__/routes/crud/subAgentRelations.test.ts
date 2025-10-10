@@ -77,7 +77,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       defaultSubAgentId: null,
       contextConfigId: null,
     };
-    const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
+    const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(tempGraphData),
     });
@@ -99,7 +99,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
     // Update the graph with a defaultSubAgentId if needed
     const updateRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${agentGraphId}`,
       {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: sourceSubAgentId }),

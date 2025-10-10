@@ -40,7 +40,7 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
   if (!graphId) {
     const spinner = ora('Fetching available graphs...').start();
     try {
-      const graphs = await managementApi.listGraphs();
+      const graphs = await managementApi.listAgents();
       spinner.stop();
 
       if (graphs.length === 0) {
@@ -83,12 +83,12 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
     if (!graphId) {
       throw new Error('No graph selected');
     }
-    const graph = await managementApi.getGraph(graphId);
+    const graph = await managementApi.getAgent(graphId);
     if (!graph) {
       spinner.fail(`Graph "${graphId}" not found`);
 
       // Show available graphs
-      const graphs = await managementApi.listGraphs();
+      const graphs = await managementApi.listAgents();
       if (graphs.length > 0) {
         console.log(chalk.yellow('\nAvailable graphs:'));
         graphs.forEach((g) => {

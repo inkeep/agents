@@ -28,13 +28,13 @@ describe('Delegation Task Creation Fixes', () => {
       updatedAt: new Date().toISOString(),
     });
 
-    // Create test agents with graphId
+    // Create test agents with agentId
     await dbClient.insert(subAgents).values([
       {
         id: 'math-supervisor',
         tenantId: tenantId,
         projectId: projectId,
-        graphId: graphId,
+        agentId: graphId,
         name: 'Math Supervisor',
         description: 'Supervises math operations',
         prompt: 'Handle math supervision tasks',
@@ -45,7 +45,7 @@ describe('Delegation Task Creation Fixes', () => {
         id: 'number-producer-a',
         tenantId: tenantId,
         projectId: projectId,
-        graphId: graphId,
+        agentId: graphId,
         name: 'Number Producer A',
         description: 'Produces numbers for math operations',
         prompt: 'Generate numbers as needed',

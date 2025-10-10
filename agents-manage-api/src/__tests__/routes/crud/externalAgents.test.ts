@@ -17,7 +17,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       defaultSubAgentId: null,
     };
 
-    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
+    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(graphData),
     });
@@ -84,7 +84,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     };
 
     // Try to create the graph, it may already exist
-    await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
+    await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(graphData),
     }).catch(() => {});

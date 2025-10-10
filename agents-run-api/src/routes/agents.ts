@@ -9,7 +9,6 @@ import {
 import type { Context } from 'hono';
 import { z } from 'zod';
 import { a2aHandler } from '../a2a/handlers';
-import { getRegisteredAgent } from '../data/agentGraph';
 import { getRegisteredAgent } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';

@@ -37,7 +37,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -173,7 +173,7 @@ describe('Relationship Tools', () => {
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    graphId: 'test-graph',
+    agentId: 'test-graph',
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
@@ -192,7 +192,7 @@ describe('Relationship Tools', () => {
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    graphId: 'test-graph',
+    agentId: 'test-graph',
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',

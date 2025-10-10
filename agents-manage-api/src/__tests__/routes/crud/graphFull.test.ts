@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import { createTestContextConfigDataFull } from '../../utils/testHelpers';
+import { createTestContextConfigDataFull, createTestToolData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';

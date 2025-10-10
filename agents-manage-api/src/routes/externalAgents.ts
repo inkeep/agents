@@ -91,7 +91,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const externalAgent = await getExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: graphId },
+      scopes: { tenantId, projectId, agentId: agentId },
       subAgentId: id,
     });
 
@@ -142,13 +142,13 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const externalAgentData = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       id: body.id ? String(body.id) : nanoid(),
       name: body.name,
       description: body.description,
@@ -199,11 +199,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const updatedExternalAgent = await updateExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: graphId },
+      scopes: { tenantId, projectId, agentId: agentId },
       subAgentId: id,
       data: body,
     });
@@ -250,10 +250,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     const deleted = await deleteExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: graphId },
+      scopes: { tenantId, projectId, agentId: agentId },
       subAgentId: id,
     });
 

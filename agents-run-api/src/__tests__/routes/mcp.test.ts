@@ -103,7 +103,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -147,7 +147,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForThread: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         tenantId: 'test-tenant',
         projectId: 'test-project',
       });
@@ -216,7 +216,7 @@ describe('MCP Routes', () => {
 
     // Reset default mocks using @inkeep/agents-core
     const coreModule = await import('@inkeep/agents-core');
-    vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValue(
+    vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -314,7 +314,7 @@ describe('MCP Routes', () => {
 
     it('should handle agent graph not found during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValue(null)
       );
 
@@ -336,7 +336,7 @@ describe('MCP Routes', () => {
 
     it('should handle server errors during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockRejectedValue(new Error('Database error'))
       );
 
