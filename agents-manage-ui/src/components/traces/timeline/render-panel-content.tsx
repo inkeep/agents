@@ -1,4 +1,4 @@
-import { Streamdown } from 'streamdown';
+import dynamic from 'next/dynamic';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -10,23 +10,24 @@ import {
   StatusBadge,
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
-import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
+import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import { Badge } from '@/components/ui/badge';
 
-// Reusable component for tool arguments/results
-function ToolDataBlock({ label, data }: { label: string; data: string }) {
-  return (
-    <LabeledBlock label={label}>
-      <Streamdown>{`\`\`\`json\n${(() => {
-        try {
-          return JSON.stringify(JSON.parse(data), null, 2);
-        } catch {
-          return data;
-        }
-      })()}\n\`\`\``}</Streamdown>
-    </LabeledBlock>
-  );
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
+);
+
+function formatJsonSafely(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
 }
 
 export function renderPanelContent({
@@ -42,14 +43,7 @@ export function renderPanelContent({
     const e = selected.item;
     return (
       <Section>
-        <Info
-          label="Tool name"
-          value={
-            <Badge variant="code" className="">
-              {e.toolName}
-            </Badge>
-          }
-        />
+        <Info label="Tool name" value={<Badge variant="code">{e.toolName}</Badge>} />
         <LabeledBlock label="Error message">
           <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             {e.error}
@@ -60,14 +54,7 @@ export function renderPanelContent({
             {e.failureReason}
           </Bubble>
         </LabeledBlock>
-        <Info
-          label="Span ID"
-          value={
-            <Badge variant="code" className="">
-              {e.spanId}
-            </Badge>
-          }
-        />
+        <Info label="Span ID" value={<Badge variant="code">{e.spanId}</Badge>} />
         <Info label="Timestamp" value={formatDateTime(e.timestamp)} />
       </Section>
     );
@@ -107,30 +94,18 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             {a.aiPromptMessages && (
-              <LabeledBlock label="Prompt messages">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.aiPromptMessages), null, 2);
-                    } catch {
-                      return a.aiPromptMessages;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.aiPromptMessages)}
+                title="Prompt messages"
+                uri="prompt-messages.json"
+              />
             )}
             {a.aiResponseToolCalls && (
-              <LabeledBlock label="Tool calls">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.aiResponseToolCalls), null, 2);
-                    } catch {
-                      return a.aiResponseToolCalls;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.aiResponseToolCalls)}
+                title="Tool calls"
+                uri="tool-calls.json"
+              />
             )}
             {/* Show error message if there's an error */}
             {a.hasError && a.otelStatusDescription && (
@@ -180,7 +155,7 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="Message content">
-              <Bubble className="">{a.messageContent || 'Message content not available'}</Bubble>
+              <Bubble>{a.messageContent || 'Message content not available'}</Bubble>
             </LabeledBlock>
             <Info label="Message length" value={`${a.messageContent?.length || 0} characters`} />
             <StatusBadge status={a.status} />
@@ -204,14 +179,7 @@ export function renderPanelContent({
             <Info label="Agent" value={a.agentName || 'Unknown'} />
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
-            <Info
-              label="Message id"
-              value={
-                <Badge variant="code" className="">
-                  {a.id}
-                </Badge>
-              }
-            />
+            <Info label="Message id" value={<Badge variant="code">{a.id}</Badge>} />
           </Section>
           <Divider />
           {SignozButton}
@@ -236,9 +204,7 @@ export function renderPanelContent({
           <Section>
             {a.contextAgentGraphId && (
               <LabeledBlock label="Agent graph id">
-                <Badge variant="code" className="">
-                  {a.contextAgentGraphId}
-                </Badge>
+                <Badge variant="code">{a.contextAgentGraphId}</Badge>
               </LabeledBlock>
             )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
@@ -252,7 +218,7 @@ export function renderPanelContent({
             )}
             {a.contextUrl && (
               <LabeledBlock label="Context URL">
-                <CodeBubble className=" break-all">{a.contextUrl}</CodeBubble>
+                <CodeBubble className="break-all">{a.contextUrl}</CodeBubble>
               </LabeledBlock>
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
@@ -268,12 +234,12 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="From agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.delegationFromAgentId || a.agentName || 'Unknown Agent'}
               </Badge>
             </LabeledBlock>
             <LabeledBlock label="To agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.delegationToAgentId ||
                   a.toolName?.replace('delegate_to_', '') ||
                   'Unknown Target'}
@@ -281,15 +247,23 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
-            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
+            {a.toolCallResult && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -303,26 +277,34 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="From agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.transferFromAgentId || a.agentName || 'Unknown Agent'}
               </Badge>
             </LabeledBlock>
             <LabeledBlock label="To agent">
-              <Badge variant="code" className="">
+              <Badge variant="code">
                 {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown target'}
               </Badge>
             </LabeledBlock>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
-            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
+            {a.toolCallResult && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -337,11 +319,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -355,8 +333,20 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
-            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
+            {a.toolCallResult && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -371,11 +361,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -385,8 +371,20 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && <ToolDataBlock label="Tool arguments" data={a.toolCallArgs} />}
-            {a.toolCallResult && <ToolDataBlock label="Tool result" data={a.toolCallResult} />}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
+            {a.toolCallResult && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -402,11 +400,7 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiStreamTextModel || 'Unknown'} />} />
             <Info
               label="Operation id"
-              value={
-                <Badge variant="code" className="">
-                  {a.aiStreamTextOperationId || 'Unknown'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.aiStreamTextOperationId || 'Unknown'}</Badge>}
             />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
