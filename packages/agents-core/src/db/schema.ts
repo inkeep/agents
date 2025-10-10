@@ -69,7 +69,7 @@ export const projects = sqliteTable(
 
     // Project-level sandbox configuration for function execution
     sandboxConfig: text('sandbox_config', { mode: 'json' }).$type<{
-      provider: 'vercel' | 'daytona' | 'local';
+      provider: 'vercel' | 'local';
       runtime: 'node22' | 'typescript';
       timeout?: number;
       vcpus?: number;
