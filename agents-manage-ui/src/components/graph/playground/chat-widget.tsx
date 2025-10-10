@@ -149,9 +149,10 @@ export function ChatWidget({
       stopPolling();
       stopPollingTimeoutRef.current = null;
     }, POLLING_TIMEOUT_MS);
-  }, [stopPolling, POLLING_TIMEOUT_MS]);
+  }, [stopPolling]);
 
   // Reset timeout when new activities come in AFTER assistant message received
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activities length is intentionally tracked to reset timeout on new activities
   useEffect(() => {
     // Only reset timeout if we've already received the assistant message and new activities were added
     if (hasReceivedAssistantMessageRef.current) {
