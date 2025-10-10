@@ -933,9 +933,9 @@ export async function GET(
       const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
 
       const statusMessage = hasError
-      ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
-        getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
-      : '';
+        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
+          getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
+        : '';
 
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
