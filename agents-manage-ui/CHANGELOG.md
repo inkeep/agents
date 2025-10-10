@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.18.1
+
+### Patch Changes
+
+- 5ae3706: lint fixes
+- 71892f2: artifacts in timeline
+- Updated dependencies [71892f2]
+  - @inkeep/agents-core@0.18.1
+  - @inkeep/agents-manage-api@0.18.1
+  - @inkeep/agents-run-api@0.18.1
+
 ## 0.18.0
 
 ### Minor Changes
