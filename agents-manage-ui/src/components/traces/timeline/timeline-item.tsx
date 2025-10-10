@@ -6,7 +6,7 @@ import {
   Cpu,
   Database,
   Hammer,
-  Package,
+  Library,
   Settings,
   Sparkles,
   User,
@@ -63,7 +63,7 @@ function statusIcon(
     transfer: { Icon: ArrowRight, cls: 'text-indigo-500' },
     generic_tool: { Icon: Hammer, cls: 'text-muted-foreground' },
     tool_purpose: { Icon: Hammer, cls: 'text-muted-foreground' },
-    artifact_processing: { Icon: Package, cls: 'text-emerald-600' },
+    artifact_processing: { Icon: Library, cls: 'text-emerald-600' },
   };
 
   const map = base[type] || base.tool_call;
