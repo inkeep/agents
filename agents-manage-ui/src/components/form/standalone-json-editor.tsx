@@ -21,11 +21,6 @@ interface StandaloneJsonEditorProps {
 export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   value = '',
   onChange,
-  placeholder,
-  disabled,
-  readOnly,
-  className,
-  'aria-invalid': ariaInvalid,
   ...props
 }) => {
   const handleFormat = useCallback(() => {
@@ -67,14 +62,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   );
 
   return (
-    <JsonEditor
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      readOnly={readOnly}
-      aria-invalid={ariaInvalid}
-    >
+    <JsonEditor value={value} onChange={onChange} {...props}>
       <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
     </JsonEditor>
   );

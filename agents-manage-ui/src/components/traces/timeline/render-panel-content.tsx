@@ -1,4 +1,3 @@
-import dynamic from 'next/dynamic';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {

@@ -1,5 +1,5 @@
 import type { ReactNode, FC, Ref } from 'react';
-import { useEffect, useRef, useImperativeHandle, useId } from 'react';
+import { useEffect, useRef, useImperativeHandle, useId, useMemo } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
 import { toast } from 'sonner';
@@ -59,7 +59,7 @@ interface JsonEditorProps {
 export const JsonEditor: FC<JsonEditorProps> = ({
   ref,
   value = '',
-  uri = `${useId().replaceAll('_', '')}.json`,
+  uri,
   readOnly,
   children,
   className,
@@ -68,6 +68,9 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   placeholder,
   'aria-invalid': ariaInvalid,
 }) => {
+  const id = useId();
+  uri ??= useMemo(() => `${id.replaceAll('_', '')}.json` as `${string}.json`, [id]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
