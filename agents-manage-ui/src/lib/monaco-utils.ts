@@ -95,7 +95,21 @@ export function createEditor(
     renderLineHighlight: 'none', // Remove a line selection border
     overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
     scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
-    // fontSize: 15,
+    lineNumbers: 'off',
+    wordWrap: 'on', // Toggle word wrap on resizing editors
+    contextmenu: false, // Disable the right-click context menu
+    fontSize: 12,
+    fixedOverflowWidgets: true, // since container has overflow-hidden
+    padding: {
+      top: 12,
+      bottom: 12,
+    },
+    scrollbar: {
+      vertical: 'hidden', // Hide vertical scrollbar
+      horizontal: 'hidden', // Hide horizontal scrollbar
+      useShadows: false, // Disable shadow effects
+      alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
+    },
     // tabSize: 2,
     // stickyScroll: { enabled: false }, // Disable sticky scroll widget
     // scrollbar: {
