@@ -129,7 +129,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     const relationData = createTestAgentArtifactComponentData({
       subAgentId: subAgentId,
       artifactComponentId,
-      graphId,
+      agentId: graphId,
     });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-artifact-components`,
@@ -165,7 +165,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const relationData = createTestAgentArtifactComponentData({
         subAgentId,
         artifactComponentId,
-        graphId,
+        agentId: graphId,
       });
 
       const res = await makeRequest(
@@ -208,7 +208,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const relationData = createTestAgentArtifactComponentData({
         subAgentId,
         artifactComponentId,
-        graphId,
+        agentId: graphId,
       });
 
       // Create first association

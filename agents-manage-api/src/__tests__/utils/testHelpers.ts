@@ -78,19 +78,19 @@ export function createTestDataComponentData(id: string, suffix = '') {
  * Creates test data for a context configuration.
  *
  * @param id - The context config ID
- * @param graphId - The graph ID this context config belongs to
+ * @param agentId - The agent ID this context config belongs to
  * @param suffix - Optional suffix to append to name/description
  * @returns Test context config data object
  *
  * @example
  * ```typescript
- * const contextConfig = createTestContextConfigData('cc-1', 'graph-1', ' Main');
+ * const contextConfig = createTestContextConfigData('cc-1', 'agent-1', ' Main');
  * ```
  */
-export function createTestContextConfigData(id: string, graphId: string, suffix = '') {
+export function createTestContextConfigData(id: string, agentId: string, suffix = '') {
   return {
     id,
-    graphId,
+    agentId,
     name: `Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
     contextSources: [
@@ -111,14 +111,14 @@ export function createTestContextConfigData(id: string, graphId: string, suffix 
  * @param options.suffix - Optional suffix to append to name/description
  * @param options.tenantId - Optional tenant ID
  * @param options.projectId - Optional project ID
- * @param options.graphId - Optional graph ID
+ * @param options.agentId - Optional agent ID
  * @returns Test context config data object with full schema
  *
  * @example
  * ```typescript
  * const contextConfig = createTestContextConfigDataFull({
  *   suffix: ' Main',
- *   graphId: 'graph-1'
+ *   agentId: 'agent-1'
  * });
  * ```
  */
@@ -127,13 +127,13 @@ export function createTestContextConfigDataFull({
   suffix = '',
   tenantId = 'default-tenant',
   projectId = 'default',
-  graphId = 'test-graph',
+  agentId = 'test-agent',
 }: {
   id?: string;
   suffix?: string;
   tenantId?: string;
   projectId?: string;
-  graphId?: string;
+  agentId?: string;
 } = {}) {
   const configId =
     id || `test-context-config${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
@@ -141,7 +141,7 @@ export function createTestContextConfigDataFull({
     id: configId,
     tenantId,
     projectId,
-    graphId,
+    agentId,
     name: `Test Context Config${suffix}`,
     description: `Test context configuration${suffix}`,
     headersSchema: {
@@ -256,7 +256,7 @@ export function createTestCredentialData({
   type = 'nango',
 }: {
   suffix?: string;
-  type?: typeof CredentialStoreType;
+  type?: (typeof CredentialStoreType)[keyof typeof CredentialStoreType];
 } = {}) {
   const timestamp = Date.now();
   const cleanSuffix = suffix.toLowerCase().replace(/\s+/g, '-');
@@ -272,30 +272,30 @@ export function createTestCredentialData({
 }
 
 /**
- * Creates test data for an agent graph.
+ * Creates test data for an agent.
  *
  * @param options - Configuration options
  * @param options.id - Optional custom ID
  * @param options.defaultSubAgentId - Optional default sub-agent ID
- * @returns Test agent graph data object
+ * @returns Test agent data object
  *
  * @example
  * ```typescript
- * const graph = createTestAgentGraphData({ defaultSubAgentId: 'agent-1' });
+ * const agent = createTestAgentData({ defaultSubAgentId: 'agent-1' });
  * ```
  */
-export function createTestAgentGraphData({
+export function createTestAgentData({
   id,
   defaultSubAgentId = null,
 }: {
   id?: string;
   defaultSubAgentId?: string | null;
 } = {}) {
-  const graphId = id || nanoid();
+  const agentId = id || nanoid();
   return {
-    id: graphId,
-    name: `Test Graph ${graphId}`,
-    description: 'Test graph description',
+    id: agentId,
+    name: `Test Agent ${agentId}`,
+    description: 'Test agent description',
     defaultSubAgentId,
   };
 }
@@ -304,7 +304,7 @@ export function createTestAgentGraphData({
  * Creates test data for an agent-tool relation.
  *
  * @param options - Configuration options
- * @param options.graphId - The graph ID
+ * @param options.agentId - The agent ID
  * @param options.subAgentId - The sub-agent ID
  * @param options.toolId - The tool ID
  * @param options.toolSelection - Optional array of tool names to enable
@@ -314,22 +314,22 @@ export function createTestAgentGraphData({
  * @example
  * ```typescript
  * const relation = createTestAgentToolRelationData({
- *   graphId: 'graph-1',
- *   subAgentId: 'agent-1',
+ *   agentId: 'agent-1',
+ *   subAgentId: 'sub-agent-1',
  *   toolId: 'tool-1'
  * });
  * ```
  */
 export function createTestAgentToolRelationData({
   id,
-  graphId,
+  agentId,
   subAgentId,
   toolId,
   toolSelection = null,
   headers = null,
 }: {
   id?: string;
-  graphId: string;
+  agentId: string;
   subAgentId: string;
   toolId: string;
   toolSelection?: string[] | null;
@@ -337,7 +337,7 @@ export function createTestAgentToolRelationData({
 }) {
   return {
     id: id || nanoid(),
-    graphId,
+    agentId,
     subAgentId,
     toolId,
     toolSelection,
@@ -349,7 +349,7 @@ export function createTestAgentToolRelationData({
  * Creates test data for an agent-data component relation.
  *
  * @param options - Configuration options
- * @param options.graphId - The graph ID
+ * @param options.agentId - The agent ID
  * @param options.subAgentId - The sub-agent ID
  * @param options.dataComponentId - The data component ID
  * @returns Test agent-data component relation data object
@@ -357,24 +357,24 @@ export function createTestAgentToolRelationData({
  * @example
  * ```typescript
  * const relation = createTestAgentDataComponentData({
- *   graphId: 'graph-1',
- *   subAgentId: 'agent-1',
+ *   agentId: 'agent-1',
+ *   subAgentId: 'sub-agent-1',
  *   dataComponentId: 'dc-1'
  * });
  * ```
  */
 export function createTestAgentDataComponentData({
-  graphId = 'default',
+  agentId = 'default',
   subAgentId,
   dataComponentId,
 }: {
-  graphId?: string;
+  agentId?: string;
   subAgentId: string;
   dataComponentId: string;
 }) {
   return {
     id: `${subAgentId}-${dataComponentId}`,
-    graphId,
+    agentId,
     subAgentId,
     dataComponentId,
   };
@@ -384,7 +384,7 @@ export function createTestAgentDataComponentData({
  * Creates test data for an agent-artifact component relation.
  *
  * @param options - Configuration options
- * @param options.graphId - The graph ID
+ * @param options.agentId - The agent ID
  * @param options.subAgentId - The sub-agent ID
  * @param options.artifactComponentId - The artifact component ID
  * @returns Test agent-artifact component relation data object
@@ -392,24 +392,24 @@ export function createTestAgentDataComponentData({
  * @example
  * ```typescript
  * const relation = createTestAgentArtifactComponentData({
- *   graphId: 'graph-1',
- *   subAgentId: 'agent-1',
+ *   agentId: 'agent-1',
+ *   subAgentId: 'sub-agent-1',
  *   artifactComponentId: 'ac-1'
  * });
  * ```
  */
 export function createTestAgentArtifactComponentData({
-  graphId = 'default',
+  agentId = 'default',
   subAgentId,
   artifactComponentId,
 }: {
-  graphId?: string;
+  agentId?: string;
   subAgentId: string;
   artifactComponentId: string;
 }) {
   return {
     id: `${subAgentId}-${artifactComponentId}`,
-    graphId,
+    agentId,
     subAgentId,
     artifactComponentId,
   };
