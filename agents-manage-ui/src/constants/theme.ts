@@ -1,31 +1,22 @@
 import type { editor } from 'monaco-editor';
 
 export const MONACO_THEME_NAME = {
-  dark: 'inkeep-dark',
   light: 'inkeep-light',
+  dark: 'inkeep-dark',
 };
 
 const color = {
   transparent: '#00000000',
 };
 
-export const MONACO_THEME_DATA: Record<'dark' | 'light', editor.IStandaloneThemeData> = {
-  dark: {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      { token: 'string.key.json', foreground: '#9a86fd' },
-      { token: 'string.value.json', foreground: '#ffb870' },
-    ],
-    colors: {
-      'editor.background': color.transparent,
-      // Removes blue border
-      focusBorder: color.transparent,
-      'editor.placeholder.foreground': '#9797a1',
-      'editor.lineHighlightBackground': '#3633427F',
-      'editor.lineHighlightBorder': color.transparent,
-    },
-  },
+const baseColors: editor.IColors = {
+  'editor.background': color.transparent,
+  focusBorder: color.transparent, // Removes blue border
+  'editor.lineHighlightBorder': color.transparent,
+  'editor.wordHighlightBackground': color.transparent,
+};
+
+export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneThemeData> = {
   light: {
     base: 'vs',
     inherit: true,
@@ -34,12 +25,22 @@ export const MONACO_THEME_DATA: Record<'dark' | 'light', editor.IStandaloneTheme
       { token: 'string.value.json', foreground: '#1659df' },
     ],
     colors: {
-      'editor.background': color.transparent,
-      // Removes blue border
-      focusBorder: color.transparent,
+      ...baseColors,
       'editor.placeholder.foreground': '#58534d',
-      'editor.lineHighlightBackground': '#DDCEB154',
-      'editor.lineHighlightBorder': color.transparent,
+      'editor.lineHighlightBackground': '#ddceb154',
+    },
+  },
+  dark: {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'string.key.json', foreground: '#9a86fd' },
+      { token: 'string.value.json', foreground: '#ffb870' },
+    ],
+    colors: {
+      ...baseColors,
+      'editor.placeholder.foreground': '#9797a1',
+      'editor.lineHighlightBackground': '#3633427f',
     },
   },
 };
