@@ -54,7 +54,7 @@ vi.mock('../../graphFullClient.js', () => ({
     tools: {},
     dataComponents: {},
     artifactComponents: {},
-    defaultAgentId: 'test-agent',
+    defaultSubAgentId: 'test-agent',
   }),
   createFullGraphViaAPI: vi.fn().mockResolvedValue({
     id: 'test-graph',
@@ -70,7 +70,7 @@ vi.mock('../../graphFullClient.js', () => ({
     tools: {},
     dataComponents: {},
     artifactComponents: {},
-    defaultAgentId: 'test-agent',
+    defaultSubAgentId: 'test-agent',
   }),
   getFullGraphViaAPI: vi.fn().mockResolvedValue(null),
 }));
@@ -114,8 +114,8 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       id: graphId,
       name: 'Test Graph',
       description: 'A test graph for refactor validation',
-      defaultAgent: agent1,
-      agents: () => [agent1, agent2],
+      defaultSubAgent: agent1,
+      subAgents: () => [agent1, agent2],
     });
 
     // Initialize the graph
@@ -131,7 +131,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       id: graphId,
       name: graphId,
       description: `Agent graph ${graphId}`,
-      defaultAgentId: 'agent-1', // Agent IDs are converted to kebab-case
+      defaultSubAgentId: 'agent-1', // Agent IDs are converted to kebab-case
       agents: expect.objectContaining({
         'agent-1': expect.objectContaining({
           id: 'agent-1',
@@ -179,8 +179,8 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       id: graphId,
       name: 'Component Graph',
       description: 'A graph with component mode enabled',
-      defaultAgent: agent1,
-      agents: () => [agent1],
+      defaultSubAgent: agent1,
+      subAgents: () => [agent1],
     });
 
     await graph.init();
@@ -192,8 +192,10 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     const calledProjectData = updateSpy.mock.calls[0][3]; // 4th argument is projectData (tenantId, apiUrl, projectId, projectData)
     const graphs = calledProjectData?.graphs || {};
     const firstGraphId = Object.keys(graphs)[0];
-    const agentInstructions = firstGraphId && graphs[firstGraphId].agents['component-agent'] ?
-      (graphs[firstGraphId].agents['component-agent'] as any).prompt : '';
+    const agentInstructions =
+      firstGraphId && graphs[firstGraphId].subAgents['component-agent']
+        ? (graphs[firstGraphId].subAgents['component-agent'] as any).prompt
+        : '';
 
     // Instructions should be preserved as originally specified
     expect(agentInstructions).toBe('You are a component-enabled agent.');
@@ -219,8 +221,8 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     const graph = agentGraph({
       id: graphId,
       name: 'Standalone Graph',
-      defaultAgent: standaloneAgent,
-      agents: () => [standaloneAgent],
+      defaultSubAgent: standaloneAgent,
+      subAgents: () => [standaloneAgent],
     });
 
     await graph.init();
@@ -234,7 +236,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
 
     // The Agent.getId() method now returns the config.id directly
     // Agent was created with id: 'standalone'
-    expect(calledGraphData?.agents.standalone).toMatchObject({
+    expect(calledGraphData?.subAgents.standalone).toMatchObject({
       id: 'standalone',
       canTransferTo: [],
       canDelegateTo: [],
@@ -258,8 +260,8 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     const graph = agentGraph({
       id: graphId,
       name: 'Legacy Graph',
-      defaultAgent: agent1,
-      agents: () => [agent1],
+      defaultSubAgent: agent1,
+      subAgents: () => [agent1],
     });
 
     // Verify that the initLegacy method exists and can be called
@@ -289,8 +291,8 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     const graph = agentGraph({
       id: graphId,
       name: 'Error Graph',
-      defaultAgent: agent1,
-      agents: () => [agent1],
+      defaultSubAgent: agent1,
+      subAgents: () => [agent1],
     });
 
     // Expect initialization to throw the error

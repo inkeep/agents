@@ -2,23 +2,26 @@ import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import {
-  agentArtifactComponents,
-  agentDataComponents,
+  agentFunctionToolRelations,
   agentGraph,
-  agents,
-  agentToolRelations,
   artifactComponents,
   dataComponents,
+  functionTools,
   projects,
+  subAgentArtifactComponents,
+  subAgentDataComponents,
+  subAgents,
+  subAgentToolRelations,
   tools,
 } from '../db/schema';
 import type { AgentGraphInsert, AgentGraphUpdate, FullGraphDefinition } from '../types/entities';
 import type { GraphScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
-import { getAgentRelations, getAgentRelationsByGraph } from './agentRelations';
-import { getAgentById } from './agents';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
+import { listFunctionTools } from './functionTools';
+import { getAgentRelations, getAgentRelationsByGraph } from './subAgentRelations';
+import { getSubAgentById } from './subAgents';
 import { listTools } from './tools';
 
 export const getAgentGraphById =
@@ -33,7 +36,7 @@ export const getAgentGraphById =
     return result ?? null;
   };
 
-export const getAgentGraphWithDefaultAgent =
+export const getAgentGraphWithDefaultSubAgent =
   (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
     const result = await db.query.agentGraph.findFirst({
       where: and(
@@ -42,7 +45,7 @@ export const getAgentGraphWithDefaultAgent =
         eq(agentGraph.id, params.scopes.graphId)
       ),
       with: {
-        defaultAgent: true,
+        defaultSubAgent: true,
       },
     });
     return result ?? null;
@@ -209,18 +212,19 @@ export const fetchComponentRelationships =
   (db: DatabaseClient) =>
   async <T extends Record<string, any>>(
     scopes: ProjectScopeConfig,
-    agentIds: string[],
+    subAgentIds: string[],
     config: {
       relationTable: any;
       componentTable: any;
       relationIdField: any;
       componentIdField: any;
+      subAgentIdField: any;
       selectFields: Record<string, any>;
     }
   ): Promise<Record<string, T>> => {
     const componentsObject: Record<string, T> = {};
 
-    if (agentIds.length > 0) {
+    if (subAgentIds.length > 0) {
       const results = await db
         .select(config.selectFields)
         .from(config.relationTable)
@@ -229,7 +233,7 @@ export const fetchComponentRelationships =
           and(
             eq(config.relationTable.tenantId, scopes.tenantId),
             eq(config.relationTable.projectId, scopes.projectId),
-            inArray(config.relationTable.agentId, agentIds)
+            inArray(config.subAgentIdField, subAgentIds)
           )
         );
 
@@ -246,11 +250,11 @@ export const getGraphAgentInfos =
   async ({
     scopes,
     graphId,
-    agentId,
+    subAgentId,
   }: {
     scopes: ProjectScopeConfig;
     graphId: string;
-    agentId: string;
+    subAgentId: string;
   }) => {
     const { tenantId, projectId } = scopes;
     // First, verify that the graph exists
@@ -264,23 +268,23 @@ export const getGraphAgentInfos =
     // Get all relations for the agent within the tenant
     // For now, this works without graph-specific filtering until schema is properly updated
     const relations = await getAgentRelations(db)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
     });
-    const targetAgentIds = relations
-      .map((relation) => relation.targetAgentId)
+    const targetSubAgentIds = relations
+      .map((relation) => relation.targetSubAgentId)
       .filter((id): id is string => id !== null);
 
     // If no relations found, return empty array
-    if (targetAgentIds.length === 0) {
+    if (targetSubAgentIds.length === 0) {
       return [];
     }
 
     // Get agent information for each target agent
     const agentInfos = await Promise.all(
-      targetAgentIds.map(async (targetAgentId) => {
-        const agent = await getAgentById(db)({
+      targetSubAgentIds.map(async (subAgentId) => {
+        const agent = await getSubAgentById(db)({
           scopes: { tenantId, projectId, graphId },
-          agentId: targetAgentId,
+          subAgentId,
         });
         if (agent !== undefined) {
           return { id: agent.id, name: agent.name, description: agent.description };
@@ -318,45 +322,45 @@ export const getFullGraphDefinition =
     // Instead of collecting agent IDs from relationships and tools,
     // we should directly query for agents that belong to this graph
     // Agents are scoped to graphs via their graphId field
-    const graphAgents = await db.query.agents.findMany({
+    const graphSubAgents = await db.query.subAgents.findMany({
       where: and(
-        eq(agents.tenantId, tenantId),
-        eq(agents.projectId, projectId),
-        eq(agents.graphId, graphId)
+        eq(subAgents.tenantId, tenantId),
+        eq(subAgents.projectId, projectId),
+        eq(subAgents.graphId, graphId)
       ),
     });
 
     // Get external agents referenced in relationships
-    const externalAgentIds = new Set<string>();
+    const externalSubAgentIds = new Set<string>();
     for (const relation of graphRelations) {
-      if (relation.externalAgentId) {
-        externalAgentIds.add(relation.externalAgentId);
+      if (relation.externalSubAgentId) {
+        externalSubAgentIds.add(relation.externalSubAgentId);
       }
     }
 
     // Process internal agents from the graph
-    const processedAgents = await Promise.all(
-      graphAgents.map(async (agent) => {
+    const processedSubAgents = await Promise.all(
+      graphSubAgents.map(async (agent) => {
         if (!agent) return null;
 
         // Get relationships for this agent
-        const agentRelationsList = graphRelations.filter(
-          (relation) => relation.sourceAgentId === agent.id
+        const subAgentRelationsList = graphRelations.filter(
+          (relation) => relation.sourceSubAgentId === agent.id
         );
 
         // Group relationships by type
-        const canTransferTo = agentRelationsList
+        const canTransferTo = subAgentRelationsList
           .filter((rel) => rel.relationType === 'transfer' || rel.relationType === 'transfer_to')
-          .map((rel) => rel.targetAgentId)
+          .map((rel) => rel.targetSubAgentId)
           .filter((id): id is string => id !== null);
 
-        const canDelegateTo = agentRelationsList
+        const canDelegateTo = subAgentRelationsList
           .filter((rel) => rel.relationType === 'delegate' || rel.relationType === 'delegate_to')
-          .map((rel) => rel.targetAgentId || rel.externalAgentId) // Delegations can be to internal or external agents
+          .map((rel) => rel.targetSubAgentId || rel.externalSubAgentId) // Delegations can be to internal or external agents
           .filter((id): id is string => id !== null);
 
-        // Get tools for this agent
-        const agentTools = await db
+        // Get MCP tools for this agent
+        const subAgentTools = await db
           .select({
             id: tools.id,
             name: tools.name,
@@ -369,55 +373,97 @@ export const getFullGraphDefinition =
             tenantId: tools.tenantId,
             projectId: tools.projectId,
             imageUrl: tools.imageUrl,
-            selectedTools: agentToolRelations.selectedTools,
-            headers: agentToolRelations.headers,
-            agentToolRelationId: agentToolRelations.id,
+            selectedTools: subAgentToolRelations.selectedTools,
+            headers: subAgentToolRelations.headers,
+            agentToolRelationId: subAgentToolRelations.id,
           })
-          .from(agentToolRelations)
+          .from(subAgentToolRelations)
           .innerJoin(
             tools,
             and(
-              eq(agentToolRelations.toolId, tools.id),
-              eq(agentToolRelations.tenantId, tools.tenantId),
-              eq(agentToolRelations.projectId, tools.projectId)
+              eq(subAgentToolRelations.toolId, tools.id),
+              eq(subAgentToolRelations.tenantId, tools.tenantId),
+              eq(subAgentToolRelations.projectId, tools.projectId)
             )
           )
           .where(
             and(
-              eq(agentToolRelations.tenantId, tenantId),
-              eq(agentToolRelations.projectId, projectId),
-              eq(agentToolRelations.graphId, graphId),
-              eq(agentToolRelations.agentId, agent.id)
+              eq(subAgentToolRelations.tenantId, tenantId),
+              eq(subAgentToolRelations.projectId, projectId),
+              eq(subAgentToolRelations.graphId, graphId),
+              eq(subAgentToolRelations.subAgentId, agent.id)
+            )
+          );
+
+        // Get function tools for this agent
+        const agentFunctionTools = await db
+          .select({
+            id: functionTools.id,
+            name: functionTools.name,
+            description: functionTools.description,
+            functionId: functionTools.functionId,
+            createdAt: functionTools.createdAt,
+            updatedAt: functionTools.updatedAt,
+            tenantId: functionTools.tenantId,
+            projectId: functionTools.projectId,
+            graphId: functionTools.graphId,
+            agentToolRelationId: agentFunctionToolRelations.id,
+          })
+          .from(agentFunctionToolRelations)
+          .innerJoin(
+            functionTools,
+            and(
+              eq(agentFunctionToolRelations.functionToolId, functionTools.id),
+              eq(agentFunctionToolRelations.tenantId, functionTools.tenantId),
+              eq(agentFunctionToolRelations.projectId, functionTools.projectId),
+              eq(agentFunctionToolRelations.graphId, functionTools.graphId)
+            )
+          )
+          .where(
+            and(
+              eq(agentFunctionToolRelations.tenantId, tenantId),
+              eq(agentFunctionToolRelations.projectId, projectId),
+              eq(agentFunctionToolRelations.graphId, graphId),
+              eq(agentFunctionToolRelations.subAgentId, agent.id)
             )
           );
 
         // Get dataComponents for this agent
-        const agentDataComponentRelations = await db.query.agentDataComponents.findMany({
+        const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
           where: and(
-            eq(agentDataComponents.tenantId, tenantId),
-            eq(agentDataComponents.agentId, agent.id)
+            eq(subAgentDataComponents.tenantId, tenantId),
+            eq(subAgentDataComponents.subAgentId, agent.id)
           ),
         });
         const agentDataComponentIds = agentDataComponentRelations.map((rel) => rel.dataComponentId);
 
         // Get artifactComponents for this agent
-        const agentArtifactComponentRelations = await db.query.agentArtifactComponents.findMany({
+        const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
           where: and(
-            eq(agentArtifactComponents.tenantId, tenantId),
-            eq(agentArtifactComponents.agentId, agent.id)
+            eq(subAgentArtifactComponents.tenantId, tenantId),
+            eq(subAgentArtifactComponents.subAgentId, agent.id)
           ),
         });
         const agentArtifactComponentIds = agentArtifactComponentRelations.map(
           (rel) => rel.artifactComponentId
         );
 
-        // Construct canUse array from agentTools
-        const canUse = agentTools.map((tool) => ({
+        // Construct canUse array from both MCP tools and function tools
+        const mcpToolCanUse = subAgentTools.map((tool) => ({
           agentToolRelationId: tool.agentToolRelationId,
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
           headers: tool.headers || null,
         }));
+
+        const functionToolCanUse = agentFunctionTools.map((tool) => ({
+          agentToolRelationId: tool.agentToolRelationId,
+          toolId: tool.id,
+          toolSelection: null, // Function tools don't have tool selection
+          headers: null, // Function tools don't have headers
+        }));
+
+        const canUse = [...mcpToolCanUse, ...functionToolCanUse];
 
         return {
           id: agent.id,
@@ -436,32 +482,32 @@ export const getFullGraphDefinition =
     );
 
     const externalAgents = await Promise.all(
-      Array.from(externalAgentIds).map(async (agentId) => {
-        const agent = await getExternalAgent(db)({
+      Array.from(externalSubAgentIds).map(async (subAgentId) => {
+        const subAgent = await getExternalAgent(db)({
           scopes: { tenantId, projectId, graphId },
-          agentId,
+          subAgentId: subAgentId,
         });
-        if (!agent) return null;
+        if (!subAgent) return null;
 
         // External agents need to match the FullGraphAgentSchema structure
         return {
-          id: agent.id,
-          name: agent.name,
-          description: agent.description,
-          baseUrl: agent.baseUrl,
-          headers: agent.headers,
-          credentialReferenceId: agent.credentialReferenceId,
+          id: subAgent.id,
+          name: subAgent.name,
+          description: subAgent.description,
+          baseUrl: subAgent.baseUrl,
+          headers: subAgent.headers,
+          credentialReferenceId: subAgent.credentialReferenceId,
           type: 'external',
         };
       })
     );
 
     // Filter out null results
-    const validAgents = [...processedAgents, ...externalAgents].filter(
+    const validAgents = [...processedSubAgents, ...externalAgents].filter(
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
 
-    // Convert agents array to object with agentId as key
+    // Convert agents array to object with subAgentId as key
     const agentsObject: Record<string, any> = {};
     // No toolsObject needed - tools are defined at project level, not graph level
 
@@ -503,14 +549,15 @@ export const getFullGraphDefinition =
     // let dataComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
-      const internalAgentIds = graphAgents.map((agent) => agent.id);
-      const agentIds = Array.from(internalAgentIds);
+      const internalAgentIds = graphSubAgents.map((agent) => agent.id);
+      const subAgentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
-        relationTable: agentDataComponents,
+      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+        relationTable: subAgentDataComponents,
         componentTable: dataComponents,
-        relationIdField: agentDataComponents.dataComponentId,
+        relationIdField: subAgentDataComponents.dataComponentId,
         componentIdField: dataComponents.id,
+        subAgentIdField: subAgentDataComponents.subAgentId,
         selectFields: {
           id: dataComponents.id,
           name: dataComponents.name,
@@ -527,14 +574,15 @@ export const getFullGraphDefinition =
     // let artifactComponentsObject: Record<string, any> = {};
     try {
       // Collect all internal agent IDs from the graph
-      const internalAgentIds = graphAgents.map((agent) => agent.id);
-      const agentIds = Array.from(internalAgentIds);
+      const internalAgentIds = graphSubAgents.map((agent) => agent.id);
+      const subAgentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)({ tenantId, projectId }, agentIds, {
-        relationTable: agentArtifactComponents,
+      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
+        relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,
-        relationIdField: agentArtifactComponents.artifactComponentId,
+        relationIdField: subAgentArtifactComponents.artifactComponentId,
         componentIdField: artifactComponents.id,
+        subAgentIdField: subAgentArtifactComponents.subAgentId,
         selectFields: {
           id: artifactComponents.id,
           name: artifactComponents.name,
@@ -551,8 +599,8 @@ export const getFullGraphDefinition =
       id: graph.id,
       name: graph.name,
       description: graph.description,
-      defaultAgentId: graph.defaultAgentId,
-      agents: agentsObject,
+      defaultSubAgentId: graph.defaultSubAgentId,
+      subAgents: agentsObject,
       // No tools field - tools are defined at project level
       createdAt:
         graph.createdAt && !Number.isNaN(new Date(graph.createdAt).getTime())
@@ -609,7 +657,7 @@ export const getFullGraphDefinition =
 
         // Propagate stepCountIs from project to agents
         if (projectStopWhen?.stepCountIs !== undefined) {
-          for (const [agentId, agentData] of Object.entries(result.agents)) {
+          for (const [subAgentId, agentData] of Object.entries(result.subAgents)) {
             // Only apply to internal agents (not external agents with baseUrl)
             if (agentData && typeof agentData === 'object' && !('baseUrl' in agentData)) {
               const agent = agentData as any;
@@ -629,27 +677,27 @@ export const getFullGraphDefinition =
                 // Persist the inherited value to the database
                 try {
                   await db
-                    .update(agents)
+                    .update(subAgents)
                     .set({
                       stopWhen: agent.stopWhen,
                       updatedAt: new Date().toISOString(),
                     })
                     .where(
                       and(
-                        eq(agents.tenantId, tenantId),
-                        eq(agents.projectId, projectId),
-                        eq(agents.id, agentId)
+                        eq(subAgents.tenantId, tenantId),
+                        eq(subAgents.projectId, projectId),
+                        eq(subAgents.id, subAgentId)
                       )
                     );
 
                   // Update the in-memory agent data to reflect the persisted values
                   // This ensures the UI gets the updated data
-                  result.agents[agentId] = {
-                    ...result.agents[agentId],
+                  result.subAgents[subAgentId] = {
+                    ...result.subAgents[subAgentId],
                     stopWhen: agent.stopWhen,
                   };
                 } catch (dbError) {
-                  console.warn(`Failed to persist stopWhen for agent ${agentId}:`, dbError);
+                  console.warn(`Failed to persist stopWhen for agent ${subAgentId}:`, dbError);
                 }
               }
             }
@@ -677,18 +725,35 @@ export const getFullGraphDefinition =
           name: tool.name,
           description: tool.description,
           config: tool.config,
-          functionId: tool.functionId,
           credentialReferenceId: tool.credentialReferenceId,
           imageUrl: tool.imageUrl,
         };
       }
       result.tools = toolsObject;
 
+      // Get function tools for this graph
+      const functionToolsList = await listFunctionTools(db)({
+        scopes: { tenantId, projectId, graphId },
+        pagination: { page: 1, limit: 1000 },
+      });
+
+      // Build function tools lookup map
+      const functionToolsObject: Record<string, any> = {};
+      for (const functionTool of functionToolsList.data) {
+        functionToolsObject[functionTool.id] = {
+          id: functionTool.id,
+          name: functionTool.name,
+          description: functionTool.description,
+          functionId: functionTool.functionId,
+        };
+      }
+      result.functionTools = functionToolsObject;
+
       // Get all functions referenced by function tools
       const functionIds = new Set<string>();
-      for (const tool of toolsList.data) {
-        if (tool.functionId) {
-          functionIds.add(tool.functionId);
+      for (const functionTool of functionToolsList.data) {
+        if (functionTool.functionId) {
+          functionIds.add(functionTool.functionId);
         }
       }
 
@@ -736,7 +801,7 @@ export const upsertAgentGraph =
         scopes,
         data: {
           name: params.data.name,
-          defaultAgentId: params.data.defaultAgentId,
+          defaultSubAgentId: params.data.defaultSubAgentId,
           description: params.data.description,
           contextConfigId: params.data.contextConfigId,
           models: params.data.models,

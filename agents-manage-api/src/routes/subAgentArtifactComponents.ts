@@ -1,17 +1,17 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentArtifactComponentApiInsertSchema,
-  AgentArtifactComponentApiSelectSchema,
+  SubAgentArtifactComponentApiInsertSchema,
+  SubAgentArtifactComponentApiSelectSchema,
   ArtifactComponentApiSelectSchema,
   associateArtifactComponentWithAgent,
   commonGetErrorResponses,
   createApiError,
   ErrorResponseSchema,
   ExistsResponseSchema,
-  getAgentById,
   getAgentsUsingArtifactComponent,
   getArtifactComponentById,
   getArtifactComponentsForAgent,
+  getSubAgentById,
   isArtifactComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeArtifactComponentFromAgent,
@@ -27,13 +27,13 @@ const app = new OpenAPIHono();
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:agentId',
+    path: '/agent/:subAgentId',
     summary: 'Get Artifact Components for Agent',
     operationId: 'get-artifact-components-for-agent',
     tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
+        subAgentId: z.string(),
       }),
     },
     responses: {
@@ -51,10 +51,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId } = c.req.valid('param');
 
     const artifactComponents = await getArtifactComponentsForAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
     });
 
     return c.json({
@@ -84,7 +84,7 @@ app.openapi(
             schema: z.object({
               data: z.array(
                 z.object({
-                  agentId: z.string(),
+                  subAgentId: z.string(),
                   createdAt: z.string(),
                 })
               ),
@@ -120,7 +120,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentArtifactComponentApiInsertSchema,
+            schema: SubAgentArtifactComponentApiInsertSchema,
           },
         },
       },
@@ -130,7 +130,7 @@ app.openapi(
         description: 'Agent artifact component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentArtifactComponentApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentArtifactComponentApiSelectSchema),
           },
         },
       },
@@ -147,12 +147,12 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, graphId } = c.req.valid('param');
-    const { agentId, artifactComponentId } = c.req.valid('json');
+    const { subAgentId, artifactComponentId } = c.req.valid('json');
 
     // Validate that both agent and artifact component exist before creating association
-    const agent = await getAgentById(dbClient)({
+    const agent = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId,
+      subAgentId,
     });
     const artifactComponent = await getArtifactComponentById(dbClient)({
       scopes: { tenantId, projectId },
@@ -162,7 +162,7 @@ app.openapi(
     if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: `Agent with id '${agentId}' not found`,
+        message: `Agent with id '${subAgentId}' not found`,
       });
     }
 
@@ -175,7 +175,7 @@ app.openapi(
 
     // Check if association already exists
     const exists = await isArtifactComponentAssociatedWithAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       artifactComponentId,
     });
 
@@ -187,7 +187,7 @@ app.openapi(
     }
 
     const association = await associateArtifactComponentWithAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       artifactComponentId,
     });
 
@@ -199,13 +199,13 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/:agentId/component/:artifactComponentId',
+    path: '/agent/:subAgentId/component/:artifactComponentId',
     summary: 'Remove Artifact Component from Agent',
     operationId: 'remove-artifact-component-from-agent',
     tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
+        subAgentId: z.string(),
         artifactComponentId: z.string(),
       }),
     },
@@ -222,10 +222,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId, artifactComponentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId, artifactComponentId } = c.req.valid('param');
 
     const removed = await removeArtifactComponentFromAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       artifactComponentId,
     });
 
@@ -247,13 +247,13 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:agentId/component/:artifactComponentId/exists',
+    path: '/agent/:subAgentId/component/:artifactComponentId/exists',
     summary: 'Check if Artifact Component is Associated with Agent',
     operationId: 'check-artifact-component-agent-association',
     tags: ['Agent Artifact Component Relations'],
     request: {
       params: TenantProjectGraphParamsSchema.extend({
-        agentId: z.string(),
+        subAgentId: z.string(),
         artifactComponentId: z.string(),
       }),
     },
@@ -270,10 +270,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, agentId, artifactComponentId } = c.req.valid('param');
+    const { tenantId, projectId, graphId, subAgentId, artifactComponentId } = c.req.valid('param');
 
     const exists = await isArtifactComponentAssociatedWithAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId, agentId },
+      scopes: { tenantId, projectId, graphId, subAgentId },
       artifactComponentId,
     });
 

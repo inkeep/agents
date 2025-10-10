@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, ChevronDown, ChevronRight, X, Zap } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronRight, Code, X, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,13 +116,19 @@ export function GraphErrorSummaryComponent({
     onNavigateToEdge?.(edgeId);
   };
 
-  const nodeErrors = Object.values(errorSummary.nodeErrors).flat();
+  const agentErrors = Object.values(errorSummary.agentErrors).flat();
+  const functionToolErrors = Object.values(errorSummary.functionToolErrors).flat();
   const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
   const graphErrors = errorSummary.graphErrors;
 
   const getAgentLabel = (error: ProcessedGraphError) => {
     // You might want to get the actual agent name from the graph data
     return `Agent (${error.nodeId})`;
+  };
+
+  const getFunctionToolLabel = (error: ProcessedGraphError) => {
+    // You might want to get the actual function tool name from the graph data
+    return `Function Tool (${error.nodeId})`;
   };
 
   const getConnectionLabel = (error: ProcessedGraphError) => {
@@ -149,10 +155,18 @@ export function GraphErrorSummaryComponent({
 
         <ErrorGroup
           title="Agent Errors"
-          errors={nodeErrors}
+          errors={agentErrors}
           icon={<Zap className="w-3 h-3" />}
           onNavigate={handleNavigateToNode}
           getItemLabel={getAgentLabel}
+        />
+
+        <ErrorGroup
+          title="Function Tool Errors"
+          errors={functionToolErrors}
+          icon={<Code className="w-3 h-3" />}
+          onNavigate={handleNavigateToNode}
+          getItemLabel={getFunctionToolLabel}
         />
 
         <ErrorGroup

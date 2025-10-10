@@ -64,7 +64,7 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
       table.push([
         graph.id || '',
         graph.name || graph.id || '',
-        graph.defaultAgentId || chalk.gray('None'),
+        graph.defaultSubAgentId || chalk.gray('None'),
         createdDate,
       ]);
     }

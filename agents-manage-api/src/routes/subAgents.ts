@@ -1,21 +1,21 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentApiInsertSchema,
-  AgentApiSelectSchema,
-  AgentApiUpdateSchema,
   commonGetErrorResponses,
-  createAgent,
   createApiError,
-  deleteAgent,
+  createSubAgent,
+  deleteSubAgent,
   ErrorResponseSchema,
-  getAgentById,
+  getSubAgentById,
   ListResponseSchema,
-  listAgentsPaginated,
+  listSubAgentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectGraphParamsSchema,
+  SubAgentApiInsertSchema,
+  SubAgentApiSelectSchema,
+  SubAgentApiUpdateSchema,
   TenantProjectGraphIdParamsSchema,
-  updateAgent,
+  TenantProjectGraphParamsSchema,
+  updateSubAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
@@ -26,19 +26,19 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Agents',
-    operationId: 'list-agents',
-    tags: ['Agent'],
+    summary: 'List SubAgents',
+    operationId: 'list-subagents',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
       200: {
-        description: 'List of agents retrieved successfully',
+        description: 'List of subAgents retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(AgentApiSelectSchema),
+            schema: ListResponseSchema(SubAgentApiSelectSchema),
           },
         },
       },
@@ -50,15 +50,15 @@ app.openapi(
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listAgentsPaginated(dbClient)({
+    const result = await listSubAgentsPaginated(dbClient)({
       scopes: { tenantId, projectId, graphId },
       pagination: { page, limit },
     });
-    // Add type field to all agents in the response
+    // Add type field to all subAgents in the response
     const dataWithType = {
       ...result,
-      data: result.data.map((agent) => ({
-        ...agent,
+      data: result.data.map((subAgent) => ({
+        ...subAgent,
         type: 'internal' as const,
       })),
     };
@@ -71,18 +71,18 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Agent',
-    operationId: 'get-agent-by-id',
-    tags: ['Agent'],
+    summary: 'Get SubAgent',
+    operationId: 'get-subagent-by-id',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Agent found',
+        description: 'SubAgent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentApiSelectSchema),
           },
         },
       },
@@ -91,25 +91,25 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
-    const agent = await getAgentById(dbClient)({
+    const subAgent = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: id,
+      subAgentId: id,
     });
 
-    if (!agent) {
+    if (!subAgent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent not found',
+        message: 'SubAgent not found',
       });
     }
 
-    // Add type field to the agent response
-    const agentWithType = {
-      ...agent,
+    // Add type field to the sub-agent response
+    const subAgentWithType = {
+      ...subAgent,
       type: 'internal' as const,
     };
 
-    return c.json({ data: agentWithType });
+    return c.json({ data: subAgentWithType });
   }
 );
 
@@ -117,25 +117,25 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Agent',
-    operationId: 'create-agent',
-    tags: ['Agent'],
+    summary: 'Create SubAgent',
+    operationId: 'create-subagent',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
         content: {
           'application/json': {
-            schema: AgentApiInsertSchema,
+            schema: SubAgentApiInsertSchema,
           },
         },
       },
     },
     responses: {
       201: {
-        description: 'Agent created successfully',
+        description: 'SubAgent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentApiSelectSchema),
           },
         },
       },
@@ -145,22 +145,22 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, graphId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const agentId = body.id ? String(body.id) : nanoid();
-    const agent = await createAgent(dbClient)({
+    const subAgentId = body.id ? String(body.id) : nanoid();
+    const subAgent = await createSubAgent(dbClient)({
       ...body,
-      id: agentId,
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,
     });
 
-    // Add type field to the agent response
-    const agentWithType = {
-      ...agent,
+    // Add type field to the sub-agent response
+    const subAgentWithType = {
+      ...subAgent,
       type: 'internal' as const,
     };
 
-    return c.json({ data: agentWithType }, 201);
+    return c.json({ data: subAgentWithType }, 201);
   }
 );
 
@@ -168,25 +168,25 @@ app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Agent',
-    operationId: 'update-agent',
-    tags: ['Agent'],
+    summary: 'Update SubAgent',
+    operationId: 'update-subagent',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
       body: {
         content: {
           'application/json': {
-            schema: AgentApiUpdateSchema,
+            schema: SubAgentApiUpdateSchema,
           },
         },
       },
     },
     responses: {
       200: {
-        description: 'Agent updated successfully',
+        description: 'SubAgent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentApiSelectSchema),
           },
         },
       },
@@ -197,26 +197,26 @@ app.openapi(
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedAgent = await updateAgent(dbClient)({
+    const updatedSubAgent = await updateSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: id,
+      subAgentId: id,
       data: body,
     });
 
-    if (!updatedAgent) {
+    if (!updatedSubAgent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent not found',
+        message: 'SubAgent not found',
       });
     }
 
-    // Add type field to the agent response
-    const agentWithType = {
-      ...updatedAgent,
+    // Add type field to the sub-agent response
+    const subAgentWithType = {
+      ...updatedSubAgent,
       type: 'internal' as const,
     };
 
-    return c.json({ data: agentWithType });
+    return c.json({ data: subAgentWithType });
   }
 );
 
@@ -224,18 +224,18 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Agent',
-    operationId: 'delete-agent',
-    tags: ['Agent'],
+    summary: 'Delete SubAgent',
+    operationId: 'delete-subagent',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {
-        description: 'Agent deleted successfully',
+        description: 'SubAgent deleted successfully',
       },
       404: {
-        description: 'Agent not found',
+        description: 'SubAgent not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -247,15 +247,15 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
-    const deleted = await deleteAgent(dbClient)({
+    const deleted = await deleteSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: id,
+      subAgentId: id,
     });
 
     if (!deleted) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent not found',
+        message: 'SubAgent not found',
       });
     }
 

@@ -48,7 +48,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   } = useAICallsQueryState();
   const [agentCalls, setAgentCalls] = useState<
     Array<{
-      agentId: string;
+      subAgentId: string;
       graphId: string;
       modelId: string;
       totalCalls: number;
@@ -366,7 +366,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
                     <Brain className="h-5 w-5 text-blue-600" />
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium text-foreground">
-                        {agent.agentId === UNKNOWN_VALUE ? 'Unknown Agent' : agent.agentId}
+                        {agent.subAgentId === UNKNOWN_VALUE ? 'Unknown Agent' : agent.subAgentId}
                       </span>
                       <div className="flex flex-col gap-0.5">
                         {agent.graphId !== UNKNOWN_VALUE && (

@@ -2,9 +2,17 @@ import { KeyRound, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
-import { PageHeader } from '@/components/layout/page-header';
+import {
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderRoot,
+  PageHeaderTitle,
+} from '@/components/layout/page-header';
 import { CardDescription, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { ItemCardGrid } from '@/components/ui/item-card-grid';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { isNangoConfigured } from '@/lib/mcp-tools/nango';
 
 interface CredentialOption {
   id: string;
@@ -12,6 +20,7 @@ interface CredentialOption {
   title: string;
   description: string;
   href: string;
+  isDisabled?: boolean;
 }
 
 async function NewCredentialsPage({
@@ -20,6 +29,9 @@ async function NewCredentialsPage({
   params: Promise<{ tenantId: string; projectId: string }>;
 }) {
   const { tenantId, projectId } = await params;
+
+  const isNangoReady = await isNangoConfigured();
+
   const credentialOptions: CredentialOption[] = [
     {
       id: 'providers',
@@ -28,6 +40,7 @@ async function NewCredentialsPage({
       description:
         'Connect to popular providers like GitHub, Google Drive, Slack, and more. This is useful when you want to give MCP servers access to your providers.',
       href: `/${tenantId}/projects/${projectId}/credentials/new/providers`,
+      isDisabled: !isNangoReady,
     },
     {
       id: 'bearer',
@@ -36,6 +49,7 @@ async function NewCredentialsPage({
       description:
         'Create a bearer token for API authentication. Useful when you need to provide secure access tokens to your MCP servers.',
       href: `/${tenantId}/projects/${projectId}/credentials/new/bearer`,
+      isDisabled: !isNangoReady,
     },
   ];
 
@@ -54,6 +68,25 @@ async function NewCredentialsPage({
     </CardDescription>
   );
 
+  const pageHeaderComponent = isNangoReady ? (
+    <PageHeader title="New credential" description="Create credentials for your MCP servers." />
+  ) : (
+    <PageHeaderRoot>
+      <PageHeaderContent>
+        <PageHeaderTitle>New credential</PageHeaderTitle>
+        <div className="text-muted-foreground text-sm font-normal space-y-2">
+          <p className="mb-8">Create credentials for your MCP servers.</p>
+          <p>
+            Nango Credential Store is required to create credentials.
+            <ExternalLink href={`${DOCS_BASE_URL}/quick-start/credentials`}>
+              Learn more
+            </ExternalLink>
+          </p>
+        </div>
+      </PageHeaderContent>
+    </PageHeaderRoot>
+  );
+
   return (
     <BodyTemplate
       breadcrumbs={[
@@ -65,13 +98,14 @@ async function NewCredentialsPage({
       ]}
     >
       <MainContent>
-        <PageHeader title="New credential" description="Create credentials for your MCP servers." />
+        {pageHeaderComponent}
         <ItemCardGrid
           items={credentialOptions}
           getKey={(option) => option.id}
           getHref={(option) => option.href}
           renderHeader={renderCredentialHeader}
           renderContent={renderCredentialContent}
+          isDisabled={(option) => option.isDisabled ?? false}
         />
       </MainContent>
     </BodyTemplate>

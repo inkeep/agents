@@ -115,8 +115,8 @@ examples/
    export const myGraph = agentGraph({
      id: "my-graph",
      name: "My Graph",
-     defaultAgent: myAgent,
-     agents: () => [myAgent],
+     defaultSubAgent: myAgent,
+     subAgents: () => [myAgent],
      // No tenantId or apiUrl needed - CLI will inject them
    });
    // No graph.init() call - CLI handles initialization

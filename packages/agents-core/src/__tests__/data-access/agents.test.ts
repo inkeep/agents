@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createAgent,
-  deleteAgent,
-  getAgentById,
-  getAgentsByIds,
-  listAgents,
-  listAgentsPaginated,
-  updateAgent,
-} from '../../data-access/agents';
+  createSubAgent,
+  deleteSubAgent,
+  getSubAgentById,
+  getSubAgentsByIds,
+  listSubAgents,
+  listSubAgentsPaginated,
+  updateSubAgent,
+} from '../../data-access/subAgents';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 
 describe('Agent Data Access', () => {
   let db: DatabaseClient;
@@ -17,8 +17,8 @@ describe('Agent Data Access', () => {
   const testProjectId = 'test-project';
   const testGraphId = 'test-graph';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = await createTestDatabaseClient();
   });
 
   describe('createAgent', () => {
@@ -44,7 +44,7 @@ describe('Agent Data Access', () => {
         insert: mockInsert,
       } as any;
 
-      const result = await createAgent(mockDb)({
+      const result = await createSubAgent(mockDb)({
         ...agentData,
       });
 
@@ -80,7 +80,7 @@ describe('Agent Data Access', () => {
         insert: mockInsert,
       } as any;
 
-      const result = await createAgent(mockDb)({
+      const result = await createSubAgent(mockDb)({
         ...agentData,
       });
 
@@ -90,9 +90,9 @@ describe('Agent Data Access', () => {
 
   describe('getAgentById', () => {
     it('should retrieve an agent by id', async () => {
-      const agentId = 'agent-1';
+      const subAgentId = 'agent-1';
       const expectedAgent = {
-        id: agentId,
+        id: subAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         graphId: testGraphId,
@@ -102,7 +102,7 @@ describe('Agent Data Access', () => {
       };
 
       const mockQuery = {
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(expectedAgent),
         },
       };
@@ -112,22 +112,22 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getAgentById(mockDb)({
+      const result = await getSubAgentById(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentId,
+        subAgentId: subAgentId,
       });
 
-      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(mockQuery.subAgents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
     it('should return null if agent not found', async () => {
       const mockQuery = {
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
       };
@@ -137,13 +137,13 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getAgentById(mockDb)({
+      const result = await getSubAgentById(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentId: 'non-existent',
+        subAgentId: 'non-existent',
       });
 
       expect(result).toBeNull();
@@ -158,7 +158,7 @@ describe('Agent Data Access', () => {
       ];
 
       const mockQuery = {
-        agents: {
+        subAgents: {
           findMany: vi.fn().mockResolvedValue(expectedAgents),
         },
       };
@@ -168,7 +168,7 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await listAgents(mockDb)({
+      const result = await listSubAgents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -176,7 +176,7 @@ describe('Agent Data Access', () => {
         },
       });
 
-      expect(mockQuery.agents.findMany).toHaveBeenCalled();
+      expect(mockQuery.subAgents.findMany).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
     });
   });
@@ -217,7 +217,7 @@ describe('Agent Data Access', () => {
         }),
       } as any;
 
-      const result = await listAgentsPaginated(mockDb)({
+      const result = await listSubAgentsPaginated(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -269,7 +269,7 @@ describe('Agent Data Access', () => {
         }),
       } as any;
 
-      const result = await listAgentsPaginated(mockDb)({
+      const result = await listSubAgentsPaginated(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -317,7 +317,7 @@ describe('Agent Data Access', () => {
         }),
       } as any;
 
-      const result = await listAgentsPaginated(mockDb)({
+      const result = await listSubAgentsPaginated(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -333,7 +333,7 @@ describe('Agent Data Access', () => {
 
   describe('updateAgent', () => {
     it('should update an agent', async () => {
-      const agentId = 'agent-1';
+      const subAgentId = 'agent-1';
       const updateData = {
         name: 'Updated Agent Name',
         description: 'Updated description',
@@ -344,7 +344,7 @@ describe('Agent Data Access', () => {
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([
               {
-                id: agentId,
+                id: subAgentId,
                 ...updateData,
                 updatedAt: new Date().toISOString(),
               },
@@ -358,13 +358,13 @@ describe('Agent Data Access', () => {
         update: mockUpdate,
       } as any;
 
-      const result = await updateAgent(mockDb)({
+      const result = await updateSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentId,
+        subAgentId: subAgentId,
         data: updateData,
       });
 
@@ -376,7 +376,7 @@ describe('Agent Data Access', () => {
 
   describe('deleteAgent', () => {
     it('should delete an agent', async () => {
-      const agentId = 'agent-1';
+      const subAgentId = 'agent-1';
 
       const mockDelete = vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
@@ -384,7 +384,7 @@ describe('Agent Data Access', () => {
 
       // Mock getAgentById to return null (agent not found after deletion)
       const mockQuery = {
-        agents: {
+        subAgents: {
           findFirst: vi.fn().mockResolvedValue(undefined),
         },
       };
@@ -395,13 +395,13 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await deleteAgent(mockDb)({
+      const result = await deleteSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentId,
+        subAgentId: subAgentId,
       });
 
       expect(mockDelete).toHaveBeenCalled();
@@ -411,20 +411,20 @@ describe('Agent Data Access', () => {
 
   describe('getAgentsByIds', () => {
     it('should return empty array for empty id list', async () => {
-      const result = await getAgentsByIds(db)({
+      const result = await getSubAgentsByIds(db)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentIds: [],
+        subAgentIds: [],
       });
 
       expect(result).toEqual([]);
     });
 
     it('should retrieve multiple agents by ids', async () => {
-      const agentIds = ['agent-1', 'agent-2'];
+      const subAgentIds = ['agent-1', 'agent-2'];
       const expectedAgents = [
         { id: 'agent-1', name: 'Agent 1' },
         { id: 'agent-2', name: 'Agent 2' },
@@ -441,13 +441,13 @@ describe('Agent Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await getAgentsByIds(mockDb)({
+      const result = await getSubAgentsByIds(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
         },
-        agentIds,
+        subAgentIds: subAgentIds,
       });
 
       expect(mockSelect).toHaveBeenCalled();

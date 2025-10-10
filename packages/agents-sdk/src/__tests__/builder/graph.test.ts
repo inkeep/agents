@@ -1,6 +1,6 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Agent } from '../../agent';
+import { SubAgent } from '../../agent';
 import { ExternalAgent } from '../../externalAgent';
 import { AgentGraph } from '../../graph';
 import { Tool } from '../../tool';
@@ -35,7 +35,7 @@ vi.mock('../../graphFullClient.js', () => ({
     },
     tools: {},
     dataComponents: {},
-    defaultAgentId: 'default-agent',
+    defaultSubAgentId: 'default-agent',
   }),
   createFullGraphViaAPI: vi.fn().mockResolvedValue({
     id: 'test-graph',
@@ -50,7 +50,7 @@ vi.mock('../../graphFullClient.js', () => ({
     },
     tools: {},
     dataComponents: {},
-    defaultAgentId: 'default-agent',
+    defaultSubAgentId: 'default-agent',
   }),
   getFullGraphViaAPI: vi.fn().mockResolvedValue({
     id: 'test-graph',
@@ -65,7 +65,7 @@ vi.mock('../../graphFullClient.js', () => ({
     },
     tools: {},
     dataComponents: {},
-    defaultAgentId: 'default-agent',
+    defaultSubAgentId: 'default-agent',
   }),
 }));
 
@@ -83,7 +83,7 @@ vi.mock('../../data/graphFull.js', () => ({
     },
     tools: {},
     dataComponents: {},
-    defaultAgentId: 'default-agent',
+    defaultSubAgentId: 'default-agent',
   }),
   updateFullGraphServerSide: vi.fn().mockResolvedValue({
     id: 'test-graph',
@@ -98,7 +98,7 @@ vi.mock('../../data/graphFull.js', () => ({
     },
     tools: {},
     dataComponents: {},
-    defaultAgentId: 'default-agent',
+    defaultSubAgentId: 'default-agent',
   }),
   getFullGraphServerSide: vi.fn().mockResolvedValue({
     id: 'test-graph',
@@ -113,7 +113,7 @@ vi.mock('../../data/graphFull.js', () => ({
     },
     tools: {},
     dataComponents: {},
-    defaultAgentId: 'default-agent',
+    defaultSubAgentId: 'default-agent',
   }),
 }));
 
@@ -157,8 +157,8 @@ const mockGenerate = vi.fn().mockResolvedValue({
 });
 
 describe('AgentGraph', () => {
-  let defaultAgent: Agent;
-  let supportAgent: Agent;
+  let defaultSubAgent: SubAgent;
+  let supportAgent: SubAgent;
   let externalAgent: ExternalAgent;
   let testTool: Tool;
 
@@ -183,7 +183,7 @@ describe('AgentGraph', () => {
     });
 
     // Create test agents
-    defaultAgent = new Agent({
+    defaultSubAgent = new SubAgent({
       id: 'default-agent',
       name: 'Default Agent',
       description: 'Default agent for graph testing',
@@ -191,7 +191,7 @@ describe('AgentGraph', () => {
       canUse: () => [testTool],
     });
 
-    supportAgent = new Agent({
+    supportAgent = new SubAgent({
       id: 'support-agent',
       name: 'Support Agent',
       description: 'Support agent for graph testing',
@@ -206,12 +206,12 @@ describe('AgentGraph', () => {
     });
 
     // Mock the generate method for all agents
-    (defaultAgent as any).generate = mockGenerate;
+    (defaultSubAgent as any).generate = mockGenerate;
     (supportAgent as any).generate = mockGenerate;
 
     // Add relationships
-    defaultAgent.addTransfer(supportAgent);
-    defaultAgent.addDelegate(externalAgent);
+    defaultSubAgent.addTransfer(supportAgent);
+    defaultSubAgent.addDelegate(externalAgent);
   });
 
   describe('Constructor', () => {
@@ -220,7 +220,7 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         description: 'A test graph',
-        defaultAgent,
+        defaultSubAgent,
       };
 
       const graph = new AgentGraph(config);
@@ -237,14 +237,14 @@ describe('AgentGraph', () => {
       const config: GraphConfig = {
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent,
-        agents: () => [supportAgent, externalAgent],
+        defaultSubAgent,
+        subAgents: () => [supportAgent, externalAgent],
       };
 
       const graph = new AgentGraph(config);
-      const agents = graph.getAgents();
+      const agents = graph.getSubAgents();
 
-      expect(agents).toHaveLength(3); // defaultAgent + 2 additional
+      expect(agents).toHaveLength(3); // defaultSubAgent + 2 additional
       expect(agents.some((a) => a.getName() === 'Default Agent')).toBe(true);
       expect(agents.some((a) => a.getName() === 'Support Agent')).toBe(true);
       expect(agents.some((a) => a.getName() === 'External Agent')).toBe(true);
@@ -254,12 +254,12 @@ describe('AgentGraph', () => {
       const config: GraphConfig = {
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent,
-        agents: () => [supportAgent, externalAgent],
+        defaultSubAgent,
+        subAgents: () => [supportAgent, externalAgent],
       };
 
       const graph = new AgentGraph(config);
-      const agents = graph.getAgents();
+      const agents = graph.getSubAgents();
 
       expect(agents).toHaveLength(3);
     });
@@ -267,7 +267,7 @@ describe('AgentGraph', () => {
     it('should handle missing optional parameters', () => {
       const config: GraphConfig = {
         id: 'minimal-graph',
-        defaultAgent,
+        defaultSubAgent,
       };
 
       const graph = new AgentGraph(config);
@@ -286,20 +286,20 @@ describe('AgentGraph', () => {
       graph = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent,
+        defaultSubAgent,
       });
     });
 
     it('should add agents', () => {
-      graph.addAgent(supportAgent);
-      const agents = graph.getAgents();
+      graph.addSubAgent(supportAgent);
+      const agents = graph.getSubAgents();
 
       expect(agents).toHaveLength(2);
       expect(agents.some((a) => a.getName() === 'Support Agent')).toBe(true);
     });
 
     it('should get agent by id', () => {
-      graph.addAgent(supportAgent);
+      graph.addSubAgent(supportAgent);
       const agent = graph.getAgent('support-agent');
 
       expect(agent).toBeDefined();
@@ -312,13 +312,13 @@ describe('AgentGraph', () => {
     });
 
     it('should get default agent', () => {
-      const agent = graph.getDefaultAgent();
-      expect(agent).toBe(defaultAgent);
+      const agent = graph.getdefaultSubAgent();
+      expect(agent).toBe(defaultSubAgent);
     });
 
     it('should set default agent', () => {
-      graph.setDefaultAgent(supportAgent);
-      const agent = graph.getDefaultAgent();
+      graph.setdefaultSubAgent(supportAgent);
+      const agent = graph.getdefaultSubAgent();
       expect(agent).toBe(supportAgent);
     });
   });
@@ -330,8 +330,8 @@ describe('AgentGraph', () => {
       graph = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent,
-        agents: () => [supportAgent],
+        defaultSubAgent,
+        subAgents: () => [supportAgent],
       });
       // Set config to provide tenantId and projectId
       graph.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
@@ -349,7 +349,7 @@ describe('AgentGraph', () => {
         expect.objectContaining({
           id: 'test-graph',
           name: 'Test Graph',
-          agents: expect.objectContaining({
+          subAgents: expect.objectContaining({
             'default-agent': expect.objectContaining({
               id: 'default-agent',
               name: 'Default Agent',
@@ -370,8 +370,8 @@ describe('AgentGraph', () => {
       const errorGraph = new AgentGraph({
         id: 'error-graph',
         name: 'Error Graph',
-        defaultAgent,
-        agents: () => [defaultAgent],
+        defaultSubAgent,
+        subAgents: () => [defaultSubAgent],
       });
 
       await expect(errorGraph.init()).rejects.toThrow('DB error');
@@ -393,7 +393,7 @@ describe('AgentGraph', () => {
       graph = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent,
+        defaultSubAgent,
       });
       await graph.init();
     });
@@ -418,7 +418,7 @@ describe('AgentGraph', () => {
     });
 
     it('should generate message with specific agent', async () => {
-      graph.addAgent(supportAgent);
+      graph.addSubAgent(supportAgent);
 
       const messageInput: MessageInput = 'I need support';
 
@@ -488,7 +488,7 @@ describe('AgentGraph', () => {
       graph = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent,
+        defaultSubAgent,
       });
       await graph.init();
     });
@@ -542,8 +542,8 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         description: 'Test description',
-        defaultAgent,
-        agents: () => [supportAgent, externalAgent],
+        defaultSubAgent,
+        subAgents: () => [supportAgent, externalAgent],
       });
 
       await graph.init();
@@ -555,7 +555,7 @@ describe('AgentGraph', () => {
         id: 'test-graph',
         name: 'Test Graph',
         description: 'Test description',
-        agents: {
+        subAgents: {
           'default-agent': {
             id: 'default-agent',
             name: 'Default Agent',
@@ -584,7 +584,7 @@ describe('AgentGraph', () => {
 
       const graph = new AgentGraph({
         id: 'test-graph',
-        defaultAgent,
+        defaultSubAgent,
       });
       await graph.init();
 
@@ -596,8 +596,8 @@ describe('AgentGraph', () => {
 
   describe('Project-Level Model Inheritance', () => {
     let graph: AgentGraph;
-    let agent1: Agent;
-    let agent2: Agent;
+    let agent1: SubAgent;
+    let agent2: SubAgent;
 
     beforeEach(async () => {
       vi.clearAllMocks();
@@ -625,14 +625,14 @@ describe('AgentGraph', () => {
         })
       );
 
-      agent1 = new Agent({
+      agent1 = new SubAgent({
         id: 'agent1',
         name: 'Agent 1',
         description: 'Test agent 1 for init',
         prompt: 'Test agent 1',
       });
 
-      agent2 = new Agent({
+      agent2 = new SubAgent({
         id: 'agent2',
         name: 'Agent 2',
         description: 'Test agent 2 for init',
@@ -642,8 +642,8 @@ describe('AgentGraph', () => {
       graph = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent: agent1,
-        agents: () => [agent2],
+        defaultSubAgent: agent1,
+        subAgents: () => [agent2],
       });
 
       // Mock successful API responses for graph operations
@@ -923,12 +923,12 @@ describe('AgentGraph', () => {
       const graph = new AgentGraph({
         id: 'test-graph-add-agent',
         name: 'Test Graph Add Agent',
-        defaultAgent: agent1,
+        defaultSubAgent: agent1,
         models: graphModels,
       });
 
       // Create a new agent after graph construction
-      const newAgent = new Agent({
+      const newAgent = new SubAgent({
         id: 'new-agent',
         name: 'New Agent',
         description: 'Dynamically added agent',
@@ -939,7 +939,7 @@ describe('AgentGraph', () => {
       expect(newAgent.getModels()).toBeUndefined();
 
       // Add agent to graph using addAgent()
-      graph.addAgent(newAgent);
+      graph.addSubAgent(newAgent);
 
       // Agent should immediately inherit graph models
       expect(newAgent.getModels()).toEqual(graphModels);
@@ -948,8 +948,8 @@ describe('AgentGraph', () => {
 
   describe('Project-Level StopWhen Inheritance', () => {
     let graph: AgentGraph;
-    let agent1: Agent;
-    let agent2: Agent;
+    let agent1: SubAgent;
+    let agent2: SubAgent;
 
     beforeEach(async () => {
       vi.clearAllMocks();
@@ -977,14 +977,14 @@ describe('AgentGraph', () => {
         })
       );
 
-      agent1 = new Agent({
+      agent1 = new SubAgent({
         id: 'agent1',
         name: 'Agent 1',
         description: 'Test agent 1 for init',
         prompt: 'Test agent 1',
       });
 
-      agent2 = new Agent({
+      agent2 = new SubAgent({
         id: 'agent2',
         name: 'Agent 2',
         description: 'Test agent 2 for init',
@@ -994,8 +994,8 @@ describe('AgentGraph', () => {
       graph = new AgentGraph({
         id: 'test-graph',
         name: 'Test Graph',
-        defaultAgent: agent1,
-        agents: () => [agent2],
+        defaultSubAgent: agent1,
+        subAgents: () => [agent2],
       });
 
       // Mock successful API responses for graph operations
@@ -1041,8 +1041,8 @@ describe('AgentGraph', () => {
       const graphConfig = {
         id: 'test-graph-explicit',
         name: 'Test Graph Explicit',
-        defaultAgent: agent1,
-        agents: () => [agent2],
+        defaultSubAgent: agent1,
+        subAgents: () => [agent2],
         stopWhen: {
           transferCountIs: 20, // explicit value
         },
@@ -1059,7 +1059,7 @@ describe('AgentGraph', () => {
       expect(explicitGraph.getStopWhen().transferCountIs).toBe(20);
 
       // But agents should still inherit stepCountIs from project
-      const agents = explicitGraph.getAgents();
+      const agents = explicitGraph.getSubAgents();
       const internalAgents = agents.filter((a) => explicitGraph.isInternalAgent(a));
       for (const agent of internalAgents) {
         expect((agent as any).config.stopWhen?.stepCountIs).toBe(25);
@@ -1083,14 +1083,14 @@ describe('AgentGraph', () => {
 
     it('should handle project with no stopWhen configured', async () => {
       // Create fresh graph and agents for this test
-      const testAgent1 = new Agent({
+      const testAgent1 = new SubAgent({
         id: 'test-agent1',
         name: 'Test Agent 1',
         description: 'First test agent',
         prompt: 'Test agent 1',
       });
 
-      const testAgent2 = new Agent({
+      const testAgent2 = new SubAgent({
         id: 'test-agent2',
         name: 'Test Agent 2',
         description: 'Second test agent',
@@ -1100,8 +1100,8 @@ describe('AgentGraph', () => {
       const testGraph = new AgentGraph({
         id: 'test-graph-no-stopwhen',
         name: 'Test Graph No StopWhen',
-        defaultAgent: testAgent1,
-        agents: () => [testAgent2],
+        defaultSubAgent: testAgent1,
+        subAgents: () => [testAgent2],
       });
 
       const initialStopWhen = testGraph.getStopWhen();
@@ -1140,14 +1140,14 @@ describe('AgentGraph', () => {
 
     it('should handle project database errors gracefully for stopWhen', async () => {
       // Create fresh graph and agents for this test
-      const testAgent1 = new Agent({
+      const testAgent1 = new SubAgent({
         id: 'test-agent1-error',
         name: 'Test Agent 1 Error',
         description: 'Error test agent 1',
         prompt: 'Test agent 1',
       });
 
-      const testAgent2 = new Agent({
+      const testAgent2 = new SubAgent({
         id: 'test-agent2-error',
         name: 'Test Agent 2 Error',
         description: 'Error test agent 2',
@@ -1157,8 +1157,8 @@ describe('AgentGraph', () => {
       const testGraph = new AgentGraph({
         id: 'test-graph-error',
         name: 'Test Graph Error',
-        defaultAgent: testAgent1,
-        agents: () => [testAgent2],
+        defaultSubAgent: testAgent1,
+        subAgents: () => [testAgent2],
       });
 
       const initialStopWhen = testGraph.getStopWhen();
@@ -1184,14 +1184,14 @@ describe('AgentGraph', () => {
 
     it('should support partial stopWhen inheritance', async () => {
       // Create fresh graph and agents for this test
-      const testAgent1 = new Agent({
+      const testAgent1 = new SubAgent({
         id: 'test-agent1-partial',
         name: 'Test Agent 1 Partial',
         description: 'Partial test agent 1',
         prompt: 'Test agent 1',
       });
 
-      const testAgent2 = new Agent({
+      const testAgent2 = new SubAgent({
         id: 'test-agent2-partial',
         name: 'Test Agent 2 Partial',
         description: 'Partial test agent 2',
@@ -1201,8 +1201,8 @@ describe('AgentGraph', () => {
       const testGraph = new AgentGraph({
         id: 'test-graph-partial',
         name: 'Test Graph Partial',
-        defaultAgent: testAgent1,
-        agents: () => [testAgent2],
+        defaultSubAgent: testAgent1,
+        subAgents: () => [testAgent2],
       });
 
       // Clear and set specific mock for this test (after beforeEach)
@@ -1282,8 +1282,8 @@ describe('AgentGraph', () => {
       const mixedGraph = new AgentGraph({
         id: 'mixed-graph',
         name: 'Mixed Graph',
-        defaultAgent: agent1,
-        agents: () => [agent2],
+        defaultSubAgent: agent1,
+        subAgents: () => [agent2],
         stopWhen: {
           transferCountIs: 18, // graph explicit
           // no stepCountIs - will be inherited from project
@@ -1310,7 +1310,7 @@ describe('AgentGraph', () => {
 
   describe('Referential Getter Syntax', () => {
     it('should support getter functions for agents and credentials', async () => {
-      const testAgent = new Agent({
+      const testAgent = new SubAgent({
         id: 'test-agent',
         name: 'Test Agent',
         description: 'Test agent',
@@ -1331,12 +1331,12 @@ describe('AgentGraph', () => {
         id: 'getter-test-graph',
         name: 'Getter Test Graph',
         description: 'Test using getter syntax',
-        defaultAgent: testAgent,
-        agents: () => [testAgent],
+        defaultSubAgent: testAgent,
+        subAgents: () => [testAgent],
         credentials: () => [credentialRef],
       });
 
-      expect(graph.getAgents()).toContain(testAgent);
+      expect(graph.getSubAgents()).toContain(testAgent);
       expect(graph.getId()).toBe('getter-test-graph');
     });
 
@@ -1344,7 +1344,7 @@ describe('AgentGraph', () => {
       const tool1 = new Tool({ id: 'tool1', name: 'Tool 1', serverUrl: 'https://example.com' });
       const tool2 = new Tool({ id: 'tool2', name: 'Tool 2', serverUrl: 'https://example.com' });
 
-      const agent = new Agent({
+      const agent = new SubAgent({
         id: 'test-agent',
         name: 'Test Agent',
         description: 'Test agent',
@@ -1380,7 +1380,7 @@ describe('AgentGraph', () => {
         },
       };
 
-      const agent = new Agent({
+      const agent = new SubAgent({
         id: 'test-agent',
         name: 'Test Agent',
         description: 'Agent with components',

@@ -27,7 +27,7 @@ describe('Graph Model Settings', () => {
           model: 'anthropic/claude-3.5-haiku-20240307',
         },
       },
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
@@ -93,8 +93,8 @@ describe('Graph Model Settings', () => {
           },
         },
       },
-      defaultAgent: agentWithoutConfig,
-      agents: () => [agentWithoutConfig, agentWithConfig],
+      defaultSubAgent: agentWithoutConfig,
+      subAgents: () => [agentWithoutConfig, agentWithConfig],
     });
 
     // Model Settings should be inherited during graph construction
@@ -126,7 +126,7 @@ describe('Graph Model Settings', () => {
     const testGraph = agentGraph({
       id: 'test-graph',
       name: 'Test Graph Without Model Settings',
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
@@ -146,7 +146,7 @@ describe('Graph Model Settings', () => {
           model: 'anthropic/claude-sonnet-4-20250514',
         },
       },
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
@@ -182,7 +182,7 @@ describe('Graph Model Settings', () => {
           },
         },
       },
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
@@ -219,7 +219,7 @@ describe('Graph Model Settings', () => {
           model: 'gpt-4o-mini',
         },
       },
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
@@ -243,7 +243,7 @@ describe('Graph Model Settings', () => {
       name: 'Test Graph with Prompt',
       graphPrompt:
         'This is a specialized AI assistant for customer support. Always be helpful and professional.',
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',
@@ -260,7 +260,7 @@ describe('Graph Model Settings', () => {
     const testGraph = agentGraph({
       id: 'test-graph',
       name: 'Test Graph',
-      defaultAgent: agent({
+      defaultSubAgent: agent({
         id: 'test-agent',
         name: 'Test Agent',
         prompt: 'You are a test agent',

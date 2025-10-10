@@ -23,7 +23,7 @@ export const makeRequestWithContext = async (
     tenantId?: string;
     projectId?: string;
     graphId?: string;
-    agentId?: string;
+    subAgentId?: string;
   },
   options: RequestInit = {}
 ) => {
@@ -36,7 +36,7 @@ export const makeRequestWithContext = async (
       'x-inkeep-project-id': context.projectId || 'test-project',
       'x-inkeep-graph-id': context.graphId || 'test-graph',
       'x-test-bypass-auth': 'true',
-      ...(context.agentId && { 'x-inkeep-agent-id': context.agentId }),
+      ...(context.subAgentId && { 'x-inkeep-agent-id': context.subAgentId }),
       ...options.headers,
     },
   });

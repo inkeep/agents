@@ -55,7 +55,7 @@ describe('A2A Handlers', () => {
       graphId: 'test-graph',
       apiKeyId: 'test-key',
       baseUrl: 'http://localhost:3003',
-      agentId: 'test-agent',
+      subAgentId: 'test-agent',
     };
 
     // Mock context with proper get/set methods
@@ -82,7 +82,7 @@ describe('A2A Handlers', () => {
 
     // Mock registered agent
     mockAgent = {
-      agentId: 'test-agent',
+      subAgentId: 'test-agent',
       tenantId: 'test-tenant',
       agentCard: {
         capabilities: {
@@ -290,7 +290,7 @@ describe('A2A Handlers', () => {
       const result = await response.json();
 
       expect(result.result.artifacts[0].parts[0].data.type).toBe('transfer');
-      expect(result.result.artifacts[0].parts[0].data.targetAgentId).toBe('support-agent');
+      expect(result.result.artifacts[0].parts[0].data.targetSubAgentId).toBe('support-agent');
     });
 
     it('should handle contextId resolution for delegation', async () => {
@@ -488,7 +488,7 @@ describe('A2A Handlers', () => {
 
       expect(result.jsonrpc).toBe('2.0');
       expect(result.result.status).toBe('ready');
-      expect(result.result.agentId).toBe('test-agent');
+      expect(result.result.subAgentId).toBe('test-agent');
     });
   });
 

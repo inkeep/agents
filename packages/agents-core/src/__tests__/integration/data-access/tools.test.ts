@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createProject } from '../../../data-access/projects';
 import {
   createTool,
@@ -8,11 +8,7 @@ import {
   updateTool,
 } from '../../../data-access/tools';
 import type { DatabaseClient } from '../../../db/client';
-import {
-  cleanupTestDatabase,
-  closeTestDatabase,
-  createTestDatabaseClient,
-} from '../../../db/test-client';
+import { createTestDatabaseClient } from '../../../db/test-client';
 import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
 
@@ -66,25 +62,12 @@ const createToolData = ({
 
 describe('Tools Data Access - Integration Tests', () => {
   let db: DatabaseClient;
-  let dbPath: string;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
-  beforeAll(async () => {
-    // Create one database for the entire test suite
-    const dbInfo = await createTestDatabaseClient('tools-integration');
-    db = dbInfo.client;
-    dbPath = dbInfo.path;
-  });
-
-  afterEach(async () => {
-    // Clean up data between tests but keep the database file
-    await cleanupTestDatabase(db);
-  });
-
-  afterAll(async () => {
-    // Close database and delete the file after all tests
-    await closeTestDatabase(db, dbPath);
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    db = await createTestDatabaseClient();
   });
 
   describe('createTool & getToolById', () => {
@@ -205,8 +188,8 @@ describe('Tools Data Access - Integration Tests', () => {
         ...initialData,
       });
 
-      // Wait a tiny bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Wait to ensure timestamp difference (100ms to account for test system timing variability)
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Update tool
       const updateData: ToolUpdate = {

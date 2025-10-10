@@ -95,15 +95,26 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
       error,
       className = '',
       description,
+      tooltip,
       maxHeight = 'max-h-96',
+      isRequired = false,
       disabled = false,
     },
     ref
   ) => {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id} className={error ? 'text-red-600' : ''}>
+        <Label htmlFor={id} className={cn(error ? 'text-red-600' : '', 'gap-1')}>
           {label}
+          {isRequired && <span className="text-red-500">*</span>}
+          {tooltip && (
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="w-3 h-3 text-muted-foreground ml-1" />
+              </TooltipTrigger>
+              <TooltipContent className="break-words">{tooltip}</TooltipContent>
+            </Tooltip>
+          )}
         </Label>
         <Textarea
           ref={ref}
@@ -117,7 +128,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
           disabled={disabled}
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
     );
   }

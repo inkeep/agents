@@ -488,7 +488,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 
@@ -504,7 +504,7 @@ describe('Artifact Components Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testAgentId,
         artifactComponentId: componentId,
         createdAt: expect.any(String),
       };
@@ -525,7 +525,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -555,7 +555,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -586,7 +586,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -602,8 +602,8 @@ describe('Artifact Components Data Access', () => {
     it('should get all agents using a specific artifact component', async () => {
       const componentId = 'artifact-1';
       const expectedAgents = [
-        { agentId: 'agent-1', createdAt: '2024-01-01T00:00:00Z' },
-        { agentId: 'agent-2', createdAt: '2024-01-02T00:00:00Z' },
+        { subAgentId: 'agent-1', createdAt: '2024-01-01T00:00:00Z' },
+        { subAgentId: 'agent-2', createdAt: '2024-01-02T00:00:00Z' },
       ];
 
       const mockSelect = vi.fn().mockReturnValue({
@@ -654,7 +654,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -683,7 +683,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -868,7 +868,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 
@@ -893,7 +893,7 @@ describe('Artifact Components Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           graphId: testGraphId,
-          agentId: testAgentId,
+          subAgentId: testAgentId,
         },
       });
 

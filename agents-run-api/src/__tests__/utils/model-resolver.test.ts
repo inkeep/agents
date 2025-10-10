@@ -1,4 +1,4 @@
-import type { AgentGraphSelect, AgentSelect, ProjectSelect } from '@inkeep/agents-core';
+import type { AgentGraphSelect, ProjectSelect, SubAgentSelect } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
@@ -28,12 +28,12 @@ describe('resolveModelConfig', () => {
     tenantId: 'tenant-123',
     projectId: 'project-123',
     name: 'Test Agent',
-  } as AgentSelect;
+  } as SubAgentSelect;
 
   beforeEach(() => {
     // Clear all mock calls and implementations
     vi.clearAllMocks();
-    
+
     // Reset mock implementations to default
     mockGetAgentGraphById.mockReset();
     mockGetProject.mockReset();
@@ -50,12 +50,12 @@ describe('resolveModelConfig', () => {
 
   describe('when agent has base model defined', () => {
     it('should use agent base model for all model types when only base is defined', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -71,14 +71,14 @@ describe('resolveModelConfig', () => {
     });
 
     it('should use specific models when defined, fallback to base for undefined ones', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -90,14 +90,14 @@ describe('resolveModelConfig', () => {
     });
 
     it('should use all specific models when all are defined', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -111,10 +111,10 @@ describe('resolveModelConfig', () => {
 
   describe('when agent does not have base model defined', () => {
     it('should use graph model config when available', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -149,14 +149,14 @@ describe('resolveModelConfig', () => {
     });
 
     it('should respect agent-specific models even when using graph base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -182,10 +182,10 @@ describe('resolveModelConfig', () => {
     });
 
     it('should fallback to project config when graph has no base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -223,14 +223,14 @@ describe('resolveModelConfig', () => {
     });
 
     it('should respect agent-specific models when using project base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: undefined,
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -265,10 +265,10 @@ describe('resolveModelConfig', () => {
 
   describe('error handling', () => {
     it('should throw error when no base model is configured anywhere', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -292,10 +292,10 @@ describe('resolveModelConfig', () => {
     });
 
     it('should throw error when project models exist but no base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -323,10 +323,10 @@ describe('resolveModelConfig', () => {
     });
 
     it('should handle null graph gracefully', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -354,10 +354,10 @@ describe('resolveModelConfig', () => {
     });
 
     it('should handle null project gracefully', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(null);
@@ -373,14 +373,14 @@ describe('resolveModelConfig', () => {
 
   describe('edge cases', () => {
     it('should handle agent models with null base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: null as any,
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockGraph: AgentGraphSelect = {
         id: 'graph-123',
@@ -404,14 +404,14 @@ describe('resolveModelConfig', () => {
     });
 
     it('should handle mixed null and undefined values', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: null as any,
           summarizer: { model: 'custom-summarizer' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',

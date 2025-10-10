@@ -1,7 +1,5 @@
 import type {
-  AgentApiInsert,
   AgentConversationHistoryConfig,
-  AgentStopWhen,
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
@@ -10,6 +8,7 @@ import type {
   McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
+  SubAgentApiInsert,
   ToolInsert,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
@@ -30,7 +29,7 @@ export interface DataComponentWithZodProps {
 }
 
 import type { ArtifactComponentInterface } from './artifact-component';
-import type { AgentMcpConfig } from './builders';
+import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './externalAgent';
 import type { FunctionTool } from './function-tool';
@@ -94,26 +93,16 @@ export interface ToolResult {
   result: any;
   error?: string;
 }
-export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
+export type AllSubAgentInterface = SubAgentInterface | ExternalAgentInterface;
 
-export type AgentCanUseType = Tool | AgentMcpConfig | FunctionTool;
+export type SubAgentCanUseType = Tool | SubAgentMcpConfig | FunctionTool;
 
 // Agent configuration types
-export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
+export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
-  canUse?: () => AgentCanUseType[];
-  canTransferTo?: () => AgentInterface[];
-  canDelegateTo?: () => AllAgentInterface[];
-  models?: {
-    base?: ModelSettings;
-    structuredOutput?: ModelSettings;
-    summarizer?: ModelSettings;
-  };
-  stopWhen?: AgentStopWhen;
-  memory?: {
-    type: 'conversation' | 'episodic' | 'short_term';
-    capacity?: number;
-  };
+  canUse?: () => SubAgentCanUseType[];
+  canTransferTo?: () => SubAgentInterface[];
+  canDelegateTo?: () => AllSubAgentInterface[];
   dataComponents?: () => (
     | DataComponentApiInsert
     | DataComponentInterface
@@ -187,7 +176,7 @@ export interface RequestSchemaConfig {
 
 // Transfer types
 export interface TransferConfig {
-  agent: AgentInterface;
+  agent: SubAgentInterface;
   description?: string;
   condition?: (context: any) => boolean;
 }
@@ -233,7 +222,7 @@ export interface StreamEvent {
 // Run result types
 export interface RunResult {
   finalOutput: string;
-  agent: AgentInterface;
+  agent: SubAgentInterface;
   turnCount: number;
   usage?: {
     inputTokens: number;
@@ -251,8 +240,8 @@ export interface GraphConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultAgent?: AgentInterface;
-  agents?: () => AllAgentInterface[];
+  defaultSubAgent?: SubAgentInterface;
+  subAgents?: () => AllSubAgentInterface[];
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: GraphStopWhen;
@@ -301,8 +290,8 @@ export class TransferError extends AgentError {
 }
 
 // Forward declaration for circular dependency
-export interface AgentInterface {
-  config: AgentConfig;
+export interface SubAgentInterface {
+  config: SubAgentConfig;
   type: 'internal';
   init(): Promise<void>;
   getId(): string;
@@ -310,14 +299,14 @@ export interface AgentInterface {
   getDescription(): string;
   getInstructions(): string;
   getTools(): Record<string, AgentTool>;
-  getTransfers(): AgentInterface[];
-  getDelegates(): AllAgentInterface[];
+  getTransfers(): SubAgentInterface[];
+  getDelegates(): AllSubAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
-  addTransfer(...agents: AgentInterface[]): void;
-  addDelegate(...agents: AgentInterface[]): void;
+  addTransfer(...agents: SubAgentInterface[]): void;
+  addDelegate(...agents: SubAgentInterface[]): void;
 }
 
 export interface ExternalAgentInterface {
@@ -344,9 +333,9 @@ export interface GraphInterface {
   generate(input: MessageInput, options?: GenerateOptions): Promise<string>;
   stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   generateStream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
-  getDefaultAgent(): AgentInterface | undefined;
-  getAgent(name: string): AllAgentInterface | undefined;
-  getAgents(): AllAgentInterface[];
+  getdefaultSubAgent(): SubAgentInterface | undefined;
+  getAgent(name: string): AllSubAgentInterface | undefined;
+  getSubAgents(): AllSubAgentInterface[];
   toFullGraphDefinition(): Promise<FullGraphDefinition>;
 }
 

@@ -119,7 +119,7 @@ const PROJECT_JSON_EXAMPLE = `
       "id": "customer-service",
       "name": "customer-service",
       "description": "respond to customer service requests",
-      "defaultAgentId": "router",
+      "defaultSubAgentId": "router",
       "agents": {
         "refund-agent": {
           "id": "refund-agent",
@@ -458,6 +458,10 @@ REQUIREMENTS:
    - Placeholders contain multi-line content and require template literals
    - This prevents TypeScript syntax errors with newlines and special characters
    - you must import { z } from 'zod' if you are using zod schemas in the graph file.
+   - you must import { headers } from '@inkeep/agents-core' and use it to create the headers schema if you are using headers in a contextConfig.
+   - convert template literals to use the appropriate headers schema or context config toTemplate method. a template literal is a substring that starts with {{ and ends with }}.
+    - if you see a template literal with {{headers.}}, convert it to use the headers schema toTemplate method.
+    - if you see a template literal with {{contextVariableKey.field_name}}, convert it to use the context config toTemplate method.
 6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
 PLACEHOLDER HANDLING EXAMPLES:
@@ -469,12 +473,18 @@ prompt: '<{{agents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
 import { agent, agentGraph } from '@inkeep/agents-sdk';
-import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
+import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';
 import { weatherTool } from '../tools/weather-tool';
 import { z } from 'zod';
 
+const supportGraphHeaders = headers({
+  schema: z.object({
+    userId: z.string(),
+    sessionToken: z.string(),
+  }),
+});
 
 const supportDescriptionFetchDefinition = fetchDefinition({
   id: 'support-description',
@@ -484,7 +494,7 @@ const supportDescriptionFetchDefinition = fetchDefinition({
     url: 'https://api.example.com/support-description',
     method: 'GET',
     headers: {
-      'Authorization': 'Bearer {{headers.sessionToken}}',
+      'Authorization': \`Bearer \${supportGraphHeaders.toTemplate('sessionToken')}\`,
     },
     transform: 'data',
   },
@@ -495,10 +505,7 @@ const supportDescriptionFetchDefinition = fetchDefinition({
 });
 
 const supportGraphContext = contextConfig({
-  headers: z.object({
-    userId: z.string(),
-    sessionToken: z.string(),
-  }),
+  headers: supportGraphHeaders,
   contextVariables: {
     supportDescription: supportDescriptionDefinition,
   },
@@ -507,7 +514,7 @@ const supportGraphContext = contextConfig({
 const routerAgent = agent({
   id: 'router',
   name: 'Router Agent',
-  prompt: 'Route requests to appropriate agents',
+  prompt: \`Route requests to appropriate agents using \${supportGraphContext.toTemplate('supportDescription.description')} for the user \${supportGraphHeaders.toTemplate('userId')}\`,
   canTransferTo: () => [qaAgent]
 });
 
@@ -519,6 +526,7 @@ const qaAgent = agent({
 Follow these rules:
 - Always be helpful
 - Provide accurate answers
+- Use the user's name \${supportGraphHeaders.toTemplate('userId')} when applicable
 - Use available tools\`,
   canUse: () => [searchTool, weatherTool],
   selectedTools: {
@@ -532,7 +540,7 @@ export const supportGraph = agentGraph({
   id: 'support-graph',
   name: 'Support Graph',
   description: 'Multi-agent support system', // Only include if description has a value
-  defaultAgent: routerAgent,
+  defaultSubAgent: routerAgent,
   agents: () => [routerAgent, qaAgent]
 });
 

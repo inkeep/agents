@@ -8,13 +8,13 @@ import {
   deleteTool,
   ErrorResponseSchema,
   getToolById,
-  IdParamsSchema,
   ListResponseSchema,
   listTools,
   type McpTool,
   McpToolSchema,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   ToolApiInsertSchema,
   ToolApiUpdateSchema,
@@ -120,7 +120,7 @@ app.openapi(
     operationId: 'get-tool',
     tags: ['Tools'],
     request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -220,7 +220,7 @@ app.openapi(
     operationId: 'update-tool',
     tags: ['Tools'],
     request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -288,7 +288,7 @@ app.openapi(
     operationId: 'delete-tool',
     tags: ['Tools'],
     request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

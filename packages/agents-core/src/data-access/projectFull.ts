@@ -308,9 +308,11 @@ export const createFullProjectServerSide =
             // Create the full graph with project scoping
             // When creating graphs within a project context, we need to pass the project-level resources
             // for validation, even though they're stored at the project level
+            // Note: GraphWithinContextOfProjectSchema uses 'agents', but FullGraphDefinitionSchema uses 'subAgents'
             const graphDataWithProjectResources = {
               ...graphData,
-              tools: typed.tools || {}, // Pass project-level resources for validation
+              tools: typed.tools || {}, // Pass project-level MCP tools for validation
+              functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
               credentialReferences: typed.credentialReferences || {},
@@ -706,9 +708,11 @@ export const updateFullProjectServerSide =
             // Update/create the full graph with project scoping
             // When updating graphs within a project context, we need to pass the project-level resources
             // for validation, even though they're stored at the project level
+            // Note: GraphWithinContextOfProjectSchema uses 'agents', but FullGraphDefinitionSchema uses 'subAgents'
             const graphDataWithProjectResources = {
               ...graphData,
-              tools: typed.tools || {}, // Pass project-level resources for validation
+              tools: typed.tools || {}, // Pass project-level MCP tools for validation
+              functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
               credentialReferences: typed.credentialReferences || {},

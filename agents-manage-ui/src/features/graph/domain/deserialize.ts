@@ -105,10 +105,10 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  const agentIds: string[] = Object.keys(data.agents);
-  for (const agentId of agentIds) {
-    const agent = data.agents[agentId];
-    const isDefault = agentId === data.defaultAgentId;
+  const subAgentIds: string[] = Object.keys(data.subAgents);
+  for (const subAgentId of subAgentIds) {
+    const agent = data.subAgents[subAgentId];
+    const isDefault = subAgentId === data.defaultSubAgentId;
     const isExternal = agent.type === 'external';
 
     const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.Agent;
@@ -192,7 +192,7 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         })();
 
     const agentNode: Node = {
-      id: agentId,
+      id: subAgentId,
       type: nodeType,
       position: { x: 0, y: 0 },
       data: agentNodeData,
@@ -202,8 +202,8 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   }
 
   // Create tool nodes from canUse items (using tools and functions lookups)
-  for (const agentId of agentIds) {
-    const agent = data.agents[agentId];
+  for (const subAgentId of subAgentIds) {
+    const agent = data.subAgents[subAgentId];
     // Check if agent has canUse property (internal agents)
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
@@ -211,17 +211,16 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         const toolNodeId = nanoid();
         const relationshipId = canUseItem.agentToolRelationId;
 
-        // Look up the tool to get its details
-        const tool = data.tools?.[toolId];
-        const toolType = tool?.config?.type || 'mcp'; // Default to MCP if not found
+        // Get tool details from lookup
+        const tool = data.tools?.[toolId] || data.functionTools?.[toolId];
 
-        // Create the appropriate node type
-        const nodeType = toolType === 'function' ? NodeType.FunctionTool : NodeType.MCP;
+        // Determine node type based on tool type
+        const nodeType = data.tools?.[toolId] ? NodeType.MCP : NodeType.FunctionTool;
 
         // Populate node data with tool details from lookup
         const nodeData: any = {
           toolId,
-          agentId,
+          subAgentId,
           relationshipId,
           // Add tool details from lookup for proper display
           name: tool?.name,
@@ -229,10 +228,12 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
           imageUrl: (tool as any)?.imageUrl,
         };
 
-        // For function tools, add function details from functions lookup
-        if (toolType === 'function') {
-          const functionId = (tool as any)?.functionId;
+        // Add function details for function tools
+        if (nodeType === NodeType.FunctionTool && data.functionTools?.[toolId]) {
+          const functionTool = data.functionTools[toolId];
+          const functionId = functionTool.functionId;
           if (functionId) {
+            nodeData.functionId = functionId; // Store functionId in node data
             const func = data.functions?.[functionId];
             if (func) {
               nodeData.inputSchema = func.inputSchema;
@@ -240,6 +241,11 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
               nodeData.dependencies = func.dependencies;
             }
           }
+        }
+
+        if (!tool) {
+          // Tool not found - skip
+          continue;
         }
 
         const toolNode: Node = {
@@ -251,12 +257,13 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
         nodes.push(toolNode);
 
         // Use the appropriate handle ID based on tool type
-        const targetHandle = toolType === 'function' ? functionToolNodeHandleId : mcpNodeHandleId;
+        const targetHandle =
+          nodeType === NodeType.FunctionTool ? functionToolNodeHandleId : mcpNodeHandleId;
 
         const agentToToolEdge: Edge = {
-          id: `edge-${toolNodeId}-${agentId}`,
+          id: `edge-${toolNodeId}-${subAgentId}`,
           type: EdgeType.Default,
-          source: agentId,
+          source: subAgentId,
           sourceHandle: agentNodeSourceHandleId,
           target: toolNodeId,
           targetHandle,
@@ -267,54 +274,54 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
   }
 
   const processedPairs = new Set<string>();
-  for (const sourceAgentId of agentIds) {
-    const sourceAgent = data.agents[sourceAgentId];
+  for (const sourceSubAgentId of subAgentIds) {
+    const sourceAgent = data.subAgents[sourceSubAgentId];
 
     // Check if agent has relationship properties (internal agents only)
     if ('canTransferTo' in sourceAgent && sourceAgent.canTransferTo) {
-      for (const targetAgentId of sourceAgent.canTransferTo) {
-        if (data.agents[targetAgentId]) {
+      for (const targetSubAgentId of sourceAgent.canTransferTo) {
+        if (data.subAgents[targetSubAgentId]) {
           // Special handling for self-referencing edges
-          const isSelfReference = sourceAgentId === targetAgentId;
+          const isSelfReference = sourceSubAgentId === targetSubAgentId;
           const pairKey = isSelfReference
-            ? `self-${sourceAgentId}`
-            : [sourceAgentId, targetAgentId].sort().join('-');
+            ? `self-${sourceSubAgentId}`
+            : [sourceSubAgentId, targetSubAgentId].sort().join('-');
 
           if (!processedPairs.has(pairKey)) {
             processedPairs.add(pairKey);
-            const targetAgent = data.agents[targetAgentId];
+            const targetAgent = data.subAgents[targetSubAgentId];
 
             const sourceCanTransferToTarget =
               ('canTransferTo' in sourceAgent &&
-                sourceAgent.canTransferTo?.includes(targetAgentId)) ||
+                sourceAgent.canTransferTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanTransferToSource =
               ('canTransferTo' in targetAgent &&
-                targetAgent.canTransferTo?.includes(sourceAgentId)) ||
+                targetAgent.canTransferTo?.includes(sourceSubAgentId)) ||
               false;
             const sourceCanDelegateToTarget =
               ('canDelegateTo' in sourceAgent &&
-                sourceAgent.canDelegateTo?.includes(targetAgentId)) ||
+                sourceAgent.canDelegateTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanDelegateToSource =
               ('canDelegateTo' in targetAgent &&
-                targetAgent.canDelegateTo?.includes(sourceAgentId)) ||
+                targetAgent.canDelegateTo?.includes(sourceSubAgentId)) ||
               false;
 
             const isTargetExternal = targetAgent.type === 'external';
 
             const edge = {
               id: isSelfReference
-                ? `edge-self-${sourceAgentId}`
-                : `edge-${targetAgentId}-${sourceAgentId}`,
+                ? `edge-self-${sourceSubAgentId}`
+                : `edge-${targetSubAgentId}-${sourceSubAgentId}`,
               type: isSelfReference
                 ? EdgeType.SelfLoop
                 : isTargetExternal
                   ? EdgeType.A2AExternal
                   : EdgeType.A2A,
-              source: sourceAgentId,
+              source: sourceSubAgentId,
               sourceHandle: agentNodeSourceHandleId,
-              target: targetAgentId,
+              target: targetSubAgentId,
               targetHandle: isTargetExternal
                 ? externalAgentNodeTargetHandleId
                 : agentNodeTargetHandleId,
@@ -335,49 +342,49 @@ export function deserializeGraphData(data: FullGraphDefinition): TransformResult
     }
 
     if ('canDelegateTo' in sourceAgent && sourceAgent.canDelegateTo) {
-      for (const targetAgentId of sourceAgent.canDelegateTo) {
-        if (data.agents[targetAgentId]) {
+      for (const targetSubAgentId of sourceAgent.canDelegateTo) {
+        if (data.subAgents[targetSubAgentId]) {
           // Special handling for self-referencing edges
-          const isSelfReference = sourceAgentId === targetAgentId;
+          const isSelfReference = sourceSubAgentId === targetSubAgentId;
           const pairKey = isSelfReference
-            ? `self-${sourceAgentId}`
-            : [sourceAgentId, targetAgentId].sort().join('-');
+            ? `self-${sourceSubAgentId}`
+            : [sourceSubAgentId, targetSubAgentId].sort().join('-');
 
           if (!processedPairs.has(pairKey)) {
             processedPairs.add(pairKey);
-            const targetAgent = data.agents[targetAgentId];
+            const targetAgent = data.subAgents[targetSubAgentId];
 
             const sourceCanTransferToTarget =
               ('canTransferTo' in sourceAgent &&
-                sourceAgent.canTransferTo?.includes(targetAgentId)) ||
+                sourceAgent.canTransferTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanTransferToSource =
               ('canTransferTo' in targetAgent &&
-                targetAgent.canTransferTo?.includes(sourceAgentId)) ||
+                targetAgent.canTransferTo?.includes(sourceSubAgentId)) ||
               false;
             const sourceCanDelegateToTarget =
               ('canDelegateTo' in sourceAgent &&
-                sourceAgent.canDelegateTo?.includes(targetAgentId)) ||
+                sourceAgent.canDelegateTo?.includes(targetSubAgentId)) ||
               false;
             const targetCanDelegateToSource =
               ('canDelegateTo' in targetAgent &&
-                targetAgent.canDelegateTo?.includes(sourceAgentId)) ||
+                targetAgent.canDelegateTo?.includes(sourceSubAgentId)) ||
               false;
 
             const isTargetExternal = targetAgent.type === 'external';
 
             const edge = {
               id: isSelfReference
-                ? `edge-self-${sourceAgentId}`
-                : `edge-${targetAgentId}-${sourceAgentId}`,
+                ? `edge-self-${sourceSubAgentId}`
+                : `edge-${targetSubAgentId}-${sourceSubAgentId}`,
               type: isSelfReference
                 ? EdgeType.SelfLoop
                 : isTargetExternal
                   ? EdgeType.A2AExternal
                   : EdgeType.A2A,
-              source: sourceAgentId,
+              source: sourceSubAgentId,
               sourceHandle: agentNodeSourceHandleId,
-              target: targetAgentId,
+              target: targetSubAgentId,
               targetHandle: isTargetExternal
                 ? externalAgentNodeTargetHandleId
                 : agentNodeTargetHandleId,

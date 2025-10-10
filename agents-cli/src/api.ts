@@ -1,5 +1,5 @@
 // Import shared API client from agents-core
-import { apiFetch } from '@inkeep/agents-core';
+import { type AgentGraphApiInsert, type AgentGraphApiSelect, apiFetch } from '@inkeep/agents-core';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -87,7 +87,7 @@ export class ManagementApiClient extends BaseApiClient {
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
   }
 
-  async listGraphs(): Promise<any[]> {
+  async listGraphs(): Promise<AgentGraphApiSelect[]> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
@@ -106,7 +106,7 @@ export class ManagementApiClient extends BaseApiClient {
     return data.data || [];
   }
 
-  async getGraph(graphId: string): Promise<any> {
+  async getGraph(graphId: string): Promise<AgentGraphApiSelect | null> {
     // Since there's no dedicated GET endpoint for graphs,
     // we check if the graph exists in the CRUD endpoint
     const graphs = await this.listGraphs();
@@ -117,12 +117,9 @@ export class ManagementApiClient extends BaseApiClient {
     return graph || null;
   }
 
-  async pushGraph(graphDefinition: any): Promise<any> {
+  async pushGraph(graphDefinition: AgentGraphApiInsert): Promise<any> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
-
-    // Ensure the graph has the correct tenant ID
-    graphDefinition.tenantId = tenantId;
 
     const graphId = graphDefinition.id;
     if (!graphId) {
@@ -134,7 +131,10 @@ export class ManagementApiClient extends BaseApiClient {
       `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
       {
         method: 'PUT',
-        body: JSON.stringify(graphDefinition),
+        body: JSON.stringify({
+          ...graphDefinition,
+          tenantId,
+        }),
       }
     );
 

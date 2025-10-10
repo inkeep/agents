@@ -475,6 +475,7 @@ export class Project implements ProjectInterface {
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
     const graphsObject: Record<string, any> = {};
     const toolsObject: Record<string, ToolApiInsert> = {};
+    const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
@@ -580,7 +581,7 @@ export class Project implements ProjectInterface {
       }
 
       // Collect tools from all agents in this graph
-      for (const agent of graph.getAgents()) {
+      for (const agent of graph.getSubAgents()) {
         if (agent.type === 'external') {
           continue; // Skip external agents
         }
@@ -602,21 +603,15 @@ export class Project implements ProjectInterface {
               functionsObject[toolId] = functionData;
             }
 
-            // Also add to tools object with type 'function' (reference-only, no duplication)
-            if (!toolsObject[toolId]) {
+            // Add to functionTools object (function tools are now separate)
+            if (!functionToolsObject[toolId]) {
               const toolData = actualTool.serializeTool();
 
-              const toolConfig: ToolApiInsert['config'] = {
-                type: 'function',
-                // No inline function details - they're in the functions table via functionId
-              };
-
-              toolsObject[toolId] = {
+              functionToolsObject[toolId] = {
                 id: toolData.id,
                 name: toolData.name,
                 description: toolData.description,
                 functionId: toolData.functionId,
-                config: toolConfig,
               };
             }
           } else {
@@ -663,9 +658,9 @@ export class Project implements ProjectInterface {
         }
 
         // Collect data components from this agent
-        const agentDataComponents = (agent as any).getDataComponents?.();
-        if (agentDataComponents) {
-          for (const dataComponent of agentDataComponents) {
+        const subAgentDataComponents = (agent as any).getDataComponents?.();
+        if (subAgentDataComponents) {
+          for (const dataComponent of subAgentDataComponents) {
             // Handle both DataComponent instances and plain objects
             let dataComponentId: string;
             let dataComponentName: string;
@@ -701,9 +696,9 @@ export class Project implements ProjectInterface {
         }
 
         // Collect artifact components from this agent
-        const agentArtifactComponents = (agent as any).getArtifactComponents?.();
-        if (agentArtifactComponents) {
-          for (const artifactComponent of agentArtifactComponents) {
+        const subAgentArtifactComponents = (agent as any).getArtifactComponents?.();
+        if (subAgentArtifactComponents) {
+          for (const artifactComponent of subAgentArtifactComponents) {
             // Handle both ArtifactComponent instances and plain objects
             let artifactComponentId: string;
             let artifactComponentName: string;

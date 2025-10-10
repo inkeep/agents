@@ -16,7 +16,7 @@ export const createFullGraph = async (
     {
       tenantId,
       graphId: graphData.id,
-      agentCount: Object.keys((graphData as any).agents || {}).length,
+      subAgentCount: Object.keys((graphData as any).subAgents || {}).length,
     },
     'Creating full graph via API endpoint'
   );
@@ -82,7 +82,7 @@ export const updateFullGraph = async (
     {
       tenantId,
       graphId,
-      agentCount: Object.keys((graphData as any).agents || {}).length,
+      subAgentCount: Object.keys((graphData as any).subAgents || {}).length,
     },
     'Updating full graph via API endpoint'
   );

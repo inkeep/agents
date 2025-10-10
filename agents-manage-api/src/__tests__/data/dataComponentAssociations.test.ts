@@ -1,8 +1,8 @@
 import {
   associateDataComponentWithAgent,
-  createAgent,
   createAgentGraph,
   createDataComponent,
+  createSubAgent,
   getAgentsUsingDataComponent,
   getDataComponentsForAgent,
   isDataComponentAssociatedWithAgent,
@@ -21,26 +21,26 @@ describe('Data Component Agent Associations', () => {
     await ensureTestProject(tenantId, 'default');
   });
   const projectId = 'default';
-  let agentId: string;
+  let subAgentId: string;
   let dataComponentId: string;
   let graphId: string;
 
   beforeEach(async () => {
     // Create a test graph first
     graphId = nanoid();
-    agentId = nanoid();
+    subAgentId = nanoid();
 
     await createAgentGraph(dbClient)({
       id: graphId,
       tenantId,
       projectId,
       name: 'Test Graph',
-      defaultAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     });
 
     // Create test agent with graphId
-    const agent = await createAgent(dbClient)({
-      id: agentId,
+    const _ = await createSubAgent(dbClient)({
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,
@@ -71,13 +71,13 @@ describe('Data Component Agent Associations', () => {
   describe('associateDataComponentWithAgent', () => {
     it.skip('should successfully associate a data component with an agent', async () => {
       const association = await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
 
       expect(association).toBeDefined();
       expect(association.tenantId).toBe(tenantId);
-      expect(association.agentId).toBe(agentId);
+      expect(association.subAgentId).toBe(subAgentId);
       expect(association.dataComponentId).toBe(dataComponentId);
       expect(association.id).toBeDefined();
       expect(association.createdAt).toBeDefined();
@@ -87,7 +87,7 @@ describe('Data Component Agent Associations', () => {
   describe('getDataComponentsForAgent', () => {
     it.skip('should return empty array when agent has no data components', async () => {
       const components = await getDataComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
       });
 
       expect(components).toEqual([]);
@@ -96,12 +96,12 @@ describe('Data Component Agent Associations', () => {
     it.skip('should return associated data components for an agent', async () => {
       // Associate the component
       await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
 
       const components = await getDataComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
       });
 
       expect(components).toHaveLength(1);
@@ -120,7 +120,7 @@ describe('Data Component Agent Associations', () => {
 
     it.skip('should only return components for the specific agent and graph', async () => {
       // Create another agent in the same graph
-      const agent2 = await createAgent(dbClient)({
+      const agent2 = await createSubAgent(dbClient)({
         tenantId,
         projectId,
         graphId,
@@ -132,19 +132,19 @@ describe('Data Component Agent Associations', () => {
 
       // Associate component with first agent only
       await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
 
       // First agent should have the component
       const agent1Components = await getDataComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
       });
       expect(agent1Components).toHaveLength(1);
 
       // Second agent should not have the component
       const agent2Components = await getDataComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId: agent2.id },
+        scopes: { tenantId, projectId, graphId, subAgentId: agent2.id },
       });
       expect(agent2Components).toHaveLength(0);
     });
@@ -154,33 +154,33 @@ describe('Data Component Agent Associations', () => {
     it.skip('should remove association between data component and agent', async () => {
       // Create association
       await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
 
       // Verify association exists
       let components = await getDataComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
       });
       expect(components).toHaveLength(1);
 
       // Remove association
       const removed = await removeDataComponentFromAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
       expect(removed).toBe(true);
 
       // Verify association is gone
       components = await getDataComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
       });
       expect(components).toHaveLength(0);
     });
 
     it.skip('should return false when trying to remove non-existent association', async () => {
       const removed = await removeDataComponentFromAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
       expect(removed).toBe(false);
@@ -198,7 +198,7 @@ describe('Data Component Agent Associations', () => {
 
     it.skip('should return all agents using a data component', async () => {
       // Create second agent in the same graph
-      const agent2 = await createAgent(dbClient)({
+      const subAgent2 = await createSubAgent(dbClient)({
         id: nanoid(),
         tenantId,
         projectId,
@@ -210,11 +210,11 @@ describe('Data Component Agent Associations', () => {
 
       // Associate component with both agents
       await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
       await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId: agent2.id },
+        scopes: { tenantId, projectId, graphId, subAgentId: subAgent2.id },
         dataComponentId,
       });
 
@@ -224,16 +224,16 @@ describe('Data Component Agent Associations', () => {
       });
 
       expect(agents).toHaveLength(2);
-      const agentIds = agents.map((a) => a.agentId);
-      expect(agentIds).toContain(agentId);
-      expect(agentIds).toContain(agent2.id);
+      const subAgentIds = agents.map((a) => a.subAgentId);
+      expect(subAgentIds).toContain(subAgentId);
+      expect(subAgentIds).toContain(subAgent2.id);
     });
   });
 
   describe('isDataComponentAssociatedWithAgent', () => {
     it.skip('should return false when component is not associated with agent', async () => {
       const isAssociated = await isDataComponentAssociatedWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
       expect(isAssociated).toBe(false);
@@ -241,12 +241,12 @@ describe('Data Component Agent Associations', () => {
 
     it.skip('should return true when component is associated with agent', async () => {
       await associateDataComponentWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
 
       const isAssociated = await isDataComponentAssociatedWithAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, agentId },
+        scopes: { tenantId, projectId, graphId, subAgentId },
         dataComponentId,
       });
       expect(isAssociated).toBe(true);

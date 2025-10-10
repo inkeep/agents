@@ -1,10 +1,10 @@
 import {
   addLedgerArtifacts,
   agentGraph,
-  agents,
   conversations,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
+  subAgents,
   tasks,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -26,7 +26,7 @@ describe('Ledger Artifacts – Data Layer', () => {
 
   // Helper function to create required parent records
   async function createTestData(contextId: string, taskId: string, tenantId: string) {
-    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
@@ -39,12 +39,12 @@ describe('Ledger Artifacts – Data Layer', () => {
       tenantId,
       projectId,
       name: 'Test Graph',
-      defaultAgentId: agentId,
+      defaultSubAgentId: subAgentId,
     });
 
     // Create agent with graphId
-    await dbClient.insert(agents).values({
-      id: agentId,
+    await dbClient.insert(subAgents).values({
+      id: subAgentId,
       tenantId,
       projectId,
       graphId,
@@ -58,7 +58,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: conversationId,
       tenantId,
       projectId,
-      activeAgentId: agentId,
+      activeSubAgentId: subAgentId,
       title: 'Test Conversation',
     });
 
@@ -70,7 +70,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       graphId,
       contextId,
       status: 'completed',
-      agentId,
+      subAgentId,
       metadata: {
         conversation_id: conversationId,
         message_id: `msg-${nanoid()}`,
@@ -85,7 +85,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await dbClient.delete(ledgerArtifactsTable);
     await dbClient.delete(tasks);
     await dbClient.delete(conversations);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
   });
 
   // Extra safety – clear again when the suite finishes.
@@ -93,7 +93,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await dbClient.delete(ledgerArtifactsTable);
     await dbClient.delete(tasks);
     await dbClient.delete(conversations);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
   });
 
   it('should persist and retrieve artifacts by taskId', async () => {

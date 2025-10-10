@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.17.0
+
+### Minor Changes
+
+- 94c0c18: Only allow headers template creation through headers builder
+
+## 0.16.3
+
 ## 0.16.2
 
 ### Patch Changes

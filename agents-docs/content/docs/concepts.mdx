@@ -70,10 +70,10 @@ With Inkeep, there are a few ways to do this:
 ## Passing context to Agents
 
 Beyond using Tools to fetch information, Agents also receive information via:
-- **Headers**: In the API request to an Agent, the calling application can include headers (a.k.a **Request Context**) for an agent.
+- **Headers**: In the API request to an Agent, the calling application can include headers for an agent. Learn more [here](/typescript-sdk/headers).
 - **Context Fetchers**: Can be configured for a Graph so that at the beginning of a conversation, an API call is automatically made to an external service to get information that is then made available to any Agent. For example, your Headers may include a `user-id` which can be used to auto-fetch information from a CRM about the user for any Agent to use.
 
-Headers and fetched context can then be referenced explicitly as `{{variables}}` in Agent prompts. Learn more [here](/typescript-sdk/request-context).
+Headers and fetched context can then be referenced explicitly as `{{variables}}` in Agent prompts. Learn more [here](/typescript-sdk/headers).
 
 ## Ways to build
 

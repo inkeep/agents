@@ -4,7 +4,7 @@ import {
   type MCPToolConfig,
   MCPToolConfigSchema,
 } from '@inkeep/agents-core';
-import { Agent } from './agent';
+import { SubAgent } from './agent';
 import { ArtifactComponent } from './artifact-component';
 import type {
   AgentMcpConfig,
@@ -18,7 +18,7 @@ import { AgentGraph } from './graph';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
 import { Tool } from './tool';
-import type { AgentConfig, FunctionToolConfig, GraphConfig } from './types';
+import type { FunctionToolConfig, GraphConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 /**
@@ -89,13 +89,13 @@ export function project(config: ProjectConfig): Project {
  * ```
  */
 
-export function agent(config: AgentConfig): Agent {
+export function subAgent(config: SubAgentConfig): SubAgent {
   if (!config.id) {
     throw new Error(
-      'Agent ID is required. Agents must have stable IDs for consistency across deployments.'
+      'Sub-Agent ID is required. Sub-Agents must have stable IDs for consistency across deployments.'
     );
   }
-  return new Agent(config);
+  return new SubAgent(config);
 } // ============================================================================
 // Credential Builders
 // ============================================================================

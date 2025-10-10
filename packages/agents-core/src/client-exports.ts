@@ -12,8 +12,6 @@ import { CredentialStoreType, MCPTransportType } from './types';
 // === Reusable StopWhen Schemas ===
 // Import from validation schemas
 import {
-  type AgentStopWhen,
-  AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullGraphAgentInsertSchema,
@@ -24,6 +22,8 @@ import {
   ModelSettingsSchema,
   type StopWhen,
   StopWhenSchema,
+  type SubAgentStopWhen,
+  SubAgentStopWhenSchema,
 } from './validation/schemas';
 
 // Import validation utilities
@@ -33,10 +33,10 @@ export { validatePropsAsJsonSchema } from './validation/props-validation';
 export {
   StopWhenSchema,
   GraphStopWhenSchema,
-  AgentStopWhenSchema,
+  SubAgentStopWhenSchema as AgentStopWhenSchema,
   type StopWhen,
   type GraphStopWhen,
-  type AgentStopWhen,
+  type SubAgentStopWhen as AgentStopWhen,
 };
 
 export {
@@ -185,12 +185,12 @@ export const AgentGraphApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
+  defaultSubAgentId: z.string().optional(),
 });
 
 // Full Graph Definition Schema - extends AgentGraph with agents and tools
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(
+  subAgents: z.record(
     z.string(),
     z.union([
       FullGraphAgentInsertSchema,
@@ -304,3 +304,7 @@ export type AgentGraphInsert = AgentGraphApiInsert;
 
 // Re-export utility types for client use
 export { CredentialStoreType, MCPTransportType };
+
+// Re-export OpenTelemetry and SigNoz constants for client-side observability and queries
+export * from './constants/otel-attributes';
+export * from './constants/signoz-queries';

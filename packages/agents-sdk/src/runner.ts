@@ -1,12 +1,12 @@
 import { getLogger } from '@inkeep/agents-core';
 import type {
-  AgentInterface,
   GenerateOptions,
   GraphInterface,
   Message,
   MessageInput,
   RunResult,
   StreamResponse,
+  SubAgentInterface,
   ToolCall,
 } from './types';
 import { MaxTurnsExceededError } from './types';
@@ -33,7 +33,7 @@ export class Runner {
     logger.info(
       {
         graphId: graph.getId(),
-        defaultAgent: graph.getDefaultAgent()?.getName(),
+        defaultSubAgent: graph.getdefaultSubAgent()?.getName(),
         maxTurns,
         initialMessageCount: messageHistory.length,
       },
@@ -68,7 +68,7 @@ export class Runner {
       // Return the result wrapped in RunResult format
       return {
         finalOutput: response,
-        agent: graph.getDefaultAgent() || ({} as AgentInterface),
+        agent: graph.getdefaultSubAgent() || ({} as SubAgentInterface),
         turnCount,
         usage: { inputTokens: 0, outputTokens: 0 },
         metadata: {
@@ -102,7 +102,7 @@ export class Runner {
     logger.info(
       {
         graphId: graph.getId(),
-        defaultAgent: graph.getDefaultAgent()?.getName(),
+        defaultSubAgent: graph.getdefaultSubAgent()?.getName(),
       },
       'Starting graph stream'
     );
@@ -186,20 +186,20 @@ export class Runner {
       errors.push('Graph ID is required');
     }
 
-    const defaultAgent = graph.getDefaultAgent();
-    if (!defaultAgent) {
+    const defaultSubAgent = graph.getdefaultSubAgent();
+    if (!defaultSubAgent) {
       errors.push('Default agent is required');
     } else {
-      if (!defaultAgent.getName()) {
+      if (!defaultSubAgent.getName()) {
         errors.push('Default agent name is required');
       }
-      if (!defaultAgent.getInstructions()) {
+      if (!defaultSubAgent.getInstructions()) {
         errors.push('Default agent instructions are required');
       }
     }
 
     // Validate all agents in the graph
-    const agents = graph.getAgents();
+    const agents = graph.getSubAgents();
     if (agents.length === 0) {
       errors.push('Graph must contain at least one agent');
     }
@@ -227,17 +227,17 @@ export class Runner {
     estimatedTurns: number;
     estimatedTokens: number;
     agentCount: number;
-    defaultAgent: string | undefined;
+    defaultSubAgent: string | undefined;
   }> {
-    const agents = graph.getAgents();
-    const defaultAgent = graph.getDefaultAgent();
+    const agents = graph.getSubAgents();
+    const defaultSubAgent = graph.getdefaultSubAgent();
     const messageCount = Array.isArray(messages) ? messages.length : 1;
 
     return {
       estimatedTurns: Math.min(Math.max(messageCount, 1), options?.maxTurns || 10),
       estimatedTokens: messageCount * 100, // Rough estimate
       agentCount: agents.length,
-      defaultAgent: defaultAgent?.getName(),
+      defaultSubAgent: defaultSubAgent?.getName(),
     };
   }
 }

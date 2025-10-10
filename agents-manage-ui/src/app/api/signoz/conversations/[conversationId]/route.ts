@@ -216,19 +216,19 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.DELEGATION_FROM_AGENT_ID,
+              key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.DELEGATION_TO_AGENT_ID,
+              key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.TRANSFER_FROM_AGENT_ID,
+              key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.TRANSFER_TO_AGENT_ID,
+              key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.TOOL_PURPOSE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
@@ -803,7 +803,7 @@ export async function GET(
       description: string;
       timestamp: string;
       status: 'success' | 'error' | 'pending';
-      agentId?: string;
+      subAgentId?: string;
       agentName?: string;
       result?: string;
       // ai
@@ -874,10 +874,10 @@ export async function GET(
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
-      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_AGENT_ID, '');
-      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_AGENT_ID, '');
-      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
-      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_AGENT_ID, '');
+      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
+      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
+      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
+      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
       // Extract tool call args and result for ALL tool calls
       const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
@@ -931,11 +931,16 @@ export async function GET(
         }
       }
 
+      const statusMessage = hasError
+        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
+          getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
+        : '';
+
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.TOOL_CALL,
         name,
-        description: `Called ${name}`,
+        description: hasError && statusMessage ? statusMessage : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1024,7 +1029,7 @@ export async function GET(
         description: 'User sent a message',
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: AGENT_IDS.USER,
+        subAgentId: AGENT_IDS.USER,
         agentName: ACTIVITY_NAMES.USER,
         result: hasError
           ? 'Message processing failed'
@@ -1044,7 +1049,7 @@ export async function GET(
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: AGENT_IDS.AI_ASSISTANT,
+        subAgentId: AGENT_IDS.AI_ASSISTANT,
         agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI response failed'
@@ -1070,7 +1075,7 @@ export async function GET(
         description: 'AI model generating text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
         agentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         result: hasError
           ? 'AI generation failed'
@@ -1119,7 +1124,7 @@ export async function GET(
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
         agentName: getString(span, SPAN_KEYS.AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI streaming failed'
@@ -1142,7 +1147,7 @@ export async function GET(
         description: '',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: UNKNOWN_VALUE,
+        subAgentId: UNKNOWN_VALUE,
         agentName: 'Context Fetcher',
         result: hasError
           ? 'Context fetch failed'

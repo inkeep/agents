@@ -1,6 +1,6 @@
 import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
 import { z } from 'zod';
-import { Agent } from './agent';
+import { SubAgent } from './agent';
 import type { Tool } from './tool';
 import type { TransferConfig } from './types';
 import { validateFunction } from './utils/validateFunction';
@@ -69,7 +69,7 @@ export interface DataComponentConfig extends ComponentConfig {
  * Schema for transfer configuration (excluding function properties)
  */
 export const TransferConfigSchema = z.object({
-  agent: z.instanceof(Agent),
+  agent: z.instanceof(SubAgent),
   description: z.string().optional(),
 });
 
@@ -107,7 +107,7 @@ export type AgentMcpConfig = {
  * ```
  */
 export function transfer(
-  targetAgent: Agent,
+  targetAgent: SubAgent,
   description?: string,
   condition?: TransferConditionFunction
 ): TransferConfig {

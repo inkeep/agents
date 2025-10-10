@@ -12,11 +12,11 @@ import {
   getCredentialReferenceById,
   getCredentialReferenceWithTools,
   getCredentialStoreLookupKeyFromRetrievalParams,
-  IdParamsSchema,
   ListResponseSchema,
   listCredentialReferencesPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateCredentialReference,
 } from '@inkeep/agents-core';
@@ -74,7 +74,7 @@ app.openapi(
     operationId: 'get-credential-by-id',
     tags: ['Credential'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -160,7 +160,7 @@ app.openapi(
     operationId: 'update-credential',
     tags: ['Credential'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -211,7 +211,7 @@ app.openapi(
     operationId: 'delete-credential',
     tags: ['Credential'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

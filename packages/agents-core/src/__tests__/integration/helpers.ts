@@ -1,11 +1,11 @@
-import type { AgentGraphInsert, AgentInsert, AgentRelationInsert } from '../../types/index';
+import type { AgentGraphInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
 
 export const createTestAgentData = (
   tenantId: string,
   projectId: string,
   suffix: string,
   graphId?: string
-): AgentInsert => {
+): SubAgentInsert => {
   return {
     id: `default-agent-${suffix}`,
     tenantId,
@@ -21,14 +21,14 @@ export const createTestRelationData = (
   tenantId: string,
   projectId: string,
   suffix: string
-): AgentRelationInsert => {
+): SubAgentRelationInsert => {
   return {
     id: `test-relation-${suffix}`,
     tenantId,
     projectId,
     graphId: `test-graph-${suffix}`,
-    sourceAgentId: `default-agent-${suffix}`,
-    targetAgentId: `default-agent-${suffix}`,
+    sourceSubAgentId: `default-agent-${suffix}`,
+    targetSubAgentId: `default-agent-${suffix}`,
     relationType: 'transfer' as const,
   };
 };
@@ -44,7 +44,7 @@ export const createTestGraphData = (
     projectId,
     name: `Test Agent Graph ${suffix}`,
     description: 'A comprehensive test graph',
-    defaultAgentId: `default-agent-${suffix}`,
+    defaultSubAgentId: `default-agent-${suffix}`,
     models: {
       base: {
         model: 'gpt-4',

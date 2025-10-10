@@ -1,11 +1,13 @@
 import type {
-  Artifact,
+  DelegationReturnedData,
+  DelegationSentData,
   ModelSettings,
   StatusComponent,
   StatusUpdateSettings,
   SummaryEvent,
+  TransferData,
 } from '@inkeep/agents-core';
-import { getAgentById } from '@inkeep/agents-core';
+import { getSubAgentById } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -31,12 +33,21 @@ export type GraphSessionEventType =
   | 'artifact_saved'
   | 'tool_execution';
 
-export interface GraphSessionEvent {
+// Base interface with common properties
+interface BaseGraphSessionEvent {
   timestamp: number;
-  eventType: GraphSessionEventType;
-  agentId: string;
-  data: EventData;
+  subAgentId: string;
 }
+
+// Discriminated union of all possible event types
+export type GraphSessionEvent =
+  | (BaseGraphSessionEvent & { eventType: 'agent_generate'; data: AgentGenerateData })
+  | (BaseGraphSessionEvent & { eventType: 'agent_reasoning'; data: AgentReasoningData })
+  | (BaseGraphSessionEvent & { eventType: 'transfer'; data: TransferData })
+  | (BaseGraphSessionEvent & { eventType: 'delegation_sent'; data: DelegationSentData })
+  | (BaseGraphSessionEvent & { eventType: 'delegation_returned'; data: DelegationReturnedData })
+  | (BaseGraphSessionEvent & { eventType: 'artifact_saved'; data: ArtifactSavedData })
+  | (BaseGraphSessionEvent & { eventType: 'tool_execution'; data: ToolExecutionData });
 
 export type EventData =
   | AgentGenerateData
@@ -46,6 +57,23 @@ export type EventData =
   | DelegationReturnedData
   | ArtifactSavedData
   | ToolExecutionData;
+
+// Mapping type that associates each event type with its data type
+export type EventDataMap = {
+  agent_generate: AgentGenerateData;
+  agent_reasoning: AgentReasoningData;
+  transfer: TransferData;
+  delegation_sent: DelegationSentData;
+  delegation_returned: DelegationReturnedData;
+  artifact_saved: ArtifactSavedData;
+  tool_execution: ToolExecutionData;
+};
+
+// Helper type to construct a properly-typed event from generic parameter T
+type MakeGraphSessionEvent<T extends GraphSessionEventType> = BaseGraphSessionEvent & {
+  eventType: T;
+  data: EventDataMap[T];
+};
 
 export interface AgentGenerateData {
   parts: Array<{
@@ -68,28 +96,6 @@ export interface AgentReasoningData {
   }>;
 }
 
-export interface TransferData {
-  fromAgent: string;
-  targetAgent: string;
-  reason?: string;
-  context?: any;
-}
-
-export interface DelegationSentData {
-  delegationId: string;
-  fromAgent: string;
-  targetAgent: string;
-  taskDescription: string;
-  context?: any;
-}
-
-export interface DelegationReturnedData {
-  delegationId: string;
-  fromAgent: string;
-  targetAgent: string;
-  result?: any;
-}
-
 export interface ArtifactSavedData {
   artifactId: string;
   taskId: string;
@@ -99,7 +105,7 @@ export interface ArtifactSavedData {
   tenantId?: string;
   projectId?: string;
   contextId?: string;
-  agentId?: string;
+  subAgentId?: string;
   metadata?: Record<string, any>;
   summaryData?: Record<string, any>;
   data?: Record<string, any>;
@@ -172,7 +178,7 @@ export class GraphSession {
       this.artifactService = new ArtifactService({
         tenantId,
         projectId,
-        sessionId: sessionId, // Same ID as ToolSession
+        sessionId,
         contextId,
         taskId: `task_${contextId}-${messageId}`,
         streamRequestId: sessionId,
@@ -214,7 +220,7 @@ export class GraphSession {
           label: this.generateEventLabel(event),
           details: {
             timestamp: event.timestamp,
-            agentId: event.agentId,
+            subAgentId: event.subAgentId,
             data: event.data,
           },
         };
@@ -239,31 +245,28 @@ export class GraphSession {
   private generateEventLabel(event: GraphSessionEvent): string {
     switch (event.eventType) {
       case 'agent_generate':
-        return `Agent ${event.agentId} generating response`;
+        return `Agent ${event.subAgentId} generating response`;
       case 'agent_reasoning':
-        return `Agent ${event.agentId} reasoning through request`;
-      case 'tool_execution': {
-        const toolData = event.data as any;
-        return `Tool execution: ${toolData.toolName || 'unknown'}`;
-      }
-      case 'transfer': {
-        const transferData = event.data as any;
-        return `Agent transfer: ${transferData.fromAgent} → ${transferData.targetAgent}`;
-      }
-      case 'delegation_sent': {
-        const delegationData = event.data as any;
-        return `Task delegated: ${delegationData.fromAgent} → ${delegationData.targetAgent}`;
-      }
-      case 'delegation_returned': {
-        const returnData = event.data as any;
-        return `Task completed: ${returnData.targetAgent} → ${returnData.fromAgent}`;
-      }
-      case 'artifact_saved': {
-        const artifactData = event.data as any;
-        return `Artifact saved: ${artifactData.artifactType || 'unknown type'}`;
-      }
+        return `Agent ${event.subAgentId} reasoning through request`;
+      case 'tool_execution':
+        // TypeScript automatically narrows event.data to ToolExecutionData here
+        return `Tool execution: ${event.data.toolName || 'unknown'}`;
+      case 'transfer':
+        // TypeScript automatically narrows event.data to TransferData here
+        return `Agent transfer: ${event.data.fromSubAgent} → ${event.data.targetSubAgent}`;
+      case 'delegation_sent':
+        // TypeScript automatically narrows event.data to DelegationSentData here
+        return `Task delegated: ${event.data.fromSubAgent} → ${event.data.targetSubAgent}`;
+      case 'delegation_returned':
+        // TypeScript automatically narrows event.data to DelegationReturnedData here
+        return `Task completed: ${event.data.targetSubAgent} → ${event.data.fromSubAgent}`;
+      case 'artifact_saved':
+        // TypeScript automatically narrows event.data to ArtifactSavedData here
+        return `Artifact saved: ${event.data.artifactType || 'unknown type'}`;
       default:
-        return `${event.eventType} event`;
+        // This should never happen due to exhaustive case handling above
+        // Type assertion for runtime safety
+        return `${(event as GraphSessionEvent).eventType} event`;
     }
   }
 
@@ -319,17 +322,25 @@ export class GraphSession {
 
   /**
    * Record an event in the session and trigger status updates if configured
+   * Generic type parameter T ensures eventType and data are correctly paired
    */
-  recordEvent(eventType: GraphSessionEventType, agentId: string, data: EventData): void {
+  recordEvent<T extends GraphSessionEventType>(
+    eventType: T,
+    subAgentId: string,
+    data: EventDataMap[T]
+  ): void {
     // Don't record events or trigger updates if session has ended
 
     if (this.isEmitOperations) {
-      this.sendDataOperation({
+      // Construct event with proper typing from generic parameter T
+      const dataOpEvent: MakeGraphSessionEvent<T> = {
         timestamp: Date.now(),
         eventType,
-        agentId,
+        subAgentId,
         data,
-      });
+      };
+      // Type assertion to union is safe - MakeGraphSessionEvent<T> matches a union member
+      this.sendDataOperation(dataOpEvent as GraphSessionEvent);
     }
 
     if (this.isEnded) {
@@ -337,87 +348,94 @@ export class GraphSession {
         {
           sessionId: this.sessionId,
           eventType,
-          agentId,
+          subAgentId,
         },
         'Event received after session ended - ignoring'
       );
       return;
     }
 
-    const event: GraphSessionEvent = {
+    // Construct event with proper typing from generic parameter T
+    const event: MakeGraphSessionEvent<T> = {
       timestamp: Date.now(),
       eventType,
-      agentId,
+      subAgentId,
       data,
     };
 
-    this.events.push(event);
+    // Type assertion to union is safe - MakeGraphSessionEvent<T> matches a union member
+    this.events.push(event as GraphSessionEvent);
 
     // Process artifact if it's pending generation
-    if (eventType === 'artifact_saved' && (data as ArtifactSavedData).pendingGeneration) {
-      const artifactId = (data as ArtifactSavedData).artifactId;
+    if (eventType === 'artifact_saved') {
+      // Type assertion needed: TypeScript can't narrow generic T based on runtime check
+      const artifactData = data as ArtifactSavedData;
 
-      // Check for backpressure - prevent unbounded growth of pending artifacts
-      if (this.pendingArtifacts.size >= this.MAX_PENDING_ARTIFACTS) {
-        logger.warn(
-          {
-            sessionId: this.sessionId,
-            artifactId,
-            pendingCount: this.pendingArtifacts.size,
-            maxAllowed: this.MAX_PENDING_ARTIFACTS,
-          },
-          'Too many pending artifacts, skipping processing'
-        );
-        return;
-      }
+      if (artifactData.pendingGeneration) {
+        const artifactId = artifactData.artifactId;
 
-      // Track this artifact as pending
-      this.pendingArtifacts.add(artifactId);
+        // Check for backpressure - prevent unbounded growth of pending artifacts
+        if (this.pendingArtifacts.size >= this.MAX_PENDING_ARTIFACTS) {
+          logger.warn(
+            {
+              sessionId: this.sessionId,
+              artifactId,
+              pendingCount: this.pendingArtifacts.size,
+              maxAllowed: this.MAX_PENDING_ARTIFACTS,
+            },
+            'Too many pending artifacts, skipping processing'
+          );
+          return;
+        }
 
-      // Fire and forget - process artifact completely asynchronously without any blocking
-      setImmediate(() => {
-        // No await, no spans at trigger level - truly fire and forget
-        // Include agentId from the event in the artifact data
-        const artifactDataWithAgent = { ...(data as ArtifactSavedData), agentId };
-        this.processArtifact(artifactDataWithAgent)
-          .then(() => {
-            // Remove from pending on success
-            this.pendingArtifacts.delete(artifactId);
-            this.artifactProcessingErrors.delete(artifactId);
-          })
-          .catch((error) => {
-            // Track error count
-            const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
-            this.artifactProcessingErrors.set(artifactId, errorCount);
+        // Track this artifact as pending
+        this.pendingArtifacts.add(artifactId);
 
-            // Remove from pending after max retries
-            if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
+        // Fire and forget - process artifact completely asynchronously without any blocking
+        setImmediate(() => {
+          // No await, no spans at trigger level - truly fire and forget
+          // Include subAgentId from the event in the artifact data
+          const artifactDataWithAgent = { ...artifactData, subAgentId };
+          this.processArtifact(artifactDataWithAgent)
+            .then(() => {
+              // Remove from pending on success
               this.pendingArtifacts.delete(artifactId);
-              logger.error(
-                {
-                  sessionId: this.sessionId,
-                  artifactId,
-                  errorCount,
-                  maxRetries: this.MAX_ARTIFACT_RETRIES,
-                  error: error instanceof Error ? error.message : 'Unknown error',
-                  stack: error instanceof Error ? error.stack : undefined,
-                },
-                'Artifact processing failed after max retries, giving up'
-              );
-            } else {
-              // Keep in pending for potential retry
-              logger.warn(
-                {
-                  sessionId: this.sessionId,
-                  artifactId,
-                  errorCount,
-                  error: error instanceof Error ? error.message : 'Unknown error',
-                },
-                'Artifact processing failed, may retry'
-              );
-            }
-          });
-      });
+              this.artifactProcessingErrors.delete(artifactId);
+            })
+            .catch((error) => {
+              // Track error count
+              const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
+              this.artifactProcessingErrors.set(artifactId, errorCount);
+
+              // Remove from pending after max retries
+              if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
+                this.pendingArtifacts.delete(artifactId);
+                logger.error(
+                  {
+                    sessionId: this.sessionId,
+                    artifactId,
+                    errorCount,
+                    maxRetries: this.MAX_ARTIFACT_RETRIES,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    stack: error instanceof Error ? error.stack : undefined,
+                  },
+                  'Artifact processing failed after max retries, giving up'
+                );
+              } else {
+                // Keep in pending for potential retry
+                logger.warn(
+                  {
+                    sessionId: this.sessionId,
+                    artifactId,
+                    errorCount,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                  },
+                  'Artifact processing failed, may retry'
+                );
+              }
+            });
+        });
+      }
     }
 
     // Trigger status updates check (only sends if thresholds met)
@@ -506,8 +524,8 @@ export class GraphSession {
   /**
    * Get events filtered by agent
    */
-  getEventsByAgent(agentId: string): GraphSessionEvent[] {
-    return this.events.filter((event) => event.agentId === agentId);
+  getEventsByAgent(subAgentId: string): GraphSessionEvent[] {
+    return this.events.filter((event) => event.subAgentId === subAgentId);
   }
 
   /**
@@ -524,7 +542,7 @@ export class GraphSession {
 
     const agentCounts = this.events.reduce(
       (counts, event) => {
-        counts[event.agentId] = (counts[event.agentId] || 0) + 1;
+        counts[event.subAgentId] = (counts[event.subAgentId] || 0) + 1;
         return counts;
       },
       {} as Record<string, number>
@@ -650,7 +668,6 @@ export class GraphSession {
 
     // Store references at start to prevent race conditions
     const statusUpdateState = this.statusUpdateState;
-    const graphId = this.graphId;
 
     try {
       const streamHelper = getStreamHelper(this.sessionId);
@@ -1080,7 +1097,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     const properties: Record<string, z.ZodType<any>> = {};
 
     // Always add label field
-    properties['label'] = z
+    properties.label = z
       .string()
       .describe(
         'A short 3-5 word phrase, that is a descriptive label for the update component. This Label must be EXTREMELY unique to represent the UNIQUE update we are providing. The SPECIFIC finding, result, or insight discovered (e.g., "Slack bot needs workspace admin role", "Found ingestion requires 3 steps", "Channel history limited to 10k messages"). State the ACTUAL information found, not that you searched. What did you LEARN or DISCOVER? What specific detail is now known? CRITICAL: Only use facts explicitly found in the activities - NEVER invent names, people, organizations, or details that are not present in the actual tool results.'
@@ -1168,12 +1185,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     for (const event of events) {
       switch (event.eventType) {
         case 'tool_execution': {
-          const data = event.data as ToolExecutionData;
-          const resultStr = JSON.stringify(data.result);
+          // TypeScript automatically narrows event.data to ToolExecutionData here
+          const resultStr = JSON.stringify(event.data.result);
 
           activities.push(
-            `🔧 **${data.toolName}** ${data.duration ? `(${data.duration}ms)` : ''}\n` +
-              `   📥 Input: ${JSON.stringify(data.args)}\n` +
+            `🔧 **${event.data.toolName}** ${event.data.duration ? `(${event.data.duration}ms)` : ''}\n` +
+              `   📥 Input: ${JSON.stringify(event.data.args)}\n` +
               `   📤 Output: ${resultStr}`
           );
           break;
@@ -1189,25 +1206,30 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           break;
 
         case 'agent_reasoning': {
-          const data = event.data as AgentReasoningData;
+          // TypeScript automatically narrows event.data to AgentReasoningData here
           // Present as analysis without mentioning agents
           activities.push(
-            `⚙️ **Analyzing request**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Analyzing request**\n   Details: ${JSON.stringify(event.data.parts, null, 2)}`
           );
           break;
         }
 
         case 'agent_generate': {
-          const data = event.data as AgentGenerateData;
+          // TypeScript automatically narrows event.data to AgentGenerateData here
           // Present as response preparation without mentioning agents
           activities.push(
-            `⚙️ **Preparing response**\n` + `   Details: ${JSON.stringify(data.parts, null, 2)}`
+            `⚙️ **Preparing response**\n   Details: ${JSON.stringify(event.data.parts, null, 2)}`
           );
           break;
         }
 
         default: {
-          activities.push(`📋 **${event.eventType}**: ${JSON.stringify(event.data, null, 2)}`);
+          // This should never happen due to exhaustive case handling above
+          // Type assertion for runtime safety
+          const safeEvent = event as GraphSessionEvent;
+          activities.push(
+            `📋 **${safeEvent.eventType}**: ${JSON.stringify(safeEvent.data, null, 2)}`
+          );
           break;
         }
       }
@@ -1227,7 +1249,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'graph_session.id': this.sessionId,
           'artifact.id': artifactData.artifactId,
           'artifact.type': artifactData.artifactType || 'unknown',
-          'artifact.agent_id': artifactData.agentId || 'unknown',
+          'artifact.agent_id': artifactData.subAgentId || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
           'artifact.data': JSON.stringify(artifactData.data, null, 2),
           'tenant.id': artifactData.tenantId || 'unknown',
@@ -1304,15 +1326,15 @@ Make it specific and relevant.`;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
               // Try to get agent model configuration if statusUpdateState is not available
-              if (artifactData.agentId && artifactData.tenantId && artifactData.projectId) {
+              if (artifactData.subAgentId && artifactData.tenantId && artifactData.projectId) {
                 try {
-                  const agentData = await getAgentById(dbClient)({
+                  const agentData = await getSubAgentById(dbClient)({
                     scopes: {
                       tenantId: artifactData.tenantId,
                       projectId: artifactData.projectId,
                       graphId: this.graphId || '',
                     },
-                    agentId: artifactData.agentId,
+                    subAgentId: artifactData.subAgentId,
                   });
 
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
@@ -1321,7 +1343,7 @@ Make it specific and relevant.`;
                       {
                         sessionId: this.sessionId,
                         artifactId: artifactData.artifactId,
-                        agentId: artifactData.agentId,
+                        subAgentId: artifactData.subAgentId,
                         model: modelToUse.model,
                       },
                       'Using agent model configuration for artifact name generation'
@@ -1332,7 +1354,7 @@ Make it specific and relevant.`;
                     {
                       sessionId: this.sessionId,
                       artifactId: artifactData.artifactId,
-                      agentId: artifactData.agentId,
+                      subAgentId: artifactData.subAgentId,
                       error: error instanceof Error ? error.message : 'Unknown error',
                     },
                     'Failed to get agent model configuration'
@@ -1507,6 +1529,7 @@ Make it specific and relevant.`;
             );
             // Don't throw here - let the fallback handle it
           }
+
           // Only attempt fallback save if main save failed
           if (!mainSaveSucceeded) {
             try {
@@ -1694,12 +1717,13 @@ export class GraphSessionManager {
 
   /**
    * Record an event in a session
+   * Generic type parameter T ensures eventType and data are correctly paired
    */
-  recordEvent(
+  recordEvent<T extends GraphSessionEventType>(
     sessionId: string,
-    eventType: GraphSessionEventType,
-    agentId: string,
-    data: EventData
+    eventType: T,
+    subAgentId: string,
+    data: EventDataMap[T]
   ): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -1707,7 +1731,8 @@ export class GraphSessionManager {
       return;
     }
 
-    session.recordEvent(eventType, agentId, data);
+    // No type assertion needed - generic ensures type safety
+    session.recordEvent(eventType, subAgentId, data);
   }
 
   /**

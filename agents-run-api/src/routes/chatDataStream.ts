@@ -6,10 +6,10 @@ import {
   createApiError,
   createMessage,
   getActiveAgentForConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentGraphWithDefaultSubAgent,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   loggerFactory,
   setActiveAgentForConversation,
@@ -111,7 +111,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
+    const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, graphId },
     });
     if (!agentGraph) {
@@ -121,10 +121,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    const defaultAgentId = agentGraph.defaultAgentId;
+    const defaultSubAgentId = agentGraph.defaultSubAgentId;
     const graphName = agentGraph.name;
 
-    if (!defaultAgentId) {
+    if (!defaultSubAgentId) {
       throw createApiError({
         code: 'bad_request',
         message: 'Graph does not have a default agent configured',
@@ -139,14 +139,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultAgentId,
+        subAgentId: defaultSubAgentId,
       });
     }
-    const agentId = activeAgent?.activeAgentId || defaultAgentId;
+    const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-    const agentInfo = await getAgentById(dbClient)({
+    const agentInfo = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, graphId },
-      agentId: agentId as string,
+      subAgentId: subAgentId as string,
     });
     if (!agentInfo) {
       throw createApiError({
@@ -218,7 +218,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage: userText,
-            initialAgentId: agentId,
+            initialAgentId: subAgentId,
             requestId: `chatds-${Date.now()}`,
             sseHelper: streamHelper,
             emitOperations,

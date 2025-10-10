@@ -4,7 +4,7 @@ import { ContextResolver } from '../context';
 import type { CredentialStoreRegistry } from '../credential-stores';
 import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
-import { agentToolRelations, tools } from '../db/schema';
+import { subAgentToolRelations, tools } from '../db/schema';
 import {
   type GraphScopeConfig,
   MCPServerType,
@@ -21,8 +21,8 @@ import {
 import { detectAuthenticationRequired } from '../utils';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
-import { updateAgentToolRelation } from './agentRelations';
 import { getCredentialReference } from './credentialReferences';
+import { updateAgentToolRelation } from './subAgentRelations';
 
 const logger = getLogger('tools');
 
@@ -152,7 +152,7 @@ const discoverToolsFromServer = async (
 
     await client.connect();
 
-    // Get tools from the MCP client
+    // Get tools from the MCP client. Does not take into account "active" / "selected" tools.
     const serverTools = await client.tools();
 
     await client.disconnect();
@@ -186,7 +186,6 @@ export const dbResultToMcpTool = async (
     // Return minimal tool data for non-MCP tools
     return {
       ...rest,
-      functionId: rest.functionId || undefined, // Convert null to undefined
       status: 'unknown',
       availableTools: [],
       capabilities: capabilities || undefined,
@@ -239,7 +238,6 @@ export const dbResultToMcpTool = async (
 
   return {
     ...rest,
-    functionId: rest.functionId || undefined, // Convert null to undefined
     status,
     availableTools,
     capabilities: capabilities || undefined,
@@ -354,7 +352,7 @@ export const addToolToAgent =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
@@ -363,13 +361,13 @@ export const addToolToAgent =
     const now = new Date().toISOString();
 
     const [created] = await db
-      .insert(agentToolRelations)
+      .insert(subAgentToolRelations)
       .values({
         id,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         graphId: params.scopes.graphId,
-        agentId: params.agentId,
+        subAgentId: params.subAgentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
         headers: params.headers,
@@ -383,16 +381,16 @@ export const addToolToAgent =
 
 export const removeToolFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; agentId: string; toolId: string }) => {
+  async (params: { scopes: GraphScopeConfig; subAgentId: string; toolId: string }) => {
     const [deleted] = await db
-      .delete(agentToolRelations)
+      .delete(subAgentToolRelations)
       .where(
         and(
-          eq(agentToolRelations.tenantId, params.scopes.tenantId),
-          eq(agentToolRelations.projectId, params.scopes.projectId),
-          eq(agentToolRelations.graphId, params.scopes.graphId),
-          eq(agentToolRelations.agentId, params.agentId),
-          eq(agentToolRelations.toolId, params.toolId)
+          eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
+          eq(subAgentToolRelations.projectId, params.scopes.projectId),
+          eq(subAgentToolRelations.graphId, params.scopes.graphId),
+          eq(subAgentToolRelations.subAgentId, params.subAgentId),
+          eq(subAgentToolRelations.toolId, params.toolId)
         )
       )
       .returning();
@@ -403,11 +401,11 @@ export const removeToolFromAgent =
 /**
  * Upsert agent-tool relation (create if it doesn't exist, update if it does)
  */
-export const upsertAgentToolRelation =
+export const upsertSubAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
     scopes: GraphScopeConfig;
-    agentId: string;
+    subAgentId: string;
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
@@ -419,7 +417,7 @@ export const upsertAgentToolRelation =
         scopes: params.scopes,
         relationId: params.relationId,
         data: {
-          agentId: params.agentId,
+          subAgentId: params.subAgentId,
           toolId: params.toolId,
           selectedTools: params.selectedTools,
           headers: params.headers,

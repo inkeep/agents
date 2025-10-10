@@ -1,16 +1,16 @@
 import {
-  type AgentApiSelect,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
-  getAgentById,
   getAgentGraphById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getRelatedAgentsForGraph,
+  getSubAgentById,
   getToolsForAgent,
   type McpTool,
   type Part,
+  type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -32,8 +32,8 @@ export interface TaskHandlerConfig {
   tenantId: string;
   projectId: string;
   graphId: string;
-  agentId: string;
-  agentSchema: AgentApiSelect;
+  subAgentId: string;
+  agentSchema: SubAgentApiSelect;
   name: string;
   baseUrl: string;
   apiKey?: string;
@@ -76,14 +76,14 @@ export const createTaskHandler = (
             projectId: config.projectId,
             graphId: config.graphId,
           },
-          agentId: config.agentId,
+          subAgentId: config.subAgentId,
         }),
         getToolsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
-            agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getDataComponentsForAgent(dbClient)({
@@ -91,7 +91,7 @@ export const createTaskHandler = (
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
-            agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getArtifactComponentsForAgent(dbClient)({
@@ -99,7 +99,7 @@ export const createTaskHandler = (
             tenantId: config.tenantId,
             projectId: config.projectId,
             graphId: config.graphId,
-            agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
       ]);
@@ -112,13 +112,13 @@ export const createTaskHandler = (
       const enhancedInternalRelations = await Promise.all(
         internalRelations.map(async (relation) => {
           try {
-            const relatedAgent = await getAgentById(dbClient)({
+            const relatedAgent = await getSubAgentById(dbClient)({
               scopes: {
                 tenantId: config.tenantId,
                 projectId: config.projectId,
                 graphId: config.graphId,
               },
-              agentId: relation.id,
+              subAgentId: relation.id,
             });
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
@@ -128,7 +128,7 @@ export const createTaskHandler = (
                   projectId: config.projectId,
                   graphId: config.graphId,
                 },
-                agentId: relation.id,
+                subAgentId: relation.id,
               });
 
               // Use the optimized version that accepts pre-computed relations
@@ -140,7 +140,7 @@ export const createTaskHandler = (
               return { ...relation, description: enhancedDescription };
             }
           } catch (error) {
-            logger.warn({ agentId: relation.id, error }, 'Failed to enhance agent description');
+            logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
           }
           return relation;
         })
@@ -160,7 +160,7 @@ export const createTaskHandler = (
 
       const agent = new Agent(
         {
-          id: config.agentId,
+          id: config.subAgentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
           graphId: config.graphId,
@@ -171,7 +171,7 @@ export const createTaskHandler = (
           agentPrompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          agentRelations: enhancedInternalRelations.map((relation) => ({
+          subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -182,7 +182,7 @@ export const createTaskHandler = (
             description: relation.description,
             agentPrompt: '',
             delegateRelations: [],
-            agentRelations: [],
+            subAgentRelations: [],
             transferRelations: [],
           })),
           transferRelations: enhancedInternalRelations
@@ -198,7 +198,7 @@ export const createTaskHandler = (
               description: relation.description,
               agentPrompt: '',
               delegateRelations: [],
-              agentRelations: [],
+              subAgentRelations: [],
               transferRelations: [],
             })),
           delegateRelations: [
@@ -218,7 +218,7 @@ export const createTaskHandler = (
                   description: relation.description,
                   agentPrompt: '',
                   delegateRelations: [],
-                  agentRelations: [],
+                  subAgentRelations: [],
                   transferRelations: [],
                 },
               })),
@@ -263,7 +263,7 @@ export const createTaskHandler = (
             {
               taskId: task.id,
               extractedContextId: contextId,
-              agentId: config.agentId,
+              subAgentId: config.subAgentId,
             },
             'Extracted contextId from task ID for delegation'
           );
@@ -281,7 +281,7 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       if (isDelegation) {
         logger.info(
-          { agentId: config.agentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
 
@@ -443,17 +443,17 @@ export const createTaskHandlerConfig = async (params: {
   tenantId: string;
   projectId: string;
   graphId: string;
-  agentId: string;
+  subAgentId: string;
   baseUrl: string;
   apiKey?: string;
 }): Promise<TaskHandlerConfig> => {
-  const agent = await getAgentById(dbClient)({
+  const agent = await getSubAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
       graphId: params.graphId,
     },
-    agentId: params.agentId,
+    subAgentId: params.subAgentId,
   });
 
   const agentGraph = await getAgentGraphById(dbClient)({
@@ -465,7 +465,7 @@ export const createTaskHandlerConfig = async (params: {
   });
 
   if (!agent) {
-    throw new Error(`Agent not found: ${params.agentId}`);
+    throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
   // Inherit graph models if agent doesn't have one
@@ -476,7 +476,7 @@ export const createTaskHandlerConfig = async (params: {
     tenantId: params.tenantId,
     projectId: params.projectId,
     graphId: params.graphId,
-    agentId: params.agentId,
+    subAgentId: params.subAgentId,
     agentSchema: {
       id: agent.id,
       name: agent.name,

@@ -7,11 +7,11 @@ import {
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
   getFunction,
-  IdParamsSchema,
   ListResponseSchema,
   listFunctions,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
@@ -81,7 +81,7 @@ app.openapi(
     operationId: 'get-function',
     tags: ['Functions'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -195,7 +195,7 @@ app.openapi(
     operationId: 'update-function',
     tags: ['Functions'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -268,7 +268,7 @@ app.openapi(
     operationId: 'delete-function',
     tags: ['Functions'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {
