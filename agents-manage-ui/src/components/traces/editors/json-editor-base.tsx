@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { type ReactNode, type FC, type Ref, useEffect, useRef, useImperativeHandle } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
 import { toast } from 'sonner';
@@ -50,153 +50,166 @@ interface JsonEditorProps {
   className?: string;
   disabled?: boolean;
   onChange?: (value: string) => void;
+  ref?: Ref<JsonEditorRef>;
 }
 
-export const JsonEditor = forwardRef<JsonEditorRef, JsonEditorProps>(
-  ({ value, uri, readOnly, children, className, disabled, onChange }, ref) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
-    const onChangeRef = useRef<typeof onChange>(undefined);
-    const { resolvedTheme } = useTheme();
+export const JsonEditor: FC<JsonEditorProps> = ({
+  value,
+  uri,
+  readOnly,
+  children,
+  className,
+  disabled,
+  onChange,
+  ref,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const onChangeRef = useRef<typeof onChange>(undefined);
+  const { resolvedTheme } = useTheme();
 
-    useImperativeHandle(ref, () => ({
-      editor: editorRef.current,
-    }));
+  // Expose editor instance through ref
+  useImperativeHandle(ref, () => ({
+    editor: editorRef.current,
+  }));
 
-    useEffect(() => {
-      editorRef.current?.updateOptions({
-        readOnly: readOnly || disabled,
-      });
-    }, [readOnly, disabled]);
+  // Update editor options when `readOnly` or `disabled` changes
+  useEffect(() => {
+    editorRef.current?.updateOptions({
+      readOnly: readOnly || disabled,
+    });
+  }, [readOnly, disabled]);
 
-    // Update model when value prop changes
-    useEffect(() => {
-      const model = editorRef.current?.getModel();
-      if (model && model.getValue() !== value) {
-        model.setValue(value);
-      }
-    }, [value]);
+  // Sync model value when `value` prop changes
+  useEffect(() => {
+    const model = editorRef.current?.getModel();
+    if (model && model.getValue() !== value) {
+      model.setValue(value);
+    }
+  }, [value]);
 
-    // Keep onChange ref up to date to avoid stale closures in the model's `onDidChangeContent` handler
-    useEffect(() => {
-      onChangeRef.current = onChange;
-    }, [onChange]);
+  // Keep `onChangeRef` up to date to avoid stale closures in the model's `onDidChangeContent` handler
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
-    useEffect(() => {
-      const container = containerRef.current;
-      if (!container) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const model = getOrCreateModel({ uri, value });
+    const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
+
+    const editorInstance = createEditor(container, {
+      theme: monacoTheme,
+      model,
+      readOnly,
+      lineNumbers: 'off',
+      wordWrap: 'on', // Toggle word wrap on resizing editors
+      contextmenu: false, // Disable the right-click context menu
+      fontSize: 12,
+      fixedOverflowWidgets: true, // since container has overflow-hidden
+      padding: {
+        top: 16,
+        bottom: 16,
+      },
+      scrollbar: {
+        vertical: 'hidden', // Hide vertical scrollbar
+        horizontal: 'hidden', // Hide horizontal scrollbar
+        useShadows: false, // Disable shadow effects
+        alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
+      },
+    });
+    editorRef.current = editorInstance;
+
+    // Auto-resize editor based on content
+    function updateHeight() {
+      if (model.isDisposed()) {
         return;
       }
-      const model = getOrCreateModel({ uri, value });
-      const monacoTheme =
-        resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      const editorInstance = createEditor(container, {
-        theme: monacoTheme,
-        model,
-        readOnly,
-        lineNumbers: 'off',
-        wordWrap: 'on', // Toggle word wrap on resizing editors
-        contextmenu: false, // Disable the right-click context menu
-        fontSize: 12,
-        fixedOverflowWidgets: true, // since container has overflow-hidden
-        padding: {
-          top: 16,
-          bottom: 16,
-        },
-        scrollbar: {
-          vertical: 'hidden', // Hide vertical scrollbar
-          horizontal: 'hidden', // Hide horizontal scrollbar
-          useShadows: false, // Disable shadow effects
-          alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
-        },
-      });
-      editorRef.current = editorInstance;
+      // Update height based on content
+      const contentHeight = editorInstance.getContentHeight();
+      if (container) {
+        container.style.height = `${contentHeight}px`;
+      }
+    }
 
-      function updateHeight() {
+    // Set up disposables for cleanup
+    const disposables: IDisposable[] = [
+      model,
+      // Handle content changes
+      model.onDidChangeContent(() => {
+        const currentOnChange = onChangeRef.current; // Always gets the latest onChange
+        if (!currentOnChange) {
+          return;
+        }
+        const newValue = model.getValue();
+        currentOnChange(newValue); // Calls the current onChange, not a stale one
+      }),
+      editorInstance,
+      editorInstance.onDidContentSizeChange(updateHeight),
+      // Disable command palette
+      editorInstance.addAction({
+        id: 'disable-command-palette',
+        label: 'Disable Command Palette',
+        keybindings: [KeyCode.F1],
+        run() {}, // Do nothing - prevents command palette from opening
+      }),
+    ];
+
+    // Add read-only specific features
+    if (readOnly) {
+      // Add copy decorations after Monaco workers initialize
+      const timerId = setTimeout(() => {
         if (model.isDisposed()) {
           return;
         }
-        // Update height based on content
-        const contentHeight = editorInstance.getContentHeight();
-        if (container) {
-          container.style.height = `${contentHeight}px`;
-        }
-      }
-      const disposables: IDisposable[] = [
-        model,
-        model.onDidChangeContent(() => {
-          const currentOnChange = onChangeRef.current; // Always gets the latest onChange
-          if (!currentOnChange) {
-            return;
-          }
-          const newValue = model.getValue();
-          currentOnChange(newValue); // Calls the current onChange, not a stale one
-        }),
-        editorInstance,
-        editorInstance.onDidContentSizeChange(updateHeight),
-        // Disable command palette by overriding the action
-        editorInstance.addAction({
-          id: 'disable-command-palette',
-          label: 'Disable Command Palette',
-          keybindings: [KeyCode.F1],
-          // Do nothing - this prevents the command palette from opening
-          run() {},
-        }),
-      ];
-      if (readOnly) {
-        // Wait for Monaco workers to initialize
-        const timerId = setTimeout(() => {
-          if (model.isDisposed()) {
-            return;
-          }
-          addDecorations(editorInstance, value, ' ');
-        }, 1000);
+        addDecorations(editorInstance, value, ' ');
+      }, 1000);
 
-        disposables.push(
-          {
-            dispose() {
-              clearTimeout(timerId);
-            },
+      disposables.push(
+        {
+          dispose() {
+            clearTimeout(timerId);
           },
-          editorInstance.onMouseDown(handleCopyFieldValue(model))
-        );
-      }
-      return cleanupDisposables(disposables);
-    }, []);
+        },
+        editorInstance.onMouseDown(handleCopyFieldValue(model))
+      );
+    }
+    return cleanupDisposables(disposables);
+  }, []);
 
-    // h-full
-    // [&>.cm-editor]:max-h-[inherit]
-    // [&>.cm-editor]:!bg-transparent
-    // dark:[&>.cm-editor]:!bg-input/30
-    // [&>.cm-editor]:!outline-none
-    // [&>.cm-editor]:px-3
-    // [&>.cm-editor]:py-2
-    // leading-2
-    // font-mono
-    // rounded-md
-    // transition-[color,box-shadow]
-    // data-invalid:border-destructive
-    // aria-invalid:ring-destructive/20
-    // aria-invalid:border-destructive
-    // dark:aria-invalid:ring-destructive/40
+  // h-full
+  // [&>.cm-editor]:max-h-[inherit]
+  // [&>.cm-editor]:!bg-transparent
+  // dark:[&>.cm-editor]:!bg-input/30
+  // [&>.cm-editor]:!outline-none
+  // [&>.cm-editor]:px-3
+  // [&>.cm-editor]:py-2
+  // leading-2
+  // font-mono
+  // rounded-md
+  // transition-[color,box-shadow]
+  // data-invalid:border-destructive
+  // aria-invalid:ring-destructive/20
+  // aria-invalid:border-destructive
+  // dark:aria-invalid:ring-destructive/40
 
-    return (
-      <div
-        ref={containerRef}
-        className={cn(
-          'rounded-[7px] overflow-hidden relative',
-          'border border-input shadow-xs',
-          disabled
-            ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
-            : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
-          className
-        )}
-      >
-        {children}
-      </div>
-    );
-  }
-);
-
-JsonEditor.displayName = 'JsonEditor';
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        'rounded-[7px] overflow-hidden relative',
+        'border border-input shadow-xs',
+        disabled
+          ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
+          : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+};
