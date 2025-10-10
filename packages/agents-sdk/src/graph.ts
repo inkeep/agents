@@ -433,7 +433,7 @@ export class AgentGraph implements GraphInterface {
       logger.info(
         {
           graphId: this.graphId,
-          agentCount: Object.keys((createdGraph as any).agents || {}).length,
+          agentCount: Object.keys(createdGraph.subAgents || {}).length,
         },
         'Agent graph initialized successfully using graph endpoint'
       );

@@ -138,9 +138,9 @@ export async function pushCommand(options: PushOptions) {
         spinner.text = 'Project loaded with credentials';
         console.log(chalk.gray(`  • Environment: ${options.env}`));
         console.log(chalk.gray(`  • Credentials loaded: ${Object.keys(credentials).length}`));
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.fail('Failed to load environment credentials');
-        console.error(chalk.red('Error:'), error.message);
+        console.error(chalk.red('Error:'), (error as Error).message);
         process.exit(1);
       }
     }
@@ -151,7 +151,7 @@ export async function pushCommand(options: PushOptions) {
 
       try {
         // Generate the project definition without initializing
-        const projectDefinition = await (project as any).toFullProjectDefinition();
+        const projectDefinition = await project.getFullDefinition();
 
         // Create the JSON file path
         const jsonFilePath = join(projectDir, `project.json`);
@@ -167,12 +167,9 @@ export async function pushCommand(options: PushOptions) {
         // Show a summary of what was saved
         const graphCount = Object.keys(projectDefinition.graphs || {}).length;
         const toolCount = Object.keys(projectDefinition.tools || {}).length;
-        const agentCount = Object.values(projectDefinition.graphs || {}).reduce(
-          (total: number, graph: any) => {
-            return total + Object.keys(graph.agents || {}).length;
-          },
-          0
-        );
+        const agentCount = Object.values(projectDefinition.graphs || {}).reduce((total, graph) => {
+          return total + Object.keys(graph.subAgents || {}).length;
+        }, 0);
 
         console.log(chalk.cyan('\n📊 Project Data Summary:'));
         console.log(chalk.gray(`  • Graphs: ${graphCount}`));
@@ -182,9 +179,9 @@ export async function pushCommand(options: PushOptions) {
         // Exit after generating JSON (don't initialize the project)
         console.log(chalk.green('\n✨ JSON file generated successfully!'));
         process.exit(0);
-      } catch (error: any) {
+      } catch (error: unknown) {
         spinner.fail('Failed to generate JSON file');
-        console.error(chalk.red('Error:'), error.message);
+        console.error(chalk.red('Error:'), (error as Error).message);
         process.exit(1);
       }
     }
@@ -207,7 +204,7 @@ export async function pushCommand(options: PushOptions) {
     console.log(chalk.gray(`  • Graphs: ${stats.graphCount}`));
     console.log(chalk.gray(`  • Tenant: ${stats.tenantId}`));
 
-    // Display graph details if any
+    // Display graph details if exsits
     const graphs = project.getGraphs();
     if (graphs.length > 0) {
       console.log(chalk.cyan('\n📊 Graph Details:'));
@@ -231,8 +228,8 @@ export async function pushCommand(options: PushOptions) {
         // Show credential details
         for (const [credId, credData] of Object.entries(credentialTracking.credentials)) {
           const usageInfo = credentialTracking.usage[credId] || [];
-          const credType = (credData as any).type || 'unknown';
-          const storeId = (credData as any).credentialStoreId || 'unknown';
+          const credType = credData.type || 'unknown';
+          const storeId = credData.credentialStoreId || 'unknown';
 
           console.log(chalk.gray(`  • ${credId} (${credType}, store: ${storeId})`));
 

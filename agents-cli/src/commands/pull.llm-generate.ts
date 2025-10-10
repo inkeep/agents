@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { FullGraphDefinition, ModelSettings } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import {
   calculateTokenSavings,
@@ -120,7 +120,7 @@ const PROJECT_JSON_EXAMPLE = `
       "name": "customer-service",
       "description": "respond to customer service requests",
       "defaultSubAgentId": "router",
-      "agents": {
+      "subAgents": {
         "refund-agent": {
           "id": "refund-agent",
           "name": "Refund Agent",
@@ -420,7 +420,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
  * Generate a graph TypeScript file
  */
 export async function generateGraphFile(
-  graphData: any,
+  graphData: FullGraphDefinition,
   graphId: string,
   outputPath: string,
   modelSettings: ModelSettings,
@@ -439,7 +439,7 @@ ${getTypeDefinitions()}
 
 IMPORTANT CONTEXT:
 - Agents reference resources (tools, components) by their imported variable names
-- The 'tools' field in agents contains tool IDs that must match the imported variable names
+- The 'tools' field in subAgents contains tool IDs that must match the imported variable names
 - If contextConfig is present, it must be imported from '@inkeep/agents-core' and used to create the context config
 
 ${NAMING_CONVENTION_RULES}
@@ -466,10 +466,10 @@ REQUIREMENTS:
 
 PLACEHOLDER HANDLING EXAMPLES:
 // CORRECT - Placeholder wrapped in template literals:
-prompt: \`<{{agents.facts.prompt.abc12345}}>\`
+prompt: \`<{{subAgents.facts.prompt.abc12345}}>\`
 
 // INCORRECT - Placeholder wrapped in single quotes (causes syntax errors):
-prompt: '<{{agents.facts.prompt.abc12345}}>'
+prompt: '<{{subAgents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
 import { agent, agentGraph } from '@inkeep/agents-sdk';
@@ -541,7 +541,7 @@ export const supportGraph = agentGraph({
   name: 'Support Graph',
   description: 'Multi-agent support system', // Only include if description has a value
   defaultSubAgent: routerAgent,
-  agents: () => [routerAgent, qaAgent]
+  subAgents: () => [routerAgent, qaAgent]
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -553,11 +553,11 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     console.log(`[DEBUG] Graph data size: ${JSON.stringify(graphData).length} characters`);
 
     // Log graph complexity
-    const agentCount = Object.keys(graphData.agents || {}).length;
+    const agentCount = Object.keys(graphData.subAgents || {}).length;
     const toolIds = new Set();
     const dataComponentIds = new Set();
     const artifactComponentIds = new Set();
-    for (const agent of Object.values(graphData.agents || {})) {
+    for (const agent of Object.values(graphData.subAgents || {})) {
       const agentData = agent as any;
       if (agentData.tools) {
         for (const toolId of Object.keys(agentData.tools)) {
@@ -582,9 +582,6 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     console.log(`[DEBUG]   - Data components: ${dataComponentIds.size}`);
     console.log(`[DEBUG]   - Artifact components: ${artifactComponentIds.size}`);
     console.log(`[DEBUG]   - Context config: ${graphData.contextConfig ? 'Yes' : 'No'}`);
-    console.log(
-      `[DEBUG]   - Has relations: ${graphData.relations ? Object.keys(graphData.relations).length : 0}`
-    );
   }
 
   try {
@@ -1074,7 +1071,7 @@ REQUIREMENTS:
 
 IMPORTANT:
 - Agents use \`canUse\` for tools, not \`tools\`
-- Graph's \`agents\` property should be an arrow function: agents: () => [...]
+- Graph's \`subAgents\` property should be an arrow function: subAgents: () => [...]
 - DataComponents don't have \`id\` field in their config
 - Use \`undefined\` instead of \`null\` for missing optional values
 - If tools array contains numeric indices, use the actual tool IDs instead
