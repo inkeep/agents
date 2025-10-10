@@ -43,7 +43,7 @@ export interface JsonEditorRef {
 }
 
 interface JsonEditorProps {
-  value: string;
+  value?: string;
   uri: `${string}.json`;
   readOnly?: boolean;
   children?: ReactNode;
@@ -56,7 +56,7 @@ interface JsonEditorProps {
 
 export const JsonEditor: FC<JsonEditorProps> = ({
   ref,
-  value,
+  value = '',
   uri,
   readOnly,
   children,
