@@ -91,17 +91,17 @@ export function createEditor(
   return editor.create(domElement, {
     language,
     automaticLayout: true,
-    fontSize: 15,
     minimap: { enabled: false }, // disable the minimap
-    tabSize: 2,
     renderLineHighlight: 'none', // Remove a line selection border
-    stickyScroll: { enabled: false }, // Disable sticky scroll widget
     overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
-    scrollbar: {
-      verticalScrollbarSize: 10,
-    },
     scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
-    lineNumbersMinChars: 2, // reduce line numbers width on the left size
+    // fontSize: 15,
+    // tabSize: 2,
+    // stickyScroll: { enabled: false }, // Disable sticky scroll widget
+    // scrollbar: {
+    //   verticalScrollbarSize: 10,
+    // },
+    // lineNumbersMinChars: 2, // reduce line numbers width on the left size
     ...options,
   });
 }

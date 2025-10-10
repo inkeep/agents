@@ -51,9 +51,11 @@ interface JsonEditorProps {
   disabled?: boolean;
   onChange?: (value: string) => void;
   ref?: Ref<JsonEditorRef>;
+  placeholder?: string;
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({
+  ref,
   value,
   uri,
   readOnly,
@@ -61,7 +63,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   className,
   disabled,
   onChange,
-  ref,
+  placeholder,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
@@ -106,14 +108,15 @@ export const JsonEditor: FC<JsonEditorProps> = ({
       theme: monacoTheme,
       model,
       readOnly,
+      placeholder,
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
       contextmenu: false, // Disable the right-click context menu
       fontSize: 12,
       fixedOverflowWidgets: true, // since container has overflow-hidden
       padding: {
-        top: 16,
-        bottom: 16,
+        top: 12,
+        bottom: 12,
       },
       scrollbar: {
         vertical: 'hidden', // Hide vertical scrollbar

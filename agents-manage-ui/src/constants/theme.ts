@@ -23,6 +23,7 @@ export const MONACO_THEME_DATA: Record<'dark' | 'light', editor.IStandaloneTheme
       'editor.background': '#ffffff05',
       // Removes blue border
       focusBorder: '#00000000', // transparent
+      'editor.placeholder.foreground': '#58534D',
     },
   },
   light: {
@@ -42,6 +43,7 @@ export const MONACO_THEME_DATA: Record<'dark' | 'light', editor.IStandaloneTheme
       'editor.background': '#00000000', // transparent
       // Removes blue border
       focusBorder: '#00000000', // transparent
+      'editor.placeholder.foreground': '#58534D',
     },
   },
 };
