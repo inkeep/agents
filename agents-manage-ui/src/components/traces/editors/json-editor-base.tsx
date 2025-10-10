@@ -77,6 +77,7 @@ export const JsonEditor = forwardRef<JsonEditorRef, JsonEditorProps>(
       }
     }, [value]);
 
+    // Keep onChange ref up to date to avoid stale closures in the model's `onDidChangeContent` handler
     useEffect(() => {
       onChangeRef.current = onChange;
     }, [onChange]);
@@ -125,12 +126,12 @@ export const JsonEditor = forwardRef<JsonEditorRef, JsonEditorProps>(
       const disposables: IDisposable[] = [
         model,
         model.onDidChangeContent(() => {
-          const onChange = onChangeRef.current
-          if (!onChange) {
-            return
+          const currentOnChange = onChangeRef.current; // Always gets the latest onChange
+          if (!currentOnChange) {
+            return;
           }
           const newValue = model.getValue();
-          onChange(newValue);
+          currentOnChange(newValue); // Calls the current onChange, not a stale one
         }),
         editorInstance,
         editorInstance.onDidContentSizeChange(updateHeight),
