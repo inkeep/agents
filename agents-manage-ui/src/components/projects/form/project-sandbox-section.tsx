@@ -17,8 +17,7 @@ interface ProjectSandboxSectionProps {
 
 const providerOptions = [
   { value: 'local', label: 'Local' },
-  { value: 'vercel', label: 'Vercel' },
-  { value: 'daytona', label: 'Daytona' },
+  // { value: 'vercel', label: 'Vercel' },
 ];
 
 const runtimeOptions = [
@@ -116,7 +115,7 @@ export function ProjectSandboxSection({ control }: ProjectSandboxSectionProps) {
             />
           </div>
 
-          <InfoCard title="Sandbox configuration info:" Icon={Info}>
+          {/* <InfoCard title="Sandbox configuration info:" Icon={Info}>
             <div className="text-sm space-y-2">
               <p>
                 <strong>Local:</strong> Functions run in your local environment with full access to
@@ -126,12 +125,8 @@ export function ProjectSandboxSection({ control }: ProjectSandboxSectionProps) {
                 <strong>Vercel:</strong> Functions run on Vercel's serverless platform with
                 automatic scaling.
               </p>
-              <p>
-                <strong>Daytona:</strong> Functions run in isolated development environments with
-                persistent storage.
-              </p>
             </div>
-          </InfoCard>
+          </InfoCard> */}
         </CollapsibleContent>
       </Collapsible>
     </div>
