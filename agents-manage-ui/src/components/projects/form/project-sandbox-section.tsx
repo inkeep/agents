@@ -115,18 +115,18 @@ export function ProjectSandboxSection({ control }: ProjectSandboxSectionProps) {
             />
           </div>
 
-          {/* <InfoCard title="Sandbox configuration info:" Icon={Info}>
+          <InfoCard title="Sandbox configuration info:" Icon={Info}>
             <div className="text-sm space-y-2">
               <p>
                 <strong>Local:</strong> Functions run in your local environment with full access to
                 system resources.
               </p>
-              <p>
+              {/* <p>
                 <strong>Vercel:</strong> Functions run on Vercel's serverless platform with
                 automatic scaling.
-              </p>
+              </p> */}
             </div>
-          </InfoCard> */}
+          </InfoCard>
         </CollapsibleContent>
       </Collapsible>
     </div>
