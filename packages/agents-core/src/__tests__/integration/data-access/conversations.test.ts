@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createAgent } from '../../../data-access/agentGraphs';
+import { createAgent } from '../../../data-access/agents';
 import {
   createConversation,
   getConversation,

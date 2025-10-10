@@ -291,11 +291,10 @@ export const getFullGraphDefinition =
       return null;
     }
 
-    const graphRelations = await getAgentRelationsByAgent(db)({
+    const agentRelations = await getAgentRelationsByAgent(db)({
       scopes: { tenantId, projectId, agentId },
     });
 
-    // Agents are scoped to graphs via their agentId field
     const agentSubAgents = await db.query.subAgents.findMany({
       where: and(
         eq(subAgents.tenantId, tenantId),
@@ -305,7 +304,7 @@ export const getFullGraphDefinition =
     });
 
     const externalSubAgentIds = new Set<string>();
-    for (const relation of graphRelations) {
+    for (const relation of agentRelations) {
       if (relation.externalSubAgentId) {
         externalSubAgentIds.add(relation.externalSubAgentId);
       }
@@ -315,7 +314,7 @@ export const getFullGraphDefinition =
       agentSubAgents.map(async (agent) => {
         if (!agent) return null;
 
-        const subAgentRelationsList = graphRelations.filter(
+        const subAgentRelationsList = agentRelations.filter(
           (relation) => relation.sourceSubAgentId === agent.id
         );
 

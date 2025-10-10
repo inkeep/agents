@@ -7,7 +7,7 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../../data-access/agentGraphs';
+} from '../../../data-access/agents';
 import {
   createSubAgentRelation,
   deleteSubAgentRelation,

@@ -21,7 +21,7 @@ import {
   getFullGraphDefinition,
   updateAgent,
   upsertAgent,
-} from './agentGraphs';
+} from './agents';
 import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,

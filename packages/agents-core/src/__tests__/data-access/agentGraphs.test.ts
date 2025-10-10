@@ -7,7 +7,7 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../data-access/agentGraphs';
+} from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
 
