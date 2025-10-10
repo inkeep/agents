@@ -16,7 +16,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       name: `Test Graph ${nanoid()}`,
       defaultSubAgentId: null,
     };
-    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
+    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(graphData),
     });

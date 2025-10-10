@@ -30,7 +30,7 @@ export async function listGraphsCommand(options: ListGraphsOptions) {
   const spinner = ora('Fetching graphs...').start();
 
   try {
-    const graphs = await api.listGraphs();
+    const graphs = await api.listAgents();
     spinner.succeed(`Found ${graphs.length} graph(s) in project "${options.project}"`);
 
     if (graphs.length === 0) {

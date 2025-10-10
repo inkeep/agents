@@ -25,7 +25,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       defaultSubAgentId: null,
     };
     // Try to create the graph, ignore if it already exists
-    const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-graphs`, {
+    const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
       body: JSON.stringify(graphData),
     });

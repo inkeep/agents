@@ -35,7 +35,7 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        graphId: z.string().optional().describe('Filter by graph ID'),
+        agentId: z.string().optional().describe('Filter by graph ID'),
       }),
     },
     responses: {
@@ -54,12 +54,12 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const graphId = c.req.query('graphId');
+    const agentId = c.req.query('agentId');
 
     const result = await listApiKeysPaginated(dbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
-      graphId,
+      graphId: agentId,
     });
     // Remove sensitive fields from response
     const sanitizedData = result.data.map(({ keyHash, tenantId, projectId, ...apiKey }) => apiKey);
@@ -161,7 +161,7 @@ app.openapi(
       tenantId,
       projectId,
       name: body.name,
-      graphId: body.agentId,
+      agentId: body.agentId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
     };
@@ -185,11 +185,11 @@ app.openapi(
         201
       );
     } catch (error: any) {
-      // Handle foreign key constraint violations (invalid graphId)
+      // Handle foreign key constraint violations (invalid agentId)
       if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
         throw createApiError({
           code: 'bad_request',
-          message: 'Invalid graphId - graph does not exist',
+          message: 'Invalid agentId - graph does not exist',
         });
       }
 

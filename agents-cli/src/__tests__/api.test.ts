@@ -72,10 +72,10 @@ describe('ApiClient', () => {
         json: async () => ({ data: mockGraphs }),
       });
 
-      const result = await apiClient.listGraphs();
+      const result = await apiClient.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agent-graphs',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents',
         {
           method: 'GET',
           headers: {
@@ -93,7 +93,7 @@ describe('ApiClient', () => {
         json: async () => ({}),
       });
 
-      const result = await apiClient.listGraphs();
+      const result = await apiClient.listAgents();
       expect(result).toEqual([]);
     });
 
@@ -103,7 +103,7 @@ describe('ApiClient', () => {
         statusText: 'Not Found',
       });
 
-      await expect(apiClient.listGraphs()).rejects.toThrow('Failed to list graphs: Not Found');
+      await expect(apiClient.listAgents()).rejects.toThrow('Failed to list graphs: Not Found');
     });
 
     it('should throw error when tenant ID is not configured', async () => {
@@ -124,7 +124,7 @@ describe('ApiClient', () => {
 
       const client = await ManagementApiClient.create();
 
-      await expect(client.listGraphs()).rejects.toThrow(
+      await expect(client.listAgents()).rejects.toThrow(
         'No tenant ID configured. Please run: inkeep init'
       );
     });
@@ -157,10 +157,10 @@ describe('ApiClient', () => {
         json: async () => ({ data: mockGraphs }),
       });
 
-      await clientWithApiKey.listGraphs();
+      await clientWithApiKey.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agent-graphs',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents',
         {
           method: 'GET',
           headers: {
@@ -185,7 +185,7 @@ describe('ApiClient', () => {
         json: async () => ({ data: mockGraphs }),
       });
 
-      const result = await apiClient.getGraph('graph1');
+      const result = await apiClient.getAgent('graph1');
 
       expect(result).toEqual({ id: 'graph1', name: 'Test Graph 1' });
     });
@@ -198,7 +198,7 @@ describe('ApiClient', () => {
         json: async () => ({ data: mockGraphs }),
       });
 
-      const result = await apiClient.getGraph('nonexistent');
+      const result = await apiClient.getAgent('nonexistent');
 
       expect(result).toBeNull();
     });
@@ -223,7 +223,7 @@ describe('ApiClient', () => {
         json: async () => ({ data: expectedResponse }),
       });
 
-      const result = await apiClient.pushGraph(graphDefinition);
+      const result = await apiClient.pushAgent(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-graph',
@@ -248,7 +248,7 @@ describe('ApiClient', () => {
         description: 'A test graph without id',
       };
 
-      await expect(apiClient.pushGraph(graphDefinition)).rejects.toThrow(
+      await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
         'Graph must have an id property'
       );
     });
@@ -265,7 +265,7 @@ describe('ApiClient', () => {
         text: async () => 'Invalid graph definition',
       });
 
-      await expect(apiClient.pushGraph(graphDefinition)).rejects.toThrow(
+      await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
         'Failed to push graph: Bad Request\nInvalid graph definition'
       );
     });
@@ -302,7 +302,7 @@ describe('ApiClient', () => {
         json: async () => ({ data: { id: 'test-graph' } }),
       });
 
-      await clientWithApiKey.pushGraph(graphDefinition);
+      await clientWithApiKey.pushAgent(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-graph',
@@ -518,13 +518,13 @@ describe('ApiClient', () => {
       const client = await ManagementApiClient.create();
       const execClient = await ExecutionApiClient.create();
 
-      await expect(client.listGraphs()).rejects.toThrow(
+      await expect(client.listAgents()).rejects.toThrow(
         'No tenant ID configured. Please run: inkeep init'
       );
-      await expect(client.getGraph('test')).rejects.toThrow(
+      await expect(client.getAgent('test')).rejects.toThrow(
         'No tenant ID configured. Please run: inkeep init'
       );
-      await expect(client.pushGraph({ id: 'test' })).rejects.toThrow(
+      await expect(client.pushAgent({ id: 'test' })).rejects.toThrow(
         'No tenant ID configured. Please run: inkeep init'
       );
       await expect(execClient.chatCompletion('test', [])).rejects.toThrow();

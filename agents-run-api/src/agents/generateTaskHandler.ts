@@ -5,7 +5,7 @@ import {
   getAgentById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
-  getRelatedAgentsForGraph,
+  getRelatedAgentsForAgent,
   getSubAgentById,
   getToolsForAgent,
   type McpTool,
@@ -70,7 +70,7 @@ export const createTaskHandler = (
         dataComponents,
         artifactComponents,
       ] = await Promise.all([
-        getRelatedAgentsForGraph(dbClient)({
+        getRelatedAgentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -122,7 +122,7 @@ export const createTaskHandler = (
             });
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
-              const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
+              const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
                 scopes: {
                   tenantId: config.tenantId,
                   projectId: config.projectId,

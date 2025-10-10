@@ -1179,7 +1179,7 @@ export class AgentGraph implements GraphInterface {
   private async saveToDatabase(): Promise<void> {
     try {
       // Check if graph already exists
-      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
+      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/agents/${this.graphId}`;
 
       try {
         const getResponse = await fetch(getUrl, {
@@ -1206,7 +1206,7 @@ export class AgentGraph implements GraphInterface {
       // Graph doesn't exist, create it
       logger.info({ graphId: this.graphId }, 'Creating graph in backend');
 
-      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs`;
+      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/agents`;
       const createResponse = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -1240,7 +1240,7 @@ export class AgentGraph implements GraphInterface {
   private async saveRelations(): Promise<void> {
     if (this.defaultSubAgent) {
       try {
-        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/agent-graphs/${this.graphId}`;
+        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/agents/${this.graphId}`;
         const updateResponse = await fetch(updateUrl, {
           method: 'PUT',
           headers: {

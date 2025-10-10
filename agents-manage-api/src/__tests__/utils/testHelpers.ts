@@ -253,10 +253,10 @@ export function createTestProjectData({ id, suffix = '' }: { id?: string; suffix
  */
 export function createTestCredentialData({
   suffix = '',
-  type = 'nango' as CredentialStoreType,
+  type = 'nango',
 }: {
   suffix?: string;
-  type?: CredentialStoreType;
+  type?: typeof CredentialStoreType;
 } = {}) {
   const timestamp = Date.now();
   const cleanSuffix = suffix.toLowerCase().replace(/\s+/g, '-');

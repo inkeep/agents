@@ -26,7 +26,7 @@ app.route('/projects', projectsRoutes);
 // Mount existing routes under project scope
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
-app.route('/projects/:projectId/agent-graphs', agentGraphRoutes);
+app.route('/projects/:projectId/agents', agentGraphRoutes);
 app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-tool-relations',
   subAgentToolRelationsRoutes

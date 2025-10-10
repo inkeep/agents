@@ -28,13 +28,10 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
         defaultSubAgentId: null,
       };
       // Try to create the graph, ignore if it already exists
-      const graphRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
-        {
-          method: 'POST',
-          body: JSON.stringify(graphData),
-        }
-      );
+      const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+        method: 'POST',
+        body: JSON.stringify(graphData),
+      });
       // Use the graphId from the created or existing graph
       effectiveGraphId = graphRes.status === 201 ? effectiveGraphId : 'default';
     }

@@ -27,7 +27,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -64,7 +64,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -83,7 +83,7 @@ describe('Chat Data Stream Advanced', () => {
     const subAgentId = nanoid(); // Use unique agent ID for each test
 
     // Import here to avoid circular dependencies
-    const { createSubAgent, createAgentGraph } = await import('@inkeep/agents-core');
+    const { createSubAgent, createAgent } = await import('@inkeep/agents-core');
     const dbClient = (await import('../../../data/db/dbClient.js')).default;
     const { ensureTestProject } = await import('../../utils/testProject.js');
 
@@ -91,7 +91,7 @@ describe('Chat Data Stream Advanced', () => {
     await ensureTestProject(tenantId, projectId);
 
     // Create graph first
-    await createAgentGraph(dbClient)({
+    await createAgent(dbClient)({
       id: graphId,
       tenantId,
       projectId,

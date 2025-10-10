@@ -12,13 +12,13 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphById: vi.fn(),
+    getAgentById: vi.fn(),
     getProject: vi.fn(),
   };
 });
 
 // Import mocked functions
-const mockGetAgentGraphById = vi.mocked(await import('@inkeep/agents-core')).getAgentById;
+const mockGetAgentById = vi.mocked(await import('@inkeep/agents-core')).getAgentById;
 const mockGetProject = vi.mocked(await import('@inkeep/agents-core')).getProject;
 
 describe('resolveModelConfig', () => {
@@ -35,11 +35,11 @@ describe('resolveModelConfig', () => {
     vi.clearAllMocks();
 
     // Reset mock implementations to default
-    mockGetAgentGraphById.mockReset();
+    mockGetAgentById.mockReset();
     mockGetProject.mockReset();
 
     // Setup default mock implementations that return functions
-    mockGetAgentGraphById.mockReturnValue(vi.fn());
+    mockGetAgentById.mockReturnValue(vi.fn());
     mockGetProject.mockReturnValue(vi.fn());
   });
 
@@ -66,7 +66,7 @@ describe('resolveModelConfig', () => {
       });
 
       // Should not call graph or project functions
-      expect(mockGetAgentGraphById).not.toHaveBeenCalled();
+      expect(mockGetAgentById).not.toHaveBeenCalled();
       expect(mockGetProject).not.toHaveBeenCalled();
     });
 
@@ -128,7 +128,7 @@ describe('resolveModelConfig', () => {
       } as AgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -138,7 +138,7 @@ describe('resolveModelConfig', () => {
         summarizer: { model: 'claude-3-sonnet' },
       });
 
-      expect(mockGetAgentGraphById).toHaveBeenCalledWith('mock-db-client');
+      expect(mockGetAgentById).toHaveBeenCalledWith('mock-db-client');
       expect(mockGraphFn).toHaveBeenCalledWith({
         scopes: {
           tenantId: 'tenant-123',
@@ -170,7 +170,7 @@ describe('resolveModelConfig', () => {
       } as AgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -205,7 +205,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
@@ -250,7 +250,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
@@ -283,7 +283,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
@@ -314,7 +314,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
@@ -341,7 +341,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
@@ -362,7 +362,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(null);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
@@ -392,7 +392,7 @@ describe('resolveModelConfig', () => {
       } as AgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);
 
@@ -426,7 +426,7 @@ describe('resolveModelConfig', () => {
       const mockGraphFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockGraphFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
       const result = await resolveModelConfig(mockGraphId, agent);

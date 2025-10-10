@@ -61,7 +61,7 @@ describe('ArtifactService', () => {
       const mockTask = {
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         id: 'task1',
         contextId: 'test-context',
         status: 'active',
@@ -107,7 +107,7 @@ describe('ArtifactService', () => {
           Promise.resolve({
             tenantId: 'test-tenant',
             projectId: 'test-project',
-            graphId: 'test-graph',
+            agentId: 'test-graph',
             id: 'task1',
             contextId: 'test-context',
             status: 'active',

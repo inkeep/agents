@@ -19,7 +19,7 @@ vi.mock('../../../handlers/executionHandler', () => {
   };
 });
 
-import { createAgentGraph, createSubAgent } from '@inkeep/agents-core';
+import { createAgent, createSubAgent } from '@inkeep/agents-core';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -30,7 +30,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-graph',
         name: 'Test Graph',
@@ -67,7 +67,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-graph',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -89,7 +89,7 @@ describe('Chat Data Stream Route', () => {
     await ensureTestProject(tenantId, projectId);
 
     // Create graph first
-    await createAgentGraph(dbClient)({
+    await createAgent(dbClient)({
       id: graphId,
       tenantId,
       projectId,

@@ -16,12 +16,12 @@ export async function chatCommand(agentId: string, options: ChatOptions) {
   // Check if graph exists using management API
   const spinner = ora('Connecting to graph...').start();
   try {
-    const graph = await managementApi.getGraph(graphId);
-    if (!graph) {
-      spinner.fail(`Graph "${graphId}" not found`);
+    const agent = await managementApi.getAgent(agentId);
+    if (!agent) {
+      spinner.fail(`Agent "${agentId}" not found`);
       process.exit(1);
     }
-    spinner.succeed(`Connected to graph: ${graph.name || graphId}`);
+    spinner.succeed(`Connected to agent: ${agent.name || agentId}`);
   } catch (error) {
     spinner.fail('Failed to connect to graph');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
@@ -115,7 +115,7 @@ export async function chatCommand(agentId: string, options: ChatOptions) {
 
     try {
       // Send message to API using execution API
-      const response = await executionApi.chatCompletion(graphId, messages, conversationId);
+      const response = await executionApi.chatCompletion(agentId, messages, conversationId);
 
       let assistantResponse: string;
       if (typeof response === 'string') {

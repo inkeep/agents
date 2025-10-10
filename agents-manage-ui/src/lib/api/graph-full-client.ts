@@ -25,7 +25,7 @@ export async function fetchGraphs(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<Graph>>(
-    `tenants/${tenantId}/projects/${projectId}/agent-graphs`
+    `tenants/${tenantId}/projects/${projectId}/agents`
   );
 }
 
@@ -100,12 +100,9 @@ export async function deleteFullGraph(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
-    {
-      method: 'DELETE',
-    }
-  );
+  await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/graph/${graphId}`, {
+    method: 'DELETE',
+  });
 }
 
 // Export the error class for use in server actions
