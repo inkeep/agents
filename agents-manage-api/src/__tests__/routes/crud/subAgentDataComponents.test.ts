@@ -41,7 +41,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     const agentData = { ...createTestSubAgentData({ suffix, tenantId }) };
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/agents`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/sub-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -139,7 +139,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       graphId,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components`,
       {
         method: 'POST',
         body: JSON.stringify(relationData),
@@ -175,7 +175,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -196,7 +196,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -218,7 +218,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Create first association
       const res1 = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -228,7 +228,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Try to create duplicate - should fail
       const res2 = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -253,7 +253,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -268,7 +268,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { subAgentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -292,7 +292,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dataComponentId}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/component/${dataComponentId}/agents`
       );
       expect(res.status).toBe(200);
 
@@ -309,7 +309,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dataComponentId}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/component/${dataComponentId}/agents`
       );
       expect(res.status).toBe(200);
 
@@ -333,7 +333,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}/component/${dataComponentId}/exists`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}/component/${dataComponentId}/exists`
       );
       expect(res.status).toBe(200);
 
@@ -347,7 +347,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { subAgentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}/component/${dataComponentId}/exists`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}/component/${dataComponentId}/exists`
       );
       expect(res.status).toBe(200);
 
@@ -371,7 +371,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}/component/${dataComponentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}/component/${dataComponentId}`,
         {
           method: 'DELETE',
         }
@@ -384,7 +384,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify association is removed
       const checkRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}/component/${dataComponentId}/exists`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}/component/${dataComponentId}/exists`
       );
       const checkBody = await checkRes.json();
       expect(checkBody.exists).toBe(false);
@@ -396,7 +396,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
       const { subAgentId, dataComponentId, graphId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgentId}/component/${dataComponentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgentId}/component/${dataComponentId}`,
         {
           method: 'DELETE',
         }
@@ -446,28 +446,28 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
       // Verify agent1 has 2 data components
       const agent1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgent1Id}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgent1Id}`
       );
       const agent1Body = await agent1Res.json();
       expect(agent1Body.data).toHaveLength(2);
 
       // Verify agent2 has 1 data component
       const agent2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/agent/${subAgent2Id}`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/agent/${subAgent2Id}`
       );
       const agent2Body = await agent2Res.json();
       expect(agent2Body.data).toHaveLength(1);
 
       // Verify dc1 is used by 2 agents
       const dc1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dc1Id}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/component/${dc1Id}/agents`
       );
       const dc1Body = await dc1Res.json();
       expect(dc1Body.data).toHaveLength(2);
 
       // Verify dc2 is used by 1 agent
       const dc2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agent-data-components/component/${dc2Id}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-data-components/component/${dc2Id}/agents`
       );
       const dc2Body = await dc2Res.json();
       expect(dc2Body.data).toHaveLength(1);

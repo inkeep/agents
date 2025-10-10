@@ -36,7 +36,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
   }) => {
     const agentData = createTestSubAgentData({ suffix });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/agents`,
+      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),

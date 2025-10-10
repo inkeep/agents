@@ -1,4 +1,4 @@
-import type { AgentGraphInsert, AgentRelationInsert, SubAgentInsert } from '../../types/index';
+import type { AgentGraphInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
 
 export const createTestAgentData = (
   tenantId: string,
@@ -21,7 +21,7 @@ export const createTestRelationData = (
   tenantId: string,
   projectId: string,
   suffix: string
-): AgentRelationInsert => {
+): SubAgentRelationInsert => {
   return {
     id: `test-relation-${suffix}`,
     tenantId,

@@ -27,7 +27,7 @@ export const graph = agentGraph({
   name: 'My Graph',
   description: 'My agent graph',
   defaultSubAgent: myAgent,
-  agents: [myAgent],
+  subAgents: () => [myAgent],
 });
 ```
 

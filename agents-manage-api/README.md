@@ -87,7 +87,7 @@ import { agentGraph } from '@inkeep/agents-manage-api';
 const graph = agentGraph({
   id: 'customer-support',
   defaultSubAgent: routerAgent,
-  agents: [routerAgent, qaAgent, orderAgent]
+  subAgents: () => [routerAgent, qaAgent, orderAgent]
 });
 
 await graph.init(); // Persist to database

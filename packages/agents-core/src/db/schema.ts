@@ -23,7 +23,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../types/utility';
-import type { AgentStopWhen, GraphStopWhen, StopWhen } from '../validation/schemas';
+import type { GraphStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 const tenantScoped = {
   tenantId: text('tenant_id').notNull(),
@@ -196,7 +196,7 @@ export const subAgents = sqliteTable(
     models: text('models', { mode: 'json' }).$type<Models>(),
 
     // Agent-level stopWhen configuration (inherited from project)
-    stopWhen: text('stop_when', { mode: 'json' }).$type<AgentStopWhen>(),
+    stopWhen: text('stop_when', { mode: 'json' }).$type<SubAgentStopWhen>(),
     ...timestamps,
   },
   (table) => [

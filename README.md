@@ -31,7 +31,7 @@ Inkeep's multi-agent framework enables multiple specialized AI agents to collabo
       name: 'Basic Graph Example',
       description: 'A basic graph',
       defaultSubAgent: helloAgent,
-      agents: () => [helloAgent],
+      subAgents: () => [helloAgent],
     });
    ```
 

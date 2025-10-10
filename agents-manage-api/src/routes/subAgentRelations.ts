@@ -1,10 +1,10 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentRelationApiInsertSchema,
-  type AgentRelationApiSelect,
-  AgentRelationApiSelectSchema,
-  AgentRelationApiUpdateSchema,
-  AgentRelationQuerySchema,
+  SubAgentRelationApiInsertSchema,
+  type SubAgentRelationApiSelect,
+  SubAgentRelationApiSelectSchema,
+  SubAgentRelationApiUpdateSchema,
+  SubAgentRelationQuerySchema,
   commonGetErrorResponses,
   createApiError,
   createSubAgentRelation,
@@ -40,14 +40,14 @@ app.openapi(
     tags: ['Agent Relations'],
     request: {
       params: TenantProjectGraphParamsSchema,
-      query: PaginationQueryParamsSchema.merge(AgentRelationQuerySchema),
+      query: PaginationQueryParamsSchema.merge(SubAgentRelationQuerySchema),
     },
     responses: {
       200: {
         description: 'List of agent relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(AgentRelationApiSelectSchema),
+            schema: ListResponseSchema(SubAgentRelationApiSelectSchema),
           },
         },
       },
@@ -67,7 +67,7 @@ app.openapi(
     const limitNum = Math.min(Number(limit), 100);
 
     try {
-      let result: { data: AgentRelationApiSelect[]; pagination: Pagination };
+      let result: { data: SubAgentRelationApiSelect[]; pagination: Pagination };
 
       if (sourceSubAgentId) {
         const rawResult = await getAgentRelationsBySource(dbClient)({
@@ -124,7 +124,7 @@ app.openapi(
         description: 'Agent relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentRelationApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
           },
         },
       },
@@ -136,7 +136,7 @@ app.openapi(
     const agentRelation = (await getAgentRelationById(dbClient)({
       scopes: { tenantId, projectId, graphId },
       relationId: id,
-    })) as AgentRelationApiSelect | null;
+    })) as SubAgentRelationApiSelect | null;
 
     if (!agentRelation) {
       throw createApiError({
@@ -162,7 +162,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentRelationApiInsertSchema,
+            schema: SubAgentRelationApiInsertSchema,
           },
         },
       },
@@ -172,7 +172,7 @@ app.openapi(
         description: 'Agent relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentRelationApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
           },
         },
       },
@@ -272,7 +272,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentRelationApiUpdateSchema,
+            schema: SubAgentRelationApiUpdateSchema,
           },
         },
       },
@@ -282,7 +282,7 @@ app.openapi(
         description: 'Agent relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentRelationApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
           },
         },
       },

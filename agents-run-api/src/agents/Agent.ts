@@ -1,6 +1,5 @@
 import {
   type AgentConversationHistoryConfig,
-  type AgentStopWhen,
   type Artifact,
   type ArtifactComponentApiInsert,
   ContextResolver,
@@ -24,6 +23,7 @@ import {
   type MessageContent,
   type ModelSettings,
   type Models,
+  type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
@@ -125,7 +125,7 @@ export type AgentConfig = {
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
-  stopWhen?: AgentStopWhen;
+  stopWhen?: SubAgentStopWhen;
 };
 
 export type ExternalAgentConfig = {

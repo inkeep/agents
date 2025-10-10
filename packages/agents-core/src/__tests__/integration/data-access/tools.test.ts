@@ -188,8 +188,8 @@ describe('Tools Data Access - Integration Tests', () => {
         ...initialData,
       });
 
-      // Wait a tiny bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Wait to ensure timestamp difference (100ms to account for test system timing variability)
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Update tool
       const updateData: ToolUpdate = {

@@ -26,16 +26,16 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Agents',
-    operationId: 'list-agents',
-    tags: ['Agent'],
+    summary: 'List SubAgents',
+    operationId: 'list-subagents',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
       200: {
-        description: 'List of agents retrieved successfully',
+        description: 'List of subAgents retrieved successfully',
         content: {
           'application/json': {
             schema: ListResponseSchema(SubAgentApiSelectSchema),
@@ -54,7 +54,7 @@ app.openapi(
       scopes: { tenantId, projectId, graphId },
       pagination: { page, limit },
     });
-    // Add type field to all agents in the response
+    // Add type field to all subAgents in the response
     const dataWithType = {
       ...result,
       data: result.data.map((subAgent) => ({
@@ -71,15 +71,15 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Agent',
-    operationId: 'get-agent-by-id',
-    tags: ['Agent'],
+    summary: 'Get SubAgent',
+    operationId: 'get-subagent-by-id',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Agent found',
+        description: 'SubAgent found',
         content: {
           'application/json': {
             schema: SingleResponseSchema(SubAgentApiSelectSchema),
@@ -99,7 +99,7 @@ app.openapi(
     if (!subAgent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent not found',
+        message: 'SubAgent not found',
       });
     }
 
@@ -117,9 +117,9 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Agent',
-    operationId: 'create-agent',
-    tags: ['Agent'],
+    summary: 'Create SubAgent',
+    operationId: 'create-subagent',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphParamsSchema,
       body: {
@@ -132,7 +132,7 @@ app.openapi(
     },
     responses: {
       201: {
-        description: 'Agent created successfully',
+        description: 'SubAgent created successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(SubAgentApiSelectSchema),
@@ -168,9 +168,9 @@ app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Agent',
-    operationId: 'update-agent',
-    tags: ['Agent'],
+    summary: 'Update SubAgent',
+    operationId: 'update-subagent',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
       body: {
@@ -183,7 +183,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Agent updated successfully',
+        description: 'SubAgent updated successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(SubAgentApiSelectSchema),
@@ -206,7 +206,7 @@ app.openapi(
     if (!updatedSubAgent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent not found',
+        message: 'SubAgent not found',
       });
     }
 
@@ -224,18 +224,18 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Agent',
-    operationId: 'delete-agent',
-    tags: ['Agent'],
+    summary: 'Delete SubAgent',
+    operationId: 'delete-subagent',
+    tags: ['SubAgent'],
     request: {
       params: TenantProjectGraphIdParamsSchema,
     },
     responses: {
       204: {
-        description: 'Agent deleted successfully',
+        description: 'SubAgent deleted successfully',
       },
       404: {
-        description: 'Agent not found',
+        description: 'SubAgent not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -255,7 +255,7 @@ app.openapi(
     if (!deleted) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent not found',
+        message: 'SubAgent not found',
       });
     }
 

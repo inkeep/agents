@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Agent } from '../../agent';
+import { SubAgent } from '../../agent';
 import { transfer } from '../../builders';
 
 describe('transfer builder function', () => {
-  let targetAgent: Agent;
+  let targetAgent: SubAgent;
 
   beforeEach(() => {
-    targetAgent = new Agent({
+    targetAgent = new SubAgent({
       id: 'target-agent',
       name: 'Target Agent',
       description: 'Agent that receives transfers',
@@ -87,7 +87,7 @@ describe('transfer builder function', () => {
   });
 
   it('should generate default description based on agent name', () => {
-    const customAgent = new Agent({
+    const customAgent = new SubAgent({
       id: 'custom-agent',
       name: 'Custom Support Agent',
       description: 'Custom agent',

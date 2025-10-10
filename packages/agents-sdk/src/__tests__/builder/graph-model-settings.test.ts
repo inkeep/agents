@@ -94,7 +94,7 @@ describe('Graph Model Settings', () => {
         },
       },
       defaultSubAgent: agentWithoutConfig,
-      agents: () => [agentWithoutConfig, agentWithConfig],
+      subAgents: () => [agentWithoutConfig, agentWithConfig],
     });
 
     // Model Settings should be inherited during graph construction

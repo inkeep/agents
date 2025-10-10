@@ -1,12 +1,12 @@
 import { getLogger } from '@inkeep/agents-core';
 import type {
-  AgentInterface,
   GenerateOptions,
   GraphInterface,
   Message,
   MessageInput,
   RunResult,
   StreamResponse,
+  SubAgentInterface,
   ToolCall,
 } from './types';
 import { MaxTurnsExceededError } from './types';
@@ -68,7 +68,7 @@ export class Runner {
       // Return the result wrapped in RunResult format
       return {
         finalOutput: response,
-        agent: graph.getdefaultSubAgent() || ({} as AgentInterface),
+        agent: graph.getdefaultSubAgent() || ({} as SubAgentInterface),
         turnCount,
         usage: { inputTokens: 0, outputTokens: 0 },
         metadata: {
@@ -199,7 +199,7 @@ export class Runner {
     }
 
     // Validate all agents in the graph
-    const agents = graph.getAgents();
+    const agents = graph.getSubAgents();
     if (agents.length === 0) {
       errors.push('Graph must contain at least one agent');
     }
@@ -229,7 +229,7 @@ export class Runner {
     agentCount: number;
     defaultSubAgent: string | undefined;
   }> {
-    const agents = graph.getAgents();
+    const agents = graph.getSubAgents();
     const defaultSubAgent = graph.getdefaultSubAgent();
     const messageCount = Array.isArray(messages) ? messages.length : 1;
 

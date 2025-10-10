@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentDataComponentApiInsertSchema,
-  AgentDataComponentApiSelectSchema,
+  SubAgentDataComponentApiInsertSchema,
+  SubAgentDataComponentApiSelectSchema,
   associateDataComponentWithAgent,
   commonGetErrorResponses,
   createApiError,
@@ -118,7 +118,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: AgentDataComponentApiInsertSchema,
+            schema: SubAgentDataComponentApiInsertSchema,
           },
         },
       },
@@ -128,7 +128,7 @@ app.openapi(
         description: 'Agent data component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentDataComponentApiSelectSchema),
+            schema: SingleResponseSchema(SubAgentDataComponentApiSelectSchema),
           },
         },
       },

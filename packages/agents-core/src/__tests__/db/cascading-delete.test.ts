@@ -1,4 +1,4 @@
-import type { AgentDataComponentInsert, TaskInsert } from '@inkeep/agents-core';
+import type { SubAgentDataComponentInsert, TaskInsert } from '@inkeep/agents-core';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -238,7 +238,7 @@ describe('Cascading Delete Tests', () => {
     await dbClient.insert(credentialReferences).values(credentialReference);
 
     // Create junction table entries
-    const agentDataComponentRelation: AgentDataComponentInsert = {
+    const agentDataComponentRelation: SubAgentDataComponentInsert = {
       tenantId,
       projectId,
       graphId,
