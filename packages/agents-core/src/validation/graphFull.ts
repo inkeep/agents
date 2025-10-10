@@ -5,7 +5,7 @@ import type {
   FullGraphDefinition,
   InternalAgentDefinition,
 } from '../types/entities';
-import { GraphWithinContextOfProjectSchema } from '../validation/schemas';
+import { AgentWithinContextOfProjectSchema } from '../validation/schemas';
 
 // Type guard functions
 export function isInternalAgent(agent: AgentDefinition): agent is InternalAgentDefinition {
@@ -19,8 +19,8 @@ export function isExternalAgent(agent: AgentDefinition): agent is ExternalAgentA
 // Zod-based validation and typing using the existing schema
 export function validateAndTypeGraphData(
   data: unknown
-): z.infer<typeof GraphWithinContextOfProjectSchema> {
-  return GraphWithinContextOfProjectSchema.parse(data);
+): z.infer<typeof AgentWithinContextOfProjectSchema> {
+  return AgentWithinContextOfProjectSchema.parse(data);
 }
 
 /**

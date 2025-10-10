@@ -549,7 +549,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
       });
@@ -577,7 +577,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
       });
@@ -613,7 +613,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
@@ -641,7 +641,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
@@ -667,7 +667,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         dataComponentId: 'non-existent',
@@ -753,7 +753,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,
@@ -780,7 +780,7 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testGraphId,
           subAgentId: testAgentId,
         },
         dataComponentId: testDataComponentId,

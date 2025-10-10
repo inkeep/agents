@@ -6,7 +6,7 @@ import {
   createApiError,
   createMessage,
   getActiveAgentForConversation,
-  getAgentGraphWithDefaultSubAgent,
+  getAgentWithDefaultSubAgent,
   getConversationId,
   getRequestExecutionContext,
   getSubAgentById,
@@ -91,11 +91,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')
-      .debug({ tenantId, projectId, graphId }, 'Extracted chatDataStream parameters');
+      .debug({ tenantId, projectId, agentId }, 'Extracted chatDataStream parameters');
 
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
@@ -106,13 +106,13 @@ app.openapi(chatDataStreamRoute, async (c) => {
       activeSpan.setAttributes({
         'conversation.id': conversationId,
         'tenant.id': tenantId,
-        'graph.id': graphId,
+        'agent.id': agentId,
         'project.id': projectId,
       });
     }
 
-    const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+    const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId },
     });
     if (!agentGraph) {
       throw createApiError({
@@ -145,7 +145,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
     const agentInfo = await getSubAgentById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       subAgentId: subAgentId as string,
     });
     if (!agentInfo) {
@@ -164,7 +164,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     await handleContextResolution({
       tenantId,
       projectId,
-      graphId,
+      agentId,
       conversationId,
       headers: validatedContext,
       dbClient,

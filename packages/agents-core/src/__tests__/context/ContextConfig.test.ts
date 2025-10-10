@@ -58,7 +58,7 @@ describe('ContextConfig', () => {
       const obj = config.toObject();
       expect(obj.tenantId).toBe('default');
       expect(obj.projectId).toBe('default');
-      expect(obj.graphId).toBe('default');
+      expect(obj.agentId).toBe('default');
     });
 
     it('should throw error when getting ID if not set', () => {
@@ -224,7 +224,7 @@ describe('ContextConfig', () => {
       const obj = config.toObject();
       expect(obj.tenantId).toBe('new-tenant');
       expect(obj.projectId).toBe('new-project');
-      expect(obj.graphId).toBe('new-graph');
+      expect(obj.agentId).toBe('new-graph');
     });
   });
 

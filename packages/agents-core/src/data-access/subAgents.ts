@@ -2,15 +2,15 @@ import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { subAgents } from '../db/schema';
 import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../types/entities';
-import type { GraphScopeConfig, PaginationConfig } from '../types/utility';
+import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
 
 export const getSubAgentById =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; subAgentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const result = await db.query.subAgents.findFirst({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
         eq(subAgents.projectId, params.scopes.projectId),
-        eq(subAgents.graphId, params.scopes.graphId),
+        eq(subAgents.agentId, params.scopes.agentId),
         eq(subAgents.id, params.subAgentId)
       ),
     });
@@ -18,19 +18,19 @@ export const getSubAgentById =
   };
 
 export const listSubAgents =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgents.findMany({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
         eq(subAgents.projectId, params.scopes.projectId),
-        eq(subAgents.graphId, params.scopes.graphId)
+        eq(subAgents.agentId, params.scopes.agentId)
       ),
     });
   };
 
 export const listSubAgentsPaginated =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -38,7 +38,7 @@ export const listSubAgentsPaginated =
     const whereClause = and(
       eq(subAgents.tenantId, params.scopes.tenantId),
       eq(subAgents.projectId, params.scopes.projectId),
-      eq(subAgents.graphId, params.scopes.graphId)
+      eq(subAgents.agentId, params.scopes.agentId)
     );
 
     const [data, totalResult] = await Promise.all([
@@ -69,7 +69,7 @@ export const createSubAgent = (db: DatabaseClient) => async (params: SubAgentIns
 
 export const updateSubAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; subAgentId: string; data: SubAgentUpdate }) => {
+  async (params: { scopes: AgentScopeConfig; subAgentId: string; data: SubAgentUpdate }) => {
     const data = params.data;
 
     // Handle model settings clearing - if empty object with no meaningful values, set to null
@@ -99,7 +99,7 @@ export const updateSubAgent =
         and(
           eq(subAgents.tenantId, params.scopes.tenantId),
           eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.graphId, params.scopes.graphId),
+          eq(subAgents.agentId, params.scopes.agentId),
           eq(subAgents.id, params.subAgentId)
         )
       )
@@ -117,7 +117,7 @@ export const upsertSubAgent =
     const scopes = {
       tenantId: params.data.tenantId,
       projectId: params.data.projectId,
-      graphId: params.data.graphId,
+      agentId: params.data.agentId,
     };
 
     const existing = await getSubAgentById(db)({
@@ -150,14 +150,14 @@ export const upsertSubAgent =
   };
 
 export const deleteSubAgent =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; subAgentId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     await db
       .delete(subAgents)
       .where(
         and(
           eq(subAgents.tenantId, params.scopes.tenantId),
           eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.graphId, params.scopes.graphId),
+          eq(subAgents.agentId, params.scopes.agentId),
           eq(subAgents.id, params.subAgentId)
         )
       );
@@ -171,7 +171,7 @@ export const deleteSubAgent =
   };
 
 export const getSubAgentsByIds =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; subAgentIds: string[] }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
     if (params.subAgentIds.length === 0) {
       return [];
     }
@@ -183,7 +183,7 @@ export const getSubAgentsByIds =
         and(
           eq(subAgents.tenantId, params.scopes.tenantId),
           eq(subAgents.projectId, params.scopes.projectId),
-          eq(subAgents.graphId, params.scopes.graphId),
+          eq(subAgents.agentId, params.scopes.agentId),
           inArray(subAgents.id, params.subAgentIds)
         )
       );

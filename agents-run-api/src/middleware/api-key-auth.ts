@@ -27,8 +27,8 @@ export const apiKeyAuth = () =>
     const authHeader = c.req.header('Authorization');
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');
-    const graphId = c.req.header('x-inkeep-graph-id');
-    const subAgentId = c.req.header('x-inkeep-agent-id');
+    const graphId = c.req.header('x-inkeep-agent-id');
+    const subAgentId = c.req.header('x-inkeep-sub-agent-id');
     const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
     const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
     const host = fwdHost ?? c.req.header('host');
@@ -161,7 +161,7 @@ export const apiKeyAuth = () =>
         {
           tenantId: executionContext.tenantId,
           projectId: executionContext.projectId,
-          graphId: executionContext.graphId,
+          graphId: executionContext.agentId,
           subAgentId: executionContext.subAgentId,
         },
         'API key authenticated successfully'
@@ -195,7 +195,7 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     apiKey: apiKey,
     tenantId: apiKeyRecord.tenantId,
     projectId: apiKeyRecord.projectId,
-    graphId: apiKeyRecord.graphId,
+    graphId: apiKeyRecord.agentId,
     apiKeyId: apiKeyRecord.id,
     baseUrl: baseUrl,
   });

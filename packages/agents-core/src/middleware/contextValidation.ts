@@ -2,7 +2,7 @@ import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
 import { ContextResolver } from '../context/ContextResolver';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getAgentGraphWithDefaultSubAgent } from '../data-access/agentGraphs';
+import { getAgentWithDefaultSubAgent } from '../data-access/agentGraphs';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect } from '../types/entities';
@@ -300,10 +300,7 @@ async function fetchExistingHeaders({
 }) {
   //If no headers are provided, but this is a continued conversation first try to get the headers from the context cache
   const contextResolver = new ContextResolver(tenantId, projectId, dbClient, credentialStores);
-  const headers = await contextResolver.resolveHeaders(
-    conversationId,
-    contextConfig.id
-  );
+  const headers = await contextResolver.resolveHeaders(conversationId, contextConfig.id);
   if (Object.keys(headers).length > 0) {
     return {
       valid: true,
@@ -311,9 +308,7 @@ async function fetchExistingHeaders({
       validatedContext: headers,
     };
   }
-  throw new Error(
-    'No headers found in cache. Please provide headers in request.'
-  );
+  throw new Error('No headers found in cache. Please provide headers in request.');
 }
 
 /**
@@ -323,7 +318,7 @@ async function fetchExistingHeaders({
 export async function validateHeaders({
   tenantId,
   projectId,
-  graphId,
+  agentId,
   conversationId,
   parsedRequest,
   dbClient,
@@ -331,7 +326,7 @@ export async function validateHeaders({
 }: {
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   conversationId: string;
   parsedRequest: ParsedHttpRequest;
   dbClient: DatabaseClient;
@@ -339,13 +334,13 @@ export async function validateHeaders({
 }): Promise<ContextValidationResult> {
   try {
     // Get the graph's context config
-    const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+    const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId: agentId },
     });
 
     if (!agentGraph?.contextConfigId) {
       // No context config means no validation needed
-      logger.debug({ graphId }, 'No context config found for graph, skipping validation');
+      logger.debug({ agentId }, 'No context config found for graph, skipping validation');
       return {
         valid: true,
         errors: [],
@@ -355,7 +350,7 @@ export async function validateHeaders({
 
     // Get context configuration
     const contextConfig = await getContextConfigById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId: agentId },
       id: agentGraph.contextConfigId,
     });
 
@@ -436,7 +431,7 @@ export async function validateHeaders({
     logger.error(
       {
         tenantId,
-        graphId,
+        graphId: agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to validate headers'
@@ -461,15 +456,15 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
   return async (c: Context, next: Next) => {
     try {
       const executionContext = getRequestExecutionContext(c);
-      let { tenantId, projectId, graphId } = executionContext;
-      if (!tenantId || !projectId || !graphId) {
+      let { tenantId, projectId, agentId } = executionContext;
+      if (!tenantId || !projectId || !agentId) {
         // Fallback to path parameters for to handle management api routes
         tenantId = c.req.param('tenantId');
         projectId = c.req.param('projectId');
-        graphId = c.req.param('graphId');
+        agentId = c.req.param('agentId');
       }
 
-      if (!tenantId || !projectId || !graphId) {
+      if (!tenantId || !projectId || !agentId) {
         return next(); // Let the main handler deal with missing params
       }
 
@@ -492,7 +487,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
       const validationResult = await validateHeaders({
         tenantId,
         projectId,
-        graphId,
+        agentId,
         conversationId,
         parsedRequest,
         dbClient,
@@ -503,7 +498,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
         logger.warn(
           {
             tenantId,
-            graphId,
+            agentId,
             errors: validationResult.errors,
           },
           'Headers validation failed'
@@ -521,7 +516,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
       logger.debug(
         {
           tenantId,
-          graphId,
+          agentId,
           contextKeys: Object.keys(validationResult.validatedContext || {}),
         },
         'Request context validation successful'

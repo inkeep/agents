@@ -99,7 +99,7 @@ export function createDelegateToAgentTool({
   callingAgentId,
   tenantId,
   projectId,
-  graphId,
+  agentId,
   contextId,
   metadata,
   sessionId,
@@ -110,7 +110,7 @@ export function createDelegateToAgentTool({
   callingAgentId: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   contextId: string;
   metadata: {
     conversationId: string;
@@ -169,7 +169,7 @@ export function createDelegateToAgentTool({
           scopes: {
             tenantId,
             projectId,
-            graphId,
+            agentId,
           },
           subAgentId: delegateConfig.config.id,
         });
@@ -225,8 +225,8 @@ export function createDelegateToAgentTool({
           Authorization: `Bearer ${metadata.apiKey}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
-          'x-inkeep-graph-id': graphId,
-          'x-inkeep-agent-id': delegateConfig.config.id,
+          'x-inkeep-agent-id': agentId,
+          'x-inkeep-sub-agent-id': delegateConfig.config.id,
         };
       }
 

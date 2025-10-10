@@ -16,7 +16,7 @@ export function createExecutionContext(params: {
     apiKey: params.apiKey,
     tenantId: params.tenantId,
     projectId: params.projectId,
-    graphId: params.graphId,
+    agentId: params.graphId,
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
   };

@@ -1,6 +1,6 @@
 import {
   createFullGraphServerSide,
-  deleteFullGraph,
+  deleteFullAgent,
   type FullGraphDefinition,
   getFullGraph,
   updateFullGraphServerSide,
@@ -8,6 +8,7 @@ import {
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
+import { createTestContextConfigData } from '../utils/testHelpers';
 import { ensureTestProject } from '../utils/testProject';
 import { createTestExternalAgentData, createTestSubAgentData } from '../utils/testSubAgent';
 import { createTestTenantId } from '../utils/testTenant';
@@ -23,7 +24,6 @@ vi.mock('../../logger.js', () => ({
 }));
 
 describe('Graph Full Service Layer - Unit Tests', () => {
-
   // Helper function to create test tool data
   // const createTestToolData = (id: string, suffix = '') => ({
   //   id,
@@ -68,20 +68,6 @@ describe('Graph Full Service Layer - Unit Tests', () => {
   //     required: ['items'],
   //   },
   // });
-
-  // Helper function to create test context config data
-  const createTestContextConfigData = (id: string, graphId: string, suffix = '') => ({
-    id,
-    graphId,
-    name: `Context Config${suffix}`,
-    description: `Test context configuration${suffix}`,
-    contextSources: [
-      {
-        type: 'static',
-        content: `Static context content${suffix}`,
-      },
-    ],
-  });
 
   // Helper function to create full graph data
   const createFullGraphData = (
@@ -136,7 +122,9 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
     // Add external agents if requested
     if (options.includeExternalAgents) {
-      graphData.subAgents[externalSubAgentId] = createTestExternalAgentData({ id: externalSubAgentId });
+      graphData.subAgents[externalSubAgentId] = createTestExternalAgentData({
+        id: externalSubAgentId,
+      });
     }
 
     // Note: DataComponents are now project-scoped and should be created separately
@@ -335,8 +323,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       expect(result.id).toBe(graphData.id);
 
       // Find external subAgent
-      const externalAgent = Object.values(result.subAgents).find((subAgent) =>
-        subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
+      const externalAgent = Object.values(result.subAgents).find(
+        (subAgent) => subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
       if (externalAgent && externalAgent.type === 'external') {
@@ -401,8 +389,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       }
 
       // Verify external subAgent exists
-      const externalAgent = Object.values(result.subAgents).find((subAgent) =>
-        subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
+      const externalAgent = Object.values(result.subAgents).find(
+        (subAgent) => subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });
@@ -421,7 +409,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Retrieve it
       const result = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: graphData.id },
+        scopes: { tenantId, projectId, agentId: graphData.id },
       });
 
       expect(result).toBeDefined();
@@ -440,7 +428,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       const nonExistentId = nanoid();
 
       const result = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: nonExistentId },
+        scopes: { tenantId, projectId, agentId: nonExistentId },
       });
 
       expect(result).toBeNull();
@@ -614,8 +602,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       expect(Object.keys(result.subAgents)).toHaveLength(3); // 2 internal + 1 external
 
       // Find external agent
-      const externalAgent = Object.values(result.subAgents).find((subAgent) =>
-        subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
+      const externalAgent = Object.values(result.subAgents).find(
+        (subAgent) => subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });
@@ -762,19 +750,19 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Verify it exists
       const beforeDelete = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: graphData.id },
+        scopes: { tenantId, projectId, agentId: graphData.id },
       });
       expect(beforeDelete).toBeDefined();
 
       // Delete it
-      const deleteResult = await deleteFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: graphData.id },
+      const deleteResult = await deleteFullAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId: graphData.id },
       });
       expect(deleteResult).toBe(true);
 
       // Verify it's deleted
       const afterDelete = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: graphData.id },
+        scopes: { tenantId, projectId, agentId: graphData.id },
       });
       expect(afterDelete).toBeNull();
     });
@@ -786,8 +774,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       const nonExistentId = nanoid();
 
-      const result = await deleteFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: nonExistentId },
+      const result = await deleteFullAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId: nonExistentId },
       });
 
       expect(result).toBe(false);
@@ -809,14 +797,14 @@ describe('Graph Full Service Layer - Unit Tests', () => {
       await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
 
       // Delete it
-      const deleteResult = await deleteFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: graphData.id },
+      const deleteResult = await deleteFullAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId: graphData.id },
       });
       expect(deleteResult).toBe(true);
 
       // Verify deletion
       const afterDelete = await getFullGraph(dbClient)({
-        scopes: { tenantId, projectId, graphId: graphData.id },
+        scopes: { tenantId, projectId, agentId: graphData.id },
       });
       expect(afterDelete).toBeNull();
     });
@@ -867,8 +855,8 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Verify both exist
       const [get1, get2] = await Promise.all([
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graph1Data.id } }),
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graph2Data.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, agentId: graph1Data.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, agentId: graph2Data.id } }),
       ]);
 
       expect(get1).toBeDefined();
@@ -889,9 +877,9 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Perform concurrent get operations
       const [get1, get2, get3] = await Promise.all([
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graphData.id } }),
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graphData.id } }),
-        getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId: graphData.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, agentId: graphData.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, agentId: graphData.id } }),
+        getFullGraph(dbClient)({ scopes: { tenantId, projectId, agentId: graphData.id } }),
       ]);
 
       expect(get1).toBeDefined();

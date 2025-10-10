@@ -161,7 +161,7 @@ app.openapi(
       tenantId,
       projectId,
       name: body.name,
-      graphId: body.graphId,
+      graphId: body.agentId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
     };

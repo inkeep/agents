@@ -301,7 +301,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
         subAgentId: testAgentId,
         toolId: testToolId,
       });
@@ -334,7 +334,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
         subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
@@ -369,7 +369,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
         subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
@@ -408,7 +408,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
         subAgentId: testAgentId,
         toolId: testToolId,
         headers,
@@ -448,7 +448,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await addToolToAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
         subAgentId: testAgentId,
         toolId: testToolId,
         selectedTools,
@@ -482,7 +482,7 @@ describe('Tools Data Access', () => {
       } as any;
 
       const result = await removeToolFromAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, graphId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
         subAgentId: testAgentId,
         toolId: testToolId,
       });

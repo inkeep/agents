@@ -1,12 +1,12 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createApiError,
   createFullGraphServerSide,
-  deleteFullGraph,
+  deleteFullAgent,
   ErrorResponseSchema,
   type FullGraphDefinition,
-  GraphWithinContextOfProjectSchema,
   getFullGraph,
   SingleResponseSchema,
   TenantProjectParamsSchema,
@@ -20,8 +20,8 @@ const logger = getLogger('graphFull');
 
 const app = new OpenAPIHono();
 
-// Schema for path parameters with graphId
-const GraphIdParamsSchema = z
+// Schema for path parameters with agentId
+const AgentIdParamsSchema = z
   .object({
     tenantId: z.string().openapi({
       description: 'Tenant identifier',
@@ -31,12 +31,12 @@ const GraphIdParamsSchema = z
       description: 'Project identifier',
       example: 'project_456',
     }),
-    graphId: z.string().openapi({
+    agentId: z.string().openapi({
       description: 'Graph identifier',
       example: 'graph_789',
     }),
   })
-  .openapi('GraphIdParams');
+  .openapi('AgentIdParams');
 
 // Create full graph from JSON
 app.openapi(
@@ -53,7 +53,7 @@ app.openapi(
       body: {
         content: {
           'application/json': {
-            schema: GraphWithinContextOfProjectSchema,
+            schema: AgentWithinContextOfProjectSchema,
           },
         },
       },
@@ -63,7 +63,7 @@ app.openapi(
         description: 'Full graph created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
+            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
           },
         },
       },
@@ -83,7 +83,7 @@ app.openapi(
     const graphData = c.req.valid('json');
 
     // Validate the graph data
-    const validatedGraphData = GraphWithinContextOfProjectSchema.parse(graphData);
+    const validatedGraphData = AgentWithinContextOfProjectSchema.parse(graphData);
 
     // Create the full graph using the server-side data layer operations
     const createdGraph = await createFullGraphServerSide(dbClient, logger)(
@@ -99,21 +99,21 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{graphId}',
+    path: '/{agentId}',
     summary: 'Get Full Graph',
     operationId: 'get-full-graph',
     tags: ['Full Graph'],
     description:
       'Retrieve a complete agent graph definition with all agents, tools, and relationships',
     request: {
-      params: GraphIdParamsSchema,
+      params: AgentIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Full graph found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
+            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
           },
         },
       },
@@ -121,14 +121,14 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
       const graph: FullGraphDefinition | null = await getFullGraph(
         dbClient,
         logger
       )({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
       });
 
       if (!graph) {
@@ -166,11 +166,11 @@ app.openapi(
     description:
       'Update or create a complete agent graph with all agents, tools, and relationships from JSON definition',
     request: {
-      params: GraphIdParamsSchema,
+      params: AgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
-            schema: GraphWithinContextOfProjectSchema,
+            schema: AgentWithinContextOfProjectSchema,
           },
         },
       },
@@ -180,7 +180,7 @@ app.openapi(
         description: 'Full graph updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
+            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
           },
         },
       },
@@ -188,7 +188,7 @@ app.openapi(
         description: 'Full graph created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(GraphWithinContextOfProjectSchema),
+            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
           },
         },
       },
@@ -196,18 +196,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const graphData = c.req.valid('json');
 
     try {
       // Validate the graph data
-      const validatedGraphData = GraphWithinContextOfProjectSchema.parse(graphData);
+      const validatedGraphData = AgentWithinContextOfProjectSchema.parse(graphData);
 
       // Validate that the URL graphId matches the data.id
-      if (graphId !== validatedGraphData.id) {
+      if (agentId !== validatedGraphData.id) {
         throw createApiError({
           code: 'bad_request',
-          message: `Graph ID mismatch: expected ${graphId}, got ${validatedGraphData.id}`,
+          message: `Graph ID mismatch: expected ${agentId}, got ${validatedGraphData.id}`,
         });
       }
 
@@ -216,7 +216,7 @@ app.openapi(
         dbClient,
         logger
       )({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
       });
       const isCreate = !existingGraph;
 
@@ -255,18 +255,18 @@ app.openapi(
   }
 );
 
-// Delete full graph
+// Delete full Agent
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/{graphId}',
-    summary: 'Delete Full Graph',
-    operationId: 'delete-full-graph',
-    tags: ['Full Graph'],
+    path: '/{agentId}',
+    summary: 'Delete Full Agent',
+    operationId: 'delete-full-agent',
+    tags: ['Full Agent'],
     description:
-      'Delete a complete agent graph and cascade to all related entities (relationships, not agents/tools)',
+      'Delete a complete agent and cascade to all related entities (relationships, not other agents/tools)',
     request: {
-      params: GraphIdParamsSchema,
+      params: AgentIdParamsSchema,
     },
     responses: {
       204: {
@@ -276,14 +276,14 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteFullGraph(
+      const deleted = await deleteFullAgent(
         dbClient,
         logger
       )({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
       });
 
       if (!deleted) {

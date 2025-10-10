@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
 import { createTestExternalAgentData } from '../../utils/testSubAgent';
+import { createTestTenantId } from '../../utils/testTenant';
 
 describe('External Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -38,7 +38,12 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     graphId: string;
     suffix?: string;
   }) => {
-    const agentData = createTestExternalAgentData({ suffix, tenantId, projectId, graphId });
+    const agentData = createTestExternalAgentData({
+      suffix,
+      tenantId,
+      projectId,
+      agentId: graphId,
+    });
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
       {
@@ -367,7 +372,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
 
-      const agentData = createTestExternalAgentData({ tenantId, projectId, graphId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId, agentId: graphId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
@@ -395,7 +400,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
 
-      const agentData = createTestExternalAgentData({ tenantId, projectId, graphId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId, agentId: graphId });
       const providedId = nanoid();
 
       const res = await makeRequest(

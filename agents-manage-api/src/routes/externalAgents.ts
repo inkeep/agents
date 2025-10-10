@@ -13,8 +13,8 @@ import {
   listExternalAgentsPaginated,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectGraphIdParamsSchema,
-  TenantProjectGraphParamsSchema,
+  TenantProjectAgentIdParamsSchema,
+  TenantProjectAgentParamsSchema,
   updateExternalAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -30,7 +30,7 @@ app.openapi(
     operationId: 'list-external-agents',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -46,11 +46,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
     const result = await listExternalAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
     // Add type field to all external agents in the response
@@ -74,7 +74,7 @@ app.openapi(
     operationId: 'get-external-agent-by-id',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
@@ -89,9 +89,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const externalAgent = await getExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId: graphId },
       subAgentId: id,
     });
 
@@ -120,7 +120,7 @@ app.openapi(
     operationId: 'create-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -177,7 +177,7 @@ app.openapi(
     operationId: 'update-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -203,7 +203,7 @@ app.openapi(
     const body = c.req.valid('json');
 
     const updatedExternalAgent = await updateExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId: graphId },
       subAgentId: id,
       data: body,
     });
@@ -233,7 +233,7 @@ app.openapi(
     operationId: 'delete-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {
@@ -253,7 +253,7 @@ app.openapi(
     const { tenantId, projectId, graphId, id } = c.req.valid('param');
 
     const deleted = await deleteExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId: graphId },
       subAgentId: id,
     });
 

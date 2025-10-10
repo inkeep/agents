@@ -6,7 +6,7 @@ import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
 import { subAgentToolRelations, tools } from '../db/schema';
 import {
-  type GraphScopeConfig,
+  type AgentScopeConfig,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -351,7 +351,7 @@ export const deleteTool =
 export const addToolToAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     subAgentId: string;
     toolId: string;
     selectedTools?: string[] | null;
@@ -366,7 +366,7 @@ export const addToolToAgent =
         id,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
-        graphId: params.scopes.graphId,
+        agentId: params.scopes.agentId,
         subAgentId: params.subAgentId,
         toolId: params.toolId,
         selectedTools: params.selectedTools,
@@ -381,14 +381,14 @@ export const addToolToAgent =
 
 export const removeToolFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; subAgentId: string; toolId: string }) => {
+  async (params: { scopes: AgentScopeConfig; subAgentId: string; toolId: string }) => {
     const [deleted] = await db
       .delete(subAgentToolRelations)
       .where(
         and(
           eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
           eq(subAgentToolRelations.projectId, params.scopes.projectId),
-          eq(subAgentToolRelations.graphId, params.scopes.graphId),
+          eq(subAgentToolRelations.agentId, params.scopes.agentId),
           eq(subAgentToolRelations.subAgentId, params.subAgentId),
           eq(subAgentToolRelations.toolId, params.toolId)
         )
@@ -404,7 +404,7 @@ export const removeToolFromAgent =
 export const upsertSubAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     subAgentId: string;
     toolId: string;
     selectedTools?: string[] | null;

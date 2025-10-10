@@ -10,13 +10,13 @@ const logger = getLogger('graphFull');
  */
 export const createFullGraph = async (
   tenantId: string,
-  graphData: FullGraphDefinition
+  agentData: FullGraphDefinition
 ): Promise<FullGraphDefinition> => {
   logger.info(
     {
       tenantId,
-      graphId: graphData.id,
-      subAgentCount: Object.keys((graphData as any).subAgents || {}).length,
+      agentId: agentData.id,
+      subAgentCount: Object.keys((agentData as any).subAgents || {}).length,
     },
     'Creating full graph via API endpoint'
   );
@@ -30,7 +30,7 @@ export const createFullGraph = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
 
     if (!response.ok) {
@@ -43,7 +43,7 @@ export const createFullGraph = async (
     logger.info(
       {
         tenantId,
-        graphId: graphData.id,
+        agentId: agentData.id,
         status: response.status,
       },
       'Full graph created successfully via API'
@@ -54,7 +54,7 @@ export const createFullGraph = async (
     logger.error(
       {
         tenantId,
-        graphId: graphData.id,
+        agentId: agentData.id,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to create full graph via API'
@@ -68,20 +68,20 @@ export const createFullGraph = async (
  */
 export const updateFullGraph = async (
   tenantId: string,
-  graphId: string,
+  agentId: string,
   graphData: FullGraphDefinition
 ): Promise<FullGraphDefinition> => {
   const typed = validateAndTypeGraphData(graphData);
 
-  // Validate that the graphId matches the data.id
-  if (graphId !== typed.id) {
-    throw new Error(`Graph ID mismatch: expected ${graphId}, got ${typed.id}`);
+  // Validate that the agentId matches the data.id
+  if (agentId !== typed.id) {
+    throw new Error(`Graph ID mismatch: expected ${agentId}, got ${typed.id}`);
   }
 
   logger.info(
     {
       tenantId,
-      graphId,
+      agentId,
       subAgentCount: Object.keys((graphData as any).subAgents || {}).length,
     },
     'Updating full graph via API endpoint'
@@ -89,7 +89,7 @@ export const updateFullGraph = async (
 
   try {
     const baseUrl = env.AGENTS_MANAGE_API_URL;
-    const endpoint = `${baseUrl}/tenants/${tenantId}/graph/${graphId}`;
+    const endpoint = `${baseUrl}/tenants/${tenantId}/graph/${agentId}`;
 
     const response = await fetch(endpoint, {
       method: 'PUT',
@@ -109,7 +109,7 @@ export const updateFullGraph = async (
     logger.info(
       {
         tenantId,
-        graphId,
+        agentId,
         status: response.status,
       },
       'Full graph updated successfully via API'
@@ -120,7 +120,7 @@ export const updateFullGraph = async (
     logger.error(
       {
         tenantId,
-        graphId,
+        agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to update full graph via API'

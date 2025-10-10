@@ -22,15 +22,15 @@ export function normalizeBaseUrl(url: string): string {
  * @param manageUiUrl The base management UI URL
  * @param tenantId The tenant ID
  * @param projectId The project ID
- * @param graphId The graph ID
+ * @param agentId The graph ID
  * @returns The complete graph view URL
  */
 export function buildGraphViewUrl(
   manageUiUrl: string | undefined,
   tenantId: string,
   projectId: string,
-  graphId: string
+  agentId: string
 ): string {
   const baseUrl = normalizeBaseUrl(manageUiUrl || 'http://localhost:3000');
-  return `${baseUrl}/${tenantId}/projects/${projectId}/graphs/${graphId}`;
+  return `${baseUrl}/${tenantId}/projects/${projectId}/agents/${agentId}`;
 }

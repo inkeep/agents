@@ -128,12 +128,12 @@ program
   .option('--agents-run-api-url <url>', 'Agents run API URL')
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (graphId, options) => {
+  .action(async (agentId, options) => {
     // Import the enhanced version with autocomplete
     const { chatCommandEnhanced } = await import('./commands/chat-enhanced.js');
     // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
-    await chatCommandEnhanced(graphId, { ...options, config });
+    await chatCommandEnhanced(agentId, { ...options, config });
   });
 
 // List graphs command

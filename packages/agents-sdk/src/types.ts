@@ -1,10 +1,10 @@
 import type {
   AgentConversationHistoryConfig,
+  AgentStopWhen,
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
   FullGraphDefinition,
-  GraphStopWhen,
   McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
@@ -244,7 +244,7 @@ export interface GraphConfig {
   subAgents?: () => AllSubAgentInterface[];
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
-  stopWhen?: GraphStopWhen;
+  stopWhen?: AgentStopWhen;
   graphPrompt?: string;
   models?: {
     base?: ModelSettings;

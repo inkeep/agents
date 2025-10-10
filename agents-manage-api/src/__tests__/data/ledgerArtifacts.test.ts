@@ -1,6 +1,6 @@
 import {
   addLedgerArtifacts,
-  agentGraph,
+  agents,
   conversations,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
@@ -34,7 +34,7 @@ describe('Ledger Artifacts – Data Layer', () => {
 
     // Create graph first
     const graphId = 'test-graph';
-    await dbClient.insert(agentGraph).values({
+    await dbClient.insert(agents).values({
       id: graphId,
       tenantId,
       projectId,

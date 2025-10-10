@@ -103,7 +103,7 @@ describe('Chat Data Stream Route', () => {
       id: subAgentId,
       tenantId,
       projectId,
-      graphId,
+      agentId: graphId,
       name: 'Test Agent',
       description: 'Test agent for streaming',
       prompt: 'You are a helpful assistant.',

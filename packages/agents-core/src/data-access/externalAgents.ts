@@ -2,10 +2,10 @@ import { and, asc, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { externalAgents } from '../db/schema';
 import type {
+  AgentScopeConfig,
   ExternalAgentInsert,
   ExternalAgentSelect,
   ExternalAgentUpdate,
-  GraphScopeConfig,
   PaginationConfig,
 } from '../types/index';
 
@@ -26,14 +26,14 @@ export const createExternalAgent =
 export const getExternalAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     subAgentId: string;
   }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
         eq(externalAgents.projectId, params.scopes.projectId),
-        eq(externalAgents.graphId, params.scopes.graphId),
+        eq(externalAgents.agentId, params.scopes.agentId),
         eq(externalAgents.id, params.subAgentId)
       ),
     });
@@ -47,14 +47,14 @@ export const getExternalAgent =
 export const getExternalAgentByUrl =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     baseUrl: string;
   }): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
         eq(externalAgents.projectId, params.scopes.projectId),
-        eq(externalAgents.graphId, params.scopes.graphId),
+        eq(externalAgents.agentId, params.scopes.agentId),
         eq(externalAgents.baseUrl, params.baseUrl)
       ),
     });
@@ -67,12 +67,12 @@ export const getExternalAgentByUrl =
  */
 export const listExternalAgents =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig }): Promise<ExternalAgentSelect[]> => {
+  async (params: { scopes: AgentScopeConfig }): Promise<ExternalAgentSelect[]> => {
     return await db.query.externalAgents.findMany({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
         eq(externalAgents.projectId, params.scopes.projectId),
-        eq(externalAgents.graphId, params.scopes.graphId)
+        eq(externalAgents.agentId, params.scopes.agentId)
       ),
       orderBy: [asc(externalAgents.name)],
     });
@@ -84,7 +84,7 @@ export const listExternalAgents =
 export const listExternalAgentsPaginated =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     pagination?: PaginationConfig;
   }): Promise<{
     data: ExternalAgentSelect[];
@@ -102,7 +102,7 @@ export const listExternalAgentsPaginated =
           and(
             eq(externalAgents.tenantId, params.scopes.tenantId),
             eq(externalAgents.projectId, params.scopes.projectId),
-            eq(externalAgents.graphId, params.scopes.graphId)
+            eq(externalAgents.agentId, params.scopes.agentId)
           )
         )
         .limit(limit)
@@ -115,7 +115,7 @@ export const listExternalAgentsPaginated =
           and(
             eq(externalAgents.tenantId, params.scopes.tenantId),
             eq(externalAgents.projectId, params.scopes.projectId),
-            eq(externalAgents.graphId, params.scopes.graphId)
+            eq(externalAgents.agentId, params.scopes.agentId)
           )
         ),
     ]);
@@ -138,7 +138,7 @@ export const listExternalAgentsPaginated =
 export const updateExternalAgent =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     subAgentId: string;
     data: Partial<ExternalAgentUpdate>;
   }): Promise<ExternalAgentSelect | null> => {
@@ -170,7 +170,7 @@ export const updateExternalAgent =
         and(
           eq(externalAgents.tenantId, params.scopes.tenantId),
           eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.graphId, params.scopes.graphId),
+          eq(externalAgents.agentId, params.scopes.agentId),
           eq(externalAgents.id, params.subAgentId)
         )
       )
@@ -188,8 +188,8 @@ export const upsertExternalAgent =
     const scopes = {
       tenantId: params.data.tenantId,
       projectId: params.data.projectId,
-      graphId: params.data.graphId,
-    };
+      agentId: params.data.agentId,
+    } satisfies AgentScopeConfig;
 
     const existing = await getExternalAgent(db)({
       scopes,
@@ -224,7 +224,7 @@ export const upsertExternalAgent =
  */
 export const deleteExternalAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; subAgentId: string }): Promise<boolean> => {
+  async (params: { scopes: AgentScopeConfig; subAgentId: string }): Promise<boolean> => {
     try {
       const result = await db
         .delete(externalAgents)
@@ -232,7 +232,7 @@ export const deleteExternalAgent =
           and(
             eq(externalAgents.tenantId, params.scopes.tenantId),
             eq(externalAgents.projectId, params.scopes.projectId),
-            eq(externalAgents.graphId, params.scopes.graphId),
+            eq(externalAgents.agentId, params.scopes.agentId),
             eq(externalAgents.id, params.subAgentId)
           )
         )
@@ -250,7 +250,7 @@ export const deleteExternalAgent =
  */
 export const externalAgentExists =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; subAgentId: string }): Promise<boolean> => {
+  async (params: { scopes: AgentScopeConfig; subAgentId: string }): Promise<boolean> => {
     const agent = await getExternalAgent(db)(params);
     return agent !== null;
   };
@@ -260,7 +260,7 @@ export const externalAgentExists =
  */
 export const externalAgentUrlExists =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; baseUrl: string }): Promise<boolean> => {
+  async (params: { scopes: AgentScopeConfig; baseUrl: string }): Promise<boolean> => {
     const agent = await getExternalAgentByUrl(db)(params);
     return agent !== null;
   };
@@ -270,7 +270,7 @@ export const externalAgentUrlExists =
  */
 export const countExternalAgents =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig }): Promise<number> => {
+  async (params: { scopes: AgentScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(externalAgents)
@@ -278,7 +278,7 @@ export const countExternalAgents =
         and(
           eq(externalAgents.tenantId, params.scopes.tenantId),
           eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.graphId, params.scopes.graphId)
+          eq(externalAgents.agentId, params.scopes.agentId)
         )
       );
 

@@ -1,37 +1,11 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
+import { createTestToolData } from '../../utils/testHelpers';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Project Full CRUD Routes - Integration Tests', () => {
-  // Helper function to create test tool data
-  const createTestToolData = (id: string, suffix = '') => {
-    // Remove all non-numeric characters from suffix for URL port
-    const urlSuffix = suffix.replace(/\D/g, '') || '1';
-    return {
-      id,
-      name: `Test Tool${suffix}`,
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: {
-            url: `http://localhost:300${urlSuffix}`,
-          },
-        },
-      },
-      status: 'unknown' as const,
-      capabilities: { tools: true },
-      lastHealthCheck: new Date().toISOString(),
-      availableTools: [
-        {
-          name: `testTool${suffix}`,
-          description: `Test tool function${suffix}`,
-        },
-      ],
-    };
-  };
-
   // Helper function to create full graph definition
   // NOTE: Tools should be defined at PROJECT level, not graph level
   const createTestGraphDefinition = (graphId: string, subAgentId: string, suffix = '') => ({

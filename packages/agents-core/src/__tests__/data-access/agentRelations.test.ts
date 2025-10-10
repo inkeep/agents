@@ -10,7 +10,7 @@ import {
   getAgentRelationsBySource,
   getAgentRelationsByTarget,
   getExternalAgentRelations,
-  getRelatedAgentsForGraph,
+  getRelatedAgentsForAgent,
   getToolsForAgent,
   listAgentRelations,
   updateAgentRelation,
@@ -26,7 +26,7 @@ describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -39,7 +39,7 @@ describe('Agent Relations Data Access', () => {
         id: relationId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         sourceSubAgentId: 'agent-1',
         targetSubAgentId: 'agent-2',
         relationType: 'transfer',
@@ -60,7 +60,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
       });
@@ -85,7 +85,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId: 'non-existent',
       });
@@ -137,7 +137,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         pagination: {
           page: 1,
@@ -177,7 +177,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           subAgentId: 'agent-1',
         },
       });
@@ -229,7 +229,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         sourceSubAgentId: 'agent-1',
       });
@@ -287,7 +287,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         targetSubAgentId: 'agent-2',
       });
@@ -338,11 +338,11 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await getRelatedAgentsForGraph(mockDb)({
+      const result = await getRelatedAgentsForAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         subAgentId: 'agent-1',
       });
@@ -396,7 +396,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           subAgentId: 'agent-1',
         },
       });
@@ -418,7 +418,7 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         sourceSubAgentId: 'agent-1',
         targetSubAgentId: 'agent-2',
         relationType: 'transfer',
@@ -446,7 +446,7 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         sourceSubAgentId: 'agent-1',
         externalSubAgentId: 'ext-agent-1',
         relationType: 'delegate',
@@ -475,7 +475,7 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         sourceSubAgentId: 'agent-1',
         targetSubAgentId: 'agent-2',
         externalSubAgentId: 'ext-agent-1',
@@ -494,7 +494,7 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         sourceSubAgentId: 'agent-1',
         relationType: 'transfer',
       };
@@ -513,7 +513,7 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         sourceSubAgentId: 'agent-1',
         externalSubAgentId: 'ext-agent-1',
         relationType: 'delegate',
@@ -584,7 +584,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         externalSubAgentId: 'ext-1',
       });
@@ -629,7 +629,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
         data: updateData,
@@ -657,7 +657,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
       });
@@ -692,7 +692,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId: 'tool-relation-1',
         data: { subAgentId: 'agent-1', toolId: 'tool-1' },
@@ -733,7 +733,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
         data: updateData,
@@ -761,7 +761,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
       });
@@ -790,7 +790,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           subAgentId: 'agent-1',
         },
       });
@@ -816,7 +816,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           subAgentId: 'non-existent',
         },
       });
@@ -844,7 +844,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           subAgentId: 'ext-agent-1',
         },
       });
@@ -870,7 +870,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           subAgentId: 'non-existent',
         },
       });

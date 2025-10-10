@@ -838,7 +838,7 @@ export class Project implements ProjectInterface {
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
       sandboxConfig: this.sandboxConfig,
-      graphs: graphsObject,
+      agents: graphsObject,
       tools: toolsObject,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:

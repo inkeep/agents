@@ -1,12 +1,7 @@
-import {
-  getAgentGraphById,
-  getProject,
-  type Models,
-  type SubAgentSelect,
-} from '@inkeep/agents-core';
+import { getAgentById, getProject, type Models, type SubAgentSelect } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
-async function resolveModelConfig(graphId: string, agent: SubAgentSelect): Promise<Models> {
+async function resolveModelConfig(agentId: string, agent: SubAgentSelect): Promise<Models> {
   // If base model is defined on the agent
   if (agent.models?.base?.model) {
     return {
@@ -18,8 +13,8 @@ async function resolveModelConfig(graphId: string, agent: SubAgentSelect): Promi
 
   // If base model is not defined on the agent (or models is undefined/null)
   // Check graph model config first
-  const graph = await getAgentGraphById(dbClient)({
-    scopes: { tenantId: agent.tenantId, projectId: agent.projectId, graphId },
+  const graph = await getAgentById(dbClient)({
+    scopes: { tenantId: agent.tenantId, projectId: agent.projectId, agentId },
   });
 
   if (graph?.models?.base?.model) {

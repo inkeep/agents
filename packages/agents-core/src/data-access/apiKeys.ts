@@ -35,7 +35,7 @@ export const listApiKeys =
     ];
 
     if (params.graphId) {
-      conditions.push(eq(apiKeys.graphId, params.graphId));
+      conditions.push(eq(apiKeys.agentId, params.graphId));
     }
 
     return await db.query.apiKeys.findMany({
@@ -63,7 +63,7 @@ export const listApiKeysPaginated =
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
     if (params.graphId) {
-      conditions.push(eq(apiKeys.graphId, params.graphId));
+      conditions.push(eq(apiKeys.agentId, params.graphId));
     }
 
     const whereClause = and(...conditions);
@@ -99,7 +99,7 @@ export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert)
       name: params.name,
       tenantId: params.tenantId,
       projectId: params.projectId,
-      graphId: params.graphId,
+      agentId: params.agentId,
       publicId: params.publicId,
       keyHash: params.keyHash,
       keyPrefix: params.keyPrefix,
@@ -192,7 +192,7 @@ export const countApiKeys =
     ];
 
     if (params.graphId) {
-      conditions.push(eq(apiKeys.graphId, params.graphId));
+      conditions.push(eq(apiKeys.agentId, params.graphId));
     }
 
     const result = await db
@@ -212,7 +212,7 @@ export const generateAndCreateApiKey = async (
   params: CreateApiKeyParams,
   db: DatabaseClient
 ): Promise<ApiKeyCreateResult> => {
-  const { tenantId, projectId, graphId, expiresAt, name } = params;
+  const { tenantId, projectId, agentId, expiresAt, name } = params;
 
   // Generate the API key
   const keyData = await generateApiKey();
@@ -221,7 +221,7 @@ export const generateAndCreateApiKey = async (
   const apiKey = await createApiKey(db)({
     tenantId,
     projectId,
-    graphId,
+    agentId,
     name,
     expiresAt,
     ...keyData,

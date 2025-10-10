@@ -14,9 +14,9 @@ import type {
 } from '../types/entities';
 import type {
   AgentScopeConfig,
-  GraphScopeConfig,
   PaginationConfig,
   ProjectScopeConfig,
+  SubAgentScopeConfig,
 } from '../types/utility';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
@@ -168,7 +168,7 @@ export const deleteArtifactComponent =
   };
 
 export const getArtifactComponentsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     return await db
       .select({
         id: artifactComponents.id,
@@ -189,7 +189,7 @@ export const getArtifactComponentsForAgent =
         and(
           eq(artifactComponents.tenantId, params.scopes.tenantId),
           eq(artifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentArtifactComponents.graphId, params.scopes.graphId),
+          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
         )
       )
@@ -198,14 +198,14 @@ export const getArtifactComponentsForAgent =
 
 export const associateArtifactComponentWithAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; artifactComponentId: string }) => {
+  async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     const [association] = await db
       .insert(subAgentArtifactComponents)
       .values({
         id: nanoid(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
-        graphId: params.scopes.graphId,
+        agentId: params.scopes.agentId,
         subAgentId: params.scopes.subAgentId,
         artifactComponentId: params.artifactComponentId,
         createdAt: new Date().toISOString(),
@@ -217,7 +217,7 @@ export const associateArtifactComponentWithAgent =
 
 export const removeArtifactComponentFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; artifactComponentId: string }) => {
+  async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     try {
       const result = await db
         .delete(subAgentArtifactComponents)
@@ -225,7 +225,7 @@ export const removeArtifactComponentFromAgent =
           and(
             eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
             eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-            eq(subAgentArtifactComponents.graphId, params.scopes.graphId),
+            eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
             eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId),
             eq(subAgentArtifactComponents.artifactComponentId, params.artifactComponentId)
           )
@@ -240,13 +240,13 @@ export const removeArtifactComponentFromAgent =
   };
 
 export const deleteAgentArtifactComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentArtifactComponents)
       .where(
         and(
           eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentArtifactComponents.graphId, params.scopes.graphId),
+          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
         )
       );
@@ -258,7 +258,7 @@ export const getAgentsUsingArtifactComponent =
   async (params: { scopes: ProjectScopeConfig; artifactComponentId: string }) => {
     return await db
       .select({
-        graphId: subAgentArtifactComponents.graphId,
+        graphId: subAgentArtifactComponents.agentId,
         subAgentId: subAgentArtifactComponents.subAgentId,
         createdAt: subAgentArtifactComponents.createdAt,
       })
@@ -275,7 +275,7 @@ export const getAgentsUsingArtifactComponent =
 
 export const isArtifactComponentAssociatedWithAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; artifactComponentId: string }) => {
+  async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     const result = await db
       .select({ id: subAgentArtifactComponents.id })
       .from(subAgentArtifactComponents)
@@ -283,7 +283,7 @@ export const isArtifactComponentAssociatedWithAgent =
         and(
           eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
           eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentArtifactComponents.graphId, params.scopes.graphId),
+          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId),
           eq(subAgentArtifactComponents.artifactComponentId, params.artifactComponentId)
         )
@@ -295,7 +295,7 @@ export const isArtifactComponentAssociatedWithAgent =
 
 export const graphHasArtifactComponents =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig }): Promise<boolean> => {
+  async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const result = await db
       .select({ count: count() })
       .from(subAgentArtifactComponents)
@@ -312,14 +312,14 @@ export const graphHasArtifactComponents =
           eq(subAgents.id, subAgentRelations.sourceSubAgentId),
           eq(subAgents.tenantId, subAgentRelations.tenantId),
           eq(subAgents.projectId, subAgentRelations.projectId),
-          eq(subAgents.graphId, subAgentRelations.graphId)
+          eq(subAgents.agentId, subAgentRelations.agentId)
         )
       )
       .where(
         and(
           eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
           eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentRelations.graphId, params.scopes.graphId)
+          eq(subAgentRelations.agentId, params.scopes.agentId)
         )
       )
       .limit(1);
@@ -349,7 +349,7 @@ export const countArtifactComponents =
 
 export const countArtifactComponentsForAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<number> => {
+  async (params: { scopes: SubAgentScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(subAgentArtifactComponents)
@@ -357,7 +357,7 @@ export const countArtifactComponentsForAgent =
         and(
           eq(subAgentArtifactComponents.tenantId, params.scopes.tenantId),
           eq(subAgentArtifactComponents.projectId, params.scopes.projectId),
-          eq(subAgentArtifactComponents.graphId, params.scopes.graphId),
+          eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
         )
       );
@@ -371,7 +371,7 @@ export const countArtifactComponentsForAgent =
  */
 export const upsertAgentArtifactComponentRelation =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; artifactComponentId: string }) => {
+  async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     // Check if relation already exists
     const exists = await isArtifactComponentAssociatedWithAgent(db)(params);
 

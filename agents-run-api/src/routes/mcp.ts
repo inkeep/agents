@@ -16,7 +16,7 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentGraphWithDefaultSubAgent,
+  getAgentWithDefaultSubAgent,
   getConversation,
   getConversationId,
   getRequestExecutionContext,
@@ -302,11 +302,11 @@ const getServer = async (
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
-  setupTracing(conversationId, tenantId, graphId);
+  const { tenantId, projectId, agentId } = executionContext;
+  setupTracing(conversationId, tenantId, agentId);
 
-  const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-    scopes: { tenantId, projectId, graphId },
+  const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+    scopes: { tenantId, projectId, agentId },
   });
 
   if (!agentGraph) {
@@ -344,7 +344,7 @@ const getServer = async (
         const defaultSubAgentId = agentGraph.defaultSubAgentId;
 
         const agentInfo = await getSubAgentById(dbClient)({
-          scopes: { tenantId, projectId, graphId },
+          scopes: { tenantId, projectId, agentId },
           subAgentId: defaultSubAgentId,
         });
         if (!agentInfo) {
@@ -362,7 +362,7 @@ const getServer = async (
         const resolvedContext = await handleContextResolution({
           tenantId,
           projectId,
-          graphId,
+          agentId,
           conversationId,
           headers,
           dbClient,
@@ -373,7 +373,7 @@ const getServer = async (
           {
             tenantId,
             projectId,
-            graphId,
+            agentId,
             conversationId,
             hasContextConfig: !!agentGraph.contextConfigId,
             hasHeaders: !!headers,
@@ -425,9 +425,9 @@ const validateRequestParameters = (
 ): { valid: true; executionContext: ExecutionContext } | { valid: false; response: Response } => {
   try {
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
-    getLogger('mcp').debug({ tenantId, projectId, graphId }, 'Extracted MCP entity parameters');
+    getLogger('mcp').debug({ tenantId, projectId, agentId }, 'Extracted MCP entity parameters');
 
     return { valid: true, executionContext };
   } catch (error) {
@@ -461,13 +461,13 @@ const handleInitializationRequest = async (
   c: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
   // Get the default agent for the graph
-  const agentGraph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-    scopes: { tenantId, projectId, graphId },
+  const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+    scopes: { tenantId, projectId, agentId },
   });
   if (!agentGraph) {
     return c.json(
@@ -499,7 +499,7 @@ const handleInitializationRequest = async (
     activeSubAgentId: agentGraph.defaultSubAgentId,
     metadata: {
       sessionData: {
-        graphId,
+        agentId,
         sessionType: 'mcp',
         mcpProtocolVersion: c.req.header('mcp-protocol-version'),
         initialized: false, // Track initialization state
@@ -550,9 +550,9 @@ const handleExistingSessionRequest = async (
   res: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   // Validate the session id
-  const conversation = await validateSession(req, res, body, tenantId, projectId, graphId);
+  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId);
   if (!conversation) {
     return toFetchResponse(res);
   }

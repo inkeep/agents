@@ -137,7 +137,7 @@ describe('External Agent Credential Handling', () => {
         },
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
-        graphId: mockGraphId,
+        agentId: mockGraphId,
         projectId: mockProjectId,
         contextId: mockContextId,
         metadata: {
@@ -226,7 +226,7 @@ describe('External Agent Credential Handling', () => {
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
         projectId: mockProjectId,
-        graphId: mockGraphId,
+        agentId: mockGraphId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
@@ -298,7 +298,7 @@ describe('External Agent Credential Handling', () => {
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
         projectId: mockProjectId,
-        graphId: mockGraphId,
+        agentId: mockGraphId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
@@ -357,7 +357,7 @@ describe('External Agent Credential Handling', () => {
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
         projectId: mockProjectId,
-        graphId: mockGraphId,
+        agentId: mockGraphId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',

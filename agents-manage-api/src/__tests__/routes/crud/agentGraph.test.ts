@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
+import { createTestAgentGraphData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -36,7 +37,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
   }) => {
     const agentData = createTestSubAgentData({ suffix });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agents`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/sub-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -412,7 +413,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('GET /{graphId}/agents/{subAgentId}/related', () => {
+  describe('GET /{graphId}/sub-agents/{subAgentId}/related', () => {
     it('should get related agent infos (empty initially)', async () => {
       const tenantId = createTestTenantId('agent-graphs-related-empty');
       await ensureTestProject(tenantId, projectId);
@@ -430,7 +431,7 @@ describe('Agent Graph CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}/agents/${subAgentId}/related`
+        `/tenants/${tenantId}/projects/${projectId}/agent-graphs/${agentGraphId}/sub-agents/${subAgentId}/related`
       );
       expect(res.status).toBe(200);
 

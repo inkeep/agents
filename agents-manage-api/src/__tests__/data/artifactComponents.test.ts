@@ -17,7 +17,7 @@ describe('Artifact Components Data Operations', () => {
       const graphId = 'non-existent-graph';
 
       const components = await getArtifactComponentsForAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, subAgentId },
+        scopes: { tenantId, projectId, agentId: graphId, subAgentId },
       });
       expect(components).toEqual([]);
     });

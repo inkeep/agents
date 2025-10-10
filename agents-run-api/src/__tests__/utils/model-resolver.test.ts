@@ -1,4 +1,4 @@
-import type { AgentGraphSelect, ProjectSelect, SubAgentSelect } from '@inkeep/agents-core';
+import type { AgentSelect, ProjectSelect, SubAgentSelect } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
@@ -18,7 +18,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 });
 
 // Import mocked functions
-const mockGetAgentGraphById = vi.mocked(await import('@inkeep/agents-core')).getAgentGraphById;
+const mockGetAgentGraphById = vi.mocked(await import('@inkeep/agents-core')).getAgentById;
 const mockGetProject = vi.mocked(await import('@inkeep/agents-core')).getProject;
 
 describe('resolveModelConfig', () => {
@@ -116,7 +116,7 @@ describe('resolveModelConfig', () => {
         models: null,
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         tenantId: 'tenant-123',
         projectId: 'project-123',
@@ -125,7 +125,7 @@ describe('resolveModelConfig', () => {
           structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: undefined,
         },
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       mockGetAgentGraphById.mockReturnValue(mockGraphFn);
@@ -158,7 +158,7 @@ describe('resolveModelConfig', () => {
         },
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         tenantId: 'tenant-123',
         projectId: 'project-123',
@@ -167,7 +167,7 @@ describe('resolveModelConfig', () => {
           structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: { model: 'claude-3-opus' },
         },
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       mockGetAgentGraphById.mockReturnValue(mockGraphFn);
@@ -187,10 +187,10 @@ describe('resolveModelConfig', () => {
         models: null,
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -232,10 +232,10 @@ describe('resolveModelConfig', () => {
         },
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -270,10 +270,10 @@ describe('resolveModelConfig', () => {
         models: null,
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -297,10 +297,10 @@ describe('resolveModelConfig', () => {
         models: null,
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -382,14 +382,14 @@ describe('resolveModelConfig', () => {
         },
       } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
+      const mockGraph: AgentSelect = {
         id: 'graph-123',
         models: {
           base: { model: 'claude-3-sonnet' },
           structuredOutput: undefined,
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
       mockGetAgentGraphById.mockReturnValue(mockGraphFn);

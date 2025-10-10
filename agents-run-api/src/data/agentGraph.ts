@@ -1,5 +1,5 @@
 import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
-import { type AgentGraphSelect, getAgentGraphById, getSubAgentById } from '@inkeep/agents-core';
+import { type AgentSelect, getAgentById, getSubAgentById } from '@inkeep/agents-core';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
@@ -10,7 +10,7 @@ async function hydrateGraph({
   baseUrl,
   apiKey,
 }: {
-  dbGraph: AgentGraphSelect;
+  dbGraph: AgentSelect;
   baseUrl: string;
   apiKey?: string;
 }): Promise<RegisteredAgent> {
@@ -25,7 +25,7 @@ async function hydrateGraph({
       scopes: {
         tenantId: dbGraph.tenantId,
         projectId: dbGraph.projectId,
-        graphId: dbGraph.id,
+        agentId: dbGraph.id,
       },
       subAgentId: dbGraph.defaultSubAgentId,
     });
@@ -85,11 +85,13 @@ async function hydrateGraph({
 }
 
 // A2A functions that hydrate graphs on-demand
-export async function getRegisteredGraph(
+export async function getRegisteredAgent(
   executionContext: ExecutionContext
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, graphId, baseUrl, apiKey } = executionContext;
-  const dbGraph = await getAgentGraphById(dbClient)({ scopes: { tenantId, projectId, graphId } });
+  const { tenantId, projectId, agentId, baseUrl, apiKey } = executionContext;
+  const dbGraph = await getAgentById(dbClient)({
+    scopes: { tenantId, projectId, agentId },
+  });
   if (!dbGraph) {
     return null;
   }

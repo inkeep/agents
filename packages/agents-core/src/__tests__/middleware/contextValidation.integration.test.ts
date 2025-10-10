@@ -52,7 +52,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1',
+      agentId: 'graph1',
       conversationId: 'conv1',
       parsedRequest,
       dbClient,
@@ -98,7 +98,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1',
+      agentId: 'graph1',
       conversationId: 'conv1',
       parsedRequest,
       dbClient,
@@ -123,7 +123,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1',
+      agentId: 'graph1',
       conversationId: 'conv1',
       parsedRequest,
       dbClient,

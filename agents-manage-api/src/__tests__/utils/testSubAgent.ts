@@ -41,7 +41,11 @@ export function createTestSubAgentData({
   tenantId?: string;
   projectId?: string;
   tools?: string[];
-  canUse?: Array<{ toolId: string; toolSelection?: string[] | null; headers?: Record<string, string> | null }>;
+  canUse?: Array<{
+    toolId: string;
+    toolSelection?: string[] | null;
+    headers?: Record<string, string> | null;
+  }>;
   canDelegateTo?: string[];
   canTransferTo?: string[];
   dataComponents?: string[];
@@ -90,7 +94,7 @@ export function createTestSubAgentData({
  * const externalAgent = createTestExternalAgentData({
  *   id: 'ext-agent-1',
  *   suffix: ' External',
- *   graphId: 'my-graph',
+ *   agentId: 'my-graph',
  *   baseUrl: 'https://api.example.com'
  * });
  * ```
@@ -100,7 +104,7 @@ export function createTestExternalAgentData({
   suffix = '',
   tenantId,
   projectId,
-  graphId,
+  agentId,
   baseUrl,
   headers,
   credentialReferenceId,
@@ -109,25 +113,28 @@ export function createTestExternalAgentData({
   suffix?: string;
   tenantId?: string;
   projectId?: string;
-  graphId?: string;
+  agentId?: string;
   baseUrl?: string;
   headers?: Record<string, string> | null;
   credentialReferenceId?: string | null;
 } = {}) {
-  const agentId = id || `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
+  const subAgentId =
+    id || `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
 
   const baseData: any = {
-    id: agentId,
+    id: subAgentId,
     name: `Test External Agent${suffix}`,
     description: `Test external agent description${suffix}`,
-    baseUrl: baseUrl || `https://api.example.com/external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}`,
+    baseUrl:
+      baseUrl ||
+      `https://api.example.com/external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}`,
     type: 'external' as const,
   };
 
   // Only add optional fields if they're provided
   if (tenantId !== undefined) baseData.tenantId = tenantId;
   if (projectId !== undefined) baseData.projectId = projectId;
-  if (graphId !== undefined) baseData.graphId = graphId;
+  if (agentId !== undefined) baseData.agentId = agentId;
   if (headers !== undefined) baseData.headers = headers;
   if (credentialReferenceId !== undefined) baseData.credentialReferenceId = credentialReferenceId;
 
