@@ -407,17 +407,11 @@ export function renderPanelContent({
             {a.artifactType && <Info label="Type" value={a.artifactType} />}
             {a.artifactDescription && <Info label="Description" value={a.artifactDescription} />}
             {a.artifactData && (
-              <LabeledBlock label="Data">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.artifactData), null, 2);
-                    } catch {
-                      return a.artifactData;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.artifactData)}
+                title="Artifact data"
+                uri="artifact-data.json"
+              />
             )}
             <StatusBadge status={a.status} />
             {a.artifactAgentId && <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />}

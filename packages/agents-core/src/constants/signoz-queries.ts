@@ -115,6 +115,7 @@ export const QUERY_EXPRESSIONS = {
   DURATION_SPANS: 'durationSpans',
   AGENT_GENERATIONS: 'agentGenerations',
   SPANS_WITH_ERRORS: 'spansWithErrors',
+  ARTIFACT_PROCESSING: 'artifactProcessing',
 } as const;
 
 /** Query Reduce Operations */

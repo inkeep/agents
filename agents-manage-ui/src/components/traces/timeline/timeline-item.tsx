@@ -11,6 +11,7 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
 import { Bubble } from '@/components/traces/timeline/bubble';
@@ -24,9 +25,25 @@ import {
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
+);
+
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
   return words.length > nWords ? `${words.slice(0, nWords).join(' ')}...` : s;
+}
+
+function formatJsonSafely(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
 }
 
 function statusIcon(
@@ -265,17 +282,12 @@ export function TimelineItem({
                     </div>
                   )}
                   {activity.artifactData && (
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium">Data:</span>
-                      <div className="text-emerald-900 dark:text-emerald-300 whitespace-pre-wrap break-words">
-                        {(() => {
-                          try {
-                            return JSON.stringify(JSON.parse(activity.artifactData), null, 2);
-                          } catch {
-                            return activity.artifactData;
-                          }
-                        })()}
-                      </div>
+                    <div className="mt-2">
+                      <JsonEditorWithCopy
+                        value={formatJsonSafely(activity.artifactData)}
+                        title="Artifact data"
+                        uri={`artifact-data-${activity.id}.json`}
+                      />
                     </div>
                   )}
                 </div>

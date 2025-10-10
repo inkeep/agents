@@ -932,6 +932,11 @@ export async function GET(
       const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
       const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
 
+      const statusMessage = hasError
+      ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
+        getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
+      : '';
+
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.TOOL_CALL,
@@ -1164,7 +1169,6 @@ export async function GET(
         description: 'Artifact processed',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || undefined,
         agentName: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || 'Unknown Agent',
         result: hasError
           ? 'Artifact processing failed'
