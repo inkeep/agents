@@ -107,7 +107,6 @@ export function createEditor(
     language,
     automaticLayout: true,
     minimap: { enabled: false }, // disable the minimap
-    renderLineHighlight: 'none', // Remove a line selection border
     overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
     scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
     lineNumbers: 'off',
@@ -125,12 +124,10 @@ export function createEditor(
       useShadows: false, // Disable shadow effects
       alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
     },
-    // tabSize: 2,
     // stickyScroll: { enabled: false }, // Disable sticky scroll widget
     // scrollbar: {
     //   verticalScrollbarSize: 10,
     // },
-    // lineNumbersMinChars: 2, // reduce line numbers width on the left size
     ...options,
   });
 }
