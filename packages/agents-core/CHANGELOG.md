@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.18.1
+
+### Patch Changes
+
+- 71892f2: types added
+
 ## 0.18.0
 
 ### Minor Changes
