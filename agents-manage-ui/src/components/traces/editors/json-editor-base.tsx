@@ -42,135 +42,160 @@ export interface JsonEditorRef {
   editor: editor.IStandaloneCodeEditor | null;
 }
 
-export const JsonEditor = forwardRef<
-  JsonEditorRef,
-  {
-    value: string;
-    uri: `${string}.json`;
-    readOnly?: boolean;
-    children?: ReactNode;
-    className?: string;
-    disabled?: boolean;
-  }
->(({ value, uri, readOnly, children, className, disabled }, ref) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
-  const { resolvedTheme } = useTheme();
+interface JsonEditorProps {
+  value: string;
+  uri: `${string}.json`;
+  readOnly?: boolean;
+  children?: ReactNode;
+  className?: string;
+  disabled?: boolean;
+  onChange?: (value: string) => void;
+}
 
-  useImperativeHandle(ref, () => ({
-    editor: editorRef.current,
-  }));
+export const JsonEditor = forwardRef<JsonEditorRef, JsonEditorProps>(
+  ({ value, uri, readOnly, children, className, disabled, onChange }, ref) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+    const onChangeRef = useRef<typeof onChange>(undefined);
+    const { resolvedTheme } = useTheme();
 
-  useEffect(() => {
-    editorRef.current?.updateOptions({
-      readOnly: readOnly || disabled,
-    });
-  }, [readOnly, disabled]);
+    useImperativeHandle(ref, () => ({
+      editor: editorRef.current,
+    }));
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const model = getOrCreateModel({ uri, value });
-    const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-    const editorInstance = createEditor(container, {
-      theme: monacoTheme,
-      model,
-      readOnly,
-      lineNumbers: 'off',
-      wordWrap: 'on', // Toggle word wrap on resizing editors
-      contextmenu: false, // Disable the right-click context menu
-      fontSize: 12,
-      fixedOverflowWidgets: true, // since container has overflow-hidden
-      padding: {
-        top: 16,
-        bottom: 16,
-      },
-      scrollbar: {
-        vertical: 'hidden', // Hide vertical scrollbar
-        horizontal: 'hidden', // Hide horizontal scrollbar
-        useShadows: false, // Disable shadow effects
-        alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
-      },
-    });
-    editorRef.current = editorInstance;
+    useEffect(() => {
+      editorRef.current?.updateOptions({
+        readOnly: readOnly || disabled,
+      });
+    }, [readOnly, disabled]);
 
-    function updateHeight() {
-      if (model.isDisposed()) {
+    // Update model when value prop changes
+    useEffect(() => {
+      const model = editorRef.current?.getModel();
+      if (model && model.getValue() !== value) {
+        model.setValue(value);
+      }
+    }, [value]);
+
+    useEffect(() => {
+      onChangeRef.current = onChange;
+    }, [onChange]);
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) {
         return;
       }
-      // Update height based on content
-      const contentHeight = editorInstance.getContentHeight();
-      if (container) {
-        container.style.height = `${contentHeight}px`;
-      }
-    }
-    const disposables: IDisposable[] = [
-      model,
-      editorInstance,
-      editorInstance.onDidContentSizeChange(updateHeight),
-      // Disable command palette by overriding the action
-      editorInstance.addAction({
-        id: 'disable-command-palette',
-        label: 'Disable Command Palette',
-        keybindings: [KeyCode.F1],
-        // Do nothing - this prevents the command palette from opening
-        run() {},
-      }),
-    ];
-    if (readOnly) {
-      // Wait for Monaco workers to initialize
-      const timerId = setTimeout(() => {
+      const model = getOrCreateModel({ uri, value });
+      const monacoTheme =
+        resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
+      const editorInstance = createEditor(container, {
+        theme: monacoTheme,
+        model,
+        readOnly,
+        lineNumbers: 'off',
+        wordWrap: 'on', // Toggle word wrap on resizing editors
+        contextmenu: false, // Disable the right-click context menu
+        fontSize: 12,
+        fixedOverflowWidgets: true, // since container has overflow-hidden
+        padding: {
+          top: 16,
+          bottom: 16,
+        },
+        scrollbar: {
+          vertical: 'hidden', // Hide vertical scrollbar
+          horizontal: 'hidden', // Hide horizontal scrollbar
+          useShadows: false, // Disable shadow effects
+          alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
+        },
+      });
+      editorRef.current = editorInstance;
+
+      function updateHeight() {
         if (model.isDisposed()) {
           return;
         }
-        addDecorations(editorInstance, value, ' ');
-      }, 1000);
-      disposables.push(
-        {
-          dispose() {
-            clearTimeout(timerId);
+        // Update height based on content
+        const contentHeight = editorInstance.getContentHeight();
+        if (container) {
+          container.style.height = `${contentHeight}px`;
+        }
+      }
+      const disposables: IDisposable[] = [
+        model,
+        model.onDidChangeContent(() => {
+          const onChange = onChangeRef.current
+          if (!onChange) {
+            return
+          }
+          const newValue = model.getValue();
+          onChange(newValue);
+        }),
+        editorInstance,
+        editorInstance.onDidContentSizeChange(updateHeight),
+        // Disable command palette by overriding the action
+        editorInstance.addAction({
+          id: 'disable-command-palette',
+          label: 'Disable Command Palette',
+          keybindings: [KeyCode.F1],
+          // Do nothing - this prevents the command palette from opening
+          run() {},
+        }),
+      ];
+      if (readOnly) {
+        // Wait for Monaco workers to initialize
+        const timerId = setTimeout(() => {
+          if (model.isDisposed()) {
+            return;
+          }
+          addDecorations(editorInstance, value, ' ');
+        }, 1000);
+
+        disposables.push(
+          {
+            dispose() {
+              clearTimeout(timerId);
+            },
           },
-        },
-        editorInstance.onMouseDown(handleCopyFieldValue(model))
-      );
-    }
-    return cleanupDisposables(disposables);
-  }, []);
+          editorInstance.onMouseDown(handleCopyFieldValue(model))
+        );
+      }
+      return cleanupDisposables(disposables);
+    }, []);
 
-  // h-full
-  // [&>.cm-editor]:max-h-[inherit]
-  // [&>.cm-editor]:!bg-transparent
-  // dark:[&>.cm-editor]:!bg-input/30
-  // [&>.cm-editor]:!outline-none
-  // [&>.cm-editor]:px-3
-  // [&>.cm-editor]:py-2
-  // leading-2
-  // font-mono
-  // rounded-md
-  // transition-[color,box-shadow]
-  // data-invalid:border-destructive
-  // aria-invalid:ring-destructive/20
-  // aria-invalid:border-destructive
-  // dark:aria-invalid:ring-destructive/40
+    // h-full
+    // [&>.cm-editor]:max-h-[inherit]
+    // [&>.cm-editor]:!bg-transparent
+    // dark:[&>.cm-editor]:!bg-input/30
+    // [&>.cm-editor]:!outline-none
+    // [&>.cm-editor]:px-3
+    // [&>.cm-editor]:py-2
+    // leading-2
+    // font-mono
+    // rounded-md
+    // transition-[color,box-shadow]
+    // data-invalid:border-destructive
+    // aria-invalid:ring-destructive/20
+    // aria-invalid:border-destructive
+    // dark:aria-invalid:ring-destructive/40
 
-  return (
-    <div
-      ref={containerRef}
-      className={cn(
-        'rounded-[7px] overflow-hidden relative',
-        'border border-input shadow-xs',
-        disabled
-          ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
-          : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-});
+    return (
+      <div
+        ref={containerRef}
+        className={cn(
+          'rounded-[7px] overflow-hidden relative',
+          'border border-input shadow-xs',
+          disabled
+            ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
+            : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
+          className
+        )}
+      >
+        {children}
+      </div>
+    );
+  }
+);
 
 JsonEditor.displayName = 'JsonEditor';
