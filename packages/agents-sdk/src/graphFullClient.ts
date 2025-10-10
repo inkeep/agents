@@ -10,6 +10,7 @@ const logger = getLogger('graphFullClient');
 
 /**
  * Serialize error response to human-readable string
+ * Always returns the complete error without truncation
  */
 function serializeErrorResponse(error: any): string {
   if (typeof error === 'string') {
@@ -17,11 +18,7 @@ function serializeErrorResponse(error: any): string {
   }
 
   if (typeof error === 'object' && error !== null) {
-    // If error has code and message, format them nicely
-    if (error.code && error.message) {
-      return `${error.code}: ${error.message}`;
-    }
-    // Otherwise, stringify the whole object
+    // Always stringify the full object to avoid losing any error details
     return JSON.stringify(error, null, 2);
   }
 
