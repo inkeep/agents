@@ -127,7 +127,7 @@ async function hydrateAgent({
     const taskHandlerConfig = await createTaskHandlerConfig({
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
-      graphId: agentId,
+      agentId: agentId,
       subAgentId: dbAgent.id,
       baseUrl: baseUrl,
       apiKey: apiKey,

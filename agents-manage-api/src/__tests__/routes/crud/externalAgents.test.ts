@@ -45,7 +45,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       agentId: graphId,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -96,7 +96,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -119,7 +119,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const { agentData } = await createTestAgent({ tenantId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -147,7 +147,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test first page with limit 2
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -162,7 +162,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -177,7 +177,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test third page (partial)
       const page3Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=3&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
 
@@ -207,7 +207,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Request page 5 with limit 2 (should be empty)
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=5&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=5&limit=2`
       );
       expect(res.status).toBe(200);
 
@@ -229,7 +229,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test with limit 1 (each page should have exactly 1 item)
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=1&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=1&limit=1`
       );
       expect(page1Res.status).toBe(200);
 
@@ -244,7 +244,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test middle page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=2&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=2&limit=1`
       );
       expect(page2Res.status).toBe(200);
 
@@ -259,7 +259,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test last page
       const page3Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=3&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=3&limit=1`
       );
       expect(page3Res.status).toBe(200);
 
@@ -281,7 +281,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Request with limit 10 (larger than total)
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -304,7 +304,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const { agentData, subAgentId } = await createTestAgent({ tenantId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/${subAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -325,7 +325,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/non-existent-id`
       );
       expect(res.status).toBe(404);
 
@@ -347,7 +347,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/non-existent-id`
       );
       expect(res.status).toBe(404);
       expect(res.headers.get('content-type')).toMatch(/application\/problem\+json/);
@@ -375,7 +375,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const agentData = createTestExternalAgentData({ tenantId, projectId, agentId: graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents`,
         {
           method: 'POST',
           body: JSON.stringify(agentData),
@@ -404,7 +404,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const providedId = nanoid();
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents`,
         {
           method: 'POST',
           body: JSON.stringify({ ...agentData, id: providedId }),
@@ -424,7 +424,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent can be fetched with the provided ID
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${providedId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/${providedId}`
       );
       expect(getRes.status).toBe(200);
       const getBody = await getRes.json();
@@ -436,7 +436,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -461,7 +461,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/${subAgentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -491,7 +491,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -510,7 +510,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const { subAgentId } = await createTestAgent({ tenantId, graphId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/${subAgentId}`,
         {
           method: 'DELETE',
         }
@@ -520,7 +520,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent is deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/${subAgentId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -530,7 +530,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const graphId = await createTestGraph(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/external-agents/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${graphId}/external-agents/non-existent-id`,
         {
           method: 'DELETE',
         }

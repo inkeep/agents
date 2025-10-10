@@ -324,10 +324,10 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Find external subAgent
       const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) => subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
+        (subAgent) => 'baseUrl' in subAgent && typeof subAgent.baseUrl === 'string' && subAgent.baseUrl.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
-      if (externalAgent && externalAgent.type === 'external') {
+      if (externalAgent && 'baseUrl' in externalAgent) {
         expect(externalAgent.baseUrl).toContain('api.example.com');
       }
 
@@ -390,7 +390,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Verify external subAgent exists
       const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) => subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
+        (subAgent) => 'baseUrl' in subAgent && typeof subAgent.baseUrl === 'string' && subAgent.baseUrl.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });
@@ -603,7 +603,7 @@ describe('Graph Full Service Layer - Unit Tests', () => {
 
       // Find external agent
       const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) => subAgent.type === 'external' && subAgent.baseUrl?.includes('api.example.com')
+        (subAgent) => 'baseUrl' in subAgent && typeof subAgent.baseUrl === 'string' && subAgent.baseUrl.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });

@@ -50,8 +50,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     const toolId1 = `tool-${id}-1`;
     const toolId2 = `tool-${id}-2`;
 
-    const agent1 = createTestSubAgentData({ id: subAgentId1, suffix: ' Router' });
-    const agent2 = createTestSubAgentData({ id: subAgentId2, suffix: ' Specialist' });
+    const agent1 = createTestSubAgentData({ id: subAgentId1, suffix: ' Router', agentId: id });
+    const agent2 = createTestSubAgentData({ id: subAgentId2, suffix: ' Specialist', agentId: id });
     const tool1 = createTestToolData(toolId1, '1');
     const tool2 = createTestToolData(toolId2, '2');
 
@@ -60,12 +60,13 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     agent1.canDelegateTo = [subAgentId2];
     agent2.canTransferTo = [subAgentId1];
 
-    // Add tool IDs to agents via canUse field
-    agent1.canUse = [{ toolId: tool1.id }];
-    agent2.canUse = [{ toolId: tool2.id }];
+    // Add tool IDs to agents via canUse field (with agentId after schema migration)
+    agent1.canUse = [{ toolId: tool1.id, agentId: id }];
+    agent2.canUse = [{ toolId: tool2.id, agentId: id }];
 
     const graphData: any = {
       id,
+      agentId: id, // Add agentId to match id after schema migration
       name: `Test Graph ${id}`,
       description: `Test graph description for ${id}`,
       defaultSubAgentId: subAgentId1,
@@ -74,8 +75,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         [subAgentId2]: agent2,
       },
       // Note: tools are now project-scoped and not part of the graph definition
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
     // Add dataComponents if requested
@@ -207,8 +206,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           },
         },
         tools: {},
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
@@ -756,8 +753,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [tool1Id]: tool1,
           [tool2Id]: tool2,
         },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
@@ -803,8 +798,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           },
         },
         tools: {}, // No tools in this test
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
@@ -847,8 +840,6 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         defaultSubAgentId: subAgentIds[0],
         subAgents: agents,
         tools: {}, // No tools for this test
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
