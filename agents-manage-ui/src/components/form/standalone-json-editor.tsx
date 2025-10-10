@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { type FC, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { cn, formatJson } from '@/lib/utils';
@@ -16,24 +16,34 @@ interface StandaloneJsonEditorProps {
   id?: string;
   className?: string;
   readOnly?: boolean;
+  'aria-invalid'?: boolean;
 }
 
-export function StandaloneJsonEditor(props: StandaloneJsonEditorProps) {
+export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
+  value = '',
+  onChange,
+  placeholder,
+  disabled,
+  readOnly,
+  className,
+  'aria-invalid': ariaInvalid,
+  ...props
+}) => {
   const handleFormat = useCallback(() => {
-    if (props.value?.trim()) {
-      const formatted = formatJson(props.value);
-      props.onChange(formatted);
+    if (value.trim()) {
+      const formatted = formatJson(value);
+      onChange(formatted);
     }
-  }, [props.onChange, props.value]);
+  }, [onChange, value]);
 
   const handleInsertTemplate = useCallback(() => {
     const template = createSchemaTemplate();
-    props.onChange(template);
-  }, [props.onChange]);
-
+    onChange(template);
+  }, [onChange]);
+  // console.log({ props });
   const actions = (
     <>
-      {!props.value?.trim() && (
+      {!value.trim() && (
         <Button
           type="button"
           onClick={handleInsertTemplate}
@@ -50,7 +60,7 @@ export function StandaloneJsonEditor(props: StandaloneJsonEditorProps) {
         variant="outline"
         size="sm"
         className="h-6 px-2 text-xs rounded-sm"
-        disabled={!props.value?.trim()}
+        disabled={!value.trim()}
       >
         Format
       </Button>
@@ -60,28 +70,30 @@ export function StandaloneJsonEditor(props: StandaloneJsonEditorProps) {
   return (
     <>
       <JsonEditor2
-        value={props.value || ''}
-        onChange={props.onChange}
-        placeholder={props.placeholder}
-        disabled={props.disabled}
-        readOnly={props.readOnly}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        aria-invalid={ariaInvalid}
         uri="foo.json"
       >
         <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
       </JsonEditor2>
       <div
         data-slot="json-editor"
-        className={cn('space-y-3 relative overflow-hidden p-1', props.className)}
+        className={cn('space-y-3 relative overflow-hidden p-1', className)}
       >
         <div className="flex items-center gap-2 absolute top-3 right-3 z-10">{actions}</div>
         <JsonEditor
-          value={props.value || ''}
-          onChange={props.onChange}
-          placeholder={props.placeholder}
-          disabled={props.disabled}
-          readOnly={props.readOnly}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          readOnly={readOnly}
+          aria-invalid={ariaInvalid}
         />
       </div>
     </>
   );
-}
+};
