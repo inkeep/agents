@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor';
-import { getOrCreateModel, addDecorations } from '@/lib/monaco-utils';
-import '@/lib/setup-monaco-workers';
+import { getOrCreateModel, addDecorations } from '@/lib/monaco-editor/monaco-utils';
+import '@/lib/monaco-editor/setup-monaco-workers';
 
 const obj = {
   null: null,

@@ -1,5 +1,6 @@
-import { editor, Uri, type IDisposable, Range } from 'monaco-editor';
+import { editor, Uri, type IDisposable, Range, languages } from 'monaco-editor';
 import { MONACO_THEME_DATA, MONACO_THEME_NAME } from '@/constants/theme';
+import monacoCompatibleSchema from './dynamic-ref-compatible-json-schema.json';
 
 // Function to check if a token should show a copy icon
 function shouldShowCopyIcon(tokenType: string): boolean {
@@ -31,13 +32,12 @@ export function addDecorations(
     const lineNumber = index + 1;
     const lineContent = lines[lineNumber - 1];
 
-    for (let i = 0; i < lineTokens.length; i++) {
-      const token = lineTokens[i];
+    for (const [tokenIndex, token] of lineTokens.entries()) {
       if (!shouldShowCopyIcon(token.type)) {
         continue;
       }
       // Calculate the end position of the current token
-      const nextToken = lineTokens[i + 1];
+      const nextToken = lineTokens[tokenIndex + 1];
       const tokenEndOffset = nextToken ? nextToken.offset + 1 : lineContent.length;
 
       const range = new Range(
@@ -77,6 +77,20 @@ export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: str
 editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
 editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
 
+languages.json.jsonDefaults.setDiagnosticsOptions({
+  // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
+  // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
+  schemas: [
+    {
+      // Configure JSON language service with Monaco-compatible schema
+      uri: 'https://json-schema.org/draft/2020-12/schema',
+      fileMatch: ['*.json'],
+      schema: monacoCompatibleSchema,
+    },
+  ],
+  enableSchemaRequest: true,
+});
+
 export function createEditor(
   domElement: HTMLDivElement,
   options: editor.IStandaloneEditorConstructionOptions
@@ -92,17 +106,28 @@ export function createEditor(
   return editor.create(domElement, {
     language,
     automaticLayout: true,
-    fontSize: 15,
     minimap: { enabled: false }, // disable the minimap
-    tabSize: 2,
-    renderLineHighlight: 'none', // Remove a line selection border
-    stickyScroll: { enabled: false }, // Disable sticky scroll widget
     overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
-    scrollbar: {
-      verticalScrollbarSize: 10,
-    },
     scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
-    lineNumbersMinChars: 2, // reduce line numbers width on the left size
+    lineNumbers: 'off',
+    wordWrap: 'on', // Toggle word wrap on resizing editors
+    contextmenu: false, // Disable the right-click context menu
+    fontSize: 12,
+    fixedOverflowWidgets: true, // since container has overflow-hidden
+    padding: {
+      top: 12,
+      bottom: 12,
+    },
+    scrollbar: {
+      vertical: 'hidden', // Hide vertical scrollbar
+      horizontal: 'hidden', // Hide horizontal scrollbar
+      useShadows: false, // Disable shadow effects
+      alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
+    },
+    // stickyScroll: { enabled: false }, // Disable sticky scroll widget
+    // scrollbar: {
+    //   verticalScrollbarSize: 10,
+    // },
     ...options,
   });
 }
@@ -110,7 +135,7 @@ export function createEditor(
 /**
  * Cleanup various monaco-editor disposables functions
  */
-export function cleanupDisposables(...disposables: IDisposable[]) {
+export function cleanupDisposables(disposables: IDisposable[]) {
   return () => {
     for (const disposable of disposables) {
       disposable.dispose(); // remove the listener
