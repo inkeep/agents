@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { cn, formatJson } from '@/lib/utils';
 import { JsonEditor } from './json-editor';
-import { JsonEditor as JsonEditor2 } from '@/components/traces/editors/json-editor';
+import { JsonEditor as JsonEditor2 } from '@/components/editors/json-editor';
 
 interface StandaloneJsonEditorProps {
   value?: string;
@@ -40,7 +40,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
     const template = createSchemaTemplate();
     onChange(template);
   }, [onChange]);
-  // console.log({ props });
+
   const actions = (
     <>
       {!value.trim() && (

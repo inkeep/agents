@@ -13,7 +13,7 @@ import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import { Badge } from '@/components/ui/badge';
-import { JsonEditorWithCopy } from '@/components/traces/editors/json-editor-with-copy';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function formatJsonSafely(content: string): string {
   try {

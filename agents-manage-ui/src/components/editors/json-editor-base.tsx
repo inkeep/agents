@@ -2,15 +2,15 @@ import { type ReactNode, type FC, type Ref, useEffect, useRef, useImperativeHand
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
 import { toast } from 'sonner';
+import { MONACO_THEME_NAME } from '@/constants/theme';
+import { cn } from '@/lib/utils';
 import {
   addDecorations,
   cleanupDisposables,
   createEditor,
   getOrCreateModel,
-} from '@/lib/monaco-utils';
-import { MONACO_THEME_NAME } from '@/constants/theme';
-import { cn } from '@/lib/utils';
-import '@/lib/setup-monaco-workers';
+} from '@/lib/monaco-editor/monaco-utils';
+import '@/lib/monaco-editor/setup-monaco-workers';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
   const { element, position } = e.target;

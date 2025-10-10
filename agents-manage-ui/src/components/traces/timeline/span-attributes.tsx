@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { JsonEditorWithCopy } from '@/components/traces/editors/json-editor-with-copy';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 // Constants for attribute categorization and sorting
 const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
