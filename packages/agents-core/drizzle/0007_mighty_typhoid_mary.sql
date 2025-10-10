@@ -22,7 +22,6 @@ CREATE TABLE `__new_agent` (
 INSERT INTO `__new_agent`("tenant_id", "id", "project_id", "name", "description", "default_sub_agent_id", "context_config_id", "models", "status_updates", "prompt", "stop_when", "created_at", "updated_at") SELECT "tenant_id", "id", "project_id", "name", "description", "default_sub_agent_id", "context_config_id", "models", "status_updates", "prompt", "stop_when", "created_at", "updated_at" FROM `agent`;--> statement-breakpoint
 DROP TABLE `agent`;--> statement-breakpoint
 ALTER TABLE `__new_agent` RENAME TO `agent`;--> statement-breakpoint
-PRAGMA foreign_keys=ON;--> statement-breakpoint
 CREATE TABLE `__new_agent_function_tool_relations` (
 	`tenant_id` text NOT NULL,
 	`id` text NOT NULL,
@@ -224,4 +223,5 @@ CREATE TABLE `__new_tasks` (
 --> statement-breakpoint
 INSERT INTO `__new_tasks`("tenant_id", "id", "project_id", "agent_id", "sub_agent_id", "context_id", "status", "metadata", "created_at", "updated_at") SELECT "tenant_id", "id", "project_id", "graph_id", "sub_agent_id", "context_id", "status", "metadata", "created_at", "updated_at" FROM `tasks`;--> statement-breakpoint
 DROP TABLE `tasks`;--> statement-breakpoint
-ALTER TABLE `__new_tasks` RENAME TO `tasks`;
+ALTER TABLE `__new_tasks` RENAME TO `tasks`;--> statement-breakpoint
+PRAGMA foreign_keys=ON;
