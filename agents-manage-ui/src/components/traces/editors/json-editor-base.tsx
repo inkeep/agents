@@ -163,7 +163,7 @@ export const JsonEditor = forwardRef<
         'rounded-[7px] overflow-hidden relative',
         'border border-input shadow-xs',
         disabled
-          ? 'cursor-not-allowed opacity-50 bg-muted'
+          ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         className
       )}
