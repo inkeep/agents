@@ -11,6 +11,7 @@ export const SPAN_NAMES = {
   CONTEXT_HANDLE: 'context.handle_context_resolution',
   AGENT_GENERATION: 'agent.generate',
   CONTEXT_FETCHER: 'context-fetcher.http-request',
+  ARTIFACT_PROCESSING: 'graph_session.process_artifact',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -93,6 +94,15 @@ export const SPAN_KEYS = {
   NAME: 'name',
   PARENT_SPAN_ID: 'parentSpanID',
   CONVERSATION_ID: 'conversation.id',
+
+  // Artifact processing attributes
+  ARTIFACT_ID: 'artifact.id',
+  ARTIFACT_TYPE: 'artifact.type',
+  ARTIFACT_AGENT_ID: 'artifact.agent_id',
+  ARTIFACT_TOOL_CALL_ID: 'artifact.tool_call_id',
+  ARTIFACT_DATA: 'artifact.data',
+  ARTIFACT_NAME: 'artifact.name',
+  ARTIFACT_DESCRIPTION: 'artifact.description',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -131,11 +141,6 @@ export const ACTIVITY_NAMES = {
   AI_STREAMING_TEXT: 'AI Streaming Text',
   UNKNOWN_AGENT: 'Unknown Agent',
   USER: 'User',
-} as const;
-
-/** Tool Names */
-export const TOOL_NAMES = {
-  SAVE_TOOL_RESULT: 'save_tool_result',
 } as const;
 
 /** AI Tool Types */

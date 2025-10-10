@@ -21,6 +21,7 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
+  ARTIFACT_PROCESSING: 'artifact_processing',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -85,6 +86,14 @@ export interface ActivityItem {
   otelStatusCode?: string;
   otelStatusDescription?: string;
   aiTelemetryFunctionId?: string;
+  // Artifact processing fields
+  artifactId?: string;
+  artifactType?: string;
+  artifactName?: string;
+  artifactDescription?: string;
+  artifactData?: string;
+  artifactAgentId?: string;
+  artifactToolCallId?: string;
 }
 
 export interface ToolCall {

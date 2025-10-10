@@ -1,19 +1,20 @@
 import {
   ArrowRight,
   ArrowUpRight,
-  CheckCircle,
   ChevronDown,
   ChevronRight,
   Cpu,
   Database,
   Hammer,
+  Library,
   Settings,
   Sparkles,
   User,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
-import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
@@ -24,19 +25,25 @@ import {
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
+);
+
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
   return words.length > nWords ? `${words.slice(0, nWords).join(' ')}...` : s;
 }
-function truncateChars(s: string, n: number) {
-  return s.length > n ? `${s.slice(0, n)}...` : s;
-}
 
-function _isAiMessage(activity: ActivityItem): boolean {
-  return (
-    activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
-  );
+function formatJsonSafely(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
 }
 
 function statusIcon(
@@ -56,6 +63,7 @@ function statusIcon(
     transfer: { Icon: ArrowRight, cls: 'text-indigo-500' },
     generic_tool: { Icon: Hammer, cls: 'text-muted-foreground' },
     tool_purpose: { Icon: Hammer, cls: 'text-muted-foreground' },
+    artifact_processing: { Icon: Library, cls: 'text-emerald-600' },
   };
 
   const map = base[type] || base.tool_call;
@@ -203,12 +211,16 @@ export function TimelineItem({
 
           {/* context fetch url */}
           {activity.type === 'context_fetch' && activity.toolResult && (
-            <Bubble className="break-all">{truncateChars(activity.toolResult, 50)}</Bubble>
+            <div className="mb-1">
+              <Badge variant="code" className="break-all">{activity.toolResult}</Badge>
+            </div>
           )}
 
           {/* context resolution URL */}
           {activity.type === 'context_resolution' && activity.contextUrl && (
-            <CodeBubble className=" break-all">{truncateChars(activity.contextUrl, 50)}</CodeBubble>
+            <div className="mb-1">
+              <Badge variant="code" className="break-all">{activity.contextUrl}</Badge>
+            </div>
           )}
 
           {/* delegation flow */}
@@ -245,143 +257,43 @@ export function TimelineItem({
               <Bubble className="line-clamp-2">{activity.toolPurpose}</Bubble>
             )}
 
-          {/* save_tool_result summary */}
-          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.toolName === 'save_tool_result' &&
-            activity.saveResultSaved && (
-              <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
-                <div className="flex flex-col gap-2 text-sm text-emerald-900 dark:text-emerald-300">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span className="font-semibold text-emerald-800 dark:text-emerald-400">
-                      Artifact Saved Successfully
-                    </span>
-                  </div>
+          {/* artifact processing */}
+          {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
+            <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
+              <div className="flex flex-col gap-2 text-sm text-emerald-900 dark:text-emerald-300">
 
-                  {/* Basic artifact info */}
-                  <div className="space-y-1">
-                    {activity.saveArtifactType &&
-                      TagRow('Type', activity.saveArtifactType, 'emerald')}
-                    {activity.saveArtifactName && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Name:</span>
-                        <span className="text-emerald-900 dark:text-emerald-300">
-                          {activity.saveArtifactName}
-                        </span>
-                      </div>
-                    )}
-                    {activity.saveArtifactDescription && (
-                      <div className="flex items-start gap-2">
-                        <span className="font-medium">Description:</span>
-                        <span className="text-emerald-900 dark:text-emerald-300">
-                          {activity.saveArtifactDescription}
-                        </span>
-                      </div>
-                    )}
-                    {activity.saveTotalArtifacts && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Total Artifacts:</span>
-                        <span className="text-emerald-900 dark:text-emerald-300">
-                          {activity.saveTotalArtifacts}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Technical details */}
-                  {(activity.saveOperationId ||
-                    activity.saveToolCallId ||
-                    activity.saveFunctionId) && (
-                    <div className="mt-2 p-2 bg-white/50 border border-emerald-200 rounded text-xs dark:bg-emerald-950/30 dark:border-emerald-800">
-                      <div className="font-medium text-emerald-800 mb-1 dark:text-emerald-400">
-                        Technical Details:
-                      </div>
-                      <div className="space-y-0.5 text-emerald-700 dark:text-emerald-300">
-                        {activity.saveOperationId && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Operation ID:</span>
-                            <code className="bg-emerald-100 px-1 rounded dark:bg-emerald-900/50 dark:text-emerald-200">
-                              {activity.saveOperationId}
-                            </code>
-                          </div>
-                        )}
-                        {activity.saveToolCallId && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Tool Call ID:</span>
-                            <code className="bg-emerald-100 px-1 rounded dark:bg-emerald-900/50 dark:text-emerald-200">
-                              {activity.saveToolCallId}
-                            </code>
-                          </div>
-                        )}
-                        {activity.saveFunctionId && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Function ID:</span>
-                            <code className="bg-emerald-100 px-1 rounded dark:bg-emerald-900/50 dark:text-emerald-200">
-                              {activity.saveFunctionId}
-                            </code>
-                          </div>
-                        )}
-                      </div>
+                {/* Basic artifact info */}
+                <div className="space-y-1">
+                  {activity.artifactType && TagRow('Type', activity.artifactType, 'emerald')}
+                  {activity.artifactName && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Name:</span>
+                      <span className="text-emerald-900 dark:text-emerald-300">
+                        {activity.artifactName}
+                      </span>
                     </div>
                   )}
-
-                  {/* Summary data */}
-                  {activity.saveSummaryData && (
-                    <div className="mt-2 p-2 bg-white/70 border border-emerald-200 rounded text-xs dark:bg-emerald-950/30 dark:border-emerald-800">
-                      <div className="font-medium text-emerald-800 mb-1 dark:text-emerald-400">
-                        Summary Data:
-                      </div>
-                      <div className="space-y-0.5 text-emerald-900 dark:text-emerald-300">
-                        {Object.entries(activity.saveSummaryData).map(([k, v]) => (
-                          <div key={k} className="flex items-start gap-2">
-                            <span className="font-medium capitalize">{k}:</span>
-                            <span className="break-all">{String(v)}</span>
-                          </div>
-                        ))}
-                      </div>
+                  {activity.artifactDescription && (
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium">Description:</span>
+                      <span className="text-emerald-900 dark:text-emerald-300">
+                        {activity.artifactDescription}
+                      </span>
                     </div>
                   )}
-
-                  {/* Tool arguments */}
-                  {activity.saveToolArgs && Object.keys(activity.saveToolArgs).length > 0 && (
-                    <div className="mt-2 p-2 bg-white/70 border border-emerald-200 rounded text-xs">
-                      <div className="font-medium text-emerald-800 mb-1">Tool Arguments:</div>
-                      <div className="space-y-0.5 text-emerald-900">
-                        {Object.entries(activity.saveToolArgs).map(([k, v]) => (
-                          <div key={k} className="flex items-start gap-2">
-                            <span className="font-medium">{k}:</span>
-                            <span className="break-all">
-                              {typeof v === 'object' ? JSON.stringify(v, null, 1) : String(v)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Facts if available */}
-                  {activity.saveFacts && (
-                    <div className="mt-2 p-2 bg-white/70 border border-emerald-200 rounded text-xs dark:bg-emerald-950/30 dark:border-emerald-800">
-                      <div className="font-medium text-emerald-800 mb-1 dark:text-emerald-400">
-                        Facts:
-                      </div>
-                      <div className="text-emerald-900 break-all dark:text-emerald-300">
-                        {activity.saveFacts}
-                      </div>
+                  {activity.artifactData && (
+                    <div className="mt-2">
+                      <JsonEditorWithCopy
+                        value={formatJsonSafely(activity.artifactData)}
+                        title="Artifact data"
+                        uri={`artifact-data-${activity.id}.json`}
+                      />
                     </div>
                   )}
                 </div>
               </div>
-            )}
-
-          {/* save_tool_result not saved */}
-          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.toolName === 'save_tool_result' &&
-            activity.saveResultSaved === false && (
-              <CodeBubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                Artifact not saved
-              </CodeBubble>
-            )}
+            </div>
+          )}
 
           {/* agent name for AI generation */}
           {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
