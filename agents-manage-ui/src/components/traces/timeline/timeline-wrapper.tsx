@@ -45,6 +45,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'AI Streaming text details';
     case 'mcp_tool_error':
       return 'MCP tool error details';
+    case 'artifact_processing':
+      return 'Artifact details';
     default:
       return 'Details';
   }
