@@ -936,8 +936,12 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
   }),
 }));
 
-export const functionsRelations = relations(functions, ({ many }) => ({
+export const functionsRelations = relations(functions, ({ many, one }) => ({
   functionTools: many(functionTools),
+  project: one(projects, {
+    fields: [functions.tenantId, functions.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
 }));
 
 export const subAgentRelationsRelations = relations(subAgentRelations, ({ one }) => ({
