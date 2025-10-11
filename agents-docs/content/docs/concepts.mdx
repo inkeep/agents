@@ -60,7 +60,7 @@ API keys are the recommended approach for production use, providing secure, scop
 
 ## Agent replies with Structured Data
 
-Sometimes, you want your Agent to reply not in plain text, but with specific types of well defined information often called 'Structured Outputs' (JSON).
+Sometimes, you want your Agent to reply not in plain text, but with specific types of well-defined information often called 'Structured Outputs' (JSON).
 
 With Inkeep, there are a few ways to do this:
 - **Data Components**: Structured Outputs that agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
@@ -147,7 +147,7 @@ For example, you may create one Project for your support team that has all the M
 
 The Inkeep CLI bridges your TypeScript SDK project and the Visual Builder.
 
-Run the following from your project (the folder that contains your `inkeep.config.ts`) and has an `index.ts` file that exports a project.
+Run the following from your project (the folder that contains your `inkeep.config.ts`) which has an `index.ts` file that exports a project.
 
 - **Push (code → Builder)**: Sync locally defined graphs, agents, tools, and settings from your SDK project into the Visual Builder.
 
@@ -155,7 +155,7 @@ Run the following from your project (the folder that contains your `inkeep.confi
 inkeep push
 ```
 
-- **Pull (Builder → code)**: Fetch your project from the Visual Builder back into your SDK project. By default, the CLI will LLM-assist updating your local TypeScript files to reflect Builder changes.
+- **Pull (Builder → code)**: Fetch your project from the Visual Builder back into your SDK project. By default, the CLI will LLM-assist in updating your local TypeScript files to reflect Builder changes.
 
 ```bash
 inkeep pull
