@@ -6,7 +6,7 @@
 import type { FullGraphDefinition } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 
-const logger = getLogger('graphFullClient');
+const logger = getLogger('agentFullClient');
 
 /**
  * Create a full agent via HTTP API

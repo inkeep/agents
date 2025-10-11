@@ -20,8 +20,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-// Mock the graphFullClient
-vi.mock('../../graphFullClient.js', () => ({
+// Mock the agentFullClient
+vi.mock('../../agentFullClient.js', () => ({
   updateFullGraphViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
@@ -340,7 +340,7 @@ describe('Agent', () => {
     it('should initialize agent and create database entities', async () => {
       await agentObject.init();
 
-      const { updateFullGraphViaAPI } = await import('../../graphFullClient.js');
+      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
       expect(updateFullGraphViaAPI).toHaveBeenCalledWith(
         'test-tenant', // tenantId
         'test-project', // projectId
@@ -364,7 +364,7 @@ describe('Agent', () => {
     });
 
     it('should handle initialization errors gracefully', async () => {
-      const { updateFullGraphViaAPI } = await import('../../graphFullClient.js');
+      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
       vi.mocked(updateFullGraphViaAPI).mockRejectedValueOnce(new Error('DB error'));
 
       const errorGraph = new Agent({
@@ -381,7 +381,7 @@ describe('Agent', () => {
       await agentObject.init();
       await agentObject.init(); // Second call
 
-      const { updateFullGraphViaAPI } = await import('../../graphFullClient.js');
+      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
       expect(updateFullGraphViaAPI).toHaveBeenCalledTimes(1);
     });
   });
@@ -548,7 +548,7 @@ describe('Agent', () => {
 
       await agent.init();
 
-      const { updateFullGraphViaAPI } = await import('../../graphFullClient.js');
+      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
       const createCall = vi.mocked(updateFullGraphViaAPI).mock.calls[0][4]; // 5th argument contains the agent data (tenantId, projectId, apiUrl, agentId, graphData)
 
       expect(createCall).toMatchObject({

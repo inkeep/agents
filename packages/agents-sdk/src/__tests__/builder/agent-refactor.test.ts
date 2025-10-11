@@ -18,8 +18,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-// Mock the graphFullClient
-vi.mock('../../graphFullClient.js', () => ({
+// Mock the agentFullClient
+vi.mock('../../agentFullClient.js', () => ({
   updateFullGraphViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
