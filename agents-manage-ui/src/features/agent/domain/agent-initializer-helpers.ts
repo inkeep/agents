@@ -1,8 +1,8 @@
-import type { ContextConfig, GraphMetadata } from '@/components/agent/configuration/agent-types';
-import type { FullGraphDefinition } from '@/lib/types/agent-full';
+import type { ContextConfig, AgentMetadata } from '@/components/agent/configuration/agent-types';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 
-export type ExtendedFullGraphDefinition = FullGraphDefinition & {
+export type ExtendedFullAgentDefinition = FullAgentDefinition & {
   contextConfig?: Partial<Pick<ContextConfig, 'id'>> & {
     contextVariables?: Record<string, any>;
     headersSchema?: Record<string, any>;
@@ -10,19 +10,19 @@ export type ExtendedFullGraphDefinition = FullGraphDefinition & {
 };
 
 /**
- * Extracts and formats agent metadata from a FullGraphDefinition object.
+ * Extracts and formats agent metadata from a FullAgentDefinition object.
  * This helper function handles the complex transformation of the agent data
- * into the format expected by the GraphMetadata type, including proper
+ * into the format expected by the AgentMetadata type, including proper
  * JSON field formatting for form compatibility.
  */
-export function extractGraphMetadata(
-  agent: ExtendedFullGraphDefinition | null | undefined
-): GraphMetadata {
+export function extractAgentMetadata(
+  agent: ExtendedFullAgentDefinition | null | undefined
+): AgentMetadata {
   return {
     id: agent?.id,
     name: agent?.name ?? '',
     description: agent?.description ?? '',
-    graphPrompt: agent?.graphPrompt,
+    agentPrompt: agent?.agentPrompt,
     models: agent?.models
       ? {
           base: agent.models.base

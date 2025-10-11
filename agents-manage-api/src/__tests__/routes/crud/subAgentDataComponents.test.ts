@@ -22,18 +22,18 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     let effectiveAgentId = agentId;
     if (!effectiveAgentId) {
       effectiveAgentId = `test-agent-${tenantId}${suffix}`;
-      const graphData = {
+      const agentData = {
         id: effectiveAgentId,
         name: 'Test Agent',
         defaultSubAgentId: null,
       };
       // Try to create the agent, ignore if it already exists
-      const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+      const agentRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
         method: 'POST',
-        body: JSON.stringify(graphData),
+        body: JSON.stringify(agentData),
       });
       // Use the agentId from the created or existing agent
-      effectiveAgentId = graphRes.status === 201 ? effectiveAgentId : 'default';
+      effectiveAgentId = agentRes.status === 201 ? effectiveAgentId : 'default';
     }
 
     const agentData = { ...createTestSubAgentData({ suffix, tenantId }) };
@@ -51,7 +51,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create test agent agent data
-  const _createAgentGraphData = ({
+  const _createAgentAgentData = ({
     defaultSubAgentId,
     suffix = '',
   }: {

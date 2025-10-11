@@ -1,7 +1,7 @@
 import { OPENAI_MODELS } from '../../constants/models';
 import type { AgentInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
 
-export const createTestAgentData = (
+export const createTestSubAgentData = (
   tenantId: string,
   projectId: string,
   suffix: string,
@@ -34,7 +34,7 @@ export const createTestRelationData = (
   };
 };
 
-export const createtestAgentData = (
+export const createTestAgentData = (
   tenantId: string,
   projectId: string,
   suffix: string

@@ -12,7 +12,7 @@ import {
 } from '@/components/agent/configuration/node-types';
 import type {
   ExternalAgentDefinition,
-  FullGraphDefinition,
+  FullAgentDefinition,
   InternalAgentDefinition,
 } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
@@ -66,8 +66,8 @@ function calculateNodeHeight(node: Node): number {
 }
 
 export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
-  const g = new dagre.graphlib.Agent();
-  g.setGraph({
+  const g = new dagre.agentlib.Agent();
+  g.setAgent({
     rankdir: 'TB',
     nodesep: 150,
     ranksep: 150, // Increased vertical spacing between ranks
@@ -101,7 +101,7 @@ export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeGraphData(data: FullGraphDefinition): TransformResult {
+export function deserializeAgentData(data: FullAgentDefinition): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 

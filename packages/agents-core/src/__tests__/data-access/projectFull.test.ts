@@ -33,7 +33,7 @@ describe('projectFull data access', () => {
     updatedAt: new Date().toISOString(),
   });
 
-  const createTestProjectWithGraphs = (projectId: string): FullProjectDefinition => {
+  const createTestProjectWithAgents = (projectId: string): FullProjectDefinition => {
     const agentId = `agent-${nanoid()}`;
     const subAgentId = `agent-${nanoid()}`;
     const toolId = `tool-${nanoid()}`;
@@ -110,7 +110,7 @@ describe('projectFull data access', () => {
 
     it('should create a project with agent and nested resources', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
       const result = await createFullProjectServerSide(db, logger)(
         { tenantId, projectId },
@@ -192,7 +192,7 @@ describe('projectFull data access', () => {
 
     it('should include all agent in the project', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent
       await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
@@ -215,7 +215,7 @@ describe('projectFull data access', () => {
 
     it('should have tools at project level, not in agent', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent and tools
       await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
@@ -361,7 +361,7 @@ describe('projectFull data access', () => {
 
     it('should cascade delete all project resources', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent
       await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);

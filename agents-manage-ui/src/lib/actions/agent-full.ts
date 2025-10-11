@@ -3,22 +3,22 @@
 /**
  * Server Actions for Agent Full Operations
  *
- * These server actions wrap the GraphFull REST API endpoints and provide
+ * These server actions wrap the AgentFull REST API endpoints and provide
  * type-safe functions that can be called from React components.
  */
 
 import { revalidatePath } from 'next/cache';
 import {
   ApiError,
-  createFullGraph as apiCreateFullGraph,
-  deleteFullGraph as apiDeleteFullGraph,
-  fetchGraphs as apiFetchGraphs,
-  getFullGraph as apiGetFullGraph,
-  updateFullGraph as apiUpdateFullGraph,
+  createFullAgent as apiCreateFullAgent,
+  deleteFullAgent as apiDeleteFullAgent,
+  fetchAgents as apiFetchAgents,
+  getFullAgent as apiGetFullAgent,
+  updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
 import {
-  type FullGraphDefinition,
-  FullGraphDefinitionSchema,
+  type FullAgentDefinition,
+  FullAgentDefinitionSchema,
   type Agent,
 } from '../types/agent-full';
 
@@ -36,12 +36,12 @@ export type ActionResult<T = void> =
       code?: string;
     };
 
-export async function getAllGraphsAction(
+export async function getAllAgentsAction(
   tenantId: string,
   projectId: string
 ): Promise<ActionResult<Agent[]>> {
   try {
-    const response = await apiFetchGraphs(tenantId, projectId);
+    const response = await apiFetchAgents(tenantId, projectId);
     return {
       success: true,
       data: response.data,
@@ -58,13 +58,13 @@ export async function getAllGraphsAction(
 /**
  * Create a new full agent
  */
-export async function createFullGraphAction(
+export async function createFullAgentAction(
   tenantId: string,
   projectId: string,
-  graphData: FullGraphDefinition
-): Promise<ActionResult<FullGraphDefinition>> {
+  agentData: FullAgentDefinition
+): Promise<ActionResult<FullAgentDefinition>> {
   try {
-    const response = await apiCreateFullGraph(tenantId, projectId, graphData);
+    const response = await apiCreateFullAgent(tenantId, projectId, agentData);
 
     // Revalidate relevant pages
     revalidatePath(`/${tenantId}/projects/${projectId}/agent`);
@@ -94,13 +94,13 @@ export async function createFullGraphAction(
 /**
  * Get a full agent by ID
  */
-export async function getFullGraphAction(
+export async function getFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
-): Promise<ActionResult<FullGraphDefinition>> {
+): Promise<ActionResult<FullAgentDefinition>> {
   try {
-    const response = await apiGetFullGraph(tenantId, projectId, agentId);
+    const response = await apiGetFullAgent(tenantId, projectId, agentId);
 
     return {
       success: true,
@@ -126,23 +126,23 @@ export async function getFullGraphAction(
 /**
  * Update or create a full agent (upsert)
  */
-export async function updateFullGraphAction(
+export async function updateFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  graphData: FullGraphDefinition
-): Promise<ActionResult<FullGraphDefinition>> {
+  agentData: FullAgentDefinition
+): Promise<ActionResult<FullAgentDefinition>> {
   try {
     // Ensure the agent ID matches
-    if (agentId !== graphData.id) {
+    if (agentId !== agentData.id) {
       return {
         success: false,
-        error: `Agent ID mismatch: expected ${agentId}, got ${graphData.id}`,
+        error: `Agent ID mismatch: expected ${agentId}, got ${agentData.id}`,
         code: 'bad_request',
       };
     }
 
-    const response = await apiUpdateFullGraph(tenantId, projectId, agentId, graphData);
+    const response = await apiUpdateFullAgent(tenantId, projectId, agentId, agentData);
 
     // Revalidate relevant pages
     revalidatePath(`/${tenantId}/projects/${projectId}/agent`);
@@ -172,13 +172,13 @@ export async function updateFullGraphAction(
 /**
  * Delete a full agent
  */
-export async function deleteFullGraphAction(
+export async function deleteFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
 ): Promise<ActionResult<void>> {
   try {
-    await apiDeleteFullGraph(tenantId, projectId, agentId);
+    await apiDeleteFullAgent(tenantId, projectId, agentId);
 
     // Revalidate relevant pages
     revalidatePath(`/${tenantId}/projects/${projectId}/agent`);
@@ -208,9 +208,9 @@ export async function deleteFullGraphAction(
  * Validate agent data without making an API call
  * Useful for form validation on the client side
  */
-export async function validateGraphData(data: unknown): Promise<ActionResult<FullGraphDefinition>> {
+export async function validateAgentData(data: unknown): Promise<ActionResult<FullAgentDefinition>> {
   try {
-    const validatedData = FullGraphDefinitionSchema.parse(data);
+    const validatedData = FullAgentDefinitionSchema.parse(data);
     return {
       success: true,
       data: validatedData,

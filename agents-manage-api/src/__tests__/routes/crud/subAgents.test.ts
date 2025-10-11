@@ -10,14 +10,14 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   // Helper function to create a test agent
   const createTestAgent = async (tenantId: string) => {
-    const graphData = {
+    const agentData = {
       id: nanoid(),
       name: `Test Agent ${nanoid()}`,
       defaultSubAgentId: null,
     };
     const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
     expect(res.status).toBe(201);
     const body = await res.json();

@@ -1,4 +1,4 @@
-import { agent, agentGraph } from '@inkeep/agents-sdk';
+import { agent, agentAgent } from '@inkeep/agents-sdk';
 import { weatherForecast } from '../data-components/weather-forecast';
 import { fdxgfv9HL7SXlfynPx8hf } from '../tools/fdxgfv9HL7SXlfynPx8hf';
 import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
@@ -28,9 +28,9 @@ const weatherForecaster = agent({
   canUse: () => [fUI2riwrBVJ6MepT8rjx0],
 });
 
-export const weatherGraph = agentGraph({
-  id: 'weather-graph',
-  name: 'Weather graph',
+export const weatherAgent = agentAgent({
+  id: 'weather-agent',
+  name: 'Weather agent',
   defaultSubAgent: weatherAssistant,
   subAgents: () => [geocoderAgent, weatherAssistant, weatherForecaster],
 });

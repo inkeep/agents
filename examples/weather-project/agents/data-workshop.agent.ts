@@ -1,9 +1,9 @@
-import { agent, agentGraph, functionTool } from '@inkeep/agents-sdk';
+import { agent, agentAgent, functionTool } from '@inkeep/agents-sdk';
 
 /**
- * DATA WORKSHOP GRAPH
+ * DATA WORKSHOP AGENT
  *
- * This graph contains various function tools for data processing, calculations, and utilities.
+ * This agent contains various function tools for data processing, calculations, and utilities.
  *
  * USAGE PROMPTS TO TRY:
  * - "Generate an inspirational quote"
@@ -303,7 +303,7 @@ const generateQRCode = functionTool({
 
 const hashText = functionTool({
   name: 'hash-text',
-  description: 'Creates cryptographic hash of text using specified algorithm',
+  description: 'Creates cryptoagentic hash of text using specified algorithm',
   inputSchema: {
     type: 'object',
     properties: {
@@ -461,10 +461,10 @@ Use these tools to help users with their data processing needs, calculations, an
   ],
 });
 
-// Create the data workshop graph
-export const dataWorkshopGraph = agentGraph({
-  id: 'data-workshop-graph',
-  name: 'Data Workshop Graph',
+// Create the data workshop agent
+export const dataWorkshopAgent = agentAgent({
+  id: 'data-workshop-agent',
+  name: 'Data Workshop Agent',
   defaultSubAgent: dataWorkshopAgent,
   subAgents: () => [dataWorkshopAgent],
 });

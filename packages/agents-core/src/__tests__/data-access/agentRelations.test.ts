@@ -303,7 +303,7 @@ describe('Agent Relations Data Access', () => {
     });
   });
 
-  describe('getRelatedAgentsForGraph', () => {
+  describe('getRelatedAgentsForAgent', () => {
     it('should get both internal and external related agents', async () => {
       const internalRelations = [
         { id: 'agent-2', name: 'Agent 2', description: 'Internal agent', relationType: 'transfer' },

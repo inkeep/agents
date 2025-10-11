@@ -25,7 +25,7 @@ export interface ConversationStats {
   conversationId: string;
   tenantId: string;
   agentId: string;
-  graphName: string;
+  agentName: string;
   totalToolCalls: number;
   toolsUsed: Array<{ name: string; calls: number; description: string }>;
   transfers: Array<{ from: string; to: string; count: number }>;
@@ -190,15 +190,15 @@ class SigNozStatsAPI {
       // metadata map
       const metaByConv = new Map<
         string,
-        { tenantId: string; agentId: string; graphName: string }
+        { tenantId: string; agentId: string; agentName: string }
       >();
       for (const s of metadataSeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
         if (!id) continue;
         metaByConv.set(id, {
           tenantId: s.labels?.[SPAN_KEYS.TENANT_ID] ?? UNKNOWN_VALUE,
-          agentId: s.labels?.[SPAN_KEYS.GRAPH_ID] ?? UNKNOWN_VALUE,
-          graphName: s.labels?.[SPAN_KEYS.GRAPH_NAME] ?? UNKNOWN_VALUE,
+          agentId: s.labels?.[SPAN_KEYS.AGENT_ID] ?? UNKNOWN_VALUE,
+          agentName: s.labels?.[SPAN_KEYS.AGENT_NAME] ?? UNKNOWN_VALUE,
         });
       }
 
@@ -290,7 +290,7 @@ class SigNozStatsAPI {
     }
   }
 
-  async getAICallsByGraph(startTime: number, endTime: number, projectId?: string) {
+  async getAICallsByAgent(startTime: number, endTime: number, projectId?: string) {
     try {
       const resp = await this.makeRequest(
         this.buildCombinedPayload(startTime, endTime, undefined, projectId)
@@ -298,7 +298,7 @@ class SigNozStatsAPI {
       const series = this.extractSeries(resp, QUERY_EXPRESSIONS.AI_CALLS);
       const totals = new Map<string, number>();
       for (const s of series) {
-        const agentId = s.labels?.[SPAN_KEYS.GRAPH_ID] || UNKNOWN_VALUE;
+        const agentId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
         if (count) totals.set(agentId, (totals.get(agentId) || 0) + count);
       }
@@ -306,12 +306,12 @@ class SigNozStatsAPI {
         .map(([agentId, totalCalls]) => ({ agentId, totalCalls }))
         .sort((a, b) => b.totalCalls - a.totalCalls);
     } catch (e) {
-      console.error('getAICallsByGraph error:', e);
+      console.error('getAICallsByAgent error:', e);
       return [];
     }
   }
 
-  async getAICallsByAgent(
+  async getAICallsBySubAgent(
     startTime: number,
     endTime: number,
     agentId?: string,
@@ -334,8 +334,8 @@ class SigNozStatsAPI {
       >();
 
       for (const s of series) {
-        const agent = s.labels?.[SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID] || UNKNOWN_VALUE;
-        const gId = s.labels?.[SPAN_KEYS.GRAPH_ID] || UNKNOWN_VALUE;
+        const subAgent = s.labels?.[SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID] || UNKNOWN_VALUE;
+        const gId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
         const mId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
 
@@ -343,9 +343,9 @@ class SigNozStatsAPI {
         if (agentId && agentId !== 'all' && gId !== agentId) continue;
         if (modelId && modelId !== 'all' && mId !== modelId) continue;
 
-        const key = `${agent}::${gId}::${mId}`;
+        const key = `${subAgent}::${gId}::${mId}`;
         const row = acc.get(key) || {
-          subAgentId: agent,
+          subAgentId: subAgent,
           agentId: gId,
           modelId: mId,
           totalCalls: 0,
@@ -375,7 +375,7 @@ class SigNozStatsAPI {
 
       for (const s of series) {
         const mId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const gId = s.labels?.[SPAN_KEYS.GRAPH_ID] || UNKNOWN_VALUE;
+        const gId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
         if (!count) continue;
         if (agentId && agentId !== 'all' && gId !== agentId) continue;
@@ -391,19 +391,19 @@ class SigNozStatsAPI {
     }
   }
 
-  async getUniqueGraphs(startTime: number, endTime: number, projectId?: string) {
+  async getUniqueAgents(startTime: number, endTime: number, projectId?: string) {
     try {
       const resp = await this.makeRequest(
-        this.buildUniqueGraphsPayload(startTime, endTime, projectId)
+        this.buildUniqueAgentsPayload(startTime, endTime, projectId)
       );
-      const series = this.extractSeries(resp, 'uniqueGraphs');
+      const series = this.extractSeries(resp, 'uniqueAgents');
       const agent = series
-        .map((s) => s.labels?.[SPAN_KEYS.GRAPH_ID])
+        .map((s) => s.labels?.[SPAN_KEYS.AGENT_ID])
         .filter((id): id is string => Boolean(id) && id !== UNKNOWN_VALUE)
         .sort();
       return [...new Set(agent)];
     } catch (e) {
-      console.error('getUniqueGraphs error:', e);
+      console.error('getUniqueAgents error:', e);
       return [];
     }
   }
@@ -489,15 +489,15 @@ class SigNozStatsAPI {
 
       const metaByConv = new Map<
         string,
-        { tenantId: string; agentId: string; graphName: string }
+        { tenantId: string; agentId: string; agentName: string }
       >();
       for (const s of metadataSeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
         if (!id) continue;
         metaByConv.set(id, {
           tenantId: s.labels?.[SPAN_KEYS.TENANT_ID] ?? UNKNOWN_VALUE,
-          agentId: s.labels?.[SPAN_KEYS.GRAPH_ID] ?? UNKNOWN_VALUE,
-          graphName: s.labels?.[SPAN_KEYS.GRAPH_NAME] ?? UNKNOWN_VALUE,
+          agentId: s.labels?.[SPAN_KEYS.AGENT_ID] ?? UNKNOWN_VALUE,
+          agentName: s.labels?.[SPAN_KEYS.AGENT_NAME] ?? UNKNOWN_VALUE,
         });
       }
 
@@ -554,7 +554,7 @@ class SigNozStatsAPI {
       ];
       if (agentId && agentId !== 'all') {
         filterItems.push({
-          key: { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           op: OPERATORS.EQUALS,
           value: agentId,
         });
@@ -629,7 +629,7 @@ class SigNozStatsAPI {
     transferSeries: Series[],
     delegationSeries: Series[],
     aiCallsSeries: Series[],
-    metaByConv: Map<string, { tenantId: string; agentId: string; graphName: string }>,
+    metaByConv: Map<string, { tenantId: string; agentId: string; agentName: string }>,
     contextErrSeries: Series[],
     agentGenErrSeries: Series[],
     firstMsgByConv: Map<string, { content: string; timestamp: number }>
@@ -742,13 +742,13 @@ class SigNozStatsAPI {
       const meta = metaByConv.get(id) || {
         tenantId: UNKNOWN_VALUE,
         agentId: UNKNOWN_VALUE,
-        graphName: UNKNOWN_VALUE,
+        agentName: UNKNOWN_VALUE,
       };
       out.push({
         conversationId: id,
         tenantId: meta.tenantId,
         agentId: meta.agentId,
-        graphName: meta.graphName || '',
+        agentName: meta.agentName || '',
         totalToolCalls: acc.totalToolCalls,
         toolsUsed: [...acc.toolsUsed.values()],
         transfers: [...acc.transfers.values()],
@@ -849,7 +849,7 @@ class SigNozStatsAPI {
                 key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
               },
-              { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
               {
                 key: SPAN_KEYS.AI_MODEL_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
@@ -932,7 +932,7 @@ class SigNozStatsAPI {
                 key: SPAN_KEYS.AI_MODEL_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
               },
-              { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: QUERY_EXPRESSIONS.MODEL_CALLS,
             reduceTo: REDUCE_OPERATIONS.SUM,
@@ -970,7 +970,7 @@ class SigNozStatsAPI {
         ? [
             {
               key: {
-                key: SPAN_KEYS.GRAPH_ID,
+                key: SPAN_KEYS.AGENT_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
@@ -1054,7 +1054,7 @@ class SigNozStatsAPI {
         value: '',
       },
       {
-        key: { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         op: OPERATORS.EXISTS,
         value: '',
       },
@@ -1062,7 +1062,7 @@ class SigNozStatsAPI {
         ? [
             {
               key: {
-                key: SPAN_KEYS.GRAPH_ID,
+                key: SPAN_KEYS.AGENT_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
@@ -1108,8 +1108,8 @@ class SigNozStatsAPI {
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.GRAPH_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
             reduceTo: REDUCE_OPERATIONS.SUM,
@@ -1263,7 +1263,7 @@ class SigNozStatsAPI {
     projectId?: string,
     agentId?: string
   ) {
-    const withProjectAndGraph = (items: any[]) => {
+    const withProjectAndAgent = (items: any[]) => {
       let filtered = items;
       if (projectId) {
         filtered = [
@@ -1283,7 +1283,7 @@ class SigNozStatsAPI {
           ...filtered,
           {
             key: {
-              key: SPAN_KEYS.GRAPH_ID,
+              key: SPAN_KEYS.AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             op: OPERATORS.EQUALS,
@@ -1313,7 +1313,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1371,7 +1371,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1433,7 +1433,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1495,7 +1495,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.CONVERSATION_ID,
@@ -1514,7 +1514,7 @@ class SigNozStatsAPI {
                 },
                 {
                   key: {
-                    key: SPAN_KEYS.GRAPH_ID,
+                    key: SPAN_KEYS.AGENT_ID,
                     ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
                   op: OPERATORS.EXISTS,
@@ -1528,8 +1528,8 @@ class SigNozStatsAPI {
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.GRAPH_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
             reduceTo: REDUCE_OPERATIONS.SUM,
@@ -1552,7 +1552,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.AI_OPERATION_ID,
@@ -1576,7 +1576,7 @@ class SigNozStatsAPI {
                 key: SPAN_KEYS.CONVERSATION_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
-              { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
               {
                 key: 'ai.telemetry.functionId',
                 ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
@@ -1603,7 +1603,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.CONVERSATION_ID,
@@ -1641,7 +1641,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1695,7 +1695,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.NAME,
@@ -1749,7 +1749,7 @@ class SigNozStatsAPI {
             },
             filters: {
               op: OPERATORS.AND,
-              items: withProjectAndGraph([
+              items: withProjectAndAgent([
                 {
                   key: {
                     key: SPAN_KEYS.MESSAGE_CONTENT,
@@ -1795,15 +1795,15 @@ class SigNozStatsAPI {
     };
   }
 
-  private buildUniqueGraphsPayload(start: number, end: number, projectId?: string) {
+  private buildUniqueAgentsPayload(start: number, end: number, projectId?: string) {
     const items: any[] = [
       {
-        key: { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         op: OPERATORS.EXISTS,
         value: '',
       },
       {
-        key: { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         op: OPERATORS.NOT_EQUALS,
         value: UNKNOWN_VALUE,
       },
@@ -1830,20 +1830,20 @@ class SigNozStatsAPI {
         queryType: QUERY_TYPES.BUILDER,
         panelType: PANEL_TYPES.TABLE,
         builderQueries: {
-          uniqueGraphs: {
+          uniqueAgents: {
             dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.UNIQUE_GRAPHS,
+            queryName: QUERY_EXPRESSIONS.UNIQUE_AGENTS,
             aggregateOperator: AGGREGATE_OPERATORS.COUNT,
             aggregateAttribute: {
               key: SPAN_KEYS.SPAN_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
             filters: { op: OPERATORS.AND, items },
-            groupBy: [{ key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: QUERY_EXPRESSIONS.UNIQUE_GRAPHS,
+            groupBy: [{ key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
+            expression: QUERY_EXPRESSIONS.UNIQUE_AGENTS,
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.GRAPH_ID, order: ORDER_DIRECTIONS.ASC }],
+            orderBy: [{ columnName: SPAN_KEYS.AGENT_ID, order: ORDER_DIRECTIONS.ASC }],
             offset: QUERY_DEFAULTS.OFFSET,
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,

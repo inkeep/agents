@@ -1,7 +1,7 @@
 import type { ModelSettings, StatusComponent, StatusUpdateSettings } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamHelper } from '../../utils/stream-helpers';
-import { AgentSession, graphSessionManager } from '../GraphSession';
+import { AgentSession, agentSessionManager } from '../AgentSession';
 
 // Mock the AI SDK
 vi.mock('ai', () => ({
@@ -52,7 +52,7 @@ vi.mock('../../utils/stream-registry.js', () => ({
   }),
 }));
 
-describe('GraphSession', () => {
+describe('AgentSession', () => {
   let session: AgentSession;
   let mockStreamHelper: StreamHelper;
 
@@ -77,7 +77,7 @@ describe('GraphSession', () => {
   afterEach(() => {
     // Clean up any sessions
     session.cleanup();
-    graphSessionManager.endSession('test-session');
+    agentSessionManager.endSession('test-session');
   });
 
   describe('Basic Session Management', () => {
@@ -459,26 +459,26 @@ describe('GraphSession', () => {
     });
   });
 
-  describe('GraphSessionManager', () => {
+  describe('AgentSessionManager', () => {
     it('should create and retrieve sessions', () => {
-      const sessionId = graphSessionManager.createSession('manager-test', 'test-agent');
+      const sessionId = agentSessionManager.createSession('manager-test', 'test-agent');
       expect(sessionId).toBe('manager-test');
 
-      const retrieved = graphSessionManager.getSession('manager-test');
+      const retrieved = agentSessionManager.getSession('manager-test');
       expect(retrieved).toBeTruthy();
       expect(retrieved?.sessionId).toBe('manager-test');
     });
 
     it('should record events via manager', () => {
-      graphSessionManager.createSession('manager-test', 'test-agent');
+      agentSessionManager.createSession('manager-test', 'test-agent');
 
-      graphSessionManager.recordEvent('manager-test', 'tool_execution', 'agent-1', {
+      agentSessionManager.recordEvent('manager-test', 'tool_execution', 'agent-1', {
         toolName: 'test-tool',
         args: { input: 'test' },
         result: { output: 'success' },
       });
 
-      const retrieved = graphSessionManager.getSession('manager-test');
+      const retrieved = agentSessionManager.getSession('manager-test');
       expect(retrieved?.getEvents()).toHaveLength(1);
       expect(retrieved?.getEvents()[0].data).toMatchObject({
         toolName: 'test-tool',
@@ -488,22 +488,22 @@ describe('GraphSession', () => {
     });
 
     it('should set text streaming state via manager', () => {
-      graphSessionManager.createSession('manager-test', 'test-agent');
-      const retrieved = graphSessionManager.getSession('manager-test');
+      agentSessionManager.createSession('manager-test', 'test-agent');
+      const retrieved = agentSessionManager.getSession('manager-test');
 
       expect(retrieved?.isCurrentlyStreaming()).toBe(false);
 
-      graphSessionManager.setTextStreaming('manager-test', true);
+      agentSessionManager.setTextStreaming('manager-test', true);
       expect(retrieved?.isCurrentlyStreaming()).toBe(true);
 
-      graphSessionManager.setTextStreaming('manager-test', false);
+      agentSessionManager.setTextStreaming('manager-test', false);
       expect(retrieved?.isCurrentlyStreaming()).toBe(false);
     });
 
     it('should handle non-existent sessions gracefully', () => {
       // Should not throw when trying to record event for non-existent session
       expect(() => {
-        graphSessionManager.recordEvent('non-existent', 'tool_execution', 'agent', {
+        agentSessionManager.recordEvent('non-existent', 'tool_execution', 'agent', {
           toolName: 'test',
           args: {},
           result: 'test',
@@ -512,13 +512,13 @@ describe('GraphSession', () => {
 
       // Should not throw when trying to set text streaming for non-existent session
       expect(() => {
-        graphSessionManager.setTextStreaming('non-existent', true);
+        agentSessionManager.setTextStreaming('non-existent', true);
       }).not.toThrow();
     });
 
     it('should end sessions via manager', () => {
-      graphSessionManager.createSession('manager-test', 'test-agent');
-      const retrieved = graphSessionManager.getSession('manager-test');
+      agentSessionManager.createSession('manager-test', 'test-agent');
+      const retrieved = agentSessionManager.getSession('manager-test');
 
       // Test that session can record events before ending
       retrieved?.recordEvent('tool_execution', 'agent', {
@@ -528,11 +528,11 @@ describe('GraphSession', () => {
       });
       expect(retrieved?.getEvents()).toHaveLength(1);
 
-      const finalEvents = graphSessionManager.endSession('manager-test');
+      const finalEvents = agentSessionManager.endSession('manager-test');
       expect(finalEvents).toHaveLength(1);
 
       // Session should be removed from manager
-      expect(graphSessionManager.getSession('manager-test')).toBeNull();
+      expect(agentSessionManager.getSession('manager-test')).toBeNull();
     });
   });
 
@@ -611,7 +611,7 @@ describe('GraphSession', () => {
         },
       };
 
-      // This would be called by the GraphSession when streaming summary events
+      // This would be called by the AgentSession when streaming summary events
       expect(() => {
         // Verify the SummaryEvent structure is valid including type field
         expect(summaryEvent.type).toBe('status');
@@ -806,7 +806,7 @@ describe('GraphSession', () => {
       expect(statusState.config.prompt).toContain('\n');
     });
 
-    it('should properly pass custom prompt through GraphSessionManager', () => {
+    it('should properly pass custom prompt through AgentSessionManager', () => {
       const customPrompt = 'Manager-level custom prompt test';
       const config: StatusUpdateSettings = {
         numEvents: 2,
@@ -815,18 +815,18 @@ describe('GraphSession', () => {
 
       // Create session through manager
       const sessionId = 'test-manager-session';
-      graphSessionManager.createSession(sessionId, 'test-agent', 'tenant-1', 'project-1');
+      agentSessionManager.createSession(sessionId, 'test-agent', 'tenant-1', 'project-1');
 
       // Initialize status updates through manager
-      graphSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });
+      agentSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });
 
       // Verify session was found and configured
-      const retrievedSession = graphSessionManager.getSession(sessionId);
+      const retrievedSession = agentSessionManager.getSession(sessionId);
       expect(retrievedSession).not.toBeNull();
       expect((retrievedSession as any)?.statusUpdateState?.config.prompt).toBe(customPrompt);
 
       // Cleanup
-      graphSessionManager.endSession(sessionId);
+      agentSessionManager.endSession(sessionId);
     });
 
     it('should handle session not found gracefully in manager', () => {
@@ -837,7 +837,7 @@ describe('GraphSession', () => {
 
       // Don't create session, try to initialize status updates
       expect(() => {
-        graphSessionManager.initializeStatusUpdates('nonexistent-session', config, {
+        agentSessionManager.initializeStatusUpdates('nonexistent-session', config, {
           model: 'test-model',
         });
       }).not.toThrow();
@@ -854,7 +854,7 @@ describe('GraphSession', () => {
       expect(longPrompt.length).toBe(2001);
       expect(() => {
         session.initializeStatusUpdates(config, { model: 'test-model' });
-      }).not.toThrow(); // GraphSession itself doesn't validate, schema does
+      }).not.toThrow(); // AgentSession itself doesn't validate, schema does
     });
 
     it('should validate StatusUpdateConfig interface compatibility', () => {

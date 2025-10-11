@@ -2,12 +2,12 @@ import {
   type AgentStopWhen,
   type CredentialReferenceApiInsert,
   createDatabaseClient,
-  type FullGraphDefinition,
+  type FullAgentDefinition,
   getLogger,
   getProject,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
-import { updateFullGraphViaAPI } from './agentFullClient';
+import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import type {
   AgentConfig,
@@ -40,8 +40,8 @@ export class Agent implements AgentInterface {
   private tenantId: string;
   private projectId: string;
   private agentId: string;
-  private graphName: string;
-  private graphDescription?: string;
+  private agentName: string;
+  private agentDescription?: string;
   private initialized = false;
   private contextConfig?: any; // ContextConfigBuilder
   private credentials?: CredentialReferenceApiInsert[];
@@ -51,7 +51,7 @@ export class Agent implements AgentInterface {
     summarizer?: ModelSettings;
   };
   private statusUpdateSettings?: StatusUpdateSettings;
-  private graphPrompt?: string;
+  private agentPrompt?: string;
   private stopWhen?: AgentStopWhen;
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
@@ -61,8 +61,8 @@ export class Agent implements AgentInterface {
     this.tenantId = 'default';
     this.projectId = 'default'; // Default project ID, will be overridden by setConfig
     this.agentId = config.id;
-    this.graphName = config.name || this.agentId;
-    this.graphDescription = config.description;
+    this.agentName = config.name || this.agentId;
+    this.agentDescription = config.description;
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.contextConfig = config.contextConfig;
     this.credentials = resolveGetter(config.credentials);
@@ -79,7 +79,7 @@ export class Agent implements AgentInterface {
       url: dbUrl,
     });
     this.statusUpdateSettings = config.statusUpdates;
-    this.graphPrompt = config.graphPrompt;
+    this.agentPrompt = config.agentPrompt;
     // Set stopWhen - preserve original config or set default during inheritance
     this.stopWhen = config.stopWhen
       ? {
@@ -169,9 +169,9 @@ export class Agent implements AgentInterface {
   }
 
   /**
-   * Convert the Agent to FullGraphDefinition format for the new agent endpoint
+   * Convert the Agent to FullAgentDefinition format for the new agent endpoint
    */
-  async toFullGraphDefinition(): Promise<FullGraphDefinition> {
+  async toFullAgentDefinition(): Promise<FullAgentDefinition> {
     const agentsObject: Record<string, any> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
@@ -297,8 +297,8 @@ export class Agent implements AgentInterface {
 
     return {
       id: this.agentId,
-      name: this.graphName,
-      description: this.graphDescription,
+      name: this.agentName,
+      description: this.agentDescription,
       defaultSubAgentId: this.defaultSubAgent?.getId() || '',
       subAgents: agentsObject,
       contextConfig: this.contextConfig?.toObject(),
@@ -306,7 +306,7 @@ export class Agent implements AgentInterface {
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
-      prompt: this.graphPrompt,
+      prompt: this.agentPrompt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -336,7 +336,7 @@ export class Agent implements AgentInterface {
             toolInitPromises.push(
               (async () => {
                 try {
-                  // Skip database registration for all tools since graphFull will handle it
+                  // Skip database registration for all tools since agentFull will handle it
                   const skipDbRegistration =
                     toolInstance.constructor.name === 'IPCTool' ||
                     toolInstance.constructor.name === 'HostedTool' ||
@@ -408,8 +408,8 @@ export class Agent implements AgentInterface {
       // Apply model inheritance hierarchy (Project -> Agent -> Agent)
       await this.applyModelInheritance();
 
-      // Convert to FullGraphDefinition format
-      const graphDefinition = await this.toFullGraphDefinition();
+      // Convert to FullAgentDefinition format
+      const agentDefinition = await this.toFullAgentDefinition();
 
       // Always use API mode (baseURL is always set)
       logger.info(
@@ -422,18 +422,18 @@ export class Agent implements AgentInterface {
       );
 
       // Try update first (upsert behavior)
-      const createdGraph = await updateFullGraphViaAPI(
+      const createdAgent = await updateFullAgentViaAPI(
         this.tenantId,
         this.projectId,
         this.baseURL,
         this.agentId,
-        graphDefinition
+        agentDefinition
       );
 
       logger.info(
         {
           agentId: this.agentId,
-          agentCount: Object.keys(createdGraph.subAgents || {}).length,
+          agentCount: Object.keys(createdAgent.subAgents || {}).length,
         },
         'Agent agent initialized successfully using agent endpoint'
       );
@@ -755,11 +755,11 @@ export class Agent implements AgentInterface {
   }
 
   getName(): string {
-    return this.graphName;
+    return this.agentName;
   }
 
   getDescription(): string | undefined {
-    return this.graphDescription;
+    return this.agentDescription;
   }
 
   getTenantId(): string {
@@ -784,7 +784,7 @@ export class Agent implements AgentInterface {
    * Get the agent's prompt configuration
    */
   getAgentPrompt(): string | undefined {
-    return this.graphPrompt;
+    return this.agentPrompt;
   }
 
   /**
@@ -1029,7 +1029,7 @@ export class Agent implements AgentInterface {
     logger.debug(
       {
         agentId: this.agentId,
-        graphStopWhen: this.stopWhen,
+        agentStopWhen: this.stopWhen,
         projectStopWhen,
       },
       'Applied stopWhen inheritance from project to agent'
@@ -1213,7 +1213,7 @@ export class Agent implements AgentInterface {
         },
         body: JSON.stringify({
           id: this.agentId,
-          name: this.graphName,
+          name: this.agentName,
           defaultSubAgentId: this.defaultSubAgent?.getId() || '',
           contextConfigId: this.contextConfig?.getId(),
           models: this.models,
@@ -1542,14 +1542,14 @@ export function agent(config: AgentConfig): Agent {
 /**
  * Factory function to create agent from configuration file
  */
-export async function generateGraph(configPath: string): Promise<Agent> {
+export async function generateAgent(configPath: string): Promise<Agent> {
   logger.info({ configPath }, 'Loading agent configuration');
 
   try {
     const config = await import(configPath);
-    const graphConfig = config.default || config;
+    const agentConfig = config.default || config;
 
-    const agentObject = agent(graphConfig);
+    const agentObject = agent(agentConfig);
     await agentObject.init();
 
     logger.info(

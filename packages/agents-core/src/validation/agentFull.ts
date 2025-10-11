@@ -1,23 +1,23 @@
 import type { z } from 'zod';
 import type {
-  AgentDefinition,
-  ExternalAgentApiInsert,
-  FullGraphDefinition,
-  InternalAgentDefinition,
+  SubAgentDefinition,
+  ExternalSubAgentApiInsert,
+  FullAgentDefinition,
+  InternalSubAgentDefinition,
 } from '../types/entities';
 import { AgentWithinContextOfProjectSchema } from './schemas';
 
 // Type guard functions
-export function isInternalAgent(agent: AgentDefinition): agent is InternalAgentDefinition {
+export function isInternalAgent(agent: SubAgentDefinition): agent is InternalSubAgentDefinition {
   return 'prompt' in agent;
 }
 
-export function isExternalAgent(agent: AgentDefinition): agent is ExternalAgentApiInsert {
+export function isExternalAgent(agent: SubAgentDefinition): agent is ExternalSubAgentApiInsert {
   return 'baseUrl' in agent;
 }
 
 // Zod-based validation and typing using the existing schema
-export function validateAndTypeGraphData(
+export function validateAndTypeAgentData(
   data: unknown
 ): z.infer<typeof AgentWithinContextOfProjectSchema> {
   return AgentWithinContextOfProjectSchema.parse(data);
@@ -29,7 +29,7 @@ export function validateAndTypeGraphData(
  * This function is kept for backward compatibility but will need project-scoped tool data
  */
 export function validateToolReferences(
-  graphData: FullGraphDefinition,
+  agentData: FullAgentDefinition,
   availableToolIds?: Set<string>
 ): void {
   // If no tool IDs provided, skip validation (will be done at project level)
@@ -39,10 +39,10 @@ export function validateToolReferences(
 
   const errors: string[] = [];
 
-  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
+  for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have tools
-    if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
-      for (const canUseItem of agentData.canUse) {
+    if (isInternalAgent(subAgent) && subAgent.canUse && Array.isArray(subAgent.canUse)) {
+      for (const canUseItem of subAgent.canUse) {
         if (!availableToolIds.has(canUseItem.toolId)) {
           errors.push(`Agent '${subAgentId}' references non-existent tool '${canUseItem.toolId}'`);
         }
@@ -60,7 +60,7 @@ export function validateToolReferences(
  * Note: With scoped architecture, dataComponent validation should be done at the project level
  */
 export function validateDataComponentReferences(
-  graphData: FullGraphDefinition,
+  agentData: FullAgentDefinition,
   availableDataComponentIds?: Set<string>
 ): void {
   // If no dataComponent IDs provided, skip validation (will be done at project level)
@@ -70,10 +70,10 @@ export function validateDataComponentReferences(
 
   const errors: string[] = [];
 
-  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
+  for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have dataComponents
-    if (isInternalAgent(agentData) && agentData.dataComponents) {
-      for (const dataComponentId of agentData.dataComponents) {
+    if (isInternalAgent(subAgent) && subAgent.dataComponents) {
+      for (const dataComponentId of subAgent.dataComponents) {
         if (!availableDataComponentIds.has(dataComponentId)) {
           errors.push(
             `Agent '${subAgentId}' references non-existent dataComponent '${dataComponentId}'`
@@ -93,7 +93,7 @@ export function validateDataComponentReferences(
  * Note: With scoped architecture, artifactComponent validation should be done at the project level
  */
 export function validateArtifactComponentReferences(
-  graphData: FullGraphDefinition,
+  agentData: FullAgentDefinition,
   availableArtifactComponentIds?: Set<string>
 ): void {
   // If no artifactComponent IDs provided, skip validation (will be done at project level)
@@ -103,10 +103,10 @@ export function validateArtifactComponentReferences(
 
   const errors: string[] = [];
 
-  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
+  for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have artifactComponents
-    if (isInternalAgent(agentData) && agentData.artifactComponents) {
-      for (const artifactComponentId of agentData.artifactComponents) {
+    if (isInternalAgent(subAgent) && subAgent.artifactComponents) {
+      for (const artifactComponentId of subAgent.artifactComponents) {
         if (!availableArtifactComponentIds.has(artifactComponentId)) {
           errors.push(
             `Agent '${subAgentId}' references non-existent artifactComponent '${artifactComponentId}'`
@@ -124,16 +124,16 @@ export function validateArtifactComponentReferences(
 /**
  * Validates agent relationships (transfer and delegation targets exist)
  */
-export function validateAgentRelationships(graphData: FullGraphDefinition): void {
+export function validateAgentRelationships(agentData: FullAgentDefinition): void {
   const errors: string[] = [];
-  const availableAgentIds = new Set(Object.keys(graphData.subAgents));
+  const availableAgentIds = new Set(Object.keys(agentData.subAgents));
 
-  for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
+  for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have relationship properties
-    if (isInternalAgent(agentData)) {
+    if (isInternalAgent(subAgent)) {
       // Validate transfer targets
-      if (agentData.canTransferTo && Array.isArray(agentData.canTransferTo)) {
-        for (const targetId of agentData.canTransferTo) {
+      if (subAgent.canTransferTo && Array.isArray(subAgent.canTransferTo)) {
+        for (const targetId of subAgent.canTransferTo) {
           if (!availableAgentIds.has(targetId)) {
             errors.push(
               `Agent '${subAgentId}' has transfer target '${targetId}' that doesn't exist in agent`
@@ -143,8 +143,8 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
       }
 
       // Validate delegation targets
-      if (agentData.canDelegateTo && Array.isArray(agentData.canDelegateTo)) {
-        for (const targetId of agentData.canDelegateTo) {
+      if (subAgent.canDelegateTo && Array.isArray(subAgent.canDelegateTo)) {
+        for (const targetId of subAgent.canDelegateTo) {
           if (!availableAgentIds.has(targetId)) {
             errors.push(
               `Agent '${subAgentId}' has delegation target '${targetId}' that doesn't exist in agent`
@@ -164,8 +164,8 @@ export function validateAgentRelationships(graphData: FullGraphDefinition): void
  * Validates the agent structure before creation/update
  * Note: With scoped architecture, project-scoped resource validation should be done at project level
  */
-export function validateGraphStructure(
-  graphData: FullGraphDefinition,
+export function validateAgentStructure(
+  agentData: FullAgentDefinition,
   projectResources?: {
     toolIds?: Set<string>;
     dataComponentIds?: Set<string>;
@@ -173,17 +173,17 @@ export function validateGraphStructure(
   }
 ): void {
   // Validate default agent exists (if specified)
-  if (graphData.defaultSubAgentId && !graphData.subAgents[graphData.defaultSubAgentId]) {
-    throw new Error(`Default agent '${graphData.defaultSubAgentId}' does not exist in agents`);
+  if (agentData.defaultSubAgentId && !agentData.subAgents[agentData.defaultSubAgentId]) {
+    throw new Error(`Default agent '${agentData.defaultSubAgentId}' does not exist in agents`);
   }
 
   // Validate resource references if project resources are provided
   if (projectResources) {
-    validateToolReferences(graphData, projectResources.toolIds);
-    validateDataComponentReferences(graphData, projectResources.dataComponentIds);
-    validateArtifactComponentReferences(graphData, projectResources.artifactComponentIds);
+    validateToolReferences(agentData, projectResources.toolIds);
+    validateDataComponentReferences(agentData, projectResources.dataComponentIds);
+    validateArtifactComponentReferences(agentData, projectResources.artifactComponentIds);
   }
 
   // Validate agent relationships (this is always agent-scoped)
-  validateAgentRelationships(graphData);
+  validateAgentRelationships(agentData);
 }

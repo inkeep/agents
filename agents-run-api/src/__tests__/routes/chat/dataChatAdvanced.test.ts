@@ -76,7 +76,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 // No longer need beforeAll/afterAll since ExecutionHandler is mocked at module level
 
 describe('Chat Data Stream Advanced', () => {
-  async function setupGraph() {
+  async function setupAgent() {
     const tenantId = createTestTenantId(`advanced-${nanoid().slice(0, 8)}`);
     const projectId = 'default';
     const agentId = nanoid();
@@ -115,7 +115,7 @@ describe('Chat Data Stream Advanced', () => {
   }
 
   it('streams expected completion content', async () => {
-    const { tenantId, projectId, agentId } = await setupGraph();
+    const { tenantId, projectId, agentId } = await setupAgent();
 
     const res = await makeRequest('/api/chat', {
       method: 'POST',

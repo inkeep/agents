@@ -28,7 +28,7 @@ export function detectOrphanedToolsAndGetWarning(
   >,
   toolLookup: Record<string, MCPTool>
 ): string | null {
-  const result = detectOrphanedToolsInGraph(nodes, agentToolConfigLookup, toolLookup);
+  const result = detectOrphanedToolsInAgent(nodes, agentToolConfigLookup, toolLookup);
   return result.hasOrphanedTools ? createOrphanedToolsWarningMessage(result) : null;
 }
 
@@ -36,7 +36,7 @@ export function detectOrphanedToolsAndGetWarning(
  * Detects orphaned tools across all MCP nodes in the agent
  * Orphaned tools are tools that were selected but are no longer available in the MCP server
  */
-function detectOrphanedToolsInGraph(
+function detectOrphanedToolsInAgent(
   nodes: Node[],
   agentToolConfigLookup: Record<
     string,

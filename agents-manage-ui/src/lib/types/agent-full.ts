@@ -11,12 +11,12 @@ import { z } from 'zod';
 import {
   type AgentApiInsert,
   AgentApiInsertSchema,
-  AgentGraphApiInsertSchema,
-  type AgentGraphInsert,
-  type FullGraphDefinition as CoreFullGraphDefinition,
+  AgentAgentApiInsertSchema,
+  type AgentAgentInsert,
+  type FullAgentDefinition as CoreFullAgentDefinition,
   ErrorResponseSchema,
   type ExternalAgentDefinition,
-  FullGraphDefinitionSchema,
+  FullAgentDefinitionSchema,
   type FunctionApiInsert,
   type InternalAgentDefinition,
   ListResponseSchema,
@@ -28,8 +28,8 @@ import {
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
 
-// Extend FullGraphDefinition with UI-specific lookup maps
-export type FullGraphDefinition = CoreFullGraphDefinition & {
+// Extend FullAgentDefinition with UI-specific lookup maps
+export type FullAgentDefinition = CoreFullAgentDefinition & {
   tools?: Record<string, ToolApiInsert>;
   functionTools?: Record<string, any>; // Function tools are agent-scoped
   functions?: Record<string, FunctionApiInsert>;
@@ -37,17 +37,17 @@ export type FullGraphDefinition = CoreFullGraphDefinition & {
 
 // Re-export core types with aliases
 export type AgentApi = AgentApiInsert;
-export type AgentGraphApi = AgentGraphInsert;
+export type AgentAgentApi = AgentAgentInsert;
 export type ToolApi = ToolInsert;
 export const AgentApiSchema = AgentApiInsertSchema;
-export const AgentGraphApiSchema = AgentGraphApiInsertSchema;
+export const AgentAgentApiSchema = AgentAgentApiInsertSchema;
 export const ToolApiSchema = ToolApiInsertSchema;
 
 // Re-export types and schemas
 export {
   ErrorResponseSchema,
   type ExternalAgentDefinition,
-  FullGraphDefinitionSchema,
+  FullAgentDefinitionSchema,
   type InternalAgentDefinition,
   ListResponseSchema,
   SingleResponseSchema,
@@ -78,12 +78,12 @@ export interface Agent {
 }
 
 // API Response Types
-export type CreateGraphResponse = SingleResponse<FullGraphDefinition>;
-export type GetGraphResponse = SingleResponse<FullGraphDefinition>;
-export type UpdateGraphResponse = SingleResponse<FullGraphDefinition>;
+export type CreateAgentResponse = SingleResponse<FullAgentDefinition>;
+export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
+export type UpdateAgentResponse = SingleResponse<FullAgentDefinition>;
 
 // API Error Types
-export type GraphApiError = {
+export type AgentApiError = {
   code: 'not_found' | 'bad_request' | 'internal_server_error' | 'conflict';
   message: string;
 };

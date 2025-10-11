@@ -3,20 +3,20 @@ import {
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createApiError,
-  createFullGraphServerSide,
+  createFullAgentServerSide,
   deleteFullAgent,
   ErrorResponseSchema,
-  type FullGraphDefinition,
+  type FullAgentDefinition,
   getFullAgent,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  updateFullGraphServerSide,
+  updateFullAgentServerSide,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
-const logger = getLogger('graphFull');
+const logger = getLogger('agentFull');
 
 const app = new OpenAPIHono();
 
@@ -33,7 +33,7 @@ const AgentIdParamsSchema = z
     }),
     agentId: z.string().openapi({
       description: 'Agent identifier',
-      example: 'graph_789',
+      example: 'agent_789',
     }),
   })
   .openapi('AgentIdParams');
@@ -80,18 +80,18 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const graphData = c.req.valid('json');
+    const agentData = c.req.valid('json');
 
     // Validate the agent data
-    const validatedGraphData = AgentWithinContextOfProjectSchema.parse(graphData);
+    const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
     // Create the full agent using the server-side data layer operations
-    const createdGraph = await createFullGraphServerSide(dbClient, logger)(
+    const createdAgent = await createFullAgentServerSide(dbClient, logger)(
       { tenantId, projectId },
-      validatedGraphData
+      validatedAgentData
     );
 
-    return c.json({ data: createdGraph }, 201);
+    return c.json({ data: createdAgent }, 201);
   }
 );
 
@@ -124,7 +124,7 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      const agent: FullGraphDefinition | null = await getFullAgent(
+      const agent: FullAgentDefinition | null = await getFullAgent(
         dbClient,
         logger
       )({
@@ -197,41 +197,41 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
-    const graphData = c.req.valid('json');
+    const agentData = c.req.valid('json');
 
     try {
       // Validate the agent data
-      const validatedGraphData = AgentWithinContextOfProjectSchema.parse(graphData);
+      const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
       // Validate that the URL agentId matches the data.id
-      if (agentId !== validatedGraphData.id) {
+      if (agentId !== validatedAgentData.id) {
         throw createApiError({
           code: 'bad_request',
-          message: `Agent ID mismatch: expected ${agentId}, got ${validatedGraphData.id}`,
+          message: `Agent ID mismatch: expected ${agentId}, got ${validatedAgentData.id}`,
         });
       }
 
       // Check if the agent exists first to determine status code
-      const existingGraph: FullGraphDefinition | null = await getFullAgent(
+      const existingAgent: FullAgentDefinition | null = await getFullAgent(
         dbClient,
         logger
       )({
         scopes: { tenantId, projectId, agentId },
       });
-      const isCreate = !existingGraph;
+      const isCreate = !existingAgent;
 
       // Update/create the full agent using server-side data layer operations
-      const updatedGraph: FullGraphDefinition = isCreate
-        ? await createFullGraphServerSide(dbClient, logger)(
+      const updatedAgent: FullAgentDefinition = isCreate
+        ? await createFullAgentServerSide(dbClient, logger)(
             { tenantId, projectId },
-            validatedGraphData
+            validatedAgentData
           )
-        : await updateFullGraphServerSide(dbClient, logger)(
+        : await updateFullAgentServerSide(dbClient, logger)(
             { tenantId, projectId },
-            validatedGraphData
+            validatedAgentData
           );
 
-      return c.json({ data: updatedGraph }, isCreate ? 201 : 200);
+      return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw createApiError({

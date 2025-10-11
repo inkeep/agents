@@ -16,7 +16,7 @@ import { A2AClient } from '../a2a/client';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../services/GraphSession';
+import { agentSessionManager } from '../services/AgentSession';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 
@@ -76,9 +76,9 @@ export const createTransferToAgentTool = ({
         'invoked transferToAgentTool'
       );
 
-      // Record transfer event in GraphSession
+      // Record transfer event in AgentSession
       if (streamRequestId) {
-        graphSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
+        agentSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
           fromSubAgent: callingAgentId,
           targetSubAgent: transferConfig.id ?? 'unknown',
           reason: `Transfer to ${transferConfig.name || transferConfig.id}`,
@@ -140,9 +140,9 @@ export function createDelegateToAgentTool({
         });
       }
 
-      // Record delegation sent event in GraphSession
+      // Record delegation sent event in AgentSession
       if (metadata.streamRequestId) {
-        graphSessionManager.recordEvent(
+        agentSessionManager.recordEvent(
           metadata.streamRequestId,
           'delegation_sent',
           callingAgentId,
@@ -247,7 +247,7 @@ export function createDelegateToAgentTool({
       });
 
       // Create the message to send to the agent
-      // Keep streamRequestId for GraphSession access, add isDelegation flag to prevent streaming
+      // Keep streamRequestId for AgentSession access, add isDelegation flag to prevent streaming
       const messageToSend = {
         role: 'agent' as const,
         parts: [{ text: input.message, kind: 'text' as const }],
@@ -316,9 +316,9 @@ export function createDelegateToAgentTool({
         toolSessionManager.recordToolResult(sessionId, toolResult);
       }
 
-      // Record delegation returned event in GraphSession
+      // Record delegation returned event in AgentSession
       if (metadata.streamRequestId) {
-        graphSessionManager.recordEvent(
+        agentSessionManager.recordEvent(
           metadata.streamRequestId,
           'delegation_returned',
           callingAgentId,

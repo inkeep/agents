@@ -32,10 +32,10 @@ interface McpServer {
   description?: string;
 }
 
-async function startServers(graphPath: string) {
+async function startServers(agentPath: string) {
   try {
     // Import the agent module
-    const module = await import(graphPath);
+    const module = await import(agentPath);
 
     // Get servers
     const servers = module.servers || module.tools || [];
@@ -116,7 +116,7 @@ async function startServers(graphPath: string) {
           port,
           deployment: 'local',
           transport: 'http',
-          command: graphPath,
+          command: agentPath,
           startedAt: new Date().toISOString(),
           description,
         });
@@ -130,7 +130,7 @@ async function startServers(graphPath: string) {
           serverUrl: server.serverUrl || server.getServerUrl?.(),
           deployment: 'remote',
           transport: server.transport || 'http',
-          command: graphPath,
+          command: agentPath,
           startedAt: new Date().toISOString(),
           description,
         });
@@ -176,8 +176,8 @@ async function startServers(graphPath: string) {
 }
 
 // Get agent path from command line
-const graphPath = process.argv[2];
-if (!graphPath) {
+const agentPath = process.argv[2];
+if (!agentPath) {
   console.error(
     JSON.stringify({
       type: 'error',
@@ -187,4 +187,4 @@ if (!graphPath) {
   process.exit(1);
 }
 
-startServers(graphPath);
+startServers(agentPath);

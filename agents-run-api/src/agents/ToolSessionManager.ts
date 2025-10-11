@@ -51,7 +51,7 @@ export class ToolSessionManager {
   }
 
   /**
-   * Create a new tool session with a specific ID (for coordination with GraphSession)
+   * Create a new tool session with a specific ID (for coordination with AgentSession)
    */
   createSessionWithId(
     sessionId: string,
@@ -88,7 +88,7 @@ export class ToolSessionManager {
    * Ensure a agent-scoped session exists (idempotent)
    * All agents in the same agent execution share this session
    */
-  ensureGraphSession(
+  ensureAgentSession(
     sessionId: string,
     tenantId: string,
     projectId: string,

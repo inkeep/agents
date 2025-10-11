@@ -12,7 +12,7 @@ export interface ValidationErrorDetail {
   expected?: string;
 }
 
-export interface ProcessedGraphError {
+export interface ProcessedAgentError {
   type: 'node' | 'edge' | 'agent';
   nodeType?: 'agent' | 'functionTool';
   nodeId?: string;
@@ -23,24 +23,24 @@ export interface ProcessedGraphError {
   originalError: ValidationErrorDetail;
 }
 
-export interface GraphErrorSummary {
+export interface AgentErrorSummary {
   totalErrors: number;
-  agentErrors: Record<string, ProcessedGraphError[]>;
-  functionToolErrors: Record<string, ProcessedGraphError[]>;
-  edgeErrors: Record<string, ProcessedGraphError[]>;
-  graphErrors: ProcessedGraphError[];
-  allErrors: ProcessedGraphError[];
+  subAgentErrors: Record<string, ProcessedAgentError[]>;
+  functionToolErrors: Record<string, ProcessedAgentError[]>;
+  edgeErrors: Record<string, ProcessedAgentError[]>;
+  agentErrors: ProcessedAgentError[];
+  allErrors: ProcessedAgentError[];
   // Legacy property for backward compatibility
-  nodeErrors: Record<string, ProcessedGraphError[]>;
+  nodeErrors: Record<string, ProcessedAgentError[]>;
 }
 
 /**
  * Parse Zod validation errors from the API response into structured format
  */
-export function parseGraphValidationErrors(apiError: string): GraphErrorSummary {
+export function parseAgentValidationErrors(apiError: string): AgentErrorSummary {
   try {
     const errors = JSON.parse(apiError) as any[];
-    const processedErrors: ProcessedGraphError[] = [];
+    const processedErrors: ProcessedAgentError[] = [];
 
     for (const error of errors) {
       if (error.code === 'invalid_union' && error.errors && error.path) {
@@ -67,11 +67,11 @@ export function parseGraphValidationErrors(apiError: string): GraphErrorSummary 
     // Fallback for unparseable errors
     return {
       totalErrors: 1,
-      agentErrors: {},
+      subAgentErrors: {},
       functionToolErrors: {},
       nodeErrors: {},
       edgeErrors: {},
-      graphErrors: [
+      agentErrors: [
         {
           type: 'agent',
           field: 'unknown',
@@ -95,7 +95,7 @@ export function parseGraphValidationErrors(apiError: string): GraphErrorSummary 
 function processValidationError(
   error: ValidationErrorDetail,
   basePath: string[]
-): ProcessedGraphError | null {
+): ProcessedAgentError | null {
   const fullPath = [...basePath, ...error.path];
 
   // Determine error type and extract IDs
@@ -222,12 +222,12 @@ function getFieldDisplayName(field: string): string {
 /**
  * Categorize processed errors by type and entity ID
  */
-function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
-  const agentErrors: Record<string, ProcessedGraphError[]> = {};
-  const functionToolErrors: Record<string, ProcessedGraphError[]> = {};
-  const nodeErrors: Record<string, ProcessedGraphError[]> = {}; // Legacy support
-  const edgeErrors: Record<string, ProcessedGraphError[]> = {};
-  const graphErrors: ProcessedGraphError[] = [];
+function categorizeErrors(errors: ProcessedAgentError[]): AgentErrorSummary {
+  const subAgentErrors: Record<string, ProcessedAgentError[]> = {};
+  const functionToolErrors: Record<string, ProcessedAgentError[]> = {};
+  const nodeErrors: Record<string, ProcessedAgentError[]> = {}; // Legacy support
+  const edgeErrors: Record<string, ProcessedAgentError[]> = {};
+  const agentErrors: ProcessedAgentError[] = [];
 
   for (const error of errors) {
     switch (error.type) {
@@ -240,11 +240,11 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
             }
             functionToolErrors[error.nodeId].push(error);
           } else {
-            // Default to agent errors for backward compatibility
-            if (!agentErrors[error.nodeId]) {
-              agentErrors[error.nodeId] = [];
+            // Default to sub-agent errors for backward compatibility
+            if (!subAgentErrors[error.nodeId]) {
+              subAgentErrors[error.nodeId] = [];
             }
-            agentErrors[error.nodeId].push(error);
+            subAgentErrors[error.nodeId].push(error);
           }
 
           // Also add to legacy nodeErrors for backward compatibility
@@ -263,18 +263,18 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
         }
         break;
       case 'agent':
-        graphErrors.push(error);
+        agentErrors.push(error);
         break;
     }
   }
 
   return {
     totalErrors: errors.length,
-    agentErrors,
+    subAgentErrors,
     functionToolErrors,
     nodeErrors,
     edgeErrors,
-    graphErrors,
+    agentErrors,
     allErrors: errors,
   };
 }
@@ -282,20 +282,19 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
 /**
  * Generate a concise summary message for the error toast
  */
-export function getErrorSummaryMessage(errorSummary: GraphErrorSummary): string {
-  const { totalErrors, agentErrors, functionToolErrors, edgeErrors, graphErrors } = errorSummary;
+export function getErrorSummaryMessage(errorSummary: AgentErrorSummary): string {
+  const { totalErrors, subAgentErrors, functionToolErrors, edgeErrors, agentErrors } = errorSummary;
 
   if (totalErrors === 0) return '';
 
   const parts: string[] = [];
 
-  const agentErrorCount = Object.keys(agentErrors).length;
+  const subAgentErrorCount = Object.keys(agentErrors).length;
   const functionToolErrorCount = Object.keys(functionToolErrors).length;
   const edgeErrorCount = Object.keys(edgeErrors).length;
-  const graphErrorCount = graphErrors.length;
-
-  if (agentErrorCount > 0) {
-    parts.push(`${agentErrorCount} agent${agentErrorCount > 1 ? 's' : ''}`);
+  const agentErrorCount = agentErrors.length;
+  if (subAgentErrorCount > 0) {
+    parts.push(`${subAgentErrorCount} subAgent${subAgentErrorCount > 1 ? 's' : ''}`);
   }
   if (functionToolErrorCount > 0) {
     parts.push(`${functionToolErrorCount} function tool${functionToolErrorCount > 1 ? 's' : ''}`);
@@ -303,8 +302,8 @@ export function getErrorSummaryMessage(errorSummary: GraphErrorSummary): string 
   if (edgeErrorCount > 0) {
     parts.push(`${edgeErrorCount} connection${edgeErrorCount > 1 ? 's' : ''}`);
   }
-  if (graphErrorCount > 0) {
-    parts.push(`${graphErrorCount} agent setting${graphErrorCount > 1 ? 's' : ''}`);
+  if (agentErrorCount > 0) {
+    parts.push(`${agentErrorCount} agent setting${agentErrorCount > 1 ? 's' : ''}`);
   }
 
   const summary = parts.join(', ');

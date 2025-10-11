@@ -2,22 +2,22 @@
  * API Client for Agent Full Operations
  *
  * This module provides HTTP client functions to communicate with the
- * inkeep-chat backend GraphFull REST API endpoints.
+ * inkeep-chat backend AgentFull REST API endpoints.
  */
 
 import { ApiError } from '../types/errors';
 import type {
-  CreateGraphResponse,
-  FullGraphDefinition,
-  GetGraphResponse,
+  CreateAgentResponse,
+  FullAgentDefinition,
+  GetAgentResponse,
   Agent,
-  UpdateGraphResponse,
+  UpdateAgentResponse,
 } from '../types/agent-full';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
-export async function fetchGraphs(
+export async function fetchAgents(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<Agent>> {
@@ -32,19 +32,19 @@ export async function fetchGraphs(
 /**
  * Create a new full agent
  */
-export async function createFullGraph(
+export async function createFullAgent(
   tenantId: string,
   projectId: string,
-  graphData: FullGraphDefinition
-): Promise<CreateGraphResponse> {
+  agentData: FullAgentDefinition
+): Promise<CreateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<CreateGraphResponse>(
+  return makeManagementApiRequest<CreateAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent`,
     {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     }
   );
 }
@@ -52,15 +52,15 @@ export async function createFullGraph(
 /**
  * Get a full agent by ID
  */
-export async function getFullGraph(
+export async function getFullAgent(
   tenantId: string,
   projectId: string,
   agentId: string
-): Promise<GetGraphResponse> {
+): Promise<GetAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<GetGraphResponse>(
+  return makeManagementApiRequest<GetAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
     {
       method: 'GET',
@@ -71,20 +71,20 @@ export async function getFullGraph(
 /**
  * Update or create a full agent (upsert)
  */
-export async function updateFullGraph(
+export async function updateFullAgent(
   tenantId: string,
   projectId: string,
   agentId: string,
-  graphData: FullGraphDefinition
-): Promise<UpdateGraphResponse> {
+  agentData: FullAgentDefinition
+): Promise<UpdateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<UpdateGraphResponse>(
+  return makeManagementApiRequest<UpdateAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
     {
       method: 'PUT',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     }
   );
 }
@@ -92,7 +92,7 @@ export async function updateFullGraph(
 /**
  * Delete a full agent
  */
-export async function deleteFullGraph(
+export async function deleteFullAgent(
   tenantId: string,
   projectId: string,
   agentId: string

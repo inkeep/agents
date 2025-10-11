@@ -245,13 +245,13 @@ describe('Template Content Replacement', () => {
   describe('Integration tests', () => {
     it('should handle real-world TypeScript project structure', async () => {
       const projectContent = `import { project } from '@inkeep/agents-sdk';
-import { weatherGraph } from './agent/weather-agent';
+import { weatherAgent } from './agent/weather-agent';
 
 export const myProject = project({
   id: 'weather-project',
   name: 'Weather Project',
   description: 'Weather project template',
-  agent: () => [weatherGraph],
+  agent: () => [weatherAgent],
   models: {
     base: {
       model: 'gpt-4o-mini',
@@ -281,10 +281,10 @@ export const myProject = project({
 
       // Should preserve imports and structure
       expect(result).toContain("import { project } from '@inkeep/agents-sdk'");
-      expect(result).toContain("import { weatherGraph } from './agent/weather-agent'");
+      expect(result).toContain("import { weatherAgent } from './agent/weather-agent'");
       expect(result).toContain("id: 'weather-project'");
       expect(result).toContain("name: 'Weather Project'");
-      expect(result).toContain('agent: () => [weatherGraph]');
+      expect(result).toContain('agent: () => [weatherAgent]');
 
       // Should replace all model configurations
       expect(result).toContain('anthropic/claude-3-5-haiku-20241022');

@@ -15,7 +15,7 @@ import {
   subAgentToolRelations,
   tools,
 } from '../db/schema';
-import type { AgentInsert, AgentSelect, AgentUpdate, FullGraphDefinition } from '../types/entities';
+import type { AgentInsert, AgentSelect, AgentUpdate, FullAgentDefinition } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
@@ -277,13 +277,13 @@ export const getAgentSubAgentInfos =
     return agentInfos.filter((agent): agent is NonNullable<typeof agent> => agent !== null);
   };
 
-export const getFullGraphDefinition =
+export const getFullAgentDefinition =
   (db: DatabaseClient) =>
   async ({
     scopes: { tenantId, projectId, agentId },
   }: {
     scopes: AgentScopeConfig;
-  }): Promise<FullGraphDefinition | null> => {
+  }): Promise<FullAgentDefinition | null> => {
     const agent = await getAgentById(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -583,7 +583,7 @@ export const getFullGraphDefinition =
     try {
       // Check if projects query is available (may not be in test environments)
       if (!db.query?.projects?.findFirst) {
-        return result as FullGraphDefinition;
+        return result as FullAgentDefinition;
       }
 
       const project = await db.query.projects.findFirst({
@@ -722,7 +722,7 @@ export const getFullGraphDefinition =
       console.warn('Failed to load tools/functions lookups:', error);
     }
 
-    return result as FullGraphDefinition;
+    return result as FullAgentDefinition;
   };
 
 /**

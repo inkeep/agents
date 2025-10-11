@@ -18,7 +18,7 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../services/GraphSession';
+import { agentSessionManager } from '../services/AgentSession';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
@@ -247,7 +247,7 @@ export const createTaskHandler = (
       // Update the shared ArtifactService with artifact components for this agent
       const artifactStreamRequestId = task.context?.metadata?.streamRequestId;
       if (artifactStreamRequestId && artifactComponents.length > 0) {
-        graphSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
+        agentSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
       }
 
       // More robust contextId resolution for delegation scenarios
@@ -286,9 +286,9 @@ export const createTaskHandler = (
         );
 
         // Ensure ToolSession exists for delegated agents
-        // Use streamRequestId as sessionId to match the parent GraphSession
+        // Use streamRequestId as sessionId to match the parent AgentSession
         if (streamRequestId && config.tenantId && config.projectId) {
-          toolSessionManager.ensureGraphSession(
+          toolSessionManager.ensureAgentSession(
             streamRequestId,
             config.tenantId,
             config.projectId,

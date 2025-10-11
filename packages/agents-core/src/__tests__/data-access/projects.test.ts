@@ -255,8 +255,8 @@ describe('Projects Data Access', () => {
       });
 
       expect(result).toEqual({
-        agents: 3,
-        agent: 1,
+        subAgents: 3,
+        agents: 1,
         tools: 2,
         contextConfigs: 0,
         externalAgents: 1,
@@ -287,7 +287,7 @@ describe('Projects Data Access', () => {
 
       expect(result).toEqual({
         agents: 0,
-        agent: 0,
+        subAgents: 0,
         tools: 0,
         contextConfigs: 0,
         externalAgents: 0,

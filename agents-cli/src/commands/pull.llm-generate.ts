@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
-import type { FullGraphDefinition, ModelSettings } from '@inkeep/agents-core';
+import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import {
@@ -241,7 +241,7 @@ CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
 - Examples:
   - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
   - Component: import { userProfile } from '../data-components/user-profile'; export const userProfile = dataComponent({ id: 'user-profile', ... })
-  - Agent: import { myGraph } from './agent/my-agent'; export const myGraph = agent({ id: 'my-agent', ... })
+  - Agent: import { myAgent } from './agent/my-agent'; export const myAgent = agent({ id: 'my-agent', ... })
 `;
 
 const IMPORT_INSTRUCTIONS = `
@@ -269,8 +269,8 @@ import { inkeepFacts } from '../tools/inkeep_facts';
 import { weatherApi } from '../tools/weather-api';
 
 // Agent - each from individual file:
-import { inkeepQaGraph } from './agent/inkeep-qa-agent';
-import { weatherGraph } from './agent/weather-agent';
+import { inkeepQaAgent } from './agent/inkeep-qa-agent';
+import { weatherAgent } from './agent/weather-agent';
 `;
 
 /**
@@ -420,8 +420,8 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 /**
  * Generate a agent TypeScript file
  */
-export async function generateGraphFile(
-  graphData: FullGraphDefinition,
+export async function generateAgentFile(
+  agentData: FullAgentDefinition,
   agentId: string,
   outputPath: string,
   modelSettings: ModelSettings,
@@ -480,7 +480,7 @@ import { searchTool } from '../tools/search-tool';
 import { weatherTool } from '../tools/weather-tool';
 import { z } from 'zod';
 
-const supportGraphHeaders = headers({
+const supportAgentHeaders = headers({
   schema: z.object({
     userId: z.string(),
     sessionToken: z.string(),
@@ -495,7 +495,7 @@ const supportDescriptionFetchDefinition = fetchDefinition({
     url: 'https://api.example.com/support-description',
     method: 'GET',
     headers: {
-      'Authorization': \`Bearer \${supportGraphHeaders.toTemplate('sessionToken')}\`,
+      'Authorization': \`Bearer \${supportAgentHeaders.toTemplate('sessionToken')}\`,
     },
     transform: 'data',
   },
@@ -505,8 +505,8 @@ const supportDescriptionFetchDefinition = fetchDefinition({
   defaultValue: 'Support Description',
 });
 
-const supportGraphContext = contextConfig({
-  headers: supportGraphHeaders,
+const supportAgentContext = contextConfig({
+  headers: supportAgentHeaders,
   contextVariables: {
     supportDescription: supportDescriptionDefinition,
   },
@@ -515,7 +515,7 @@ const supportGraphContext = contextConfig({
 const routerAgent = agent({
   id: 'router',
   name: 'Router Agent',
-  prompt: \`Route requests to appropriate agents using \${supportGraphContext.toTemplate('supportDescription.description')} for the user \${supportGraphHeaders.toTemplate('userId')}\`,
+  prompt: \`Route requests to appropriate agents using \${supportAgentContext.toTemplate('supportDescription.description')} for the user \${supportAgentHeaders.toTemplate('userId')}\`,
   canTransferTo: () => [qaAgent]
 });
 
@@ -527,7 +527,7 @@ const qaAgent = agent({
 Follow these rules:
 - Always be helpful
 - Provide accurate answers
-- Use the user's name \${supportGraphHeaders.toTemplate('userId')} when applicable
+- Use the user's name \${supportAgentHeaders.toTemplate('userId')} when applicable
 - Use available tools\`,
   canUse: () => [searchTool, weatherTool],
   selectedTools: {
@@ -537,7 +537,7 @@ Follow these rules:
   dataComponents: () => [userProfile.config]
 });
 
-export const supportGraph = agent({
+export const supportAgent = agent({
   id: 'support-agent',
   name: 'Support Agent',
   description: 'Multi-agent support system', // Only include if description has a value
@@ -551,14 +551,14 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     console.log(`\n[DEBUG] === Starting agent generation for: ${agentId} ===`);
     console.log(`[DEBUG] Output path: ${outputPath}`);
     console.log(`[DEBUG] Model: ${modelSettings.model || 'default'}`);
-    console.log(`[DEBUG] Agent data size: ${JSON.stringify(graphData).length} characters`);
+    console.log(`[DEBUG] Agent data size: ${JSON.stringify(agentData).length} characters`);
 
     // Log agent complexity
-    const agentCount = Object.keys(graphData.subAgents || {}).length;
+    const agentCount = Object.keys(agentData.subAgents || {}).length;
     const toolIds = new Set();
     const dataComponentIds = new Set();
     const artifactComponentIds = new Set();
-    for (const agent of Object.values(graphData.subAgents || {})) {
+    for (const agent of Object.values(agentData.subAgents || {})) {
       const agentData = agent as any;
       if (agentData.tools) {
         for (const toolId of Object.keys(agentData.tools)) {
@@ -582,7 +582,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     console.log(`[DEBUG]   - Unique tools: ${toolIds.size}`);
     console.log(`[DEBUG]   - Data components: ${dataComponentIds.size}`);
     console.log(`[DEBUG]   - Artifact components: ${artifactComponentIds.size}`);
-    console.log(`[DEBUG]   - Context config: ${graphData.contextConfig ? 'Yes' : 'No'}`);
+    console.log(`[DEBUG]   - Context config: ${agentData.contextConfig ? 'Yes' : 'No'}`);
   }
 
   try {
@@ -594,7 +594,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 
     const text = await generateTextWithPlaceholders(
       model,
-      graphData,
+      agentData,
       promptTemplate,
       {
         temperature: 0.1,
@@ -983,7 +983,7 @@ export { ${exportStatement} };
  * Generate TypeScript code using LLM to intelligently merge agent data
  */
 export async function generateTypeScriptFileWithLLM(
-  graphData: any,
+  agentData: any,
   agentId: string,
   outputFilePath: string,
   modelSettings: ModelSettings,
@@ -1011,7 +1011,7 @@ export async function generateTypeScriptFileWithLLM(
   const model = createModel(modelSettings);
 
   // Prepare the prompt
-  const prompt = createPrompt(graphData, agentId, existingContent, fileExists, retryContext);
+  const prompt = createPrompt(agentData, agentId, existingContent, fileExists, retryContext);
 
   try {
     // Generate the updated code using the LLM
@@ -1037,7 +1037,7 @@ export async function generateTypeScriptFileWithLLM(
  * Create a comprehensive prompt for the LLM to generate/update TypeScript code
  */
 function createPrompt(
-  graphData: any,
+  agentData: any,
   agentId: string,
   existingContent: string,
   fileExists: boolean,
@@ -1047,7 +1047,7 @@ function createPrompt(
     previousDifferences?: string[];
   }
 ): string {
-  const graphDataJson = JSON.stringify(graphData, null, 2);
+  const agentDataJson = JSON.stringify(agentData, null, 2);
 
   // Add retry context to the prompt if this is a retry
   const retryInstructions =
@@ -1076,7 +1076,7 @@ CRITICAL: This is a retry attempt. You must be extremely careful to match the ex
     return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent agent configuration.${retryInstructions}
 
 AGENT DATA (JSON):
-${graphDataJson}
+${agentDataJson}
 
 AGENT ID: ${agentId}
 
@@ -1109,7 +1109,7 @@ IMPORTANT:
 - Preserve all configuration details exactly as provided
 - Use proper TypeScript formatting and indentation
 - Include all necessary imports at the top
-- Add comments for complex objects like GraphQL queries or multi-line instructions
+- Add comments for complex objects like AgentQL queries or multi-line instructions
 - Keep the same structure and organization as typical Inkeep agent files
 
 CRITICAL: Generate ONLY the raw TypeScript code. Do NOT wrap it in markdown code blocks (no triple backticks with typescript). Do NOT include any explanations, comments, or markdown formatting. Return only the pure TypeScript code that can be written directly to a .ts file.`;
@@ -1123,7 +1123,7 @@ ${existingContent}
 \`\`\`
 
 NEW AGENT DATA (JSON):
-${graphDataJson}
+${agentDataJson}
 
 AGENT ID: ${agentId}
 

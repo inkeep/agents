@@ -3,22 +3,22 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { projects, subAgents, subAgentToolRelations } from '../db/schema';
 import type {
-  AgentDefinition,
-  ExternalAgentApiInsert,
-  FullGraphDefinition,
-  InternalAgentDefinition,
+  SubAgentDefinition,
+  ExternalSubAgentApiInsert,
+  FullAgentDefinition,
+  InternalSubAgentDefinition,
 } from '../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import {
   isExternalAgent,
   isInternalAgent,
-  validateAndTypeGraphData,
-  validateGraphStructure,
+  validateAndTypeAgentData,
+  validateAgentStructure,
 } from '../validation/agentFull';
 import {
   deleteAgent,
   getAgentById,
-  getFullGraphDefinition,
+  getFullAgentDefinition,
   updateAgent,
   upsertAgent,
 } from './agents';
@@ -38,7 +38,7 @@ import { upsertFunction } from './functions';
 import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
 import {
   createSubAgentRelation,
-  deleteAgentRelationsByGraph,
+  deleteAgentRelationsByAgent,
   deleteAgentToolRelationByAgent,
   upsertAgentRelation,
 } from './subAgentRelations';
@@ -46,13 +46,13 @@ import { deleteSubAgent, listSubAgents, upsertSubAgent } from './subAgents';
 import { upsertSubAgentToolRelation } from './tools';
 
 // Logger interface for dependency injection
-export interface GraphLogger {
+export interface AgentLogger {
   info(obj: Record<string, any>, msg?: string): void;
   error(obj: Record<string, any>, msg?: string): void;
 }
 
 // Default no-op logger
-const defaultLogger: GraphLogger = {
+const defaultLogger: AgentLogger = {
   info: () => {},
   error: () => {},
 };
@@ -62,9 +62,9 @@ const defaultLogger: GraphLogger = {
  */
 async function applyExecutionLimitsInheritance(
   db: DatabaseClient,
-  logger: GraphLogger,
+  logger: AgentLogger,
   scopes: ProjectScopeConfig,
-  graphData: FullGraphDefinition
+  agentData: FullAgentDefinition
 ): Promise<void> {
   const { tenantId, projectId } = scopes;
 
@@ -89,19 +89,19 @@ async function applyExecutionLimitsInheritance(
     );
 
     // Initialize agent stopWhen if not exists
-    if (!graphData.stopWhen) {
-      graphData.stopWhen = {};
+    if (!agentData.stopWhen) {
+      agentData.stopWhen = {};
     }
 
     // Inherit transferCountIs from project if agent doesn't have it explicitly set
     if (
-      graphData.stopWhen.transferCountIs === undefined &&
+      agentData.stopWhen.transferCountIs === undefined &&
       projectStopWhen?.transferCountIs !== undefined
     ) {
-      graphData.stopWhen.transferCountIs = projectStopWhen.transferCountIs;
+      agentData.stopWhen.transferCountIs = projectStopWhen.transferCountIs;
       logger.info(
         {
-          agentId: graphData.id,
+          agentId: agentData.id,
           inheritedValue: projectStopWhen.transferCountIs,
         },
         'Agent inherited transferCountIs from project'
@@ -109,11 +109,11 @@ async function applyExecutionLimitsInheritance(
     }
 
     // Set default transferCountIs if still not set
-    if (graphData.stopWhen.transferCountIs === undefined) {
-      graphData.stopWhen.transferCountIs = 10;
+    if (agentData.stopWhen.transferCountIs === undefined) {
+      agentData.stopWhen.transferCountIs = 10;
       logger.info(
         {
-          agentId: graphData.id,
+          agentId: agentData.id,
           defaultValue: 10,
         },
         'Agent set to default transferCountIs'
@@ -130,9 +130,9 @@ async function applyExecutionLimitsInheritance(
         'Propagating stepCountIs to agents'
       );
 
-      for (const [subAgentId, agentData] of Object.entries(graphData.subAgents)) {
+      for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
         // Only apply to internal agents (have prompt)
-        if (isInternalAgent(agentData as AgentDefinition)) {
+        if (isInternalAgent(subAgentData as SubAgentDefinition)) {
           const agent = agentData as any;
 
           // Initialize agent stopWhen if it doesn't exist
@@ -167,21 +167,21 @@ async function applyExecutionLimitsInheritance(
 }
 
 /**
- * Server-side implementation of createFullGraph that performs actual database operations.
+ * Server-side implementation of createFullAgent that performs actual database operations.
  * This function creates a complete agent with all agents, tools, and relationships.
  */
-export const createFullGraphServerSide =
-  (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
+export const createFullAgentServerSide =
+  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (
     scopes: ProjectScopeConfig,
-    graphData: FullGraphDefinition
-  ): Promise<FullGraphDefinition> => {
+    agentData: FullAgentDefinition
+  ): Promise<FullAgentDefinition> => {
     const { tenantId, projectId } = scopes;
 
-    const typed = validateAndTypeGraphData(graphData);
+    const typed = validateAndTypeAgentData(agentData);
 
     // Validate the agent structure
-    validateGraphStructure(typed);
+    validateAgentStructure(typed);
 
     // Apply inheritance logic for execution limits
     await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
@@ -392,7 +392,7 @@ export const createFullGraphServerSide =
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([subAgentId, agentData]) => {
           // Type assertion since we've filtered for internal agents
-          const internalAgent = agentData as InternalAgentDefinition;
+          const internalAgent = agentData as InternalSubAgentDefinition;
           try {
             logger.info({ subAgentId }, 'Processing internal agent');
             await upsertSubAgent(db)({
@@ -427,7 +427,7 @@ export const createFullGraphServerSide =
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([subAgentId, agentData]) => {
           // Type assertion since we've filtered for external agents
-          const externalAgent = agentData as ExternalAgentApiInsert;
+          const externalAgent = agentData as ExternalSubAgentApiInsert;
           try {
             logger.info({ subAgentId }, 'Processing external agent');
             await upsertExternalAgent(db)({
@@ -707,17 +707,17 @@ export const createFullGraphServerSide =
       );
 
       // Retrieve and return the created agent
-      const createdGraph = await getFullGraphDefinition(db)({
+      const createdAgent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
-      if (!createdGraph) {
+      if (!createdAgent) {
         throw new Error('Failed to retrieve created agent');
       }
 
       logger.info({ tenantId, agentId: finalAgentId }, 'Full agent created successfully');
 
-      return createdGraph as FullGraphDefinition;
+      return createdAgent as FullAgentDefinition;
     } catch (error) {
       const errorAgentId = typed.id || 'unknown';
       logger.error({ tenantId, agentId: errorAgentId, error }, 'Failed to create full agent');
@@ -726,60 +726,60 @@ export const createFullGraphServerSide =
   };
 
 /**
- * Server-side implementation of updateFullGraph that performs actual database operations.
+ * Server-side implementation of updateFullAgent that performs actual database operations.
  * This function updates a complete agent with all agents, tools, and relationships.
  */
-export const updateFullGraphServerSide =
-  (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
+export const updateFullAgentServerSide =
+  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (
     scopes: ProjectScopeConfig,
-    graphData: FullGraphDefinition
-  ): Promise<FullGraphDefinition> => {
+    agentData: FullAgentDefinition
+  ): Promise<FullAgentDefinition> => {
     const { tenantId, projectId } = scopes;
 
-    const typedGraphDefinition = validateAndTypeGraphData(graphData);
+    const typedAgentDefinition = validateAndTypeAgentData(agentData);
 
-    if (!typedGraphDefinition.id) {
+    if (!typedAgentDefinition.id) {
       throw new Error('Agent ID is required');
     }
 
     logger.info(
       {
         tenantId,
-        agentId: typedGraphDefinition.id,
-        agentCount: Object.keys(typedGraphDefinition.subAgents).length,
+        agentId: typedAgentDefinition.id,
+        agentCount: Object.keys(typedAgentDefinition.subAgents).length,
       },
       'Updating full agent in database'
     );
 
     // Validate the agent structure
-    validateGraphStructure(typedGraphDefinition);
+    validateAgentStructure(typedAgentDefinition);
 
     // Apply inheritance logic for execution limits
     await applyExecutionLimitsInheritance(
       db,
       logger,
       { tenantId, projectId },
-      typedGraphDefinition
+      typedAgentDefinition
     );
 
     try {
       // Verify agent exists and get existing models for cascade logic
-      const existingGraph = await getAgentById(db)({
-        scopes: { tenantId, projectId, agentId: typedGraphDefinition.id },
+      const existingAgent = await getAgentById(db)({
+        scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
 
-      if (!existingGraph) {
+      if (!existingAgent) {
         // If agent doesn't exist, create it (upsert behavior)
         logger.info(
-          { agentId: typedGraphDefinition.id },
+          { agentId: typedAgentDefinition.id },
           'Agent does not exist, creating new agent'
         );
-        return createFullGraphServerSide(db, logger)(scopes, graphData);
+        return createFullAgentServerSide(db, logger)(scopes, agentData);
       }
 
       // Store existing agent models for cascade comparison
-      const existingGraphModels = existingGraph.models;
+      const existingAgentModels = existingAgent.models;
 
       // Note: CredentialReferences are now project-scoped and should be created separately
       logger.info(
@@ -794,21 +794,21 @@ export const updateFullGraphServerSide =
       // Step 3: Get or create the agent metadata FIRST (before agents, as they need agentId)
       let finalAgentId: string;
       try {
-        const agentId = typedGraphDefinition.id || nanoid();
+        const agentId = typedAgentDefinition.id || nanoid();
         logger.info({ agentId }, 'Getting/creating agent metadata');
         const agent = await upsertAgent(db)({
           data: {
             id: agentId,
             tenantId,
             projectId,
-            name: typedGraphDefinition.name,
-            defaultSubAgentId: typedGraphDefinition.defaultSubAgentId,
-            description: typedGraphDefinition.description,
+            name: typedAgentDefinition.name,
+            defaultSubAgentId: typedAgentDefinition.defaultSubAgentId,
+            description: typedAgentDefinition.description,
             contextConfigId: undefined, // Will be updated later if context config exists
-            models: typedGraphDefinition.models,
-            statusUpdates: typedGraphDefinition.statusUpdates,
-            prompt: typedGraphDefinition.prompt,
-            stopWhen: typedGraphDefinition.stopWhen,
+            models: typedAgentDefinition.models,
+            statusUpdates: typedAgentDefinition.statusUpdates,
+            prompt: typedAgentDefinition.prompt,
+            stopWhen: typedAgentDefinition.stopWhen,
           },
         });
         if (!agent?.id) {
@@ -818,7 +818,7 @@ export const updateFullGraphServerSide =
         logger.info({ agentId: finalAgentId }, 'Agent agent metadata ready');
       } catch (error) {
         logger.error(
-          { agentId: typedGraphDefinition.id, error },
+          { agentId: typedAgentDefinition.id, error },
           'Failed to get/update agent metadata'
         );
         throw error;
@@ -826,17 +826,17 @@ export const updateFullGraphServerSide =
 
       // Step 4: create/update context config
       let contextConfigId: string | undefined;
-      if (typedGraphDefinition.contextConfig) {
+      if (typedAgentDefinition.contextConfig) {
         logger.info(
-          { contextConfigId: typedGraphDefinition.contextConfig?.id },
+          { contextConfigId: typedAgentDefinition.contextConfig?.id },
           ' context config exists'
         );
       }
-      if (typedGraphDefinition.contextConfig) {
+      if (typedAgentDefinition.contextConfig) {
         try {
           const contextConfig = await upsertContextConfig(db)({
             data: {
-              ...typedGraphDefinition.contextConfig,
+              ...typedAgentDefinition.contextConfig,
               agentId: finalAgentId,
               tenantId,
               projectId,
@@ -846,7 +846,7 @@ export const updateFullGraphServerSide =
           logger.info({ contextConfigId }, 'Context config processed successfully');
         } catch (error) {
           logger.error(
-            { contextConfigId: typedGraphDefinition.contextConfig.id, error },
+            { contextConfigId: typedAgentDefinition.contextConfig.id, error },
             'Failed to create/update context config'
           );
           throw error;
@@ -865,14 +865,14 @@ export const updateFullGraphServerSide =
               id: finalAgentId,
               tenantId,
               projectId,
-              name: typedGraphDefinition.name,
-              defaultSubAgentId: typedGraphDefinition.defaultSubAgentId,
-              description: typedGraphDefinition.description,
+              name: typedAgentDefinition.name,
+              defaultSubAgentId: typedAgentDefinition.defaultSubAgentId,
+              description: typedAgentDefinition.description,
               contextConfigId,
-              models: typedGraphDefinition.models,
-              statusUpdates: typedGraphDefinition.statusUpdates,
-              prompt: typedGraphDefinition.prompt,
-              stopWhen: typedGraphDefinition.stopWhen,
+              models: typedAgentDefinition.models,
+              statusUpdates: typedAgentDefinition.statusUpdates,
+              prompt: typedAgentDefinition.prompt,
+              stopWhen: typedAgentDefinition.stopWhen,
             },
           });
           logger.info(
@@ -899,18 +899,18 @@ export const updateFullGraphServerSide =
 
       // Step 6: Create/update functions (project-scoped) - must be updated before function tools
       if (
-        typedGraphDefinition.functions &&
-        Object.keys(typedGraphDefinition.functions).length > 0
+        typedAgentDefinition.functions &&
+        Object.keys(typedAgentDefinition.functions).length > 0
       ) {
         logger.info(
           {
             agentId: finalAgentId,
-            functionCount: Object.keys(typedGraphDefinition.functions).length,
+            functionCount: Object.keys(typedAgentDefinition.functions).length,
           },
           'Updating functions for agent'
         );
 
-        const functionPromises = Object.entries(typedGraphDefinition.functions).map(
+        const functionPromises = Object.entries(typedAgentDefinition.functions).map(
           async ([functionId, functionData]) => {
             try {
               logger.info({ agentId: finalAgentId, functionId }, 'Updating function for agent');
@@ -936,7 +936,7 @@ export const updateFullGraphServerSide =
         logger.info(
           {
             agentId: finalAgentId,
-            functionCount: Object.keys(typedGraphDefinition.functions).length,
+            functionCount: Object.keys(typedAgentDefinition.functions).length,
           },
           'All functions updated successfully'
         );
@@ -944,18 +944,18 @@ export const updateFullGraphServerSide =
 
       // Step 7: Create/update function tools (agent-scoped)
       if (
-        typedGraphDefinition.functionTools &&
-        Object.keys(typedGraphDefinition.functionTools).length > 0
+        typedAgentDefinition.functionTools &&
+        Object.keys(typedAgentDefinition.functionTools).length > 0
       ) {
         logger.info(
           {
             agentId: finalAgentId,
-            functionToolCount: Object.keys(typedGraphDefinition.functionTools).length,
+            functionToolCount: Object.keys(typedAgentDefinition.functionTools).length,
           },
           'Updating function tools for agent'
         );
 
-        const functionToolPromises = Object.entries(typedGraphDefinition.functionTools).map(
+        const functionToolPromises = Object.entries(typedAgentDefinition.functionTools).map(
           async ([functionToolId, functionToolData]) => {
             try {
               logger.info(
@@ -987,22 +987,22 @@ export const updateFullGraphServerSide =
         logger.info(
           {
             agentId: finalAgentId,
-            functionToolCount: Object.keys(typedGraphDefinition.functionTools).length,
+            functionToolCount: Object.keys(typedAgentDefinition.functionTools).length,
           },
           'All function tools updated successfully'
         );
       }
 
       // Step 7: Create/update internal agents (now with agentId) with model cascade logic
-      const internalAgentPromises = Object.entries(typedGraphDefinition.subAgents)
+      const internalAgentPromises = Object.entries(typedAgentDefinition.subAgents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([subAgentId, agentData]) => {
-          const internalAgent = agentData as InternalAgentDefinition;
+          const internalAgent = agentData as InternalSubAgentDefinition;
 
           // Get the existing agent to check for inheritance
-          let existingAgent = null;
+          let existingSubAgent = null;
           try {
-            existingAgent = await db.query.subAgents.findFirst({
+            existingSubAgent = await db.query.subAgents.findFirst({
               where: and(
                 eq(subAgents.id, subAgentId),
                 eq(subAgents.tenantId, tenantId),
@@ -1021,39 +1021,39 @@ export const updateFullGraphServerSide =
             internalAgent.models === undefined ? undefined : internalAgent.models;
 
           // If agent models changed, cascade to agents that were inheriting
-          if (existingAgent?.models && typedGraphDefinition.models) {
-            const agentModels = existingAgent.models as any;
-            const graphModels = typedGraphDefinition.models;
+          if (existingSubAgent?.models && typedAgentDefinition.models) {
+            const subAgentModels = existingSubAgent.models as any;
+            const agentModels = typedAgentDefinition.models;
 
             // Check each model type for inheritance and cascade if needed
             const modelTypes = ['base', 'structuredOutput', 'summarizer'] as const;
             const cascadedModels: any = { ...finalModelSettings };
 
             for (const modelType of modelTypes) {
-              // If the agent's current model matches the old agent model (was inheriting)
-              // and the agent model OR providerOptions have changed, cascade the change
+              // If the subAgent's current model matches the old parent agent model (was inheriting)
+              // and the parent agent model OR providerOptions have changed, cascade the change
               if (
-                agentModels[modelType]?.model &&
-                existingGraphModels?.[modelType]?.model &&
-                agentModels[modelType].model === existingGraphModels[modelType].model &&
-                graphModels[modelType] &&
+                subAgentModels[modelType]?.model &&
+                existingAgentModels?.[modelType]?.model &&
+                subAgentModels[modelType].model === existingAgentModels[modelType].model &&
+                agentModels[modelType] &&
                 // Model name changed
-                (graphModels[modelType].model !== existingGraphModels[modelType].model ||
+                (agentModels[modelType].model !== existingAgentModels[modelType]?.model ||
                   // OR providerOptions changed
-                  JSON.stringify(graphModels[modelType].providerOptions) !==
-                    JSON.stringify(existingGraphModels[modelType].providerOptions))
+                  JSON.stringify(agentModels[modelType].providerOptions) !==
+                    JSON.stringify(existingAgentModels[modelType]?.providerOptions))
               ) {
-                // Agent was inheriting from agent, cascade the new value (including providerOptions)
-                cascadedModels[modelType] = graphModels[modelType];
+                // SubAgent was inheriting from parent agent, cascade the new value (including providerOptions)
+                cascadedModels[modelType] = agentModels[modelType];
                 logger.info(
                   {
                     subAgentId,
                     modelType,
-                    oldModel: agentModels[modelType].model,
-                    newModel: graphModels[modelType].model,
-                    hasProviderOptions: !!graphModels[modelType].providerOptions,
+                    oldModel: existingAgentModels[modelType]?.model,
+                    newModel: agentModels[modelType].model,
+                    hasProviderOptions: !!agentModels[modelType].providerOptions,
                   },
-                  'Cascading model change from agent to agent'
+                  'Cascading model change from parent agent to subAgent'
                 );
               }
             }
@@ -1085,17 +1085,17 @@ export const updateFullGraphServerSide =
         });
 
       await Promise.all(internalAgentPromises);
-      const internalAgentCount = Object.entries(typedGraphDefinition.subAgents).filter(
+      const internalAgentCount = Object.entries(typedAgentDefinition.subAgents).filter(
         ([_, agentData]) => isInternalAgent(agentData)
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
       // Step 8: Create/update external agents (now with agentId)
-      const externalAgentPromises = Object.entries(typedGraphDefinition.subAgents)
+      const externalAgentPromises = Object.entries(typedAgentDefinition.subAgents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([subAgentId, agentData]) => {
           // Type assertion since we've filtered for external agents
-          const externalAgent = agentData as ExternalAgentApiInsert;
+          const externalAgent = agentData as ExternalSubAgentApiInsert;
           try {
             logger.info({ subAgentId }, 'Processing external agent');
             await upsertExternalAgent(db)({
@@ -1119,13 +1119,13 @@ export const updateFullGraphServerSide =
         });
 
       await Promise.all(externalAgentPromises);
-      const externalAgentCount = Object.entries(typedGraphDefinition.subAgents).filter(
+      const externalAgentCount = Object.entries(typedAgentDefinition.subAgents).filter(
         ([_, agentData]) => isExternalAgent(agentData)
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
       // Step 8a: Delete agents that are no longer in the agent definition
-      const incomingAgentIds = new Set(Object.keys(typedGraphDefinition.subAgents));
+      const incomingAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
       // Get existing internal agents for this agent
       const existingInternalAgents = await listSubAgents(db)({
@@ -1192,26 +1192,26 @@ export const updateFullGraphServerSide =
 
       // Step 8: Update the agent metadata
       await updateAgent(db)({
-        scopes: { tenantId, projectId, agentId: typedGraphDefinition.id },
+        scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
         data: {
-          name: typedGraphDefinition.name,
-          defaultSubAgentId: typedGraphDefinition.defaultSubAgentId,
-          description: typedGraphDefinition.description,
+          name: typedAgentDefinition.name,
+          defaultSubAgentId: typedAgentDefinition.defaultSubAgentId,
+          description: typedAgentDefinition.description,
           contextConfigId: contextConfigId,
-          models: typedGraphDefinition.models,
-          statusUpdates: typedGraphDefinition.statusUpdates,
-          prompt: typedGraphDefinition.prompt,
-          stopWhen: typedGraphDefinition.stopWhen,
+          models: typedAgentDefinition.models,
+          statusUpdates: typedAgentDefinition.statusUpdates,
+          prompt: typedAgentDefinition.prompt,
+          stopWhen: typedAgentDefinition.stopWhen,
         },
       });
 
-      logger.info({ agentId: typedGraphDefinition.id }, 'Agent metadata updated');
+      logger.info({ agentId: typedAgentDefinition.id }, 'Agent metadata updated');
 
       // Step 9: Update agent-tool relationships (selective delete and upsert)
 
       // First, collect all incoming relationshipIds
       const incomingRelationshipIds = new Set<string>();
-      for (const [_subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
+      for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             if (canUseItem.agentToolRelationId) {
@@ -1223,7 +1223,7 @@ export const updateFullGraphServerSide =
 
       // Delete relationships that are not in the incoming set (for agents in this agent)
       // Use atomic deletion to avoid race conditions
-      for (const subAgentId of Object.keys(typedGraphDefinition.subAgents)) {
+      for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedCount = 0;
 
@@ -1268,7 +1268,7 @@ export const updateFullGraphServerSide =
       // Then upsert the incoming relationships
       const agentToolPromises: Promise<void>[] = [];
 
-      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             agentToolPromises.push(
@@ -1278,8 +1278,8 @@ export const updateFullGraphServerSide =
 
                   // Check if this is a function tool or MCP tool
                   const isFunctionTool =
-                    typedGraphDefinition.functionTools &&
-                    toolId in typedGraphDefinition.functionTools;
+                    typedAgentDefinition.functionTools &&
+                    toolId in typedAgentDefinition.functionTools;
 
                   if (isFunctionTool) {
                     // Create agent-function tool relation
@@ -1336,7 +1336,7 @@ export const updateFullGraphServerSide =
 
       // Step 10: Clear and recreate agent-dataComponent relationships
       // First, delete existing relationships for all agents in this agent
-      for (const subAgentId of Object.keys(typedGraphDefinition.subAgents)) {
+      for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
           scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId: subAgentId },
         });
@@ -1345,7 +1345,7 @@ export const updateFullGraphServerSide =
       // Then create new agent-dataComponent relationships
       const agentDataComponentPromises: Promise<void>[] = [];
 
-      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.dataComponents) {
           for (const dataComponentId of agentData.dataComponents) {
             agentDataComponentPromises.push(
@@ -1381,7 +1381,7 @@ export const updateFullGraphServerSide =
 
       // Step 11: Clear and recreate agent-artifactComponent relationships
       // First, delete existing relationships for all agents in this agent
-      for (const subAgentId of Object.keys(typedGraphDefinition.subAgents)) {
+      for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
           scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId: subAgentId },
         });
@@ -1390,7 +1390,7 @@ export const updateFullGraphServerSide =
       // Then create new agent-artifactComponent relationships
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
-      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.artifactComponents) {
           for (const artifactComponentId of agentData.artifactComponents) {
             agentArtifactComponentPromises.push(
@@ -1426,26 +1426,26 @@ export const updateFullGraphServerSide =
 
       // Step 12: Clear and recreate agent relationships
       // First, delete existing relationships for this agent
-      await deleteAgentRelationsByGraph(db)({
-        scopes: { tenantId, projectId, agentId: typedGraphDefinition.id },
+      await deleteAgentRelationsByAgent(db)({
+        scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
       // Then create new relationships
       const agentRelationPromises: Promise<void>[] = [];
 
-      for (const [subAgentId, agentData] of Object.entries(typedGraphDefinition.subAgents)) {
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
             agentRelationPromises.push(
               (async () => {
                 try {
-                  const targetAgentData = typedGraphDefinition.subAgents[targetSubAgentId];
+                  const targetAgentData = typedAgentDefinition.subAgents[targetSubAgentId];
                   const isTargetExternal = isExternalAgent(targetAgentData);
                   const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
                   const relationData = {
                     id: nanoid(),
-                    agentId: typedGraphDefinition.id || '',
+                    agentId: typedAgentDefinition.id || '',
                     sourceSubAgentId: subAgentId,
                     relationType: 'transfer',
                     [targetField]: targetSubAgentId,
@@ -1477,7 +1477,7 @@ export const updateFullGraphServerSide =
           for (const targetSubAgentId of agentData.canDelegateTo) {
             // External agents can't delegate to other agents
 
-            const targetAgentData = typedGraphDefinition.subAgents[targetSubAgentId];
+            const targetAgentData = typedAgentDefinition.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
             const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
@@ -1486,7 +1486,7 @@ export const updateFullGraphServerSide =
                 try {
                   const relationData = {
                     id: nanoid(),
-                    agentId: typedGraphDefinition.id || '',
+                    agentId: typedAgentDefinition.id || '',
                     sourceSubAgentId: subAgentId,
                     relationType: 'delegate',
                     [targetField]: targetSubAgentId,
@@ -1518,19 +1518,19 @@ export const updateFullGraphServerSide =
       );
 
       // Retrieve and return the updated agent
-      const updatedGraph = await getFullGraphDefinition(db)({
-        scopes: { tenantId, projectId, agentId: typedGraphDefinition.id },
+      const updatedAgent = await getFullAgentDefinition(db)({
+        scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
 
-      if (!updatedGraph) {
+      if (!updatedAgent) {
         throw new Error('Failed to retrieve updated agent');
       }
 
-      logger.info({ agentId: typedGraphDefinition.id }, 'Full agent updated successfully');
+      logger.info({ agentId: typedAgentDefinition.id }, 'Full agent updated successfully');
 
-      return updatedGraph;
+      return updatedAgent;
     } catch (error) {
-      logger.error({ agentId: typedGraphDefinition.id, error }, 'Failed to update full agent');
+      logger.error({ agentId: typedAgentDefinition.id, error }, 'Failed to update full agent');
       throw error;
     }
   };
@@ -1539,15 +1539,15 @@ export const updateFullGraphServerSide =
  * Get a complete agent definition by ID
  */
 export const getFullAgent =
-  (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<FullGraphDefinition | null> => {
+  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  async (params: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
     logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition');
 
     try {
-      const agent = await getFullGraphDefinition(db)({
+      const agent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId: scopes.agentId },
       });
 
@@ -1583,7 +1583,7 @@ export const getFullAgent =
  * Delete a complete agent and cascade to all related entities
  */
 export const deleteFullAgent =
-  (db: DatabaseClient, logger: GraphLogger = defaultLogger) =>
+  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const { tenantId, projectId, agentId } = params.scopes;
 
@@ -1591,7 +1591,7 @@ export const deleteFullAgent =
 
     try {
       // Get the agent first to ensure it exists
-      const agent = await getFullGraphDefinition(db)({
+      const agent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId },
       });
 
@@ -1601,7 +1601,7 @@ export const deleteFullAgent =
       }
 
       // Step 1: Delete all agent relations for this agent
-      await deleteAgentRelationsByGraph(db)({
+      await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });
       logger.info({ tenantId, agentId }, 'Agent relations deleted');

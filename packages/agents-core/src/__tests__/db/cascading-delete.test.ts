@@ -303,17 +303,17 @@ describe('Cascading Delete Tests', () => {
       .where(eq(projects.id, projectId));
     expect(remainingProjects).toHaveLength(0);
 
-    const remainingAgents = await dbClient
+    const remainingSubAgents = await dbClient
       .select()
       .from(subAgents)
       .where(eq(subAgents.projectId, projectId));
-    expect(remainingAgents).toHaveLength(0);
+    expect(remainingSubAgents).toHaveLength(0);
 
-    const remainingGraphs = await dbClient
+    const remainingAgents = await dbClient
       .select()
       .from(agents)
       .where(eq(agents.projectId, projectId));
-    expect(remainingGraphs).toHaveLength(0);
+    expect(remainingAgents).toHaveLength(0);
 
     const remainingContextConfigs = await dbClient
       .select()

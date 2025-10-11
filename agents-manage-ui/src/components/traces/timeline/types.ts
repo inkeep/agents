@@ -141,7 +141,7 @@ export interface ConversationDetail {
   totalOutputTokens?: number;
   traceId?: string;
   agentId?: string;
-  graphName?: string;
+  agentName?: string;
   spansWithErrorsCount?: number;
   errorCount?: number;
   warningCount?: number;

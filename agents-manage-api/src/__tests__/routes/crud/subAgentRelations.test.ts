@@ -71,19 +71,19 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
   // Setup function for tests
   const setupTestEnvironment = async (tenantId: string) => {
     // Create a agent first (without defaultSubAgentId since agents don't exist yet)
-    const tempGraphData = {
+    const tempAgentData = {
       id: nanoid(),
       name: `Test Agent ${nanoid()}`,
       defaultSubAgentId: null,
       contextConfigId: null,
     };
-    const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+    const agentRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
-      body: JSON.stringify(tempGraphData),
+      body: JSON.stringify(tempAgentData),
     });
-    expect(graphRes.status).toBe(201);
-    const graphBody = await graphRes.json();
-    const agentAgentId = graphBody.data.id;
+    expect(agentRes.status).toBe(201);
+    const agentBody = await agentRes.json();
+    const agentAgentId = agentBody.data.id;
 
     // Now create agents with the agentId
     const { subAgentId: sourceSubAgentId } = await createTestAgent({

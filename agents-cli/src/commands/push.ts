@@ -165,16 +165,16 @@ export async function pushCommand(options: PushOptions) {
         console.log(chalk.gray(`  • Size: ${JSON.stringify(projectDefinition).length} bytes`));
 
         // Show a summary of what was saved
-        const graphCount = Object.keys(projectDefinition.agents || {}).length;
+        const agentCount = Object.keys(projectDefinition.agents || {}).length;
         const toolCount = Object.keys(projectDefinition.tools || {}).length;
-        const agentCount = Object.values(projectDefinition.agents || {}).reduce((total, agent) => {
+        const subAgentCount = Object.values(projectDefinition.agents || {}).reduce((total, agent) => {
           return total + Object.keys(agent.subAgents || {}).length;
         }, 0);
 
         console.log(chalk.cyan('\n📊 Project Data Summary:'));
-        console.log(chalk.gray(`  • Agent: ${graphCount}`));
+        console.log(chalk.gray(`  • Agent: ${agentCount}`));
         console.log(chalk.gray(`  • Tools: ${toolCount}`));
-        console.log(chalk.gray(`  • Agents: ${agentCount}`));
+        console.log(chalk.gray(`  • SubAgent: ${subAgentCount}`));
 
         // Exit after generating JSON (don't initialize the project)
         console.log(chalk.green('\n✨ JSON file generated successfully!'));
@@ -201,7 +201,7 @@ export async function pushCommand(options: PushOptions) {
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Project ID: ${projectId}`));
     console.log(chalk.gray(`  • Name: ${projectName}`));
-    console.log(chalk.gray(`  • Agent: ${stats.graphCount}`));
+    console.log(chalk.gray(`  • Agent: ${stats.agentCount}`));
     console.log(chalk.gray(`  • Tenant: ${stats.tenantId}`));
 
     // Display agent details if exsits

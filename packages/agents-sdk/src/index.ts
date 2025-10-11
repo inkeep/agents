@@ -38,7 +38,11 @@ export {
   getFullProjectViaAPI,
   updateFullProjectViaAPI,
 } from './projectFullClient';
+<<<<<<< HEAD
 export { Runner, raceGraphs, run, stream } from './runner';
 export { SubAgent } from './subAgent';
+=======
+export { Runner, raceAgents, run, stream } from './runner';
+>>>>>>> 78de87d2 (check 27)
 export { Tool } from './tool';
 export type * from './types';

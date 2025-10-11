@@ -12,17 +12,17 @@ import { parseEmbeddedJson } from '../../utils/json-parser';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {
-  getRelatedAgentsForGraphMock,
+  getRelatedAgentsForAgentMock,
   getToolsForAgentMock,
   getSubAgentByIdMock: getAgentByIdMock,
-  getAgentGraphMock,
-  getAgentGraphByIdMock,
+  getAgentAgentMock,
+  getAgentAgentByIdMock,
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
   getProjectMock,
   dbResultToMcpToolMock,
 } = vi.hoisted(() => {
-  const getRelatedAgentsForGraphMock = vi.fn(() =>
+  const getRelatedAgentsForAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       internalRelations: [
         {
@@ -79,14 +79,14 @@ const {
     })
   );
 
-  const getAgentGraphMock = vi.fn(() =>
+  const getAgentAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'test-agent',
       contextConfigId: 'context-123',
       models: null,
     })
   );
-  const getAgentGraphByIdMock = vi.fn(() =>
+  const getAgentAgentByIdMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'test-agent',
       contextConfigId: 'context-123',
@@ -184,11 +184,11 @@ const {
   );
 
   return {
-    getRelatedAgentsForGraphMock,
+    getRelatedAgentsForAgentMock,
     getToolsForAgentMock,
     getSubAgentByIdMock,
-    getAgentGraphMock,
-    getAgentGraphByIdMock,
+    getAgentAgentMock,
+    getAgentAgentByIdMock,
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
     getProjectMock,
@@ -197,12 +197,12 @@ const {
 });
 
 vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForAgent: getRelatedAgentsForGraphMock,
+  getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
   getToolsForAgent: getToolsForAgentMock,
   getSubAgentById: getAgentByIdMock,
-  getAgentById: getAgentGraphMock,
-  getAgentGraph: getAgentGraphMock,
-  getAgentGraphById: getAgentGraphByIdMock,
+  getAgentById: getAgentAgentMock,
+  getAgentAgent: getAgentAgentMock,
+  getAgentAgentById: getAgentAgentByIdMock,
   getTracer: vi.fn().mockReturnValue({
     startSpan: vi.fn().mockReturnValue({
       setAttributes: vi.fn(),
@@ -658,12 +658,12 @@ describe('generateTaskHandler', () => {
       await taskHandler(task);
 
       // Verify that relations and tools were fetched
-      expect(getRelatedAgentsForGraphMock).toHaveBeenCalledWith(expect.anything());
+      expect(getRelatedAgentsForAgentMock).toHaveBeenCalledWith(expect.anything());
       expect(getToolsForAgentMock).toHaveBeenCalledWith(expect.anything());
       expect(getDataComponentsForAgentMock).toHaveBeenCalledWith(expect.anything());
 
       // Verify the inner function was called with correct parameters
-      const relationsInnerMock = getRelatedAgentsForGraphMock.mock.results[0]?.value;
+      const relationsInnerMock = getRelatedAgentsForAgentMock.mock.results[0]?.value;
       expect(relationsInnerMock).toHaveBeenCalledWith({
         scopes: {
           tenantId: 'test-tenant',

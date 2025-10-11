@@ -141,7 +141,7 @@ vi.mock('../../server.js', () => ({
 
 // Mock the session managers to prevent loading heavy dependencies
 vi.mock('../../utils/agent-session.js', () => ({
-  graphSessionManager: {
+  agentSessionManager: {
     getSession: vi.fn(),
     createSession: vi.fn(),
   },

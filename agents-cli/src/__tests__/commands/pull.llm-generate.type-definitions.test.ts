@@ -249,7 +249,7 @@ PROJECT JSON DATA:
       const promptTemplate = `AGENT DATA:
 {{DATA}}
 
-AGENT ID: {{GRAPH_ID}}
+AGENT ID: {{AGENT_ID}}
 
 \${getTypeDefinitions()}
 

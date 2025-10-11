@@ -60,16 +60,16 @@ describe('ApiClient', () => {
     });
   });
 
-  describe('listGraphs', () => {
+  describe('listAgents', () => {
     it('should fetch and return agent list successfully', async () => {
-      const mockGraphs = [
-        { id: 'graph1', name: 'Test Agent 1' },
-        { id: 'graph2', name: 'Test Agent 2' },
+      const mockAgents = [
+        { id: 'agent1', name: 'Test Agent 1' },
+        { id: 'agent2', name: 'Test Agent 2' },
       ];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockGraphs }),
+        json: async () => ({ data: mockAgents }),
       });
 
       const result = await apiClient.listAgents();
@@ -84,7 +84,7 @@ describe('ApiClient', () => {
           },
         }
       );
-      expect(result).toEqual(mockGraphs);
+      expect(result).toEqual(mockAgents);
     });
 
     it('should return empty array when no data field in response', async () => {
@@ -151,10 +151,10 @@ describe('ApiClient', () => {
         'test-project-id'
       );
 
-      const mockGraphs = [{ id: 'graph1', name: 'Test Agent 1' }];
+      const mockAgents = [{ id: 'agent1', name: 'Test Agent 1' }];
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockGraphs }),
+        json: async () => ({ data: mockAgents }),
       });
 
       await clientWithApiKey.listAgents();
@@ -173,29 +173,29 @@ describe('ApiClient', () => {
     });
   });
 
-  describe('getGraph', () => {
+  describe('getAgent', () => {
     it('should return agent when found in list', async () => {
-      const mockGraphs = [
-        { id: 'graph1', name: 'Test Agent 1' },
-        { id: 'graph2', name: 'Test Agent 2' },
+      const mockAgents = [
+        { id: 'agent1', name: 'Test Agent 1' },
+        { id: 'agent2', name: 'Test Agent 2' },
       ];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockGraphs }),
+        json: async () => ({ data: mockAgents }),
       });
 
-      const result = await apiClient.getAgent('graph1');
+      const result = await apiClient.getAgent('agent1');
 
-      expect(result).toEqual({ id: 'graph1', name: 'Test Agent 1' });
+      expect(result).toEqual({ id: 'agent1', name: 'Test Agent 1' });
     });
 
     it('should return null when agent not found', async () => {
-      const mockGraphs = [{ id: 'graph1', name: 'Test Agent 1' }];
+      const mockAgents = [{ id: 'agent1', name: 'Test Agent 1' }];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: mockGraphs }),
+        json: async () => ({ data: mockAgents }),
       });
 
       const result = await apiClient.getAgent('nonexistent');
@@ -204,9 +204,9 @@ describe('ApiClient', () => {
     });
   });
 
-  describe('pushGraph', () => {
+  describe('pushAgent', () => {
     it('should push agent successfully', async () => {
-      const graphDefinition = {
+      const agentDefinition = {
         id: 'test-agent',
         name: 'Test Agent',
         description: 'A test agent',
@@ -223,7 +223,7 @@ describe('ApiClient', () => {
         json: async () => ({ data: expectedResponse }),
       });
 
-      const result = await apiClient.pushAgent(graphDefinition);
+      const result = await apiClient.pushAgent(agentDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
@@ -234,7 +234,7 @@ describe('ApiClient', () => {
             Accept: 'application/json',
           },
           body: JSON.stringify({
-            ...graphDefinition,
+            ...agentDefinition,
             tenantId: 'test-tenant-id',
           }),
         }
@@ -243,18 +243,18 @@ describe('ApiClient', () => {
     });
 
     it('should throw error when agent has no id', async () => {
-      const graphDefinition = {
+      const agentDefinition = {
         name: 'Test Agent',
         description: 'A test agent without id',
       };
 
-      await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
+      await expect(apiClient.pushAgent(agentDefinition)).rejects.toThrow(
         'Agent must have an id property'
       );
     });
 
     it('should throw error when push request fails', async () => {
-      const graphDefinition = {
+      const agentDefinition = {
         id: 'test-agent',
         name: 'Test Agent',
       };
@@ -265,7 +265,7 @@ describe('ApiClient', () => {
         text: async () => 'Invalid agent definition',
       });
 
-      await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
+      await expect(apiClient.pushAgent(agentDefinition)).rejects.toThrow(
         'Failed to push agent: Bad Request\nInvalid agent definition'
       );
     });
@@ -292,7 +292,7 @@ describe('ApiClient', () => {
         'test-project-id'
       );
 
-      const graphDefinition = {
+      const agentDefinition = {
         id: 'test-agent',
         name: 'Test Agent',
       };
@@ -302,7 +302,7 @@ describe('ApiClient', () => {
         json: async () => ({ data: { id: 'test-agent' } }),
       });
 
-      await clientWithApiKey.pushAgent(graphDefinition);
+      await clientWithApiKey.pushAgent(agentDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
@@ -314,7 +314,7 @@ describe('ApiClient', () => {
             Authorization: 'Bearer test-manage-key-456',
           },
           body: JSON.stringify({
-            ...graphDefinition,
+            ...agentDefinition,
             tenantId: 'test-tenant-id',
           }),
         }

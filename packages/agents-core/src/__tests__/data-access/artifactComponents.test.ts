@@ -8,7 +8,7 @@ import {
   getAgentsUsingArtifactComponent,
   getArtifactComponentById,
   getArtifactComponentsForAgent,
-  graphHasArtifactComponents,
+  agentHasArtifactComponents,
   isArtifactComponentAssociatedWithAgent,
   listArtifactComponents,
   listArtifactComponentsPaginated,
@@ -692,7 +692,7 @@ describe('Artifact Components Data Access', () => {
     });
   });
 
-  describe('graphHasArtifactComponents', () => {
+  describe('agentHasArtifactComponents', () => {
     it('should return true when agent has artifact components', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -711,7 +711,7 @@ describe('Artifact Components Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await graphHasArtifactComponents(mockDb)({
+      const result = await agentHasArtifactComponents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -740,7 +740,7 @@ describe('Artifact Components Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await graphHasArtifactComponents(mockDb)({
+      const result = await agentHasArtifactComponents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -769,7 +769,7 @@ describe('Artifact Components Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await graphHasArtifactComponents(mockDb)({
+      const result = await agentHasArtifactComponents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,

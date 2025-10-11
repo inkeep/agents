@@ -58,16 +58,16 @@ export function categorizeTypeScriptFiles(
 ): {
   indexFile: string | null;
   configFiles: string[];
-  graphFiles: string[];
   agentFiles: string[];
+  subAgentFiles: string[];
   toolFiles: string[];
   otherFiles: string[];
 } {
   const indexFile =
     files.find((file) => file.endsWith('/index.ts') || file === join(rootDir, 'index.ts')) || null;
   const configFiles: string[] = [];
-  const graphFiles: string[] = [];
   const agentFiles: string[] = [];
+  const subAgentFiles: string[] = [];
   const toolFiles: string[] = [];
   const otherFiles: string[] = [];
 
@@ -86,7 +86,7 @@ export function categorizeTypeScriptFiles(
     ) {
       configFiles.push(file);
     } else if (fileName.includes('.agent.') || relativePath.includes('agent/')) {
-      graphFiles.push(file);
+      agentFiles.push(file);
     } else if (
       fileName.includes('agent') ||
       fileName.includes('Agent') ||
@@ -107,8 +107,8 @@ export function categorizeTypeScriptFiles(
   return {
     indexFile,
     configFiles,
-    graphFiles,
     agentFiles,
+    subAgentFiles,
     toolFiles,
     otherFiles,
   };

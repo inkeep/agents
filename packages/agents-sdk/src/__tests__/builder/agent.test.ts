@@ -22,7 +22,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 // Mock the agentFullClient
 vi.mock('../../agentFullClient.js', () => ({
-  updateFullGraphViaAPI: vi.fn().mockResolvedValue({
+  updateFullAgentViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -37,7 +37,7 @@ vi.mock('../../agentFullClient.js', () => ({
     dataComponents: {},
     defaultSubAgentId: 'default-agent',
   }),
-  createFullGraphViaAPI: vi.fn().mockResolvedValue({
+  createFullAgentViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -52,7 +52,7 @@ vi.mock('../../agentFullClient.js', () => ({
     dataComponents: {},
     defaultSubAgentId: 'default-agent',
   }),
-  getFullGraphViaAPI: vi.fn().mockResolvedValue({
+  getFullAgentViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -69,8 +69,8 @@ vi.mock('../../agentFullClient.js', () => ({
   }),
 }));
 
-vi.mock('../../data/graphFull.js', () => ({
-  createFullGraphServerSide: vi.fn().mockResolvedValue({
+vi.mock('../../data/agentFull.js', () => ({
+  createFullAgentServerSide: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -85,7 +85,7 @@ vi.mock('../../data/graphFull.js', () => ({
     dataComponents: {},
     defaultSubAgentId: 'default-agent',
   }),
-  updateFullGraphServerSide: vi.fn().mockResolvedValue({
+  updateFullAgentServerSide: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -100,7 +100,7 @@ vi.mock('../../data/graphFull.js', () => ({
     dataComponents: {},
     defaultSubAgentId: 'default-agent',
   }),
-  getFullGraphServerSide: vi.fn().mockResolvedValue({
+  getFullAgentServerSide: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -340,8 +340,8 @@ describe('Agent', () => {
     it('should initialize agent and create database entities', async () => {
       await agentObject.init();
 
-      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
-      expect(updateFullGraphViaAPI).toHaveBeenCalledWith(
+      const { updateFullAgentViaAPI } = await import('../../agentFullClient.js');
+      expect(updateFullAgentViaAPI).toHaveBeenCalledWith(
         'test-tenant', // tenantId
         'test-project', // projectId
         'http://localhost:3002', // apiUrl
@@ -364,25 +364,25 @@ describe('Agent', () => {
     });
 
     it('should handle initialization errors gracefully', async () => {
-      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
-      vi.mocked(updateFullGraphViaAPI).mockRejectedValueOnce(new Error('DB error'));
+      const { updateFullAgentViaAPI } = await import('../../agentFullClient.js');
+      vi.mocked(updateFullAgentViaAPI).mockRejectedValueOnce(new Error('DB error'));
 
-      const errorGraph = new Agent({
+      const errorAgent = new Agent({
         id: 'error-agent',
         name: 'Error Agent',
         defaultSubAgent,
         subAgents: () => [defaultSubAgent],
       });
 
-      await expect(errorGraph.init()).rejects.toThrow('DB error');
+      await expect(errorAgent.init()).rejects.toThrow('DB error');
     });
 
     it('should not reinitialize if already initialized', async () => {
       await agentObject.init();
       await agentObject.init(); // Second call
 
-      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
-      expect(updateFullGraphViaAPI).toHaveBeenCalledTimes(1);
+      const { updateFullAgentViaAPI } = await import('../../agentFullClient.js');
+      expect(updateFullAgentViaAPI).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -448,15 +448,15 @@ describe('Agent', () => {
     });
 
     it('should throw error if no default agent and no agent specified', async () => {
-      const graphWithoutDefault = new Agent({
+      const agentWithoutDefault = new Agent({
         id: 'test-agent',
         name: 'Test Agent',
       });
-      await graphWithoutDefault.init();
+      await agentWithoutDefault.init();
 
       const messageInput: MessageInput = 'Hello';
 
-      await expect(graphWithoutDefault.generate(messageInput)).rejects.toThrow(
+      await expect(agentWithoutDefault.generate(messageInput)).rejects.toThrow(
         'No default agent configured for this agent'
       );
     });
@@ -548,8 +548,8 @@ describe('Agent', () => {
 
       await agent.init();
 
-      const { updateFullGraphViaAPI } = await import('../../agentFullClient.js');
-      const createCall = vi.mocked(updateFullGraphViaAPI).mock.calls[0][4]; // 5th argument contains the agent data (tenantId, projectId, apiUrl, agentId, graphData)
+      const { updateFullAgentViaAPI } = await import('../../agentFullClient.js');
+      const createCall = vi.mocked(updateFullAgentViaAPI).mock.calls[0][4]; // 5th argument contains the agent data (tenantId, projectId, apiUrl, agentId, agentData)
 
       expect(createCall).toMatchObject({
         id: 'test-agent',
@@ -676,13 +676,13 @@ describe('Agent', () => {
     });
 
     it('should not override existing agent models but inherit missing ones', async () => {
-      const graphModels = {
+      const agentModels = {
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'claude-3.5-haiku' },
       };
 
-      agent.setModels(graphModels);
-      expect(agent.getModels()).toEqual(graphModels);
+      agent.setModels(agentModels);
+      expect(agent.getModels()).toEqual(agentModels);
 
       await agent.init();
 
@@ -700,12 +700,12 @@ describe('Agent', () => {
     });
 
     it('should propagate agent models to agents without models', async () => {
-      const graphModels = {
+      const agentModels = {
         base: { model: 'gpt-4o' },
         structuredOutput: { model: 'gpt-4o-mini' },
       };
 
-      agent.setModels(graphModels);
+      agent.setModels(agentModels);
 
       // Agents start with no models
       expect(agent1.getModels()).toBeUndefined();
@@ -714,12 +714,12 @@ describe('Agent', () => {
       await agent.init();
 
       // Agents should inherit agent models
-      expect(agent1.getModels()).toEqual(graphModels);
-      expect(agent2.getModels()).toEqual(graphModels);
+      expect(agent1.getModels()).toEqual(agentModels);
+      expect(agent2.getModels()).toEqual(agentModels);
     });
 
     it('should not override agent models when they are already configured', async () => {
-      const graphModels = {
+      const agentModels = {
         base: { model: 'gpt-4o' },
         structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
@@ -730,7 +730,7 @@ describe('Agent', () => {
         summarizer: { model: 'claude-3.5-haiku' },
       };
 
-      agent.setModels(graphModels);
+      agent.setModels(agentModels);
       agent1.setModels(agent1Models);
 
       await agent.init();
@@ -744,11 +744,11 @@ describe('Agent', () => {
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
 
       // Agent2 should inherit all models from agent
-      expect(agent2.getModels()).toEqual(graphModels);
+      expect(agent2.getModels()).toEqual(agentModels);
     });
 
     it('should support partial model inheritance from agent to agents', async () => {
-      const graphModels = {
+      const agentModels = {
         base: { model: 'gpt-4o' },
         structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
@@ -761,7 +761,7 @@ describe('Agent', () => {
         // no base - should inherit from agent
       };
 
-      agent.setModels(graphModels);
+      agent.setModels(agentModels);
       agent1.setModels(agent1PartialModels);
 
       await agent.init();
@@ -775,7 +775,7 @@ describe('Agent', () => {
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
 
       // Agent2 should inherit all models from agent (no agent models)
-      expect(agent2.getModels()).toEqual(graphModels);
+      expect(agent2.getModels()).toEqual(agentModels);
     });
 
     it('should handle project database errors gracefully', async () => {
@@ -825,13 +825,13 @@ describe('Agent', () => {
 
     it('should support partial model inheritance when agent has some but not all model types', async () => {
       // Set partial agent models (missing summarizer)
-      const partialGraphModels = {
+      const partialAgentModels = {
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'claude-3.5-haiku' },
         // no summarizer - should inherit from project
       };
 
-      agent.setModels(partialGraphModels);
+      agent.setModels(partialAgentModels);
 
       await agent.init();
 
@@ -874,7 +874,7 @@ describe('Agent', () => {
       };
 
       // Agent has partial models (missing summarizer)
-      const graphPartialModels = {
+      const agentPartialModels = {
         base: { model: 'claude-3-opus' }, // overrides project
         structuredOutput: { model: 'claude-3-sonnet' }, // overrides project
         // no summarizer - should inherit from project
@@ -887,19 +887,19 @@ describe('Agent', () => {
       };
 
       // The default mock already returns project models
-      agent.setModels(graphPartialModels);
+      agent.setModels(agentPartialModels);
       agent1.setModels(agent1PartialModels);
 
       await agent.init();
 
       // Verify complex inheritance:
       // Agent should inherit missing summarizer from project
-      const expectedGraphModels = {
+      const expectedAgentModels = {
         base: { model: 'claude-3-opus' }, // explicit in agent
         structuredOutput: { model: 'claude-3-sonnet' }, // explicit in agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       };
-      expect(agent.getModels()).toEqual(expectedGraphModels);
+      expect(agent.getModels()).toEqual(expectedAgentModels);
 
       // Agent1 should inherit missing models from agent
       const expectedAgent1Models = {
@@ -910,12 +910,12 @@ describe('Agent', () => {
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
 
       // Agent2 should inherit all models from agent
-      expect(agent2.getModels()).toEqual(expectedGraphModels);
+      expect(agent2.getModels()).toEqual(expectedAgentModels);
     });
 
     it('should apply inheritance to agents added via addAgent() after agent construction', async () => {
       // Create agent with models
-      const graphModels = {
+      const agentModels = {
         base: { model: 'claude-3-opus' },
         structuredOutput: { model: 'claude-3-sonnet' },
       };
@@ -924,7 +924,7 @@ describe('Agent', () => {
         id: 'test-agent-add-agent',
         name: 'Test Agent Add Agent',
         defaultSubAgent: agent1,
-        models: graphModels,
+        models: agentModels,
       });
 
       // Create a new agent after agent construction
@@ -942,7 +942,7 @@ describe('Agent', () => {
       agent.addSubAgent(newAgent);
 
       // Agent should immediately inherit agent models
-      expect(newAgent.getModels()).toEqual(graphModels);
+      expect(newAgent.getModels()).toEqual(agentModels);
     });
   });
 
@@ -1038,7 +1038,7 @@ describe('Agent', () => {
 
     it('should not override existing agent stopWhen configuration', async () => {
       // Set explicit agent stopWhen
-      const graphConfig = {
+      const agentConfig = {
         id: 'test-agent-explicit',
         name: 'Test Agent Explicit',
         defaultSubAgent: agent1,
@@ -1048,19 +1048,19 @@ describe('Agent', () => {
         },
       };
 
-      const explicitGraph = new Agent(graphConfig);
+      const explicitAgent = new Agent(agentConfig);
 
       // Should keep explicit value
-      expect(explicitGraph.getStopWhen().transferCountIs).toBe(20);
+      expect(explicitAgent.getStopWhen().transferCountIs).toBe(20);
 
-      await explicitGraph.init();
+      await explicitAgent.init();
 
       // Should not inherit from project - keep explicit value
-      expect(explicitGraph.getStopWhen().transferCountIs).toBe(20);
+      expect(explicitAgent.getStopWhen().transferCountIs).toBe(20);
 
       // But agents should still inherit stepCountIs from project
-      const agents = explicitGraph.getSubAgents();
-      const internalAgents = agents.filter((a) => explicitGraph.isInternalAgent(a));
+      const agents = explicitAgent.getSubAgents();
+      const internalAgents = agents.filter((a) => explicitAgent.isInternalAgent(a));
       for (const agent of internalAgents) {
         expect((agent as any).config.stopWhen?.stepCountIs).toBe(25);
       }
@@ -1249,14 +1249,14 @@ describe('Agent', () => {
       // The default mock already returns project stopWhen, so no additional setup needed
 
       // Agent starts with default stopWhen - will inherit transferCountIs from project
-      const initialGraphStopWhen = agent.getStopWhen();
-      expect(initialGraphStopWhen.transferCountIs).toBe(10); // default
+      const initialAgentStopWhen = agent.getStopWhen();
+      expect(initialAgentStopWhen.transferCountIs).toBe(10); // default
 
       await agent.init();
 
       // Verify full inheritance chain
-      const finalGraphStopWhen = agent.getStopWhen();
-      expect(finalGraphStopWhen.transferCountIs).toBe(15); // inherited from project
+      const finalAgentStopWhen = agent.getStopWhen();
+      expect(finalAgentStopWhen.transferCountIs).toBe(15); // inherited from project
 
       // Both agents should inherit stepCountIs from project
       expect(agent1.config.stopWhen?.stepCountIs).toBe(25);
@@ -1279,7 +1279,7 @@ describe('Agent', () => {
 
     it('should handle mixed inheritance scenarios', async () => {
       // Set agent with partial stopWhen and agent with partial stopWhen
-      const mixedGraph = new Agent({
+      const mixedAgent = new Agent({
         id: 'mixed-agent',
         name: 'Mixed Agent',
         defaultSubAgent: agent1,
@@ -1295,10 +1295,10 @@ describe('Agent', () => {
         stepCountIs: 35, // agent explicit
       };
 
-      await mixedGraph.init();
+      await mixedAgent.init();
 
       // Agent should keep explicit transferCountIs
-      expect(mixedGraph.getStopWhen().transferCountIs).toBe(18);
+      expect(mixedAgent.getStopWhen().transferCountIs).toBe(18);
 
       // Agent1 should keep explicit stepCountIs
       expect(agent1.config.stopWhen.stepCountIs).toBe(35);

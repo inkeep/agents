@@ -14,7 +14,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { graphSessionManager } from './GraphSession';
+import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('ArtifactService');
 
@@ -267,7 +267,7 @@ export class ArtifactService {
 
     // Check agent session cache
     if (this.context.streamRequestId) {
-      const cachedArtifact = await graphSessionManager.getArtifactCache(
+      const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
         key
       );
@@ -329,7 +329,7 @@ export class ArtifactService {
 
     // Check agent session cache
     if (this.context.streamRequestId) {
-      const cachedArtifact = await graphSessionManager.getArtifactCache(
+      const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
         key
       );
@@ -428,7 +428,7 @@ export class ArtifactService {
     const effectiveAgentId = subAgentId || this.context.subAgentId;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
-      await graphSessionManager.recordEvent(
+      await agentSessionManager.recordEvent(
         this.context.streamRequestId,
         'artifact_saved',
         effectiveAgentId,
@@ -490,7 +490,7 @@ export class ArtifactService {
 
     // Store in agent session cache
     if (this.context.streamRequestId) {
-      await graphSessionManager.setArtifactCache(
+      await agentSessionManager.setArtifactCache(
         this.context.streamRequestId,
         cacheKey,
         artifactForCache
@@ -534,7 +534,7 @@ export class ArtifactService {
 
   /**
    * Save an already-created artifact directly to the database
-   * Used by GraphSession to save artifacts after name/description generation
+   * Used by AgentSession to save artifacts after name/description generation
    */
   async saveArtifact(artifact: {
     artifactId: string;

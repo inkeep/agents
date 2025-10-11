@@ -186,7 +186,7 @@ export const getProjectResourceCounts =
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
 
     // Count resources in parallel
-    const [agentResults, graphResults, toolResults, contextConfigResults, externalAgentResults] =
+    const [subAgentResults, agentResults, toolResults, contextConfigResults, externalAgentResults] =
       await Promise.all([
         db.select({ count: subAgents.id }).from(subAgents).where(whereClause(subAgents)),
         db.select({ count: agents.id }).from(agents).where(whereClause(agents)),
@@ -202,8 +202,8 @@ export const getProjectResourceCounts =
       ]);
 
     return {
+      subAgents: subAgentResults.length,
       agents: agentResults.length,
-      agent: graphResults.length,
       tools: toolResults.length,
       contextConfigs: contextConfigResults.length,
       externalAgents: externalAgentResults.length,
@@ -401,19 +401,19 @@ async function cascadeStopWhenUpdates(
   // Update agent if transferCountIs changed
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
     // Find all agent that inherited the old transferCountIs value
-    const graphsToUpdate = await db.query.agents.findMany({
+    const agentsToUpdate = await db.query.agents.findMany({
       where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
     });
 
-    for (const agent of graphsToUpdate) {
-      const graphStopWhen = agent.stopWhen as any;
+    for (const agent of agentsToUpdate) {
+      const agentStopWhen = agent.stopWhen as any;
       // If agent has no explicit transferCountIs or matches old project value, update it
       if (
-        !graphStopWhen?.transferCountIs ||
-        graphStopWhen.transferCountIs === oldStopWhen?.transferCountIs
+        !agentStopWhen?.transferCountIs ||
+        agentStopWhen.transferCountIs === oldStopWhen?.transferCountIs
       ) {
         const updatedStopWhen = {
-          ...(graphStopWhen || {}),
+          ...(agentStopWhen || {}),
           transferCountIs: newStopWhen?.transferCountIs,
         };
 

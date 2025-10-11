@@ -51,7 +51,7 @@ export async function chatCommandEnhanced(agentIdInput?: string, options?: ChatO
       }
 
       // Create searchable source for autocomplete
-      const graphChoices = agent.map((g) => ({
+      const agentChoices = agent.map((g) => ({
         name: `${chalk.cyan(g.id)} - ${g.name || 'Unnamed Agent'}`,
         value: g.id,
         short: g.id,
@@ -64,7 +64,7 @@ export async function chatCommandEnhanced(agentIdInput?: string, options?: ChatO
           type: 'list',
           name: 'agentId',
           message: 'Select a agent to chat with:',
-          choices: graphChoices,
+          choices: agentChoices,
           pageSize: 10,
         },
       ]);

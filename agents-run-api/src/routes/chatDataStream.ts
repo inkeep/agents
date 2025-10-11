@@ -122,7 +122,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     }
 
     const defaultSubAgentId = agent.defaultSubAgentId;
-    const graphName = agent.name;
+    const agentName = agent.name;
 
     if (!defaultSubAgentId) {
       throw createApiError({
@@ -183,7 +183,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       messageSpan.setAttributes({
         'message.timestamp': new Date().toISOString(),
         'message.content': userText,
-        'agent.name': graphName,
+        'agent.name': agentName,
       });
     }
     await createMessage(dbClient)({
