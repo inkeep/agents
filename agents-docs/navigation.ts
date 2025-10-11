@@ -22,6 +22,7 @@ export default {
         'typescript-sdk/data-operations',
         'typescript-sdk/tools-and-mcp-servers',
         'typescript-sdk/create-mcp-servers',
+        'typescript-sdk/function-tools',
         'typescript-sdk/credentials',
         'typescript-sdk/headers',
         'typescript-sdk/context-fetchers',
@@ -54,6 +55,7 @@ export default {
       pages: [
         'visual-builder/graphs',
         'visual-builder/mcp-servers',
+        'visual-builder/function-tools',
         'visual-builder/headers',
         'visual-builder/credentials',
         'visual-builder/traces',

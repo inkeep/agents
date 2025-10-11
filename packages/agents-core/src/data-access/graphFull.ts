@@ -661,7 +661,6 @@ export const createFullGraphServerSide =
         // Create delegation relations
         if (isInternalAgent(agentData) && agentData.canDelegateTo) {
           for (const targetSubAgentId of agentData.canDelegateTo) {
-            // Check if the target agent is external by looking it up in the typed.agents
             const targetAgentData = typed.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
 
@@ -1434,7 +1433,6 @@ export const updateFullGraphServerSide =
             agentRelationPromises.push(
               (async () => {
                 try {
-                  // Check if the target agent is external by looking it up in the typed.agents
                   const targetAgentData = typedGraphDefinition.subAgents[targetSubAgentId];
                   const isTargetExternal = isExternalAgent(targetAgentData);
                   const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
@@ -1473,7 +1471,6 @@ export const updateFullGraphServerSide =
           for (const targetSubAgentId of agentData.canDelegateTo) {
             // External agents can't delegate to other agents
 
-            // Check if the target agent is external by looking it up in the typed.agents
             const targetAgentData = typedGraphDefinition.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
             const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
