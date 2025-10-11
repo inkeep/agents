@@ -448,7 +448,7 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. Import { agent, agent } from '@inkeep/agents-sdk'
+1. Import { agent, subAgent } from '@inkeep/agents-sdk'
 2. Define each agent using the agent() function following the type definitions provided above
 3. Create the agent using agent() with proper structure
    - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
