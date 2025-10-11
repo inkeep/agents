@@ -21,7 +21,7 @@ Typically, you want an Agent to handle narrow, well-defined tasks. Keeping the s
 
 When what you're trying to accomplish gets complex, it can be useful to break up your logic into a "team" of agents that work together. 
 
-At Inkeep, we call that a **Graph**. A Graph is made up of one or more Agents that collaborate to complete a task and respond to the user.
+At Inkeep, we call that a **Graph**. A Graph is made up of one or more Agents that collaborate to complete a task and respond to the user (hence "multi-agent" systems).
 
 <Tip>
 **You can treat a Graph as one Agent**: when you send a message, it'll sound and reply as one single Agent, even if internally it's coordinating across multiple agents. This is similar to how companies operate: there may be internal back-and-forths between employees, but a company acts as one cohesive unit to external audiences, like customers.
@@ -32,7 +32,7 @@ At Inkeep, we call that a **Graph**. A Graph is made up of one or more Agents th
 With Inkeep, every Graph has a **Default Agent** that receives the initial message and decides how to proceed. 
 
 In a Graph, an Agent can choose to:
-- **Transfer** control of the chat to another Agent so a different Agent can respond to the user.
+- **Transfer** control of the chat to another Agent so a different Agent can respond directly to the user.
 - **Delegate** a subtask for another Agent to do and wait for its response before proceeding with the next step.
  
 ### Agent 'turn'
@@ -60,7 +60,7 @@ API keys are the recommended approach for production use, providing secure, scop
 
 ## Agent replies with Structured Data
 
-Sometimes, you want your Agent to reply not in plain text, but with specific types of information 'Structured Outputs' (JSON).
+Sometimes, you want your Agent to reply not in plain text, but with specific types of well-defined information often called 'Structured Outputs' (JSON).
 
 With Inkeep, there are a few ways to do this:
 - **Data Components**: Structured Outputs that agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
@@ -77,7 +77,7 @@ Headers and fetched context can then be referenced explicitly as `{{variables}}`
 
 ## Ways to build
 
-Quick reference to the key docs for building with the Visual Builder or the Agents SDK.
+Quick reference to the key docs for building with the Visual Builder or the TypeScript SDK.
 
 <Tabs>
   <Tab title="Visual Builder">
@@ -105,7 +105,7 @@ Quick reference to the key docs for building with the Visual Builder or the Agen
       </Card>
     </Cards>
   </Tab>
-  <Tab title="Agents SDK">
+  <Tab title="TypeScript SDK">
     <Cards>
       <Card title="Agent Settings" icon="LuUser" href="/typescript-sdk/agent-configuration">
         Configure agents with prompts, tools, and data components.
@@ -135,7 +135,7 @@ Quick reference to the key docs for building with the Visual Builder or the Agen
   </Tab>
 </Tabs>
 
-The Visual Builder and TypeScript SDK work seamlessly together—define your agents in code, push them to the visual builder, and iterate visually.
+The Visual Builder and TypeScript SDK work seamlessly together—define your agents in code, push them to the Visual Builder, and iterate visually.
 
 ## Projects
 
@@ -147,7 +147,7 @@ For example, you may create one Project for your support team that has all the M
 
 The Inkeep CLI bridges your TypeScript SDK project and the Visual Builder.
 
-Run the following from your project (the folder that contains your `inkeep.config.ts`) and has an `index.ts` file that exports a project.
+Run the following from your project (the folder that contains your `inkeep.config.ts`) which has an `index.ts` file that exports a project.
 
 - **Push (code → Builder)**: Sync locally defined graphs, agents, tools, and settings from your SDK project into the Visual Builder.
 
@@ -155,7 +155,7 @@ Run the following from your project (the folder that contains your `inkeep.confi
 inkeep push
 ```
 
-- **Pull (Builder → code)**: Fetch your project from the Visual Builder back into your SDK project. By default, the CLI will LLM-assist updating your local TypeScript files to reflect Builder changes.
+- **Pull (Builder → code)**: Fetch your project from the Visual Builder back into your SDK project. By default, the CLI will LLM-assist in updating your local TypeScript files to reflect Builder changes.
 
 ```bash
 inkeep pull
