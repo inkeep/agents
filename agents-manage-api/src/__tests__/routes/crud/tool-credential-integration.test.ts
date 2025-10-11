@@ -1,7 +1,6 @@
 import { CredentialStoreType, MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
@@ -36,6 +35,7 @@ describe('Tool-Credential Integration Tests', () => {
     const toolData = {
       id: nanoid(),
       name: 'Test MCP Tool',
+      description: 'Test MCP tool for credential integration',
       config: {
         type: 'mcp' as const,
         mcp: {

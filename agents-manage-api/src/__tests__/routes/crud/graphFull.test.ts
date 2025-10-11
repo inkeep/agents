@@ -12,6 +12,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
   const createTestToolData = (id: string, suffix = '') => ({
     id,
     name: `Test Tool${suffix}`,
+    description: `Test tool description${suffix}`,
     config: {
       type: 'mcp',
       mcp: {
@@ -343,6 +344,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Test Tool',
+            description: 'Test tool description',
             config: { type: 'test' },
             transport: 'stdio',
           },
@@ -427,6 +429,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Test Tool',
+            description: 'Test tool description',
             config: { type: 'test' },
             transport: 'stdio',
           },
@@ -1539,6 +1542,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Minimal Tool',
+            description: 'Minimal test tool',
             config: {
               type: 'mcp',
               mcp: {
@@ -1616,6 +1620,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'MCP Tool with Full Fields',
+            description: 'MCP tool with full schema fields',
             config: {
               type: 'mcp',
               mcp: {
@@ -1724,6 +1729,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Tool with Available Tools',
+            description: 'Tool with available tools list',
             config: {
               type: 'mcp',
               mcp: {
@@ -1794,6 +1800,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [healthyToolId]: {
             id: healthyToolId,
             name: 'Healthy Tool',
+            description: 'A healthy test tool',
             config: {
               type: 'mcp',
               mcp: { server: { url: 'https://healthy.example.com' } },
@@ -1804,6 +1811,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [unhealthyToolId]: {
             id: unhealthyToolId,
             name: 'Unhealthy Tool',
+            description: 'An unhealthy test tool',
             config: {
               type: 'mcp',
               mcp: { server: { url: 'https://unhealthy.example.com' } },
@@ -1815,6 +1823,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [unknownToolId]: {
             id: unknownToolId,
             name: 'Unknown Status Tool',
+            description: 'A tool with unknown status',
             config: {
               type: 'mcp',
               mcp: { server: { url: 'https://unknown.example.com' } },
@@ -1867,6 +1876,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Capable Tool',
+            description: 'A tool with capabilities',
             config: {
               type: 'mcp',
               mcp: { server: { url: 'https://capable.example.com' } },
@@ -1958,6 +1968,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Tool with Empty Available Tools',
+            description: 'Tool with empty available tools array',
             config: {
               type: 'mcp',
               mcp: { server: { url: 'https://example.com' } },
@@ -2006,6 +2017,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
           [toolId]: {
             id: toolId,
             name: 'Minimal Tool',
+            description: 'Minimal tool with optional fields',
             config: {
               type: 'mcp',
               mcp: { server: { url: 'https://minimal.example.com' } },

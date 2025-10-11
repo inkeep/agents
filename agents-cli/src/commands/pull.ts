@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
 import prompts from 'prompts';
@@ -312,7 +312,7 @@ async function generateProjectFiles(
     artifactComponentsDir: string;
     environmentsDir: string;
   },
-  projectData: any,
+  projectData: FullProjectDefinition,
   modelSettings: ModelSettings,
   environment: string = 'development',
   debug: boolean = false
@@ -629,18 +629,17 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       finalConfig.tenantId,
       finalConfig.projectId
     );
-    const projectData = await apiClient.getFullProject(finalConfig.projectId);
+    const projectData: FullProjectDefinition = await apiClient.getFullProject(
+      finalConfig.projectId
+    );
     spinner.succeed('Project data fetched');
 
     // Show project summary
     const graphCount = Object.keys(projectData.graphs || {}).length;
     const toolCount = Object.keys(projectData.tools || {}).length;
-    const agentCount = Object.values(projectData.graphs || {}).reduce(
-      (total: number, graph: any) => {
-        return total + Object.keys(graph.agents || {}).length;
-      },
-      0
-    );
+    const agentCount = Object.values(projectData.graphs || {}).reduce((total, graph) => {
+      return total + Object.keys(graph.subAgents || {}).length;
+    }, 0);
 
     const dataComponentCount = Object.keys(projectData.dataComponents || {}).length;
     const artifactComponentCount = Object.keys(projectData.artifactComponents || {}).length;

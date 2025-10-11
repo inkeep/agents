@@ -358,6 +358,10 @@ export class Project implements ProjectInterface {
     return { credentials, usage };
   }
 
+  async getFullDefinition(): Promise<FullProjectDefinition> {
+    return await this.toFullProjectDefinition();
+  }
+
   /**
    * Get all graphs in the project
    */
