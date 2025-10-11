@@ -12,7 +12,8 @@ import {
 import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
-import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import { executeTransfer } from '../a2a/transfer.js';
+import { isTransferTask, extractTransferData } from '../a2a/types.js';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
@@ -320,18 +321,30 @@ export class ExecutionHandler {
         }
 
         // Step 4: Handle transfer messages
-        if (isTransferResponse(messageResponse.result)) {
-          const transferResponse = messageResponse.result;
+        if (isTransferTask(messageResponse.result)) {
+          const transferData = extractTransferData(messageResponse.result);
 
-          // Extract targetSubAgentId from transfer response artifacts
-          const targetSubAgentId = (transferResponse as any).artifacts?.[0]?.parts?.[0]?.data
-            ?.targetSubAgentId;
+          if (!transferData) {
+            logger.error(
+              { result: messageResponse.result },
+              'Transfer detected but no transfer data found'
+            );
+            continue;
+          }
 
-          const transferReason = (transferResponse as any).artifacts?.[0]?.parts?.[1]?.text;
+          const { targetSubAgentId, fromSubAgentId: transferFromAgent } = transferData;
 
-          // Transfer operation (data operations removed)
+          // Extract transfer reason from second part if available (optional text explanation)
+          const firstArtifact = messageResponse.result.artifacts[0];
+          const transferReason =
+            firstArtifact?.parts[1]?.kind === 'text'
+              ? firstArtifact.parts[1].text
+              : 'Transfer initiated';
 
-          logger.info({ targetSubAgentId, transferReason }, 'transfer response');
+          logger.info(
+            { targetSubAgentId, transferReason, transferFromAgent },
+            'Transfer response'
+          );
 
           // Update the current message to the transfer reason so as not to duplicate the user message on every transfer
           // including the xml because the fromSubAgent does not always directly adress the toSubAgent in its text
@@ -343,6 +356,7 @@ export class ExecutionHandler {
             threadId: conversationId,
             targetSubAgentId,
           });
+
           if (success) {
             // Set fromSubAgentId to track which agent executed this transfer
             fromSubAgentId = currentAgentId;

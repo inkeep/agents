@@ -1,7 +1,6 @@
 import { setActiveAgentForThread } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import type { TransferResponse } from './types';
 
 const logger = getLogger('Transfer');
 /**
@@ -32,9 +31,6 @@ export async function executeTransfer({
 
 /**
  * Checks if a response is a transfer response
+ * Re-exported from types.ts for backward compatibility
  */
-export function isTransferResponse(result: any): result is TransferResponse {
-  return result?.artifacts.some((artifact: any) =>
-    artifact.parts.some((part: any) => part.kind === 'data' && part.data?.type === 'transfer')
-  );
-}
+export { isTransferTask as isTransferResponse, extractTransferData } from './types';

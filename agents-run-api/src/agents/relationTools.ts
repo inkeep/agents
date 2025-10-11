@@ -87,7 +87,7 @@ export const createTransferToAgentTool = ({
 
       return {
         type: 'transfer',
-        target: transferConfig.id ?? 'unknown',
+        targetSubAgentId: transferConfig.id ?? 'unknown',  // Changed from "target" for type safety
         fromSubAgentId: callingAgentId, // Include the calling agent ID for tracking
       };
     },

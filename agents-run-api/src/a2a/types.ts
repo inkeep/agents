@@ -1,5 +1,5 @@
 // A2A Protocol Types based on Google's specification
-import { AgentCard, type Artifact, type TaskState } from '@inkeep/agents-core';
+import { AgentCard, type Artifact, type Task, type Message, type TaskState } from '@inkeep/agents-core';
 
 // Re-export AgentCard from the official schema
 export { AgentCard };
@@ -37,19 +37,56 @@ export interface A2ATaskResult {
   artifacts?: Artifact[];
 }
 
-// Transfer response type
-export interface TransferResponse {
+// === Transfer Types ===
+
+/**
+ * Transfer data structure - what the transfer tool returns
+ * This gets wrapped into a DataPart by the AI SDK
+ */
+export interface TransferData {
   type: 'transfer';
-  target: string;
-  task_id: string;
-  reason: string;
+  targetSubAgentId: string;  // Changed from "target" for consistency with codebase naming
+  fromSubAgentId?: string;
+}
+
+/**
+ * Full transfer response following A2A protocol
+ * The TransferData is wrapped in artifacts[0].parts[0].data
+ */
+export interface TransferTask extends Task {
   artifacts: Artifact[];
-  original_message: string;
-  context: {
-    conversationId?: string;
-    tenantId: string;
-    transfer_context?: Artifact[];
-  };
+}
+
+/**
+ * Type guard to check if a Task contains transfer data
+ */
+export function isTransferTask(result: Task | Message): result is TransferTask {
+  if (!('artifacts' in result) || !result.artifacts) return false;
+
+  return result.artifacts.some(artifact =>
+    artifact.parts.some(part => {
+      if (part.kind !== 'data' || !part.data) return false;
+      // Type-safe check without as any
+      return typeof part.data === 'object' &&
+             'type' in part.data &&
+             part.data.type === 'transfer';
+    })
+  );
+}
+
+/**
+ * Helper to safely extract transfer data from a TransferTask
+ * Returns null if no transfer data found
+ */
+export function extractTransferData(task: TransferTask): TransferData | null {
+  for (const artifact of task.artifacts) {
+    for (const part of artifact.parts) {
+      if (part.kind === 'data' && part.data?.type === 'transfer') {
+        return part.data as TransferData;
+      }
+    }
+  }
+  return null;
 }
 
 // JSON-RPC types
