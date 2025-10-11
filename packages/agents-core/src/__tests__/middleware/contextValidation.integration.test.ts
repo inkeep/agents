@@ -3,11 +3,11 @@ import { type ParsedHttpRequest, validateHeaders } from '../../middleware/contex
 import { dbClient } from '../setup';
 
 // Mock the data access functions
-const mockGetAgentGraphWithdefaultSubAgent = vi.fn();
+const mockGetAgentWithDefaultSubAgent = vi.fn();
 const mockGetContextConfigById = vi.fn();
 
-vi.mock('../../data-access/agentGraphs', () => ({
-  getAgentGraphWithDefaultSubAgent: () => mockGetAgentGraphWithdefaultSubAgent,
+vi.mock('../../data-access/agents', () => ({
+  getAgentWithDefaultSubAgent: () => mockGetAgentWithDefaultSubAgent,
 }));
 
 vi.mock('../../data-access/contextConfigs', () => ({
@@ -30,8 +30,8 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     };
 
     // Mock successful database calls
-    mockGetAgentGraphWithdefaultSubAgent.mockResolvedValue({
-      id: 'test-graph',
+    mockGetAgentWithDefaultSubAgent.mockResolvedValue({
+      id: 'test-agent',
       contextConfigId: 'test-config',
     });
 
@@ -52,7 +52,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1',
+      agentId: 'agent1',
       conversationId: 'conv1',
       parsedRequest,
       dbClient,
@@ -79,7 +79,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
       required: ['x-api-key'],
     };
 
-    mockGetAgentGraphWithdefaultSubAgent.mockResolvedValue({
+    mockGetAgentWithDefaultSubAgent.mockResolvedValue({
       contextConfigId: 'test-config',
     });
 
@@ -98,7 +98,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1',
+      agentId: 'agent1',
       conversationId: 'conv1',
       parsedRequest,
       dbClient,
@@ -111,8 +111,8 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
 
   it('should work without context config (no validation)', async () => {
     // No context config
-    mockGetAgentGraphWithdefaultSubAgent.mockResolvedValue({
-      id: 'test-graph',
+    mockGetAgentWithDefaultSubAgent.mockResolvedValue({
+      id: 'test-agent',
       // No contextConfigId
     });
 
@@ -123,7 +123,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     const result = await validateHeaders({
       tenantId: 'tenant1',
       projectId: 'project1',
-      graphId: 'graph1',
+      agentId: 'agent1',
       conversationId: 'conv1',
       parsedRequest,
       dbClient,

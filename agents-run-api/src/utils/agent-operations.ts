@@ -12,7 +12,7 @@ export interface AgentInitializingEvent {
   type: 'agent_initializing';
   details: {
     sessionId: string;
-    graphId: string;
+    agentId: string;
   };
 }
 
@@ -56,12 +56,12 @@ export type OperationEvent =
 /**
  * Creates an agent initializing operation
  */
-export function agentInitializingOp(sessionId: string, graphId: string): AgentInitializingEvent {
+export function agentInitializingOp(sessionId: string, agentId: string): AgentInitializingEvent {
   return {
     type: 'agent_initializing',
     details: {
       sessionId,
-      graphId,
+      agentId,
     },
   };
 }

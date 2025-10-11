@@ -3,16 +3,16 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { agentFunctionToolRelations, functionTools } from '../db/schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
-import type { GraphScopeConfig, PaginationConfig } from '../types/utility';
+import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('functionTools');
 
 /**
- * Get a function tool by ID (graph-scoped)
+ * Get a function tool by ID (agent-scoped)
  */
 export const getFunctionToolById =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; functionToolId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const result = await db
       .select()
       .from(functionTools)
@@ -20,7 +20,7 @@ export const getFunctionToolById =
         and(
           eq(functionTools.tenantId, params.scopes.tenantId),
           eq(functionTools.projectId, params.scopes.projectId),
-          eq(functionTools.graphId, params.scopes.graphId),
+          eq(functionTools.agentId, params.scopes.agentId),
           eq(functionTools.id, params.functionToolId)
         )
       )
@@ -30,11 +30,11 @@ export const getFunctionToolById =
   };
 
 /**
- * List function tools (graph-scoped)
+ * List function tools (agent-scoped)
  */
 export const listFunctionTools =
   (db: DatabaseClient) =>
-  async (params: { scopes: GraphScopeConfig; pagination?: PaginationConfig }) => {
+  async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -42,7 +42,7 @@ export const listFunctionTools =
     const whereClause = and(
       eq(functionTools.tenantId, params.scopes.tenantId),
       eq(functionTools.projectId, params.scopes.projectId),
-      eq(functionTools.graphId, params.scopes.graphId)
+      eq(functionTools.agentId, params.scopes.agentId)
     );
 
     const [functionToolsDbResults, totalResult] = await Promise.all([
@@ -66,20 +66,20 @@ export const listFunctionTools =
   };
 
 /**
- * Create a function tool (graph-scoped)
+ * Create a function tool (agent-scoped)
  */
 export const createFunctionTool =
   (db: DatabaseClient) =>
-  async (params: { data: FunctionToolApiInsert; scopes: GraphScopeConfig }) => {
+  async (params: { data: FunctionToolApiInsert; scopes: AgentScopeConfig }) => {
     const { data, scopes } = params;
-    const { tenantId, projectId, graphId } = scopes;
+    const { tenantId, projectId, agentId } = scopes;
 
     const [created] = await db
       .insert(functionTools)
       .values({
         tenantId,
         projectId,
-        graphId,
+        agentId,
         id: data.id,
         name: data.name,
         description: data.description,
@@ -93,12 +93,12 @@ export const createFunctionTool =
   };
 
 /**
- * Update a function tool (graph-scoped)
+ * Update a function tool (agent-scoped)
  */
 export const updateFunctionTool =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     functionToolId: string;
     data: FunctionToolApiUpdate;
   }) => {
@@ -114,7 +114,7 @@ export const updateFunctionTool =
         and(
           eq(functionTools.tenantId, params.scopes.tenantId),
           eq(functionTools.projectId, params.scopes.projectId),
-          eq(functionTools.graphId, params.scopes.graphId),
+          eq(functionTools.agentId, params.scopes.agentId),
           eq(functionTools.id, params.functionToolId)
         )
       )
@@ -124,17 +124,17 @@ export const updateFunctionTool =
   };
 
 /**
- * Delete a function tool (graph-scoped)
+ * Delete a function tool (agent-scoped)
  */
 export const deleteFunctionTool =
-  (db: DatabaseClient) => async (params: { scopes: GraphScopeConfig; functionToolId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const [deleted] = await db
       .delete(functionTools)
       .where(
         and(
           eq(functionTools.tenantId, params.scopes.tenantId),
           eq(functionTools.projectId, params.scopes.projectId),
-          eq(functionTools.graphId, params.scopes.graphId),
+          eq(functionTools.agentId, params.scopes.agentId),
           eq(functionTools.id, params.functionToolId)
         )
       )
@@ -148,11 +148,11 @@ export const deleteFunctionTool =
  */
 export const upsertFunctionTool =
   (db: DatabaseClient) =>
-  async (params: { data: FunctionToolApiInsert; scopes: GraphScopeConfig }) => {
+  async (params: { data: FunctionToolApiInsert; scopes: AgentScopeConfig }) => {
     const scopes = {
       tenantId: params.scopes.tenantId,
       projectId: params.scopes.projectId,
-      graphId: params.scopes.graphId,
+      agentId: params.scopes.agentId,
     };
 
     const existing = await getFunctionToolById(db)({
@@ -182,16 +182,16 @@ export const upsertFunctionTool =
 
 export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
   return async (params: {
-    scopes: { tenantId: string; projectId: string; graphId: string };
+    scopes: { tenantId: string; projectId: string; agentId: string };
     subAgentId: string;
   }) => {
     const { scopes, subAgentId } = params;
-    const { tenantId, projectId, graphId } = scopes;
+    const { tenantId, projectId, agentId } = scopes;
 
     try {
-      // Get function tools for this graph
+      // Get function tools for this agent
       const functionToolsList = await listFunctionTools(db)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         pagination: { page: 1, limit: 1000 },
       });
 
@@ -203,7 +203,7 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
           and(
             eq(agentFunctionToolRelations.tenantId, tenantId),
             eq(agentFunctionToolRelations.projectId, projectId),
-            eq(agentFunctionToolRelations.graphId, graphId),
+            eq(agentFunctionToolRelations.agentId, agentId),
             eq(agentFunctionToolRelations.subAgentId, subAgentId)
           )
         );
@@ -220,7 +220,7 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
       };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, graphId, subAgentId, error },
+        { tenantId, projectId, agentId, subAgentId, error },
         'Failed to get function tools for agent'
       );
       throw error;
@@ -234,7 +234,7 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
 export const upsertSubAgentFunctionToolRelation =
   (db: DatabaseClient) =>
   async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     subAgentId: string;
     functionToolId: string;
     relationId?: string; // Optional: if provided, update specific relationship
@@ -260,12 +260,12 @@ export const upsertSubAgentFunctionToolRelation =
  */
 export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
   return async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     subAgentId: string;
     functionToolId: string;
   }) => {
     const { scopes, subAgentId, functionToolId } = params;
-    const { tenantId, projectId, graphId } = scopes;
+    const { tenantId, projectId, agentId } = scopes;
 
     try {
       const relationId = nanoid();
@@ -274,20 +274,20 @@ export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
         id: relationId,
         tenantId,
         projectId,
-        graphId,
+        agentId,
         subAgentId,
         functionToolId,
       });
 
       logger.info(
-        { tenantId, projectId, graphId, subAgentId, functionToolId, relationId },
+        { tenantId, projectId, agentId, subAgentId, functionToolId, relationId },
         'Function tool added to agent'
       );
 
       return { id: relationId };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, graphId, subAgentId, functionToolId, error },
+        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
         'Failed to add function tool to agent'
       );
       throw error;
@@ -300,7 +300,7 @@ export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
  */
 export const updateSubAgentFunctionToolRelation = (db: DatabaseClient) => {
   return async (params: {
-    scopes: GraphScopeConfig;
+    scopes: AgentScopeConfig;
     relationId: string;
     data: {
       subAgentId: string;
@@ -308,7 +308,7 @@ export const updateSubAgentFunctionToolRelation = (db: DatabaseClient) => {
     };
   }) => {
     const { scopes, relationId, data } = params;
-    const { tenantId, projectId, graphId } = scopes;
+    const { tenantId, projectId, agentId } = scopes;
 
     try {
       await db
@@ -322,19 +322,19 @@ export const updateSubAgentFunctionToolRelation = (db: DatabaseClient) => {
             eq(agentFunctionToolRelations.id, relationId),
             eq(agentFunctionToolRelations.tenantId, tenantId),
             eq(agentFunctionToolRelations.projectId, projectId),
-            eq(agentFunctionToolRelations.graphId, graphId)
+            eq(agentFunctionToolRelations.agentId, agentId)
           )
         );
 
       logger.info(
-        { tenantId, projectId, graphId, relationId, data },
+        { tenantId, projectId, agentId, relationId, data },
         'Agent-function tool relation updated'
       );
 
       return { id: relationId };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, graphId, relationId, data, error },
+        { tenantId, projectId, agentId, relationId, data, error },
         'Failed to update agent-function tool relation'
       );
       throw error;

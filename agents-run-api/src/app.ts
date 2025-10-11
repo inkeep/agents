@@ -195,7 +195,7 @@ function createExecutionHono(
       return next();
     }
 
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     // Extract conversation ID from parsed body if present
     let conversationId: string | undefined;
@@ -209,7 +209,7 @@ function createExecutionHono(
 
     const entries = Object.fromEntries(
       Object.entries({
-        'graph.id': graphId,
+        'agent.id': agentId,
         'tenant.id': tenantId,
         'project.id': projectId,
         'conversation.id': conversationId,
@@ -252,7 +252,7 @@ function createExecutionHono(
     }
   );
 
-  // Mount execution routes - API key provides tenant, project, and graph context
+  // Mount execution routes - API key provides tenant, project, and agent context
   app.route('/v1/chat', chatRoutes);
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);

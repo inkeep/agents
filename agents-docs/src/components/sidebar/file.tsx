@@ -38,7 +38,7 @@ export const File = ({ depth = 0, item }: { item: SidebarPage; depth?: number })
             }`}
           >
             {' '}
-            {iconName.startsWith('brand/')
+            {iconName?.startsWith('brand/')
               ? React.createElement(
                   brandIcons[iconName.split('brand/')[1] as keyof typeof brandIcons]
                 )

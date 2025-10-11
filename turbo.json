@@ -121,6 +121,10 @@
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
     },
+    "typecheck:watch": {
+      "cache": false,
+      "persistent": true
+    },
     "db:generate": {
       "cache": false,
       "inputs": ["drizzle.config.ts", "src/db/schema.ts"],

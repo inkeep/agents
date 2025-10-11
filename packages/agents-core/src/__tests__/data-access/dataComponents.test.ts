@@ -21,9 +21,9 @@ describe('Data Components Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
-  const testGraphId = 'graph-123';
-  const testDataComponentId = 'component-789';
   const testAgentId = 'agent-123';
+  const testDataComponentId = 'component-789';
+  const testSubAgentId = 'sub-agent-123';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -549,8 +549,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 
@@ -577,8 +577,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 
@@ -592,7 +592,7 @@ describe('Data Components Data Access', () => {
         id: 'association-123',
         tenantId: testTenantId,
         projectId: testProjectId,
-        subAgentId: testAgentId,
+        subAgentId: testSubAgentId,
         dataComponentId: testDataComponentId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
@@ -613,8 +613,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         dataComponentId: testDataComponentId,
       });
@@ -641,8 +641,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         dataComponentId: testDataComponentId,
       });
@@ -667,8 +667,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         dataComponentId: 'non-existent',
       });
@@ -753,8 +753,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         dataComponentId: testDataComponentId,
       });
@@ -780,8 +780,8 @@ describe('Data Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         dataComponentId: testDataComponentId,
       });

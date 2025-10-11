@@ -1,108 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createSubAgent,
-  deleteSubAgent,
-  getSubAgentById,
-  getSubAgentsByIds,
-  listSubAgents,
-  listSubAgentsPaginated,
-  updateSubAgent,
-} from '../../data-access/subAgents';
+  createAgent,
+  deleteAgent,
+  getAgentById,
+  getAgentWithDefaultSubAgent,
+  listAgents,
+  listAgentsPaginated,
+  updateAgent,
+} from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { createInMemoryDatabaseClient } from '../../db/client';
 
-describe('Agent Data Access', () => {
+describe('Agent Agent Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
 
-  beforeEach(async () => {
-    db = await createTestDatabaseClient();
+  beforeEach(() => {
+    db = createInMemoryDatabaseClient();
   });
 
-  describe('createAgent', () => {
-    it('should create a new agent', async () => {
-      const agentData = {
-        id: 'agent-1',
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        graphId: testGraphId,
-        name: 'Test Agent',
-        description: 'A test agent',
-        prompt: 'Test prompt',
-      };
-
-      const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([agentData]),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        insert: mockInsert,
-      } as any;
-
-      const result = await createSubAgent(mockDb)({
-        ...agentData,
-      });
-
-      expect(mockInsert).toHaveBeenCalled();
-      expect(result).toMatchObject({
-        id: 'agent-1',
-        name: agentData.name,
-        description: agentData.description,
-        prompt: agentData.prompt,
-      });
-    });
-
-    it('should create an agent with custom id', async () => {
-      const customId = 'custom-agent-id';
-      const agentData = {
-        id: customId,
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        graphId: testGraphId,
-        name: 'Custom Agent',
-        description: 'Custom agent description',
-        prompt: 'Custom prompt',
-      };
-
-      const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([agentData]),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        insert: mockInsert,
-      } as any;
-
-      const result = await createSubAgent(mockDb)({
-        ...agentData,
-      });
-
-      expect(result.id).toBe(customId);
-    });
-  });
-
-  describe('getAgentById', () => {
-    it('should retrieve an agent by id', async () => {
-      const subAgentId = 'agent-1';
+  describe('getAgentAgentById', () => {
+    it('should retrieve an agent agent by tenant and agent ID', async () => {
+      const agentId = 'agent-1';
       const expectedAgent = {
-        id: subAgentId,
+        id: agentId,
         tenantId: testTenantId,
-        projectId: testProjectId,
-        graphId: testGraphId,
         name: 'Test Agent',
         description: 'Test description',
-        prompt: 'Test prompt',
       };
 
       const mockQuery = {
-        subAgents: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(expectedAgent),
         },
       };
@@ -112,22 +41,17 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getSubAgentById(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        subAgentId: subAgentId,
+      const result = await getAgentById(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
-      expect(mockQuery.subAgents.findFirst).toHaveBeenCalled();
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
     it('should return null if agent not found', async () => {
       const mockQuery = {
-        subAgents: {
+        agents: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
       };
@@ -137,28 +61,85 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await getSubAgentById(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        subAgentId: 'non-existent',
+      const result = await getAgentById(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: 'non-existent' },
       });
 
       expect(result).toBeNull();
     });
   });
 
-  describe('listAgents', () => {
-    it('should list all agents', async () => {
+  describe('getAgentAgentById', () => {
+    it('should retrieve an agent agent by full parameters', async () => {
+      const agentId = 'agent-1';
+      const expectedAgent = {
+        id: agentId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Agent',
+        description: 'Test description',
+      };
+
+      const mockQuery = {
+        agents: {
+          findFirst: vi.fn().mockResolvedValue(expectedAgent),
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+      } as any;
+
+      const result = await getAgentById(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
+      });
+
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(result).toEqual(expectedAgent);
+    });
+  });
+
+  describe('getAgentAgentWithDefaultSubAgent', () => {
+    it('should retrieve an agent agent with default agent relation', async () => {
+      const agentId = 'agent-1';
+      const expectedAgent = {
+        id: agentId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Agent',
+        defaultSubAgent: { id: 'agent-1', name: 'Default Agent' },
+      };
+
+      const mockQuery = {
+        agents: {
+          findFirst: vi.fn().mockResolvedValue(expectedAgent),
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+      } as any;
+
+      const result = await getAgentWithDefaultSubAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
+      });
+
+      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(result).toEqual(expectedAgent);
+    });
+  });
+
+  describe('listAgentAgents', () => {
+    it('should list all agent agent', async () => {
       const expectedAgents = [
         { id: 'agent-1', name: 'Agent 1' },
         { id: 'agent-2', name: 'Agent 2' },
       ];
 
       const mockQuery = {
-        subAgents: {
+        agents: {
           findMany: vi.fn().mockResolvedValue(expectedAgents),
         },
       };
@@ -168,172 +149,138 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await listSubAgents(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
+      const result = await listAgents(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
-
-      expect(mockQuery.subAgents.findMany).toHaveBeenCalled();
+      expect(mockQuery.agents.findMany).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
     });
   });
 
-  describe('listAgentsPaginated', () => {
-    it('should list agents with pagination', async () => {
-      const expectedAgents = [
-        { id: 'agent-1', name: 'Agent 1' },
-        { id: 'agent-2', name: 'Agent 2' },
-      ];
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(expectedAgents),
-              }),
-            }),
-          }),
-        }),
-      });
-
-      const mockCountSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 10 }]),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: vi.fn().mockImplementation((params) => {
-          // Return different mocks based on whether it's a count query
-          if (params && typeof params === 'object' && 'count' in params) {
-            return mockCountSelect(params);
-          }
-          return mockSelect();
-        }),
-      } as any;
-
-      const result = await listSubAgentsPaginated(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        pagination: { page: 1, limit: 5 },
-      });
-
-      expect(mockSelect).toHaveBeenCalled();
-      expect(result).toEqual({
-        data: expectedAgents,
-        pagination: {
-          page: 1,
-          limit: 5,
-          total: 10,
-          pages: 2,
-        },
-      });
-    });
-
-    it('should use default pagination options', async () => {
+  describe('listAgentAgentsPaginated', () => {
+    it('should handle pagination without limit and offset', async () => {
       const expectedAgents = [{ id: 'agent-1', name: 'Agent 1' }];
 
+      // Mock the query chain that includes limit, offset, orderBy
+      const mockQuery = vi.fn().mockResolvedValue(expectedAgents);
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockReturnValue({
               offset: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(expectedAgents),
+                orderBy: mockQuery,
               }),
             }),
           }),
         }),
       });
 
-      const mockCountSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 1 }]),
-        }),
-      });
+      // Mock the count query
+      const mockCountQuery = vi.fn().mockResolvedValue([{ count: 1 }]);
 
       const mockDb = {
         ...db,
-        select: vi.fn().mockImplementation((params) => {
-          if (params && typeof params === 'object' && 'count' in params) {
-            return mockCountSelect(params);
-          }
-          return mockSelect();
-        }),
-      } as any;
-
-      const result = await listSubAgentsPaginated(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        pagination: {},
-      });
-
-      expect(result.pagination).toEqual({
-        page: 1,
-        limit: 10,
-        total: 1,
-        pages: 1,
-      });
-    });
-
-    it('should enforce maximum limit', async () => {
-      const expectedAgents: any[] = [];
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(expectedAgents),
+        select: vi.fn().mockImplementation((fields) => {
+          if (fields?.count) {
+            // This is the count query
+            return {
+              from: vi.fn().mockReturnValue({
+                where: mockCountQuery,
               }),
-            }),
-          }),
-        }),
-      });
-
-      const mockCountSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 0 }]),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: vi.fn().mockImplementation((params) => {
-          if (params && typeof params === 'object' && 'count' in params) {
-            return mockCountSelect(params);
+            };
           }
+          // This is the main data query
           return mockSelect();
         }),
       } as any;
 
-      const result = await listSubAgentsPaginated(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        pagination: { limit: 200 }, // Request more than max
+      // Mock Promise.all to return both data and count results
+      const originalPromiseAll = Promise.all;
+      vi.spyOn(Promise, 'all').mockResolvedValue([expectedAgents, [{ count: 1 }]]);
+
+      const result = await listAgentsPaginated(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        pagination: { page: 1, limit: 10 },
       });
 
-      // Should be capped at 100
-      expect(result.pagination.limit).toBe(100);
+      expect(result).toEqual({
+        data: expectedAgents,
+        pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+      });
+
+      // Restore Promise.all
+      vi.spyOn(Promise, 'all').mockImplementation(originalPromiseAll);
     });
   });
 
-  describe('updateAgent', () => {
-    it('should update an agent', async () => {
-      const subAgentId = 'agent-1';
+  describe('createAgentAgent', () => {
+    it('should create a new agent agent', async () => {
+      const agentData = {
+        id: 'agent-1',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Agent',
+        description: 'A test agent',
+        defaultSubAgentId: 'agent-1',
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([agentData]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
+      const result = await createAgent(mockDb)({
+        ...agentData,
+      });
+
+      expect(mockInsert).toHaveBeenCalled();
+      expect(result).toMatchObject({
+        id: 'agent-1',
+        name: agentData.name,
+        description: agentData.description,
+        defaultSubAgentId: agentData.defaultSubAgentId,
+      });
+    });
+
+    it('should create an agent agent without optional fields', async () => {
+      const agentData = {
+        id: 'agent-1',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Agent',
+        description: 'Test description',
+        defaultSubAgentId: 'agent-1',
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([agentData]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
+      const result = await createAgent(mockDb)({
+        ...agentData,
+      });
+
+      expect(result.id).toBe('agent-1');
+      expect(result.name).toBe(agentData.name);
+    });
+  });
+
+  describe('updateAgentAgent', () => {
+    it('should update an agent agent', async () => {
+      const agentId = 'agent-1';
       const updateData = {
         name: 'Updated Agent Name',
         description: 'Updated description',
@@ -344,7 +291,7 @@ describe('Agent Data Access', () => {
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([
               {
-                id: subAgentId,
+                id: agentId,
                 ...updateData,
                 updatedAt: new Date().toISOString(),
               },
@@ -358,13 +305,8 @@ describe('Agent Data Access', () => {
         update: mockUpdate,
       } as any;
 
-      const result = await updateSubAgent(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        subAgentId: subAgentId,
+      const result = await updateAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
         data: updateData,
       });
 
@@ -372,20 +314,55 @@ describe('Agent Data Access', () => {
       expect(result.name).toBe(updateData.name);
       expect(result.description).toBe(updateData.description);
     });
-  });
 
-  describe('deleteAgent', () => {
-    it('should delete an agent', async () => {
-      const subAgentId = 'agent-1';
+    it('should handle model settings clearing', async () => {
+      const agentId = 'agent-1';
+      const updateData = {
+        models: {}, // Empty object should be set to null
+      };
 
-      const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
+      const mockUpdate = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([
+              {
+                id: agentId,
+                models: null,
+                updatedAt: new Date().toISOString(),
+              },
+            ]),
+          }),
+        }),
       });
 
-      // Mock getAgentById to return null (agent not found after deletion)
+      const mockDb = {
+        ...db,
+        update: mockUpdate,
+      } as any;
+
+      const result = await updateAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
+        data: updateData,
+      });
+
+      expect(result.models).toBeNull();
+    });
+  });
+
+  describe('deleteAgentAgent', () => {
+    it('should delete an agent agent', async () => {
+      const agentId = 'agent-1';
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: agentId }]),
+        }),
+      });
+
+      // Mock getAgentAgentById to return null (agent not found after deletion)
       const mockQuery = {
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(undefined),
+        agents: {
+          findFirst: vi.fn().mockResolvedValue(null),
         },
       };
 
@@ -395,63 +372,12 @@ describe('Agent Data Access', () => {
         query: mockQuery,
       } as any;
 
-      const result = await deleteSubAgent(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        subAgentId: subAgentId,
+      const result = await deleteAgent(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
       expect(mockDelete).toHaveBeenCalled();
-      expect(result).toBe(true); // Returns true when agent is successfully deleted
-    });
-  });
-
-  describe('getAgentsByIds', () => {
-    it('should return empty array for empty id list', async () => {
-      const result = await getSubAgentsByIds(db)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        subAgentIds: [],
-      });
-
-      expect(result).toEqual([]);
-    });
-
-    it('should retrieve multiple agents by ids', async () => {
-      const subAgentIds = ['agent-1', 'agent-2'];
-      const expectedAgents = [
-        { id: 'agent-1', name: 'Agent 1' },
-        { id: 'agent-2', name: 'Agent 2' },
-      ];
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(expectedAgents),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await getSubAgentsByIds(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          graphId: testGraphId,
-        },
-        subAgentIds: subAgentIds,
-      });
-
-      expect(mockSelect).toHaveBeenCalled();
-      expect(result).toEqual(expectedAgents);
+      expect(result).toBe(true);
     });
   });
 });

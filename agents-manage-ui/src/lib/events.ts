@@ -1,7 +1,7 @@
 type EventMap = {
   nodeAdded: { nodeId: string };
   edgeConnected: { edgeId: string };
-  graphSaved: { id: string };
+  agentSaved: { id: string };
 };
 
 type Listener<T> = (payload: T) => void;

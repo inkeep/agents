@@ -17,8 +17,8 @@ import {
   SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
   type SubAgentToolRelationSelect,
-  TenantProjectGraphIdParamsSchema,
-  TenantProjectGraphParamsSchema,
+  TenantProjectAgentIdParamsSchema,
+  TenantProjectAgentParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
@@ -35,7 +35,7 @@ app.openapi(
     operationId: 'list-subagent-tool-relations',
     tags: ['SubAgent Tool Relations'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.extend({
         subAgentId: z.string().optional(),
         toolId: z.string().optional(),
@@ -54,7 +54,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit, subAgentId, toolId } = c.req.valid('query');
 
     let result: {
@@ -70,7 +70,7 @@ app.openapi(
     // Filter by subAgent if provided
     if (subAgentId) {
       const dbResult = await getAgentToolRelationByAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId, subAgentId },
+        scopes: { tenantId, projectId, agentId, subAgentId },
         pagination: { page, limit },
       });
       result = {
@@ -81,7 +81,7 @@ app.openapi(
     // Filter by tool if provided
     else if (toolId) {
       const dbResult = await getAgentToolRelationByTool(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         toolId,
         pagination: { page, limit },
       });
@@ -93,7 +93,7 @@ app.openapi(
     // Default: get all subAgent tool relations
     else {
       const dbResult = await listAgentToolRelations(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
       result = {
@@ -115,7 +115,7 @@ app.openapi(
     operationId: 'get-subagent-tool-relation',
     tags: ['SubAgent Tool Relations'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
@@ -130,9 +130,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const agentToolRelation = await getAgentToolRelationById(dbClient)({
-      scopes: { tenantId, projectId, graphId, subAgentId: id },
+      scopes: { tenantId, projectId, agentId, subAgentId: id },
       relationId: id,
     });
 
@@ -156,7 +156,7 @@ app.openapi(
     operationId: 'get-subagents-for-tool',
     tags: ['SubAgent Tool Relations'],
     request: {
-      params: TenantProjectGraphParamsSchema.extend({
+      params: TenantProjectAgentParamsSchema.extend({
         toolId: z.string(),
       }),
       query: PaginationQueryParamsSchema,
@@ -174,11 +174,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, toolId } = c.req.valid('param');
+    const { tenantId, projectId, agentId, toolId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
     const dbResult = await getAgentsForTool(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       toolId,
       pagination: { page, limit },
     });
@@ -196,7 +196,7 @@ app.openapi(
     operationId: 'create-subagent-tool-relation',
     tags: ['SubAgent Tool Relations'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -218,12 +218,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentToolRelations(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       pagination: { limit: 1000 },
     });
     const isDuplicate = existingRelations.data.some((relation) => {
@@ -240,7 +240,7 @@ app.openapi(
 
     try {
       const agentToolRelation = await createAgentToolRelation(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         data: body,
       });
       return c.json({ data: agentToolRelation }, 201);
@@ -273,7 +273,7 @@ app.openapi(
     operationId: 'update-subagent-tool-relation',
     tags: ['SubAgent Tool Relations'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -295,7 +295,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     console.log('id', id);
     const body = await c.req.valid('json');
 
@@ -308,7 +308,7 @@ app.openapi(
     }
 
     const updatedAgentToolRelation = await updateAgentToolRelation(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       relationId: id,
       data: body,
     });
@@ -333,7 +333,7 @@ app.openapi(
     operationId: 'delete-subagent-tool-relation',
     tags: ['SubAgent Tool Relations'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {
@@ -350,9 +350,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const deleted = await deleteAgentToolRelation(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       relationId: id,
     });
 

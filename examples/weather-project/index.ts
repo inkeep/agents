@@ -1,9 +1,9 @@
 import { project } from '@inkeep/agents-sdk';
 import { weatherForecast } from './data-components/weather-forecast';
-import { weatherGraph } from './graphs/weather-graph';
+import { weatherAgent } from './agents/weather-agent';
 import { fdxgfv9HL7SXlfynPx8hf } from './tools/fdxgfv9HL7SXlfynPx8hf';
 import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0';
-import { dataWorkshopGraph } from './graphs/data-workshop.graph';
+import { dataWorkshopAgent } from './agents/data-workshop.agent';
 
 export const myProject3 = project({
   id: 'my-weather-project',
@@ -12,7 +12,7 @@ export const myProject3 = project({
   models: {
     base: { model: 'openai/gpt-4o-mini' },
   },
-  graphs: () => [weatherGraph, dataWorkshopGraph],
+  agents: () => [weatherAgent, dataWorkshopAgent],
   tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
   dataComponents: () => [weatherForecast],
   sandboxConfig: {

@@ -1,6 +1,6 @@
 import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
 import { z } from 'zod';
-import { SubAgent } from './agent';
+import { SubAgent } from './subAgent';
 import type { Tool } from './tool';
 import type { TransferConfig } from './types';
 import { validateFunction } from './utils/validateFunction';

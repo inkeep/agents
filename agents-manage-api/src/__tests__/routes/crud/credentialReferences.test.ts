@@ -5,7 +5,7 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock the app import with credential stores in context
-vi.mock('../../../index.js', async (importOriginal) => {
+vi.mock('../../../index', async (importOriginal) => {
   const { createManagementHono } = (await importOriginal()) as any;
 
   const mockCredentialStore = {

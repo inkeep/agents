@@ -65,7 +65,7 @@ export interface ActivityItem {
   toolType?: string;
   toolPurpose?: string;
   contextConfigId?: string;
-  contextAgentGraphId?: string;
+  contextAgentAgentId?: string;
   contextRequestKeys?: string[];
   contextTrigger?: string;
   contextStatusDescription?: string;
@@ -140,8 +140,8 @@ export interface ConversationDetail {
   totalInputTokens?: number;
   totalOutputTokens?: number;
   traceId?: string;
-  graphId?: string;
-  graphName?: string;
+  agentId?: string;
+  agentName?: string;
   spansWithErrorsCount?: number;
   errorCount?: number;
   warningCount?: number;

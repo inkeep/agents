@@ -403,7 +403,7 @@ ${artifactRetrievalGuidance}
     dataComponents: DataComponentApiInsert[];
     artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>;
     hasArtifactComponents: boolean;
-    hasGraphArtifactComponents?: boolean;
+    hasAgentArtifactComponents?: boolean;
     artifacts?: Artifact[];
   }): string {
     const {
@@ -411,7 +411,7 @@ ${artifactRetrievalGuidance}
       dataComponents,
       artifactComponents,
       hasArtifactComponents,
-      hasGraphArtifactComponents,
+      hasAgentArtifactComponents,
       artifacts = [],
     } = config;
 
@@ -428,7 +428,7 @@ ${artifactRetrievalGuidance}
 
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);
     const artifactsSection = this.generateArtifactsSection(artifacts);
-    const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
+    const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const artifactGuidance = this.getStructuredArtifactGuidance(
       hasArtifactComponents,
       artifactComponents,

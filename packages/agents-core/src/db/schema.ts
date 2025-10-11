@@ -23,7 +23,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../types/utility';
-import type { GraphStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
+import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 const tenantScoped = {
   tenantId: text('tenant_id').notNull(),
@@ -35,13 +35,13 @@ const projectScoped = {
   projectId: text('project_id').notNull(),
 };
 
-const graphScoped = {
+const agentScoped = {
   ...projectScoped,
-  graphId: text('graph_id').notNull(),
+  agentId: text('agent_id').notNull(),
 };
 
 const subAgentScoped = {
-  ...graphScoped,
+  ...agentScoped,
   subAgentId: text('sub_agent_id').notNull(),
 };
 
@@ -61,10 +61,10 @@ export const projects = sqliteTable(
     ...tenantScoped,
     ...uiProperties,
 
-    // Project-level default model settings that can be inherited by graphs and agents
+    // Project-level default model settings that can be inherited by agents
     models: text('models', { mode: 'json' }).$type<ProjectModels>(),
 
-    // Project-level stopWhen configuration that can be inherited by graphs and agents
+    // Project-level stopWhen configuration that can be inherited by agents
     stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
 
     // Project-level sandbox configuration for function execution
@@ -80,29 +80,18 @@ export const projects = sqliteTable(
   (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
 );
 
-export const agentGraph = sqliteTable(
-  'agent_graph',
+export const agents = sqliteTable(
+  'agent',
   {
     ...projectScoped,
     name: text('name').notNull(),
     description: text('description'),
     defaultSubAgentId: text('default_sub_agent_id'),
-
-    // Reference to shared context configuration for all agents in this graph
-    contextConfigId: text('context_config_id'), // add fk relationship
-
-    // Graph-level model settingsuration that can be inherited by agents
+    contextConfigId: text('context_config_id'),
     models: text('models', { mode: 'json' }).$type<Models>(),
-
-    // Status updates configuration for intelligent progress summaries
     statusUpdates: text('status_updates', { mode: 'json' }).$type<StatusUpdateSettings>(),
-
-    // Graph-level prompt that can be used as additional context for agents
-    graphPrompt: text('graph_prompt'),
-
-    // Graph-level stopWhen configuration that can be inherited by agents
-    stopWhen: text('stop_when', { mode: 'json' }).$type<GraphStopWhen>(),
-
+    prompt: text('prompt'),
+    stopWhen: text('stop_when', { mode: 'json' }).$type<AgentStopWhen>(),
     ...timestamps,
   },
   (table) => [
@@ -110,7 +99,7 @@ export const agentGraph = sqliteTable(
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
-      name: 'agent_graph_project_fk',
+      name: 'agent_project_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -119,10 +108,10 @@ export const agentGraph = sqliteTable(
 export const contextConfigs = sqliteTable(
   'context_configs',
   {
-    ...graphScoped,
+    ...agentScoped,
 
     // Developer-defined Zod schema for validating incoming request context
-    headersSchema: blob('headers_schema', { mode: 'json' }).$type<unknown>(), // Stores serialized Zod schema
+    headersSchema: blob('headers_schema', { mode: 'json' }).$type<unknown>(),
 
     // Object mapping template keys to fetch definitions that use request context data
     contextVariables: blob('context_variables', { mode: 'json' }).$type<
@@ -132,11 +121,11 @@ export const contextConfigs = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
-      name: 'context_configs_graph_fk',
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'context_configs_agent_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -152,17 +141,15 @@ export const contextCache = sqliteTable(
 
     // Reference to the context config and specific fetch definition
     contextConfigId: text('context_config_id').notNull(),
-    contextVariableKey: text('context_variable_key').notNull(), // Key from contextVariables object
-
-    // The actual cached context data
+    contextVariableKey: text('context_variable_key').notNull(),
     value: blob('value', { mode: 'json' }).$type<unknown>().notNull(),
 
     // Request hash for cache invalidation based on context changes
-    requestHash: text('request_hash'), // Hash of request context that triggered this cache
+    requestHash: text('request_hash'),
 
     // Metadata for monitoring and debugging
     fetchedAt: text('fetched_at').notNull(),
-    fetchSource: text('fetch_source'), // URL or source identifier
+    fetchSource: text('fetch_source'),
     fetchDurationMs: integer('fetch_duration_ms'),
 
     ...timestamps,
@@ -182,29 +169,25 @@ export const contextCache = sqliteTable(
   ]
 );
 
-// Define the agents table schema
 export const subAgents = sqliteTable(
   'sub_agents',
   {
-    ...graphScoped,
+    ...agentScoped,
     ...uiProperties,
     prompt: text('prompt').notNull(),
-
     conversationHistoryConfig: text('conversation_history_config', {
       mode: 'json',
     }).$type<ConversationHistoryConfig>(),
     models: text('models', { mode: 'json' }).$type<Models>(),
-
-    // Agent-level stopWhen configuration (inherited from project)
     stopWhen: text('stop_when', { mode: 'json' }).$type<SubAgentStopWhen>(),
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
-      name: 'agents_graph_fk',
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'sub_agents_agents_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -214,7 +197,7 @@ export const subAgents = sqliteTable(
 export const subAgentRelations = sqliteTable(
   'sub_agent_relations',
   {
-    ...graphScoped,
+    ...agentScoped,
     sourceSubAgentId: text('source_sub_agent_id').notNull(),
     // For internal relationships
     targetSubAgentId: text('target_sub_agent_id'),
@@ -224,32 +207,32 @@ export const subAgentRelations = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
-      name: 'sub_agent_relations_graph_fk',
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'sub_agent_relations_agent_fk',
     }).onDelete('cascade'),
   ]
 );
 
-// Define external agents table for inter-graph communication
+// Define external agents table for inter-agent communication
 export const externalAgents = sqliteTable(
   'external_agents',
   {
-    ...graphScoped,
+    ...agentScoped,
     ...uiProperties,
-    baseUrl: text('base_url').notNull(), // A2A endpoint URL
+    baseUrl: text('base_url').notNull(),
     credentialReferenceId: text('credential_reference_id'),
     headers: blob('headers', { mode: 'json' }).$type<Record<string, string>>(),
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
-      name: 'external_agents_graph_fk',
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'external_agents_agent_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.credentialReferenceId],
@@ -275,8 +258,8 @@ export const tasks = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId],
-      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
       name: 'tasks_sub_agent_fk',
     }).onDelete('cascade'),
   ]
@@ -289,7 +272,7 @@ export const taskRelations = sqliteTable(
     ...projectScoped,
     parentTaskId: text('parent_task_id').notNull(),
     childTaskId: text('child_task_id').notNull(),
-    relationType: text('relation_type').default('parent_child'), // Could be extended for other relation types
+    relationType: text('relation_type').default('parent_child'),
     ...timestamps,
   },
   (table) => [
@@ -330,13 +313,11 @@ export const subAgentDataComponents = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-    // Foreign key constraint to agents table (ensures graph and project exist via cascade)
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId],
-      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
       name: 'sub_agent_data_components_sub_agent_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to data_components table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.dataComponentId],
       foreignColumns: [dataComponents.tenantId, dataComponents.projectId, dataComponents.id],
@@ -373,15 +354,13 @@ export const subAgentArtifactComponents = sqliteTable(
   },
   (table) => [
     primaryKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId, table.id],
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId, table.id],
     }),
-    // Foreign key constraint to agents table (ensures graph and project exist via cascade)
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId],
-      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
       name: 'sub_agent_artifact_components_sub_agent_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to artifact_components table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.artifactComponentId],
       foreignColumns: [
@@ -409,7 +388,6 @@ export const tools = sqliteTable(
       .notNull(),
 
     credentialReferenceId: text('credential_reference_id'),
-
     headers: blob('headers', { mode: 'json' }).$type<Record<string, string>>(),
 
     // Image URL for custom tool icon (supports regular URLs and base64 encoded images)
@@ -435,18 +413,18 @@ export const tools = sqliteTable(
 export const functionTools = sqliteTable(
   'function_tools',
   {
-    ...graphScoped,
+    ...agentScoped,
     name: text('name').notNull(),
     description: text('description'),
     functionId: text('function_id').notNull(),
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
-      name: 'function_tools_graph_fk',
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'function_tools_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to functions table
     foreignKey({
@@ -486,14 +464,12 @@ export const subAgentToolRelations = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
-    // Foreign key constraint to agents table (which includes project and graph scope)
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId],
-      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
       name: 'sub_agent_tool_relations_agent_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to tools table (MCP tools)
     foreignKey({
       columns: [table.tenantId, table.projectId, table.toolId],
       foreignColumns: [tools.tenantId, tools.projectId, tools.id],
@@ -511,20 +487,20 @@ export const agentFunctionToolRelations = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.graphId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     // Foreign key constraint to agents table
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.subAgentId],
-      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.graphId, subAgents.id],
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
       name: 'agent_function_tool_relations_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to functionTools table
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.graphId, table.functionToolId],
+      columns: [table.tenantId, table.projectId, table.agentId, table.functionToolId],
       foreignColumns: [
         functionTools.tenantId,
         functionTools.projectId,
-        functionTools.graphId,
+        functionTools.agentId,
         functionTools.id,
       ],
       name: 'agent_function_tool_relations_function_tool_fk',
@@ -562,31 +538,31 @@ export const messages = sqliteTable(
     conversationId: text('conversation_id').notNull(),
 
     // Role mapping: user, agent, system (unified for both formats)
-    role: text('role').notNull(), // 'user' | 'agent' | 'system'
+    role: text('role').notNull(),
 
     // Agent sender/recipient tracking (nullable - only populated when relevant)
-    fromSubAgentId: text('from_sub_agent_id'), // Populated when message is from an agent
-    toSubAgentId: text('to_sub_agent_id'), // Populated when message is directed to a specific agent (e.g., transfers/delegations)
+    fromSubAgentId: text('from_sub_agent_id'),
+    toSubAgentId: text('to_sub_agent_id'),
 
     // External agent sender tracking
-    fromExternalAgentId: text('from_external_sub_agent_id'), // Populated when message is directed from an external agent
+    fromExternalAgentId: text('from_external_sub_agent_id'),
 
     // External agent recipient tracking
-    toExternalAgentId: text('to_external_sub_agent_id'), // Populated when message is directed to an external agent
+    toExternalAgentId: text('to_external_sub_agent_id'),
 
     // Message content stored as JSON to support both formats
     content: blob('content', { mode: 'json' }).$type<MessageContent>().notNull(),
 
     // Message classification and filtering
-    visibility: text('visibility').notNull().default('user-facing'), // 'user-facing' | 'internal' | 'system' | 'external'
-    messageType: text('message_type').notNull().default('chat'), // 'chat' | 'a2a-request' | 'a2a-response' | 'task-update' | 'tool-call'
+    visibility: text('visibility').notNull().default('user-facing'),
+    messageType: text('message_type').notNull().default('chat'),
 
     taskId: text('task_id'),
-    parentMessageId: text('parent_message_id'), // Remove self-reference constraint here
+    parentMessageId: text('parent_message_id'),
 
     // A2A specific fields
-    a2aTaskId: text('a2a_task_id'), // Links to A2A task when relevant
-    a2aSessionId: text('a2a_session_id'), // A2A session identifier
+    a2aTaskId: text('a2a_task_id'),
+    a2aSessionId: text('a2a_session_id'),
 
     // Metadata for extensions
     metadata: blob('metadata', { mode: 'json' }).$type<MessageMetadata>(),
@@ -611,7 +587,7 @@ export const ledgerArtifacts = sqliteTable(
 
     // Links
     taskId: text('task_id').notNull(),
-    toolCallId: text('tool_call_id'), // Added for traceability to the specific tool execution
+    toolCallId: text('tool_call_id'),
     contextId: text('context_id').notNull(),
 
     // Core Artifact fields
@@ -652,10 +628,10 @@ export const ledgerArtifacts = sqliteTable(
 export const apiKeys = sqliteTable(
   'api_keys',
   {
-    ...graphScoped,
-    publicId: text('public_id').notNull().unique(), // Public ID for O(1) lookup (e.g., "abc123def456")
-    keyHash: text('key_hash').notNull(), // Hashed API key (never store plaintext)
-    keyPrefix: text('key_prefix').notNull(), // First 8 chars for identification (e.g., "sk_live_abc...")
+    ...agentScoped,
+    publicId: text('public_id').notNull().unique(),
+    keyHash: text('key_hash').notNull(),
+    keyPrefix: text('key_prefix').notNull(),
     name: text('name'),
     lastUsedAt: text('last_used_at'),
     expiresAt: text('expires_at'),
@@ -668,11 +644,11 @@ export const apiKeys = sqliteTable(
       name: 'api_keys_project_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [t.tenantId, t.projectId, t.graphId],
-      foreignColumns: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
-      name: 'api_keys_graph_fk',
+      columns: [t.tenantId, t.projectId, t.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'api_keys_agent_fk',
     }).onDelete('cascade'),
-    index('api_keys_tenant_graph_idx').on(t.tenantId, t.graphId),
+    index('api_keys_tenant_agent_idx').on(t.tenantId, t.agentId),
     index('api_keys_prefix_idx').on(t.keyPrefix),
     index('api_keys_public_id_idx').on(t.publicId),
   ]
@@ -683,8 +659,8 @@ export const credentialReferences = sqliteTable(
   'credential_references',
   {
     ...projectScoped,
-    type: text('type').notNull(), // Implementation type: 'keychain', 'nango', 'memory', etc.
-    credentialStoreId: text('credential_store_id').notNull(), // Maps to framework.getCredentialStore(id)
+    type: text('type').notNull(),
+    credentialStoreId: text('credential_store_id').notNull(),
     retrievalParams: blob('retrieval_params', { mode: 'json' }).$type<Record<string, unknown>>(),
     ...timestamps,
   },
@@ -699,7 +675,6 @@ export const credentialReferences = sqliteTable(
 );
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
-  // A task belongs to one project
   project: one(projects, {
     fields: [tasks.tenantId, tasks.projectId],
     references: [projects.tenantId, projects.id],
@@ -716,16 +691,13 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
     fields: [tasks.subAgentId],
     references: [subAgents.id],
   }),
-  // A task can have many messages associated with it
   messages: many(messages),
-  // A task can have many ledger artifacts
   ledgerArtifacts: many(ledgerArtifacts),
 }));
 
-// Define relations for projects
 export const projectsRelations = relations(projects, ({ many }) => ({
   subAgents: many(subAgents),
-  agentGraphs: many(agentGraph),
+  agents: many(agents),
   tools: many(tools),
   functions: many(functions),
   contextConfigs: many(contextConfigs),
@@ -738,7 +710,6 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   credentialReferences: many(credentialReferences),
 }));
 
-// Define relations for taskRelations junction table
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
   parentTask: one(tasks, {
     fields: [taskRelations.parentTaskId],
@@ -757,7 +728,7 @@ export const contextConfigsRelations = relations(contextConfigs, ({ many, one })
     fields: [contextConfigs.tenantId, contextConfigs.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  graphs: many(agentGraph),
+  agents: many(agents),
   cache: many(contextCache),
 }));
 
@@ -774,7 +745,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
     references: [projects.tenantId, projects.id],
   }),
   tasks: many(tasks),
-  defaultForGraphs: many(agentGraph),
+  defaultForAgents: many(agents),
   sourceRelations: many(subAgentRelations, {
     relationName: 'sourceRelations',
   }),
@@ -787,26 +758,23 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
   receivedMessages: many(messages, {
     relationName: 'receivedMessages',
   }),
-  associatedMessages: many(messages, {
-    relationName: 'associatedAgent',
-  }),
   toolRelations: many(subAgentToolRelations),
   functionToolRelations: many(agentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
 }));
 
-export const agentGraphRelations = relations(agentGraph, ({ one, many }) => ({
+export const agentRelations = relations(agents, ({ one, many }) => ({
   project: one(projects, {
-    fields: [agentGraph.tenantId, agentGraph.projectId],
+    fields: [agents.tenantId, agents.projectId],
     references: [projects.tenantId, projects.id],
   }),
   defaultSubAgent: one(subAgents, {
-    fields: [agentGraph.defaultSubAgentId],
+    fields: [agents.defaultSubAgentId],
     references: [subAgents.id],
   }),
   contextConfig: one(contextConfigs, {
-    fields: [agentGraph.contextConfigId],
+    fields: [agents.contextConfigId],
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
@@ -829,9 +797,9 @@ export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
     fields: [apiKeys.tenantId, apiKeys.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  graph: one(agentGraph, {
-    fields: [apiKeys.graphId],
-    references: [agentGraph.id],
+  agent: one(agents, {
+    fields: [apiKeys.agentId],
+    references: [agents.id],
   }),
 }));
 
@@ -846,8 +814,13 @@ export const agentToolRelationsRelations = relations(subAgentToolRelations, ({ o
   }),
 }));
 
-export const credentialReferencesRelations = relations(credentialReferences, ({ many }) => ({
+export const credentialReferencesRelations = relations(credentialReferences, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [credentialReferences.tenantId, credentialReferences.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
   tools: many(tools),
+  externalAgents: many(externalAgents),
 }));
 
 export const toolsRelations = relations(tools, ({ one, many }) => ({
@@ -965,15 +938,18 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
   }),
 }));
 
-// Functions relations
-export const functionsRelations = relations(functions, ({ many }) => ({
+export const functionsRelations = relations(functions, ({ many, one }) => ({
   functionTools: many(functionTools),
+  project: one(projects, {
+    fields: [functions.tenantId, functions.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
 }));
 
 export const subAgentRelationsRelations = relations(subAgentRelations, ({ one }) => ({
-  graph: one(agentGraph, {
-    fields: [subAgentRelations.graphId],
-    references: [agentGraph.id],
+  agent: one(agents, {
+    fields: [subAgentRelations.agentId],
+    references: [agents.id],
   }),
   sourceSubAgent: one(subAgents, {
     fields: [subAgentRelations.sourceSubAgentId],
@@ -997,9 +973,9 @@ export const functionToolsRelations = relations(functionTools, ({ one, many }) =
     fields: [functionTools.tenantId, functionTools.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  graph: one(agentGraph, {
-    fields: [functionTools.tenantId, functionTools.projectId, functionTools.graphId],
-    references: [agentGraph.tenantId, agentGraph.projectId, agentGraph.id],
+  agent: one(agents, {
+    fields: [functionTools.tenantId, functionTools.projectId, functionTools.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
   }),
   function: one(functions, {
     fields: [functionTools.tenantId, functionTools.projectId, functionTools.functionId],

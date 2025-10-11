@@ -12,7 +12,7 @@ import {
   listFunctionTools,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
-  TenantProjectGraphParamsSchema,
+  TenantProjectAgentParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ app.openapi(
     operationId: 'list-function-tools',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -49,18 +49,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
     try {
       const result = await listFunctionTools(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
 
       return c.json(result) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, graphId }, 'Failed to list function tools');
+      logger.error({ error, tenantId, projectId, agentId }, 'Failed to list function tools');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to list function tools' }),
         500
@@ -78,7 +78,7 @@ app.openapi(
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectGraphParamsSchema.extend({
+      params: TenantProjectAgentParamsSchema.extend({
         id: z.string(),
       }),
     },
@@ -95,11 +95,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     try {
       const functionTool = await getFunctionToolById(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });
 
@@ -112,7 +112,7 @@ app.openapi(
 
       return c.json({ data: functionTool }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, graphId, id }, 'Failed to get function tool');
+      logger.error({ error, tenantId, projectId, agentId, id }, 'Failed to get function tool');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get function tool' }),
         500
@@ -130,7 +130,7 @@ app.openapi(
     operationId: 'create-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -152,14 +152,14 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
       const id = body.id || nanoid();
 
       const functionTool = await createFunctionTool(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         data: {
           ...body,
           id,
@@ -168,7 +168,7 @@ app.openapi(
 
       return c.json({ data: functionTool }, 201) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, graphId, body }, 'Failed to create function tool');
+      logger.error({ error, tenantId, projectId, agentId, body }, 'Failed to create function tool');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -189,7 +189,7 @@ app.openapi(
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectGraphParamsSchema.extend({
+      params: TenantProjectAgentParamsSchema.extend({
         id: z.string(),
       }),
       body: {
@@ -213,12 +213,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
       const functionTool = await updateFunctionTool(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         functionToolId: id,
         data: body,
       });
@@ -233,7 +233,7 @@ app.openapi(
       return c.json({ data: functionTool }) as any;
     } catch (error) {
       logger.error(
-        { error, tenantId, projectId, graphId, id, body },
+        { error, tenantId, projectId, agentId, id, body },
         'Failed to update function tool'
       );
       return c.json(
@@ -256,7 +256,7 @@ app.openapi(
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectGraphParamsSchema.extend({
+      params: TenantProjectAgentParamsSchema.extend({
         id: z.string(),
       }),
     },
@@ -268,11 +268,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     try {
       const deleted = await deleteFunctionTool(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+        scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });
 
@@ -285,7 +285,7 @@ app.openapi(
 
       return c.body(null, 204);
     } catch (error) {
-      logger.error({ error, tenantId, projectId, graphId, id }, 'Failed to delete function tool');
+      logger.error({ error, tenantId, projectId, agentId, id }, 'Failed to delete function tool');
       return c.json(
         createApiError({
           code: 'internal_server_error',

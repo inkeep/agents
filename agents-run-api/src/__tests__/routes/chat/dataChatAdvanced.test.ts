@@ -27,10 +27,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
         defaultSubAgentId: 'test-agent',
@@ -62,9 +62,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
+    handleContextResolution: vi.fn().mockResolvedValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -76,46 +77,46 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 // No longer need beforeAll/afterAll since ExecutionHandler is mocked at module level
 
 describe('Chat Data Stream Advanced', () => {
-  async function setupGraph() {
+  async function setupAgent() {
     const tenantId = createTestTenantId(`advanced-${nanoid().slice(0, 8)}`);
     const projectId = 'default';
-    const graphId = nanoid();
+    const agentId = nanoid();
     const subAgentId = nanoid(); // Use unique agent ID for each test
 
     // Import here to avoid circular dependencies
-    const { createSubAgent, createAgentGraph } = await import('@inkeep/agents-core');
+    const { createSubAgent, createAgent } = await import('@inkeep/agents-core');
     const dbClient = (await import('../../../data/db/dbClient.js')).default;
     const { ensureTestProject } = await import('../../utils/testProject.js');
 
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
 
-    // Create graph first
-    await createAgentGraph(dbClient)({
-      id: graphId,
+    // Create agent first
+    await createAgent(dbClient)({
+      id: agentId,
       tenantId,
       projectId,
-      name: 'Test Graph',
-      description: 'Test graph for advanced data chat',
+      name: 'Test Agent',
+      description: 'Test agent for advanced data chat',
       defaultSubAgentId: subAgentId,
     });
 
-    // Then create agent with graphId
+    // Then create agent with agentId
     await createSubAgent(dbClient)({
       id: subAgentId,
       tenantId,
       projectId,
-      graphId,
+      agentId: agentId,
       name: 'Test Agent',
       description: 'Test agent',
       prompt: 'Test instructions',
     });
 
-    return { tenantId, projectId, graphId, subAgentId };
+    return { tenantId, projectId, agentId, subAgentId };
   }
 
   it('streams expected completion content', async () => {
-    const { tenantId, projectId, graphId } = await setupGraph();
+    const { tenantId, projectId, agentId } = await setupAgent();
 
     const res = await makeRequest('/api/chat', {
       method: 'POST',

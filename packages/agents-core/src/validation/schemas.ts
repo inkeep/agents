@@ -1,8 +1,7 @@
 import { z } from '@hono/zod-openapi';
-import type { StreamableHTTPReconnectionOptions } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import {
-  agentGraph,
+  agents,
   apiKeys,
   artifactComponents,
   contextCache,
@@ -40,15 +39,15 @@ export const StopWhenSchema = z.object({
   stepCountIs: z.number().min(1).max(1000).optional(),
 });
 
-// Subset for graph level (only transfer count)
-export const GraphStopWhenSchema = StopWhenSchema.pick({ transferCountIs: true });
+// Subset for agent level (only transfer count)
+export const AgentStopWhenSchema = StopWhenSchema.pick({ transferCountIs: true });
 
-// Subset for agent level (only step count)
+// Subset for sub agent level (only step count)
 export const SubAgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true });
 
 // Type inference for use in database schema and elsewhere
 export type StopWhen = z.infer<typeof StopWhenSchema>;
-export type GraphStopWhen = z.infer<typeof GraphStopWhenSchema>;
+export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
 export const MIN_ID_LENGTH = 1;
@@ -118,16 +117,16 @@ const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
 
-// Specific helper for graph-scoped entities that also need graphId omitted
-const createGraphScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+// Specific helper for agent-scoped entities that also need agentId omitted
+const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
 
-const createGraphScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, graphId: true }) satisfies z.ZodObject<any>;
+const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
 
-const createGraphScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema
-    .omit({ tenantId: true, projectId: true, graphId: true })
+    .omit({ tenantId: true, projectId: true, agentId: true })
     .partial() satisfies z.ZodObject<any>;
 
 // === Agent Schemas ===
@@ -140,25 +139,25 @@ export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
 
 export const SubAgentUpdateSchema = SubAgentInsertSchema.partial();
 
-export const SubAgentApiSelectSchema = createGraphScopedApiSchema(SubAgentSelectSchema);
-export const SubAgentApiInsertSchema = createGraphScopedApiInsertSchema(SubAgentInsertSchema);
-export const SubAgentApiUpdateSchema = createGraphScopedApiUpdateSchema(SubAgentUpdateSchema);
+export const SubAgentApiSelectSchema = createAgentScopedApiSchema(SubAgentSelectSchema);
+export const SubAgentApiInsertSchema = createAgentScopedApiInsertSchema(SubAgentInsertSchema);
+export const SubAgentApiUpdateSchema = createAgentScopedApiUpdateSchema(SubAgentUpdateSchema);
 
 // === SubAgent Relations Schemas ===
 export const SubAgentRelationSelectSchema = createSelectSchema(subAgentRelations);
 export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
-  graphId: resourceIdSchema,
+  agentId: resourceIdSchema,
   sourceSubAgentId: resourceIdSchema,
   targetSubAgentId: resourceIdSchema.optional(),
   externalSubAgentId: resourceIdSchema.optional(),
 });
 export const SubAgentRelationUpdateSchema = SubAgentRelationInsertSchema.partial();
 
-export const SubAgentRelationApiSelectSchema = createGraphScopedApiSchema(
+export const SubAgentRelationApiSelectSchema = createAgentScopedApiSchema(
   SubAgentRelationSelectSchema
 );
-export const SubAgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
+export const SubAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
   SubAgentRelationInsertSchema
 )
   .extend({
@@ -177,7 +176,7 @@ export const SubAgentRelationApiInsertSchema = createGraphScopedApiInsertSchema(
     }
   );
 
-export const SubAgentRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
+export const SubAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentRelationUpdateSchema
 )
   .extend({
@@ -213,7 +212,7 @@ export const SubAgentRelationQuerySchema = z.object({
 // === External SubAgent Relations Schemas ===
 export const ExternalSubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
   id: resourceIdSchema,
-  graphId: resourceIdSchema,
+  agentId: resourceIdSchema,
   sourceSubAgentId: resourceIdSchema,
   externalSubAgentId: resourceIdSchema,
 });
@@ -222,18 +221,18 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
   ExternalSubAgentRelationInsertSchema
 );
 
-// === Agent Graph Schemas ===
-export const AgentGraphSelectSchema = createSelectSchema(agentGraph);
-export const AgentGraphInsertSchema = createInsertSchema(agentGraph).extend({
+// === Agent Agent Schemas ===
+export const AgentSelectSchema = createSelectSchema(agents);
+export const AgentInsertSchema = createInsertSchema(agents).extend({
   id: resourceIdSchema,
 });
-export const AgentGraphUpdateSchema = AgentGraphInsertSchema.partial();
+export const AgentUpdateSchema = AgentInsertSchema.partial();
 
-export const AgentGraphApiSelectSchema = createApiSchema(AgentGraphSelectSchema);
-export const AgentGraphApiInsertSchema = createApiInsertSchema(AgentGraphInsertSchema).extend({
+export const AgentApiSelectSchema = createApiSchema(AgentSelectSchema);
+export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema).extend({
   id: resourceIdSchema,
 });
-export const AgentGraphApiUpdateSchema = createApiUpdateSchema(AgentGraphUpdateSchema);
+export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema);
 
 // === Task Schemas ===
 export const TaskSelectSchema = createSelectSchema(tasks);
@@ -294,7 +293,13 @@ export const McpTransportConfigSchema = z.object({
   type: z.enum(MCPTransportType),
   requestInit: z.record(z.string(), z.unknown()).optional(),
   eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-  reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+  reconnectionOptions: z
+    .any()
+    .optional()
+    .openapi({
+      type: 'object',
+      description: 'Reconnection options for streamable HTTP transport',
+    }),
   sessionId: z.string().optional(),
 });
 
@@ -315,14 +320,20 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
     type: z.literal('mcp'),
     mcp: z.object({
       server: z.object({
-        url: z.string().url(),
+        url: z.url(),
       }),
       transport: z
         .object({
           type: z.enum(MCPTransportType),
           requestInit: z.record(z.string(), z.unknown()).optional(),
           eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-          reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+          reconnectionOptions: z
+            .any()
+            .optional()
+            .openapi({
+              type: 'object',
+              description: 'Reconnection options for streamable HTTP transport',
+            }),
           sessionId: z.string().optional(),
         })
         .optional(),
@@ -387,7 +398,7 @@ export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentData
 export const SubAgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
 export const SubAgentDataComponentUpdateSchema = SubAgentDataComponentInsertSchema.partial();
 
-export const SubAgentDataComponentApiSelectSchema = createGraphScopedApiSchema(
+export const SubAgentDataComponentApiSelectSchema = createAgentScopedApiSchema(
   SubAgentDataComponentSelectSchema
 );
 export const SubAgentDataComponentApiInsertSchema = SubAgentDataComponentInsertSchema.omit({
@@ -396,7 +407,7 @@ export const SubAgentDataComponentApiInsertSchema = SubAgentDataComponentInsertS
   id: true,
   createdAt: true,
 });
-export const SubAgentDataComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
+export const SubAgentDataComponentApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentDataComponentUpdateSchema
 );
 
@@ -431,7 +442,7 @@ export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
 export const SubAgentArtifactComponentUpdateSchema =
   SubAgentArtifactComponentInsertSchema.partial();
 
-export const SubAgentArtifactComponentApiSelectSchema = createGraphScopedApiSchema(
+export const SubAgentArtifactComponentApiSelectSchema = createAgentScopedApiSchema(
   SubAgentArtifactComponentSelectSchema
 );
 export const SubAgentArtifactComponentApiInsertSchema = SubAgentArtifactComponentInsertSchema.omit({
@@ -440,7 +451,7 @@ export const SubAgentArtifactComponentApiInsertSchema = SubAgentArtifactComponen
   id: true,
   createdAt: true,
 });
-export const SubAgentArtifactComponentApiUpdateSchema = createGraphScopedApiUpdateSchema(
+export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentArtifactComponentUpdateSchema
 );
 
@@ -454,11 +465,11 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
-export const ExternalAgentApiSelectSchema = createGraphScopedApiSchema(ExternalAgentSelectSchema);
+export const ExternalAgentApiSelectSchema = createAgentScopedApiSchema(ExternalAgentSelectSchema);
 export const ExternalAgentApiInsertSchema =
-  createGraphScopedApiInsertSchema(ExternalAgentInsertSchema);
+  createAgentScopedApiInsertSchema(ExternalAgentInsertSchema);
 export const ExternalAgentApiUpdateSchema =
-  createGraphScopedApiUpdateSchema(ExternalAgentUpdateSchema);
+  createAgentScopedApiUpdateSchema(ExternalAgentUpdateSchema);
 
 // Discriminated union for all agent types
 export const AllAgentSchema = z.discriminatedUnion('type', [
@@ -471,7 +482,7 @@ export const ApiKeySelectSchema = createSelectSchema(apiKeys);
 
 export const ApiKeyInsertSchema = createInsertSchema(apiKeys).extend({
   id: resourceIdSchema,
-  graphId: resourceIdSchema,
+  agentId: resourceIdSchema,
 });
 
 export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({
@@ -596,7 +607,7 @@ export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
 export const FunctionToolApiSelectSchema = createApiSchema(FunctionToolSelectSchema);
 export const FunctionToolApiInsertSchema =
-  createGraphScopedApiInsertSchema(FunctionToolInsertSchema);
+  createAgentScopedApiInsertSchema(FunctionToolInsertSchema);
 export const FunctionToolApiUpdateSchema = createApiUpdateSchema(FunctionToolUpdateSchema);
 
 // === Function Schemas ===
@@ -627,17 +638,37 @@ export const FetchDefinitionSchema = z.object({
   trigger: z.enum(['initialization', 'invocation']),
   fetchConfig: FetchConfigSchema,
   responseSchema: z.any().optional(), // JSON Schema for validating HTTP response
-  defaultValue: z.unknown().optional(),
+  defaultValue: z.any().optional().openapi({
+    description: 'Default value if fetch fails',
+  }),
   credential: CredentialReferenceApiInsertSchema.optional(),
 });
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
-  headersSchema: z.unknown().optional(),
+  headersSchema: z.any().optional().openapi({
+    type: 'object',
+    description: 'JSON Schema for validating request headers',
+  }),
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: resourceIdSchema.optional(),
-    headersSchema: z.unknown().optional(),
+    headersSchema: z
+      .any()
+      .nullable()
+      .optional()
+      .openapi({
+        type: 'object',
+        description: 'JSON Schema for validating request headers',
+      }),
+    contextVariables: z
+      .any()
+      .nullable()
+      .optional()
+      .openapi({
+        type: 'object',
+        description: 'Context variables configuration with fetch definitions',
+      }),
   })
   .omit({
     createdAt: true,
@@ -646,13 +677,13 @@ export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
 export const ContextConfigUpdateSchema = ContextConfigInsertSchema.partial();
 
 export const ContextConfigApiSelectSchema = createApiSchema(ContextConfigSelectSchema).omit({
-  graphId: true,
+  agentId: true,
 });
 export const ContextConfigApiInsertSchema = createApiInsertSchema(ContextConfigInsertSchema).omit({
-  graphId: true,
+  agentId: true,
 });
 export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigUpdateSchema).omit({
-  graphId: true,
+  agentId: true,
 });
 
 // === SubAgent Tool Relation Schemas ===
@@ -667,13 +698,13 @@ export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolR
 
 export const SubAgentToolRelationUpdateSchema = SubAgentToolRelationInsertSchema.partial();
 
-export const SubAgentToolRelationApiSelectSchema = createGraphScopedApiSchema(
+export const SubAgentToolRelationApiSelectSchema = createAgentScopedApiSchema(
   SubAgentToolRelationSelectSchema
 );
-export const SubAgentToolRelationApiInsertSchema = createGraphScopedApiInsertSchema(
+export const SubAgentToolRelationApiInsertSchema = createAgentScopedApiInsertSchema(
   SubAgentToolRelationInsertSchema
 );
-export const SubAgentToolRelationApiUpdateSchema = createGraphScopedApiUpdateSchema(
+export const SubAgentToolRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentToolRelationUpdateSchema
 );
 
@@ -686,7 +717,7 @@ export const LedgerArtifactApiSelectSchema = createApiSchema(LedgerArtifactSelec
 export const LedgerArtifactApiInsertSchema = createApiInsertSchema(LedgerArtifactInsertSchema);
 export const LedgerArtifactApiUpdateSchema = createApiUpdateSchema(LedgerArtifactUpdateSchema);
 
-// === Full Graph Definition Schemas ===
+// === Full Agent Definition Schemas ===
 export const StatusComponentSchema = z.object({
   type: z.string(),
   description: z.string().optional(),
@@ -714,7 +745,7 @@ export const CanUseItemSchema = z.object({
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
-export const FullGraphAgentInsertSchema = SubAgentApiInsertSchema.extend({
+export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   type: z.literal('internal'),
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
@@ -723,39 +754,19 @@ export const FullGraphAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canDelegateTo: z.array(z.string()).optional(),
 });
 
-export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
+export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   subAgents: z.record(
     z.string(),
-    z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
-  ),
-  // Lookup maps for UI to resolve canUse items
+    z.union([FullAgentAgentInsertSchema, ExternalAgentApiInsertSchema])
+  ), // Lookup maps for UI to resolve canUse items
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (graph-scoped)
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
-  stopWhen: GraphStopWhenSchema.optional(),
-  graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
-});
-
-export const GraphWithinContextOfProjectSchema = AgentGraphApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.discriminatedUnion('type', [
-      FullGraphAgentInsertSchema,
-      ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
-    ])
-  ),
-  // Lookup maps for UI to resolve canUse items
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (graph-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  contextConfig: z.optional(ContextConfigApiInsertSchema),
-  statusUpdates: z.optional(StatusUpdateSchema),
-  models: ModelSchema.optional(),
-  stopWhen: GraphStopWhenSchema.optional(),
-  graphPrompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
+  stopWhen: AgentStopWhenSchema.optional(),
+  prompt: z.string().max(5000, 'Agent prompt cannot exceed 5000 characters').optional(),
 });
 
 // === Response wrapper schemas ===
@@ -780,7 +791,9 @@ export const SingleResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
 export const ErrorResponseSchema = z.object({
   error: z.string(),
   message: z.string().optional(),
-  details: z.unknown().optional(),
+  details: z.any().optional().openapi({
+    description: 'Additional error details',
+  }),
 });
 
 export const ExistsResponseSchema = z.object({
@@ -811,11 +824,11 @@ export const ProjectApiSelectSchema = ProjectSelectSchema.omit({ tenantId: true 
 export const ProjectApiInsertSchema = ProjectInsertSchema.omit({ tenantId: true });
 export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true });
 
-// Full Project Definition Schema - extends Project with graphs and other nested resources
+// Full Project Definition Schema - extends Project with agents and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
-  graphs: z.record(z.string(), GraphWithinContextOfProjectSchema),
-  tools: z.record(z.string(), ToolApiInsertSchema), // MCP tools (project-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Functions (project-scoped)
+  agents: z.record(z.string(), AgentWithinContextOfProjectSchema),
+  tools: z.record(z.string(), ToolApiInsertSchema),
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),
@@ -834,9 +847,9 @@ export const HeadersScopeSchema = z.object({
     description: 'Project identifier',
     example: 'project_456',
   }),
-  'x-inkeep-graph-id': z.string().optional().openapi({
-    description: 'Graph identifier',
-    example: 'graph_789',
+  'x-inkeep-agent-id': z.string().optional().openapi({
+    description: 'Agent identifier',
+    example: 'agent_789',
   }),
 });
 
@@ -850,9 +863,9 @@ const ProjectId = z.string().openapi({
   example: 'project_456',
 });
 
-const GraphId = z.string().openapi({
-  description: 'Graph identifier',
-  example: 'graph_789',
+const AgentId = z.string().openapi({
+  description: 'Agent identifier',
+  example: 'agent_789',
 });
 
 const SubAgentId = z.string().openapi({
@@ -878,22 +891,22 @@ export const TenantProjectIdParamsSchema = TenantProjectParamsSchema.extend({
   id: resourceIdSchema,
 }).openapi('TenantProjectIdParams');
 
-export const TenantProjectGraphParamsSchema = TenantProjectParamsSchema.extend({
-  graphId: GraphId,
-}).openapi('TenantProjectGraphParams');
+export const TenantProjectAgentParamsSchema = TenantProjectParamsSchema.extend({
+  agentId: AgentId,
+}).openapi('TenantProjectAgentParams');
 
-export const TenantProjectGraphIdParamsSchema = TenantProjectGraphParamsSchema.extend({
+export const TenantProjectAgentIdParamsSchema = TenantProjectAgentParamsSchema.extend({
   id: resourceIdSchema,
-}).openapi('TenantProjectGraphIdParams');
+}).openapi('TenantProjectAgentIdParams');
 
-export const TenantProjectGraphSubAgentParamsSchema = TenantProjectGraphParamsSchema.extend({
+export const TenantProjectAgentSubAgentParamsSchema = TenantProjectAgentParamsSchema.extend({
   subAgentId: SubAgentId,
-}).openapi('TenantProjectGraphSubAgentParams');
+}).openapi('TenantProjectAgentSubAgentParams');
 
-export const TenantProjectGraphSubAgentIdParamsSchema =
-  TenantProjectGraphSubAgentParamsSchema.extend({
+export const TenantProjectAgentSubAgentIdParamsSchema =
+  TenantProjectAgentSubAgentParamsSchema.extend({
     id: resourceIdSchema,
-  }).openapi('TenantProjectGraphSubAgentIdParams');
+  }).openapi('TenantProjectAgentSubAgentIdParams');
 
 export const PaginationQueryParamsSchema = z.object({
   page: z.coerce.number().min(1).default(1),

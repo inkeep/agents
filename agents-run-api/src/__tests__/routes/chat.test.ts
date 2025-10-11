@@ -29,19 +29,19 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
         defaultSubAgentId: 'default-agent',
       })
     ),
-    getFullGraph: vi.fn().mockReturnValue(
+    getFullAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
         defaultSubAgentId: 'default-agent',
@@ -150,14 +150,14 @@ describe('Chat Routes', () => {
   beforeEach(async () => {
     // Don't use clearAllMocks as it clears the initial vi.mock() setup
     // Instead, just reset the specific mocks we need
-    const { getAgentGraphWithDefaultSubAgent } = await import('@inkeep/agents-core');
-    (vi.mocked(getAgentGraphWithDefaultSubAgent) as any).mockImplementation(
-      async (params: any) => ({
-        id: 'test-graph',
-        name: 'Test Graph',
+    const { getAgentWithDefaultSubAgent } = await import('@inkeep/agents-core');
+    (vi.mocked(getAgentWithDefaultSubAgent) as any).mockReturnValue(
+      vi.fn().mockResolvedValue({
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        description: 'Test graph description',
+        description: 'Test agent description',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         contextConfigId: null,
@@ -264,14 +264,14 @@ describe('Chat Routes', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('should handle missing graph', async () => {
-      const { getAgentGraphWithDefaultSubAgent, getFullGraph } = await import(
+    it('should handle missing agent', async () => {
+      const { getAgentWithDefaultSubAgent, getFullAgent: getFullAgent } = await import(
         '@inkeep/agents-core'
       );
-      vi.mocked(getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValueOnce(undefined)
       );
-      vi.mocked(getFullGraph).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
+      vi.mocked(getFullAgent).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
 
       const response = await makeRequest('/v1/chat/completions', {
         method: 'POST',

@@ -2,8 +2,8 @@ export const ModelInheritanceInfo = () => {
   return (
     <ul className="space-y-1.5 list-disc list-outside pl-4">
       <li>
-        <span className="font-medium">Models</span>: Project → Graph → Agent (partial inheritance -
-        missing models only)
+        <span className="font-medium">Models</span>: Project → Agent → Sub agent (partial
+        inheritance - missing models only)
       </li>
       <li>
         <span className="font-medium">Individual model types</span> inherit independently (base,

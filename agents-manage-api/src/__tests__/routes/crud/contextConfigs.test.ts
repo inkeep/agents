@@ -1,19 +1,20 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
+import { createTestContextConfigDataFull } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Context Config CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
-  // Helper function to create a test graph for context configs
-  const createTestGraph = async ({ tenantId }: { tenantId: string }) => {
-    const graphData = {
-      id: testGraphId,
-      name: 'Test Graph',
-      description: 'Test graph for context config tests',
+  // Helper function to create a test agent for context configs
+  const createtestAgent = async ({ tenantId }: { tenantId: string }) => {
+    const agentData = {
+      id: testAgentId,
+      name: 'Test Agent',
+      description: 'Test agent for context config tests',
       defaultSubAgentId: 'test-agent',
       subAgents: {
         'test-agent': {
@@ -27,85 +28,44 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       },
     };
 
-    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/graph`, {
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
 
     if (createRes.status !== 201) {
       const errorBody = await createRes.json();
-      throw new Error(`Failed to create test graph: ${JSON.stringify(errorBody)}`);
+      throw new Error(`Failed to create test agent: ${JSON.stringify(errorBody)}`);
     }
   };
-
-  // Helper function to create test context config data
-  const createContextConfigData = ({
-    suffix = '',
-    tenantId = 'default-tenant',
-    projectId = 'default',
-    graphId = 'test-graph',
-  }: {
-    suffix?: string;
-    tenantId?: string;
-    projectId?: string;
-    graphId?: string;
-  } = {}) => ({
-    id: `test-context-config${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
-    tenantId,
-    projectId,
-    graphId,
-    headersSchema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', description: 'User identifier' },
-        sessionToken: { type: 'string', description: 'Session token' },
-      },
-      required: ['userId'],
-    },
-    contextVariables: {
-      userProfile: {
-        id: `user-profile${suffix}`,
-        name: `User Profile${suffix}`,
-        trigger: 'initialization',
-        fetchConfig: {
-          url: 'https://api.example.com/users/{{headers.userId}}',
-          method: 'GET',
-          headers: {
-            Authorization: 'Bearer {{headers.sessionToken}}',
-          },
-        },
-        defaultValue: { name: 'Anonymous User' },
-      },
-    },
-  });
 
   // Helper function to create a context config and return its ID
   const createTestContextConfig = async ({
     tenantId,
     suffix = '',
-    skipGraphCreation = false,
+    skipAgentCreation = false,
   }: {
     tenantId: string;
     suffix?: string;
-    skipGraphCreation?: boolean;
+    skipAgentCreation?: boolean;
   }) => {
-    // Create test graph first (unless skipped)
-    if (!skipGraphCreation) {
+    // Create test agent first (unless skipped)
+    if (!skipAgentCreation) {
       try {
-        await createTestGraph({ tenantId });
+        await createtestAgent({ tenantId });
       } catch (_e) {
-        // Graph might already exist, that's ok
+        // Agent might already exist, that's ok
       }
     }
 
-    const contextConfigData = createContextConfigData({
+    const contextConfigData = createTestContextConfigDataFull({
       suffix,
       tenantId,
       projectId,
-      graphId: testGraphId,
+      agentId: testAgentId,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
       {
         method: 'POST',
         body: JSON.stringify(contextConfigData),
@@ -127,11 +87,11 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   }) => {
     const contextConfigs: Awaited<ReturnType<typeof createTestContextConfig>>[] = [];
     for (let i = 1; i <= count; i++) {
-      // Only create graph on first iteration
+      // Only create agent on first iteration
       const contextConfig = await createTestContextConfig({
         tenantId,
         suffix: ` ${i}`,
-        skipGraphCreation: i > 1,
+        skipAgentCreation: i > 1,
       });
       contextConfigs.push(contextConfig);
     }
@@ -143,7 +103,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('context-configs-list-empty');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -165,7 +125,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const { contextConfigData } = await createTestContextConfig({ tenantId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=1&limit=10`
       );
 
       expect(res.status).toBe(200);
@@ -191,7 +151,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Test first page with limit 2
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -206,7 +166,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -221,7 +181,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Test third page (partial)
       const page3Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=3&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
 
@@ -250,7 +210,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Request page 5 with limit 2 (should be empty)
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=5&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=5&limit=2`
       );
       expect(res.status).toBe(200);
 
@@ -271,7 +231,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Request with limit 10 (larger than total)
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -295,7 +255,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`
       );
       expect(res.status).toBe(200);
 
@@ -313,7 +273,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('context-configs-get-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/non-existent-id`
       );
       expect(res.status).toBe(404);
 
@@ -334,7 +294,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('context-configs-problem-details-404');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/non-existent-id`
       );
       expect(res.status).toBe(404);
       expect(res.headers.get('content-type')).toMatch(/application\/problem\+json/);
@@ -355,11 +315,11 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should create a new context config', async () => {
       const tenantId = createTestTenantId('context-configs-create-success');
       await ensureTestProject(tenantId, projectId);
-      await createTestGraph({ tenantId });
-      const contextConfigData = createContextConfigData({ tenantId, projectId });
+      await createtestAgent({ tenantId });
+      const contextConfigData = createTestContextConfigDataFull({ tenantId, projectId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify(contextConfigData),
@@ -380,16 +340,16 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should create a new context config with minimal required fields', async () => {
       const tenantId = createTestTenantId('context-configs-create-minimal');
       await ensureTestProject(tenantId, projectId);
-      await createTestGraph({ tenantId });
+      await createtestAgent({ tenantId });
       const minimalData = {
         id: `minimal-context-config-${nanoid(6)}`,
         tenantId,
         projectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify(minimalData),
@@ -407,12 +367,12 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should create a context config with complex fetch definitions', async () => {
       const tenantId = createTestTenantId('context-configs-create-complex');
       await ensureTestProject(tenantId, projectId);
-      await createTestGraph({ tenantId });
+      await createtestAgent({ tenantId });
       const complexData = {
         id: `complex-context-config-${nanoid(6)}`,
         tenantId,
         projectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         headersSchema: {
           type: 'object',
           properties: {
@@ -449,7 +409,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify(complexData),
@@ -459,7 +419,11 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
 
       const body = await res.json();
-      expect(body.data).toMatchObject(complexData);
+      // Check only the fields that should be in the API response (not internal IDs)
+      expect(body.data).toMatchObject({
+        headersSchema: complexData.headersSchema,
+        contextVariables: complexData.contextVariables,
+      });
       expect(Object.keys(body.data.contextVariables)).toHaveLength(2);
     });
 
@@ -467,7 +431,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('context-configs-create-minimal');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -512,7 +476,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -537,7 +501,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const { contextConfigId } = await createTestContextConfig({ tenantId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
         {
           method: 'DELETE',
         }
@@ -547,7 +511,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       // Verify the context config is deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -556,7 +520,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('context-configs-delete-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/non-existent-id`,
         {
           method: 'DELETE',
         }
@@ -570,17 +534,17 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should handle context config with empty context variables object', async () => {
       const tenantId = createTestTenantId('context-configs-empty-context-vars');
       await ensureTestProject(tenantId, projectId);
-      await createTestGraph({ tenantId });
+      await createtestAgent({ tenantId });
       const configData = {
         id: `empty-context-vars-${nanoid(6)}`,
         tenantId,
         projectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         contextVariables: {},
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify(configData),
@@ -595,17 +559,17 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should handle context config with null headersSchema', async () => {
       const tenantId = createTestTenantId('context-configs-null-headers-schema');
       await ensureTestProject(tenantId, projectId);
-      await createTestGraph({ tenantId });
+      await createtestAgent({ tenantId });
       const configData = {
         id: `null-headers-schema-${nanoid(6)}`,
         tenantId,
         projectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         headersSchema: null,
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify(configData),
@@ -620,12 +584,12 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     it('should preserve complex nested data structures', async () => {
       const tenantId = createTestTenantId('context-configs-complex-nested');
       await ensureTestProject(tenantId, projectId);
-      await createTestGraph({ tenantId });
+      await createtestAgent({ tenantId });
       const complexConfig = {
         id: `complex-nested-config-${nanoid(6)}`,
         tenantId,
         projectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         headersSchema: {
           type: 'object',
           properties: {
@@ -674,7 +638,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
           method: 'POST',
           body: JSON.stringify(complexConfig),
@@ -682,7 +646,11 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       );
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data).toMatchObject(complexConfig);
+      // Check only the fields that should be in the API response (not internal IDs)
+      expect(body.data).toMatchObject({
+        headersSchema: complexConfig.headersSchema,
+        contextVariables: complexConfig.contextVariables,
+      });
     });
   });
 
@@ -695,7 +663,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // Update to clear contextVariables with null
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify({ contextVariables: null }),
@@ -714,7 +682,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // Update to clear contextVariables with empty object
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify({ contextVariables: {} }),
@@ -729,17 +697,17 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       it('should create with empty contextVariables treated as null', async () => {
         const tenantId = createTestTenantId('context-configs-create-empty-context-vars');
         await ensureTestProject(tenantId, projectId);
-        await createTestGraph({ tenantId });
+        await createtestAgent({ tenantId });
         const configData = {
           id: `empty-context-vars-config-${nanoid(6)}`,
           tenantId,
           projectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           contextVariables: {},
         };
 
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
           {
             method: 'POST',
             body: JSON.stringify(configData),
@@ -774,7 +742,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         };
 
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify(updateData),
@@ -796,7 +764,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // Update to clear headersSchema with null
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify({ headersSchema: null }),
@@ -811,17 +779,17 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       it('should create with headersSchema as null', async () => {
         const tenantId = createTestTenantId('context-configs-create-null-request-schema');
         await ensureTestProject(tenantId, projectId);
-        await createTestGraph({ tenantId });
+        await createtestAgent({ tenantId });
         const configData = {
           id: `null-request-schema-config-${nanoid(6)}`,
           tenantId,
           projectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           headersSchema: null,
         };
 
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
           {
             method: 'POST',
             body: JSON.stringify(configData),
@@ -850,7 +818,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         };
 
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify(updateData),
@@ -872,7 +840,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // Update to clear both fields
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify({
@@ -905,7 +873,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         };
 
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify(updateData),
@@ -923,18 +891,18 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       it('should handle creation with minimal data and consistent null defaults', async () => {
         const tenantId = createTestTenantId('context-configs-minimal-with-nulls');
         await ensureTestProject(tenantId, projectId);
-        await createTestGraph({ tenantId });
+        await createtestAgent({ tenantId });
         const minimalData = {
           id: `minimal-null-defaults-config-${nanoid(6)}`,
           tenantId,
           projectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
           name: 'Minimal Config',
           description: 'Minimal config with no optional fields',
         };
 
         const res = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
           {
             method: 'POST',
             body: JSON.stringify(minimalData),
@@ -954,7 +922,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // Clear both fields
         await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify({
@@ -966,7 +934,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // Retrieve and verify null values
         const getRes = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'GET',
           }
@@ -985,7 +953,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         // Create config and clear its fields
         const { contextConfigId } = await createTestContextConfig({ tenantId });
         await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs/${contextConfigId}`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/${contextConfigId}`,
           {
             method: 'PUT',
             body: JSON.stringify({
@@ -997,7 +965,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
         // List and verify
         const listRes = await makeRequest(
-          `/tenants/${tenantId}/projects/${projectId}/graphs/${testGraphId}/context-configs`,
+          `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
           {
             method: 'GET',
           }

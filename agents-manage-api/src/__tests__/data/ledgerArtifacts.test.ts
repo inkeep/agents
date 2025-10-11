@@ -1,6 +1,6 @@
 import {
   addLedgerArtifacts,
-  agentGraph,
+  agents,
   conversations,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
@@ -32,22 +32,22 @@ describe('Ledger Artifacts – Data Layer', () => {
     // Ensure project exists for this tenant
     await ensureTestProject(tenantId, projectId);
 
-    // Create graph first
-    const graphId = 'test-graph';
-    await dbClient.insert(agentGraph).values({
-      id: graphId,
+    // Create agent first
+    const agentId = 'test-agent';
+    await dbClient.insert(agents).values({
+      id: agentId,
       tenantId,
       projectId,
-      name: 'Test Graph',
+      name: 'Test Agent',
       defaultSubAgentId: subAgentId,
     });
 
-    // Create agent with graphId
+    // Create agent with agentId
     await dbClient.insert(subAgents).values({
       id: subAgentId,
       tenantId,
       projectId,
-      graphId,
+      agentId: agentId,
       name: 'Test Agent',
       description: 'Test agent for ledger artifacts',
       prompt: 'Test instructions',
@@ -67,7 +67,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: taskId,
       tenantId,
       projectId,
-      graphId,
+      agentId: agentId,
       contextId,
       status: 'completed',
       subAgentId,

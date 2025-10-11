@@ -119,7 +119,7 @@ describe('API Key Authentication Middleware', () => {
         name: 'test-api-key',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        graphId: 'graph_123',
+        agentId: 'agent_123',
         publicId: 'pub_123',
         keyHash: 'hash_123',
         keyPrefix: 'sk_test_',
@@ -150,7 +150,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_test_1234567890abcdef.verylongsecretkey',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        graphId: 'graph_123',
+        agentId: 'agent_123',
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });
@@ -203,7 +203,7 @@ describe('API Key Authentication Middleware', () => {
           Authorization: 'Bearer test-bypass-secret',
           'x-inkeep-tenant-id': 'tenant-123',
           'x-inkeep-project-id': 'project-456',
-          'x-inkeep-graph-id': 'graph-789',
+          'x-inkeep-agent-id': 'agent-789',
         },
       });
 
@@ -213,7 +213,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'test-bypass-secret',
         tenantId: 'tenant-123',
         projectId: 'project-456',
-        graphId: 'graph-789',
+        agentId: 'agent-789',
         apiKeyId: 'bypass',
         baseUrl: expect.stringContaining('http'),
       });
@@ -225,7 +225,7 @@ describe('API Key Authentication Middleware', () => {
         name: 'test-api-key',
         tenantId: 'tenant_456',
         projectId: 'project_456',
-        graphId: 'graph_456',
+        agentId: 'agent_456',
         publicId: 'pub_456',
         keyHash: 'hash_456',
         keyPrefix: 'sk_prod_',
@@ -255,7 +255,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_prod_differentkey123456.verylongsecretkey',
         tenantId: 'tenant_456',
         projectId: 'project_456',
-        graphId: 'graph_456',
+        agentId: 'agent_456',
         apiKeyId: 'key_456',
       });
       expect(validateAndGetApiKey).toHaveBeenCalledWith(
@@ -292,13 +292,13 @@ describe('API Key Authentication Middleware', () => {
       const res = await app.request('/', {
         headers: {
           Authorization: 'Bearer test-bypass-secret',
-          // Missing x-inkeep-tenant-id, x-inkeep-project-id, x-inkeep-graph-id
+          // Missing x-inkeep-tenant-id, x-inkeep-project-id, x-inkeep-agent-id
         },
       });
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Missing or invalid tenant, project, or graph ID');
+      expect(body).toContain('Missing or invalid tenant, project, or agent ID');
     });
   });
 
@@ -323,7 +323,7 @@ describe('API Key Authentication Middleware', () => {
         name: 'test-api-key',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        graphId: 'graph_123',
+        agentId: 'agent_123',
         publicId: 'pub_123',
         keyHash: 'hash_123',
         keyPrefix: 'sk_test_',
@@ -358,7 +358,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_test_1234567890abcdef.verylongsecretkey',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        graphId: 'graph_123',
+        agentId: 'agent_123',
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });

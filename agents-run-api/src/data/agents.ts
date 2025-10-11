@@ -111,13 +111,13 @@ export function generateDescriptionWithTransfers(
  */
 async function hydrateAgent({
   dbAgent,
-  graphId,
+  agentId,
   baseUrl,
   apiKey,
   credentialStoreRegistry,
 }: {
   dbAgent: SubAgentSelect;
-  graphId: string;
+  agentId: string;
   baseUrl: string;
   apiKey?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
@@ -127,7 +127,7 @@ async function hydrateAgent({
     const taskHandlerConfig = await createTaskHandlerConfig({
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
-      graphId: graphId,
+      agentId: agentId,
       subAgentId: dbAgent.id,
       baseUrl: baseUrl,
       apiKey: apiKey,
@@ -144,7 +144,7 @@ async function hydrateAgent({
       subAgentId: dbAgent.id,
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
-      graphId,
+      agentId: agentId,
       agentCard,
       taskHandler,
     };
@@ -160,14 +160,14 @@ export async function getRegisteredAgent(
   executionContext: ExecutionContext,
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, graphId, subAgentId, baseUrl, apiKey } = executionContext;
+  const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
 
   if (!subAgentId) {
     throw new Error('Agent ID is required');
   }
 
   const dbAgent = await getSubAgentById(dbClient)({
-    scopes: { tenantId, projectId, graphId: graphId },
+    scopes: { tenantId, projectId, agentId },
     subAgentId: subAgentId,
   });
   if (!dbAgent) {
@@ -178,7 +178,7 @@ export async function getRegisteredAgent(
 
   return hydrateAgent({
     dbAgent,
-    graphId,
+    agentId,
     baseUrl: agentFrameworkBaseUrl,
     credentialStoreRegistry,
     apiKey,

@@ -14,14 +14,14 @@ const logger = getLogger('context-fetcher');
 type ResponseErrorChecker = (data: unknown) => void;
 
 /**
- * GraphQL error checker - validates response for GraphQL errors and throws if found
+ * AgentQL error checker - validates response for AgentQL errors and throws if found
  */
-const checkGraphQLErrors: ResponseErrorChecker = (data: unknown) => {
+const checkAgentQLErrors: ResponseErrorChecker = (data: unknown) => {
   if (data && typeof data === 'object' && 'errors' in data) {
     const errorObj = data as any;
     if (Array.isArray(errorObj.errors) && errorObj.errors.length > 0) {
-      const graphqlErrors = errorObj.errors;
-      const errorMessage = `GraphQL request failed with ${graphqlErrors.length} errors: ${graphqlErrors.map((e: any) => e.message || 'Unknown error').join(', ')}`;
+      const agentqlErrors = errorObj.errors;
+      const errorMessage = `AgentQL request failed with ${agentqlErrors.length} errors: ${agentqlErrors.map((e: any) => e.message || 'Unknown error').join(', ')}`;
       throw new Error(errorMessage);
     }
   }
@@ -30,7 +30,7 @@ const checkGraphQLErrors: ResponseErrorChecker = (data: unknown) => {
 // List of error checkers to validate responses
 // Each checker examines the response and throws if errors are detected
 const responseErrorCheckers: ResponseErrorChecker[] = [
-  checkGraphQLErrors,
+  checkAgentQLErrors,
   // Add more error checkers here as needed
 ];
 

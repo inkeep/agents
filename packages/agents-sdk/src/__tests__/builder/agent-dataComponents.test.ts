@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SubAgent } from '../../agent';
+import { SubAgent } from '../../subAgent';
 import type { SubAgentConfig } from '../../types';
 import { createTestTenantId } from '../utils/testTenant';
 

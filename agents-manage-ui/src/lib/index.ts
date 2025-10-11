@@ -8,40 +8,40 @@
 // Server Actions exports
 export {
   type ActionResult,
-  createFullGraphAction,
-  deleteFullGraphAction,
-  getFullGraphAction,
-  updateFullGraphAction,
-  validateGraphData,
-} from './actions/graph-full';
+  createFullAgentAction,
+  deleteFullAgentAction,
+  getFullAgentAction,
+  updateFullAgentAction,
+  validateAgentData,
+} from './actions/agent-full';
 
 // API Client exports (for advanced use cases)
 export {
   ApiError,
-  createFullGraph,
-  deleteFullGraph,
-  getFullGraph,
-  updateFullGraph,
-} from './api/graph-full-client';
-// Graph Full API exports
+  createFullAgent,
+  deleteFullAgent,
+  getFullAgent,
+  updateFullAgent,
+} from './api/agent-full-client';
+// Agent Full API exports
 export {
   type AgentApi,
   AgentApiSchema,
-  type AgentGraphApi,
-  AgentGraphApiSchema,
-  type CreateGraphResponse,
+  type AgentAgentApi,
+  AgentAgentApiSchema,
+  type CreateAgentResponse,
   type ErrorResponse,
   ErrorResponseSchema,
-  type FullGraphDefinition,
-  FullGraphDefinitionSchema,
-  type GetGraphResponse,
-  type GraphApiError,
-  type GraphIdParams,
-  GraphIdParamsSchema,
+  type FullAgentDefinition,
+  FullAgentDefinitionSchema,
+  type GetAgentResponse,
+  type AgentApiError,
+  type AgentIdParams,
+  AgentIdParamsSchema,
   SingleResponseSchema,
   type TenantParams,
   TenantParamsSchema,
   type ToolApi,
   ToolApiSchema,
-  type UpdateGraphResponse,
-} from './types/graph-full';
+  type UpdateAgentResponse,
+} from './types/agent-full';

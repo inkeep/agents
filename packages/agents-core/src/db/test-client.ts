@@ -75,7 +75,7 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
     'tasks',
     'task_relations',
     'agent_relations',
-    'agent_graph',
+    'agent',
     'agent_tool_relations',
     'tools',
     'agents',

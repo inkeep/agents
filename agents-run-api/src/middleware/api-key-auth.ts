@@ -27,8 +27,8 @@ export const apiKeyAuth = () =>
     const authHeader = c.req.header('Authorization');
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');
-    const graphId = c.req.header('x-inkeep-graph-id');
-    const subAgentId = c.req.header('x-inkeep-agent-id');
+    const agentId = c.req.header('x-inkeep-agent-id');
+    const subAgentId = c.req.header('x-inkeep-sub-agent-id');
     const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
     const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
     const host = fwdHost ?? c.req.header('host');
@@ -56,7 +56,7 @@ export const apiKeyAuth = () =>
             apiKey: 'development',
             tenantId: tenantId || 'test-tenant',
             projectId: projectId || 'test-project',
-            graphId: graphId || 'test-graph',
+            agentId: agentId || 'test-agent',
             apiKeyId: 'test-key',
             baseUrl: baseUrl,
             subAgentId: subAgentId,
@@ -72,7 +72,7 @@ export const apiKeyAuth = () =>
           apiKey: 'development',
           tenantId: tenantId || 'test-tenant',
           projectId: projectId || 'test-project',
-          graphId: graphId || 'test-graph',
+          agentId: agentId || 'test-agent',
           apiKeyId: 'test-key',
           baseUrl: baseUrl,
           subAgentId: subAgentId,
@@ -101,9 +101,9 @@ export const apiKeyAuth = () =>
       if (apiKey === env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
         // Extract base URL from request
 
-        if (!tenantId || !projectId || !graphId) {
+        if (!tenantId || !projectId || !agentId) {
           throw new HTTPException(401, {
-            message: 'Missing or invalid tenant, project, or graph ID',
+            message: 'Missing or invalid tenant, project, or agent ID',
           });
         }
 
@@ -112,7 +112,7 @@ export const apiKeyAuth = () =>
           apiKey: apiKey,
           tenantId: tenantId,
           projectId: projectId,
-          graphId: graphId,
+          agentId: agentId,
           apiKeyId: 'bypass',
           baseUrl: baseUrl,
           subAgentId: subAgentId,
@@ -161,7 +161,7 @@ export const apiKeyAuth = () =>
         {
           tenantId: executionContext.tenantId,
           projectId: executionContext.projectId,
-          graphId: executionContext.graphId,
+          agentId: executionContext.agentId,
           subAgentId: executionContext.subAgentId,
         },
         'API key authenticated successfully'
@@ -195,7 +195,7 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     apiKey: apiKey,
     tenantId: apiKeyRecord.tenantId,
     projectId: apiKeyRecord.projectId,
-    graphId: apiKeyRecord.graphId,
+    agentId: apiKeyRecord.agentId,
     apiKeyId: apiKeyRecord.id,
     baseUrl: baseUrl,
   });

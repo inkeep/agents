@@ -92,7 +92,7 @@ function EmptyTimeline({
                 <ExternalLink
                   className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200 ml-0 mt-1"
                   iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
-                  href={`${DOCS_BASE_URL}/visual-builder/graphs`}
+                  href={`${DOCS_BASE_URL}/visual-builder/agent`}
                 >
                   Learn more
                 </ExternalLink>

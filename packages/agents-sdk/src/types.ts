@@ -1,10 +1,10 @@
 import type {
   AgentConversationHistoryConfig,
+  AgentStopWhen,
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
-  FullGraphDefinition,
-  GraphStopWhen,
+  FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
@@ -235,8 +235,8 @@ export interface RunResult {
   };
 }
 
-// Graph types
-export interface GraphConfig {
+// Agent types
+export interface AgentConfig {
   id: string;
   name?: string;
   description?: string;
@@ -244,8 +244,8 @@ export interface GraphConfig {
   subAgents?: () => AllSubAgentInterface[];
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
-  stopWhen?: GraphStopWhen;
-  graphPrompt?: string;
+  stopWhen?: AgentStopWhen;
+  agentPrompt?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
@@ -322,8 +322,8 @@ export interface ExternalAgentInterface {
   setContext?(tenantId: string, baseURL?: string): void;
 }
 
-// Graph interface for runner operations
-export interface GraphInterface {
+// Agent interface for runner operations
+export interface AgentInterface {
   init(): Promise<void>;
   setConfig(tenantId: string, projectId: string, apiUrl: string): void;
   getId(): string;
@@ -333,10 +333,10 @@ export interface GraphInterface {
   generate(input: MessageInput, options?: GenerateOptions): Promise<string>;
   stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   generateStream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
-  getdefaultSubAgent(): SubAgentInterface | undefined;
-  getAgent(name: string): AllSubAgentInterface | undefined;
+  getDefaultSubAgent(): SubAgentInterface | undefined;
+  getSubAgent(name: string): AllSubAgentInterface | undefined;
   getSubAgents(): AllSubAgentInterface[];
-  toFullGraphDefinition(): Promise<FullGraphDefinition>;
+  toFullAgentDefinition(): Promise<FullAgentDefinition>;
 }
 
 // Legacy builder types (for backward compatibility)

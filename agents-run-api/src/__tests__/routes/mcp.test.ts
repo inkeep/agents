@@ -103,11 +103,11 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultSubAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
-        description: 'Test graph description',
+        id: 'test-agent',
+        name: 'Test Agent',
+        description: 'Test agent description',
         tenantId: 'test-tenant',
         defaultSubAgentId: 'default-agent',
         contextConfigId: null,
@@ -133,7 +133,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         activeSubAgentId: 'default-agent',
         metadata: {
           session_data: {
-            graphId: 'test-graph',
+            agentId: 'test-agent',
             sessionType: 'mcp',
             mcpProtocolVersion: '2025-06-18',
             initialized: false,
@@ -147,7 +147,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForThread: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'test-project',
       });
@@ -216,11 +216,11 @@ describe('MCP Routes', () => {
 
     // Reset default mocks using @inkeep/agents-core
     const coreModule = await import('@inkeep/agents-core');
-    vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValue(
+    vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
-        description: 'Test graph description',
+        id: 'test-agent',
+        name: 'Test Agent',
+        description: 'Test agent description',
         tenantId: 'test-tenant',
         defaultSubAgentId: 'default-agent',
         contextConfigId: null,
@@ -236,7 +236,7 @@ describe('MCP Routes', () => {
         activeSubAgentId: 'default-agent',
         metadata: {
           session_data: {
-            graphId: 'test-graph',
+            agentId: 'test-agent',
             sessionType: 'mcp',
             mcpProtocolVersion: '2025-06-18',
             initialized: false,
@@ -271,7 +271,7 @@ describe('MCP Routes', () => {
     it('should successfully initialize a new MCP session', async () => {
       const tenantId = 'test-tenant';
       const projectId = 'test-project';
-      const graphId = 'test-graph';
+      const agentId = 'test-agent';
 
       const response = await makeRequest(`/v1/mcp`, {
         method: 'POST',
@@ -280,7 +280,7 @@ describe('MCP Routes', () => {
           'mcp-protocol-version': '2025-06-18',
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
-          'x-inkeep-graph-id': graphId,
+          'x-inkeep-agent-id': agentId,
         },
         body: JSON.stringify({
           jsonrpc: '2.0',
@@ -312,9 +312,9 @@ describe('MCP Routes', () => {
       expect(responseData).toHaveProperty('result');
     });
 
-    it('should handle agent graph not found during initialization', async () => {
+    it('should handle agent agent not found during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValue(null)
       );
 
@@ -331,12 +331,12 @@ describe('MCP Routes', () => {
       expect(response.status).toBe(404);
       const result = await response.json();
       expect(result.error).toHaveProperty('code', -32001);
-      expect(result.error.message).toContain('Agent graph not found');
+      expect(result.error.message).toContain('Agent agent not found');
     });
 
     it('should handle server errors during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentGraphWithDefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockRejectedValue(new Error('Database error'))
       );
 
@@ -369,7 +369,7 @@ describe('MCP Routes', () => {
           activeSubAgentId: 'default-agent',
           metadata: {
             session_data: {
-              graphId: 'test-graph',
+              agentId: 'test-agent',
               sessionType: 'mcp',
               mcpProtocolVersion: '2025-06-18',
               initialized: true,
@@ -574,7 +574,7 @@ describe('MCP Routes', () => {
           activeSubAgentId: 'default-agent',
           metadata: {
             session_data: {
-              graphId: 'test-graph',
+              agentId: 'test-agent',
               sessionType: 'chat', // Wrong type, should be 'mcp'
               initialized: true,
             },
@@ -626,18 +626,18 @@ describe('MCP Routes', () => {
       expect(result).toContain('Session not found');
     });
 
-    it('should reject request with mismatched graphId', async () => {
+    it('should reject request with mismatched agentId', async () => {
       const coreModule = await import('@inkeep/agents-core');
 
-      // Mock session with different graphId
+      // Mock session with different agentId
       vi.mocked(coreModule.getConversation).mockReturnValueOnce(
         vi.fn().mockResolvedValue({
-          id: 'mismatched-graph-session',
+          id: 'mismatched-agent-session',
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
             session_data: {
-              graphId: 'different-graph', // Different from requested graph
+              agentId: 'different-agent', // Different from requested agent
               sessionType: 'mcp',
               initialized: true,
             },
@@ -650,7 +650,7 @@ describe('MCP Routes', () => {
       vi.mocked(fetchToNodeModule.toReqRes).mockImplementationOnce(() => ({
         req: {
           headers: {
-            'mcp-session-id': 'mismatched-graph-session',
+            'mcp-session-id': 'mismatched-agent-session',
           },
           on: vi.fn(),
           removeListener: vi.fn(),
@@ -675,7 +675,7 @@ describe('MCP Routes', () => {
       const response = await makeRequest(`/v1/mcp`, {
         method: 'POST',
         headers: {
-          'mcp-session-id': 'mismatched-graph-session',
+          'mcp-session-id': 'mismatched-agent-session',
         },
         body: JSON.stringify({
           jsonrpc: '2.0',
@@ -728,7 +728,7 @@ describe('MCP Routes', () => {
           activeSubAgentId: 'default-agent',
           metadata: {
             session_data: {
-              graphId: 'test-graph',
+              agentId: 'test-agent',
               sessionType: 'mcp',
               mcpProtocolVersion: '2025-06-18',
               initialized: true,
@@ -862,7 +862,7 @@ describe('MCP Routes', () => {
           activeSubAgentId: 'default-agent',
           metadata: {
             session_data: {
-              graphId: 'test-graph',
+              agentId: 'test-agent',
               sessionType: 'mcp',
               mcpProtocolVersion: '2025-07-01', // Custom protocol version
               initialized: true,
@@ -950,7 +950,7 @@ describe('MCP Routes', () => {
           activeSubAgentId: 'default-agent',
           metadata: {
             session_data: {
-              graphId: 'test-graph',
+              agentId: 'test-agent',
               sessionType: 'mcp',
               // No mcpProtocolVersion
               initialized: true,

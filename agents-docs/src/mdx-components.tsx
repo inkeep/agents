@@ -56,14 +56,14 @@ function pre(props: ComponentProps<typeof OriginalPre>) {
   }
 
   // Check if this is a mermaid code block by looking for mermaid syntax
-  if (textContent.trim().startsWith('graph ') ||
+  if (textContent.trim().startsWith('agent ') ||
       textContent.trim().startsWith('flowchart ') ||
       textContent.trim().startsWith('sequenceDiagram') ||
       textContent.trim().startsWith('classDiagram') ||
       textContent.trim().startsWith('stateDiagram') ||
       textContent.trim().startsWith('pie ') ||
-      textContent.trim().includes('graph TD') ||
-      textContent.trim().includes('graph LR')) {
+      textContent.trim().includes('agent TD') ||
+      textContent.trim().includes('agent LR')) {
     return <Mermaid chart={textContent.trim()} />;
   }
 
