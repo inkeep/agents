@@ -10,7 +10,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useGraphActions, useGraphStore } from '@/features/agent/state/use-agent-store';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import {
   getCurrentHeadersForNode,
@@ -33,10 +33,10 @@ export function MCPServerNodeEditor({
     tenantId: string;
     projectId: string;
   }>();
-  const { markUnsaved } = useGraphActions();
+  const { markUnsaved } = useAgentActions();
 
   // Only use toolLookup - single source of truth
-  const { toolLookup, edges } = useGraphStore((state) => ({
+  const { toolLookup, edges } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
     edges: state.edges,
   }));

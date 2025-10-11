@@ -6,8 +6,8 @@ import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useGraphStore } from '@/features/agent/state/use-agent-store';
-import { useGraphErrors } from '@/hooks/use-agent-errors';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
@@ -46,11 +46,11 @@ export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { name, isDefault, description, models } = data;
   const modelName = models?.base?.model;
 
-  const { dataComponentLookup, artifactComponentLookup } = useGraphStore((state) => ({
+  const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
     dataComponentLookup: state.dataComponentLookup,
     artifactComponentLookup: state.artifactComponentLookup,
   }));
-  const { getNodeErrors, hasNodeErrors } = useGraphErrors();
+  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
   const subAgentId = data.id || id;

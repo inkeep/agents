@@ -8,7 +8,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useGraphStore } from '@/features/agent/state/use-agent-store';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
@@ -67,7 +67,7 @@ export function AgentNodeEditor({
 
   // Get project and agent data for inheritance indicators
   const { project } = useProjectData();
-  const metadata = useGraphStore((state) => state.metadata);
+  const metadata = useAgentStore((state) => state.metadata);
 
   const { updatePath, updateNestedPath, getFieldError, setFieldRef } = useNodeEditor({
     selectedNodeId: selectedNode.id,
@@ -153,7 +153,7 @@ export function AgentNodeEditor({
         models={selectedNode.data.models}
         updatePath={updateModelPath}
         projectModels={project?.models}
-        graphModels={metadata?.models}
+        agentModels={metadata?.models}
       />
       <Separator />
       {/* Agent Execution Limits */}

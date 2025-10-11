@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
-import { useGraphErrors } from '@/hooks/use-agent-errors';
+import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -30,7 +30,7 @@ interface SidePaneProps {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   onClose: () => void;
-  backToGraph: () => void;
+  backToAgent: () => void;
   isOpen: boolean;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
@@ -42,7 +42,7 @@ export function SidePane({
   selectedNodeId,
   selectedEdgeId,
   onClose,
-  backToGraph,
+  backToAgent,
   isOpen,
   dataComponentLookup,
   artifactComponentLookup,
@@ -51,7 +51,7 @@ export function SidePane({
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
-  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useGraphErrors();
+  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
 
   const selectedEdge = useMemo(
     () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
@@ -156,7 +156,7 @@ export function SidePane({
         <>
           <SidePaneLayout.Header>
             <div className="flex items-center relative">
-              {showBackButton && <SidePaneLayout.BackButton onClick={backToGraph} />}
+              {showBackButton && <SidePaneLayout.BackButton onClick={backToAgent} />}
               <Heading
                 heading={heading}
                 Icon={HeadingIcon}

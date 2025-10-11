@@ -1,6 +1,6 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code } from 'lucide-react';
-import { useGraphErrors } from '@/hooks/use-agent-errors';
+import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
@@ -13,7 +13,7 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
   const name = String(data.name || 'Function Tool');
   const description = String(data.description || '');
 
-  const { getNodeErrors, hasNodeErrors } = useGraphErrors();
+  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   const functionToolId = data.toolId || data.functionToolId || id;
   const nodeErrors = getNodeErrors(functionToolId);

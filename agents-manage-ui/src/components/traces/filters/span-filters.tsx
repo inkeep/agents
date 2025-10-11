@@ -23,7 +23,7 @@ interface SpanFiltersProps {
   updateAttribute: (index: number, field: 'key' | 'value' | 'operator', value: string) => void;
   isNumeric: (value: string) => boolean;
   spanNamesLoading: boolean;
-  selectedGraph?: string;
+  selectedAgent?: string;
 }
 
 export function SpanFilters({
@@ -36,7 +36,7 @@ export function SpanFilters({
   updateAttribute,
   isNumeric,
   spanNamesLoading,
-  selectedGraph,
+  selectedAgent,
 }: SpanFiltersProps) {
   const totalFilters = attributes.length + (spanName ? 1 : 0);
   return (
@@ -100,13 +100,13 @@ export function SpanFilters({
               )}
               {!spanNamesLoading && availableSpanNames.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No span names found in {selectedGraph ? `agent "${selectedGraph}"` : 'any agent'}.
+                  No span names found in {selectedAgent ? `agent "${selectedAgent}"` : 'any agent'}.
                   You can type a custom span name above.
                 </p>
               )}
-              {!spanNamesLoading && availableSpanNames.length > 0 && selectedGraph && (
+              {!spanNamesLoading && availableSpanNames.length > 0 && selectedAgent && (
                 <p className="text-xs text-muted-foreground">
-                  Showing span names from agent "{selectedGraph}" only
+                  Showing span names from agent "{selectedAgent}" only
                 </p>
               )}
             </div>

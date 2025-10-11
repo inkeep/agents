@@ -4,7 +4,7 @@ import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
 import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
-import type { GraphModels } from './agent-types';
+import type { AgentModels } from './agent-types';
 
 interface NodeData {
   name: string;
@@ -13,7 +13,7 @@ interface NodeData {
   relationshipId?: string | null; // Optional for MCP nodes
 }
 
-import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
+import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
 
 export interface MCPNodeData extends Record<string, unknown> {
   toolId: string;
@@ -25,7 +25,7 @@ export interface MCPNodeData extends Record<string, unknown> {
 }
 
 // Re-export the shared type for consistency
-export type { AgentStopWhen };
+export type { SubAgentStopWhen };
 
 export interface AgentNodeData extends Record<string, unknown> {
   id: string;
@@ -34,8 +34,8 @@ export interface AgentNodeData extends Record<string, unknown> {
   prompt?: string;
   dataComponents?: string[];
   artifactComponents?: string[];
-  models?: GraphModels; // Use same structure as agent
-  stopWhen?: AgentStopWhen;
+  models?: AgentModels; // Use same structure as agent
+  stopWhen?: SubAgentStopWhen;
 }
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {

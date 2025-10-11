@@ -22,22 +22,22 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   applyDagreLayout,
-  deserializeGraphData,
-  type ExtendedFullGraphDefinition,
-  extractGraphMetadata,
-  serializeGraphData,
+  deserializeAgentData,
+  type ExtendedFullAgentDefinition,
+  extractAgentMetadata,
+  serializeAgentData,
   validateSerializedData,
 } from '@/features/agent/domain';
-import { useGraphActions, useGraphStore } from '@/features/agent/state/use-agent-store';
-import { useGraphShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
-import { useGraphErrors } from '@/hooks/use-agent-errors';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
+import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
-import { saveGraph } from '@/lib/services/save-agent';
+import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
-import { getErrorSummaryMessage, parseGraphValidationErrors } from '@/lib/utils/agent-error-parser';
+import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 
@@ -62,7 +62,7 @@ import {
   newNodeDefaults,
   nodeTypes,
 } from './configuration/node-types';
-import { GraphErrorSummary } from './error-display/agent-error-summary';
+import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
@@ -75,8 +75,8 @@ function getEdgeId(a: string, b: string) {
   return `edge-${low}-${high}`;
 }
 
-interface GraphProps {
-  agent?: ExtendedFullGraphDefinition;
+interface AgentProps {
+  agent?: ExtendedFullAgentDefinition;
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
@@ -89,7 +89,7 @@ function Flow({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
-}: GraphProps) {
+}: AgentProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
 
@@ -138,9 +138,9 @@ function Flow({
     [toolLookup]
   );
 
-  const { nodes: graphNodes, edges: graphEdges } = useMemo(() => {
+  const { nodes: agentNodes, edges: agentEdges } = useMemo(() => {
     const result = agent
-      ? deserializeGraphData(agent)
+      ? deserializeAgentData(agent)
       : { nodes: initialNodes, edges: initialEdges };
     return {
       ...result,
@@ -189,7 +189,7 @@ function Flow({
     getEdges,
     getIntersectingNodes,
   } = useReactFlow();
-  const { storeNodes, edges, metadata } = useGraphStore((state) => ({
+  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
@@ -204,12 +204,12 @@ function Flow({
     markSaved,
     clearSelection,
     markUnsaved,
-  } = useGraphActions();
+  } = useAgentActions();
 
   // Always use enriched nodes for ReactFlow
   const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
-  const { nodeId, edgeId, setQueryState, openGraphPane, isOpen } = useSidePane();
-  const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useGraphErrors();
+  const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
+  const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   /**
    * Custom `onNodesChange` handler that relayouts the agent using Dagre
@@ -249,9 +249,9 @@ function Flow({
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
     setInitial(
-      graphNodes,
-      graphEdges,
-      extractGraphMetadata(agent),
+      agentNodes,
+      agentEdges,
+      extractAgentMetadata(agent),
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
@@ -262,12 +262,12 @@ function Flow({
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
     if (!agent) {
-      openGraphPane();
+      openAgentPane();
       return;
     }
 
     if (!nodeId && !edgeId) {
-      openGraphPane();
+      openAgentPane();
     }
 
     if (nodeId) {
@@ -289,14 +289,14 @@ function Flow({
     }
 
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
-    if (nodeId && !graphNodes.some((node) => node.id === nodeId)) {
+    if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
       setQueryState((prev) => ({
         ...prev,
         nodeId: null,
         pane: 'agent',
       }));
     }
-    if (edgeId && !graphEdges.some((edge) => edge.id === edgeId)) {
+    if (edgeId && !agentEdges.some((edge) => edge.id === edgeId)) {
       setQueryState((prev) => ({
         ...prev,
         edgeId: null,
@@ -476,7 +476,7 @@ function Flow({
     onChange: onSelectionChange,
   });
 
-  useGraphShortcuts();
+  useAgentShortcuts();
 
   const closeSidePane = useCallback(() => {
     setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
@@ -488,7 +488,7 @@ function Flow({
     });
   }, [setQueryState, setEdges, setNodes]);
 
-  const backToGraph = useCallback(() => {
+  const backToAgent = useCallback(() => {
     setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
     setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
     setQueryState({
@@ -571,7 +571,7 @@ function Flow({
       });
     }
 
-    const serializedData = serializeGraphData(
+    const serializedData = serializeAgentData(
       nodes,
       edges,
       metadata,
@@ -593,7 +593,7 @@ function Flow({
     // Validate the serialized data before saving
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
-      // Convert validation errors to the format expected by parseGraphValidationErrors
+      // Convert validation errors to the format expected by parseAgentValidationErrors
       const errorObjects = validationErrors.map((error) => ({
         message: error.message,
         field: error.field,
@@ -602,13 +602,13 @@ function Flow({
         functionToolId: error.functionToolId,
       }));
 
-      const errorSummary = parseGraphValidationErrors(JSON.stringify(errorObjects));
+      const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
       setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
       return;
     }
 
-    const res = await saveGraph(
+    const res = await saveAgent(
       tenantId,
       projectId,
       serializedData,
@@ -675,11 +675,11 @@ function Flow({
 
       if (!agent?.id && res.data?.id) {
         setMetadata('id', res.data.id);
-        router.push(`/${tenantId}/projects/${projectId}/agent/${res.data.id}`);
+        router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
       }
     } else {
       try {
-        const errorSummary = parseGraphValidationErrors(res.error);
+        const errorSummary = parseAgentValidationErrors(res.error);
         setErrors(errorSummary);
 
         const summaryMessage = getErrorSummaryMessage(errorSummary);
@@ -747,7 +747,7 @@ function Flow({
             <Toolbar
               onSubmit={onSubmit}
               inPreviewDisabled={!agent?.id}
-              toggleSidePane={isOpen ? backToGraph : openGraphPane}
+              toggleSidePane={isOpen ? backToAgent : openAgentPane}
               setShowPlayground={() => {
                 closeSidePane();
                 setShowPlayground(true);
@@ -756,7 +756,7 @@ function Flow({
           </Panel>
           {errors && showErrors && (
             <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
-              <GraphErrorSummary
+              <AgentErrorSummary
                 errorSummary={errors}
                 onClose={() => setShowErrors(false)}
                 onNavigateToNode={handleNavigateToNode}
@@ -771,7 +771,7 @@ function Flow({
         selectedEdgeId={edgeId}
         isOpen={isOpen}
         onClose={closeSidePane}
-        backToGraph={backToGraph}
+        backToAgent={backToAgent}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         agentToolConfigLookup={agentToolConfigLookup}
@@ -796,7 +796,7 @@ export function Agent({
   artifactComponentLookup,
   toolLookup,
   credentialLookup,
-}: GraphProps) {
+}: AgentProps) {
   return (
     <ReactFlowProvider>
       <Flow

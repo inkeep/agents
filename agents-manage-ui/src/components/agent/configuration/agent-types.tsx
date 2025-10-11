@@ -3,16 +3,16 @@ export type ModelSettings = {
   providerOptions?: string; // JSON string representation for form compatibility
 };
 
-import type { GraphStopWhen } from '@inkeep/agents-core/client-exports';
+import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
 
-export type GraphModels = {
+export type AgentModels = {
   base?: ModelSettings;
   structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 };
 
 // Re-export the shared type for consistency
-export type { GraphStopWhen };
+export type { AgentStopWhen };
 
 export type StatusUpdateSettings = {
   enabled?: boolean;
@@ -22,14 +22,14 @@ export type StatusUpdateSettings = {
   statusComponents?: string; // JSON string representation of status components array
 };
 
-export type GraphMetadata = {
+export type AgentMetadata = {
   id?: string;
   name: string;
   description: string;
   contextConfig: ContextConfig;
-  models?: GraphModels;
-  stopWhen?: GraphStopWhen;
-  graphPrompt?: string;
+  models?: AgentModels;
+  stopWhen?: AgentStopWhen;
+  agentPrompt?: string;
   statusUpdates?: StatusUpdateSettings;
 };
 

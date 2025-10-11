@@ -67,8 +67,8 @@ export async function createFullAgentAction(
     const response = await apiCreateFullAgent(tenantId, projectId, agentData);
 
     // Revalidate relevant pages
-    revalidatePath(`/${tenantId}/projects/${projectId}/agent`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/agent/${response.data.id}`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
 
     return {
       success: true,
@@ -145,8 +145,8 @@ export async function updateFullAgentAction(
     const response = await apiUpdateFullAgent(tenantId, projectId, agentId, agentData);
 
     // Revalidate relevant pages
-    revalidatePath(`/${tenantId}/projects/${projectId}/agent`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/agent/${agentId}`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${agentId}`);
 
     return {
       success: true,
@@ -181,7 +181,7 @@ export async function deleteFullAgentAction(
     await apiDeleteFullAgent(tenantId, projectId, agentId);
 
     // Revalidate relevant pages
-    revalidatePath(`/${tenantId}/projects/${projectId}/agent`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
 
     return {
       success: true,

@@ -2,7 +2,7 @@ import { Play, Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useGraphStore } from '@/features/agent/state/use-agent-store';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { isMacOs } from '@/lib/utils';
 
 interface ToolbarProps {
@@ -18,7 +18,7 @@ export function Toolbar({
   toggleSidePane,
   setShowPlayground,
 }: ToolbarProps) {
-  const dirty = useGraphStore((state) => state.dirty);
+  const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const PreviewButton = (
     <Button

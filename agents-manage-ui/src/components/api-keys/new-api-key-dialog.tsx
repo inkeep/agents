@@ -20,14 +20,14 @@ import { ApiKeyForm } from './form/api-key-form';
 interface NewApiKeyDialogProps {
   tenantId: string;
   projectId: string;
-  graphsOptions: SelectOption[];
+  agentsOptions: SelectOption[];
 }
 
-export function NewApiKeyDialog({ tenantId, projectId, graphsOptions }: NewApiKeyDialogProps) {
+export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKeyDialogProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<ApiKeyCreateResponse | null>(null);
 
-  const hasGraphs = graphsOptions.length > 0;
+  const hasAgents = agentsOptions.length > 0;
 
   const handleApiKeyCreated = (apiKeyData: ApiKeyCreateResponse) => {
     setCreatedApiKey(apiKeyData);
@@ -46,13 +46,13 @@ export function NewApiKeyDialog({ tenantId, projectId, graphsOptions }: NewApiKe
           <TooltipTrigger asChild>
             <div>
               <DialogTrigger asChild>
-                <Button disabled={!hasGraphs}>
+                <Button disabled={!hasAgents}>
                   <Plus className="size-4" /> New API key
                 </Button>
               </DialogTrigger>
             </div>
           </TooltipTrigger>
-          {!hasGraphs && (
+          {!hasAgents && (
             <TooltipContent className="max-w-3xs">
               Please create a agent first, then you will be able to create an API key.
             </TooltipContent>
@@ -67,7 +67,7 @@ export function NewApiKeyDialog({ tenantId, projectId, graphsOptions }: NewApiKe
             <ApiKeyForm
               tenantId={tenantId}
               projectId={projectId}
-              graphsOptions={graphsOptions}
+              agentsOptions={agentsOptions}
               onApiKeyCreated={handleApiKeyCreated}
             />
           </div>

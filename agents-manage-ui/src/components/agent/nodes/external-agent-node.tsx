@@ -2,7 +2,7 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { BotMessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useGraphErrors } from '@/hooks/use-agent-errors';
+import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { AgentNodeData } from '../configuration/node-types';
 import { externalAgentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
@@ -13,7 +13,7 @@ import { NodeTab } from './node-tab';
 export function ExternalAgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { data, selected, id } = props;
   const { name, description } = data;
-  const { getNodeErrors, hasNodeErrors } = useGraphErrors();
+  const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
   const subAgentId = data.id || id;

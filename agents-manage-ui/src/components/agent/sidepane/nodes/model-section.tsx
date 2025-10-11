@@ -13,14 +13,14 @@ interface ModelSectionProps {
   models: AgentNodeData['models'];
   updatePath: (path: string, value: any) => void;
   projectModels?: any;
-  graphModels?: any;
+  agentModels?: any;
 }
 
 export function ModelSection({
   models,
   updatePath,
   projectModels,
-  graphModels,
+  agentModels,
 }: ModelSectionProps) {
   const hasAdvancedOptions = models?.structuredOutput || models?.summarizer;
   const _hasAnyModel = models?.base || models?.structuredOutput || models?.summarizer;
@@ -43,7 +43,7 @@ export function ModelSection({
           onValueChange={(modelValue) => {
             updatePath('models.base.model', modelValue || undefined);
           }}
-          inheritedValue={graphModels?.base?.model || projectModels?.base?.model}
+          inheritedValue={agentModels?.base?.model || projectModels?.base?.model}
           label={
             <div className="flex items-center gap-2">
               Base model
@@ -51,7 +51,7 @@ export function ModelSection({
                 {...getModelInheritanceStatus(
                   'agent',
                   models?.base?.model,
-                  graphModels?.base?.model,
+                  agentModels?.base?.model,
                   projectModels?.base?.model
                 )}
                 size="sm"
@@ -85,10 +85,10 @@ export function ModelSection({
               updatePath('models.structuredOutput.model', modelValue || undefined);
             }}
             inheritedValue={
-              graphModels?.structuredOutput?.model ||
+              agentModels?.structuredOutput?.model ||
               projectModels?.structuredOutput?.model ||
               models?.base?.model ||
-              graphModels?.base?.model ||
+              agentModels?.base?.model ||
               projectModels?.base?.model
             }
             label={
@@ -98,7 +98,7 @@ export function ModelSection({
                   {...getModelInheritanceStatus(
                     'agent',
                     models?.structuredOutput?.model,
-                    graphModels?.structuredOutput?.model,
+                    agentModels?.structuredOutput?.model,
                     projectModels?.structuredOutput?.model
                   )}
                   size="sm"
@@ -134,10 +134,10 @@ export function ModelSection({
               updatePath('models.summarizer.model', modelValue || undefined);
             }}
             inheritedValue={
-              graphModels?.summarizer?.model ||
+              agentModels?.summarizer?.model ||
               projectModels?.summarizer?.model ||
               models?.base?.model ||
-              graphModels?.base?.model ||
+              agentModels?.base?.model ||
               projectModels?.base?.model
             }
             label={
@@ -147,7 +147,7 @@ export function ModelSection({
                   {...getModelInheritanceStatus(
                     'agent',
                     models?.summarizer?.model,
-                    graphModels?.summarizer?.model,
+                    agentModels?.summarizer?.model,
                     projectModels?.summarizer?.model
                   )}
                   size="sm"

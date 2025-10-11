@@ -758,9 +758,6 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
   receivedMessages: many(messages, {
     relationName: 'receivedMessages',
   }),
-  associatedMessages: many(messages, {
-    relationName: 'associatedAgent',
-  }),
   toolRelations: many(subAgentToolRelations),
   functionToolRelations: many(agentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),

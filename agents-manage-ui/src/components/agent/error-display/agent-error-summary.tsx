@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSidePane } from '@/hooks/use-side-pane';
-import type { GraphErrorSummary, ProcessedGraphError } from '@/lib/utils/agent-error-parser';
+import type { AgentErrorSummary, ProcessedAgentError } from '@/lib/utils/agent-error-parser';
 
-interface GraphErrorSummaryProps {
-  errorSummary: GraphErrorSummary;
+interface AgentErrorSummaryProps {
+  errorSummary: AgentErrorSummary;
   onClose: () => void;
   onNavigateToNode?: (nodeId: string) => void;
   onNavigateToEdge?: (edgeId: string) => void;
@@ -17,10 +17,10 @@ interface GraphErrorSummaryProps {
 
 interface ErrorGroupProps {
   title: string;
-  errors: ProcessedGraphError[];
+  errors: ProcessedAgentError[];
   icon: React.ReactNode;
   onNavigate?: (id: string) => void;
-  getItemLabel?: (error: ProcessedGraphError) => string;
+  getItemLabel?: (error: ProcessedAgentError) => string;
 }
 
 function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGroupProps) {
@@ -28,7 +28,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
 
   if (errors.length === 0) return null;
 
-  const groupedErrors: Record<string, ProcessedGraphError[]> = {};
+  const groupedErrors: Record<string, ProcessedAgentError[]> = {};
   for (const error of errors) {
     const key = error.nodeId || error.edgeId || 'general';
     if (!groupedErrors[key]) groupedErrors[key] = [];
@@ -90,12 +90,12 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
-export function GraphErrorSummaryComponent({
+export function AgentErrorSummaryComponent({
   errorSummary,
   onClose,
   onNavigateToNode,
   onNavigateToEdge,
-}: GraphErrorSummaryProps) {
+}: AgentErrorSummaryProps) {
   const { setQueryState } = useSidePane();
 
   const handleNavigateToNode = (nodeId: string) => {
@@ -116,22 +116,22 @@ export function GraphErrorSummaryComponent({
     onNavigateToEdge?.(edgeId);
   };
 
-  const agentErrors = Object.values(errorSummary.agentErrors).flat();
+  const subAgentErrors = Object.values(errorSummary.subAgentErrors).flat();
   const functionToolErrors = Object.values(errorSummary.functionToolErrors).flat();
   const edgeErrors = Object.values(errorSummary.edgeErrors).flat();
-  const graphErrors = errorSummary.graphErrors;
+  const agentErrors = errorSummary.agentErrors;
 
-  const getAgentLabel = (error: ProcessedGraphError) => {
+  const getAgentLabel = (error: ProcessedAgentError) => {
     // You might want to get the actual agent name from the agent data
     return `Agent (${error.nodeId})`;
   };
 
-  const getFunctionToolLabel = (error: ProcessedGraphError) => {
+  const getFunctionToolLabel = (error: ProcessedAgentError) => {
     // You might want to get the actual function tool name from the agent data
     return `Function Tool (${error.nodeId})`;
   };
 
-  const getConnectionLabel = (error: ProcessedGraphError) => {
+  const getConnectionLabel = (error: ProcessedAgentError) => {
     return `Connection (${error.edgeId})`;
   };
 
@@ -154,8 +154,8 @@ export function GraphErrorSummaryComponent({
         </div>
 
         <ErrorGroup
-          title="Agent Errors"
-          errors={agentErrors}
+          title="Sub Agent Errors"
+          errors={subAgentErrors}
           icon={<Zap className="w-3 h-3" />}
           onNavigate={handleNavigateToNode}
           getItemLabel={getAgentLabel}
@@ -179,7 +179,7 @@ export function GraphErrorSummaryComponent({
 
         <ErrorGroup
           title="Agent Configuration Errors"
-          errors={graphErrors}
+          errors={agentErrors}
           icon={<AlertCircle className="w-3 h-3" />}
         />
 
@@ -194,4 +194,4 @@ export function GraphErrorSummaryComponent({
 }
 
 // Export with the expected name for compatibility
-export { GraphErrorSummaryComponent as GraphErrorSummary };
+export { AgentErrorSummaryComponent as AgentErrorSummary };
