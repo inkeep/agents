@@ -1,5 +1,4 @@
 import { z } from '@hono/zod-openapi';
-import type { StreamableHTTPReconnectionOptions } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import {
   agents,
@@ -294,7 +293,13 @@ export const McpTransportConfigSchema = z.object({
   type: z.enum(MCPTransportType),
   requestInit: z.record(z.string(), z.unknown()).optional(),
   eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-  reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+  reconnectionOptions: z
+    .any()
+    .optional()
+    .openapi({
+      type: 'object',
+      description: 'Reconnection options for streamable HTTP transport',
+    }),
   sessionId: z.string().optional(),
 });
 
@@ -322,7 +327,13 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
           type: z.enum(MCPTransportType),
           requestInit: z.record(z.string(), z.unknown()).optional(),
           eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-          reconnectionOptions: z.custom<StreamableHTTPReconnectionOptions>().optional(),
+          reconnectionOptions: z
+            .any()
+            .optional()
+            .openapi({
+              type: 'object',
+              description: 'Reconnection options for streamable HTTP transport',
+            }),
           sessionId: z.string().optional(),
         })
         .optional(),
@@ -627,18 +638,37 @@ export const FetchDefinitionSchema = z.object({
   trigger: z.enum(['initialization', 'invocation']),
   fetchConfig: FetchConfigSchema,
   responseSchema: z.any().optional(), // JSON Schema for validating HTTP response
-  defaultValue: z.unknown().optional(),
+  defaultValue: z.any().optional().openapi({
+    description: 'Default value if fetch fails',
+  }),
   credential: CredentialReferenceApiInsertSchema.optional(),
 });
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
-  headersSchema: z.unknown().optional(),
+  headersSchema: z.any().optional().openapi({
+    type: 'object',
+    description: 'JSON Schema for validating request headers',
+  }),
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: resourceIdSchema.optional(),
-    headersSchema: z.unknown().nullable().optional(),
-    contextVariables: z.unknown().nullable().optional(),
+    headersSchema: z
+      .any()
+      .nullable()
+      .optional()
+      .openapi({
+        type: 'object',
+        description: 'JSON Schema for validating request headers',
+      }),
+    contextVariables: z
+      .any()
+      .nullable()
+      .optional()
+      .openapi({
+        type: 'object',
+        description: 'Context variables configuration with fetch definitions',
+      }),
   })
   .omit({
     createdAt: true,
@@ -761,7 +791,9 @@ export const SingleResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
 export const ErrorResponseSchema = z.object({
   error: z.string(),
   message: z.string().optional(),
-  details: z.unknown().optional(),
+  details: z.any().optional().openapi({
+    description: 'Additional error details',
+  }),
 });
 
 export const ExistsResponseSchema = z.object({
