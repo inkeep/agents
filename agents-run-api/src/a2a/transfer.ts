@@ -20,12 +20,25 @@ export async function executeTransfer({
   success: boolean;
   targetSubAgentId: string;
 }> {
-  logger.info({ targetAgent: targetSubAgentId }, 'Executing transfer to agent');
-  await setActiveAgentForThread(dbClient)({
-    scopes: { tenantId, projectId },
+  logger.info({
+    targetAgent: targetSubAgentId,
     threadId,
-    subAgentId: targetSubAgentId,
-  });
+    tenantId,
+    projectId,
+  }, 'Executing transfer - calling setActiveAgentForThread');
+
+  try {
+    await setActiveAgentForThread(dbClient)({
+      scopes: { tenantId, projectId },
+      threadId,
+      subAgentId: targetSubAgentId,
+    });
+    logger.info({ targetAgent: targetSubAgentId, threadId }, 'Successfully updated active_sub_agent_id in database');
+  } catch (error) {
+    logger.error({ error, targetAgent: targetSubAgentId, threadId }, 'Failed to update active_sub_agent_id');
+    throw error;
+  }
+
   return { success: true, targetSubAgentId };
 }
 

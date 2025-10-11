@@ -333,21 +333,29 @@ export const createTaskHandler = (
               (result: any) => result.toolCallId === toolCall.toolCallId
             );
 
+            logger.info({
+              toolCallName: toolCall.toolName,
+              toolCallId: toolCall.toolCallId,
+              hasToolResult: !!toolResult,
+              toolResultOutput: toolResult?.output,
+              toolResultKeys: toolResult?.output ? Object.keys(toolResult.output) : [],
+            }, '[DEBUG] Transfer tool result found');
+
             // Validate transfer result with proper type checking
             const isValidTransferResult = (
               output: unknown
             ): output is {
               type: 'transfer';
-              target: string;
+              targetSubAgentId: string;
+              fromSubAgentId?: string;
             } => {
               return (
                 typeof output === 'object' &&
                 output !== null &&
                 'type' in output &&
-                'target' in output &&
+                'targetSubAgentId' in output &&
                 (output as any).type === 'transfer' &&
-                typeof (output as any).target === 'string' &&
-                ((output as any).reason === undefined || typeof (output as any).reason === 'string')
+                typeof (output as any).targetSubAgentId === 'string'
               );
             };
 
@@ -363,11 +371,33 @@ export const createTaskHandler = (
             if (toolResult?.output && isValidTransferResult(toolResult.output)) {
               const transferResult = toolResult.output;
 
+              logger.info({
+                validationPassed: true,
+                transferResult,
+                targetSubAgentId: transferResult.targetSubAgentId,
+                fromSubAgentId: transferResult.fromSubAgentId,
+              }, '[DEBUG] Transfer validation passed, extracted data');
+
+              // Build the artifact data
+              const artifactData = {
+                type: 'transfer',
+                targetSubAgentId: transferResult.targetSubAgentId,
+                fromSubAgentId: transferResult.fromSubAgentId,
+                task_id: task.id,
+                reason: transferReason,
+                original_message: userMessage,
+              };
+
+              logger.info({
+                artifactData,
+                artifactDataKeys: Object.keys(artifactData),
+              }, '[DEBUG] Artifact data being returned');
+
               // Return transfer indication in A2A format
               return {
                 status: {
                   state: TaskState.Completed,
-                  message: `Transfer requested to ${transferResult.target}`,
+                  message: `Transfer requested to ${transferResult.targetSubAgentId}`,
                 },
                 artifacts: [
                   {
@@ -375,18 +405,19 @@ export const createTaskHandler = (
                     parts: [
                       {
                         kind: 'data',
-                        data: {
-                          type: 'transfer',
-                          target: transferResult.target,
-                          task_id: task.id,
-                          reason: transferReason,
-                          original_message: userMessage,
-                        },
+                        data: artifactData,
                       },
                     ],
                   },
                 ],
               };
+            } else {
+              logger.warn({
+                hasToolResult: !!toolResult,
+                hasOutput: !!toolResult?.output,
+                validationPassed: false,
+                output: toolResult?.output,
+              }, '[DEBUG] Transfer validation FAILED');
             }
           }
         }

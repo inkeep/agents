@@ -274,7 +274,8 @@ describe('A2A Handlers', () => {
                 kind: 'data',
                 data: {
                   type: 'transfer',
-                  target: 'support-agent',
+                  targetSubAgentId: 'support-agent',
+                  fromSubAgentId: 'test-agent',
                   reason: 'User needs support',
                 },
               },

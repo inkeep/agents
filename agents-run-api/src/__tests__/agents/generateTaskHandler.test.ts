@@ -264,7 +264,8 @@ vi.mock('../../agents/Agent.js', () => ({
                   toolCallId: 'call-123',
                   output: {
                     type: 'transfer',
-                    target: 'refund-agent',
+                    targetSubAgentId: 'refund-agent',
+                    fromSubAgentId: 'test-agent',
                     reason: 'User needs refund assistance',
                   },
                 },
@@ -575,7 +576,7 @@ describe('generateTaskHandler', () => {
       expect(result.status.state).toBe(TaskState.Completed);
       expect(result.status.message).toBe('Transfer requested to refund-agent');
       expect((result.artifacts?.[0].parts[0] as any).data.type).toBe('transfer');
-      expect((result.artifacts?.[0].parts[0] as any).data.target).toBe('refund-agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.targetSubAgentId).toBe('refund-agent');
       expect((result.artifacts?.[0].parts[0] as any).data.reason).toBe(
         'Transferring to refund agent'
       );

@@ -327,7 +327,8 @@ async function handleMessageSend(
                     kind: 'data',
                     data: {
                       type: 'transfer',
-                      targetSubAgentId: transferPart.data.target,
+                      targetSubAgentId: transferPart.data.targetSubAgentId,
+                      fromSubAgentId: transferPart.data.fromSubAgentId,
                     },
                   },
                   {
@@ -495,7 +496,7 @@ async function handleMessageStream(
                 jsonrpc: '2.0',
                 result: {
                   type: 'transfer',
-                  target: transferPart.data.target,
+                  target: transferPart.data.targetSubAgentId,
                   task_id: task.id,
                   reason: transferPart.data.reason || 'Agent requested transfer',
                   original_message: transferPart.data.original_message,
