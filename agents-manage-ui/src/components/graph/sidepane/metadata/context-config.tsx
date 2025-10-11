@@ -1,5 +1,5 @@
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
-import type { ContextConfig, GraphMetadata } from '../../configuration/graph-types';
+import type { ContextConfig, GraphMetadata } from '../../configuration/agent-types';
 import { SectionHeader } from '../section';
 
 export function ContextConfigForm({
@@ -23,7 +23,7 @@ export function ContextConfigForm({
     <div className="space-y-8">
       <SectionHeader
         title="Context configuration"
-        description="Configure dynamic context for this graph."
+        description="Configure dynamic context for this agent."
       />
       <div className="flex flex-col space-y-8">
         <ExpandableJsonEditor

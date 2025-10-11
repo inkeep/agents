@@ -258,7 +258,7 @@ export const getAgentsUsingArtifactComponent =
   async (params: { scopes: ProjectScopeConfig; artifactComponentId: string }) => {
     return await db
       .select({
-        graphId: subAgentArtifactComponents.agentId,
+        agentId: subAgentArtifactComponents.agentId,
         subAgentId: subAgentArtifactComponents.subAgentId,
         createdAt: subAgentArtifactComponents.createdAt,
       })

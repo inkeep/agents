@@ -119,9 +119,9 @@ program
 
 // Chat command
 program
-  .command('chat [graph-id]')
+  .command('chat [agent-id]')
   .description(
-    'Start an interactive chat session with a graph (interactive selection if no ID provided)'
+    'Start an interactive chat session with a agent (interactive selection if no ID provided)'
   )
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
@@ -136,11 +136,11 @@ program
     await chatCommandEnhanced(agentId, { ...options, config });
   });
 
-// List graphs command
+// List agent command
 program
-  .command('list-graphs')
-  .description('List all available graphs for a specific project')
-  .requiredOption('--project <project-id>', 'Project ID to list graphs for')
+  .command('list-agent')
+  .description('List all available agent for a specific project')
+  .requiredOption('--project <project-id>', 'Project ID to list agent for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
   .option('--config <path>', 'Path to configuration file')

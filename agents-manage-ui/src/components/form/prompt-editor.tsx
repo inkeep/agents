@@ -11,7 +11,7 @@ import CodeMirror, {
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { getContextSuggestions } from '@/lib/context-suggestions';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphStore } from '@/features/agent/state/use-agent-store';
 
 // Decoration for template variables
 const templateVariableDecoration = Decoration.mark({

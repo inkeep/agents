@@ -68,7 +68,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     // Replace core prompt
     systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
 
-    // Replace graph context section
+    // Replace agent context section
     const graphContextSection = this.generateGraphContextSection(config.graphPrompt);
     systemPrompt = systemPrompt.replace('{{GRAPH_CONTEXT_SECTION}}', graphContextSection);
 
@@ -421,7 +421,7 @@ ${typeDescriptions}
     artifactComponents?: any[],
     hasGraphArtifactComponents?: boolean
   ): string {
-    // Show referencing rules if any agent in graph has artifact components OR if artifacts exist
+    // Show referencing rules if any agent in agent has artifact components OR if artifacts exist
     const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
     const rules = this.getArtifactReferencingRules(
       hasArtifactComponents,

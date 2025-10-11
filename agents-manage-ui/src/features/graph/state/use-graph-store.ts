@@ -3,13 +3,13 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
-import { mcpNodeHandleId, NodeType } from '@/components/graph/configuration/node-types';
-import type { AgentToolConfigLookup } from '@/components/graph/graph';
+import type { GraphMetadata } from '@/components/agent/configuration/agent-types';
+import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
+import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { MCPTool } from '@/lib/types/tools';
-import type { GraphErrorSummary } from '@/lib/utils/graph-error-parser';
+import type { GraphErrorSummary } from '@/lib/utils/agent-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -144,7 +144,7 @@ export const graphStore = create<GraphState>()(
         }));
       },
       onNodesChange(changes) {
-        // Check if any change type would modify the graph (not just selection changes)
+        // Check if any change type would modify the agent (not just selection changes)
         const hasModifyingChange = changes.some(
           // Don't trigger `position` as modified change, since when the nodes are repositioned,
           // they'll be re-laid out during the initial load anyway
@@ -158,7 +158,7 @@ export const graphStore = create<GraphState>()(
         }));
       },
       onEdgesChange(changes) {
-        // Check if any change type would modify the graph (not just selection changes)
+        // Check if any change type would modify the agent (not just selection changes)
         const hasModifyingChange = changes.some(
           (change) => change.type === 'remove' || change.type === 'add' || change.type === 'replace'
         );
@@ -287,7 +287,7 @@ export const graphStore = create<GraphState>()(
 export const useGraphActions = () => graphStore((state) => state.actions);
 
 /**
- * Select values from the graph store (excluding actions).
+ * Select values from the agent store (excluding actions).
  *
  * We explicitly use `GraphStateData` instead of `GraphState`,
  * which includes actions, to encourage using `useGraphActions`

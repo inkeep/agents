@@ -19,12 +19,12 @@ describe('Pull Command', () => {
 
   describe('convertTypeScriptToJson', () => {
     it('should convert TypeScript file to JSON using tsx spawn', async () => {
-      const mockResult = { id: 'test-graph', name: 'Test Graph' };
+      const mockResult = { id: 'test-agent', name: 'Test Agent' };
       (convertTypeScriptToJson as Mock).mockResolvedValue(mockResult);
 
-      const result = await convertTypeScriptToJson('test-graph.ts');
+      const result = await convertTypeScriptToJson('test-agent.ts');
 
-      expect(convertTypeScriptToJson).toHaveBeenCalledWith('test-graph.ts');
+      expect(convertTypeScriptToJson).toHaveBeenCalledWith('test-agent.ts');
       expect(result).toEqual(mockResult);
     });
 
@@ -33,7 +33,7 @@ describe('Pull Command', () => {
         new Error('Failed to load TypeScript file: tsx not found')
       );
 
-      await expect(convertTypeScriptToJson('test-graph.ts')).rejects.toThrow(
+      await expect(convertTypeScriptToJson('test-agent.ts')).rejects.toThrow(
         'Failed to load TypeScript file: tsx not found'
       );
     });
@@ -43,7 +43,7 @@ describe('Pull Command', () => {
         new Error('Conversion failed: Error: Module not found')
       );
 
-      await expect(convertTypeScriptToJson('test-graph.ts')).rejects.toThrow(
+      await expect(convertTypeScriptToJson('test-agent.ts')).rejects.toThrow(
         'Conversion failed: Error: Module not found'
       );
     });
@@ -53,7 +53,7 @@ describe('Pull Command', () => {
         new Error('JSON markers not found in output')
       );
 
-      await expect(convertTypeScriptToJson('test-graph.ts')).rejects.toThrow(
+      await expect(convertTypeScriptToJson('test-agent.ts')).rejects.toThrow(
         'JSON markers not found in output'
       );
     });
@@ -63,7 +63,7 @@ describe('Pull Command', () => {
         new Error('Failed to parse conversion result')
       );
 
-      await expect(convertTypeScriptToJson('test-graph.ts')).rejects.toThrow(
+      await expect(convertTypeScriptToJson('test-agent.ts')).rejects.toThrow(
         'Failed to parse conversion result'
       );
     });
@@ -79,21 +79,21 @@ describe('Pull Command', () => {
     });
 
     it('should handle non-TypeScript files directly', async () => {
-      const mockResult = { id: 'test-graph' };
+      const mockResult = { id: 'test-agent' };
       (convertTypeScriptToJson as Mock).mockResolvedValue(mockResult);
 
-      const result = await convertTypeScriptToJson('test-graph.js');
+      const result = await convertTypeScriptToJson('test-agent.js');
 
       expect(result).toEqual(mockResult);
     });
 
-    it('should handle modules with no graph exports', async () => {
+    it('should handle modules with no agent exports', async () => {
       (convertTypeScriptToJson as Mock).mockRejectedValue(
-        new Error('No AgentGraph exported from configuration file')
+        new Error('No Agent exported from configuration file')
       );
 
-      await expect(convertTypeScriptToJson('test-graph.js')).rejects.toThrow(
-        'No AgentGraph exported from configuration file'
+      await expect(convertTypeScriptToJson('test-agent.js')).rejects.toThrow(
+        'No Agent exported from configuration file'
       );
     });
   });

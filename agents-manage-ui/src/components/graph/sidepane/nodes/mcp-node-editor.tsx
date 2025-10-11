@@ -10,14 +10,14 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useGraphActions, useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions, useGraphStore } from '@/features/agent/state/use-agent-store';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
-import type { AgentToolConfigLookup } from '../../graph';
+import type { AgentToolConfigLookup } from '../../agent';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;

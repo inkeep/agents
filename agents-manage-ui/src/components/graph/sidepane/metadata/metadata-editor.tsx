@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { useGraphActions, useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphActions, useGraphStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import { CollapsibleSettings } from '../collapsible-settings';
@@ -33,7 +33,7 @@ const ExecutionLimitInheritanceInfo = () => {
   return (
     <ul className="space-y-1.5 list-disc list-outside pl-4">
       <li>
-        <span className="font-medium">transferCountIs</span>: Project → Graph only (controls
+        <span className="font-medium">transferCountIs</span>: Project → Agent only (controls
         transfers between agents)
       </li>
       <li>
@@ -45,8 +45,8 @@ const ExecutionLimitInheritanceInfo = () => {
         set anywhere
       </li>
       <li>
-        <span className="font-medium">Graph scope</span>: This limit applies to all agents within
-        this graph
+        <span className="font-medium">Agent scope</span>: This limit applies to all agents within
+        this agent
       </li>
     </ul>
   );
@@ -55,7 +55,7 @@ const ExecutionLimitInheritanceInfo = () => {
 function MetadataEditor() {
   const params = useParams();
   const metadata = useGraphStore((state) => state.metadata);
-  const { graphId, tenantId, projectId } = params;
+  const { agentId, tenantId, projectId } = params;
   const { id, name, description, contextConfig, models, stopWhen, graphPrompt, statusUpdates } =
     metadata;
   const { INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
@@ -81,17 +81,17 @@ function MetadataEditor() {
     [updateMetadata]
   );
 
-  // Auto-prefill ID based on name field (only for new graphs)
+  // Auto-prefill ID based on name field (only for new agent)
   useAutoPrefillIdZustand({
     nameValue: name,
     idValue: id,
     onIdChange: handleIdChange,
-    isEditing: !!graphId,
+    isEditing: !!agentId,
   });
 
   return (
     <div className="space-y-8">
-      {graphId && (
+      {agentId && (
         <div className="space-y-2">
           <div className="text-sm leading-none font-medium flex items-center gap-1">
             Chat URL
@@ -100,7 +100,7 @@ function MetadataEditor() {
                 <Info className="w-3 h-3 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                Use this endpoint to chat with your graph or connect it to the Inkeep widget via the
+                Use this endpoint to chat with your agent or connect it to the Inkeep widget via the
                 graphUrl prop. Supports streaming responses with the Vercel AI SDK data stream
                 protocol.
               </TooltipContent>
@@ -118,7 +118,7 @@ function MetadataEditor() {
         label="Name"
         value={name}
         onChange={(e) => updateMetadata('name', e.target.value)}
-        placeholder="My graph"
+        placeholder="My agent"
         isRequired
       />
       <InputField
@@ -127,11 +127,11 @@ function MetadataEditor() {
         label="Id"
         value={id || ''}
         onChange={(e) => updateMetadata('id', e.target.value)}
-        disabled={!!graphId} // only editable if no graphId is set (i.e. new graph)
-        placeholder="my-graph"
+        disabled={!!agentId} // only editable if no agentId is set (i.e. new agent)
+        placeholder="my-agent"
         description={
-          !graphId
-            ? 'Choose a unique identifier for this graph. Using an existing id will replace that graph.'
+          !agentId
+            ? 'Choose a unique identifier for this agent. Using an existing id will replace that agent.'
             : undefined
         }
         isRequired
@@ -142,26 +142,26 @@ function MetadataEditor() {
         label="Description"
         value={description}
         onChange={(e) => updateMetadata('description', e.target.value)}
-        placeholder="This graph is used to..."
+        placeholder="This agent is used to..."
         className="max-h-96"
       />
       <div className="space-y-2">
         <ExpandableTextArea
-          id="graph-prompt"
-          label="Graph prompt"
+          id="agent-prompt"
+          label="Agent prompt"
           value={graphPrompt || ''}
           onChange={(value) => updateMetadata('graphPrompt', value)}
-          placeholder="System-level instructions for this graph..."
+          placeholder="System-level instructions for this agent..."
           className="max-h-96"
         />
         <p className="text-xs text-muted-foreground">
-          System-level prompt that defines the intended audience and overall goal of this graph.
+          System-level prompt that defines the intended audience and overall goal of this agent.
           Applied to all agents.
         </p>
       </div>
       <Separator />
 
-      {/* Graph Model Settings */}
+      {/* Agent Model Settings */}
       <div className="space-y-8">
         <SectionHeader
           title="Default models"
@@ -194,7 +194,7 @@ function MetadataEditor() {
                 Base model
                 <InheritanceIndicator
                   {...getModelInheritanceStatus(
-                    'graph',
+                    'agent',
                     models?.base?.model,
                     project?.models?.base?.model
                   )}
@@ -257,7 +257,7 @@ function MetadataEditor() {
                   Structured output model
                   <InheritanceIndicator
                     {...getModelInheritanceStatus(
-                      'graph',
+                      'agent',
                       models?.structuredOutput?.model,
                       project?.models?.structuredOutput?.model
                     )}
@@ -316,7 +316,7 @@ function MetadataEditor() {
                   Summarizer model
                   <InheritanceIndicator
                     {...getModelInheritanceStatus(
-                      'graph',
+                      'agent',
                       models?.summarizer?.model,
                       project?.models?.summarizer?.model
                     )}
@@ -355,11 +355,11 @@ function MetadataEditor() {
 
       <Separator />
 
-      {/* Graph Execution Limits */}
+      {/* Agent Execution Limits */}
       <div className="space-y-8">
         <SectionHeader
           title="Execution limits"
-          description="Configure graph-level execution limits for transfers between agents."
+          description="Configure agent-level execution limits for transfers between agents."
           titleTooltip={
             <div>
               <p>How execution limit inheritance works:</p>
@@ -373,7 +373,7 @@ function MetadataEditor() {
             <Label htmlFor="transfer-count">Max transfers</Label>
             <InheritanceIndicator
               {...getExecutionLimitInheritanceStatus(
-                'graph',
+                'agent',
                 'transferCountIs',
                 stopWhen?.transferCountIs,
                 project?.stopWhen?.transferCountIs

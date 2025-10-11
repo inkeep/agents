@@ -1,7 +1,7 @@
 import type { ModelSettings, StatusComponent, StatusUpdateSettings } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamHelper } from '../../utils/stream-helpers';
-import { GraphSession, graphSessionManager } from '../GraphSession';
+import { AgentSession, graphSessionManager } from '../GraphSession';
 
 // Mock the AI SDK
 vi.mock('ai', () => ({
@@ -53,7 +53,7 @@ vi.mock('../../utils/stream-registry.js', () => ({
 }));
 
 describe('GraphSession', () => {
-  let session: GraphSession;
+  let session: AgentSession;
   let mockStreamHelper: StreamHelper;
 
   beforeEach(() => {
@@ -71,7 +71,7 @@ describe('GraphSession', () => {
       writeSummary: vi.fn().mockResolvedValue(undefined),
     };
 
-    session = new GraphSession('test-session', 'test-message', 'test-graph');
+    session = new AgentSession('test-session', 'test-message', 'test-agent');
   });
 
   afterEach(() => {
@@ -84,7 +84,7 @@ describe('GraphSession', () => {
     it('should create a session with initial state', () => {
       expect(session.sessionId).toBe('test-session');
       expect(session.messageId).toBe('test-message');
-      expect(session.graphId).toBe('test-graph');
+      expect(session.agentId).toBe('test-agent');
       expect(session.isCurrentlyStreaming()).toBe(false);
       expect(session.getEvents()).toHaveLength(0);
     });
@@ -461,7 +461,7 @@ describe('GraphSession', () => {
 
   describe('GraphSessionManager', () => {
     it('should create and retrieve sessions', () => {
-      const sessionId = graphSessionManager.createSession('manager-test', 'test-graph');
+      const sessionId = graphSessionManager.createSession('manager-test', 'test-agent');
       expect(sessionId).toBe('manager-test');
 
       const retrieved = graphSessionManager.getSession('manager-test');
@@ -470,7 +470,7 @@ describe('GraphSession', () => {
     });
 
     it('should record events via manager', () => {
-      graphSessionManager.createSession('manager-test', 'test-graph');
+      graphSessionManager.createSession('manager-test', 'test-agent');
 
       graphSessionManager.recordEvent('manager-test', 'tool_execution', 'agent-1', {
         toolName: 'test-tool',
@@ -488,7 +488,7 @@ describe('GraphSession', () => {
     });
 
     it('should set text streaming state via manager', () => {
-      graphSessionManager.createSession('manager-test', 'test-graph');
+      graphSessionManager.createSession('manager-test', 'test-agent');
       const retrieved = graphSessionManager.getSession('manager-test');
 
       expect(retrieved?.isCurrentlyStreaming()).toBe(false);
@@ -517,7 +517,7 @@ describe('GraphSession', () => {
     });
 
     it('should end sessions via manager', () => {
-      graphSessionManager.createSession('manager-test', 'test-graph');
+      graphSessionManager.createSession('manager-test', 'test-agent');
       const retrieved = graphSessionManager.getSession('manager-test');
 
       // Test that session can record events before ending
@@ -601,7 +601,7 @@ describe('GraphSession', () => {
 
   describe('Summary Events', () => {
     it('should emit data-summary events using SummaryEvent interface', () => {
-      // Test that graph session can emit summary events with the new interface
+      // Test that agent session can emit summary events with the new interface
       const summaryEvent = {
         type: 'status',
         label: 'Processing completed',
@@ -815,7 +815,7 @@ describe('GraphSession', () => {
 
       // Create session through manager
       const sessionId = 'test-manager-session';
-      graphSessionManager.createSession(sessionId, 'test-graph', 'tenant-1', 'project-1');
+      graphSessionManager.createSession(sessionId, 'test-agent', 'tenant-1', 'project-1');
 
       // Initialize status updates through manager
       graphSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });

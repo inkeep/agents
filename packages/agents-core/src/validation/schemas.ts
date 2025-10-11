@@ -117,7 +117,7 @@ const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
 
-// Specific helper for graph-scoped entities that also need agentId omitted
+// Specific helper for agent-scoped entities that also need agentId omitted
 const createGraphScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
 
@@ -221,7 +221,7 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
   ExternalSubAgentRelationInsertSchema
 );
 
-// === Agent Graph Schemas ===
+// === Agent Agent Schemas ===
 export const AgentSelectSchema = createSelectSchema(agents);
 export const AgentInsertSchema = createInsertSchema(agents).extend({
   id: resourceIdSchema,
@@ -717,7 +717,7 @@ export const LedgerArtifactApiSelectSchema = createApiSchema(LedgerArtifactSelec
 export const LedgerArtifactApiInsertSchema = createApiInsertSchema(LedgerArtifactInsertSchema);
 export const LedgerArtifactApiUpdateSchema = createApiUpdateSchema(LedgerArtifactUpdateSchema);
 
-// === Full Graph Definition Schemas ===
+// === Full Agent Definition Schemas ===
 export const StatusComponentSchema = z.object({
   type: z.string(),
   description: z.string().optional(),
@@ -760,13 +760,13 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
     z.union([FullGraphAgentInsertSchema, ExternalAgentApiInsertSchema])
   ), // Lookup maps for UI to resolve canUse items
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (graph-scoped)
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
-  prompt: z.string().max(5000, 'Graph prompt cannot exceed 5000 characters').optional(),
+  prompt: z.string().max(5000, 'Agent prompt cannot exceed 5000 characters').optional(),
 });
 
 // === Response wrapper schemas ===
@@ -848,7 +848,7 @@ export const HeadersScopeSchema = z.object({
     example: 'project_456',
   }),
   'x-inkeep-agent-id': z.string().optional().openapi({
-    description: 'Graph identifier',
+    description: 'Agent identifier',
     example: 'graph_789',
   }),
 });

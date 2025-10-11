@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Loading() {
   return (
-    <BodyTemplate breadcrumbs={[{ label: 'Graphs' }, { label: '' }]}>
+    <BodyTemplate breadcrumbs={[{ label: 'Agent' }, { label: '' }]}>
       <div className="flex h-screen bg-muted/20 dark:bg-background p-4">
         {/* node library */}
         <div className="w-52">

@@ -86,7 +86,7 @@ describe('Projects Data Access', () => {
       // Mock Promise.all to return the same project IDs from different tables
       vi.spyOn(Promise, 'all').mockResolvedValue([
         [{ projectId: testProjectId1 }], // agents
-        [{ projectId: testProjectId2 }], // agentGraph
+        [{ projectId: testProjectId2 }], // agent
         [{ projectId: testProjectId1 }], // tools (duplicate)
         [], // contextConfigs (empty)
         [{ projectId: testProjectId2 }], // externalAgents (duplicate)
@@ -243,7 +243,7 @@ describe('Projects Data Access', () => {
       // Mock Promise.all to return different counts for each resource type
       vi.spyOn(Promise, 'all').mockResolvedValue([
         [{ count: 'agent-1' }, { count: 'agent-2' }, { count: 'agent-3' }], // 3 agents
-        [{ count: 'graph-1' }], // 1 graph
+        [{ count: 'agent-1' }], // 1 agent
         [{ count: 'tool-1' }, { count: 'tool-2' }], // 2 tools
         [], // 0 context configs
         [{ count: 'ext-1' }], // 1 external agent
@@ -256,7 +256,7 @@ describe('Projects Data Access', () => {
 
       expect(result).toEqual({
         agents: 3,
-        agentGraphs: 1,
+        agent: 1,
         tools: 2,
         contextConfigs: 0,
         externalAgents: 1,
@@ -287,7 +287,7 @@ describe('Projects Data Access', () => {
 
       expect(result).toEqual({
         agents: 0,
-        agentGraphs: 0,
+        agent: 0,
         tools: 0,
         contextConfigs: 0,
         externalAgents: 0,
@@ -377,7 +377,7 @@ describe('Projects Data Access', () => {
       // Mock Promise.all to return results only from the last table
       vi.spyOn(Promise, 'all').mockResolvedValue([
         [], // agents
-        [], // agentGraph
+        [], // agent
         [], // tools
         [], // contextConfigs
         [], // externalAgents

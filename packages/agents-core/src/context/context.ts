@@ -39,7 +39,7 @@ async function handleContextConfigChange(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  graphId: string,
+  agentId: string,
   newContextConfigId: string,
   dbClient: DatabaseClient,
   credentialStores?: CredentialStoreRegistry
@@ -60,7 +60,7 @@ async function handleContextConfigChange(
     logger.info(
       {
         conversationId,
-        graphId,
+        agentId,
         contextConfigId: newContextConfigId,
       },
       'Potential context config change for existing conversation, cache cleared'
@@ -95,16 +95,16 @@ async function handleContextResolution({
       },
     },
     async (parentSpan: Span) => {
-      let agentGraph: any;
+      let agent: any;
       let trigger: 'initialization' | 'invocation';
 
       try {
-        // 1. Get graph's context config
-        agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+        // 1. Get agent's context config
+        agent = await getAgentWithDefaultSubAgent(dbClient)({
           scopes: { tenantId, projectId, agentId: agentId },
         });
-        if (!agentGraph?.contextConfigId) {
-          logger.debug({ graphId: agentId }, 'No context config found for graph');
+        if (!agent?.contextConfigId) {
+          logger.debug({ agentId: agentId }, 'No context config found for agent');
           return null;
         }
 
@@ -114,7 +114,7 @@ async function handleContextResolution({
           projectId,
           conversationId,
           agentId,
-          agentGraph.contextConfigId,
+          agent.contextConfigId,
           dbClient,
           credentialStores
         );
@@ -125,17 +125,17 @@ async function handleContextResolution({
         // 4. Get context configuration directly from database
         const contextConfig = await getContextConfigById(dbClient)({
           scopes: { tenantId, projectId, agentId: agentId },
-          id: agentGraph.contextConfigId,
+          id: agent.contextConfigId,
         });
 
         if (!contextConfig) {
           logger.warn(
-            { contextConfigId: agentGraph.contextConfigId },
+            { contextConfigId: agent.contextConfigId },
             'Context config not found, proceeding without context resolution'
           );
           parentSpan.setStatus({ code: SpanStatusCode.ERROR });
           parentSpan.addEvent('context.config_not_found', {
-            contextConfigId: agentGraph.contextConfigId,
+            contextConfigId: agent.contextConfigId,
           });
           return null;
         }
@@ -187,7 +187,7 @@ async function handleContextResolution({
         logger.info(
           {
             conversationId,
-            graphId: agentId,
+            agentId: agentId,
             contextConfigId: contextConfig.id,
             trigger,
             resolvedKeys: Object.keys(resolvedContext),
@@ -196,7 +196,7 @@ async function handleContextResolution({
             fetchedDefinitions: contextResult.fetchedDefinitions.length,
             errors: contextResult.errors.length,
           },
-          'Context resolution completed (contextConfigId derived from graph)'
+          'Context resolution completed (contextConfigId derived from agent)'
         );
 
         return resolvedContext;
@@ -212,7 +212,7 @@ async function handleContextResolution({
         logger.error(
           {
             error: errorMessage,
-            contextConfigId: agentGraph?.contextConfigId,
+            contextConfigId: agent?.contextConfigId,
             trigger: await determineContextTrigger(
               tenantId,
               projectId,

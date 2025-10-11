@@ -18,12 +18,12 @@ export function normalizeBaseUrl(url: string): string {
 }
 
 /**
- * Constructs a graph view URL for the management UI
+ * Constructs a agent view URL for the management UI
  * @param manageUiUrl The base management UI URL
  * @param tenantId The tenant ID
  * @param projectId The project ID
- * @param agentId The graph ID
- * @returns The complete graph view URL
+ * @param agentId The agent ID
+ * @returns The complete agent view URL
  */
 export function buildGraphViewUrl(
   manageUiUrl: string | undefined,

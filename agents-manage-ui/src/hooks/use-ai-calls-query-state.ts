@@ -9,7 +9,7 @@ export type TimeRange = (typeof timeRanges)[number];
  * Provides type-safe query parameter management for:
  * - Time range selection (24h, 7d, 15d, custom)
  * - Custom date range (start/end dates)
- * - Graph filtering
+ * - Agent filtering
  * - Model filtering
  */
 export function useAICallsQueryState() {
@@ -41,7 +41,7 @@ export function useAICallsQueryState() {
     setTimeRange: (timeRange: TimeRange) => setQueryState({ timeRange }),
     setCustomDateRange: (start: string, end: string) =>
       setQueryState({ customStartDate: start, customEndDate: end }),
-    setGraphFilter: (graph: string) => setQueryState({ selectedGraph: graph }),
+    setGraphFilter: (agent: string) => setQueryState({ selectedGraph: agent }),
     setModelFilter: (model: string) => setQueryState({ selectedModel: model }),
     clearFilters: () =>
       setQueryState({

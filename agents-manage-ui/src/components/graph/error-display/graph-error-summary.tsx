@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSidePane } from '@/hooks/use-side-pane';
-import type { GraphErrorSummary, ProcessedGraphError } from '@/lib/utils/graph-error-parser';
+import type { GraphErrorSummary, ProcessedGraphError } from '@/lib/utils/agent-error-parser';
 
 interface GraphErrorSummaryProps {
   errorSummary: GraphErrorSummary;
@@ -122,12 +122,12 @@ export function GraphErrorSummaryComponent({
   const graphErrors = errorSummary.graphErrors;
 
   const getAgentLabel = (error: ProcessedGraphError) => {
-    // You might want to get the actual agent name from the graph data
+    // You might want to get the actual agent name from the agent data
     return `Agent (${error.nodeId})`;
   };
 
   const getFunctionToolLabel = (error: ProcessedGraphError) => {
-    // You might want to get the actual function tool name from the graph data
+    // You might want to get the actual function tool name from the agent data
     return `Function Tool (${error.nodeId})`;
   };
 
@@ -150,7 +150,7 @@ export function GraphErrorSummaryComponent({
       </CardHeader>
       <CardContent className="space-y-2 px-3 overflow-y-auto max-h-[calc(80vh-80px)] scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-red-800 scrollbar-track-transparent hover:scrollbar-thumb-red-300 dark:hover:scrollbar-thumb-red-700">
         <div className="text-xs text-red-600 dark:text-red-400 mb-2">
-          Fix these issues to save your graph:
+          Fix these issues to save your agent:
         </div>
 
         <ErrorGroup
@@ -178,7 +178,7 @@ export function GraphErrorSummaryComponent({
         />
 
         <ErrorGroup
-          title="Graph Configuration Errors"
+          title="Agent Configuration Errors"
           errors={graphErrors}
           icon={<AlertCircle className="w-3 h-3" />}
         />

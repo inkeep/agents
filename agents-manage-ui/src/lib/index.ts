@@ -13,7 +13,7 @@ export {
   getFullGraphAction,
   updateFullGraphAction,
   validateGraphData,
-} from './actions/graph-full';
+} from './actions/agent-full';
 
 // API Client exports (for advanced use cases)
 export {
@@ -22,8 +22,8 @@ export {
   deleteFullGraph,
   getFullGraph,
   updateFullGraph,
-} from './api/graph-full-client';
-// Graph Full API exports
+} from './api/agent-full-client';
+// Agent Full API exports
 export {
   type AgentApi,
   AgentApiSchema,
@@ -36,12 +36,12 @@ export {
   FullGraphDefinitionSchema,
   type GetGraphResponse,
   type GraphApiError,
-  type GraphIdParams,
-  GraphIdParamsSchema,
+  type AgentIdParams,
+  AgentIdParamsSchema,
   SingleResponseSchema,
   type TenantParams,
   TenantParamsSchema,
   type ToolApi,
   ToolApiSchema,
   type UpdateGraphResponse,
-} from './types/graph-full';
+} from './types/agent-full';

@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import { getActiveTools } from '@/app/utils/active-tools';
-import type { MCPNodeData } from '@/components/graph/configuration/node-types';
-import { NodeType } from '@/components/graph/configuration/node-types';
+import type { MCPNodeData } from '@/components/agent/configuration/node-types';
+import { NodeType } from '@/components/agent/configuration/node-types';
 import type { MCPTool } from '@/lib/types/tools';
 
 interface OrphanedToolsInfo {
@@ -33,7 +33,7 @@ export function detectOrphanedToolsAndGetWarning(
 }
 
 /**
- * Detects orphaned tools across all MCP nodes in the graph
+ * Detects orphaned tools across all MCP nodes in the agent
  * Orphaned tools are tools that were selected but are no longer available in the MCP server
  */
 function detectOrphanedToolsInGraph(

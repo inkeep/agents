@@ -49,7 +49,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   const [agentCalls, setAgentCalls] = useState<
     Array<{
       subAgentId: string;
-      graphId: string;
+      agentId: string;
       modelId: string;
       totalCalls: number;
     }>
@@ -57,7 +57,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   const [modelCalls, setModelCalls] = useState<Array<{ modelId: string; totalCalls: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [graphs, setGraphs] = useState<string[]>([]);
+  const [agent, setGraphs] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
 
   // Handle filter changes with nuqs
@@ -123,7 +123,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
 
         const client = getSigNozStatsClient();
 
-        const graphId = selectedGraph === 'all' ? undefined : selectedGraph;
+        const agentId = selectedGraph === 'all' ? undefined : selectedGraph;
         const modelId = selectedModel === 'all' ? undefined : selectedModel;
 
         // Fetch all data in parallel using SigNoz aggregations
@@ -131,11 +131,11 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           client.getAICallsByAgent(
             startTime,
             endTime,
-            graphId,
+            agentId,
             modelId,
             params.projectId as string
           ),
-          client.getAICallsByModel(startTime, endTime, graphId, params.projectId as string),
+          client.getAICallsByModel(startTime, endTime, agentId, params.projectId as string),
           client.getUniqueGraphs(startTime, endTime, params.projectId as string),
           client.getUniqueModels(startTime, endTime, params.projectId as string),
         ]);
@@ -196,20 +196,20 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
         </CardHeader>
         <CardContent className="pt-0">
           <div className="flex flex-col md:flex-row gap-2 md:gap-4 max-w-4xl">
-            {/* Graph Filter */}
+            {/* Agent Filter */}
             <div className="space-y-1 flex-1">
-              <Label htmlFor="graph-filter" className="text-sm">
-                Graph
+              <Label htmlFor="agent-filter" className="text-sm">
+                Agent
               </Label>
               <Select value={selectedGraph} onValueChange={setGraphFilter}>
-                <SelectTrigger id="graph-filter">
-                  <SelectValue placeholder="Select graph" />
+                <SelectTrigger id="agent-filter">
+                  <SelectValue placeholder="Select agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Graphs</SelectItem>
-                  {graphs.map((graph) => (
-                    <SelectItem key={graph} value={graph}>
-                      {graph}
+                  <SelectItem value="all">All Agent</SelectItem>
+                  {agent.map((agent) => (
+                    <SelectItem key={agent} value={agent}>
+                      {agent}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -293,9 +293,9 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
               <div>
                 {selectedGraph === 'all' && selectedModel === 'all'
-                  ? `Showing ${agentCalls.length} agents across all graphs and models`
+                  ? `Showing ${agentCalls.length} agents across all agent and models`
                   : selectedGraph === 'all'
-                    ? `Showing agents for all graphs, model: ${selectedModel}`
+                    ? `Showing agents for all agent, model: ${selectedModel}`
                     : selectedModel === 'all'
                       ? `Showing agents for ${selectedGraph}, all models`
                       : `Showing agents for ${selectedGraph}, model: ${selectedModel}`}
@@ -332,7 +332,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           <p className="text-xs text-muted-foreground">
             {selectedGraph === 'all'
               ? `AI calls within conversations across ${agentCalls.length} agents`
-              : `AI calls within conversations for selected graph`}
+              : `AI calls within conversations for selected agent`}
           </p>
         </CardContent>
       </Card>
@@ -369,9 +369,9 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
                         {agent.subAgentId === UNKNOWN_VALUE ? 'Unknown Agent' : agent.subAgentId}
                       </span>
                       <div className="flex flex-col gap-0.5">
-                        {agent.graphId !== UNKNOWN_VALUE && (
+                        {agent.agentId !== UNKNOWN_VALUE && (
                           <span className="text-xs text-muted-foreground">
-                            Graph: {agent.graphId}
+                            Agent: {agent.agentId}
                           </span>
                         )}
                         {agent.modelId !== UNKNOWN_VALUE && (
@@ -398,7 +398,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
               <p className="text-xs text-muted-foreground/70 mt-1">
                 {selectedGraph === 'all'
                   ? 'No AI calls detected in the selected time range'
-                  : 'No AI calls found for the selected graph'}
+                  : 'No AI calls found for the selected agent'}
               </p>
             </div>
           )}
@@ -456,7 +456,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
               <p className="text-xs text-muted-foreground/70 mt-1">
                 {selectedGraph === 'all'
                   ? 'No model data detected in the selected time range'
-                  : 'No model data found for the selected graph'}
+                  : 'No model data found for the selected agent'}
               </p>
             </div>
           )}

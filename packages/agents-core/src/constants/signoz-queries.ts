@@ -144,7 +144,7 @@ export const QUERY_TYPES = {
 export const PANEL_TYPES = {
   LIST: 'list',
   TABLE: 'table',
-  GRAPH: 'graph',
+  AGENT: 'agent',
   VALUE: 'value',
 } as const;
 

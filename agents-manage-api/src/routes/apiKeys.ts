@@ -126,7 +126,7 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Create API Key',
-    description: 'Create a new API key for a graph. Returns the full key (shown only once).',
+    description: 'Create a new API key for a agent. Returns the full key (shown only once).',
     operationId: 'create-api-key',
     tags: ['API Keys'],
     request: {
@@ -189,7 +189,7 @@ app.openapi(
       if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
         throw createApiError({
           code: 'bad_request',
-          message: 'Invalid agentId - graph does not exist',
+          message: 'Invalid agentId - agent does not exist',
         });
       }
 

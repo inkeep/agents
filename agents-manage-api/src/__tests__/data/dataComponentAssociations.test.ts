@@ -26,7 +26,7 @@ describe('Data Component Agent Associations', () => {
   let agentId: string;
 
   beforeEach(async () => {
-    // Create a test graph first
+    // Create a test agent first
     agentId = nanoid();
     subAgentId = nanoid();
 
@@ -34,7 +34,7 @@ describe('Data Component Agent Associations', () => {
       id: agentId,
       tenantId,
       projectId,
-      name: 'Test Graph',
+      name: 'Test Agent',
       defaultSubAgentId: subAgentId,
     });
 
@@ -118,8 +118,8 @@ describe('Data Component Agent Associations', () => {
       });
     });
 
-    it.skip('should only return components for the specific agent and graph', async () => {
-      // Create another agent in the same graph
+    it.skip('should only return components for the specific agent and agent', async () => {
+      // Create another agent in the same agent
       const agent2 = await createSubAgent(dbClient)({
         tenantId,
         projectId,
@@ -197,7 +197,7 @@ describe('Data Component Agent Associations', () => {
     });
 
     it.skip('should return all agents using a data component', async () => {
-      // Create second agent in the same graph
+      // Create second agent in the same agent
       const subAgent2 = await createSubAgent(dbClient)({
         id: nanoid(),
         tenantId,

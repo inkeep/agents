@@ -10,7 +10,7 @@ export interface ChatOptions {
   configFilePath?: string; // deprecated, kept for backward compatibility
 }
 
-export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatOptions) {
+export async function chatCommandEnhanced(agentIdInput?: string, options?: ChatOptions) {
   console.log(chalk.cyan('🤖 Inkeep Chat Interface\n'));
 
   // Use standardized CLI pipeline for initialization
@@ -34,25 +34,25 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
     config.tenantId
   );
 
-  let graphId = graphIdInput;
+  let agentId = agentIdInput;
 
-  // If no graph ID provided, show autocomplete selection
-  if (!graphId) {
-    const spinner = ora('Fetching available graphs...').start();
+  // If no agent ID provided, show autocomplete selection
+  if (!agentId) {
+    const spinner = ora('Fetching available agent...').start();
     try {
-      const graphs = await managementApi.listAgents();
+      const agent = await managementApi.listAgents();
       spinner.stop();
 
-      if (graphs.length === 0) {
+      if (agent.length === 0) {
         console.error(
-          chalk.red('No graphs available. Define graphs in your project and run: inkeep push')
+          chalk.red('No agent available. Define agent in your project and run: inkeep push')
         );
         process.exit(1);
       }
 
       // Create searchable source for autocomplete
-      const graphChoices = graphs.map((g) => ({
-        name: `${chalk.cyan(g.id)} - ${g.name || 'Unnamed Graph'}`,
+      const graphChoices = agent.map((g) => ({
+        name: `${chalk.cyan(g.id)} - ${g.name || 'Unnamed Agent'}`,
         value: g.id,
         short: g.id,
         searchText: `${g.id} ${g.name || ''}`.toLowerCase(),
@@ -62,55 +62,55 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
       const answer = await inquirer.prompt([
         {
           type: 'list',
-          name: 'graphId',
-          message: 'Select a graph to chat with:',
+          name: 'agentId',
+          message: 'Select a agent to chat with:',
           choices: graphChoices,
           pageSize: 10,
         },
       ]);
 
-      graphId = answer.graphId;
+      agentId = answer.agentId;
     } catch (error) {
-      spinner.fail('Failed to fetch graphs');
+      spinner.fail('Failed to fetch agent');
       console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
       process.exit(1);
     }
   }
 
-  // Check if graph exists
-  const spinner = ora('Connecting to graph...').start();
+  // Check if agent exists
+  const spinner = ora('Connecting to agent...').start();
   try {
-    if (!graphId) {
-      throw new Error('No graph selected');
+    if (!agentId) {
+      throw new Error('No agent selected');
     }
-    const graph = await managementApi.getAgent(graphId);
-    if (!graph) {
-      spinner.fail(`Graph "${graphId}" not found`);
+    const agent = await managementApi.getAgent(agentId);
+    if (!agent) {
+      spinner.fail(`Agent "${agentId}" not found`);
 
-      // Show available graphs
-      const graphs = await managementApi.listAgents();
-      if (graphs.length > 0) {
-        console.log(chalk.yellow('\nAvailable graphs:'));
-        graphs.forEach((g) => {
+      // Show available agent
+      const agent = await managementApi.listAgents();
+      if (agent.length > 0) {
+        console.log(chalk.yellow('\nAvailable agent:'));
+        agent.forEach((g) => {
           console.log(chalk.gray(`  • ${g.id} - ${g.name || 'Unnamed'}`));
         });
         console.log(chalk.gray('\nRun "inkeep chat" without arguments for interactive selection'));
       } else {
-        console.log(chalk.yellow('\nNo graphs found. Please define graphs and push your project.'));
+        console.log(chalk.yellow('\nNo agent found. Please define agent and push your project.'));
       }
       process.exit(1);
     }
-    spinner.succeed(`Connected to graph: ${chalk.green(graph.name || graphId)}`);
+    spinner.succeed(`Connected to agent: ${chalk.green(agent.name || agentId)}`);
 
-    // Display graph details
-    if (graph.description) {
-      console.log(chalk.gray(`Description: ${graph.description}`));
+    // Display agent details
+    if (agent.description) {
+      console.log(chalk.gray(`Description: ${agent.description}`));
     }
-    if (graph.defaultSubAgentId) {
-      console.log(chalk.gray(`Default Agent: ${graph.defaultSubAgentId}`));
+    if (agent.defaultSubAgentId) {
+      console.log(chalk.gray(`Default Agent: ${agent.defaultSubAgentId}`));
     }
   } catch (error) {
-    spinner.fail('Failed to connect to graph');
+    spinner.fail('Failed to connect to agent');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }
@@ -336,9 +336,9 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
 
     try {
       // Send message to API using execution API
-      if (!graphId) throw new Error('No graph selected');
+      if (!agentId) throw new Error('No agent selected');
       const response = await executionApi.chatCompletion(
-        graphId,
+        agentId,
         messages,
         conversationId,
         emitOperations
@@ -365,7 +365,7 @@ export async function chatCommandEnhanced(graphIdInput?: string, options?: ChatO
 
   rl.on('close', () => {
     console.log(chalk.gray('\n📊 Session Summary:'));
-    console.log(chalk.gray(`  • Graph: ${graphId}`));
+    console.log(chalk.gray(`  • Agent: ${agentId}`));
     console.log(chalk.gray(`  • Messages: ${messages.length}`));
     console.log(chalk.gray(`  • Duration: ${new Date().toLocaleTimeString()}`));
     console.log(chalk.gray('\nChat session ended.'));

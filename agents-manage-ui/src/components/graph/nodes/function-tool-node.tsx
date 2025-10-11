@@ -1,6 +1,6 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code } from 'lucide-react';
-import { useGraphErrors } from '@/hooks/use-graph-errors';
+import { useGraphErrors } from '@/hooks/use-agent-errors';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';

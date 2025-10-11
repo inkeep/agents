@@ -32,8 +32,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
         defaultSubAgentId: 'test-agent',
@@ -67,7 +67,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -82,28 +82,28 @@ describe('Chat Data Stream Route', () => {
   it('should stream response using Vercel data stream protocol', async () => {
     const tenantId = createTestTenantId('chat-data-stream');
     const projectId = 'default';
-    const graphId = nanoid();
+    const agentId = nanoid();
     const subAgentId = 'test-agent';
 
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
 
-    // Create graph first
+    // Create agent first
     await createAgent(dbClient)({
-      id: graphId,
+      id: agentId,
       tenantId,
       projectId,
-      name: 'Test Graph',
-      description: 'Test graph for data chat',
+      name: 'Test Agent',
+      description: 'Test agent for data chat',
       defaultSubAgentId: subAgentId,
     });
 
-    // Then create agent with graphId
+    // Then create agent with agentId
     await createSubAgent(dbClient)({
       id: subAgentId,
       tenantId,
       projectId,
-      agentId: graphId,
+      agentId: agentId,
       name: 'Test Agent',
       description: 'Test agent for streaming',
       prompt: 'You are a helpful assistant.',

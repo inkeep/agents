@@ -170,8 +170,8 @@ describe('API Keys Data Access', () => {
 
     it('should list API keys without agentId filter', async () => {
       const expectedApiKeys = [
-        { id: 'key-1', agentId: 'graph-1', keyPrefix: 'ik_test_1' },
-        { id: 'key-2', agentId: 'graph-2', keyPrefix: 'ik_test_2' },
+        { id: 'key-1', agentId: 'agent-1', keyPrefix: 'ik_test_1' },
+        { id: 'key-2', agentId: 'agent-2', keyPrefix: 'ik_test_2' },
       ];
 
       const mockQuery = {

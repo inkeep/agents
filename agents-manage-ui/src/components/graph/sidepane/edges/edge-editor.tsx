@@ -4,7 +4,7 @@ import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useGraphActions } from '@/features/graph/state/use-graph-store';
+import { useGraphActions } from '@/features/agent/state/use-agent-store';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
 type RelationshipOptionProps = {

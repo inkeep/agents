@@ -6,12 +6,12 @@ import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('Project Full CRUD Routes - Integration Tests', () => {
-  // Helper function to create full graph definition
-  // NOTE: Tools should be defined at PROJECT level, not graph level
+  // Helper function to create full agent definition
+  // NOTE: Tools should be defined at PROJECT level, not agent level
   const createTestAgentDefinition = (agentId: string, subAgentId: string, suffix = '') => ({
     id: agentId,
-    name: `Test Graph${suffix}`,
-    description: `Complete test graph${suffix}`,
+    name: `Test Agent${suffix}`,
+    description: `Complete test agent${suffix}`,
     defaultSubAgentId: subAgentId,
     subAgents: {
       [subAgentId]: createTestSubAgentData({ id: subAgentId, suffix: suffix }),
@@ -290,9 +290,9 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 3 agents and 3 tools
-      const graph1Id = `graph-${projectId}-1`;
-      const graph2Id = `graph-${projectId}-2`;
-      const graph3Id = `graph-${projectId}-3`;
+      const graph1Id = `agent-${projectId}-1`;
+      const graph2Id = `agent-${projectId}-2`;
+      const graph3Id = `agent-${projectId}-3`;
       const tool1Id = `tool-${projectId}-1`;
       const tool2Id = `tool-${projectId}-2`;
       const tool3Id = `tool-${projectId}-3`;
@@ -303,7 +303,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         [graph2Id]: createTestAgentDefinition(graph2Id, `agent-${graph2Id}`, ' 2'),
         [graph3Id]: createTestAgentDefinition(graph3Id, `agent-${graph3Id}`, ' 3'),
       };
-      // Define tools at PROJECT level, not graph level
+      // Define tools at PROJECT level, not agent level
       originalDefinition.tools = {
         [tool1Id]: createTestToolData(tool1Id, ' 1'),
         [tool2Id]: createTestToolData(tool2Id, ' 2'),
@@ -321,7 +321,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
           status: createRes.status,
           error: errorBody,
           projectId,
-          graphIds: Object.keys(originalDefinition.agents),
+          agentIds: Object.keys(originalDefinition.agents),
         });
       }
       expect(createRes.status).toBe(201);
@@ -334,7 +334,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const initialBody = await getInitialRes.json();
       expect(Object.keys(initialBody.data.agents)).toHaveLength(3);
 
-      // Update project to only include 1 graph (remove 2 agents)
+      // Update project to only include 1 agent (remove 2 agents)
       const updatedDefinition = {
         ...originalDefinition,
         agents: {
@@ -350,7 +350,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updateBody = await updateRes.json();
 
-      // Verify only 1 graph remains
+      // Verify only 1 agent remains
       expect(Object.keys(updateBody.data.agents)).toHaveLength(1);
       expect(updateBody.data.agents).toHaveProperty(graph1Id);
       expect(updateBody.data.agents).not.toHaveProperty(graph2Id);
@@ -371,8 +371,8 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 2 agents and 2 tools
-      const graph1Id = `graph-${projectId}-1`;
-      const graph2Id = `graph-${projectId}-2`;
+      const graph1Id = `agent-${projectId}-1`;
+      const graph2Id = `agent-${projectId}-2`;
       const tool1Id = `tool-${projectId}-1`;
       const tool2Id = `tool-${projectId}-2`;
 
@@ -381,7 +381,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         [graph1Id]: createTestAgentDefinition(graph1Id, `agent-${graph1Id}`, ' 1'),
         [graph2Id]: createTestAgentDefinition(graph2Id, `agent-${graph2Id}`, ' 2'),
       };
-      // Define tools at PROJECT level, not graph level
+      // Define tools at PROJECT level, not agent level
       originalDefinition.tools = {
         [tool1Id]: createTestToolData(tool1Id, ' 1'),
         [tool2Id]: createTestToolData(tool2Id, ' 2'),
@@ -465,7 +465,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('Project with Complex Graph Structure', () => {
+  describe('Project with Complex Agent Structure', () => {
     it('should handle project with multiple agents and complex relationships', async () => {
       const tenantId = createTestTenantId();
       const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -475,12 +475,12 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const agent2Id = `agent-${nanoid()}`;
       const tool1Id = `tool-${nanoid()}`;
       const tool2Id = `tool-${nanoid()}`;
-      const graph1Id = `graph-${nanoid()}`;
-      const graph2Id = `graph-${nanoid()}`;
+      const graph1Id = `agent-${nanoid()}`;
+      const graph2Id = `agent-${nanoid()}`;
 
       const complexProject = {
         id: projectId,
-        name: 'Complex Multi-Graph Project',
+        name: 'Complex Multi-Agent Project',
         description: 'Project with multiple interconnected agents',
         models: {
           base: { model: 'gpt-4o-mini' },
@@ -494,7 +494,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
           [graph1Id]: createTestAgentDefinition(graph1Id, agent1Id, '-1'),
           [graph2Id]: createTestAgentDefinition(graph2Id, agent2Id, '-2'),
         },
-        // Define tools at PROJECT level, not graph level
+        // Define tools at PROJECT level, not agent level
         tools: {
           [tool1Id]: createTestToolData(tool1Id, '-1'),
           [tool2Id]: createTestToolData(tool2Id, '-2'),
@@ -512,7 +512,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
           status: response.status,
           error: errorBody,
           projectId,
-          graphIds: Object.keys(complexProject.agents),
+          agentIds: Object.keys(complexProject.agents),
         });
       }
       expect(response.status).toBe(201);

@@ -8,11 +8,11 @@ import { createTestTenantId } from '../../utils/testTenant';
 describe('Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
-  // Helper function to create a test graph
+  // Helper function to create a test agent
   const createTestAgent = async (tenantId: string) => {
     const graphData = {
       id: nanoid(),
-      name: `Test Graph ${nanoid()}`,
+      name: `Test Agent ${nanoid()}`,
       defaultSubAgentId: null,
     };
     const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {

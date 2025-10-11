@@ -1,5 +1,5 @@
-import type { ContextConfig, GraphMetadata } from '@/components/graph/configuration/graph-types';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import type { ContextConfig, GraphMetadata } from '@/components/agent/configuration/agent-types';
+import type { FullGraphDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 
 export type ExtendedFullGraphDefinition = FullGraphDefinition & {
@@ -10,52 +10,52 @@ export type ExtendedFullGraphDefinition = FullGraphDefinition & {
 };
 
 /**
- * Extracts and formats graph metadata from a FullGraphDefinition object.
- * This helper function handles the complex transformation of the graph data
+ * Extracts and formats agent metadata from a FullGraphDefinition object.
+ * This helper function handles the complex transformation of the agent data
  * into the format expected by the GraphMetadata type, including proper
  * JSON field formatting for form compatibility.
  */
 export function extractGraphMetadata(
-  graph: ExtendedFullGraphDefinition | null | undefined
+  agent: ExtendedFullGraphDefinition | null | undefined
 ): GraphMetadata {
   return {
-    id: graph?.id,
-    name: graph?.name ?? '',
-    description: graph?.description ?? '',
-    graphPrompt: graph?.graphPrompt,
-    models: graph?.models
+    id: agent?.id,
+    name: agent?.name ?? '',
+    description: agent?.description ?? '',
+    graphPrompt: agent?.graphPrompt,
+    models: agent?.models
       ? {
-          base: graph.models.base
+          base: agent.models.base
             ? {
-                model: graph.models.base.model,
-                providerOptions: formatJsonField(graph.models.base.providerOptions),
+                model: agent.models.base.model,
+                providerOptions: formatJsonField(agent.models.base.providerOptions),
               }
             : undefined,
-          structuredOutput: graph.models.structuredOutput
+          structuredOutput: agent.models.structuredOutput
             ? {
-                model: graph.models.structuredOutput.model,
-                providerOptions: formatJsonField(graph.models.structuredOutput.providerOptions),
+                model: agent.models.structuredOutput.model,
+                providerOptions: formatJsonField(agent.models.structuredOutput.providerOptions),
               }
             : undefined,
-          summarizer: graph.models.summarizer
+          summarizer: agent.models.summarizer
             ? {
-                model: graph.models.summarizer.model,
-                providerOptions: formatJsonField(graph.models.summarizer.providerOptions),
+                model: agent.models.summarizer.model,
+                providerOptions: formatJsonField(agent.models.summarizer.providerOptions),
               }
             : undefined,
         }
       : undefined,
-    stopWhen: graph?.stopWhen,
-    statusUpdates: graph?.statusUpdates
+    stopWhen: agent?.stopWhen,
+    statusUpdates: agent?.statusUpdates
       ? {
-          ...graph.statusUpdates,
-          statusComponents: formatJsonField(graph.statusUpdates.statusComponents) || '',
+          ...agent.statusUpdates,
+          statusComponents: formatJsonField(agent.statusUpdates.statusComponents) || '',
         }
       : undefined,
     contextConfig: {
-      id: graph?.contextConfig?.id ?? '',
-      contextVariables: formatJsonField(graph?.contextConfig?.contextVariables) || '',
-      headersSchema: formatJsonField(graph?.contextConfig?.headersSchema) || '',
+      id: agent?.contextConfig?.id ?? '',
+      contextVariables: formatJsonField(agent?.contextConfig?.contextVariables) || '',
+      headersSchema: formatJsonField(agent?.contextConfig?.headersSchema) || '',
     },
   };
 }

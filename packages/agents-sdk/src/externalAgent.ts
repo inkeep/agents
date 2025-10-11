@@ -67,7 +67,7 @@ export class ExternalAgent implements ExternalAgentInterface {
     }
   }
 
-  // Set context (tenantId and baseURL) from external source (graph, CLI, etc)
+  // Set context (tenantId and baseURL) from external source (agent, CLI, etc)
   setContext(tenantId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     if (baseURL) {

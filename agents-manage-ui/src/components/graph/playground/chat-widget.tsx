@@ -8,7 +8,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
 
 interface ChatWidgetProps {
-  graphId?: string;
+  agentId?: string;
   projectId: string;
   tenantId: string;
   conversationId: string;
@@ -121,7 +121,7 @@ const styleOverrides = `
 `;
 
 export function ChatWidget({
-  graphId,
+  agentId,
   projectId,
   tenantId,
   conversationId,
@@ -247,11 +247,11 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            graphUrl: graphId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
+            graphUrl: agentId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': graphId,
+              'x-inkeep-agent-id': agentId,
               Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },

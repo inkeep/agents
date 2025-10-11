@@ -1,7 +1,7 @@
 import * as graphFullModule from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
-import { agent, agentGraph, mcpTool } from '../../index';
+import { subAgent, agent, mcpTool } from '../../index';
 import { createTestTenantId } from '../utils/testTenant';
 
 // Mock @inkeep/agents-core
@@ -21,8 +21,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 // Mock the graphFullClient
 vi.mock('../../graphFullClient.js', () => ({
   updateFullGraphViaAPI: vi.fn().mockResolvedValue({
-    id: 'test-graph',
-    name: 'Test Graph',
+    id: 'test-agent',
+    name: 'Test Agent',
     agents: {
       'test-agent': {
         id: 'test-agent',
@@ -57,8 +57,8 @@ vi.mock('../../graphFullClient.js', () => ({
     defaultSubAgentId: 'test-agent',
   }),
   createFullGraphViaAPI: vi.fn().mockResolvedValue({
-    id: 'test-graph',
-    name: 'Test Graph',
+    id: 'test-agent',
+    name: 'Test Agent',
     agents: {
       'test-agent': {
         id: 'test-agent',
@@ -75,9 +75,9 @@ vi.mock('../../graphFullClient.js', () => ({
   getFullGraphViaAPI: vi.fn().mockResolvedValue(null),
 }));
 
-describe('Graph Builder Refactor - Integration Tests', () => {
-  it.skip('should use the new graph endpoint for initialization', async () => {
-    const tenantId = createTestTenantId('graph-refactor');
+describe('Agent Builder Refactor - Integration Tests', () => {
+  it.skip('should use the new agent endpoint for initialization', async () => {
+    const tenantId = createTestTenantId('agent-refactor');
 
     // Spy on the createFullGraphServerSide function to verify it's being called
     const createFullGraphSpy = vi.spyOn(graphFullModule, 'createFullGraphServerSide');
@@ -90,7 +90,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       serverUrl: 'http://localhost:3000',
     });
 
-    const agent1 = agent({
+    const agent1 = subAgent({
       id: 'agent1',
       name: 'Agent 1',
       description: 'First test agent',
@@ -98,7 +98,7 @@ describe('Graph Builder Refactor - Integration Tests', () => {
       canUse: () => [testTool],
     });
 
-    const agent2 = agent({
+    const agent2 = subAgent({
       id: 'agent2',
       name: 'Agent 2',
       prompt: 'You are agent 2.',
@@ -108,18 +108,18 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     // Set up bidirectional transfer
     agent1.addTransfer(agent2);
 
-    // Create the graph
-    const graphId = `test-graph-${nanoid()}`;
-    const graph = agentGraph({
-      id: graphId,
-      name: 'Test Graph',
-      description: 'A test graph for refactor validation',
+    // Create the agent
+    const agentId = `test-agent-${nanoid()}`;
+    const agentObject = agent({
+      id: agentId,
+      name: 'Test Agent',
+      description: 'A test agent for refactor validation',
       defaultSubAgent: agent1,
       subAgents: () => [agent1, agent2],
     });
 
-    // Initialize the graph
-    await graph.init();
+    // Initialize the agent
+    await agentObject.init();
 
     // Verify that createFullGraphServerSide was called
     expect(createFullGraphSpy).toHaveBeenCalledTimes(1);
@@ -128,9 +128,9 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     const [calledTenantId, calledGraphData] = createFullGraphSpy.mock.calls[0];
     expect(calledTenantId).toBe(tenantId);
     expect(calledGraphData).toMatchObject({
-      id: graphId,
-      name: graphId,
-      description: `Agent graph ${graphId}`,
+      id: agentId,
+      name: agentId,
+      description: `Agent agent ${agentId}`,
       defaultSubAgentId: 'agent-1', // Agent IDs are converted to kebab-case
       agents: expect.objectContaining({
         'agent-1': expect.objectContaining({
@@ -160,41 +160,41 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it.skip('should handle component mode correctly', async () => {
-    const _tenantId = createTestTenantId('graph-component-mode');
+    const _tenantId = createTestTenantId('agent-component-mode');
 
     // Import and spy on the updateFullGraphViaAPI function
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
     updateSpy.mockClear(); // Clear previous calls
 
-    const agent1 = agent({
+    const subAgent1 = subAgent({
       id: 'component-agent',
       name: 'Component Agent',
       description: 'Agent with component mode',
       prompt: 'You are a component-enabled agent.',
     });
 
-    const graphId = `component-graph-${nanoid()}`;
-    const graph = agentGraph({
-      id: graphId,
-      name: 'Component Graph',
-      description: 'A graph with component mode enabled',
-      defaultSubAgent: agent1,
-      subAgents: () => [agent1],
+    const agentId = `component-agent-${nanoid()}`;
+    const agentObject = agent({
+      id: agentId,
+      name: 'Component Agent',
+      description: 'A agent with component mode enabled',
+      defaultSubAgent: subAgent1,
+      subAgents: () => [subAgent1],
     });
 
-    await graph.init();
+    await agentObject.init();
 
     // Verify that updateFullGraphViaAPI was called
     expect(updateSpy).toHaveBeenCalled();
 
     // Verify that the agent instructions are preserved (component mode is deprecated)
     const calledProjectData = updateSpy.mock.calls[0][3]; // 4th argument is projectData (tenantId, apiUrl, projectId, projectData)
-    const graphs = calledProjectData?.agents || {};
-    const firstGraphId = Object.keys(graphs)[0];
+    const agents = calledProjectData?.agents || {};
+    const firstAgentId = Object.keys(agent)[0];
     const agentInstructions =
-      firstGraphId && graphs[firstGraphId].subAgents['component-agent']
-        ? (graphs[firstGraphId].subAgents['component-agent'] as any).prompt
+      firstAgentId && agents[firstAgentId].subAgents['component-agent']
+        ? (agents[firstAgentId].subAgents['component-agent'] as any).prompt
         : '';
 
     // Instructions should be preserved as originally specified
@@ -203,36 +203,36 @@ describe('Graph Builder Refactor - Integration Tests', () => {
     updateSpy.mockClear();
   });
 
-  it.skip('should handle graphs with no relationships', async () => {
-    const _tenantId = createTestTenantId('graph-no-relations');
+  it.skip('should handle agent with no relationships', async () => {
+    const _tenantId = createTestTenantId('agent-no-relations');
 
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
     updateSpy.mockClear(); // Clear previous calls
 
-    const standaloneAgent = agent({
+    const standaloneAgent = subAgent({
       id: 'standalone',
       name: 'Standalone Agent',
       description: 'An agent with no relationships',
       prompt: 'You work alone.',
     });
 
-    const graphId = `standalone-graph-${nanoid()}`;
-    const graph = agentGraph({
-      id: graphId,
-      name: 'Standalone Graph',
+    const agentId = `standalone-agent-${nanoid()}`;
+    const agentObject = agent({
+      id: agentId,
+      name: 'Standalone Agent',
       defaultSubAgent: standaloneAgent,
       subAgents: () => [standaloneAgent],
     });
 
-    await graph.init();
+    await agentObject.init();
 
     expect(updateSpy).toHaveBeenCalled();
 
     const calledProjectData = updateSpy.mock.calls[0][3]; // 4th argument is projectData
-    const graphs = calledProjectData?.agents || {};
-    const firstGraphId = Object.keys(graphs)[0];
-    const calledGraphData = firstGraphId ? graphs[firstGraphId] : undefined;
+    const agents = calledProjectData?.agents || {};
+    const firstAgentId = Object.keys(agent)[0];
+    const calledGraphData = firstAgentId ? agents[firstAgentId] : undefined;
 
     // The Agent.getId() method now returns the config.id directly
     // Agent was created with id: 'standalone'
@@ -247,56 +247,56 @@ describe('Graph Builder Refactor - Integration Tests', () => {
   });
 
   it('should preserve the legacy initialization method', async () => {
-    const _tenantId = createTestTenantId('graph-legacy');
+    const _tenantId = createTestTenantId('agent-legacy');
 
-    const agent1 = agent({
+    const subAgent1 = subAgent({
       id: 'legacy-agent',
       name: 'Legacy Agent',
       description: 'Agent for legacy test',
       prompt: 'You are a legacy agent.',
     });
 
-    const graphId = `legacy-graph-${nanoid()}`;
-    const graph = agentGraph({
-      id: graphId,
-      name: 'Legacy Graph',
-      defaultSubAgent: agent1,
-      subAgents: () => [agent1],
+    const agentId = `legacy-agent-${nanoid()}`;
+    const agentObject = agent({
+      id: agentId,
+      name: 'Legacy Agent',
+      defaultSubAgent: subAgent1,
+      subAgents: () => [subAgent1],
     });
 
     // Verify that the initLegacy method exists and can be called
-    expect(typeof (graph as any).initLegacy).toBe('function');
+    expect(typeof (agentObject as any).initLegacy).toBe('function');
 
     // We won't actually call it to avoid side effects, but verify it exists
     // This ensures backward compatibility is maintained
   });
 
-  it.skip('should handle errors in graph initialization gracefully', async () => {
-    const _tenantId = createTestTenantId('graph-error');
+  it.skip('should handle errors in agent initialization gracefully', async () => {
+    const _tenantId = createTestTenantId('agent-error');
 
     // Mock updateFullGraphViaAPI to throw an error
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
     updateSpy.mockClear(); // Clear previous calls
-    updateSpy.mockRejectedValueOnce(new Error('Graph creation failed'));
+    updateSpy.mockRejectedValueOnce(new Error('Agent creation failed'));
 
-    const agent1 = agent({
+    const agent1 = subAgent({
       id: 'error-agent',
       name: 'Error Agent',
       description: 'Agent that will cause error',
       prompt: 'You will cause an error.',
     });
 
-    const graphId = `error-graph-${nanoid()}`;
-    const graph = agentGraph({
-      id: graphId,
-      name: 'Error Graph',
+    const agentId = `error-agent-${nanoid()}`;
+    const agentObject = agent({
+      id: agentId,
+      name: 'Error Agent',
       defaultSubAgent: agent1,
       subAgents: () => [agent1],
     });
 
     // Expect initialization to throw the error
-    await expect(graph.init()).rejects.toThrow('Graph creation failed');
+    await expect(agentObject.init()).rejects.toThrow('Agent creation failed');
 
     // Verify that updateFullGraphViaAPI was called despite the error
     expect(updateSpy).toHaveBeenCalledTimes(1);

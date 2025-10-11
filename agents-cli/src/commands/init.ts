@@ -166,7 +166,7 @@ export default defineConfig({
     writeFileSync(configPath, configContent);
     console.log(chalk.green('✓'), `Created ${chalk.cyan(configPath)}`);
     console.log(chalk.gray('\nYou can now use the Inkeep CLI commands.'));
-    console.log(chalk.gray('For example: inkeep list-graphs'));
+    console.log(chalk.gray('For example: inkeep list-agent'));
 
     // If the config is not in the current directory, provide a hint
     const configDir = dirname(configPath);

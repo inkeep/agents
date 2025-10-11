@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
-import { useGraphErrors } from '@/hooks/use-graph-errors';
+import { useGraphErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -16,7 +16,7 @@ import {
   NodeType,
   nodeTypeMap,
 } from '../configuration/node-types';
-import type { AgentToolConfigLookup } from '../graph';
+import type { AgentToolConfigLookup } from '../agent';
 import EdgeEditor from './edges/edge-editor';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
@@ -73,7 +73,7 @@ export function SidePane({
       heading = edgeConfig?.name || 'Connection';
       HeadingIcon = edgeConfig?.Icon;
     } else {
-      heading = 'Graph';
+      heading = 'Agent';
       HeadingIcon = Workflow;
     }
 

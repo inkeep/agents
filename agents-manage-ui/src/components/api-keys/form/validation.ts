@@ -11,7 +11,7 @@ export const EXPIRATION_DATE_OPTIONS = [
 
 export const apiKeySchema = z.object({
   name: z.string().min(1, 'Please enter a name.'),
-  graphId: z.string().min(1, 'Please select a graph.'),
+  agentId: z.string().min(1, 'Please select a agent.'),
   expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never'] as const),
 });
 

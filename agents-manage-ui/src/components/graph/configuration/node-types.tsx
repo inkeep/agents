@@ -4,7 +4,7 @@ import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
 import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
-import type { GraphModels } from './graph-types';
+import type { GraphModels } from './agent-types';
 
 interface NodeData {
   name: string;
@@ -34,7 +34,7 @@ export interface AgentNodeData extends Record<string, unknown> {
   prompt?: string;
   dataComponents?: string[];
   artifactComponents?: string[];
-  models?: GraphModels; // Use same structure as graph
+  models?: GraphModels; // Use same structure as agent
   stopWhen?: AgentStopWhen;
 }
 

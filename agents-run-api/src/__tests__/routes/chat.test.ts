@@ -31,17 +31,17 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
         defaultSubAgentId: 'default-agent',
       })
     ),
-    getFullGraph: vi.fn().mockReturnValue(
+    getFullAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
         defaultSubAgentId: 'default-agent',
@@ -151,13 +151,13 @@ describe('Chat Routes', () => {
     // Don't use clearAllMocks as it clears the initial vi.mock() setup
     // Instead, just reset the specific mocks we need
     const { getAgentWithDefaultSubAgent } = await import('@inkeep/agents-core');
-    (vi.mocked(getAgentWithDefaultSubAgent) as any).mockImplementation(
-      async (params: any) => ({
-        id: 'test-graph',
-        name: 'Test Graph',
+    (vi.mocked(getAgentWithDefaultSubAgent) as any).mockReturnValue(
+      vi.fn().mockResolvedValue({
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        description: 'Test graph description',
+        description: 'Test agent description',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         contextConfigId: null,
@@ -264,8 +264,8 @@ describe('Chat Routes', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('should handle missing graph', async () => {
-      const { getAgentWithDefaultSubAgent, getFullGraph } = await import(
+    it('should handle missing agent', async () => {
+      const { getAgentWithDefaultSubAgent, getFullAgent: getFullGraph } = await import(
         '@inkeep/agents-core'
       );
       vi.mocked(getAgentWithDefaultSubAgent).mockReturnValueOnce(

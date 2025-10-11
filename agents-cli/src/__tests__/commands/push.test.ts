@@ -235,7 +235,7 @@ describe('Push Command - Project Validation', () => {
     (existsSync as Mock).mockReturnValue(true);
 
     const mockProjectDefinition = {
-      graphs: {},
+      agent: {},
       tools: {},
     };
 

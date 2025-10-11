@@ -10,10 +10,10 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import type { Graph } from '@/lib/types/graph-full';
-import { GraphItemMenu } from './graph-item-menu';
+import type { Agent } from '@/lib/types/agent-full';
+import { GraphItemMenu } from './agent-item-menu';
 
-export interface GraphItemProps extends Graph {
+export interface GraphItemProps extends Agent {
   tenantId: string;
   projectId: string;
 }
@@ -26,7 +26,7 @@ export function GraphItem({
   tenantId,
   projectId,
 }: GraphItemProps) {
-  const linkPath = `/${tenantId}/projects/${projectId}/graphs/${id}`;
+  const linkPath = `/${tenantId}/projects/${projectId}/agent/${id}`;
 
   return (
     <ItemCardRoot>
@@ -34,7 +34,7 @@ export function GraphItem({
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-sm">{name}</ItemCardTitle>
         </ItemCardLink>
-        <GraphItemMenu graphId={id} graphName={name} />
+        <GraphItemMenu agentId={id} graphName={name} />
       </ItemCardHeader>
       <ItemCardContent>
         <ItemCardDescription hasContent={!!description}>

@@ -1,7 +1,7 @@
-export { SubAgent as Agent } from './agent';
+export { SubAgent as Agent } from './subAgent';
 export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {
-  agentGraph,
+  agent,
   agentMcp,
   artifactComponent,
   credential,
@@ -10,7 +10,7 @@ export {
   mcpServer,
   mcpTool,
   project,
-  subAgent as agent,
+  subAgent,
 } from './builderFunctions';
 export { transfer } from './builders';
 export {

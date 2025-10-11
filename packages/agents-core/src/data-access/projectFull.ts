@@ -1,7 +1,7 @@
 /**
  * Server-side data access layer for Full Project operations.
  * This module provides functions for creating, retrieving, updating, and deleting
- * complete project definitions with all nested resources (graphs, agents, tools, etc.).
+ * complete project definitions with all nested resources (agent, agents, tools, etc.).
  */
 
 import type { DatabaseClient } from '../db/client';
@@ -16,9 +16,9 @@ import { upsertFunction } from './functions';
 import {
   createFullGraphServerSide,
   deleteFullAgent,
-  getFullGraph,
+  getFullAgent,
   updateFullGraphServerSide,
-} from './graphFull';
+} from './agentFull';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
 
@@ -36,7 +36,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
 
 /**
  * Server-side implementation of createFullProject that performs actual database operations.
- * This function creates a complete project with all graphs and their nested resources.
+ * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
@@ -291,22 +291,22 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 7: Create all graphs if they exist
+      // Step 7: Create all agent if they exist
       if (typed.agents && Object.keys(typed.agents).length > 0) {
         logger.info(
           {
             projectId: typed.id,
             graphCount: Object.keys(typed.agents).length,
           },
-          'Creating project graphs'
+          'Creating project agent'
         );
 
-        const graphPromises = Object.entries(typed.agents).map(async ([graphId, graphData]) => {
+        const graphPromises = Object.entries(typed.agents).map(async ([agentId, graphData]) => {
           try {
-            logger.info({ projectId: typed.id, graphId }, 'Creating graph in project');
+            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project');
 
-            // Create the full graph with project scoping
-            // When creating graphs within a project context, we need to pass the project-level resources
+            // Create the full agent with project scoping
+            // When creating agent within a project context, we need to pass the project-level resources
             // for validation, even though they're stored at the project level
             // Note: GraphWithinContextOfProjectSchema uses 'agents', but FullGraphDefinitionSchema uses 'subAgents'
             const graphDataWithProjectResources = {
@@ -323,11 +323,11 @@ export const createFullProjectServerSide =
               graphDataWithProjectResources
             );
 
-            logger.info({ projectId: typed.id, graphId }, 'Graph created successfully in project');
+            logger.info({ projectId: typed.id, agentId }, 'Agent created successfully in project');
           } catch (error) {
             logger.error(
-              { projectId: typed.id, graphId, error },
-              'Failed to create graph in project'
+              { projectId: typed.id, agentId, error },
+              'Failed to create agent in project'
             );
             throw error;
           }
@@ -339,7 +339,7 @@ export const createFullProjectServerSide =
             projectId: typed.id,
             graphCount: Object.keys(typed.agents).length,
           },
-          'All project graphs created successfully'
+          'All project agent created successfully'
         );
       }
 
@@ -367,7 +367,7 @@ export const createFullProjectServerSide =
 
 /**
  * Server-side implementation of updateFullProject that performs actual database operations.
- * This function updates a complete project with all graphs and their nested resources.
+ * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
@@ -650,31 +650,31 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 6a: Delete graphs that are no longer in the project definition
-      const incomingGraphIds = new Set(Object.keys(typed.agents || {}));
+      // Step 6a: Delete agent that are no longer in the project definition
+      const incomingAgentIds = new Set(Object.keys(typed.agents || {}));
 
-      // Get existing graphs for this project
+      // Get existing agent for this project
       const existingGraphs = await listAgents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      // Delete graphs not in incoming set
+      // Delete agent not in incoming set
       let deletedGraphCount = 0;
-      for (const graph of existingGraphs) {
-        if (!incomingGraphIds.has(graph.id)) {
+      for (const agent of existingGraphs) {
+        if (!incomingAgentIds.has(agent.id)) {
           try {
             await deleteFullAgent(
               db,
               logger
             )({
-              scopes: { tenantId, projectId: typed.id, agentId: graph.id },
+              scopes: { tenantId, projectId: typed.id, agentId: agent.id },
             });
             deletedGraphCount++;
-            logger.info({ graphId: graph.id }, 'Deleted orphaned graph from project');
+            logger.info({ agentId: agent.id }, 'Deleted orphaned agent from project');
           } catch (error) {
             logger.error(
-              { graphId: graph.id, error },
-              'Failed to delete orphaned graph from project'
+              { agentId: agent.id, error },
+              'Failed to delete orphaned agent from project'
             );
             // Don't throw - continue with other deletions
           }
@@ -687,26 +687,26 @@ export const updateFullProjectServerSide =
             deletedGraphCount,
             projectId: typed.id,
           },
-          'Deleted orphaned graphs from project'
+          'Deleted orphaned agent from project'
         );
       }
 
-      // Step 7: Update all graphs if they exist
+      // Step 7: Update all agent if they exist
       if (typed.agents && Object.keys(typed.agents).length > 0) {
         logger.info(
           {
             projectId: typed.id,
             graphCount: Object.keys(typed.agents).length,
           },
-          'Updating project graphs'
+          'Updating project agent'
         );
 
-        const graphPromises = Object.entries(typed.agents).map(async ([graphId, graphData]) => {
+        const graphPromises = Object.entries(typed.agents).map(async ([agentId, graphData]) => {
           try {
-            logger.info({ projectId: typed.id, graphId }, 'Updating graph in project');
+            logger.info({ projectId: typed.id, agentId }, 'Updating agent in project');
 
-            // Update/create the full graph with project scoping
-            // When updating graphs within a project context, we need to pass the project-level resources
+            // Update/create the full agent with project scoping
+            // When updating agent within a project context, we need to pass the project-level resources
             // for validation, even though they're stored at the project level
             // Note: GraphWithinContextOfProjectSchema uses 'agents', but FullGraphDefinitionSchema uses 'subAgents'
             const graphDataWithProjectResources = {
@@ -723,11 +723,11 @@ export const updateFullProjectServerSide =
               graphDataWithProjectResources
             );
 
-            logger.info({ projectId: typed.id, graphId }, 'Graph updated successfully in project');
+            logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
             logger.error(
-              { projectId: typed.id, graphId, error },
-              'Failed to update graph in project'
+              { projectId: typed.id, agentId, error },
+              'Failed to update agent in project'
             );
             throw error;
           }
@@ -739,7 +739,7 @@ export const updateFullProjectServerSide =
             projectId: typed.id,
             graphCount: Object.keys(typed.agents).length,
           },
-          'All project graphs updated successfully'
+          'All project agent updated successfully'
         );
       }
 
@@ -789,7 +789,7 @@ export const getFullProject =
 
       logger.info({ tenantId, projectId }, 'Project metadata retrieved');
 
-      // Step 2: Get all graphs for this project
+      // Step 2: Get all agent for this project
       const graphList = await listAgents(db)({
         scopes: { tenantId, projectId },
       });
@@ -800,7 +800,7 @@ export const getFullProject =
           projectId,
           graphCount: graphList.length,
         },
-        'Found graphs for project'
+        'Found agent for project'
       );
 
       // Step 3: Get all tools for this project
@@ -910,36 +910,36 @@ export const getFullProject =
         );
       }
 
-      // Step 8: Get full definitions for each graph
-      const graphs: Record<string, any> = {};
+      // Step 8: Get full definitions for each agent
+      const agents: Record<string, any> = {};
 
       if (graphList.length > 0) {
-        const graphPromises = graphList.map(async (graph) => {
+        const graphPromises = graphList.map(async (agent) => {
           try {
             logger.info(
-              { tenantId, projectId, graphId: graph.id },
-              'Retrieving full graph definition'
+              { tenantId, projectId, agentId: agent.id },
+              'Retrieving full agent definition'
             );
 
-            const fullGraph = await getFullGraph(db)({
-              scopes: { tenantId, projectId, agentId: graph.id },
+            const fullGraph = await getFullAgent(db)({
+              scopes: { tenantId, projectId, agentId: agent.id },
             });
 
             if (fullGraph) {
-              graphs[graph.id] = fullGraph;
+              agents[agent.id] = fullGraph;
               logger.info(
-                { tenantId, projectId, graphId: graph.id },
-                'Full graph definition retrieved'
+                { tenantId, projectId, agentId: agent.id },
+                'Full agent definition retrieved'
               );
             } else {
-              logger.warn({ tenantId, projectId, graphId: graph.id }, 'Graph definition not found');
+              logger.warn({ tenantId, projectId, agentId: agent.id }, 'Agent definition not found');
             }
           } catch (error) {
             logger.error(
-              { tenantId, projectId, graphId: graph.id, error },
-              'Failed to retrieve full graph definition'
+              { tenantId, projectId, agentId: agent.id, error },
+              'Failed to retrieve full agent definition'
             );
-            // Don't throw - continue with other graphs
+            // Don't throw - continue with other agent
           }
         });
 
@@ -959,7 +959,7 @@ export const getFullProject =
         description: project.description,
         models: project.models,
         stopWhen: project.stopWhen || undefined,
-        agents: graphs,
+        agents,
         tools: projectTools,
         dataComponents: projectDataComponents,
         artifactComponents: projectArtifactComponents,
@@ -1003,7 +1003,7 @@ export const deleteFullProject =
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
     try {
-      // Step 1: Get the project first to ensure it exists and get its graphs
+      // Step 1: Get the project first to ensure it exists and get its agent
       const project = await getFullProject(
         db,
         logger
@@ -1016,7 +1016,7 @@ export const deleteFullProject =
         return false;
       }
 
-      // Step 2: Delete all graphs in the project
+      // Step 2: Delete all agent in the project
       if (project.agents && Object.keys(project.agents).length > 0) {
         logger.info(
           {
@@ -1024,12 +1024,12 @@ export const deleteFullProject =
             projectId,
             graphCount: Object.keys(project.agents).length,
           },
-          'Deleting project graphs'
+          'Deleting project agent'
         );
 
         const graphPromises = Object.keys(project.agents).map(async (agentId) => {
           try {
-            logger.info({ tenantId, projectId, agentId }, 'Deleting graph from project');
+            logger.info({ tenantId, projectId, agentId }, 'Deleting agent from project');
 
             await deleteFullAgent(
               db,
@@ -1040,12 +1040,12 @@ export const deleteFullProject =
 
             logger.info(
               { tenantId, projectId, agentId },
-              'Graph deleted successfully from project'
+              'Agent deleted successfully from project'
             );
           } catch (error) {
             logger.error(
               { tenantId, projectId, agentId, error },
-              'Failed to delete graph from project'
+              'Failed to delete agent from project'
             );
             throw error;
           }
@@ -1058,7 +1058,7 @@ export const deleteFullProject =
             projectId,
             graphCount: Object.keys(project.agents).length,
           },
-          'All project graphs deleted successfully'
+          'All project agent deleted successfully'
         );
       }
 

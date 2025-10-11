@@ -40,7 +40,7 @@ interface BaseGraphSessionEvent {
 }
 
 // Discriminated union of all possible event types
-export type GraphSessionEvent =
+export type AgentSessionEvent =
   | (BaseGraphSessionEvent & { eventType: 'agent_generate'; data: AgentGenerateData })
   | (BaseGraphSessionEvent & { eventType: 'agent_reasoning'; data: AgentReasoningData })
   | (BaseGraphSessionEvent & { eventType: 'transfer'; data: TransferData })
@@ -133,8 +133,8 @@ interface StatusUpdateState {
  * Tracks all agent operations and interactions for a single message
  * Now includes intelligent status update functionality
  */
-export class GraphSession {
-  private events: GraphSessionEvent[] = [];
+export class AgentSession {
+  private events: AgentSessionEvent[] = [];
   private statusUpdateState?: StatusUpdateState;
   private statusUpdateTimer?: ReturnType<typeof setInterval>;
   private previousSummaries: string[] = [];
@@ -154,16 +154,16 @@ export class GraphSession {
   constructor(
     public readonly sessionId: string,
     public readonly messageId: string,
-    public readonly graphId?: string,
+    public readonly agentId?: string,
     public readonly tenantId?: string,
     public readonly projectId?: string,
     public readonly contextId?: string
   ) {
-    logger.debug({ sessionId, messageId, graphId }, 'GraphSession created');
+    logger.debug({ sessionId, messageId, agentId }, 'GraphSession created');
 
     // Initialize session-scoped services if we have required context
     if (tenantId && projectId) {
-      // Create the shared ToolSession for this graph execution
+      // Create the shared ToolSession for this agent execution
       // All agents in this execution will use this same session
 
       toolSessionManager.createSessionWithId(
@@ -210,7 +210,7 @@ export class GraphSession {
   /**
    * Send data operation to stream when emit operations is enabled
    */
-  private async sendDataOperation(event: GraphSessionEvent): Promise<void> {
+  private async sendDataOperation(event: AgentSessionEvent): Promise<void> {
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {
@@ -242,7 +242,7 @@ export class GraphSession {
   /**
    * Generate human-readable labels for events
    */
-  private generateEventLabel(event: GraphSessionEvent): string {
+  private generateEventLabel(event: AgentSessionEvent): string {
     switch (event.eventType) {
       case 'agent_generate':
         return `Agent ${event.subAgentId} generating response`;
@@ -266,7 +266,7 @@ export class GraphSession {
       default:
         // This should never happen due to exhaustive case handling above
         // Type assertion for runtime safety
-        return `${(event as GraphSessionEvent).eventType} event`;
+        return `${(event as AgentSessionEvent).eventType} event`;
     }
   }
 
@@ -340,7 +340,7 @@ export class GraphSession {
         data,
       };
       // Type assertion to union is safe - MakeGraphSessionEvent<T> matches a union member
-      this.sendDataOperation(dataOpEvent as GraphSessionEvent);
+      this.sendDataOperation(dataOpEvent as AgentSessionEvent);
     }
 
     if (this.isEnded) {
@@ -364,7 +364,7 @@ export class GraphSession {
     };
 
     // Type assertion to union is safe - MakeGraphSessionEvent<T> matches a union member
-    this.events.push(event as GraphSessionEvent);
+    this.events.push(event as AgentSessionEvent);
 
     // Process artifact if it's pending generation
     if (eventType === 'artifact_saved') {
@@ -510,21 +510,21 @@ export class GraphSession {
   /**
    * Get all events in chronological order
    */
-  getEvents(): GraphSessionEvent[] {
+  getEvents(): AgentSessionEvent[] {
     return [...this.events];
   }
 
   /**
    * Get events filtered by type
    */
-  getEventsByType(eventType: GraphSessionEventType): GraphSessionEvent[] {
+  getEventsByType(eventType: GraphSessionEventType): AgentSessionEvent[] {
     return this.events.filter((event) => event.eventType === eventType);
   }
 
   /**
    * Get events filtered by agent
    */
-  getEventsByAgent(subAgentId: string): GraphSessionEvent[] {
+  getEventsByAgent(subAgentId: string): AgentSessionEvent[] {
     return this.events.filter((event) => event.subAgentId === subAgentId);
   }
 
@@ -551,7 +551,7 @@ export class GraphSession {
     return {
       sessionId: this.sessionId,
       messageId: this.messageId,
-      graphId: this.graphId,
+      agentId: this.agentId,
       totalEvents: this.events.length,
       eventCounts,
       agentCounts,
@@ -623,7 +623,7 @@ export class GraphSession {
   }
 
   /**
-   * Generate and send a status update using graph-level summarizer
+   * Generate and send a status update using agent-level summarizer
    */
   private async generateAndSendUpdate(): Promise<void> {
     if (this.isEnded) {
@@ -652,8 +652,8 @@ export class GraphSession {
       return;
     }
 
-    if (!this.graphId) {
-      logger.warn({ sessionId: this.sessionId }, 'No graph ID - cannot generate update');
+    if (!this.agentId) {
+      logger.warn({ sessionId: this.sessionId }, 'No agent ID - cannot generate update');
       return;
     }
 
@@ -862,7 +862,7 @@ export class GraphSession {
    * Generate structured status update using configured data components
    */
   private async generateStructuredStatusUpdate(
-    newEvents: GraphSessionEvent[],
+    newEvents: AgentSessionEvent[],
     elapsedTime: number,
     statusComponents: StatusComponent[],
     summarizerModel?: ModelSettings,
@@ -1179,7 +1179,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
   /**
    * Extract user-visible activities with rich formatting and complete information
    */
-  private extractUserVisibleActivities(events: GraphSessionEvent[]): string[] {
+  private extractUserVisibleActivities(events: AgentSessionEvent[]): string[] {
     const activities: string[] = [];
 
     for (const event of events) {
@@ -1226,7 +1226,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         default: {
           // This should never happen due to exhaustive case handling above
           // Type assertion for runtime safety
-          const safeEvent = event as GraphSessionEvent;
+          const safeEvent = event as AgentSessionEvent;
           activities.push(
             `📋 **${safeEvent.eventType}**: ${JSON.stringify(safeEvent.data, null, 2)}`
           );
@@ -1302,7 +1302,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               event.data &&
               'toolId' in event.data &&
               event.data.toolId === artifactData.metadata?.toolCallId
-          ) as GraphSessionEvent | undefined;
+          ) as AgentSessionEvent | undefined;
 
           // Prepare context for name/description generation
           const toolContext = toolCallEvent
@@ -1332,7 +1332,7 @@ Make it specific and relevant.`;
                     scopes: {
                       tenantId: artifactData.tenantId,
                       projectId: artifactData.projectId,
-                      agentId: this.graphId || '',
+                      agentId: this.agentId || '',
                     },
                     subAgentId: artifactData.subAgentId,
                   });
@@ -1645,24 +1645,24 @@ Make it specific and relevant.`;
  * Manages GraphSession instances for message-level tracking
  */
 export class GraphSessionManager {
-  private sessions = new Map<string, GraphSession>();
+  private sessions = new Map<string, AgentSession>();
 
   /**
    * Create a new session for a message
    */
   createSession(
     messageId: string,
-    graphId?: string,
+    agentId?: string,
     tenantId?: string,
     projectId?: string,
     contextId?: string
   ): string {
     const sessionId = messageId; // Use messageId directly as sessionId
-    const session = new GraphSession(sessionId, messageId, graphId, tenantId, projectId, contextId);
+    const session = new AgentSession(sessionId, messageId, agentId, tenantId, projectId, contextId);
     this.sessions.set(sessionId, session);
 
     logger.info(
-      { sessionId, messageId, graphId, tenantId, projectId, contextId },
+      { sessionId, messageId, agentId, tenantId, projectId, contextId },
       'GraphSession created'
     );
     return sessionId;
@@ -1711,7 +1711,7 @@ export class GraphSessionManager {
   /**
    * Get an existing session
    */
-  getSession(sessionId: string): GraphSession | null {
+  getSession(sessionId: string): AgentSession | null {
     return this.sessions.get(sessionId) || null;
   }
 
@@ -1738,7 +1738,7 @@ export class GraphSessionManager {
   /**
    * End a session and return the final event data
    */
-  endSession(sessionId: string): GraphSessionEvent[] {
+  endSession(sessionId: string): AgentSessionEvent[] {
     const session = this.sessions.get(sessionId);
     if (!session) {
       logger.warn({ sessionId }, 'Attempted to end non-existent session');

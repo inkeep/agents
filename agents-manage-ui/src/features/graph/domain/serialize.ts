@@ -1,13 +1,13 @@
 import type { Edge, Node } from '@xyflow/react';
 import { nanoid } from 'nanoid';
-import type { A2AEdgeData } from '@/components/graph/configuration/edge-types';
-import { EdgeType } from '@/components/graph/configuration/edge-types';
-import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
-import { NodeType } from '@/components/graph/configuration/node-types';
-import type { AgentToolConfigLookup } from '@/components/graph/graph';
+import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
+import type { GraphMetadata } from '@/components/agent/configuration/agent-types';
+import { NodeType } from '@/components/agent/configuration/node-types';
+import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullGraphDefinition, InternalAgentDefinition } from '@/lib/types/graph-full';
+import type { FullGraphDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
 
 // Use the exported InternalAgentDefinition from core
 type InternalAgent = InternalAgentDefinition;
@@ -98,7 +98,7 @@ export function serializeGraphData(
   const subAgents: Record<string, ExtendedAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
-  // Note: Tools are now project-scoped and not included in graph serialization
+  // Note: Tools are now project-scoped and not included in agent serialization
   const usedDataComponents = new Set<string>();
   const usedArtifactComponents = new Set<string>();
   let defaultSubAgentId = '';
@@ -385,7 +385,7 @@ export function serializeGraphData(
 
   const result: FullGraphDefinition = {
     id: metadata?.id || nanoid(),
-    name: metadata?.name || 'Untitled Graph',
+    name: metadata?.name || 'Untitled Agent',
     description: metadata?.description || undefined,
     defaultSubAgentId,
     subAgents: subAgents,
@@ -396,7 +396,7 @@ export function serializeGraphData(
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
   };
 
-  // Add new graph-level fields
+  // Add new agent-level fields
   if (metadata?.models) {
     (result as any).models = {
       base: metadata.models.base

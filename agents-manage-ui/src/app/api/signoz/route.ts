@@ -137,7 +137,7 @@ export async function GET() {
       step: 60,
       compositeQuery: {
         queryType: 'builder',
-        panelType: 'graph',
+        panelType: 'agent',
         builderQueries: {},
       },
     };

@@ -121,7 +121,7 @@ export const ApiKeyApiSelectSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
   projectId: z.string(),
-  graphId: z.string(),
+  agentId: z.string(),
   publicId: z.string(),
   keyHash: z.string(),
   keyPrefix: z.string(),
@@ -180,7 +180,7 @@ export const ExternalAgentApiInsertSchema = z.object({
   type: z.literal('external').optional(),
 });
 
-// Agent Graph API schemas (inline definitions)
+// Agent Agent API schemas (inline definitions)
 export const AgentGraphApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -188,7 +188,7 @@ export const AgentGraphApiInsertSchema = z.object({
   defaultSubAgentId: z.string().optional(),
 });
 
-// Full Graph Definition Schema - extends AgentGraph with agents and tools
+// Full Agent Definition Schema - extends Agent with agents and tools
 export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
   subAgents: z.record(
     z.string(),

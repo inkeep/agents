@@ -16,13 +16,13 @@ describe('Agents Data Access - Integration Tests', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
   beforeEach(async () => {
     // Create fresh in-memory database for each test
     db = await createTestDatabaseClient();
 
-    // Create test projects and graphs for all tenant IDs used in tests
+    // Create test projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
       await db
@@ -35,27 +35,27 @@ describe('Agents Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
 
-      // Create a test graph with a temporary default agent
+      // Create a test agent with a temporary default agent
       const defaultSubAgentId = 'default-agent-setup';
       await db
         .insert(schema.agents)
         .values({
           tenantId: tenantId,
           projectId: testProjectId,
-          id: testGraphId,
-          name: 'Test Graph',
-          description: 'Graph for testing',
+          id: testAgentId,
+          name: 'Test Agent',
+          description: 'Agent for testing',
           defaultSubAgentId: defaultSubAgentId,
         })
         .onConflictDoNothing();
 
-      // Create the default agent for the graph
+      // Create the default agent for the agent
       await db
         .insert(schema.subAgents)
         .values({
           tenantId: tenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
+          agentId: testAgentId,
           id: defaultSubAgentId,
           name: 'Default Agent',
           description: 'Default agent for testing',
@@ -71,7 +71,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'test-agent-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Test Agent',
         description: 'A comprehensive test agent',
         prompt: 'Be helpful and comprehensive in your responses',
@@ -114,7 +114,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Retrieve agent
       const fetchedAgent = await getSubAgentById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
       });
 
@@ -133,7 +133,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'minimal-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Minimal Agent',
         description: 'An agent with minimal configuration',
         prompt: 'Be helpful',
@@ -149,7 +149,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
     it('should return null when agent not found', async () => {
       const result = await getSubAgentById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: 'non-existent-agent',
       });
 
@@ -167,7 +167,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'agent-1',
         tenantId: tenant1,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Tenant 1 Agent',
         description: 'Agent for tenant 1',
         prompt: 'Help tenant 1',
@@ -177,7 +177,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'agent-2',
         tenantId: tenant2,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Tenant 2 Agent',
         description: 'Agent for tenant 2',
         prompt: 'Help tenant 2',
@@ -187,7 +187,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'agent-3',
         tenantId: tenant1,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Another Tenant 1 Agent',
         description: 'Another agent for tenant 1',
         prompt: 'Also help tenant 1',
@@ -201,7 +201,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // List agents for tenant 1 - should see 3 agents (2 created + 1 default from setup)
       const tenant1Agents = await listSubAgents(db)({
-        scopes: { tenantId: tenant1, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: tenant1, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect(tenant1Agents).toHaveLength(3); // 2 created in test + 1 default from setup
@@ -211,7 +211,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // List agents for tenant 2 - should see 2 agents (1 created + 1 default from setup)
       const tenant2Agents = await listSubAgents(db)({
-        scopes: { tenantId: tenant2, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: tenant2, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect(tenant2Agents).toHaveLength(2); // 1 created in test + 1 default from setup
@@ -221,32 +221,32 @@ describe('Agents Data Access - Integration Tests', () => {
     });
 
     it('should return empty array when no agents exist', async () => {
-      // Use a different graph that has no agents (except the default setup agent)
-      const emptyGraphId = 'empty-test-graph';
+      // Use a different agent that has no agents (except the default setup agent)
+      const emptyAgentId = 'empty-test-agent';
 
-      // Create a new graph with a default agent
+      // Create a new agent with a default agent
       await db.insert(schema.agents).values({
         tenantId: testTenantId,
         projectId: testProjectId,
-        id: emptyGraphId,
-        name: 'Empty Test Graph',
-        description: 'Graph for empty test',
+        id: emptyAgentId,
+        name: 'Empty Test Agent',
+        description: 'Agent for empty test',
         defaultSubAgentId: 'empty-default-agent',
       });
 
       await db.insert(schema.subAgents).values({
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: emptyGraphId,
+        agentId: emptyAgentId,
         id: 'empty-default-agent',
         name: 'Empty Default Agent',
         description: 'Default agent for empty test',
         prompt: 'You are a test agent',
       });
 
-      // List agents for the empty graph (should only have the default agent)
+      // List agents for the empty agent (should only have the default agent)
       const result = await listSubAgents(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: emptyGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: emptyAgentId },
       });
 
       // Should have exactly one agent (the default)
@@ -262,7 +262,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'update-test-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Original Name',
         description: 'Original description',
         prompt: 'Original instructions',
@@ -301,7 +301,7 @@ describe('Agents Data Access - Integration Tests', () => {
       };
 
       const updatedAgent = await updateSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: initialData.id,
         data: updateData,
       });
@@ -322,7 +322,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'partial-update-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Original Name',
         description: 'Original description',
         prompt: 'Original instructions',
@@ -332,7 +332,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Update only the name
       const updatedAgent = await updateSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
         data: {
           name: 'New Name Only',
@@ -351,7 +351,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'delete-test-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Agent to Delete',
         description: 'This agent will be deleted',
         prompt: 'Temporary agent',
@@ -362,14 +362,14 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Verify it exists
       const beforeDelete = await getSubAgentById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
       });
       expect(beforeDelete).not.toBeNull();
 
       // Delete agent
       const deleteResult = await deleteSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
       });
 
@@ -377,7 +377,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Verify deletion
       const afterDelete = await getSubAgentById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
       });
       expect(afterDelete).toBeUndefined();
@@ -388,7 +388,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'delete-isolation-agent',
         tenantId: 'tenant-1',
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Protected Agent',
         description: 'Should not be deletable from other tenant',
         prompt: 'Stay protected',
@@ -398,7 +398,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Try to delete from different tenant
       const deleteResult = await deleteSubAgent(db)({
-        scopes: { tenantId: 'tenant-2', projectId: testProjectId, agentId: testGraphId }, // Different tenant
+        scopes: { tenantId: 'tenant-2', projectId: testProjectId, agentId: testAgentId }, // Different tenant
         subAgentId: tenant1Agent.id,
       });
       expect(deleteResult).toBe(true);
@@ -411,7 +411,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'concurrent-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Concurrent Test Agent',
         description: 'Agent for testing concurrent operations',
         prompt: 'Handle concurrent requests',
@@ -423,7 +423,7 @@ describe('Agents Data Access - Integration Tests', () => {
       // Run multiple update operations concurrently
       const updatePromises = Array.from({ length: 5 }, (_, i) =>
         updateSubAgent(db)({
-          scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+          scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
           subAgentId: agentData.id,
           data: {
             name: `Updated Agent ${i}`,
@@ -444,7 +444,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Get final state - one of the updates should have won
       const finalAgent = await getSubAgentById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
       });
 
@@ -487,7 +487,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'complex-config-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Complex Config Agent',
         description: 'Agent with complex model settingsuration',
         prompt: 'Use the complex configuration wisely',
@@ -500,7 +500,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Verify retrieval
       const fetchedAgent = await getSubAgentById(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
       });
 
@@ -516,7 +516,7 @@ describe('Agents Data Access - Integration Tests', () => {
         id: 'null-config-agent',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         name: 'Null Config Agent',
         description: 'Agent to test null config',
         prompt: 'Handle null configs',
@@ -538,7 +538,7 @@ describe('Agents Data Access - Integration Tests', () => {
 
       // Update to remove model settings (set to null)
       const updatedAgent = await updateSubAgent(db)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         subAgentId: agentData.id,
         data: {
           models: {},

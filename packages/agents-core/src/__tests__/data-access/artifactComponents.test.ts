@@ -23,7 +23,7 @@ describe('Artifact Components Data Access', () => {
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
-  const testGraphId = 'test-graph';
+  const testSubAgentId = 'test-sub-agent';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -487,8 +487,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 
@@ -504,7 +504,7 @@ describe('Artifact Components Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        subAgentId: testAgentId,
+        subAgentId: testSubAgentId,
         artifactComponentId: componentId,
         createdAt: expect.any(String),
       };
@@ -524,8 +524,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -554,8 +554,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -585,8 +585,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -653,8 +653,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -682,8 +682,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -693,7 +693,7 @@ describe('Artifact Components Data Access', () => {
   });
 
   describe('graphHasArtifactComponents', () => {
-    it('should return true when graph has artifact components', async () => {
+    it('should return true when agent has artifact components', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
@@ -715,14 +715,14 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
       expect(result).toBe(true);
     });
 
-    it('should return false when graph has no artifact components', async () => {
+    it('should return false when agent has no artifact components', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
@@ -744,7 +744,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
@@ -773,7 +773,7 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
@@ -867,8 +867,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 
@@ -892,8 +892,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
-          subAgentId: testAgentId,
+          agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 

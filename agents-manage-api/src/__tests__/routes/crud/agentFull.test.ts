@@ -6,7 +6,7 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
-describe('Graph Full CRUD Routes - Integration Tests', () => {
+describe('Agent Full CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
   // Helper function to create test tool data
@@ -32,9 +32,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       },
     ],
   });
-  // Helper function to create full graph data with optional enhanced features
+  // Helper function to create full agent data with optional enhanced features
   const createFullGraphData = (
-    graphId?: string,
+    agentId?: string,
     options?: {
       includeDataComponents?: boolean;
       includeArtifactComponents?: boolean;
@@ -44,7 +44,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     tenantId?: string,
     projectIdParam?: string
   ) => {
-    const id = graphId || nanoid();
+    const id = agentId || nanoid();
     const subAgentId1 = `agent-${id}-1`;
     const subAgentId2 = `agent-${id}-2`;
     const toolId1 = `tool-${id}-1`;
@@ -66,22 +66,22 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
     const graphData: any = {
       id,
-      name: `Test Graph ${id}`,
-      description: `Test graph description for ${id}`,
+      name: `Test Agent ${id}`,
+      description: `Test agent description for ${id}`,
       defaultSubAgentId: subAgentId1,
       subAgents: {
         [subAgentId1]: agent1,
         [subAgentId2]: agent2,
       },
-      // Note: tools are now project-scoped and not part of the graph definition
+      // Note: tools are now project-scoped and not part of the agent definition
     };
 
     // Add dataComponents if requested
     if (options?.includeDataComponents) {
       const dataComponentId1 = `dataComponent-${id}-1`;
       const dataComponentId2 = `dataComponent-${id}-2`;
-      // Note: dataComponents are now project-scoped and not part of the graph definition
-      // Only the relationship (dataComponents array in agent) is graph-scoped
+      // Note: dataComponents are now project-scoped and not part of the agent definition
+      // Only the relationship (dataComponents array in agent) is agent-scoped
 
       // Link dataComponents to agents (just IDs)
       agent1.dataComponents = [dataComponentId1];
@@ -92,8 +92,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     if (options?.includeArtifactComponents) {
       const artifactComponentId1 = `artifactComponent-${id}-1`;
       const artifactComponentId2 = `artifactComponent-${id}-2`;
-      // Note: artifactComponents are now project-scoped and not part of the graph definition
-      // Only the relationship (artifactComponents array in agent) is graph-scoped
+      // Note: artifactComponents are now project-scoped and not part of the agent definition
+      // Only the relationship (artifactComponents array in agent) is agent-scoped
 
       // Link artifactComponents to agents (just IDs)
       agent1.artifactComponents = [artifactComponentId1];
@@ -128,26 +128,26 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     return graphData;
   };
 
-  // Helper function to create a test graph and return its data
+  // Helper function to create a test agent and return its data
   const createTestAgent = async (
     tenantId: string,
     graphData?: ReturnType<typeof createFullGraphData>
   ) => {
-    const testGraphData = graphData || createFullGraphData();
+    const testAgentData = graphData || createFullGraphData();
     const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
       method: 'POST',
-      body: JSON.stringify(testGraphData),
+      body: JSON.stringify(testAgentData),
     });
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
-    return { graphData: testGraphData, response: createBody };
+    return { graphData: testAgentData, response: createBody };
   };
 
   describe('POST /', () => {
-    it.skip('should create a full graph with all entities', async () => {
+    it.skip('should create a full agent with all entities', async () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
-      const tenantId = createTestTenantId('graph-create');
+      const tenantId = createTestTenantId('agent-create');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
@@ -186,16 +186,16 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       });
     });
 
-    it('should handle graph with no relationships', async () => {
-      const tenantId = createTestTenantId('graph-no-relations');
+    it('should handle agent with no relationships', async () => {
+      const tenantId = createTestTenantId('agent-no-relations');
       await ensureTestProject(tenantId, projectId);
       const subAgentId = nanoid();
-      const graphId = nanoid();
+      const agentId = nanoid();
 
       const graphData = {
-        id: graphId,
-        name: 'Simple Graph',
-        description: 'Graph with single agent and no relationships',
+        id: agentId,
+        name: 'Simple Agent',
+        description: 'Agent with single agent and no relationships',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -221,12 +221,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.subAgents[subAgentId].canUse).toHaveLength(0);
     });
 
-    it('should return 400 for invalid graph data', async () => {
-      const tenantId = createTestTenantId('graph-invalid');
+    it('should return 400 for invalid agent data', async () => {
+      const tenantId = createTestTenantId('agent-invalid');
       await ensureTestProject(tenantId, projectId);
 
       const invalidGraphData = {
-        id: 'test-graph',
+        id: 'test-agent',
         // Missing required fields
         subAgents: {},
       };
@@ -241,15 +241,15 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should include models field in agent responses', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('graph-model-field');
+      const tenantId = createTestTenantId('agent-model-field');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}-1`;
-      const toolId = `tool-${graphId}-1`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}-1`;
+      const toolId = `tool-${agentId}-1`;
 
       const graphData = {
-        id: graphId,
-        name: `Test Graph ${graphId}`,
+        id: agentId,
+        name: `Test Agent ${agentId}`,
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -296,7 +296,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Also verify via GET endpoint
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agent/${graphId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
         {
           method: 'GET',
         }
@@ -314,11 +314,11 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should include models with providerOptions in agent responses', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('graph-provider-options');
+      const tenantId = createTestTenantId('agent-provider-options');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}-1`;
-      const toolId = `tool-${graphId}-1`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}-1`;
+      const toolId = `tool-${agentId}-1`;
 
       const providerOptions = {
         anthropic: {
@@ -332,8 +332,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       };
 
       const graphData = {
-        id: graphId,
-        name: `Test Graph ${graphId}`,
+        id: agentId,
+        name: `Test Agent ${agentId}`,
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -382,7 +382,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Also verify via GET endpoint
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agent/${graphId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
         {
           method: 'GET',
         }
@@ -400,9 +400,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('GET /{graphId}', () => {
-    it('should retrieve a full graph by ID', async () => {
-      const tenantId = createTestTenantId('graph-get');
+  describe('GET /{agentId}', () => {
+    it('should retrieve a full agent by ID', async () => {
+      const tenantId = createTestTenantId('agent-get');
       await ensureTestProject(tenantId, projectId);
       const { graphData } = await createTestAgent(tenantId);
 
@@ -428,8 +428,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(agents.some((agent) => agent.canTransferTo.length > 0)).toBe(true);
     });
 
-    it('should return 404 for non-existent graph', async () => {
-      const tenantId = createTestTenantId('graph-not-found');
+    it('should return 404 for non-existent agent', async () => {
+      const tenantId = createTestTenantId('agent-not-found');
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = nanoid();
 
@@ -444,16 +444,16 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{graphId}', () => {
-    it('should update an existing graph', async () => {
-      const tenantId = createTestTenantId('graph-update');
+  describe('PUT /{agentId}', () => {
+    it('should update an existing agent', async () => {
+      const tenantId = createTestTenantId('agent-update');
       await ensureTestProject(tenantId, projectId);
       const { graphData } = await createTestAgent(tenantId);
 
-      // Modify the graph data
+      // Modify the agent data
       const updatedGraphData = {
         ...graphData,
-        name: 'Updated Graph Name',
+        name: 'Updated Agent Name',
         description: 'Updated description',
       };
 
@@ -477,12 +477,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
 
-      expect(body.data.name).toBe('Updated Graph Name');
+      expect(body.data.name).toBe('Updated Agent Name');
       expect(body.data.id).toBe(graphData.id);
     });
 
-    it('should create a new graph if it does not exist (upsert)', async () => {
-      const tenantId = createTestTenantId('graph-upsert');
+    it('should create a new agent if it does not exist (upsert)', async () => {
+      const tenantId = createTestTenantId('agent-upsert');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
 
@@ -505,7 +505,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 400 for ID mismatch', async () => {
-      const tenantId = createTestTenantId('graph-id-mismatch');
+      const tenantId = createTestTenantId('agent-id-mismatch');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
       const differentId = nanoid();
@@ -522,7 +522,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle adding new agents and relationships in update', async () => {
-      const tenantId = createTestTenantId('graph-add-agents');
+      const tenantId = createTestTenantId('agent-add-agents');
       await ensureTestProject(tenantId, projectId);
       const { graphData } = await createTestAgent(tenantId);
 
@@ -555,11 +555,11 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.subAgents[graphData.defaultSubAgentId].canTransferTo).toContain(newAgentId);
     });
 
-    it('should delete agents that are removed from the graph definition', async () => {
-      const tenantId = createTestTenantId('graph-remove-agents');
+    it('should delete agents that are removed from the agent definition', async () => {
+      const tenantId = createTestTenantId('agent-remove-agents');
       await ensureTestProject(tenantId, projectId);
 
-      // Create a graph with external agent included
+      // Create a agent with external agent included
       const initialGraphData = createFullGraphData(undefined, {
         includeExternalAgent: true,
       });
@@ -580,7 +580,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const allAgentIds = Object.keys(initialBody.data.subAgents);
       const defaultSubAgentId = graphData.defaultSubAgentId;
 
-      // Update graph to only include the default agent (remove 1 internal + 1 external agent)
+      // Update agent to only include the default agent (remove 1 internal + 1 external agent)
       const updatedGraphData = {
         ...graphData,
         subAgents: {
@@ -614,7 +614,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         }
       }
 
-      // Verify by fetching the graph again
+      // Verify by fetching the agent again
       const getFinalRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${graphData.id}`,
         {
@@ -628,7 +628,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle removing all agents except default agent', async () => {
-      const tenantId = createTestTenantId('graph-remove-all-but-one');
+      const tenantId = createTestTenantId('agent-remove-all-but-one');
       await ensureTestProject(tenantId, projectId);
       const { graphData } = await createTestAgent(tenantId);
 
@@ -689,9 +689,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('DELETE /{graphId}', () => {
-    it('should delete a graph and its relationships', async () => {
-      const tenantId = createTestTenantId('graph-delete');
+  describe('DELETE /{agentId}', () => {
+    it('should delete a agent and its relationships', async () => {
+      const tenantId = createTestTenantId('agent-delete');
       await ensureTestProject(tenantId, projectId);
       const { graphData } = await createTestAgent(tenantId);
 
@@ -704,7 +704,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       expect(deleteRes.status).toBe(204);
 
-      // Verify graph is deleted by trying to get it
+      // Verify agent is deleted by trying to get it
       const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${graphData.id}`,
         {
@@ -715,8 +715,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(getRes.status).toBe(404);
     });
 
-    it('should return 404 for non-existent graph', async () => {
-      const tenantId = createTestTenantId('graph-delete-not-found');
+    it('should return 404 for non-existent agent', async () => {
+      const tenantId = createTestTenantId('agent-delete-not-found');
       await ensureTestProject(tenantId, projectId);
       const nonExistentId = nanoid();
 
@@ -732,22 +732,22 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
   });
 
   describe('Complex scenarios', () => {
-    it.skip('should handle graph with multiple tools per agent', async () => {
+    it.skip('should handle agent with multiple tools per agent', async () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
-      const tenantId = createTestTenantId('graph-multi-tools');
+      const tenantId = createTestTenantId('agent-multi-tools');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const tool1Id = `tool-${graphId}-1`;
-      const tool2Id = `tool-${graphId}-2`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const tool1Id = `tool-${agentId}-1`;
+      const tool2Id = `tool-${agentId}-2`;
 
       const tool1 = createTestToolData(tool1Id, '1');
       const tool2 = createTestToolData(tool2Id, '2');
 
       const graphData = {
-        id: graphId,
-        name: 'Multi-Tool Graph',
-        description: 'Graph with agent having multiple tools',
+        id: agentId,
+        name: 'Multi-Tool Agent',
+        description: 'Agent with agent having multiple tools',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -780,16 +780,16 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle circular agent relationships', async () => {
-      const tenantId = createTestTenantId('graph-circular');
+      const tenantId = createTestTenantId('agent-circular');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const agent1Id = `agent-${graphId}-1`;
-      const agent2Id = `agent-${graphId}-2`;
+      const agentId = nanoid();
+      const agent1Id = `agent-${agentId}-1`;
+      const agent2Id = `agent-${agentId}-2`;
 
       const graphData = {
-        id: graphId,
-        name: 'Circular Graph',
-        description: 'Graph with circular agent relationships',
+        id: agentId,
+        name: 'Circular Agent',
+        description: 'Agent with circular agent relationships',
         defaultSubAgentId: agent1Id,
         subAgents: {
           [agent1Id]: {
@@ -820,10 +820,10 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.subAgents[agent2Id].canTransferTo).toContain(agent1Id);
     });
 
-    it('should handle large graph with many agents', async () => {
-      const tenantId = createTestTenantId('graph-large');
+    it('should handle large agent with many agents', async () => {
+      const tenantId = createTestTenantId('agent-large');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
+      const agentId = nanoid();
       const agentCount = 10;
 
       const agents: Record<string, any> = {};
@@ -831,7 +831,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       // Create agents
       for (let i = 1; i <= agentCount; i++) {
-        const subAgentId = `agent-${graphId}-${i}`;
+        const subAgentId = `agent-${agentId}-${i}`;
         subAgentIds.push(subAgentId);
         agents[subAgentId] = createTestSubAgentData({ id: subAgentId, suffix: ` ${i}` });
       }
@@ -842,9 +842,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       }
 
       const graphData = {
-        id: graphId,
-        name: 'Large Graph',
-        description: 'Graph with many agents',
+        id: agentId,
+        name: 'Large Agent',
+        description: 'Agent with many agents',
         defaultSubAgentId: subAgentIds[0],
         subAgents: agents,
         tools: {}, // No tools for this test
@@ -866,7 +866,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       }
     });
 
-    it('should handle concurrent graph operations on different tenants', async () => {
+    it('should handle concurrent agent operations on different tenants', async () => {
       const tenant1 = createTestTenantId('concurrent-1');
       const tenant2 = createTestTenantId('concurrent-2');
 
@@ -876,7 +876,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       const graph1Data = createFullGraphData();
       const graph2Data = createFullGraphData();
 
-      // Create graphs concurrently
+      // Create agent concurrently
       const [res1, res2] = await Promise.all([
         makeRequest(`/tenants/${tenant1}/projects/${projectId}/agent`, {
           method: 'POST',
@@ -900,9 +900,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
   });
 
   describe('Enhanced Features', () => {
-    it.skip('should create a graph with dataComponents', async () => {
+    it.skip('should create a agent with dataComponents', async () => {
       // TODO: Update this test to work with new scoped architecture where dataComponents are project-scoped
-      const tenantId = createTestTenantId('graph-datacomponents');
+      const tenantId = createTestTenantId('agent-datacomponents');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(undefined, { includeDataComponents: true });
 
@@ -940,9 +940,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(agentsWithDataComponents).toHaveLength(2);
     });
 
-    it.skip('should create a graph with artifactComponents', async () => {
+    it.skip('should create a agent with artifactComponents', async () => {
       // TODO: Update this test to work with new scoped architecture where artifactComponents are project-scoped
-      const tenantId = createTestTenantId('graph-artifactcomponents');
+      const tenantId = createTestTenantId('agent-artifactcomponents');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(undefined, { includeArtifactComponents: true });
 
@@ -984,8 +984,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(agentsWithArtifactComponents).toHaveLength(2);
     });
 
-    it('should create a graph with contextConfig', async () => {
-      const tenantId = createTestTenantId('graph-contextconfig');
+    it('should create a agent with contextConfig', async () => {
+      const tenantId = createTestTenantId('agent-contextconfig');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1026,8 +1026,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       });
     });
 
-    it('should create a graph with external agents', async () => {
-      const tenantId = createTestTenantId('graph-external');
+    it('should create a agent with external agents', async () => {
+      const tenantId = createTestTenantId('agent-external');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1063,9 +1063,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(defaultSubAgent.canTransferTo).not.toContain((externalAgent as any).id);
     });
 
-    it.skip('should create a complete graph with all features', async () => {
+    it.skip('should create a complete agent with all features', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('graph-complete');
+      const tenantId = createTestTenantId('agent-complete');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1111,12 +1111,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(defaultSubAgent.artifactComponents).toHaveLength(1);
     });
 
-    it.skip('should update a graph with enhanced features', async () => {
+    it.skip('should update a agent with enhanced features', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('graph-update-enhanced');
+      const tenantId = createTestTenantId('agent-update-enhanced');
       await ensureTestProject(tenantId, projectId);
 
-      // Create initial graph with basic features
+      // Create initial agent with basic features
       const initialGraphData = createFullGraphData();
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
@@ -1156,7 +1156,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle external agent relationships correctly', async () => {
-      const tenantId = createTestTenantId('graph-external-relations');
+      const tenantId = createTestTenantId('agent-external-relations');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1193,9 +1193,9 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('Context Config Clearing in Full Graph', () => {
-    it('should clear contextVariables when set to null in full graph update', async () => {
-      const tenantId = createTestTenantId('full-graph-clear-context-vars');
+  describe('Context Config Clearing in Full Agent', () => {
+    it('should clear contextVariables when set to null in full agent update', async () => {
+      const tenantId = createTestTenantId('full-agent-clear-context-vars');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1204,7 +1204,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      // Create the graph first
+      // Create the agent first
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
@@ -1233,8 +1233,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig.contextVariables).toBeNull();
     });
 
-    it('should clear headersSchema when set to null in full graph update', async () => {
-      const tenantId = createTestTenantId('full-graph-clear-request-schema');
+    it('should clear headersSchema when set to null in full agent update', async () => {
+      const tenantId = createTestTenantId('full-agent-clear-request-schema');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1243,7 +1243,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      // Create the graph first
+      // Create the agent first
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
@@ -1272,8 +1272,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig.headersSchema).toBeNull();
     });
 
-    it('should clear both contextVariables and headersSchema simultaneously in full graph', async () => {
-      const tenantId = createTestTenantId('full-graph-clear-both-fields');
+    it('should clear both contextVariables and headersSchema simultaneously in full agent', async () => {
+      const tenantId = createTestTenantId('full-agent-clear-both-fields');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1282,7 +1282,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      // Create the graph first
+      // Create the agent first
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
@@ -1313,8 +1313,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig.headersSchema).toBeNull();
     });
 
-    it('should handle empty object contextVariables as null in full graph creation', async () => {
-      const tenantId = createTestTenantId('full-graph-create-empty-context-vars');
+    it('should handle empty object contextVariables as null in full agent creation', async () => {
+      const tenantId = createTestTenantId('full-agent-create-empty-context-vars');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1338,8 +1338,8 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(body.data.contextConfig.contextVariables).toBeNull();
     });
 
-    it('should retrieve full graph with cleared context config fields consistently', async () => {
-      const tenantId = createTestTenantId('full-graph-retrieve-cleared-fields');
+    it('should retrieve full agent with cleared context config fields consistently', async () => {
+      const tenantId = createTestTenantId('full-agent-retrieve-cleared-fields');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData(
         undefined,
@@ -1348,7 +1348,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
-      // Create the graph first
+      // Create the agent first
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
@@ -1449,13 +1449,13 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
       const tenantId = createTestTenantId('minimal-tool-fields');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const toolId = `tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const toolId = `tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Minimal Tool Graph',
+        id: agentId,
+        name: 'Minimal Tool Agent',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -1523,17 +1523,17 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
   });
 
   describe.skip('Tool Full Schema Fields - Old Tests', () => {
-    it('should include all read-only tool fields in graph response', async () => {
-      const tenantId = createTestTenantId('graph-tool-full-fields');
+    it('should include all read-only tool fields in agent response', async () => {
+      const tenantId = createTestTenantId('agent-tool-full-fields');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const toolId = `tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const toolId = `tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Graph with Full Tool Fields',
-        description: 'Test graph to verify ToolApiFullSchema fields',
+        id: agentId,
+        name: 'Agent with Full Tool Fields',
+        description: 'Test agent to verify ToolApiFullSchema fields',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -1563,7 +1563,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
         },
       };
 
-      // Create the graph
+      // Create the agent
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
@@ -1591,12 +1591,12 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(createdTool.capabilities).toBeNull();
     });
 
-    it('should preserve tool full schema fields on graph retrieval', async () => {
-      const tenantId = createTestTenantId('graph-tool-fields-get');
+    it('should preserve tool full schema fields on agent retrieval', async () => {
+      const tenantId = createTestTenantId('agent-tool-fields-get');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
 
-      // Create the graph
+      // Create the agent
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
@@ -1604,7 +1604,7 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
 
       expect(createRes.status).toBe(201);
 
-      // Retrieve the graph
+      // Retrieve the agent
       const getRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${graphData.id}`,
         {
@@ -1634,15 +1634,15 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle tools with populated availableTools field', async () => {
-      const tenantId = createTestTenantId('graph-tool-available-tools');
+      const tenantId = createTestTenantId('agent-tool-available-tools');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const toolId = `tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const toolId = `tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Graph with Available Tools',
+        id: agentId,
+        name: 'Agent with Available Tools',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -1703,17 +1703,17 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle multiple tools with different status values', async () => {
-      const tenantId = createTestTenantId('graph-tool-statuses');
+      const tenantId = createTestTenantId('agent-tool-statuses');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const healthyToolId = `healthy-tool-${graphId}`;
-      const unhealthyToolId = `unhealthy-tool-${graphId}`;
-      const unknownToolId = `unknown-tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const healthyToolId = `healthy-tool-${agentId}`;
+      const unhealthyToolId = `unhealthy-tool-${agentId}`;
+      const unknownToolId = `unknown-tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Graph with Tool Statuses',
+        id: agentId,
+        name: 'Agent with Tool Statuses',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -1781,15 +1781,15 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle tools with capabilities field', async () => {
-      const tenantId = createTestTenantId('graph-tool-capabilities');
+      const tenantId = createTestTenantId('agent-tool-capabilities');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const toolId = `tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const toolId = `tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Graph with Tool Capabilities',
+        id: agentId,
+        name: 'Agent with Tool Capabilities',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -1833,22 +1833,22 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
       expect(tool.capabilities).toBeNull(); // Should be null since it's read-only
     });
 
-    it('should preserve all tool fields during graph update', async () => {
-      const tenantId = createTestTenantId('graph-tool-update-preserve');
+    it('should preserve all tool fields during agent update', async () => {
+      const tenantId = createTestTenantId('agent-tool-update-preserve');
       await ensureTestProject(tenantId, projectId);
       const graphData = createFullGraphData();
 
-      // Create the graph
+      // Create the agent
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(graphData),
       });
       expect(createRes.status).toBe(201);
 
-      // Update the graph
+      // Update the agent
       const updatedData = {
         ...graphData,
-        name: 'Updated Graph Name',
+        name: 'Updated Agent Name',
       };
 
       const updateRes = await makeRequest(
@@ -1873,15 +1873,15 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle empty availableTools array', async () => {
-      const tenantId = createTestTenantId('graph-empty-available-tools');
+      const tenantId = createTestTenantId('agent-empty-available-tools');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const toolId = `tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const toolId = `tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Graph with Empty Available Tools',
+        id: agentId,
+        name: 'Agent with Empty Available Tools',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {
@@ -1922,15 +1922,15 @@ describe('Graph Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate tool schema properly with all optional fields', async () => {
-      const tenantId = createTestTenantId('graph-tool-optional-fields');
+      const tenantId = createTestTenantId('agent-tool-optional-fields');
       await ensureTestProject(tenantId, projectId);
-      const graphId = nanoid();
-      const subAgentId = `agent-${graphId}`;
-      const toolId = `tool-${graphId}`;
+      const agentId = nanoid();
+      const subAgentId = `agent-${agentId}`;
+      const toolId = `tool-${agentId}`;
 
       const graphData = {
-        id: graphId,
-        name: 'Graph with Optional Tool Fields',
+        id: agentId,
+        name: 'Agent with Optional Tool Fields',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {

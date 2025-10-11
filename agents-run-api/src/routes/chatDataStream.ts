@@ -111,23 +111,23 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, agentId },
     });
-    if (!agentGraph) {
+    if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent graph not found',
+        message: 'Agent agent not found',
       });
     }
 
-    const defaultSubAgentId = agentGraph.defaultSubAgentId;
-    const graphName = agentGraph.name;
+    const defaultSubAgentId = agent.defaultSubAgentId;
+    const graphName = agent.name;
 
     if (!defaultSubAgentId) {
       throw createApiError({
         code: 'bad_request',
-        message: 'Graph does not have a default agent configured',
+        message: 'Agent does not have a default agent configured',
       });
     }
 
@@ -183,7 +183,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       messageSpan.setAttributes({
         'message.timestamp': new Date().toISOString(),
         'message.content': userText,
-        'graph.name': graphName,
+        'agent.name': graphName,
       });
     }
     await createMessage(dbClient)({

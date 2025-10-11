@@ -1,42 +1,42 @@
 import { getAgentById, getProject, type Models, type SubAgentSelect } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
-async function resolveModelConfig(agentId: string, agent: SubAgentSelect): Promise<Models> {
+async function resolveModelConfig(agentId: string, subAgent: SubAgentSelect): Promise<Models> {
   // If base model is defined on the agent
-  if (agent.models?.base?.model) {
+  if (subAgent.models?.base?.model) {
     return {
-      base: agent.models.base,
-      structuredOutput: agent.models.structuredOutput || agent.models.base,
-      summarizer: agent.models.summarizer || agent.models.base,
+      base: subAgent.models.base,
+      structuredOutput: subAgent.models.structuredOutput || subAgent.models.base,
+      summarizer: subAgent.models.summarizer || subAgent.models.base,
     };
   }
 
   // If base model is not defined on the agent (or models is undefined/null)
-  // Check graph model config first
-  const graph = await getAgentById(dbClient)({
-    scopes: { tenantId: agent.tenantId, projectId: agent.projectId, agentId },
+  // Check agent model config first
+  const agent = await getAgentById(dbClient)({
+    scopes: { tenantId: subAgent.tenantId, projectId: subAgent.projectId, agentId },
   });
 
-  if (graph?.models?.base?.model) {
+  if (agent?.models?.base?.model) {
     return {
-      base: graph.models.base,
+      base: agent.models.base,
       structuredOutput:
-        agent.models?.structuredOutput || graph.models.structuredOutput || graph.models.base,
-      summarizer: agent.models?.summarizer || graph.models.summarizer || graph.models.base,
+        subAgent.models?.structuredOutput || agent.models.structuredOutput || agent.models.base,
+      summarizer: subAgent.models?.summarizer || agent.models.summarizer || agent.models.base,
     };
   }
 
-  // If graph model config not defined, check project level config
+  // If agent model config not defined, check project level config
   const project = await getProject(dbClient)({
-    scopes: { tenantId: agent.tenantId, projectId: agent.projectId },
+    scopes: { tenantId: subAgent.tenantId, projectId: subAgent.projectId },
   });
 
   if (project?.models?.base?.model) {
     return {
       base: project.models.base,
       structuredOutput:
-        agent.models?.structuredOutput || project.models.structuredOutput || project.models.base,
-      summarizer: agent.models?.summarizer || project.models.summarizer || project.models.base,
+        subAgent.models?.structuredOutput || project.models.structuredOutput || project.models.base,
+      summarizer: subAgent.models?.summarizer || project.models.summarizer || project.models.base,
     };
   }
 

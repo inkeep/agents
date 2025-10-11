@@ -17,7 +17,7 @@ describe('Context Configs Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -55,7 +55,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await getContextConfigById(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -82,7 +82,7 @@ describe('Context Configs Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          agentId: testGraphId,
+          agentId: testAgentId,
         },
         id: 'non-existent',
       });
@@ -114,7 +114,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await getContextConfigById(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -155,7 +155,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigs(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -212,7 +212,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigsPaginated(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -254,7 +254,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigsPaginated(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -290,7 +290,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await listContextConfigsPaginated(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -311,7 +311,7 @@ describe('Context Configs Data Access', () => {
         id: 'test-config-id',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         headersSchema: { type: 'object' },
         contextVariables: {
           testVar: {
@@ -350,7 +350,7 @@ describe('Context Configs Data Access', () => {
         id: 'custom-id',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         headersSchema: null,
         contextVariables: null,
       };
@@ -382,7 +382,7 @@ describe('Context Configs Data Access', () => {
         id: 'test-config-empty',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testGraphId,
+        agentId: testAgentId,
         contextVariables: {}, // Empty object should become null
       } satisfies ContextConfigInsert;
 
@@ -450,7 +450,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await updateContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -489,7 +489,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await updateContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -527,7 +527,7 @@ describe('Context Configs Data Access', () => {
 
       await updateContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -570,7 +570,7 @@ describe('Context Configs Data Access', () => {
 
       await updateContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -604,7 +604,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await deleteContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -634,7 +634,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await deleteContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -663,7 +663,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await deleteContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -698,7 +698,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await hasContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -722,7 +722,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await hasContextConfig(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -748,7 +748,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await countContextConfigs(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -772,7 +772,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await countContextConfigs(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },
@@ -795,7 +795,7 @@ describe('Context Configs Data Access', () => {
 
       const result = await countContextConfigs(mockDb)({
         scopes: {
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
         },

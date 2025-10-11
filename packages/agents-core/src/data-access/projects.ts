@@ -203,7 +203,7 @@ export const getProjectResourceCounts =
 
     return {
       agents: agentResults.length,
-      agentGraphs: graphResults.length,
+      agent: graphResults.length,
       tools: toolResults.length,
       contextConfigs: contextConfigResults.length,
       externalAgents: externalAgentResults.length,
@@ -321,7 +321,7 @@ export const updateProject =
       )
       .returning();
 
-    // If stopWhen was updated, cascade the changes to agents and graphs
+    // If stopWhen was updated, cascade the changes to agents and agent
     if (updated && params.data.stopWhen !== undefined) {
       try {
         await cascadeStopWhenUpdates(
@@ -388,7 +388,7 @@ export const deleteProject =
   };
 
 /**
- * Cascade stopWhen updates from project to graphs and agents
+ * Cascade stopWhen updates from project to agent and agents
  */
 async function cascadeStopWhenUpdates(
   db: DatabaseClient,
@@ -398,16 +398,16 @@ async function cascadeStopWhenUpdates(
 ): Promise<void> {
   const { tenantId, projectId } = scopes;
 
-  // Update graphs if transferCountIs changed
+  // Update agent if transferCountIs changed
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
-    // Find all graphs that inherited the old transferCountIs value
+    // Find all agent that inherited the old transferCountIs value
     const graphsToUpdate = await db.query.agents.findMany({
       where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
     });
 
-    for (const graph of graphsToUpdate) {
-      const graphStopWhen = graph.stopWhen as any;
-      // If graph has no explicit transferCountIs or matches old project value, update it
+    for (const agent of graphsToUpdate) {
+      const graphStopWhen = agent.stopWhen as any;
+      // If agent has no explicit transferCountIs or matches old project value, update it
       if (
         !graphStopWhen?.transferCountIs ||
         graphStopWhen.transferCountIs === oldStopWhen?.transferCountIs
@@ -427,7 +427,7 @@ async function cascadeStopWhenUpdates(
             and(
               eq(agents.tenantId, tenantId),
               eq(agents.projectId, projectId),
-              eq(agents.id, graph.id)
+              eq(agents.id, agent.id)
             )
           );
       }

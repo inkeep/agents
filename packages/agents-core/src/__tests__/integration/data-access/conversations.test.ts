@@ -10,7 +10,7 @@ import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
 import { createTestDatabaseClient } from '../../../db/test-client';
 import type { ConversationInsert } from '../../../types/index';
-import { createTestAgentData, createTestGraphData } from '../helpers';
+import { createTestAgentData, createtestAgentData } from '../helpers';
 
 const createTestConversationData = (
   tenantId: string,
@@ -43,7 +43,7 @@ describe('Conversations Data Access - Integration Tests', () => {
     // Create fresh in-memory database for each test
     db = await createTestDatabaseClient();
 
-    // Create test projects and graphs for all tenant IDs used in tests
+    // Create test projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
       await db
@@ -56,9 +56,9 @@ describe('Conversations Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
 
-      // Create test graphs for each project
+      // Create test agent for each project
       for (let i = 1; i <= 3; i++) {
-        const agentId = `test-graph-${i}`;
+        const agentId = `test-agent-${i}`;
         const defaultSubAgentId = `test-agent-${i}`;
 
         await db
@@ -67,13 +67,13 @@ describe('Conversations Data Access - Integration Tests', () => {
             tenantId: tenantId,
             projectId: testProjectId,
             id: agentId,
-            name: `Test Graph ${i}`,
-            description: 'Graph for testing',
+            name: `Test Agent ${i}`,
+            description: 'Agent for testing',
             defaultSubAgentId: defaultSubAgentId,
           })
           .onConflictDoNothing();
 
-        // Create the default agent for the graph
+        // Create the default agent for the agent
         await db
           .insert(schema.subAgents)
           .values({
@@ -92,11 +92,11 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-1');
+      // Create a agent first (before agents, as they need agentId)
+      const graphData = createtestAgentData(testTenantId, testProjectId, 'conv-1');
       await createAgent(db)(graphData);
 
-      // Create an agent with graphId
+      // Create an agent with agentId
       const _agent = await createSubAgent(db)(
         createTestAgentData(testTenantId, testProjectId, '1', graphData.id)
       );
@@ -175,11 +175,11 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('updateConversationActiveAgent', () => {
     it('should update active agent and timestamp', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-2');
+      // Create a agent first (before agents, as they need agentId)
+      const graphData = createtestAgentData(testTenantId, testProjectId, 'conv-2');
       await createAgent(db)(graphData);
 
-      // Create agents with graphId
+      // Create agents with agentId
       const initialAgentData = createTestAgentData(testTenantId, testProjectId, '1', graphData.id);
       const initialAgent = await createSubAgent(db)(initialAgentData);
 
@@ -213,8 +213,8 @@ describe('Conversations Data Access - Integration Tests', () => {
     });
 
     it('should maintain tenant isolation during agent updates', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-3');
+      // Create a agent first (before agents, as they need agentId)
+      const graphData = createtestAgentData(testTenantId, testProjectId, 'conv-3');
       await createAgent(db)(graphData);
 
       // Create agent and conversation for tenant 1

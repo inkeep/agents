@@ -8,7 +8,7 @@ import {
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
   getConversationId,
-  getFullGraph,
+  getFullAgent,
   getRequestExecutionContext,
   getSubAgentById,
   handleContextResolution,
@@ -41,7 +41,7 @@ const chatCompletionsRoute = createRoute({
   tags: ['chat'],
   summary: 'Create chat completion',
   description:
-    'Creates a new chat completion with streaming SSE response using the configured agent graph',
+    'Creates a new chat completion with streaming SSE response using the configured agent agent',
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -127,7 +127,7 @@ const chatCompletionsRoute = createRoute({
       },
     },
     404: {
-      description: 'Agent graph or agent not found',
+      description: 'Agent agent or agent not found',
       content: {
         'application/json': {
           schema: z.object({
@@ -194,17 +194,17 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
-    // Get the graph from the full graph system first, fall back to legacy system
-    const fullGraph = await getFullGraph(dbClient)({
+    // Get the agent from the full agent system first, fall back to legacy system
+    const fullGraph = await getFullAgent(dbClient)({
       scopes: { tenantId, projectId, agentId },
     });
 
-    let agentGraph: any;
+    let agent: any;
     let defaultSubAgentId: string;
 
     if (fullGraph) {
-      // Use full graph system
-      agentGraph = {
+      // Use full agent system
+      agent = {
         id: fullGraph.id,
         name: fullGraph.name,
         tenantId,
@@ -216,22 +216,22 @@ app.openapi(chatCompletionsRoute, async (c) => {
       defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {
       // Fall back to legacy system
-      agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+      agent = await getAgentWithDefaultSubAgent(dbClient)({
         scopes: { tenantId, projectId, agentId },
       });
-      if (!agentGraph) {
+      if (!agent) {
         throw createApiError({
           code: 'not_found',
-          message: 'Agent graph not found',
+          message: 'Agent agent not found',
         });
       }
-      defaultSubAgentId = agentGraph.defaultSubAgentId || '';
+      defaultSubAgentId = agent.defaultSubAgentId || '';
     }
 
     if (!defaultSubAgentId) {
       throw createApiError({
         code: 'not_found',
-        message: 'No default agent found in graph',
+        message: 'No default agent found in agent',
       });
     }
 
@@ -248,7 +248,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       conversationId,
     });
     if (!activeAgent) {
-      // Use the default agent from the graph instead of headAgentId
+      // Use the default agent from the agent instead of headAgentId
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
@@ -293,7 +293,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         conversationId,
         defaultSubAgentId,
         activeSubAgentId: activeAgent?.activeSubAgentId || 'none',
-        hasContextConfig: !!agentGraph.contextConfigId,
+        hasContextConfig: !!agent.contextConfigId,
         hasHeaders: !!body.headers,
         hasValidatedContext: !!validatedContext,
         validatedContextKeys: Object.keys(validatedContext),

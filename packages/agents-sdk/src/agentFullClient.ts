@@ -1,5 +1,5 @@
 /**
- * Client-side functions for interacting with the Full Graph API
+ * Client-side functions for interacting with the Full Agent API
  * These functions make HTTP requests to the server instead of direct database calls
  */
 
@@ -9,7 +9,7 @@ import { getLogger } from '@inkeep/agents-core';
 const logger = getLogger('graphFullClient');
 
 /**
- * Create a full graph via HTTP API
+ * Create a full agent via HTTP API
  */
 export async function createFullGraphViaAPI(
   tenantId: string,
@@ -21,13 +21,13 @@ export async function createFullGraphViaAPI(
     {
       tenantId,
       projectId,
-      graphId: graphData.id,
+      agentId: graphData.id,
       apiUrl,
     },
-    'Creating full graph via API'
+    'Creating full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -38,7 +38,7 @@ export async function createFullGraphViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to create graph: ${response.status} ${response.statusText}`;
+    let errorMessage = `Failed to create agent: ${response.status} ${response.statusText}`;
 
     try {
       const errorJson = JSON.parse(errorText);
@@ -57,7 +57,7 @@ export async function createFullGraphViaAPI(
         status: response.status,
         error: errorMessage,
       },
-      'Failed to create graph via API'
+      'Failed to create agent via API'
     );
 
     throw new Error(errorMessage);
@@ -67,35 +67,35 @@ export async function createFullGraphViaAPI(
 
   logger.info(
     {
-      graphId: graphData.id,
+      agentId: graphData.id,
     },
-    'Successfully created graph via API'
+    'Successfully created agent via API'
   );
 
   return result.data;
 }
 
 /**
- * Update a full graph via HTTP API (upsert behavior)
+ * Update a full agent via HTTP API (upsert behavior)
  */
 export async function updateFullGraphViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,
-  graphId: string,
+  agentId: string,
   graphData: FullGraphDefinition
 ): Promise<FullGraphDefinition> {
   logger.info(
     {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       apiUrl,
     },
-    'Updating full graph via API'
+    'Updating full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -106,7 +106,7 @@ export async function updateFullGraphViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to update graph: ${response.status} ${response.statusText}`;
+    let errorMessage = `Failed to update agent: ${response.status} ${response.statusText}`;
 
     try {
       const errorJson = JSON.parse(errorText);
@@ -125,7 +125,7 @@ export async function updateFullGraphViaAPI(
         status: response.status,
         error: errorMessage,
       },
-      'Failed to update graph via API'
+      'Failed to update agent via API'
     );
 
     throw new Error(errorMessage);
@@ -135,34 +135,34 @@ export async function updateFullGraphViaAPI(
 
   logger.info(
     {
-      graphId,
+      agentId,
     },
-    'Successfully updated graph via API'
+    'Successfully updated agent via API'
   );
 
   return result.data;
 }
 
 /**
- * Get a full graph via HTTP API
+ * Get a full agent via HTTP API
  */
 export async function getFullGraphViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,
-  graphId: string
+  agentId: string
 ): Promise<FullGraphDefinition | null> {
   logger.info(
     {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       apiUrl,
     },
-    'Getting full graph via API'
+    'Getting full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -174,15 +174,15 @@ export async function getFullGraphViaAPI(
     if (response.status === 404) {
       logger.info(
         {
-          graphId,
+          agentId,
         },
-        'Graph not found'
+        'Agent not found'
       );
       return null;
     }
 
     const errorText = await response.text();
-    let errorMessage = `Failed to get graph: ${response.status} ${response.statusText}`;
+    let errorMessage = `Failed to get agent: ${response.status} ${response.statusText}`;
 
     try {
       const errorJson = JSON.parse(errorText);
@@ -201,7 +201,7 @@ export async function getFullGraphViaAPI(
         status: response.status,
         error: errorMessage,
       },
-      'Failed to get graph via API'
+      'Failed to get agent via API'
     );
 
     throw new Error(errorMessage);
@@ -211,34 +211,34 @@ export async function getFullGraphViaAPI(
 
   logger.info(
     {
-      graphId,
+      agentId,
     },
-    'Successfully retrieved graph via API'
+    'Successfully retrieved agent via API'
   );
 
   return result.data;
 }
 
 /**
- * Delete a full graph via HTTP API
+ * Delete a full agent via HTTP API
  */
 export async function deleteFullGraphViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,
-  graphId: string
+  agentId: string
 ): Promise<void> {
   logger.info(
     {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       apiUrl,
     },
-    'Deleting full graph via API'
+    'Deleting full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`;
+  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
   const response = await fetch(url, {
     method: 'DELETE',
     headers: {
@@ -248,7 +248,7 @@ export async function deleteFullGraphViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to delete graph: ${response.status} ${response.statusText}`;
+    let errorMessage = `Failed to delete agent: ${response.status} ${response.statusText}`;
 
     try {
       const errorJson = JSON.parse(errorText);
@@ -267,7 +267,7 @@ export async function deleteFullGraphViaAPI(
         status: response.status,
         error: errorMessage,
       },
-      'Failed to delete graph via API'
+      'Failed to delete agent via API'
     );
 
     throw new Error(errorMessage);
@@ -275,8 +275,8 @@ export async function deleteFullGraphViaAPI(
 
   logger.info(
     {
-      graphId,
+      agentId,
     },
-    'Successfully deleted graph via API'
+    'Successfully deleted agent via API'
   );
 }

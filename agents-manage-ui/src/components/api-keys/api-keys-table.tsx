@@ -8,13 +8,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { ApiKey } from '@/lib/api/api-keys';
-import type { Graph } from '@/lib/types/graph-full';
+import type { Agent } from '@/lib/types/agent-full';
 import { ApiKeyItemMenu } from './api-key-item-menu';
 import { ExpirationIndicator } from './expiration-indicator';
 
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
-  graphLookup: Record<string, Graph>;
+  graphLookup: Record<string, Agent>;
 }
 
 export function ApiKeysTable({ apiKeys, graphLookup }: ApiKeysTableProps) {
@@ -45,7 +45,7 @@ export function ApiKeysTable({ apiKeys, graphLookup }: ApiKeysTableProps) {
                   <div className="flex flex-col">
                     <span className="font-medium text-foreground">{apiKey.name || 'No name'}</span>
                     <span className="text-sm text-muted-foreground">
-                      {graphLookup[apiKey.graphId]?.name || apiKey.graphId}
+                      {graphLookup[apiKey.agentId]?.name || apiKey.agentId}
                     </span>
                   </div>
                 </TableCell>

@@ -95,7 +95,7 @@ describe('Agent Data Access', () => {
         id: subAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testAgentId,
+        agentId: testAgentId,
         name: 'Test Agent',
         description: 'Test description',
         prompt: 'Test prompt',

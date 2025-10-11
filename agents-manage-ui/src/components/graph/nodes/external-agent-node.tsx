@@ -1,8 +1,8 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { BotMessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { NODE_WIDTH } from '@/features/graph/domain/deserialize';
-import { useGraphErrors } from '@/hooks/use-graph-errors';
+import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
+import { useGraphErrors } from '@/hooks/use-agent-errors';
 import type { AgentNodeData } from '../configuration/node-types';
 import { externalAgentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';

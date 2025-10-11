@@ -14,15 +14,15 @@ describe('Delegation Task Creation Fixes', () => {
     await ensureTestProject(tenantId, projectId);
 
     // Import necessary modules
-    const { agents: agentGraph } = await import('@inkeep/agents-core');
+    const { agents: agent } = await import('@inkeep/agents-core');
 
-    // Create a test graph first
-    const graphId = 'test-graph';
-    await dbClient.insert(agentGraph).values({
-      id: graphId,
+    // Create a test agent first
+    const agentId = 'test-agent';
+    await dbClient.insert(agent).values({
+      id: agentId,
       tenantId: tenantId,
       projectId: projectId,
-      name: 'Test Graph',
+      name: 'Test Agent',
       defaultSubAgentId: 'math-supervisor',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -34,7 +34,7 @@ describe('Delegation Task Creation Fixes', () => {
         id: 'math-supervisor',
         tenantId: tenantId,
         projectId: projectId,
-        agentId: graphId,
+        agentId: agentId,
         name: 'Math Supervisor',
         description: 'Supervises math operations',
         prompt: 'Handle math supervision tasks',
@@ -45,7 +45,7 @@ describe('Delegation Task Creation Fixes', () => {
         id: 'number-producer-a',
         tenantId: tenantId,
         projectId: projectId,
-        agentId: graphId,
+        agentId: agentId,
         name: 'Number Producer A',
         description: 'Produces numbers for math operations',
         prompt: 'Generate numbers as needed',
@@ -74,7 +74,7 @@ describe('Delegation Task Creation Fixes', () => {
       id: taskId,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
-      agentId: 'test-graph',
+      agentId: 'test-agent',
       subAgentId: 'math-supervisor', // Use existing agent from database
       contextId: conversationId,
       status: 'pending',
@@ -175,7 +175,7 @@ describe('Delegation Task Creation Fixes', () => {
       id: `delegation-test-${nanoid()}`,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
-      agentId: 'test-graph',
+      agentId: 'test-agent',
       subAgentId: 'number-producer-a',
       contextId: testContextId,
       status: 'working',
@@ -185,7 +185,7 @@ describe('Delegation Task Creation Fixes', () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         sub_agent_id: 'number-producer-a',
-        agent_id: 'test-delegation-graph',
+        agent_id: 'test-delegation-agent',
       },
     });
 

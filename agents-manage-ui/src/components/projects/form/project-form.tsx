@@ -174,8 +174,8 @@ export function ProjectForm({
         if (onSuccess) {
           onSuccess(data.id);
         } else {
-          // Navigate to the new project's graphs page
-          router.push(`/${tenantId}/projects/${data.id}/graphs`);
+          // Navigate to the new project's agent page
+          router.push(`/${tenantId}/projects/${data.id}/agent`);
         }
       }
     } catch (error) {

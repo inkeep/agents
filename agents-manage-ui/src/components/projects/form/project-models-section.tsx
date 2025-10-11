@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
-import { ModelSelector } from '@/components/graph/sidepane/nodes/model-selector';
+import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
@@ -204,7 +204,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
       <div>
         <Label className="text-sm font-medium">Default models</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Set default models that will be inherited by graphs and agents in this project
+          Set default models that will be inherited by agent and agents in this project
         </p>
       </div>
 

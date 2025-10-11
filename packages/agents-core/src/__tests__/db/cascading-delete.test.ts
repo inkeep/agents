@@ -74,20 +74,20 @@ describe('Cascading Delete Tests', () => {
     };
     await dbClient.insert(projects).values(project);
 
-    // Create an agent graph first
+    // Create an agent agent first
     const agentId = nanoid();
     const subAgentId = nanoid();
     const agent = {
       tenantId,
       projectId,
       id: agentId,
-      name: 'Test Graph',
-      description: 'Test graph',
+      name: 'Test Agent',
+      description: 'Test agent',
       defaultSubAgentId: subAgentId,
     };
     await dbClient.insert(agents).values(agent);
 
-    // Create a subagent (now with graphId)
+    // Create a subagent (now with agentId)
     const subAgent = {
       tenantId,
       projectId,
@@ -445,7 +445,7 @@ describe('Cascading Delete Tests', () => {
         projectId: project1Id,
         id: agent1Id,
         name: 'Agent 1',
-        description: 'Graph for project 1',
+        description: 'Agent for project 1',
         defaultSubAgentId: subAgent1Id,
       },
       {
@@ -453,7 +453,7 @@ describe('Cascading Delete Tests', () => {
         projectId: project2Id,
         id: agent2Id,
         name: 'Agent 2',
-        description: 'Graph for project 2',
+        description: 'Agent for project 2',
         defaultSubAgentId: subAgent2Id,
       },
     ]);

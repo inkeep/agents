@@ -2,7 +2,7 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphStore } from '@/features/agent/state/use-agent-store';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';

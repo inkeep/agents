@@ -203,7 +203,7 @@ describe('API Key Authentication Middleware', () => {
           Authorization: 'Bearer test-bypass-secret',
           'x-inkeep-tenant-id': 'tenant-123',
           'x-inkeep-project-id': 'project-456',
-          'x-inkeep-agent-id': 'graph-789',
+          'x-inkeep-agent-id': 'agent-789',
         },
       });
 
@@ -213,7 +213,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'test-bypass-secret',
         tenantId: 'tenant-123',
         projectId: 'project-456',
-        agentId: 'graph-789',
+        agentId: 'agent-789',
         apiKeyId: 'bypass',
         baseUrl: expect.stringContaining('http'),
       });
@@ -298,7 +298,7 @@ describe('API Key Authentication Middleware', () => {
 
       expect(res.status).toBe(401);
       const body = await res.text();
-      expect(body).toContain('Missing or invalid tenant, project, or graph ID');
+      expect(body).toContain('Missing or invalid tenant, project, or agent ID');
     });
   });
 

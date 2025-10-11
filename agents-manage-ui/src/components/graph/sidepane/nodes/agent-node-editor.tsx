@@ -8,9 +8,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
-import type { ErrorHelpers } from '@/hooks/use-graph-errors';
+import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
@@ -65,7 +65,7 @@ export function AgentNodeEditor({
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
 
-  // Get project and graph data for inheritance indicators
+  // Get project and agent data for inheritance indicators
   const { project } = useProjectData();
   const metadata = useGraphStore((state) => state.metadata);
 

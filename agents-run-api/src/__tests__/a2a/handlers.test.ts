@@ -52,7 +52,7 @@ describe('A2A Handlers', () => {
       apiKey: 'test-api-key',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       apiKeyId: 'test-key',
       baseUrl: 'http://localhost:3003',
       subAgentId: 'test-agent',
@@ -65,7 +65,7 @@ describe('A2A Handlers', () => {
     mockContext = {
       req: {
         json: vi.fn(),
-        param: vi.fn().mockReturnValue('test-graph'),
+        param: vi.fn().mockReturnValue('test-agent'),
       },
       json: vi.fn().mockImplementation((data) => new Response(JSON.stringify(data))),
       text: vi.fn().mockImplementation((text) => new Response(text)),
