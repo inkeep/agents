@@ -15,7 +15,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
     firstUserMessage,
     tenantId,
     agentId,
-    graphName,
+    agentName,
     hasErrors,
     totalErrors,
     toolsUsed,
@@ -92,7 +92,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
               </Badge>
             )}
             <Badge variant="code" className="text-xs">
-              {graphName ? `${graphName} (${agentId})` : agentId}
+              {agentName ? `${agentName} (${agentId})` : agentId}
             </Badge>
           </div>
         </div>

@@ -10,7 +10,7 @@ import { fetchProjects } from '../api/projects';
  */
 export async function redirectToProject(
   tenantId: string,
-  targetPath: string = 'agent'
+  targetPath: string = 'agents'
 ): Promise<never> {
   try {
     const result = await fetchProjects(tenantId);

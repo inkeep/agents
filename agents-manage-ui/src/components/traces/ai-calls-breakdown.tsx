@@ -39,11 +39,11 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     timeRange,
     customStartDate,
     customEndDate,
-    selectedGraph,
+    selectedAgent,
     selectedModel,
     setTimeRange,
     setCustomDateRange,
-    setGraphFilter,
+    setAgentFilter,
     setModelFilter,
   } = useAICallsQueryState();
   const [agentCalls, setAgentCalls] = useState<
@@ -57,7 +57,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   const [modelCalls, setModelCalls] = useState<Array<{ modelId: string; totalCalls: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [agent, setGraphs] = useState<string[]>([]);
+  const [agent, setAgents] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
 
   // Handle filter changes with nuqs
@@ -123,12 +123,12 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
 
         const client = getSigNozStatsClient();
 
-        const agentId = selectedGraph === 'all' ? undefined : selectedGraph;
+        const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
         const modelId = selectedModel === 'all' ? undefined : selectedModel;
 
         // Fetch all data in parallel using SigNoz aggregations
-        const [agentData, modelData, uniqueGraphs, uniqueModels] = await Promise.all([
-          client.getAICallsByAgent(
+        const [agentData, modelData, uniqueAgents, uniqueModels] = await Promise.all([
+          client.getAICallsBySubAgent(
             startTime,
             endTime,
             agentId,
@@ -136,13 +136,13 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
             params.projectId as string
           ),
           client.getAICallsByModel(startTime, endTime, agentId, params.projectId as string),
-          client.getUniqueGraphs(startTime, endTime, params.projectId as string),
+          client.getUniqueAgents(startTime, endTime, params.projectId as string),
           client.getUniqueModels(startTime, endTime, params.projectId as string),
         ]);
 
         setAgentCalls(agentData);
         setModelCalls(modelData);
-        setGraphs(uniqueGraphs);
+        setAgents(uniqueAgents);
         setModels(uniqueModels);
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
@@ -153,7 +153,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     };
 
     fetchData();
-  }, [selectedGraph, selectedModel, startTime, endTime, params.projectId]);
+  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId]);
 
   const totalAICalls = agentCalls.reduce((sum, item) => sum + item.totalCalls, 0);
 
@@ -201,7 +201,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
               <Label htmlFor="agent-filter" className="text-sm">
                 Agent
               </Label>
-              <Select value={selectedGraph} onValueChange={setGraphFilter}>
+              <Select value={selectedAgent} onValueChange={setAgentFilter}>
                 <SelectTrigger id="agent-filter">
                   <SelectValue placeholder="Select agent" />
                 </SelectTrigger>
@@ -292,13 +292,13 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           {!loading && (
             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
               <div>
-                {selectedGraph === 'all' && selectedModel === 'all'
+                {selectedAgent === 'all' && selectedModel === 'all'
                   ? `Showing ${agentCalls.length} agents across all agent and models`
-                  : selectedGraph === 'all'
+                  : selectedAgent === 'all'
                     ? `Showing agents for all agent, model: ${selectedModel}`
                     : selectedModel === 'all'
-                      ? `Showing agents for ${selectedGraph}, all models`
-                      : `Showing agents for ${selectedGraph}, model: ${selectedModel}`}
+                      ? `Showing agents for ${selectedAgent}, all models`
+                      : `Showing agents for ${selectedAgent}, model: ${selectedModel}`}
               </div>
               <div className="flex items-center gap-1 text-xs">
                 <Calendar className="h-3 w-3" />
@@ -330,7 +330,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            {selectedGraph === 'all'
+            {selectedAgent === 'all'
               ? `AI calls within conversations across ${agentCalls.length} agents`
               : `AI calls within conversations for selected agent`}
           </p>
@@ -396,7 +396,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
               <Brain className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No AI calls found</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                {selectedGraph === 'all'
+                {selectedAgent === 'all'
                   ? 'No AI calls detected in the selected time range'
                   : 'No AI calls found for the selected agent'}
               </p>
@@ -454,7 +454,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
               <Cpu className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No model data found</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                {selectedGraph === 'all'
+                {selectedAgent === 'all'
                   ? 'No model data detected in the selected time range'
                   : 'No model data found for the selected agent'}
               </p>

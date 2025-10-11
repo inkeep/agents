@@ -2,7 +2,7 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
-import { useGraphStore } from '@/features/agent/state/use-agent-store';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
@@ -12,7 +12,7 @@ const TOOLS_SHOWN_LIMIT = 4;
 
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
-  const { toolLookup, agentToolConfigLookup, edges } = useGraphStore((state) => ({
+  const { toolLookup, agentToolConfigLookup, edges } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
     agentToolConfigLookup: state.agentToolConfigLookup,
     edges: state.edges,

@@ -55,8 +55,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     projectId && projectId !== 'undefined'
       ? [
           {
-            title: 'Agent',
-            url: `/${tenantId}/projects/${projectId}/agent`,
+            title: 'Agents',
+            url: `/${tenantId}/projects/${projectId}/agents`,
             icon: Workflow,
           },
           {

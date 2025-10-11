@@ -1,5 +1,5 @@
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
-import type { ContextConfig, GraphMetadata } from '../../configuration/agent-types';
+import type { ContextConfig, AgentMetadata } from '../../configuration/agent-types';
 import { SectionHeader } from '../section';
 
 export function ContextConfigForm({
@@ -7,7 +7,7 @@ export function ContextConfigForm({
   updateMetadata,
 }: {
   contextConfig: ContextConfig;
-  updateMetadata: (field: keyof GraphMetadata, value: GraphMetadata[keyof GraphMetadata]) => void;
+  updateMetadata: (field: keyof AgentMetadata, value: AgentMetadata[keyof AgentMetadata]) => void;
 }) {
   const { contextVariables, headersSchema } = contextConfig;
 

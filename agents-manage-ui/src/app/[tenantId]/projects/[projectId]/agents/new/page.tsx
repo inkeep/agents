@@ -6,7 +6,7 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 
-async function NewGraphPage({
+async function NewAgentPage({
   params,
 }: {
   params: Promise<{ tenantId: string; projectId: string }>;
@@ -42,7 +42,7 @@ async function NewGraphPage({
   return (
     <BodyTemplate
       breadcrumbs={[
-        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agent` },
+        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` },
         { label: 'New Agent' },
       ]}
     >
@@ -56,4 +56,4 @@ async function NewGraphPage({
   );
 }
 
-export default NewGraphPage;
+export default NewAgentPage;

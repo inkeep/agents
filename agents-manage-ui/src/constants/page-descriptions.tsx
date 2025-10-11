@@ -21,9 +21,9 @@ export const dataComponentDescription = (
   </>
 );
 
-export const graphDescription = (
+export const agentDescription = (
   <>
-    Agent are visual representations of the data flow between agents and tools.
+    Agents are visual representations of the data flow between agents and tools.
     {'\n'}
     <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/agent`}>Learn more</ExternalLink>
   </>

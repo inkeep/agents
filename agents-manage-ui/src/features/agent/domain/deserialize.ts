@@ -66,8 +66,8 @@ function calculateNodeHeight(node: Node): number {
 }
 
 export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
-  const g = new dagre.agentlib.Agent();
-  g.setAgent({
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({
     rankdir: 'TB',
     nodesep: 150,
     ranksep: 150, // Increased vertical spacing between ranks

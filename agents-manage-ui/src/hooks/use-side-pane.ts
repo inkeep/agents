@@ -15,6 +15,6 @@ export function useSidePane() {
     edgeId: queryState.edgeId,
     isOpen: Boolean(queryState.pane),
     setQueryState,
-    openGraphPane: () => setQueryState({ pane: 'agent', nodeId: null, edgeId: null }),
+    openAgentPane: () => setQueryState({ pane: 'agent', nodeId: null, edgeId: null }),
   };
 }

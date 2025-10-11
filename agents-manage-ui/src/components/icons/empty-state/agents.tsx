@@ -1,4 +1,4 @@
-export const GraphsIcon = () => {
+export const AgentsIcon = () => {
   return (
     <svg
       width="504"

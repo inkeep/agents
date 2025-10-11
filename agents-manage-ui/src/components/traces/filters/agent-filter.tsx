@@ -4,29 +4,29 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { OptionType } from '@/components/ui/combobox';
 import { Combobox } from '@/components/ui/combobox';
-import { getAllGraphsAction } from '@/lib/actions/agent-full';
+import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import { FilterTriggerComponent } from './filter-trigger';
 
-interface GraphFilterProps {
+interface AgentFilterProps {
   onSelect: (value: string | undefined) => void;
   selectedValue: string | undefined;
 }
 
-export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
+export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
   const { tenantId, projectId } = useParams() as {
     tenantId: string;
     projectId: string;
   };
-  const [graphOptions, setGraphOptions] = useState<OptionType[]>([]);
+  const [agentOptions, setAgentOptions] = useState<OptionType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    const fetchGraphs = async () => {
+    const fetchAgents = async () => {
       try {
         setLoading(true);
-        const response = await getAllGraphsAction(tenantId, projectId);
+        const response = await getAllAgentsAction(tenantId, projectId);
         if (!cancelled && response.success) {
-          setGraphOptions(
+          setAgentOptions(
             response.data?.map((agent) => ({
               value: agent.id,
               label: agent.name,
@@ -37,14 +37,14 @@ export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to fetch agent:', error);
-          setGraphOptions([]);
+          setAgentOptions([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    fetchGraphs();
+    fetchAgents();
     return () => {
       cancelled = true;
     };
@@ -56,7 +56,7 @@ export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
       onSelect={(value) => {
         onSelect(value);
       }}
-      options={graphOptions}
+      options={agentOptions}
       TriggerComponent={
         <FilterTriggerComponent
           disabled={loading}
@@ -66,7 +66,7 @@ export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
             onSelect(undefined);
           }}
           multipleCheckboxValues={selectedValue ? [selectedValue] : []}
-          options={graphOptions}
+          options={agentOptions}
         />
       }
     />

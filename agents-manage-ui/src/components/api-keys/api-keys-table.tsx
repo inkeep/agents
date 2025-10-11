@@ -14,10 +14,10 @@ import { ExpirationIndicator } from './expiration-indicator';
 
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
-  graphLookup: Record<string, Agent>;
+  agentLookup: Record<string, Agent>;
 }
 
-export function ApiKeysTable({ apiKeys, graphLookup }: ApiKeysTableProps) {
+export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
   return (
     <div className="rounded-lg border">
       <Table>
@@ -45,7 +45,7 @@ export function ApiKeysTable({ apiKeys, graphLookup }: ApiKeysTableProps) {
                   <div className="flex flex-col">
                     <span className="font-medium text-foreground">{apiKey.name || 'No name'}</span>
                     <span className="text-sm text-muted-foreground">
-                      {graphLookup[apiKey.agentId]?.name || apiKey.agentId}
+                      {agentLookup[apiKey.agentId]?.name || apiKey.agentId}
                     </span>
                   </div>
                 </TableCell>

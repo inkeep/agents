@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 
-export default function GraphError({ error }: { error: Error & { digest?: string } }) {
+export default function AgentError({ error }: { error: Error & { digest?: string } }) {
   const { tenantId, projectId } = useParams();
   useEffect(() => {
     // eslint-disable-next-line no-console
@@ -14,7 +14,7 @@ export default function GraphError({ error }: { error: Error & { digest?: string
   return (
     <FullPageError
       description="Something went wrong."
-      link={`/${tenantId}/projects/${projectId}/agent`}
+      link={`/${tenantId}/projects/${projectId}/agents`}
       linkText="Go back to agent"
     />
   );

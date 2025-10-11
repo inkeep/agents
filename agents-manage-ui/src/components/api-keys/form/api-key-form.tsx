@@ -18,7 +18,7 @@ interface ApiKeyFormProps {
   tenantId: string;
   projectId: string;
   initialData?: ApiKeyFormData;
-  graphsOptions: SelectOption[];
+  agentsOptions: SelectOption[];
   onApiKeyCreated?: (apiKeyData: ApiKeyCreateResponse) => void;
 }
 
@@ -56,7 +56,7 @@ export function ApiKeyForm({
   tenantId,
   projectId,
   initialData,
-  graphsOptions,
+  agentsOptions,
   onApiKeyCreated,
 }: ApiKeyFormProps) {
   const form = useForm<ApiKeyFormData>({
@@ -116,7 +116,7 @@ export function ApiKeyForm({
           control={form.control}
           name="agentId"
           label="Agent"
-          options={graphsOptions}
+          options={agentsOptions}
           placeholder="Select a agent"
           searchPlaceholder="Search agent..."
           isRequired

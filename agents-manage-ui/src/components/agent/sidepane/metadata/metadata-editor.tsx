@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { useGraphActions, useGraphStore } from '@/features/agent/state/use-agent-store';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import { CollapsibleSettings } from '../collapsible-settings';
@@ -54,17 +54,17 @@ const ExecutionLimitInheritanceInfo = () => {
 
 function MetadataEditor() {
   const params = useParams();
-  const metadata = useGraphStore((state) => state.metadata);
+  const metadata = useAgentStore((state) => state.metadata);
   const { agentId, tenantId, projectId } = params;
-  const { id, name, description, contextConfig, models, stopWhen, graphPrompt, statusUpdates } =
+  const { id, name, description, contextConfig, models, stopWhen, agentPrompt, statusUpdates } =
     metadata;
   const { INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const graphUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const agentUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
 
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();
 
-  const { markUnsaved, setMetadata } = useGraphActions();
+  const { markUnsaved, setMetadata } = useAgentActions();
 
   const updateMetadata: typeof setMetadata = useCallback(
     (...attrs) => {
@@ -101,12 +101,12 @@ function MetadataEditor() {
               </TooltipTrigger>
               <TooltipContent>
                 Use this endpoint to chat with your agent or connect it to the Inkeep widget via the
-                graphUrl prop. Supports streaming responses with the Vercel AI SDK data stream
+                agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream
                 protocol.
               </TooltipContent>
             </Tooltip>
           </div>
-          <CopyableSingleLineCode code={graphUrl} />
+          <CopyableSingleLineCode code={agentUrl} />
           <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
             Create API key
           </ExternalLink>
@@ -149,8 +149,8 @@ function MetadataEditor() {
         <ExpandableTextArea
           id="agent-prompt"
           label="Agent prompt"
-          value={graphPrompt || ''}
-          onChange={(value) => updateMetadata('graphPrompt', value)}
+          value={agentPrompt || ''}
+          onChange={(value) => updateMetadata('agentPrompt', value)}
           placeholder="System-level instructions for this agent..."
           className="max-h-96"
         />

@@ -8,7 +8,7 @@ async function Home() {
     console.warn(`TENANT_ID is not set, using default tenantId: ${DEFAULT_TENANT_ID}`);
   }
   const tenantId = process.env.TENANT_ID || DEFAULT_TENANT_ID;
-  await redirectToProject(tenantId, 'agent');
+  await redirectToProject(tenantId, 'agents');
 }
 
 export default Home;

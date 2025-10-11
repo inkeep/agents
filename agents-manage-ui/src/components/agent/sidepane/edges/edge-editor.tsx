@@ -4,7 +4,7 @@ import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useGraphActions } from '@/features/agent/state/use-agent-store';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
 type RelationshipOptionProps = {
@@ -79,7 +79,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges } = useReactFlow();
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
-  const { markUnsaved } = useGraphActions();
+  const { markUnsaved } = useAgentActions();
 
   // Check if this is a self-loop (source and target are the same)
   const isSelfLoop = selectedEdge.source === selectedEdge.target;
