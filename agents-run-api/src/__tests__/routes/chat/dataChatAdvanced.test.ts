@@ -62,6 +62,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
+    handleContextResolution: vi.fn().mockResolvedValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
         agentId: 'test-agent',

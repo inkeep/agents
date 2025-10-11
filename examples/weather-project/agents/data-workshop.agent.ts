@@ -1,4 +1,4 @@
-import { agent, agentAgent, functionTool } from '@inkeep/agents-sdk';
+import { agent, subAgent, functionTool } from '@inkeep/agents-sdk';
 
 /**
  * DATA WORKSHOP AGENT
@@ -432,8 +432,8 @@ const formatNumber = functionTool({
 });
 
 // Create the data workshop agent
-const dataWorkshopAgent = agent({
-  id: 'data-workshop-agent',
+const dataWorkshopSubAgent = subAgent({
+  id: 'data-workshop-sub-agent',
   name: 'data-workshop-agent',
   description:
     'A comprehensive data processing and utility agent with tools for calculations, data fetching, text analysis, and more',
@@ -462,9 +462,9 @@ Use these tools to help users with their data processing needs, calculations, an
 });
 
 // Create the data workshop agent
-export const dataWorkshopAgent = agentAgent({
+export const dataWorkshopAgent = agent({
   id: 'data-workshop-agent',
   name: 'Data Workshop Agent',
-  defaultSubAgent: dataWorkshopAgent,
-  subAgents: () => [dataWorkshopAgent],
+  defaultSubAgent: dataWorkshopSubAgent,
+  subAgents: () => [dataWorkshopSubAgent],
 });
