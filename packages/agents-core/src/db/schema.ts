@@ -817,8 +817,13 @@ export const agentToolRelationsRelations = relations(subAgentToolRelations, ({ o
   }),
 }));
 
-export const credentialReferencesRelations = relations(credentialReferences, ({ many }) => ({
+export const credentialReferencesRelations = relations(credentialReferences, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [credentialReferences.tenantId, credentialReferences.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
   tools: many(tools),
+  externalAgents: many(externalAgents),
 }));
 
 export const toolsRelations = relations(tools, ({ one, many }) => ({

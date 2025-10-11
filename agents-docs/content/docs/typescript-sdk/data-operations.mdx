@@ -271,7 +271,7 @@ Emitted when the agent runtime is starting up.
     "type": "agent_initializing",
     "details": {
       "sessionId": "session_abc123",
-      "graphId": "graph_xyz789"
+      "agentId": "graph_xyz789"
     }
   }
 }
@@ -330,7 +330,7 @@ curl -N \
 
 **Response Stream:**
 ```text
-data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","graphId":"graph_xyz789"}}
+data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","agentId":"graph_xyz789"}}
 
 data: {"type":"data-operation","data":{"type":"agent_reasoning","label":"Agent coordinator-agent reasoning through request","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"parts":[{"type":"text","content":"I need to create a sales report for Q4. This will require gathering data and generating a chart."}]}}}}
 
