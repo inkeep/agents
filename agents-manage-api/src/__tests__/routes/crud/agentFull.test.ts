@@ -559,7 +559,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-remove-agents');
       await ensureTestProject(tenantId, projectId);
 
-      // Create a agent with external agent included
+      // Create an agent with external agent included
       const initialAgentData = createFullAgentData(undefined, {
         includeExternalAgent: true,
       });
@@ -690,7 +690,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
   });
 
   describe('DELETE /{agentId}', () => {
-    it('should delete a agent and its relationships', async () => {
+    it('should delete an agent and its relationships', async () => {
       const tenantId = createTestTenantId('agent-delete');
       await ensureTestProject(tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
@@ -900,7 +900,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
   });
 
   describe('Enhanced Features', () => {
-    it.skip('should create a agent with dataComponents', async () => {
+    it.skip('should create an agent with dataComponents', async () => {
       // TODO: Update this test to work with new scoped architecture where dataComponents are project-scoped
       const tenantId = createTestTenantId('agent-datacomponents');
       await ensureTestProject(tenantId, projectId);
@@ -940,7 +940,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(agentsWithDataComponents).toHaveLength(2);
     });
 
-    it.skip('should create a agent with artifactComponents', async () => {
+    it.skip('should create an agent with artifactComponents', async () => {
       // TODO: Update this test to work with new scoped architecture where artifactComponents are project-scoped
       const tenantId = createTestTenantId('agent-artifactcomponents');
       await ensureTestProject(tenantId, projectId);
@@ -984,7 +984,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(agentsWithArtifactComponents).toHaveLength(2);
     });
 
-    it('should create a agent with contextConfig', async () => {
+    it('should create an agent with contextConfig', async () => {
       const tenantId = createTestTenantId('agent-contextconfig');
       await ensureTestProject(tenantId, projectId);
       const agentData = createFullAgentData(
@@ -1026,7 +1026,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       });
     });
 
-    it('should create a agent with external agents', async () => {
+    it('should create an agent with external agents', async () => {
       const tenantId = createTestTenantId('agent-external');
       await ensureTestProject(tenantId, projectId);
       const agentData = createFullAgentData(
@@ -1111,7 +1111,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(defaultSubAgent.artifactComponents).toHaveLength(1);
     });
 
-    it.skip('should update a agent with enhanced features', async () => {
+    it.skip('should update an agent with enhanced features', async () => {
       // TODO: Update this test to work with new scoped architecture
       const tenantId = createTestTenantId('agent-update-enhanced');
       await ensureTestProject(tenantId, projectId);

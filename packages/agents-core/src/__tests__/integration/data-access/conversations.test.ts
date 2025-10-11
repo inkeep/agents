@@ -10,7 +10,7 @@ import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
 import { createTestDatabaseClient } from '../../../db/test-client';
 import type { ConversationInsert } from '../../../types/index';
-import { createTestSubAgentData, createTestAgentData } from '../helpers';
+import { createTestAgentData, createTestSubAgentData } from '../helpers';
 
 const createTestConversationData = (
   tenantId: string,
@@ -92,7 +92,7 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
-      // Create a agent first (before agents, as they need agentId)
+      // Create an agent first (before agents, as they need agentId)
       const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-1');
       await createAgent(db)(agentData);
 
@@ -175,12 +175,17 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('updateConversationActiveAgent', () => {
     it('should update active agent and timestamp', async () => {
-      // Create a agent first (before agents, as they need agentId)
+      // Create an agent first (before agents, as they need agentId)
       const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-2');
       await createAgent(db)(agentData);
 
       // Create agents with agentId
-      const initialAgentData = createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id);
+      const initialAgentData = createTestSubAgentData(
+        testTenantId,
+        testProjectId,
+        '1',
+        agentData.id
+      );
       const initialAgent = await createSubAgent(db)(initialAgentData);
 
       const newAgentData = createTestSubAgentData(testTenantId, testProjectId, '2', agentData.id);
@@ -213,7 +218,7 @@ describe('Conversations Data Access - Integration Tests', () => {
     });
 
     it('should maintain tenant isolation during agent updates', async () => {
-      // Create a agent first (before agents, as they need agentId)
+      // Create an agent first (before agents, as they need agentId)
       const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-3');
       await createAgent(db)(agentData);
 

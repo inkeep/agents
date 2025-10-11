@@ -247,7 +247,10 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            agentUrl: agentId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
+            graphUrl: (() => {
+              console.log('INKEEP_AGENTS_RUN_API_URL:', INKEEP_AGENTS_RUN_API_URL);
+              return agentId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined;
+            })(),
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,

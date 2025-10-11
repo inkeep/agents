@@ -126,7 +126,7 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Create API Key',
-    description: 'Create a new API key for a agent. Returns the full key (shown only once).',
+    description: 'Create a new API key for an agent. Returns the full key (shown only once).',
     operationId: 'create-api-key',
     tags: ['API Keys'],
     request: {

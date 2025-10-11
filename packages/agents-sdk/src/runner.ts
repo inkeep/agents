@@ -1,7 +1,7 @@
 import { getLogger } from '@inkeep/agents-core';
 import type {
-  GenerateOptions,
   AgentInterface,
+  GenerateOptions,
   Message,
   MessageInput,
   RunResult,
@@ -15,9 +15,9 @@ const logger = getLogger('runner');
 
 export class Runner {
   /**
-   * Run a agent until completion, handling transfers and tool calls
+   * Run an agent until completion, handling transfers and tool calls
    * Similar to OpenAI's Runner.run() pattern
-   * NOTE: This now requires a agent instead of an agent
+   * NOTE: This now requires an agent instead of an agent
    */
   static async run(
     agent: AgentInterface,
@@ -92,7 +92,7 @@ export class Runner {
   }
 
   /**
-   * Stream a agent's response
+   * Stream an agent's response
    */
   static async stream(
     agent: AgentInterface,
@@ -217,7 +217,7 @@ export class Runner {
   }
 
   /**
-   * Get execution statistics for a agent
+   * Get execution statistics for an agent
    */
   static async getExecutionStats(
     agent: AgentInterface,

@@ -10,8 +10,8 @@ import {
   deleteAgent,
   ErrorResponseSchema,
   getAgentById,
-  getFullAgentDefinition,
   getAgentSubAgentInfos,
+  getFullAgentDefinition,
   ListResponseSchema,
   listAgents,
   PaginationQueryParamsSchema,
@@ -109,7 +109,7 @@ app.openapi(
   }
 );
 
-// Get related agent infos for a specific agent within a agent
+// Get related agent infos for a specific agent within an agent
 app.openapi(
   createRoute({
     method: 'get',

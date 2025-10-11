@@ -70,7 +70,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
   // Setup function for tests
   const setupTestEnvironment = async (tenantId: string) => {
-    // Create a agent first (without defaultSubAgentId since agents don't exist yet)
+    // Create an agent first (without defaultSubAgentId since agents don't exist yet)
     const tempAgentData = {
       id: nanoid(),
       name: `Test Agent ${nanoid()}`,

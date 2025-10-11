@@ -54,7 +54,7 @@ export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKe
           </TooltipTrigger>
           {!hasAgents && (
             <TooltipContent className="max-w-3xs">
-              Please create a agent first, then you will be able to create an API key.
+              Please create an agent first, then you will be able to create an API key.
             </TooltipContent>
           )}
         </Tooltip>

@@ -117,7 +117,7 @@ export function ApiKeyForm({
           name="agentId"
           label="Agent"
           options={agentsOptions}
-          placeholder="Select a agent"
+          placeholder="Select an agent"
           searchPlaceholder="Search agent..."
           isRequired
         />

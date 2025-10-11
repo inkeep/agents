@@ -1,8 +1,8 @@
 import type { Node } from '@xyflow/react';
 import { useCallback } from 'react';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
+import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { Credential } from '@/lib/api/credentials';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
@@ -43,8 +43,8 @@ export function ExternalAgentNodeEditor({
   return (
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">
-        External agents are agents external to a agent that can communicate using the A2A
-        (Agent-to-Agent) protocol. External agents enable you to delegate tasks between agent
+        External agents are agents that live outside of your project that can communicate using the
+        A2A (Agent-to-Agent) protocol. External agents enable you to delegate tasks between agent
         within the agent framework or to third-party services.
       </p>
 

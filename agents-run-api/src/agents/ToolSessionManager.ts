@@ -85,7 +85,7 @@ export class ToolSessionManager {
   }
 
   /**
-   * Ensure a agent-scoped session exists (idempotent)
+   * Ensure an agent-scoped session exists (idempotent)
    * All agents in the same agent execution share this session
    */
   ensureAgentSession(

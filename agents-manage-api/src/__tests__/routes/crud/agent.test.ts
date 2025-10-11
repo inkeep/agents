@@ -70,13 +70,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create multiple agent agent
-  const createMultipleAgents = async ({
-    tenantId,
-    count,
-  }: {
-    tenantId: string;
-    count: number;
-  }) => {
+  const createMultipleAgents = async ({ tenantId, count }: { tenantId: string; count: number }) => {
     const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
     for (let i = 1; i <= count; i++) {
       // Create agent first (without defaultSubAgentId)
@@ -90,13 +84,10 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       });
 
       // Update the agent with the default agent
-      await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify({ defaultSubAgentId: subAgentId }),
-        }
-      );
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
+      });
 
       agents.push(agent);
     }
@@ -129,7 +120,9 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentData: agentAgentData, agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentData: agentAgentData, agentId: agentAgentId } = await createTestAgent({
+        tenantId,
+      });
 
       // Create agent with the agentId
       const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
@@ -191,7 +184,9 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentData: agentAgentData, agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentData: agentAgentData, agentId: agentAgentId } = await createTestAgent({
+        tenantId,
+      });
 
       // Create agent with the agentId
       const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
@@ -346,7 +341,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-agent-update-not-found');
       await ensureTestProject(tenantId, projectId);
 
-      // Create a agent for the agent
+      // Create an agent for the agent
       const tempAgent = await createTestAgent({ tenantId });
       const { subAgentId } = await createTestSubAgent({ tenantId, agentId: tempAgent.agentId });
       const updateData = {

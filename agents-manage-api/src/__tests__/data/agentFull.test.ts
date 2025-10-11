@@ -286,7 +286,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       expect(secondResult.name).toBe('Updated Agent Name');
     });
 
-    it('should create a agent with dataComponent references', async () => {
+    it('should create an agent with dataComponent references', async () => {
       const tenantId = createTestTenantId('service-create-datacomponents');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -310,7 +310,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       }
     });
 
-    it('should create a agent with external agents', async () => {
+    it('should create an agent with external agents', async () => {
       const tenantId = createTestTenantId('service-create-external');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -324,7 +324,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       // Find external subAgent
       const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) => 'baseUrl' in subAgent && typeof subAgent.baseUrl === 'string' && subAgent.baseUrl.includes('api.example.com')
+        (subAgent) =>
+          'baseUrl' in subAgent &&
+          typeof subAgent.baseUrl === 'string' &&
+          subAgent.baseUrl.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
       if (externalAgent && 'baseUrl' in externalAgent) {
@@ -340,7 +343,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       }
     });
 
-    it('should create a agent with context config', async () => {
+    it('should create an agent with context config', async () => {
       const tenantId = createTestTenantId('service-create-context');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -354,7 +357,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       expect(result.contextConfig).toBeDefined();
     });
 
-    it('should create a agent with all components (comprehensive test)', async () => {
+    it('should create an agent with all components (comprehensive test)', async () => {
       const tenantId = createTestTenantId('service-create-comprehensive');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
@@ -390,7 +393,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       // Verify external subAgent exists
       const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) => 'baseUrl' in subAgent && typeof subAgent.baseUrl === 'string' && subAgent.baseUrl.includes('api.example.com')
+        (subAgent) =>
+          'baseUrl' in subAgent &&
+          typeof subAgent.baseUrl === 'string' &&
+          subAgent.baseUrl.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });
@@ -603,7 +609,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       // Find external agent
       const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) => 'baseUrl' in subAgent && typeof subAgent.baseUrl === 'string' && subAgent.baseUrl.includes('api.example.com')
+        (subAgent) =>
+          'baseUrl' in subAgent &&
+          typeof subAgent.baseUrl === 'string' &&
+          subAgent.baseUrl.includes('api.example.com')
       );
       expect(externalAgent).toBeDefined();
     });

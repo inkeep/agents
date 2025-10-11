@@ -768,8 +768,8 @@ describe('ContextFetcher', () => {
     });
   });
 
-  describe('AgentQL error handling', () => {
-    it('should detect and throw on AgentQL errors in response', async () => {
+  describe('GraphQL error handling', () => {
+    it('should detect and throw on GraphQL errors in response', async () => {
       const definition: ContextFetchDefinition = {
         id: 'test-agentql-fetch',
         trigger: 'initialization',
@@ -783,7 +783,7 @@ describe('ContextFetcher', () => {
         },
       };
 
-      // Mock a AgentQL response with errors
+      // Mock a GraphQL response with errors
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -810,11 +810,11 @@ describe('ContextFetcher', () => {
       });
 
       await expect(fetcher.fetch(definition, {})).rejects.toThrow(
-        'AgentQL request failed with 2 errors: Cannot query field "name" on type "User"., User not found'
+        'GraphQL request failed with 2 errors: Cannot query field "name" on type "User"., User not found'
       );
     });
 
-    it('should not throw on successful AgentQL response without errors', async () => {
+    it('should not throw on successful GraphQL response without errors', async () => {
       const definition: ContextFetchDefinition = {
         id: 'test-agentql-fetch',
         trigger: 'initialization',
@@ -828,7 +828,7 @@ describe('ContextFetcher', () => {
         },
       };
 
-      // Mock a successful AgentQL response
+      // Mock a successful GraphQL response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -855,7 +855,7 @@ describe('ContextFetcher', () => {
       });
     });
 
-    it('should handle AgentQL response with empty errors array', async () => {
+    it('should handle GraphQL response with empty errors array', async () => {
       const definition: ContextFetchDefinition = {
         id: 'test-agentql-fetch',
         trigger: 'initialization',
@@ -866,7 +866,7 @@ describe('ContextFetcher', () => {
         },
       };
 
-      // Mock a AgentQL response with empty errors array (should not throw)
+      // Mock a GraphQL response with empty errors array (should not throw)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -885,7 +885,7 @@ describe('ContextFetcher', () => {
       });
     });
 
-    it('should handle AgentQL errors without message field', async () => {
+    it('should handle GraphQL errors without message field', async () => {
       const definition: ContextFetchDefinition = {
         id: 'test-agentql-fetch',
         trigger: 'initialization',
@@ -896,7 +896,7 @@ describe('ContextFetcher', () => {
         },
       };
 
-      // Mock a AgentQL response with errors lacking message field
+      // Mock a GraphQL response with errors lacking message field
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -910,7 +910,7 @@ describe('ContextFetcher', () => {
       });
 
       await expect(fetcher.fetch(definition, {})).rejects.toThrow(
-        'AgentQL request failed with 2 errors: Unknown error, Valid error'
+        'GraphQL request failed with 2 errors: Unknown error, Valid error'
       );
     });
   });

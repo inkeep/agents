@@ -416,7 +416,7 @@ export class ArtifactService {
   }
 
   /**
-   * Persist artifact to database via agent session
+   * Persist artifact to database vian agent session
    */
   private async persistArtifact(
     request: ArtifactCreateRequest,

@@ -201,7 +201,7 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
   ),
   // Removed project-scoped resources - these are now managed at project level:
   // tools, credentialReferences, dataComponents, artifactComponents
-  // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
+  // Agent relationships to these resources are maintained vian agent.tools, agent.dataComponents, etc.
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({

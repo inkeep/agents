@@ -418,7 +418,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
- * Generate a agent TypeScript file
+ * Generate an agent TypeScript file
  */
 export async function generateAgentFile(
   agentData: FullAgentDefinition,
@@ -1109,7 +1109,7 @@ IMPORTANT:
 - Preserve all configuration details exactly as provided
 - Use proper TypeScript formatting and indentation
 - Include all necessary imports at the top
-- Add comments for complex objects like AgentQL queries or multi-line instructions
+- Add comments for complex objects like GraphQL queries or multi-line instructions
 - Keep the same structure and organization as typical Inkeep agent files
 
 CRITICAL: Generate ONLY the raw TypeScript code. Do NOT wrap it in markdown code blocks (no triple backticks with typescript). Do NOT include any explanations, comments, or markdown formatting. Return only the pure TypeScript code that can be written directly to a .ts file.`;

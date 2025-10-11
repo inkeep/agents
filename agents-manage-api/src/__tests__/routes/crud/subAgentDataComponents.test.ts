@@ -18,7 +18,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     suffix?: string;
     agentId?: string;
   }) => {
-    // Create a agent if not provided
+    // Create an agent if not provided
     let effectiveAgentId = agentId;
     if (!effectiveAgentId) {
       effectiveAgentId = `test-agent-${tenantId}${suffix}`;

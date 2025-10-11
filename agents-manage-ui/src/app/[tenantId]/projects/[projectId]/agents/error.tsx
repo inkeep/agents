@@ -2,6 +2,6 @@
 
 import FullPageError from '@/components/errors/full-page-error';
 
-export default function GraphListError() {
+export default function AgentListError() {
   return <FullPageError description="Something went wrong." />;
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * MCP Runner - Loads and starts MCP servers from a agent file
+ * MCP Runner - Loads and starts MCP servers from an agent file
  * This is executed as a subprocess by the CLI
  */
 

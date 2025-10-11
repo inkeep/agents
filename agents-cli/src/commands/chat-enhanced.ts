@@ -63,7 +63,7 @@ export async function chatCommandEnhanced(agentIdInput?: string, options?: ChatO
         {
           type: 'list',
           name: 'agentId',
-          message: 'Select a agent to chat with:',
+          message: 'Select an agent to chat with:',
           choices: agentChoices,
           pageSize: 10,
         },

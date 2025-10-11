@@ -18,7 +18,7 @@ export function normalizeBaseUrl(url: string): string {
 }
 
 /**
- * Constructs a agent view URL for the management UI
+ * Constructs an agent view URL for the management UI
  * @param manageUiUrl The base management UI URL
  * @param tenantId The tenant ID
  * @param projectId The project ID

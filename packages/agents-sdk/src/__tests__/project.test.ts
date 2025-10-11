@@ -277,7 +277,7 @@ describe('Project', () => {
       project.setConfig('test-tenant', 'http://localhost:3002');
     });
 
-    it('should add a agent to the project', () => {
+    it('should add an agent to the project', () => {
       const mockAgent = new Agent(agentConfig);
       vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
 
@@ -292,7 +292,7 @@ describe('Project', () => {
       );
     });
 
-    it('should remove a agent from the project', () => {
+    it('should remove an agent from the project', () => {
       const mockAgent = new Agent(agentConfig);
       vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
 

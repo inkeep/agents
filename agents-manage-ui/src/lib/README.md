@@ -73,7 +73,7 @@ if (result.success) {
 }
 ```
 
-### Update a agent
+### Update an agent
 
 ```typescript
 const updatedGraph = {
@@ -91,7 +91,7 @@ if (result.success) {
 }
 ```
 
-### Delete a agent
+### Delete an agent
 
 ```typescript
 const result = await deleteFullGraphAction('tenant-123', 'my-agent');

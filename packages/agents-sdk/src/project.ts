@@ -9,10 +9,10 @@ import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
 
+import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
-import type { Agent } from './agent';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
 import type { AgentTool, ModelSettings, SandboxConfig } from './types';
@@ -370,14 +370,14 @@ export class Project implements ProjectInterface {
   }
 
   /**
-   * Get a agent by ID
+   * Get an agent by ID
    */
   getAgent(id: string): Agent | undefined {
     return this.agentMap.get(id);
   }
 
   /**
-   * Add a agent to the project
+   * Add an agent to the project
    */
   addAgent(agent: Agent): void {
     this.agents.push(agent);
@@ -396,7 +396,7 @@ export class Project implements ProjectInterface {
   }
 
   /**
-   * Remove a agent from the project
+   * Remove an agent from the project
    */
   removeAgent(id: string): boolean {
     const agentToRemove = this.agentMap.get(id);
