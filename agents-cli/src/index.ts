@@ -121,7 +121,7 @@ program
 program
   .command('chat [agent-id]')
   .description(
-    'Start an interactive chat session with a agent (interactive selection if no ID provided)'
+    'Start an interactive chat session with an agent (interactive selection if no ID provided)'
   )
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
