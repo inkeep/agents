@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGraphViewUrl, normalizeBaseUrl } from '../url';
+import { buildAgentViewUrl, normalizeBaseUrl } from '../url';
 
 describe('normalizeBaseUrl', () => {
   it('should remove trailing slashes', () => {
@@ -40,34 +40,34 @@ describe('normalizeBaseUrl', () => {
   });
 });
 
-describe('buildGraphViewUrl', () => {
+describe('buildAgentViewUrl', () => {
   const tenantId = 'test-tenant';
   const projectId = 'test-project';
   const agentId = 'test-agent';
 
   it('should build correct URL with provided base URL', () => {
-    const result = buildGraphViewUrl('http://localhost:3000', tenantId, projectId, agentId);
+    const result = buildAgentViewUrl('http://localhost:3000', tenantId, projectId, agentId);
     expect(result).toBe(
       'http://localhost:3000/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
   it('should use default URL when manageUiUrl is undefined', () => {
-    const result = buildGraphViewUrl(undefined, tenantId, projectId, agentId);
+    const result = buildAgentViewUrl(undefined, tenantId, projectId, agentId);
     expect(result).toBe(
       'http://localhost:3000/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
   it('should handle trailing slashes in base URL', () => {
-    const result = buildGraphViewUrl('http://localhost:3000/', tenantId, projectId, agentId);
+    const result = buildAgentViewUrl('http://localhost:3000/', tenantId, projectId, agentId);
     expect(result).toBe(
       'http://localhost:3000/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
   it('should handle URLs with existing paths', () => {
-    const result = buildGraphViewUrl(
+    const result = buildAgentViewUrl(
       'https://app.example.com/dashboard/',
       tenantId,
       projectId,
@@ -79,7 +79,7 @@ describe('buildGraphViewUrl', () => {
   });
 
   it('should handle special characters in IDs', () => {
-    const result = buildGraphViewUrl(
+    const result = buildAgentViewUrl(
       'http://localhost:3000',
       'tenant-123',
       'project_456',
@@ -91,13 +91,13 @@ describe('buildGraphViewUrl', () => {
   });
 
   it('should throw error for invalid base URL', () => {
-    expect(() => buildGraphViewUrl('not-a-url', tenantId, projectId, agentId)).toThrow(
+    expect(() => buildAgentViewUrl('not-a-url', tenantId, projectId, agentId)).toThrow(
       'Invalid URL format'
     );
   });
 
   it('should handle production URLs', () => {
-    const result = buildGraphViewUrl(
+    const result = buildAgentViewUrl(
       'https://manage.inkeep.com',
       'prod-tenant',
       'prod-project',

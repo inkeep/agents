@@ -61,7 +61,7 @@ import type {
   ExternalSubAgentRelationInsertSchema,
   FetchConfigSchema,
   FetchDefinitionSchema,
-  FullGraphAgentInsertSchema,
+  FullAgentAgentInsertSchema,
   FullProjectDefinitionSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
@@ -291,7 +291,7 @@ export type ExternalAgentSelect = z.infer<typeof ExternalAgentSelectSchema>;
 export type ExternalAgentInsert = z.infer<typeof ExternalAgentInsertSchema>;
 export type ExternalAgentUpdate = z.infer<typeof ExternalAgentUpdateSchema>;
 export type ExternalAgentApiSelect = z.infer<typeof ExternalAgentApiSelectSchema>;
-export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
+export type ExternalSubAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type ExternalAgentApiUpdate = z.infer<typeof ExternalAgentApiUpdateSchema>;
 export type AllAgentSelect = z.infer<typeof AllAgentSchema>;
 
@@ -329,8 +329,8 @@ export type LedgerArtifactApiInsert = z.infer<typeof LedgerArtifactApiInsertSche
 export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSchema>;
 
 // === Full Agent Types ===
-export type FullGraphDefinition = z.infer<typeof AgentWithinContextOfProjectSchema>;
-export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
+export type FullAgentDefinition = z.infer<typeof AgentWithinContextOfProjectSchema>;
+export type FullAgentAgentInsert = z.infer<typeof FullAgentAgentInsertSchema>;
 
 // === Full Project Types ===
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
@@ -342,7 +342,7 @@ export type CanUseItem = {
   agentToolRelationId?: string;
 };
 
-export type InternalAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
+export type InternalSubAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
   canUse: CanUseItem[];
   dataComponents?: string[];
   artifactComponents?: string[];
@@ -350,7 +350,7 @@ export type InternalAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & 
   canDelegateTo?: string[];
 };
 
-export type AgentDefinition = InternalAgentDefinition | ExternalAgentApiInsert;
+export type SubAgentDefinition = InternalSubAgentDefinition | ExternalSubAgentApiInsert;
 export type ToolDefinition = ToolApiInsert & { credentialReferenceId?: string | null };
 
 // === Project Types ===

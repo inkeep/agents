@@ -1,7 +1,7 @@
 import { getLogger } from '../logger';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import type { StreamHelper } from '../utils/stream-helpers';
-import { graphSessionManager } from './GraphSession';
+import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('IncrementalStreamParser');
 
@@ -53,9 +53,9 @@ export class IncrementalStreamParser {
     // Store subAgentId for passing to parsing methods
     this.subAgentId = artifactParserOptions?.subAgentId;
 
-    // Get the shared ArtifactParser from GraphSession
+    // Get the shared ArtifactParser from AgentSession
     if (artifactParserOptions?.streamRequestId) {
-      const sessionParser = graphSessionManager.getArtifactParser(
+      const sessionParser = agentSessionManager.getArtifactParser(
         artifactParserOptions.streamRequestId
       );
 
@@ -66,18 +66,18 @@ export class IncrementalStreamParser {
     }
 
     // Fallback: create new parser if session parser not available (for tests, etc.)
-    // Try to get the shared ArtifactService from GraphSession
+    // Try to get the shared ArtifactService from AgentSession
     let sharedArtifactService = null;
     if (
       artifactParserOptions?.streamRequestId &&
-      typeof graphSessionManager.getArtifactService === 'function'
+      typeof agentSessionManager.getArtifactService === 'function'
     ) {
       try {
-        sharedArtifactService = graphSessionManager.getArtifactService(
+        sharedArtifactService = agentSessionManager.getArtifactService(
           artifactParserOptions.streamRequestId
         );
       } catch (error) {
-        // Ignore errors in test environment or when GraphSessionManager is not available
+        // Ignore errors in test environment or when AgentSessionManager is not available
       }
     }
 

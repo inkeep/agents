@@ -56,7 +56,7 @@ export interface ProjectInterface {
   getStats(): {
     projectId: string;
     tenantId: string;
-    graphCount: number;
+    agentCount: number;
     initialized: boolean;
   };
   validate(): { valid: boolean; errors: string[] };
@@ -104,7 +104,7 @@ export class Project implements ProjectInterface {
   private stopWhen?: StopWhen;
   private sandboxConfig?: SandboxConfig;
   private agents: Agent[] = [];
-  private graphMap: Map<string, Agent> = new Map();
+  private agentMap: Map<string, Agent> = new Map();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
   private projectTools: Tool[] = [];
   private projectDataComponents: DataComponent[] = [];
@@ -124,7 +124,7 @@ export class Project implements ProjectInterface {
     // Initialize agent if provided
     if (config.agents) {
       this.agents = config.agents();
-      this.graphMap = new Map(this.agents.map((agent) => [agent.getId(), agent]));
+      this.agentMap = new Map(this.agents.map((agent) => [agent.getId(), agent]));
 
       // Set project context on agent
       for (const agent of this.agents) {
@@ -156,7 +156,7 @@ export class Project implements ProjectInterface {
       {
         projectId: this.projectId,
         tenantId: this.tenantId,
-        graphCount: this.agents.length,
+        agentCount: this.agents.length,
       },
       'Project created'
     );
@@ -231,7 +231,7 @@ export class Project implements ProjectInterface {
       {
         projectId: this.projectId,
         tenantId: this.tenantId,
-        graphCount: this.agents.length,
+        agentCount: this.agents.length,
       },
       'Initializing project using full project endpoint'
     );
@@ -265,7 +265,7 @@ export class Project implements ProjectInterface {
         {
           projectId: this.projectId,
           tenantId: this.tenantId,
-          graphCount: Object.keys((createdProject as any).agent || {}).length,
+          agentCount: Object.keys((createdProject as any).agent || {}).length,
         },
         'Project initialized successfully using full project endpoint'
       );
@@ -373,7 +373,7 @@ export class Project implements ProjectInterface {
    * Get a agent by ID
    */
   getAgent(id: string): Agent | undefined {
-    return this.graphMap.get(id);
+    return this.agentMap.get(id);
   }
 
   /**
@@ -381,7 +381,7 @@ export class Project implements ProjectInterface {
    */
   addAgent(agent: Agent): void {
     this.agents.push(agent);
-    this.graphMap.set(agent.getId(), agent);
+    this.agentMap.set(agent.getId(), agent);
 
     // Set project context on the agent
     agent.setConfig(this.tenantId, this.projectId, this.baseURL);
@@ -399,9 +399,9 @@ export class Project implements ProjectInterface {
    * Remove a agent from the project
    */
   removeAgent(id: string): boolean {
-    const graphToRemove = this.graphMap.get(id);
-    if (graphToRemove) {
-      this.graphMap.delete(id);
+    const agentToRemove = this.agentMap.get(id);
+    if (agentToRemove) {
+      this.agentMap.delete(id);
       this.agents = this.agents.filter((agent) => agent.getId() !== id);
 
       logger.info(
@@ -424,13 +424,13 @@ export class Project implements ProjectInterface {
   getStats(): {
     projectId: string;
     tenantId: string;
-    graphCount: number;
+    agentCount: number;
     initialized: boolean;
   } {
     return {
       projectId: this.projectId,
       tenantId: this.tenantId,
-      graphCount: this.agents.length,
+      agentCount: this.agents.length,
       initialized: this.initialized,
     };
   }
@@ -461,9 +461,9 @@ export class Project implements ProjectInterface {
 
     // Validate individual agent
     for (const agent of this.agents) {
-      const graphValidation = agent.validate();
-      if (!graphValidation.valid) {
-        errors.push(...graphValidation.errors.map((error) => `Agent '${agent.getId()}': ${error}`));
+      const agentValidation = agent.validate();
+      if (!agentValidation.valid) {
+        errors.push(...agentValidation.errors.map((error) => `Agent '${agent.getId()}': ${error}`));
       }
     }
 
@@ -477,7 +477,7 @@ export class Project implements ProjectInterface {
    * Convert the Project to FullProjectDefinition format
    */
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
-    const graphsObject: Record<string, any> = {};
+    const agentsObject: Record<string, any> = {};
     const toolsObject: Record<string, ToolApiInsert> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
@@ -490,16 +490,16 @@ export class Project implements ProjectInterface {
       Array<{ type: string; id: string; agentId?: string }>
     > = {};
 
-    // Convert all agent to FullGraphDefinition format and collect components
+    // Convert all agent to FullAgentDefinition format and collect components
     for (const agent of this.agents) {
       // Get the agent's full definition
-      const graphDefinition = await agent.toFullGraphDefinition();
-      graphsObject[agent.getId()] = graphDefinition;
+      const agentDefinition = await agent.toFullAgentDefinition();
+      agentsObject[agent.getId()] = agentDefinition;
 
       // Collect credentials from this agent
-      const graphCredentials = (agent as any).credentials;
-      if (graphCredentials && Array.isArray(graphCredentials)) {
-        for (const credential of graphCredentials) {
+      const agentCredentials = (agent as any).credentials;
+      if (agentCredentials && Array.isArray(agentCredentials)) {
+        for (const credential of agentCredentials) {
           // Skip credential references - they don't define credentials
           if (credential?.__type === 'credential-ref') {
             continue;
@@ -526,10 +526,10 @@ export class Project implements ProjectInterface {
       }
 
       // Check context config for credentials
-      const graphContextConfig = (agent as any).contextConfig;
-      if (graphContextConfig) {
+      const agentContextConfig = (agent as any).contextConfig;
+      if (agentContextConfig) {
         const contextVariables =
-          graphContextConfig.getContextVariables?.() || graphContextConfig.contextVariables;
+          agentContextConfig.getContextVariables?.() || agentContextConfig.contextVariables;
         if (contextVariables) {
           for (const [key, variable] of Object.entries(contextVariables)) {
             // Check for credential references in fetch definitions
@@ -839,7 +839,7 @@ export class Project implements ProjectInterface {
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
       sandboxConfig: this.sandboxConfig,
-      agents: graphsObject,
+      agents: agentsObject,
       tools: toolsObject,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:

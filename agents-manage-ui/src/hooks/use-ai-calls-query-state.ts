@@ -22,7 +22,7 @@ export function useAICallsQueryState() {
     customEndDate: parseAsString.withDefault(''),
 
     // Filtering options
-    selectedGraph: parseAsString.withDefault('all'),
+    selectedAgent: parseAsString.withDefault('all'),
     selectedModel: parseAsString.withDefault('all'),
   });
 
@@ -31,7 +31,7 @@ export function useAICallsQueryState() {
     timeRange: queryState.timeRange,
     customStartDate: queryState.customStartDate,
     customEndDate: queryState.customEndDate,
-    selectedGraph: queryState.selectedGraph,
+    selectedAgent: queryState.selectedAgent,
     selectedModel: queryState.selectedModel,
 
     // State setters
@@ -41,11 +41,11 @@ export function useAICallsQueryState() {
     setTimeRange: (timeRange: TimeRange) => setQueryState({ timeRange }),
     setCustomDateRange: (start: string, end: string) =>
       setQueryState({ customStartDate: start, customEndDate: end }),
-    setGraphFilter: (agent: string) => setQueryState({ selectedGraph: agent }),
+    setAgentFilter: (agent: string) => setQueryState({ selectedAgent: agent }),
     setModelFilter: (model: string) => setQueryState({ selectedModel: model }),
     clearFilters: () =>
       setQueryState({
-        selectedGraph: 'all',
+        selectedAgent: 'all',
         selectedModel: 'all',
         timeRange: '15d',
         customStartDate: '',

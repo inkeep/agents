@@ -3,20 +3,20 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { GraphMetadata } from '@/components/agent/configuration/agent-types';
+import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { MCPTool } from '@/lib/types/tools';
-import type { GraphErrorSummary } from '@/lib/utils/agent-error-parser';
+import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
-type GraphStateData = {
+type AgentStateData = {
   nodes: Node[];
   edges: Edge[];
-  metadata: GraphMetadata;
+  metadata: AgentMetadata;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
@@ -24,15 +24,15 @@ type GraphStateData = {
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
-  errors: GraphErrorSummary | null;
+  errors: AgentErrorSummary | null;
   showErrors: boolean;
 };
 
-type GraphActions = {
+type AgentActions = {
   setInitial(
     nodes: Node[],
     edges: Edge[],
-    metadata: GraphMetadata,
+    metadata: AgentMetadata,
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
@@ -47,7 +47,7 @@ type GraphActions = {
   onNodesChange(changes: NodeChange[]): void;
   onEdgesChange(changes: EdgeChange[]): void;
   onConnect(connection: Connection): void;
-  setMetadata<K extends keyof GraphMetadata>(field: K, value: GraphMetadata[K]): void;
+  setMetadata<K extends keyof AgentMetadata>(field: K, value: AgentMetadata[K]): void;
   push(nodes: Node[], edges: Edge[]): void;
   undo(): void;
   redo(): void;
@@ -55,19 +55,19 @@ type GraphActions = {
   markUnsaved(): void;
   clearSelection(): void;
   deleteSelected(): void;
-  setErrors(errors: GraphErrorSummary | null): void;
+  setErrors(errors: AgentErrorSummary | null): void;
   clearErrors(): void;
   setShowErrors(show: boolean): void;
   hasErrors(): boolean;
-  getNodeErrors(nodeId: string): GraphErrorSummary['allErrors'];
-  getEdgeErrors(edgeId: string): GraphErrorSummary['allErrors'];
+  getNodeErrors(nodeId: string): AgentErrorSummary['allErrors'];
+  getEdgeErrors(edgeId: string): AgentErrorSummary['allErrors'];
 };
 
-type GraphState = GraphStateData & {
-  actions: GraphActions;
+type AgentState = AgentStateData & {
+  actions: AgentActions;
 };
 
-export const graphStore = create<GraphState>()(
+export const agentStore = create<AgentState>()(
   devtools((set, get) => ({
     nodes: [],
     edges: [],
@@ -81,7 +81,7 @@ export const graphStore = create<GraphState>()(
       },
       models: undefined,
       stopWhen: undefined,
-      graphPrompt: undefined,
+      agentPrompt: undefined,
       statusUpdates: undefined,
     },
     dataComponentLookup: {},
@@ -284,15 +284,15 @@ export const graphStore = create<GraphState>()(
  *
  * @see https://tkdodo.eu/blog/working-with-zustand#separate-actions-from-state
  */
-export const useGraphActions = () => graphStore((state) => state.actions);
+export const useAgentActions = () => agentStore((state) => state.actions);
 
 /**
  * Select values from the agent store (excluding actions).
  *
- * We explicitly use `GraphStateData` instead of `GraphState`,
- * which includes actions, to encourage using `useGraphActions`
+ * We explicitly use `AgentStateData` instead of `AgentState`,
+ * which includes actions, to encourage using `useAgentActions`
  * when accessing or calling actions.
  */
-export function useGraphStore<T>(selector: (state: GraphStateData) => T): T {
-  return graphStore(useShallow(selector));
+export function useAgentStore<T>(selector: (state: AgentStateData) => T): T {
+  return agentStore(useShallow(selector));
 }

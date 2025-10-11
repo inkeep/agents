@@ -19,21 +19,21 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
   }) => {
     // First create a default agent if it doesn't exist (without defaultSubAgentId)
     const agentId = nanoid();
-    const graphData = {
+    const agentData = {
       id: agentId,
       name: 'Test Agent',
       defaultSubAgentId: null,
     };
     // Try to create the agent, ignore if it already exists
-    const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+    const agentRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
 
-    if (graphRes.status !== 201 && graphRes.status !== 409) {
-      const errorText = await graphRes.clone().text();
-      console.error('Failed to create agent:', graphRes.status, errorText);
-      throw new Error(`Failed to create agent: ${graphRes.status} - ${errorText}`);
+    if (agentRes.status !== 201 && agentRes.status !== 409) {
+      const errorText = await agentRes.clone().text();
+      console.error('Failed to create agent:', agentRes.status, errorText);
+      throw new Error(`Failed to create agent: ${agentRes.status} - ${errorText}`);
     }
 
     // Use the agentId from the created or existing agent (409 means it already exists)
@@ -410,11 +410,11 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
       // Create multiple agents
-      const { subAgentId: subAgent1Id, agentId: graph1Id } = await createTestAgent({
+      const { subAgentId: subAgent1Id, agentId: agent1Id } = await createTestAgent({
         tenantId,
         suffix: ' 1',
       });
-      const { subAgentId: subAgent2Id, agentId: graph2Id } = await createTestAgent({
+      const { subAgentId: subAgent2Id, agentId: agent2Id } = await createTestAgent({
         tenantId,
         suffix: ' 2',
       });
@@ -424,17 +424,17 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
         tenantId,
         subAgentId: subAgent1Id,
         artifactComponentId,
-        agentId: graph1Id,
+        agentId: agent1Id,
       });
       await createTestAgentArtifactComponentRelation({
         tenantId,
         subAgentId: subAgent2Id,
         artifactComponentId,
-        agentId: graph2Id,
+        agentId: agent2Id,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${graph1Id}/sub-agent-artifact-components/component/${artifactComponentId}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agent1Id}/sub-agent-artifact-components/component/${artifactComponentId}/agents`
       );
       expect(res.status).toBe(200);
 
@@ -661,11 +661,11 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create multiple agents and artifact components
-      const { subAgentId: subAgent1Id, agentId: graph1Id } = await createTestAgent({
+      const { subAgentId: subAgent1Id, agentId: agent1Id } = await createTestAgent({
         tenantId,
         suffix: ' 1',
       });
-      const { subAgentId: subAgent2Id, agentId: graph2Id } = await createTestAgent({
+      const { subAgentId: subAgent2Id, agentId: agent2Id } = await createTestAgent({
         tenantId,
         suffix: ' 2',
       });
@@ -684,26 +684,26 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
         tenantId,
         subAgentId: subAgent1Id,
         artifactComponentId: ac1Id,
-        agentId: graph1Id,
+        agentId: agent1Id,
       });
       // Agent 1 -> Artifact Component 2
       await createTestAgentArtifactComponentRelation({
         tenantId,
         subAgentId: subAgent1Id,
         artifactComponentId: ac2Id,
-        agentId: graph1Id,
+        agentId: agent1Id,
       });
       // Agent 2 -> Artifact Component 1
       await createTestAgentArtifactComponentRelation({
         tenantId,
         subAgentId: subAgent2Id,
         artifactComponentId: ac1Id,
-        agentId: graph2Id,
+        agentId: agent2Id,
       });
 
       // Verify Agent 1 has 2 artifact components
       const agent1ArtifactComponentsRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${graph1Id}/sub-agent-artifact-components/agent/${subAgent1Id}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agent1Id}/sub-agent-artifact-components/agent/${subAgent1Id}`
       );
       expect(agent1ArtifactComponentsRes.status).toBe(200);
       const agent1ArtifactComponentsBody = await agent1ArtifactComponentsRes.json();
@@ -711,7 +711,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Agent 2 has 1 artifact component
       const agent2ArtifactComponentsRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${graph2Id}/sub-agent-artifact-components/agent/${subAgent2Id}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agent2Id}/sub-agent-artifact-components/agent/${subAgent2Id}`
       );
       expect(agent2ArtifactComponentsRes.status).toBe(200);
       const agent2ArtifactComponentsBody = await agent2ArtifactComponentsRes.json();
@@ -719,7 +719,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Artifact Component 1 has 2 agents
       const ac1AgentsRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${graph1Id}/sub-agent-artifact-components/component/${ac1Id}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agent1Id}/sub-agent-artifact-components/component/${ac1Id}/agents`
       );
       expect(ac1AgentsRes.status).toBe(200);
       const ac1AgentsBody = await ac1AgentsRes.json();
@@ -727,7 +727,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Verify Artifact Component 2 has 1 agent
       const ac2AgentsRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${graph1Id}/sub-agent-artifact-components/component/${ac2Id}/agents`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agent1Id}/sub-agent-artifact-components/component/${ac2Id}/agents`
       );
       expect(ac2AgentsRes.status).toBe(200);
       const ac2AgentsBody = await ac2AgentsRes.json();
@@ -747,25 +747,25 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const {
         subAgentId: subAgent1Id,
         artifactComponentId: ac1Id,
-        agentId: graph1Id,
+        agentId: agent1Id,
       } = await setupTestEnvironment(tenantId1);
       await createTestAgentArtifactComponentRelation({
         tenantId: tenantId1,
         subAgentId: subAgent1Id,
         artifactComponentId: ac1Id,
-        agentId: graph1Id,
+        agentId: agent1Id,
       });
 
       // Create agent and artifact component in tenant 2
       const {
         subAgentId: subAgent2Id,
         artifactComponentId: ac2Id,
-        agentId: graph2Id,
+        agentId: agent2Id,
       } = await setupTestEnvironment(tenantId2);
 
       // Try to query from tenant 2 - should not see tenant 1's associations
       const res = await makeRequest(
-        `/tenants/${tenantId2}/projects/${projectId}/agents/${graph2Id}/sub-agent-artifact-components/agent/${subAgent2Id}`
+        `/tenants/${tenantId2}/projects/${projectId}/agents/${agent2Id}/sub-agent-artifact-components/agent/${subAgent2Id}`
       );
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -773,7 +773,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
       // Try to query artifact component from tenant 2 - should not see tenant 1's associations
       const acRes = await makeRequest(
-        `/tenants/${tenantId2}/projects/${projectId}/agents/${graph2Id}/sub-agent-artifact-components/component/${ac2Id}/agents`
+        `/tenants/${tenantId2}/projects/${projectId}/agents/${agent2Id}/sub-agent-artifact-components/component/${ac2Id}/agents`
       );
       expect(acRes.status).toBe(200);
       const acBody = await acRes.json();

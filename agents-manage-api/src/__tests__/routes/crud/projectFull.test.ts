@@ -290,18 +290,18 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 3 agents and 3 tools
-      const graph1Id = `agent-${projectId}-1`;
-      const graph2Id = `agent-${projectId}-2`;
-      const graph3Id = `agent-${projectId}-3`;
+      const agent1Id = `agent-${projectId}-1`;
+      const agent2Id = `agent-${projectId}-2`;
+      const agent3Id = `agent-${projectId}-3`;
       const tool1Id = `tool-${projectId}-1`;
       const tool2Id = `tool-${projectId}-2`;
       const tool3Id = `tool-${projectId}-3`;
 
       const originalDefinition = createTestProjectDefinition(projectId);
       originalDefinition.agents = {
-        [graph1Id]: createTestAgentDefinition(graph1Id, `agent-${graph1Id}`, ' 1'),
-        [graph2Id]: createTestAgentDefinition(graph2Id, `agent-${graph2Id}`, ' 2'),
-        [graph3Id]: createTestAgentDefinition(graph3Id, `agent-${graph3Id}`, ' 3'),
+        [agent1Id]: createTestAgentDefinition(agent1Id, `agent-${agent1Id}`, ' 1'),
+        [agent2Id]: createTestAgentDefinition(agent2Id, `agent-${agent2Id}`, ' 2'),
+        [agent3Id]: createTestAgentDefinition(agent3Id, `agent-${agent3Id}`, ' 3'),
       };
       // Define tools at PROJECT level, not agent level
       originalDefinition.tools = {
@@ -338,7 +338,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const updatedDefinition = {
         ...originalDefinition,
         agents: {
-          [graph1Id]: originalDefinition.agents[graph1Id],
+          [agent1Id]: originalDefinition.agents[agent1Id],
         },
       };
 
@@ -352,9 +352,9 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
       // Verify only 1 agent remains
       expect(Object.keys(updateBody.data.agents)).toHaveLength(1);
-      expect(updateBody.data.agents).toHaveProperty(graph1Id);
-      expect(updateBody.data.agents).not.toHaveProperty(graph2Id);
-      expect(updateBody.data.agents).not.toHaveProperty(graph3Id);
+      expect(updateBody.data.agents).toHaveProperty(agent1Id);
+      expect(updateBody.data.agents).not.toHaveProperty(agent2Id);
+      expect(updateBody.data.agents).not.toHaveProperty(agent3Id);
 
       // Verify by fetching the project again
       const getFinalRes = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
@@ -363,7 +363,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(getFinalRes.status).toBe(200);
       const finalBody = await getFinalRes.json();
       expect(Object.keys(finalBody.data.agents)).toHaveLength(1);
-      expect(finalBody.data.agents).toHaveProperty(graph1Id);
+      expect(finalBody.data.agents).toHaveProperty(agent1Id);
     });
 
     it('should handle removing all agents from a project', async () => {
@@ -371,15 +371,15 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 2 agents and 2 tools
-      const graph1Id = `agent-${projectId}-1`;
-      const graph2Id = `agent-${projectId}-2`;
+      const agent1Id = `agent-${projectId}-1`;
+      const agent2Id = `agent-${projectId}-2`;
       const tool1Id = `tool-${projectId}-1`;
       const tool2Id = `tool-${projectId}-2`;
 
       const originalDefinition = createTestProjectDefinition(projectId);
       originalDefinition.agents = {
-        [graph1Id]: createTestAgentDefinition(graph1Id, `agent-${graph1Id}`, ' 1'),
-        [graph2Id]: createTestAgentDefinition(graph2Id, `agent-${graph2Id}`, ' 2'),
+        [agent1Id]: createTestAgentDefinition(agent1Id, `sub-agent-${agent1Id}`, ' 1'),
+        [agent2Id]: createTestAgentDefinition(agent2Id, `sub-agent-${agent2Id}`, ' 2'),
       };
       // Define tools at PROJECT level, not agent level
       originalDefinition.tools = {
@@ -471,12 +471,12 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a more complex project with multiple agents
-      const agent1Id = `agent-${nanoid()}`;
-      const agent2Id = `agent-${nanoid()}`;
+      const subAgent1Id = `sub-agent-${nanoid()}`;
+      const subAgent2Id = `sub-agent-${nanoid()}`;
       const tool1Id = `tool-${nanoid()}`;
       const tool2Id = `tool-${nanoid()}`;
-      const graph1Id = `agent-${nanoid()}`;
-      const graph2Id = `agent-${nanoid()}`;
+      const agent1Id = `agent-${nanoid()}`;
+      const agent2Id = `agent-${nanoid()}`;
 
       const complexProject = {
         id: projectId,
@@ -491,8 +491,8 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
           stepCountIs: 100,
         },
         agents: {
-          [graph1Id]: createTestAgentDefinition(graph1Id, agent1Id, '-1'),
-          [graph2Id]: createTestAgentDefinition(graph2Id, agent2Id, '-2'),
+          [agent1Id]: createTestAgentDefinition(agent1Id, subAgent1Id, '-1'),
+          [agent2Id]: createTestAgentDefinition(agent2Id, subAgent2Id, '-2'),
         },
         // Define tools at PROJECT level, not agent level
         tools: {
@@ -521,8 +521,8 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(Object.keys(body.data.agents)).toHaveLength(2);
 
       // Verify both agents are created with their resources
-      expect(body.data.agents[graph1Id]).toBeDefined();
-      expect(body.data.agents[graph2Id]).toBeDefined();
+      expect(body.data.agents[agent1Id]).toBeDefined();
+      expect(body.data.agents[agent2Id]).toBeDefined();
     });
   });
 

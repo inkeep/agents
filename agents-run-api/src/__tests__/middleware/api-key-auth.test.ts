@@ -119,7 +119,7 @@ describe('API Key Authentication Middleware', () => {
         name: 'test-api-key',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        agentId: 'graph_123',
+        agentId: 'agent_123',
         publicId: 'pub_123',
         keyHash: 'hash_123',
         keyPrefix: 'sk_test_',
@@ -150,7 +150,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_test_1234567890abcdef.verylongsecretkey',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        agentId: 'graph_123',
+        agentId: 'agent_123',
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });
@@ -225,7 +225,7 @@ describe('API Key Authentication Middleware', () => {
         name: 'test-api-key',
         tenantId: 'tenant_456',
         projectId: 'project_456',
-        agentId: 'graph_456',
+        agentId: 'agent_456',
         publicId: 'pub_456',
         keyHash: 'hash_456',
         keyPrefix: 'sk_prod_',
@@ -255,7 +255,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_prod_differentkey123456.verylongsecretkey',
         tenantId: 'tenant_456',
         projectId: 'project_456',
-        agentId: 'graph_456',
+        agentId: 'agent_456',
         apiKeyId: 'key_456',
       });
       expect(validateAndGetApiKey).toHaveBeenCalledWith(
@@ -323,7 +323,7 @@ describe('API Key Authentication Middleware', () => {
         name: 'test-api-key',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        agentId: 'graph_123',
+        agentId: 'agent_123',
         publicId: 'pub_123',
         keyHash: 'hash_123',
         keyPrefix: 'sk_test_',
@@ -358,7 +358,7 @@ describe('API Key Authentication Middleware', () => {
         apiKey: 'sk_test_1234567890abcdef.verylongsecretkey',
         tenantId: 'tenant_123',
         projectId: 'project_123',
-        agentId: 'graph_123',
+        agentId: 'agent_123',
         apiKeyId: 'key_123',
         baseUrl: expect.stringContaining('http'),
       });

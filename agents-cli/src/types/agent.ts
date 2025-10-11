@@ -1,4 +1,4 @@
-export interface GraphData {
+export interface AgentData {
   id: string;
   name: string;
   description?: string;
@@ -8,4 +8,4 @@ export interface GraphData {
   credentialReferences: Record<string, any>;
 }
 
-export type FullGraphDefinition = GraphData;
+export type FullAgentDefinition = AgentData;

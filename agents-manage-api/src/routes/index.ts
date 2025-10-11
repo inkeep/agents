@@ -8,7 +8,7 @@ import dataComponentsRoutes from './dataComponents';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
-import graphFullRoutes from './agentFull';
+import agentFullRoutes from './agentFull';
 import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
@@ -50,6 +50,6 @@ app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 
 // Mount new full agent routes
-app.route('/projects/:projectId/agent', graphFullRoutes);
+app.route('/projects/:projectId/agent', agentFullRoutes);
 
 export default app;

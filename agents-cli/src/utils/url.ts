@@ -25,7 +25,7 @@ export function normalizeBaseUrl(url: string): string {
  * @param agentId The agent ID
  * @returns The complete agent view URL
  */
-export function buildGraphViewUrl(
+export function buildAgentViewUrl(
   manageUiUrl: string | undefined,
   tenantId: string,
   projectId: string,

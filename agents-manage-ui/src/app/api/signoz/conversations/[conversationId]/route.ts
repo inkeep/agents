@@ -209,7 +209,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -239,8 +239,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-            { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.GRAPH_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
         ),
 
@@ -292,7 +292,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID,
+              key: SPAN_KEYS.CONTEXT_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -350,7 +350,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID,
+              key: SPAN_KEYS.CONTEXT_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -463,8 +463,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.MESSAGE_TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-            { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.GRAPH_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
         ),
 
@@ -511,7 +511,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_AGENT_NAME_ALT,
+              key: SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -617,8 +617,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.DURATION_NANO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
             },
-            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_RESPONSE_TEXT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -813,9 +813,9 @@ export async function GET(
       'context.resolve',
       'agent.generate',
       'context-resolver.resolve_single_fetch_definition',
-      'graph_session.generate_structured_update',
-      'graph_session.process_artifact',
-      'graph_session.generate_artifact_metadata',
+      'agent_session.generate_structured_update',
+      'agent_session.process_artifact',
+      'agent_session.generate_artifact_metadata',
       'response.format_object_response',
       'response.format_response',
     ];
@@ -833,11 +833,11 @@ export async function GET(
     }
 
     let agentId: string | null = null;
-    let graphName: string | null = null;
+    let agentName: string | null = null;
     for (const s of userMessageSpans) {
-      agentId = getString(s, SPAN_KEYS.GRAPH_ID, '') || null;
-      graphName = getString(s, SPAN_KEYS.GRAPH_NAME, '') || null;
-      if (agentId || graphName) break;
+      agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
+      agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
+      if (agentId || agentName) break;
     }
     // activities
     type Activity = {
@@ -944,7 +944,7 @@ export async function GET(
         description: hasError && statusMessage ? statusMessage : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        agentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
@@ -983,7 +983,7 @@ export async function GET(
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
-        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
+        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_ID, '') || undefined,
         contextHeadersKeys: keys,
       });
     }
@@ -1013,7 +1013,7 @@ export async function GET(
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
-        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
+        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_ID, '') || undefined,
         contextHeadersKeys: keys,
       });
     }
@@ -1050,7 +1050,7 @@ export async function GET(
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.AI_ASSISTANT,
-        agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        agentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
@@ -1124,8 +1124,8 @@ export async function GET(
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
-        agentName: getString(span, SPAN_KEYS.AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        agentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
@@ -1292,7 +1292,7 @@ export async function GET(
       totalOutputTokens,
       mcpToolErrors: [],
       agentId,
-      graphName,
+      agentName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount,

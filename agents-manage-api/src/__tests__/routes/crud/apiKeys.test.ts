@@ -1,4 +1,4 @@
-import { createFullGraphServerSide, extractPublicId } from '@inkeep/agents-core';
+import { createFullAgentServerSide, extractPublicId } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
@@ -10,12 +10,12 @@ import { createTestTenantId } from '../../utils/testTenant';
 describe('API Key CRUD Routes - Integration Tests', () => {
 
   // Helper function to create full agent data with optional enhanced features
-  const createFullGraphData = (agentId: string) => {
+  const createFullAgentData = (agentId: string) => {
     const id = agentId || nanoid();
 
     const agent = createTestSubAgentData();
 
-    const graphData: any = {
+    const agentData: any = {
       id,
       name: `Test Agent ${id}`,
       description: `Test agent description for ${id}`,
@@ -28,7 +28,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       updatedAt: new Date().toISOString(),
     };
 
-    return graphData;
+    return agentData;
   };
 
   // Helper function to create test agent and agent
@@ -40,8 +40,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     await ensureTestProject(tenantId, projectId);
 
     const agentId = `test-agent${nanoid(6)}`;
-    const graphData = createFullGraphData(agentId);
-    await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+    const agentData = createFullAgentData(agentId);
+    await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
     return { agentId, projectId }; // Return projectId as well
   };
 
@@ -137,21 +137,21 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should filter API keys by agentId', async () => {
       const tenantId = createTestTenantId('api-keys-filter-agent');
       await ensureTestProject(tenantId, 'project-1');
-      const { agentId: graph1, projectId } = await createtestAgentAndAgent(tenantId, 'project-1');
-      const { agentId: graph2 } = await createtestAgentAndAgent(tenantId, 'project-1');
+      const { agentId: agent1, projectId } = await createtestAgentAndAgent(tenantId, 'project-1');
+      const { agentId: agent2 } = await createtestAgentAndAgent(tenantId, 'project-1');
 
       // Create API keys for different agent
-      await createTestApiKey({ tenantId, projectId, agentId: graph1 });
-      await createTestApiKey({ tenantId, projectId, agentId: graph2 });
+      await createTestApiKey({ tenantId, projectId, agentId: agent1 });
+      await createTestApiKey({ tenantId, projectId, agentId: agent2 });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/api-keys?agentId=${graph1}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?agentId=${agent1}`
       );
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].agentId).toBe(graph1);
+      expect(body.data[0].agentId).toBe(agent1);
     });
 
     it('should handle pagination correctly', async () => {

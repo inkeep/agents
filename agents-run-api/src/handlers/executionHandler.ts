@@ -15,7 +15,7 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
-import { graphSessionManager } from '../services/GraphSession.js';
+import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
@@ -74,32 +74,32 @@ export class ExecutionHandler {
     // Register streamHelper so agents can access it via requestId
     registerStreamHelper(requestId, sseHelper);
 
-    // Create GraphSession for this entire message execution using requestId as the session ID
+    // Create AgentSession for this entire message execution using requestId as the session ID
 
-    graphSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
+    agentSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
 
     // Enable emit operations if requested
     if (emitOperations) {
-      graphSessionManager.enableEmitOperations(requestId);
+      agentSessionManager.enableEmitOperations(requestId);
     }
 
     logger.info(
       { sessionId: requestId, agentId, conversationId, emitOperations },
-      'Created GraphSession for message execution'
+      'Created AgentSession for message execution'
     );
 
     // Initialize status updates if configured
-    let graphConfig: any = null;
+    let agentConfig: any = null;
     try {
-      graphConfig = await getFullAgent(dbClient)({
+      agentConfig = await getFullAgent(dbClient)({
         scopes: { tenantId, projectId, agentId },
       });
 
-      if (graphConfig?.statusUpdates && graphConfig.statusUpdates.enabled !== false) {
-        graphSessionManager.initializeStatusUpdates(
+      if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
+        agentSessionManager.initializeStatusUpdates(
           requestId,
-          graphConfig.statusUpdates,
-          graphConfig.models?.summarizer
+          agentConfig.statusUpdates,
+          agentConfig.models?.summarizer
         );
       }
     } catch (error) {
@@ -143,7 +143,7 @@ export class ExecutionHandler {
           metadata: {
             conversation_id: conversationId,
             message_id: requestId,
-            stream_request_id: requestId, // This also serves as the GraphSession ID
+            stream_request_id: requestId, // This also serves as the AgentSession ID
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             root_sub_agent_id: initialAgentId,
@@ -210,7 +210,7 @@ export class ExecutionHandler {
       let currentMessage = userMessage;
 
       // Get transfer limit from agent configuration
-      const maxTransfers = graphConfig?.stopWhen?.transferCountIs ?? 10;
+      const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
 
       // Start execution loop
       while (iterations < maxTransfers) {
@@ -256,7 +256,7 @@ export class ExecutionHandler {
 
         // Build message metadata - include fromAgentId only if this is a transfer
         const messageMetadata: any = {
-          stream_request_id: requestId, // This also serves as the GraphSession ID
+          stream_request_id: requestId, // This also serves as the AgentSession ID
         };
         if (fromAgentId) {
           messageMetadata.fromAgentId = fromAgentId;
@@ -311,7 +311,7 @@ export class ExecutionHandler {
               });
             }
 
-            graphSessionManager.endSession(requestId);
+            agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -386,10 +386,10 @@ export class ExecutionHandler {
 
         if (responseParts && responseParts.length > 0) {
           // Log agent session data after completion response
-          const graphSessionData = graphSessionManager.getSession(requestId);
-          if (graphSessionData) {
-            const sessionSummary = graphSessionData.getSummary();
-            logger.info(sessionSummary, 'GraphSession data after completion');
+          const agentSessionData = agentSessionManager.getSession(requestId);
+          if (agentSessionData) {
+            const sessionSummary = agentSessionData.getSummary();
+            logger.info(sessionSummary, 'AgentSession data after completion');
           }
 
           // Process response parts for database storage and A2A protocol
@@ -465,9 +465,9 @@ export class ExecutionHandler {
               // Complete the stream to flush any queued operations
               await sseHelper.complete();
 
-              // End the GraphSession and clean up resources
-              logger.info({}, 'Ending GraphSession and cleaning up');
-              graphSessionManager.endSession(requestId);
+              // End the AgentSession and clean up resources
+              logger.info({}, 'Ending AgentSession and cleaning up');
+              agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
@@ -519,7 +519,7 @@ export class ExecutionHandler {
             });
           }
 
-          graphSessionManager.endSession(requestId);
+          agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
           return { success: false, error: errorMessage, iterations };
         }
@@ -546,8 +546,8 @@ export class ExecutionHandler {
           },
         });
       }
-      // Clean up GraphSession and streamHelper on error
-      graphSessionManager.endSession(requestId);
+      // Clean up AgentSession and streamHelper on error
+      agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -574,8 +574,8 @@ export class ExecutionHandler {
           },
         });
       }
-      // Clean up GraphSession and streamHelper on exception
-      graphSessionManager.endSession(requestId);
+      // Clean up AgentSession and streamHelper on exception
+      agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }

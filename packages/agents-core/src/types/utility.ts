@@ -203,8 +203,8 @@ export interface ProjectInfo {
 }
 
 export interface ProjectResourceCounts {
+  subAgents: number;
   agents: number;
-  agent: number;
   tools: number;
   contextConfigs: number;
   externalAgents: number;

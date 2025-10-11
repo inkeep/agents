@@ -11,7 +11,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
   // Helper function to create a test agent for context configs
   const createtestAgent = async ({ tenantId }: { tenantId: string }) => {
-    const graphData = {
+    const agentData = {
       id: testAgentId,
       name: 'Test Agent',
       description: 'Test agent for context config tests',
@@ -30,7 +30,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
 
     if (createRes.status !== 201) {
@@ -43,14 +43,14 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   const createTestContextConfig = async ({
     tenantId,
     suffix = '',
-    skipGraphCreation = false,
+    skipAgentCreation = false,
   }: {
     tenantId: string;
     suffix?: string;
-    skipGraphCreation?: boolean;
+    skipAgentCreation?: boolean;
   }) => {
     // Create test agent first (unless skipped)
-    if (!skipGraphCreation) {
+    if (!skipAgentCreation) {
       try {
         await createtestAgent({ tenantId });
       } catch (_e) {
@@ -91,7 +91,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       const contextConfig = await createTestContextConfig({
         tenantId,
         suffix: ` ${i}`,
-        skipGraphCreation: i > 1,
+        skipAgentCreation: i > 1,
       });
       contextConfigs.push(contextConfig);
     }

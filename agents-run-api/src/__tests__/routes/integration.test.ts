@@ -8,7 +8,7 @@ const {
   updateTaskMock,
   createMessageMock,
   getActiveAgentForConversationMock,
-  getFullGraphMock,
+  getFullAgentMock,
 } = vi.hoisted(() => {
   const createTaskMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
@@ -32,7 +32,7 @@ const {
       conversationId: 'conv-123',
     })
   );
-  const getFullGraphMock = vi.fn(() =>
+  const getFullAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       agents: [],
       relations: [],
@@ -44,7 +44,7 @@ const {
     updateTaskMock,
     createMessageMock,
     getActiveAgentForConversationMock,
-    getFullGraphMock,
+    getFullAgentMock,
   };
 });
 
@@ -55,7 +55,7 @@ vi.mock('@inkeep/agents-core', () => ({
   updateTask: updateTaskMock,
   createMessage: createMessageMock,
   getActiveAgentForConversation: getActiveAgentForConversationMock,
-  getFullGraph: getFullGraphMock,
+  getFullAgent: getFullAgentMock,
   getTracer: vi.fn(() => ({
     startActiveSpan: vi.fn((name, options, fn) => {
       // Handle both 2 and 3 argument versions
@@ -124,7 +124,7 @@ vi.mock('../../utils/stream-registry.js', () => ({
 }));
 
 vi.mock('../../utils/agent-session.js', () => ({
-  graphSessionManager: {
+  agentSessionManager: {
     createSession: vi.fn(),
     endSession: vi.fn(),
     getSession: vi.fn().mockReturnValue(null),

@@ -241,7 +241,7 @@ describe('Agent Model Settings', () => {
     const testAgent = agent({
       id: 'test-agent',
       name: 'Test Agent with Prompt',
-      graphPrompt:
+      agentPrompt:
         'This is a specialized AI assistant for customer support. Always be helpful and professional.',
       defaultSubAgent: subAgent({
         id: 'test-agent',

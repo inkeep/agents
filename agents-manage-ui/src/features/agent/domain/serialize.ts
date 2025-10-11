@@ -2,12 +2,12 @@ import type { Edge, Node } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import type { GraphMetadata } from '@/components/agent/configuration/agent-types';
+import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullGraphDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
+import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
 
 // Use the exported InternalAgentDefinition from core
 type InternalAgent = InternalAgentDefinition;
@@ -26,19 +26,19 @@ export type ExtendedAgent =
   | (InternalAgent & {
       dataComponents: string[];
       artifactComponents: string[];
-      models?: GraphMetadata['models'];
+      models?: AgentMetadata['models'];
       type: 'internal';
     })
   | ExternalAgent;
 
 // Type guard to check if an agent is an internal agent
 function isInternalAgent(
-  agent: ExtendedAgent | FullGraphDefinition['subAgents'][string]
+  agent: ExtendedAgent | FullAgentDefinition['subAgents'][string]
 ): agent is InternalAgent {
   return agent.type === 'internal' && 'canUse' in agent;
 }
 
-// Note: Tools are now project-scoped, not part of FullGraphDefinition
+// Note: Tools are now project-scoped, not part of FullAgentDefinition
 
 /**
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
@@ -53,7 +53,7 @@ function safeJsonParse(jsonString: string | undefined | null): any {
     return undefined;
   }
 }
-function processModels(modelsData: GraphMetadata['models']): GraphMetadata['models'] | undefined {
+function processModels(modelsData: AgentMetadata['models']): AgentMetadata['models'] | undefined {
   if (modelsData && typeof modelsData === 'object') {
     const hasNonEmptyValue = Object.values(modelsData).some(
       (value) => value !== null && value !== undefined && String(value).trim() !== ''
@@ -87,14 +87,14 @@ function processModels(modelsData: GraphMetadata['models']): GraphMetadata['mode
 /**
  * Transforms React Flow nodes and edges back into the API data structure
  */
-export function serializeGraphData(
+export function serializeAgentData(
   nodes: Node[],
   edges: Edge[],
-  metadata?: GraphMetadata,
+  metadata?: AgentMetadata,
   dataComponentLookup?: Record<string, DataComponent>,
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup
-): FullGraphDefinition {
+): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
@@ -116,7 +116,7 @@ export function serializeGraphData(
         usedArtifactComponents.add(componentId);
       });
       // Process models - only include if it has non-empty, non-whitespace values
-      const modelsData = node.data.models as GraphMetadata['models'] | undefined;
+      const modelsData = node.data.models as AgentMetadata['models'] | undefined;
       const processedModels = processModels(modelsData);
 
       const stopWhen = (node.data as any).stopWhen;
@@ -383,7 +383,7 @@ export function serializeGraphData(
     });
   }
 
-  const result: FullGraphDefinition = {
+  const result: FullAgentDefinition = {
     id: metadata?.id || nanoid(),
     name: metadata?.name || 'Untitled Agent',
     description: metadata?.description || undefined,
@@ -391,7 +391,7 @@ export function serializeGraphData(
     subAgents: subAgents,
     ...(Object.keys(functionTools).length > 0 && { functionTools }),
     ...(Object.keys(functions).length > 0 && { functions }),
-    // Note: Tools are now project-scoped and not included in FullGraphDefinition
+    // Note: Tools are now project-scoped and not included in FullAgentDefinition
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
   };
@@ -424,8 +424,8 @@ export function serializeGraphData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.graphPrompt) {
-    (result as any).graphPrompt = metadata.graphPrompt;
+  if (metadata?.agentPrompt) {
+    (result as any).agentPrompt = metadata.agentPrompt;
   }
 
   if (metadata?.statusUpdates) {
@@ -459,7 +459,7 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: FullGraphDefinition,
+  data: FullAgentDefinition,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];

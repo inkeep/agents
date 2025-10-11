@@ -5,8 +5,8 @@ import type { StreamHelper } from '../stream-helpers';
 
 // Mock dependencies
 vi.mock('../../services/ArtifactParser');
-vi.mock('../../services/GraphSession', () => ({
-  graphSessionManager: {
+vi.mock('../../services/AgentSession', () => ({
+  agentSessionManager: {
     getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
   },
 }));

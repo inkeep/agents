@@ -22,9 +22,9 @@ import { setSpanWithError, tracer } from '../utils/tracer';
 import { ArtifactParser } from './ArtifactParser';
 import { ArtifactService } from './ArtifactService';
 
-const logger = getLogger('GraphSession');
+const logger = getLogger('AgentSession');
 
-export type GraphSessionEventType =
+export type AgentSessionEventType =
   | 'agent_generate'
   | 'agent_reasoning'
   | 'transfer'
@@ -34,20 +34,20 @@ export type GraphSessionEventType =
   | 'tool_execution';
 
 // Base interface with common properties
-interface BaseGraphSessionEvent {
+interface BaseAgentSessionEvent {
   timestamp: number;
   subAgentId: string;
 }
 
 // Discriminated union of all possible event types
 export type AgentSessionEvent =
-  | (BaseGraphSessionEvent & { eventType: 'agent_generate'; data: AgentGenerateData })
-  | (BaseGraphSessionEvent & { eventType: 'agent_reasoning'; data: AgentReasoningData })
-  | (BaseGraphSessionEvent & { eventType: 'transfer'; data: TransferData })
-  | (BaseGraphSessionEvent & { eventType: 'delegation_sent'; data: DelegationSentData })
-  | (BaseGraphSessionEvent & { eventType: 'delegation_returned'; data: DelegationReturnedData })
-  | (BaseGraphSessionEvent & { eventType: 'artifact_saved'; data: ArtifactSavedData })
-  | (BaseGraphSessionEvent & { eventType: 'tool_execution'; data: ToolExecutionData });
+  | (BaseAgentSessionEvent & { eventType: 'agent_generate'; data: AgentGenerateData })
+  | (BaseAgentSessionEvent & { eventType: 'agent_reasoning'; data: AgentReasoningData })
+  | (BaseAgentSessionEvent & { eventType: 'transfer'; data: TransferData })
+  | (BaseAgentSessionEvent & { eventType: 'delegation_sent'; data: DelegationSentData })
+  | (BaseAgentSessionEvent & { eventType: 'delegation_returned'; data: DelegationReturnedData })
+  | (BaseAgentSessionEvent & { eventType: 'artifact_saved'; data: ArtifactSavedData })
+  | (BaseAgentSessionEvent & { eventType: 'tool_execution'; data: ToolExecutionData });
 
 export type EventData =
   | AgentGenerateData
@@ -70,7 +70,7 @@ export type EventDataMap = {
 };
 
 // Helper type to construct a properly-typed event from generic parameter T
-type MakeGraphSessionEvent<T extends GraphSessionEventType> = BaseGraphSessionEvent & {
+type MakeAgentSessionEvent<T extends AgentSessionEventType> = BaseAgentSessionEvent & {
   eventType: T;
   data: EventDataMap[T];
 };
@@ -159,7 +159,7 @@ export class AgentSession {
     public readonly projectId?: string,
     public readonly contextId?: string
   ) {
-    logger.debug({ sessionId, messageId, agentId }, 'GraphSession created');
+    logger.debug({ sessionId, messageId, agentId }, 'AgentSession created');
 
     // Initialize session-scoped services if we have required context
     if (tenantId && projectId) {
@@ -203,7 +203,7 @@ export class AgentSession {
     this.isEmitOperations = true;
     logger.info(
       { sessionId: this.sessionId },
-      '🔍 DEBUG: Emit operations enabled for GraphSession'
+      '🔍 DEBUG: Emit operations enabled for AgentSession'
     );
   }
 
@@ -324,7 +324,7 @@ export class AgentSession {
    * Record an event in the session and trigger status updates if configured
    * Generic type parameter T ensures eventType and data are correctly paired
    */
-  recordEvent<T extends GraphSessionEventType>(
+  recordEvent<T extends AgentSessionEventType>(
     eventType: T,
     subAgentId: string,
     data: EventDataMap[T]
@@ -333,13 +333,13 @@ export class AgentSession {
 
     if (this.isEmitOperations) {
       // Construct event with proper typing from generic parameter T
-      const dataOpEvent: MakeGraphSessionEvent<T> = {
+      const dataOpEvent: MakeAgentSessionEvent<T> = {
         timestamp: Date.now(),
         eventType,
         subAgentId,
         data,
       };
-      // Type assertion to union is safe - MakeGraphSessionEvent<T> matches a union member
+      // Type assertion to union is safe - MakeAgentSessionEvent<T> matches a union member
       this.sendDataOperation(dataOpEvent as AgentSessionEvent);
     }
 
@@ -356,14 +356,14 @@ export class AgentSession {
     }
 
     // Construct event with proper typing from generic parameter T
-    const event: MakeGraphSessionEvent<T> = {
+    const event: MakeAgentSessionEvent<T> = {
       timestamp: Date.now(),
       eventType,
       subAgentId,
       data,
     };
 
-    // Type assertion to union is safe - MakeGraphSessionEvent<T> matches a union member
+    // Type assertion to union is safe - MakeAgentSessionEvent<T> matches a union member
     this.events.push(event as AgentSessionEvent);
 
     // Process artifact if it's pending generation
@@ -517,7 +517,7 @@ export class AgentSession {
   /**
    * Get events filtered by type
    */
-  getEventsByType(eventType: GraphSessionEventType): AgentSessionEvent[] {
+  getEventsByType(eventType: AgentSessionEventType): AgentSessionEvent[] {
     return this.events.filter((event) => event.eventType === eventType);
   }
 
@@ -537,7 +537,7 @@ export class AgentSession {
         counts[event.eventType] = (counts[event.eventType] || 0) + 1;
         return counts;
       },
-      {} as Record<GraphSessionEventType, number>
+      {} as Record<AgentSessionEventType, number>
     );
 
     const agentCounts = this.events.reduce(
@@ -598,7 +598,7 @@ export class AgentSession {
     // Clear artifact cache for this session
     this.artifactCache.clear();
 
-    // Clean up the ToolSession that this GraphSession created
+    // Clean up the ToolSession that this AgentSession created
     if (this.sessionId) {
       toolSessionManager.endSession(this.sessionId);
     }
@@ -869,10 +869,10 @@ export class AgentSession {
     previousSummaries: string[] = []
   ): Promise<{ summaries: Array<{ type: string; data: Record<string, any> }> }> {
     return tracer.startActiveSpan(
-      'graph_session.generate_structured_update',
+      'agent_session.generate_structured_update',
       {
         attributes: {
-          'graph_session.id': this.sessionId,
+          'agent_session.id': this.sessionId,
           'events.count': newEvents.length,
           'elapsed_time.seconds': Math.round(elapsedTime / 1000),
           'llm.model': summarizerModel?.model,
@@ -1243,10 +1243,10 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
    */
   private async processArtifact(artifactData: ArtifactSavedData): Promise<void> {
     return tracer.startActiveSpan(
-      'graph_session.process_artifact',
+      'agent_session.process_artifact',
       {
         attributes: {
-          'graph_session.id': this.sessionId,
+          'agent_session.id': this.sessionId,
           'artifact.id': artifactData.artifactId,
           'artifact.type': artifactData.artifactType || 'unknown',
           'artifact.agent_id': artifactData.subAgentId || 'unknown',
@@ -1397,7 +1397,7 @@ Make it specific and relevant.`;
 
             // Add nested span for LLM generation with retry logic
             const { object } = await tracer.startActiveSpan(
-              'graph_session.generate_artifact_metadata',
+              'agent_session.generate_artifact_metadata',
               {
                 attributes: {
                   'llm.model': this.statusUpdateState?.summarizerModel?.model,
@@ -1642,9 +1642,9 @@ Make it specific and relevant.`;
 }
 
 /**
- * Manages GraphSession instances for message-level tracking
+ * Manages AgentSession instances for message-level tracking
  */
-export class GraphSessionManager {
+export class AgentSessionManager {
   private sessions = new Map<string, AgentSession>();
 
   /**
@@ -1663,7 +1663,7 @@ export class GraphSessionManager {
 
     logger.info(
       { sessionId, messageId, agentId, tenantId, projectId, contextId },
-      'GraphSession created'
+      'AgentSession created'
     );
     return sessionId;
   }
@@ -1719,7 +1719,7 @@ export class GraphSessionManager {
    * Record an event in a session
    * Generic type parameter T ensures eventType and data are correctly paired
    */
-  recordEvent<T extends GraphSessionEventType>(
+  recordEvent<T extends AgentSessionEventType>(
     sessionId: string,
     eventType: T,
     subAgentId: string,
@@ -1748,7 +1748,7 @@ export class GraphSessionManager {
     const events = session.getEvents();
     const summary = session.getSummary();
 
-    logger.info({ sessionId, summary }, 'GraphSession ended');
+    logger.info({ sessionId, summary }, 'AgentSession ended');
 
     // Clean up session resources including status update timers
     session.cleanup();
@@ -1826,4 +1826,4 @@ export class GraphSessionManager {
 }
 
 // Global instance
-export const graphSessionManager = new GraphSessionManager();
+export const agentSessionManager = new AgentSessionManager();

@@ -1,9 +1,9 @@
 import {
-  createFullGraphServerSide,
+  createFullAgentServerSide,
   deleteFullAgent,
-  type FullGraphDefinition,
+  type FullAgentDefinition,
   getFullAgent,
-  updateFullGraphServerSide,
+  updateFullAgentServerSide,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
@@ -70,14 +70,14 @@ describe('Agent Full Service Layer - Unit Tests', () => {
   // });
 
   // Helper function to create full agent data
-  const createFullGraphData = (
+  const createFullAgentData = (
     agentId?: string,
     options: {
       includeDataComponents?: boolean;
       includeExternalAgents?: boolean;
       includeContextConfig?: boolean;
     } = {}
-  ): FullGraphDefinition => {
+  ): FullAgentDefinition => {
     const id = agentId || nanoid();
     const subAgentId1 = `agent-${id}-1`;
     const subAgentId2 = `agent-${id}-2`;
@@ -107,7 +107,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       subAgent1.canDelegateTo.push(externalSubAgentId);
     }
 
-    const graphData: FullGraphDefinition = {
+    const agentData: FullAgentDefinition = {
       id,
       name: `Test Agent ${id}`,
       description: `Test agent description for ${id}`,
@@ -122,7 +122,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
     // Add external agents if requested
     if (options.includeExternalAgents) {
-      graphData.subAgents[externalSubAgentId] = createTestExternalAgentData({
+      agentData.subAgents[externalSubAgentId] = createTestExternalAgentData({
         id: externalSubAgentId,
       });
     }
@@ -132,20 +132,20 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
     // Add context config if requested
     if (options.includeContextConfig) {
-      graphData.contextConfig = createTestContextConfigData(contextConfigId, id, '');
+      agentData.contextConfig = createTestContextConfigData(contextConfigId, id, '');
     }
 
-    return graphData;
+    return agentData;
   };
 
-  describe('createFullGraph', () => {
+  describe('createFullAgent', () => {
     it('should create a basic agent with agents only', async () => {
       const tenantId = createTestTenantId('service-create-basic');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
       // Create a simple agent with just agents (no project-scoped resources)
-      const graphData: FullGraphDefinition = {
+      const agentData: FullAgentDefinition = {
         id: `test-agent-${nanoid()}`,
         name: 'Basic Test Agent',
         description: 'A basic test agent with agents only',
@@ -173,12 +173,12 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
-      expect(result.name).toBe(graphData.name);
-      expect(result.defaultSubAgentId).toBe(graphData.defaultSubAgentId);
+      expect(result.id).toBe(agentData.id);
+      expect(result.name).toBe(agentData.name);
+      expect(result.defaultSubAgentId).toBe(agentData.defaultSubAgentId);
       expect(Object.keys(result.subAgents)).toHaveLength(2);
     });
 
@@ -187,25 +187,25 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
-      expect(result.name).toBe(graphData.name);
-      expect(result.defaultSubAgentId).toBe(graphData.defaultSubAgentId);
+      expect(result.id).toBe(agentData.id);
+      expect(result.name).toBe(agentData.name);
+      expect(result.defaultSubAgentId).toBe(agentData.defaultSubAgentId);
       expect(Object.keys(result.subAgents)).toHaveLength(2);
 
       // Verify agent relationships were created
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         expect(defaultSubAgent).toBeDefined();
         if ('canTransferTo' in defaultSubAgent) {
-          expect(defaultSubAgent.canTransferTo).toContain(Object.keys(graphData.subAgents)[1]);
+          expect(defaultSubAgent.canTransferTo).toContain(Object.keys(agentData.subAgents)[1]);
         }
         if ('canDelegateTo' in defaultSubAgent) {
-          expect(defaultSubAgent.canDelegateTo).toContain(Object.keys(graphData.subAgents)[1]);
+          expect(defaultSubAgent.canDelegateTo).toContain(Object.keys(agentData.subAgents)[1]);
         }
         // Verify tool IDs are preserved (but actual tools are project-scoped)
         if ('tools' in defaultSubAgent) {
@@ -223,7 +223,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       const subAgentId = nanoid();
       const agentId = nanoid();
 
-      const graphData: FullGraphDefinition = {
+      const agentData: FullAgentDefinition = {
         id: agentId,
         name: 'Single Agent Agent',
         description: 'Agent with single agent',
@@ -240,7 +240,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentId);
@@ -262,27 +262,27 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first time
-      const firstResult = await createFullGraphServerSide(dbClient)(
+      const firstResult = await createFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        graphData
+        agentData
       );
-      expect(firstResult.id).toBe(graphData.id);
+      expect(firstResult.id).toBe(agentData.id);
 
       // Modify the agent data
-      const updatedGraphData = {
-        ...graphData,
+      const updatedAgentData = {
+        ...agentData,
         name: 'Updated Agent Name',
       };
 
       // Create again (should update)
-      const secondResult = await createFullGraphServerSide(dbClient)(
+      const secondResult = await createFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
-      expect(secondResult.id).toBe(graphData.id);
+      expect(secondResult.id).toBe(agentData.id);
       expect(secondResult.name).toBe('Updated Agent Name');
     });
 
@@ -291,16 +291,16 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData(undefined, { includeDataComponents: true });
+      const agentData = createFullAgentData(undefined, { includeDataComponents: true });
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
+      expect(result.id).toBe(agentData.id);
 
       // Verify sub-agent has dataComponent IDs (actual components are project-scoped)
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         expect(defaultSubAgent).toBeDefined();
         if ('dataComponents' in defaultSubAgent) {
           expect(defaultSubAgent.dataComponents).toBeDefined();
@@ -315,12 +315,12 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData(undefined, { includeExternalAgents: true });
+      const agentData = createFullAgentData(undefined, { includeExternalAgents: true });
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
+      expect(result.id).toBe(agentData.id);
 
       // Find external subAgent
       const externalAgent = Object.values(result.subAgents).find(
@@ -332,8 +332,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       }
 
       // Verify internal subAgent can hand off to external subAgent
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('canDelegateTo' in defaultSubAgent) {
           expect(defaultSubAgent.canDelegateTo).toContain(externalAgent?.id);
         }
@@ -345,12 +345,12 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData(undefined, { includeContextConfig: true });
+      const agentData = createFullAgentData(undefined, { includeContextConfig: true });
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
+      expect(result.id).toBe(agentData.id);
       expect(result.contextConfig).toBeDefined();
     });
 
@@ -359,24 +359,24 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData(undefined, {
+      const agentData = createFullAgentData(undefined, {
         includeDataComponents: true,
         includeExternalAgents: true,
         includeContextConfig: true,
       });
 
-      const result = await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
+      expect(result.id).toBe(agentData.id);
 
       // Verify all subAgents exist
       expect(Object.keys(result.subAgents)).toHaveLength(3); // 2 internal + 1 external
       expect(result.contextConfig).toBeDefined();
 
       // Verify subAgent relationships and references
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('dataComponents' in defaultSubAgent) {
           expect(defaultSubAgent.dataComponents).toHaveLength(0);
         }
@@ -396,25 +396,25 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
   });
 
-  describe('getFullGraph', () => {
+  describe('getFullAgent', () => {
     it.skip('should retrieve an existing agent', async () => {
       const tenantId = createTestTenantId('service-get');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Retrieve it
       const result = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId: graphData.id },
+        scopes: { tenantId, projectId, agentId: agentData.id },
       });
 
       expect(result).toBeDefined();
-      expect(result?.id).toBe(graphData.id);
-      expect(result?.name).toBe(graphData.name);
+      expect(result?.id).toBe(agentData.id);
+      expect(result?.name).toBe(agentData.name);
       if (result) {
         expect(Object.keys(result.subAgents)).toHaveLength(2);
       }
@@ -435,32 +435,32 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
   });
 
-  describe('updateFullGraph', () => {
+  describe('updateFullAgent', () => {
     it.skip('should update an existing agent', async () => {
       // TODO: Update this test to work with new scoped architecture
       const tenantId = createTestTenantId('service-update');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Update it
-      const updatedGraphData = {
-        ...graphData,
+      const updatedAgentData = {
+        ...agentData,
         name: 'Updated Agent Name',
         description: 'Updated description',
       };
 
-      const result = await updateFullGraphServerSide(dbClient)(
+      const result = await updateFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
+      expect(result.id).toBe(agentData.id);
       expect(result.name).toBe('Updated Agent Name');
       expect(result.description).toBe('Updated description');
       expect(Object.keys(result.subAgents)).toHaveLength(2);
@@ -471,14 +471,14 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Update non-existent agent (should create)
-      const result = await updateFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      const result = await updateFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(graphData.id);
-      expect(result.name).toBe(graphData.name);
+      expect(result.id).toBe(agentData.id);
+      expect(result.name).toBe(agentData.name);
       expect(Object.keys(result.subAgents)).toHaveLength(2);
     });
 
@@ -487,13 +487,13 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       const tenantId = createTestTenantId('service-update-mismatch');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
       const differentId = nanoid();
 
       await expect(
-        updateFullGraphServerSide(dbClient)(
+        updateFullAgentServerSide(dbClient)(
           { tenantId, projectId },
-          { ...graphData, id: differentId }
+          { ...agentData, id: differentId }
         )
       ).rejects.toThrow('Agent ID mismatch');
     });
@@ -503,41 +503,41 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Add a new subAgent
-      const newSubAgentId = `agent-${graphData.id}-3`;
-      const updatedGraphData = {
-        ...graphData,
+      const newSubAgentId = `agent-${agentData.id}-3`;
+      const updatedAgentData = {
+        ...agentData,
         subAgents: {
-          ...graphData.subAgents,
+          ...agentData.subAgents,
           [newSubAgentId]: createTestSubAgentData({ id: newSubAgentId, suffix: ' New Agent' }),
         },
       };
 
       // Update existing agent to have relationship with new agent
       // Note: canTransferTo is part of the agent definition in the input, not the returned result
-      if (graphData.defaultSubAgentId) {
-        const agent = updatedGraphData.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const agent = updatedAgentData.subAgents[agentData.defaultSubAgentId];
         if (agent.type === 'internal' && agent.canTransferTo) {
           agent.canTransferTo.push(newSubAgentId);
         }
       }
 
-      const result = await updateFullGraphServerSide(dbClient)(
+      const result = await updateFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
 
       expect(result).toBeDefined();
       expect(Object.keys(result.subAgents)).toHaveLength(3);
       expect(result.subAgents).toHaveProperty(newSubAgentId);
       // Verify the relationship was created
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('canTransferTo' in defaultSubAgent) {
           expect(defaultSubAgent.canTransferTo).toContain(newSubAgentId);
         }
@@ -549,19 +549,19 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first (without dataComponents)
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Update to include dataComponents
-      const updatedGraphData = createFullGraphData(graphData.id, {
+      const updatedAgentData = createFullAgentData(agentData.id, {
         includeDataComponents: true,
       });
 
-      const result = await updateFullGraphServerSide(dbClient)(
+      const result = await updateFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
 
       expect(result).toBeDefined();
@@ -569,8 +569,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       // The agent.dataComponents array contains dataComponent IDs, but the actual dataComponent objects are at the project level
 
       // Verify agent-dataComponent relationship
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('dataComponents' in defaultSubAgent) {
           expect(defaultSubAgent.dataComponents).toBeDefined();
           expect(defaultSubAgent.dataComponents).toHaveLength(1);
@@ -583,19 +583,19 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first (without external agents)
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Update to include external agents
-      const updatedGraphData = createFullGraphData(graphData.id, {
+      const updatedAgentData = createFullAgentData(agentData.id, {
         includeExternalAgents: true,
       });
 
-      const result = await updateFullGraphServerSide(dbClient)(
+      const result = await updateFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
 
       expect(result).toBeDefined();
@@ -613,24 +613,24 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData(undefined, { includeDataComponents: true });
+      const agentData = createFullAgentData(undefined, { includeDataComponents: true });
 
       // Create the agent first (with dataComponents)
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Update to remove dataComponents
-      const updatedGraphData = createFullGraphData(graphData.id);
+      const updatedAgentData = createFullAgentData(agentData.id);
 
-      const result = await updateFullGraphServerSide(dbClient)(
+      const result = await updateFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
 
       expect(result).toBeDefined();
 
       // Agent should have no dataComponent relationships
-      if (graphData.defaultSubAgentId) {
-        const defaultSubAgent = result.subAgents[graphData.defaultSubAgentId];
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('dataComponents' in defaultSubAgent) {
           expect(defaultSubAgent.dataComponents || []).toHaveLength(0);
         }
@@ -642,21 +642,21 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const initialGraphData = createFullGraphData();
+      const initialAgentData = createFullAgentData();
 
       // Create initial agent
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, initialGraphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, initialAgentData);
 
       // Update with all components
-      const updatedGraphData = createFullGraphData(initialGraphData.id, {
+      const updatedAgentData = createFullAgentData(initialAgentData.id, {
         includeDataComponents: true,
         includeExternalAgents: true,
         includeContextConfig: true,
       });
 
-      const result = await updateFullGraphServerSide(dbClient)(
+      const result = await updateFullAgentServerSide(dbClient)(
         { tenantId, projectId },
-        updatedGraphData
+        updatedAgentData
       );
 
       expect(result).toBeDefined();
@@ -672,16 +672,16 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Add non-existent tool reference
-      const subAgentId = Object.keys(graphData.subAgents)[0];
-      if (subAgentId && 'tools' in graphData.subAgents[subAgentId]) {
-        graphData.subAgents[subAgentId].tools = ['non-existent-tool'];
+      const subAgentId = Object.keys(agentData.subAgents)[0];
+      if (subAgentId && 'tools' in agentData.subAgents[subAgentId]) {
+        agentData.subAgents[subAgentId].tools = ['non-existent-tool'];
       }
 
       await expect(
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData)
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData)
       ).rejects.toThrow(/Tool reference validation failed/);
     });
 
@@ -690,16 +690,16 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Add non-existent dataComponent reference
-      const subAgentId = Object.keys(graphData.subAgents)[0];
-      if (subAgentId && 'dataComponents' in graphData.subAgents[subAgentId]) {
-        graphData.subAgents[subAgentId].dataComponents = ['non-existent-datacomponent'];
+      const subAgentId = Object.keys(agentData.subAgents)[0];
+      if (subAgentId && 'dataComponents' in agentData.subAgents[subAgentId]) {
+        agentData.subAgents[subAgentId].dataComponents = ['non-existent-datacomponent'];
       }
 
       await expect(
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData)
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData)
       ).rejects.toThrow(/DataComponent reference validation failed/);
     });
 
@@ -708,13 +708,13 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Set non-existent default subAgent
-      graphData.defaultSubAgentId = 'non-existent-subAgent';
+      agentData.defaultSubAgentId = 'non-existent-subAgent';
 
       await expect(
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData)
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData)
       ).rejects.toThrow(/Default subAgent .* does not exist in subAgents/);
     });
 
@@ -723,46 +723,46 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Add non-existent subAgent in relationships
-      const subAgentId = Object.keys(graphData.subAgents)[0];
-      if (subAgentId && 'canTransferTo' in graphData.subAgents[subAgentId]) {
-        graphData.subAgents[subAgentId].canTransferTo = ['non-existent-subAgent'];
+      const subAgentId = Object.keys(agentData.subAgents)[0];
+      if (subAgentId && 'canTransferTo' in agentData.subAgents[subAgentId]) {
+        agentData.subAgents[subAgentId].canTransferTo = ['non-existent-subAgent'];
       }
 
       await expect(
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData)
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData)
       ).rejects.toThrow(/Agent relationship validation failed/);
     });
   });
 
-  describe('deleteFullGraph', () => {
+  describe('deleteFullAgent', () => {
     it.skip('should delete an existing agent', async () => {
       const tenantId = createTestTenantId('service-delete');
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Verify it exists
       const beforeDelete = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId: graphData.id },
+        scopes: { tenantId, projectId, agentId: agentData.id },
       });
       expect(beforeDelete).toBeDefined();
 
       // Delete it
       const deleteResult = await deleteFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId: graphData.id },
+        scopes: { tenantId, projectId, agentId: agentData.id },
       });
       expect(deleteResult).toBe(true);
 
       // Verify it's deleted
       const afterDelete = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId: graphData.id },
+        scopes: { tenantId, projectId, agentId: agentData.id },
       });
       expect(afterDelete).toBeNull();
     });
@@ -786,25 +786,25 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Add more complex relationships
-      // const subAgentIds = Object.keys(graphData.subAgents);
-      // Note: canTransferTo and canDelegateTo are set in the createFullGraphData function
+      // const subAgentIds = Object.keys(agentData.subAgents);
+      // Note: canTransferTo and canDelegateTo are set in the createFullAgentData function
       // and are part of the subAgent definition, not the returned agent data
 
       // Create the agent
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Delete it
       const deleteResult = await deleteFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId: graphData.id },
+        scopes: { tenantId, projectId, agentId: agentData.id },
       });
       expect(deleteResult).toBe(true);
 
       // Verify deletion
       const afterDelete = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId: graphData.id },
+        scopes: { tenantId, projectId, agentId: agentData.id },
       });
       expect(afterDelete).toBeNull();
     });
@@ -817,7 +817,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       const projectId = 'default';
 
       // Create agent data with empty subAgents object
-      const invalidGraphData: FullGraphDefinition = {
+      const invalidAgentData: FullAgentDefinition = {
         id: 'test-agent',
         name: 'Test Agent',
         description: 'Test description',
@@ -829,7 +829,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       // This should handle the error gracefully
       await expect(
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, invalidGraphData)
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, invalidAgentData)
       ).rejects.toThrow();
     });
   });
@@ -840,29 +840,29 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graph1Data = createFullGraphData();
-      const graph2Data = createFullGraphData();
+      const agent1Data = createFullAgentData();
+      const agent2Data = createFullAgentData();
 
       // Create agent concurrently
       const [result1, result2] = await Promise.all([
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, graph1Data),
-        createFullGraphServerSide(dbClient)({ tenantId, projectId }, graph2Data),
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, agent1Data),
+        createFullAgentServerSide(dbClient)({ tenantId, projectId }, agent2Data),
       ]);
 
-      expect(result1.id).toBe(graph1Data.id);
-      expect(result2.id).toBe(graph2Data.id);
+      expect(result1.id).toBe(agent1Data.id);
+      expect(result2.id).toBe(agent2Data.id);
       expect(result1.id).not.toBe(result2.id);
 
       // Verify both exist
       const [get1, get2] = await Promise.all([
-        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: graph1Data.id } }),
-        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: graph2Data.id } }),
+        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: agent1Data.id } }),
+        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: agent2Data.id } }),
       ]);
 
       expect(get1).toBeDefined();
       expect(get2).toBeDefined();
-      expect(get1?.id).toBe(graph1Data.id);
-      expect(get2?.id).toBe(graph2Data.id);
+      expect(get1?.id).toBe(agent1Data.id);
+      expect(get2?.id).toBe(agent2Data.id);
     });
 
     it.skip('should handle concurrent operations on same agent', async () => {
@@ -870,24 +870,24 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const graphData = createFullGraphData();
+      const agentData = createFullAgentData();
 
       // Create the agent first
-      await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
+      await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
 
       // Perform concurrent get operations
       const [get1, get2, get3] = await Promise.all([
-        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: graphData.id } }),
-        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: graphData.id } }),
-        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: graphData.id } }),
+        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: agentData.id } }),
+        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: agentData.id } }),
+        getFullAgent(dbClient)({ scopes: { tenantId, projectId, agentId: agentData.id } }),
       ]);
 
       expect(get1).toBeDefined();
       expect(get2).toBeDefined();
       expect(get3).toBeDefined();
-      expect(get1?.id).toBe(graphData.id);
-      expect(get2?.id).toBe(graphData.id);
-      expect(get3?.id).toBe(graphData.id);
+      expect(get1?.id).toBe(agentData.id);
+      expect(get2?.id).toBe(agentData.id);
+      expect(get3?.id).toBe(agentData.id);
     });
   });
 });

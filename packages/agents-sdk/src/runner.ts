@@ -114,7 +114,7 @@ export class Runner {
   /**
    * Execute multiple agent in parallel and return the first successful result
    */
-  static async raceGraphs(
+  static async raceAgents(
     agent: AgentInterface[],
     messages: MessageInput,
     options?: GenerateOptions
@@ -125,7 +125,7 @@ export class Runner {
 
     logger.info(
       {
-        graphCount: agent.length,
+        agentCount: agent.length,
         agentIds: agent.map((g) => g.getId()),
       },
       'Starting agent race'
@@ -176,7 +176,7 @@ export class Runner {
   /**
    * Validate agent configuration before running
    */
-  static validateGraph(agent: AgentInterface): {
+  static validateAgent(agent: AgentInterface): {
     valid: boolean;
     errors: string[];
   } {
@@ -245,4 +245,4 @@ export class Runner {
 // Export convenience functions that match OpenAI's pattern
 export const run = Runner.run.bind(Runner);
 export const stream = Runner.stream.bind(Runner);
-export const raceGraphs = Runner.raceGraphs.bind(Runner);
+export const raceAgents = Runner.raceAgents.bind(Runner);

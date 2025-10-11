@@ -1,17 +1,17 @@
-import { type FullGraphDefinition, validateAndTypeGraphData } from '@inkeep/agents-core';
+import { type FullAgentDefinition, validateAndTypeAgentData } from '@inkeep/agents-core';
 import { env } from '../env';
 import { getLogger } from '../logger';
 
-const logger = getLogger('graphFull');
+const logger = getLogger('agentFull');
 
 /**
- * Client-side implementation of createFullGraph that makes HTTP requests to the API endpoint.
+ * Client-side implementation of createFullAgent that makes HTTP requests to the API endpoint.
  * This function should be used by client code instead of directly accessing the data layer.
  */
-export const createFullGraph = async (
+export const createFullAgent = async (
   tenantId: string,
-  agentData: FullGraphDefinition
-): Promise<FullGraphDefinition> => {
+  agentData: FullAgentDefinition
+): Promise<FullAgentDefinition> => {
   logger.info(
     {
       tenantId,
@@ -64,14 +64,14 @@ export const createFullGraph = async (
 };
 
 /**
- * Client-side implementation of updateFullGraph that makes HTTP requests to the API endpoint.
+ * Client-side implementation of updateFullAgent that makes HTTP requests to the API endpoint.
  */
-export const updateFullGraph = async (
+export const updateFullAgent = async (
   tenantId: string,
   agentId: string,
-  graphData: FullGraphDefinition
-): Promise<FullGraphDefinition> => {
-  const typed = validateAndTypeGraphData(graphData);
+  agentData: FullAgentDefinition
+): Promise<FullAgentDefinition> => {
+  const typed = validateAndTypeAgentData(agentData);
 
   // Validate that the agentId matches the data.id
   if (agentId !== typed.id) {
@@ -82,7 +82,7 @@ export const updateFullGraph = async (
     {
       tenantId,
       agentId,
-      subAgentCount: Object.keys((graphData as any).subAgents || {}).length,
+      subAgentCount: Object.keys((agentData as any).subAgents || {}).length,
     },
     'Updating full agent via API endpoint'
   );
@@ -96,7 +96,7 @@ export const updateFullGraph = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
 
     if (!response.ok) {

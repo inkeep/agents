@@ -99,16 +99,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     let effectiveAgentId = agentId;
     if (!effectiveAgentId) {
       effectiveAgentId = nanoid();
-      const graphData = {
+      const agentData = {
         id: effectiveAgentId,
         name: `Test Agent${suffix}`,
         defaultSubAgentId: null,
       };
-      const graphRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+      const agentRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
         method: 'POST',
-        body: JSON.stringify(graphData),
+        body: JSON.stringify(agentData),
       });
-      expect(graphRes.status).toBe(201);
+      expect(agentRes.status).toBe(201);
     }
 
     const agentData = { ...createTestSubAgentData({ suffix }) };

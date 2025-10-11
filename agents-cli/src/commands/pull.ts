@@ -14,7 +14,7 @@ import {
   generateArtifactComponentFile,
   generateDataComponentFile,
   generateEnvironmentFiles,
-  generateGraphFile,
+  generateAgentFile,
   generateIndexFile,
   generateToolFile,
 } from './pull.llm-generate';
@@ -332,7 +332,7 @@ async function generateProjectFiles(
   if (agents && Object.keys(agents).length > 0) {
     for (const [agentId, agentData] of Object.entries(agents)) {
       const agentPath = join(dirs.agentsDir, `${agentId}.ts`);
-      generationTasks.push(generateGraphFile(agentData, agentId, agentPath, modelSettings));
+      generationTasks.push(generateAgentFile(agentData, agentId, agentPath, modelSettings));
       fileInfo.push({ type: 'agent', name: `${agentId}.ts` });
     }
   }

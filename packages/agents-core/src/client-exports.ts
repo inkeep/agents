@@ -16,7 +16,7 @@ import {
   AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
-  FullGraphAgentInsertSchema,
+  FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
   type ModelSettings,
   ModelSettingsSchema,
@@ -32,11 +32,11 @@ export { validatePropsAsJsonSchema } from './validation/props-validation';
 // Re-export StopWhen schemas and types for client usage
 export {
   StopWhenSchema,
-  AgentStopWhenSchema as GraphStopWhenSchema,
-  SubAgentStopWhenSchema as AgentStopWhenSchema,
+  AgentStopWhenSchema,
+  SubAgentStopWhenSchema,
   type StopWhen,
-  type AgentStopWhen as GraphStopWhen,
-  type SubAgentStopWhen as AgentStopWhen,
+  type AgentStopWhen,
+  type SubAgentStopWhen,
 };
 
 export {
@@ -181,7 +181,7 @@ export const ExternalAgentApiInsertSchema = z.object({
 });
 
 // Agent Agent API schemas (inline definitions)
-export const AgentGraphApiInsertSchema = z.object({
+export const AgentAgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
@@ -189,11 +189,11 @@ export const AgentGraphApiInsertSchema = z.object({
 });
 
 // Full Agent Definition Schema - extends Agent with agents and tools
-export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
+export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
   subAgents: z.record(
     z.string(),
     z.union([
-      FullGraphAgentInsertSchema,
+      FullAgentAgentInsertSchema,
       ExternalAgentApiInsertSchema.extend({
         id: z.string(),
       }),
@@ -230,7 +230,7 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
       transferCountIs: z.number().min(1).max(100).optional(),
     })
     .optional(),
-  graphPrompt: z.string().max(5000).optional(),
+  agentPrompt: z.string().max(5000).optional(),
   statusUpdates: z
     .object({
       enabled: z.boolean().optional(),
@@ -268,9 +268,9 @@ export type DataComponentApiInsert = z.infer<typeof DataComponentApiInsertSchema
 export type ArtifactComponentApiInsert = z.infer<typeof ArtifactComponentApiInsertSchema>;
 export type ContextConfigApiInsert = z.infer<typeof ContextConfigApiInsertSchema>;
 export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
-export type AgentGraphApiInsert = z.infer<typeof AgentGraphApiInsertSchema>;
-export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
-export type InternalAgentDefinition = z.infer<typeof FullGraphAgentInsertSchema>;
+export type AgentAgentApiInsert = z.infer<typeof AgentAgentApiInsertSchema>;
+export type FullAgentDefinition = z.infer<typeof FullAgentDefinitionSchema>;
+export type InternalAgentDefinition = z.infer<typeof FullAgentAgentInsertSchema>;
 export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
@@ -300,7 +300,7 @@ export function generateIdFromName(name: string): string {
 
 // Type aliases for backward compatibility
 export type ToolInsert = ToolApiInsert;
-export type AgentGraphInsert = AgentGraphApiInsert;
+export type AgentAgentInsert = AgentAgentApiInsert;
 
 // Re-export utility types for client use
 export { CredentialStoreType, MCPTransportType };

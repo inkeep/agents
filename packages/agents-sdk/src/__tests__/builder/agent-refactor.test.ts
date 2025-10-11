@@ -1,4 +1,4 @@
-import * as graphFullModule from '@inkeep/agents-core';
+import * as agentFullModule from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import { subAgent, agent, mcpTool } from '../../index';
@@ -20,7 +20,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 // Mock the agentFullClient
 vi.mock('../../agentFullClient.js', () => ({
-  updateFullGraphViaAPI: vi.fn().mockResolvedValue({
+  updateFullAgentViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -56,7 +56,7 @@ vi.mock('../../agentFullClient.js', () => ({
     artifactComponents: {},
     defaultSubAgentId: 'test-agent',
   }),
-  createFullGraphViaAPI: vi.fn().mockResolvedValue({
+  createFullAgentViaAPI: vi.fn().mockResolvedValue({
     id: 'test-agent',
     name: 'Test Agent',
     agents: {
@@ -72,15 +72,15 @@ vi.mock('../../agentFullClient.js', () => ({
     artifactComponents: {},
     defaultSubAgentId: 'test-agent',
   }),
-  getFullGraphViaAPI: vi.fn().mockResolvedValue(null),
+  getFullAgentViaAPI: vi.fn().mockResolvedValue(null),
 }));
 
 describe('Agent Builder Refactor - Integration Tests', () => {
   it.skip('should use the new agent endpoint for initialization', async () => {
     const tenantId = createTestTenantId('agent-refactor');
 
-    // Spy on the createFullGraphServerSide function to verify it's being called
-    const createFullGraphSpy = vi.spyOn(graphFullModule, 'createFullGraphServerSide');
+    // Spy on the createFullAgentServerSide function to verify it's being called
+    const createFullAgentSpy = vi.spyOn(agentFullModule, 'createFullAgentServerSide');
 
     // Create test agents with tools
     const testTool = mcpTool({
@@ -121,13 +121,13 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     // Initialize the agent
     await agentObject.init();
 
-    // Verify that createFullGraphServerSide was called
-    expect(createFullGraphSpy).toHaveBeenCalledTimes(1);
+    // Verify that createFullAgentServerSide was called
+    expect(createFullAgentSpy).toHaveBeenCalledTimes(1);
 
     // Verify the structure of the call
-    const [calledTenantId, calledGraphData] = createFullGraphSpy.mock.calls[0];
+    const [calledTenantId, calledAgentData] = createFullAgentSpy.mock.calls[0];
     expect(calledTenantId).toBe(tenantId);
-    expect(calledGraphData).toMatchObject({
+    expect(calledAgentData).toMatchObject({
       id: agentId,
       name: agentId,
       description: `Agent agent ${agentId}`,
@@ -156,13 +156,13 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     });
 
     // Cleanup spy
-    createFullGraphSpy.mockRestore();
+    createFullAgentSpy.mockRestore();
   });
 
   it.skip('should handle component mode correctly', async () => {
     const _tenantId = createTestTenantId('agent-component-mode');
 
-    // Import and spy on the updateFullGraphViaAPI function
+    // Import and spy on the updateFullAgentViaAPI function
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
     updateSpy.mockClear(); // Clear previous calls
@@ -185,7 +185,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
 
     await agentObject.init();
 
-    // Verify that updateFullGraphViaAPI was called
+    // Verify that updateFullAgentViaAPI was called
     expect(updateSpy).toHaveBeenCalled();
 
     // Verify that the agent instructions are preserved (component mode is deprecated)
@@ -232,11 +232,11 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     const calledProjectData = updateSpy.mock.calls[0][3]; // 4th argument is projectData
     const agents = calledProjectData?.agents || {};
     const firstAgentId = Object.keys(agent)[0];
-    const calledGraphData = firstAgentId ? agents[firstAgentId] : undefined;
+    const calledAgentData = firstAgentId ? agents[firstAgentId] : undefined;
 
     // The Agent.getId() method now returns the config.id directly
     // Agent was created with id: 'standalone'
-    expect(calledGraphData?.subAgents.standalone).toMatchObject({
+    expect(calledAgentData?.subAgents.standalone).toMatchObject({
       id: 'standalone',
       canTransferTo: [],
       canDelegateTo: [],
@@ -274,7 +274,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
   it.skip('should handle errors in agent initialization gracefully', async () => {
     const _tenantId = createTestTenantId('agent-error');
 
-    // Mock updateFullGraphViaAPI to throw an error
+    // Mock updateFullAgentViaAPI to throw an error
     const { updateFullProjectViaAPI } = await import('../../projectFullClient');
     const updateSpy = vi.mocked(updateFullProjectViaAPI);
     updateSpy.mockClear(); // Clear previous calls
@@ -298,7 +298,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     // Expect initialization to throw the error
     await expect(agentObject.init()).rejects.toThrow('Agent creation failed');
 
-    // Verify that updateFullGraphViaAPI was called despite the error
+    // Verify that updateFullAgentViaAPI was called despite the error
     expect(updateSpy).toHaveBeenCalledTimes(1);
 
     updateSpy.mockClear();

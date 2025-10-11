@@ -102,7 +102,7 @@ export const QUERY_EXPRESSIONS = {
   CONTEXT_ERRORS: 'contextErrors',
   AGENT_GENERATION_ERRORS: 'agentGenerationErrors',
   USER_MESSAGES: 'userMessages',
-  UNIQUE_GRAPHS: 'uniqueGraphs',
+  UNIQUE_AGENTS: 'uniqueAgents',
   UNIQUE_MODELS: 'uniqueModels',
   // Route-specific query names
   TOOL_CALLS: 'toolCalls',

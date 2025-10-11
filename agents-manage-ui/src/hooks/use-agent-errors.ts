@@ -3,7 +3,7 @@
  */
 
 import { useCallback } from 'react';
-import { useGraphStore, useGraphActions } from '@/features/agent/state/use-agent-store';
+import { useAgentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export interface ErrorHelpers {
   hasFieldError: (fieldName: string) => boolean;
@@ -11,13 +11,13 @@ export interface ErrorHelpers {
   getFirstErrorField: () => string | undefined;
 }
 
-export function useGraphErrors() {
-  const { errors, showErrors } = useGraphStore((state) => ({
+export function useAgentErrors() {
+  const { errors, showErrors } = useAgentStore((state) => ({
     errors: state.errors,
     showErrors: state.showErrors,
   }));
   const { hasErrors, getNodeErrors, getEdgeErrors, setErrors, clearErrors, setShowErrors } =
-    useGraphActions();
+    useAgentActions();
 
   const getNodeErrorCount = (nodeId: string): number => {
     return getNodeErrors(nodeId).length;

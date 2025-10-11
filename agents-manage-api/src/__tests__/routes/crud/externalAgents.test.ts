@@ -11,7 +11,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
   // Helper function to create a test agent and return its ID
   const createtestAgent = async (tenantId: string) => {
-    const graphData = {
+    const agentData = {
       id: nanoid(),
       name: `Test Agent ${nanoid()}`,
       defaultSubAgentId: null,
@@ -19,7 +19,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
     const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     });
     if (res.status !== 201) {
       throw new Error(`Failed to create agent: ${res.status}`);
@@ -76,8 +76,8 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
   };
 
   // Helper to ensure default agent exists
-  const ensureDefaultGraph = async (tenantId: string) => {
-    const graphData = {
+  const ensureDefaultAgent = async (tenantId: string) => {
+    const agentData = {
       id: 'default',
       name: 'Default Agent',
       defaultSubAgentId: null,
@@ -86,7 +86,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     // Try to create the agent, it may already exist
     await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
       method: 'POST',
-      body: JSON.stringify(graphData),
+      body: JSON.stringify(agentData),
     }).catch(() => {});
   };
 

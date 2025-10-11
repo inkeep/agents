@@ -11,7 +11,7 @@ export const SPAN_NAMES = {
   CONTEXT_HANDLE: 'context.handle_context_resolution',
   AGENT_GENERATION: 'agent.generate',
   CONTEXT_FETCHER: 'context-fetcher.http-request',
-  ARTIFACT_PROCESSING: 'graph_session.process_artifact',
+  ARTIFACT_PROCESSING: 'agent_session.process_artifact',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -31,15 +31,15 @@ export const SPAN_KEYS = {
   OTEL_STATUS_CODE: 'otel.status_code',
   OTEL_STATUS_DESCRIPTION: 'otel.status_description',
 
-  // Agent attributes
-  GRAPH_ID: 'agent.id',
-  GRAPH_NAME: 'agent.name',
+  // Agent attributesa
+  AGENT_ID: 'agent.id',
+  AGENT_NAME: 'agent.name',
   TENANT_ID: 'tenant.id',
   PROJECT_ID: 'project.id',
 
   // AI/Agent attributes
-  AI_AGENT_NAME: 'ai.agentName',
-  AI_AGENT_NAME_ALT: 'ai.agent.name',
+  AI_SUB_AGENT_NAME: 'ai.subAgentName',
+  AI_SUB_AGENT_NAME_ALT: 'ai.subAgent.name',
   AI_OPERATION_ID: 'ai.operationId',
   AI_RESPONSE_TIMESTAMP: 'ai.response.timestamp',
   AI_RESPONSE_CONTENT: 'ai.response.content',
@@ -59,9 +59,9 @@ export const SPAN_KEYS = {
   AI_TOOL_TYPE: 'ai.toolType',
   TOOL_PURPOSE: 'tool.purpose',
 
-  // Agent attributes
-  AGENT_ID: 'agent.id',
-  AGENT_NAME: 'agent.name',
+  // SubAgent attributes
+  SUB_AGENT_ID: 'subagent.id',
+  SUB_AGENT_NAME: 'subagent.name',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -70,7 +70,7 @@ export const SPAN_KEYS = {
   // Context attributes
   CONTEXT_URL: 'context.url',
   CONTEXT_CONFIG_ID: 'context.context_config_id',
-  CONTEXT_AGENT_GRAPH_ID: 'context.agent_id',
+  CONTEXT_AGENT_ID: 'context.agent_id',
   CONTEXT_HEADERS_KEYS: 'context.headers_keys',
 
   // Message attributes

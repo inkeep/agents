@@ -293,7 +293,7 @@ export const isArtifactComponentAssociatedWithAgent =
     return result.length > 0;
   };
 
-export const graphHasArtifactComponents =
+export const agentHasArtifactComponents =
   (db: DatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const result = await db

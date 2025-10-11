@@ -398,7 +398,7 @@ export const deleteSubAgentRelation =
     return (result.rowsAffected || 0) > 0;
   };
 
-export const deleteAgentRelationsByGraph =
+export const deleteAgentRelationsByAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(subAgentRelations)

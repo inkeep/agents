@@ -10,7 +10,7 @@ import {
   deleteAgent,
   ErrorResponseSchema,
   getAgentById,
-  getFullGraphDefinition,
+  getFullAgentDefinition,
   getAgentSubAgentInfos,
   ListResponseSchema,
   listAgents,
@@ -188,18 +188,18 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
-    const fullGraph = await getFullGraphDefinition(dbClient)({
+    const fullAgent = await getFullAgentDefinition(dbClient)({
       scopes: { tenantId, projectId, agentId },
     });
 
-    if (!fullGraph) {
+    if (!fullAgent) {
       throw createApiError({
         code: 'not_found',
         message: 'Agent agent not found',
       });
     }
 
-    return c.json({ data: fullGraph });
+    return c.json({ data: fullAgent });
   }
 );
 
@@ -284,7 +284,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const updatedGraph = await updateAgent(dbClient)({
+    const updatedAgent = await updateAgent(dbClient)({
       scopes: { tenantId, projectId, agentId: id },
       data: {
         defaultSubAgentId: validatedBody.defaultSubAgentId,
@@ -292,14 +292,14 @@ app.openapi(
       },
     });
 
-    if (!updatedGraph) {
+    if (!updatedAgent) {
       throw createApiError({
         code: 'not_found',
         message: 'Agent agent not found',
       });
     }
 
-    return c.json({ data: updatedGraph });
+    return c.json({ data: updatedAgent });
   }
 );
 

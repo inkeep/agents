@@ -38,6 +38,6 @@ export {
   getFullProjectViaAPI,
   updateFullProjectViaAPI,
 } from './projectFullClient';
-export { Runner, raceGraphs, run, stream } from './runner';
+export { Runner, raceAgents, run, stream } from './runner';
 export { Tool } from './tool';
 export type * from './types';

@@ -4,7 +4,7 @@ import type {
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
-  FullGraphDefinition,
+  FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
@@ -245,7 +245,7 @@ export interface AgentConfig {
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: AgentStopWhen;
-  graphPrompt?: string;
+  agentPrompt?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
@@ -336,7 +336,7 @@ export interface AgentInterface {
   getDefaultSubAgent(): SubAgentInterface | undefined;
   getSubAgent(name: string): AllSubAgentInterface | undefined;
   getSubAgents(): AllSubAgentInterface[];
-  toFullGraphDefinition(): Promise<FullGraphDefinition>;
+  toFullAgentDefinition(): Promise<FullAgentDefinition>;
 }
 
 // Legacy builder types (for backward compatibility)

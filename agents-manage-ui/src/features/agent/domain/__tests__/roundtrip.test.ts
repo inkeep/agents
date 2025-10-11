@@ -1,8 +1,8 @@
 import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { deserializeGraphData } from '@/features/agent/domain/deserialize';
-import { serializeGraphData } from '@/features/agent/domain/serialize';
+import { deserializeAgentData } from '@/features/agent/domain/deserialize';
+import { serializeAgentData } from '@/features/agent/domain/serialize';
 
 describe('agent serialize/deserialize', () => {
   it('handles self-referencing agents correctly', () => {
@@ -47,7 +47,7 @@ describe('agent serialize/deserialize', () => {
       } as Edge,
     ];
 
-    const serialized = serializeGraphData(nodes, edges, {
+    const serialized = serializeAgentData(nodes, edges, {
       id: 'test-agent',
       name: 'Test Agent',
       description: 'Agent with self-referencing agent',
@@ -67,7 +67,7 @@ describe('agent serialize/deserialize', () => {
       expect(goodbyeAgent.canDelegateTo).toContain('goodbye-agent');
     }
 
-    const deserialized = deserializeGraphData(serialized);
+    const deserialized = deserializeAgentData(serialized);
 
     // Should have the self-loop edge
     const selfLoopEdge = deserialized.edges.find(
@@ -131,7 +131,7 @@ describe('agent serialize/deserialize', () => {
       } as Edge,
     ];
 
-    const serialized = serializeGraphData(nodes, edges, {
+    const serialized = serializeAgentData(nodes, edges, {
       id: 'g1',
       name: 'G',
       description: 'D',
@@ -152,7 +152,7 @@ describe('agent serialize/deserialize', () => {
       expect(a1.canTransferTo).toContain('a2');
     }
 
-    const deserialized = deserializeGraphData(serialized);
+    const deserialized = deserializeAgentData(serialized);
     expect(deserialized.nodes.length).toBeGreaterThan(0);
     expect(deserialized.edges.length).toBeGreaterThan(0);
   });

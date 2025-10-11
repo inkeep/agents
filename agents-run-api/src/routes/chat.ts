@@ -195,25 +195,25 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const conversationId = body.conversationId || getConversationId();
 
     // Get the agent from the full agent system first, fall back to legacy system
-    const fullGraph = await getFullAgent(dbClient)({
+    const fullAgent = await getFullAgent(dbClient)({
       scopes: { tenantId, projectId, agentId },
     });
 
     let agent: any;
     let defaultSubAgentId: string;
 
-    if (fullGraph) {
+    if (fullAgent) {
       // Use full agent system
       agent = {
-        id: fullGraph.id,
-        name: fullGraph.name,
+        id: fullAgent.id,
+        name: fullAgent.name,
         tenantId,
         projectId,
-        defaultSubAgentId: fullGraph.defaultSubAgentId,
+        defaultSubAgentId: fullAgent.defaultSubAgentId,
       };
-      const agentKeys = Object.keys((fullGraph.subAgents as Record<string, any>) || {});
+      const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
       const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-      defaultSubAgentId = (fullGraph.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
+      defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
     } else {
       // Fall back to legacy system
       agent = await getAgentWithDefaultSubAgent(dbClient)({

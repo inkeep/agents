@@ -3,7 +3,7 @@
  * These functions make HTTP requests to the server instead of direct database calls
  */
 
-import type { FullGraphDefinition } from '@inkeep/agents-core';
+import type { FullAgentDefinition } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('agentFullClient');
@@ -11,17 +11,17 @@ const logger = getLogger('agentFullClient');
 /**
  * Create a full agent via HTTP API
  */
-export async function createFullGraphViaAPI(
+export async function createFullAgentViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,
-  graphData: FullGraphDefinition
-): Promise<FullGraphDefinition> {
+  agentData: FullAgentDefinition
+): Promise<FullAgentDefinition> {
   logger.info(
     {
       tenantId,
       projectId,
-      agentId: graphData.id,
+      agentId: agentData.id,
       apiUrl,
     },
     'Creating full agent via API'
@@ -33,7 +33,7 @@ export async function createFullGraphViaAPI(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(graphData),
+    body: JSON.stringify(agentData),
   });
 
   if (!response.ok) {
@@ -63,11 +63,11 @@ export async function createFullGraphViaAPI(
     throw new Error(errorMessage);
   }
 
-  const result = (await response.json()) as { data: FullGraphDefinition };
+  const result = (await response.json()) as { data: FullAgentDefinition };
 
   logger.info(
     {
-      agentId: graphData.id,
+      agentId: agentData.id,
     },
     'Successfully created agent via API'
   );
@@ -78,13 +78,13 @@ export async function createFullGraphViaAPI(
 /**
  * Update a full agent via HTTP API (upsert behavior)
  */
-export async function updateFullGraphViaAPI(
+export async function updateFullAgentViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,
   agentId: string,
-  graphData: FullGraphDefinition
-): Promise<FullGraphDefinition> {
+  agentData: FullAgentDefinition
+): Promise<FullAgentDefinition> {
   logger.info(
     {
       tenantId,
@@ -101,7 +101,7 @@ export async function updateFullGraphViaAPI(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(graphData),
+    body: JSON.stringify(agentData),
   });
 
   if (!response.ok) {
@@ -131,7 +131,7 @@ export async function updateFullGraphViaAPI(
     throw new Error(errorMessage);
   }
 
-  const result = (await response.json()) as { data: FullGraphDefinition };
+  const result = (await response.json()) as { data: FullAgentDefinition };
 
   logger.info(
     {
@@ -146,12 +146,12 @@ export async function updateFullGraphViaAPI(
 /**
  * Get a full agent via HTTP API
  */
-export async function getFullGraphViaAPI(
+export async function getFullAgentViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,
   agentId: string
-): Promise<FullGraphDefinition | null> {
+): Promise<FullAgentDefinition | null> {
   logger.info(
     {
       tenantId,
@@ -207,7 +207,7 @@ export async function getFullGraphViaAPI(
     throw new Error(errorMessage);
   }
 
-  const result = (await response.json()) as { data: FullGraphDefinition };
+  const result = (await response.json()) as { data: FullAgentDefinition };
 
   logger.info(
     {
@@ -222,7 +222,7 @@ export async function getFullGraphViaAPI(
 /**
  * Delete a full agent via HTTP API
  */
-export async function deleteFullGraphViaAPI(
+export async function deleteFullAgentViaAPI(
   tenantId: string,
   projectId: string,
   apiUrl: string,

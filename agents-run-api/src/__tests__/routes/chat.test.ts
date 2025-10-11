@@ -265,13 +265,13 @@ describe('Chat Routes', () => {
     });
 
     it('should handle missing agent', async () => {
-      const { getAgentWithDefaultSubAgent, getFullAgent: getFullGraph } = await import(
+      const { getAgentWithDefaultSubAgent, getFullAgent: getFullAgent } = await import(
         '@inkeep/agents-core'
       );
       vi.mocked(getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValueOnce(undefined)
       );
-      vi.mocked(getFullGraph).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
+      vi.mocked(getFullAgent).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
 
       const response = await makeRequest('/v1/chat/completions', {
         method: 'POST',
