@@ -4,13 +4,13 @@ import ora from 'ora';
 import { ManagementApiClient } from '../api';
 import { initializeCommand } from '../utils/cli-pipeline';
 
-export interface ListGraphsOptions {
+export interface ListAgentsOptions {
   project: string; // required project ID
   config?: string;
   configFilePath?: string; // deprecated, kept for backward compatibility
 }
 
-export async function listGraphsCommand(options: ListGraphsOptions) {
+export async function listAgentsCommand(options: ListAgentsOptions) {
   // Use standardized CLI pipeline for initialization
   const configPath = options.config || options.configFilePath;
   const { config } = await initializeCommand({
