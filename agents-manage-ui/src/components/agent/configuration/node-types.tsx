@@ -1,9 +1,9 @@
 import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
-import { SubAgentNode } from '../nodes/agent-node';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
 import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
+import { SubAgentNode } from '../nodes/sub-agent-node';
 import type { AgentModels } from './agent-types';
 
 interface NodeData {

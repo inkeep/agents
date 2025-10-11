@@ -1863,10 +1863,18 @@ export class Agent {
                 }
               }
 
-              // Return the actual stop condition
-              if (last && 'toolCalls' in last && last.toolCalls) {
-                return last.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
+              // Check if the previous step had a transfer tool call AND has results
+              // This ensures we stop AFTER the tool executes, not before
+              if (steps.length >= 2) {
+                const previousStep = steps[steps.length - 2];
+                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                  const hasTransferCall = previousStep.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
+                  if (hasTransferCall && 'toolResults' in previousStep && previousStep.toolResults) {
+                    return true; // Stop after transfer tool has executed
+                  }
+                }
               }
+
               // Safety cap at configured max steps
               return steps.length >= this.getMaxGenerationSteps();
             },
@@ -1999,13 +2007,21 @@ export class Agent {
                 }
               }
 
-              // Return the actual stop condition
-              if (last && 'toolCalls' in last && last.toolCalls) {
-                return last.toolCalls.some(
-                  (tc: any) =>
-                    tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
-                );
+              // Check if the previous step had a transfer/thinking_complete tool call AND has results
+              // This ensures we stop AFTER the tool executes, not before
+              if (steps.length >= 2) {
+                const previousStep = steps[steps.length - 2];
+                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                  const hasStopTool = previousStep.toolCalls.some(
+                    (tc: any) =>
+                      tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
+                  );
+                  if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
+                    return true; // Stop after transfer/thinking_complete tool has executed
+                  }
+                }
               }
+
               // Safety cap at configured max steps
               return steps.length >= this.getMaxGenerationSteps();
             },

@@ -61,7 +61,9 @@ export interface TransferTask extends Task {
  * Type guard to check if a Task contains transfer data
  */
 export function isTransferTask(result: Task | Message): result is TransferTask {
-  if (!('artifacts' in result) || !result.artifacts) return false;
+  if (!('artifacts' in result) || !result.artifacts) {
+    return false;
+  }
 
   return result.artifacts.some(artifact =>
     artifact.parts.some(part => {
