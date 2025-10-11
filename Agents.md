@@ -1,90 +1,28 @@
-# Agents.md
+# AGENTS.md - Quick Reference for AI Coding Agents
 
-This document provides machine-readable instructions for AI agents to interact with the Inkeep Agents project.
+## Essential Commands
+- **Build**: `pnpm build` (root) or `turbo build`
+- **Lint**: `pnpm lint` (check) or `pnpm lint:fix` (auto-fix) or `pnpm check:fix` (Biome fix)
+- **Format**: `pnpm format` (auto) or `pnpm format:check` (verify)
+- **Typecheck**: `pnpm typecheck`
+- **Test (all)**: `pnpm test` or `turbo test`
+- **Test (single file)**: `cd <package> && pnpm test --run <file-path>` (use `--run` to avoid watch mode)
+- **Test (package)**: `cd <package> && pnpm test --run`
+- **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
 
-## Project Overview
+## Code Style (Biome enforced)
+- **Imports**: Use type imports (`import type { Foo } from './bar'`), organize imports enabled, barrel exports (`export * from './module'`)
+- **Formatting**: Single quotes, semicolons required, 100 char line width, 2 space indent, ES5 trailing commas
+- **Types**: Explicit types preferred, avoid `any` where possible (warning), use Zod for validation
+- **Naming**: camelCase for variables/functions, PascalCase for types/components, kebab-case for files
+- **Error Handling**: Use try-catch, validate with Zod schemas, handle errors explicitly
+- **No Comments**: Do not add comments unless explicitly requested
 
-Inkeep Agents is a multi-agent framework that enables multiple specialized AI agents to collaborate and solve complex problems through a graph-based architecture. It provides two ways to build agents:
+## Testing (Vitest)
+- Place tests in `__tests__/` directories adjacent to code
+- Name: `*.test.ts` or `*.spec.ts`
+- Pattern: `import { describe, it, expect, beforeEach, vi } from 'vitest'`
+- Run with `--run` flag to avoid watch mode
 
-1.  **Visual Builder:** A no-code interface for designing and managing agent workflows.
-2.  **TypeScript SDK:** A code-first approach for building and managing agent workflows.
-
-The project is a TypeScript monorepo managed with `pnpm` and `turbo`.
-
-### Key Technologies
-
-*   **TypeScript:** The primary programming language.
-*   **Node.js:** The runtime environment.
-*   **pnpm:** The package manager.
-*   **turbo:** The monorepo build system.
-*   **React:** Used in the `agents-manage-ui` and `agents-ui` packages.
-*   **Next.js:** Used in the `agents-docs` and `agents-manage-ui` packages.
-*   **Vite:** Used in the `agents-manage-api`, `agents-run-api`, and `agents-ui` packages.
-*   **Vitest:** The testing framework.
-*   **Biome:** The code formatter and linter.
-*   **Drizzle:** The ORM for the `agents-core` package.
-
-### Project Structure
-
-The project is a monorepo with the following packages:
-
-*   `agents-cli`: A command-line interface for interacting with the agent framework.
-*   `agents-docs`: The documentation website.
-*   `agents-manage-api`: The API for managing agents.
-*   `agents-manage-ui`: The UI for the visual builder.
-*   `agents-run-api`: The API for running agents.
-*   `agents-ui`: The UI for the chat widget.
-*   `examples`: Example agent graphs.
-*   `packages/agents-core`: Core functionality of the agent framework.
-*   `packages/agents-sdk`: The TypeScript SDK for building agents.
-*   `packages/create-agents`: A CLI to create new agent projects.
-
-## Building and Running
-
-### Installation
-
-Install the dependencies:
-
-```bash
-pnpm install
-```
-
-### Database Setup
-
-Run database migrations:
-
-```bash
-pnpm db:migrate
-```
-
-### Running the Development Server
-
-At the root directory:
-
-```bash
-pnpm dev
-```
-
-### Running the test suite
-
-```bash
-pnpm test
-```
-
-## Development Conventions
-
-### Code Style
-
-The project uses Biome for code formatting and linting. The configuration is in the `biome.json` file.
-
-### Testing
-
-The project uses Vitest for testing. Test files are located in `__tests__` directories and have the `.test.ts` or `.spec.ts` extension.
-
-### Committing
-
-The project uses a pre-push hook to run tests.
-
-### Versioning and Releasing
-
-The project uses Changesets for versioning and releasing.
+## Package Manager
+- Always use `pnpm` (not npm, yarn, or bun)
