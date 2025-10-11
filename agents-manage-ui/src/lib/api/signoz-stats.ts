@@ -24,7 +24,7 @@ import {
 export interface ConversationStats {
   conversationId: string;
   tenantId: string;
-  graphId: string;
+  agentId: string;
   graphName: string;
   totalToolCalls: number;
   toolsUsed: Array<{ name: string; calls: number; description: string }>;
@@ -168,10 +168,10 @@ class SigNozStatsAPI {
     projectId?: string,
     pagination?: { page: number; limit: number },
     searchQuery?: string,
-    graphId?: string
+    agentId?: string
   ): Promise<ConversationStats[] | PaginatedConversationStats> {
     try {
-      const payload = this.buildCombinedPayload(startTime, endTime, filters, projectId, graphId);
+      const payload = this.buildCombinedPayload(startTime, endTime, filters, projectId, agentId);
       const resp = await this.makeRequest(payload);
 
       const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
@@ -190,14 +190,14 @@ class SigNozStatsAPI {
       // metadata map
       const metaByConv = new Map<
         string,
-        { tenantId: string; graphId: string; graphName: string }
+        { tenantId: string; agentId: string; graphName: string }
       >();
       for (const s of metadataSeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
         if (!id) continue;
         metaByConv.set(id, {
           tenantId: s.labels?.[SPAN_KEYS.TENANT_ID] ?? UNKNOWN_VALUE,
-          graphId: s.labels?.[SPAN_KEYS.GRAPH_ID] ?? UNKNOWN_VALUE,
+          agentId: s.labels?.[SPAN_KEYS.GRAPH_ID] ?? UNKNOWN_VALUE,
           graphName: s.labels?.[SPAN_KEYS.GRAPH_NAME] ?? UNKNOWN_VALUE,
         });
       }
@@ -256,7 +256,7 @@ class SigNozStatsAPI {
           (s) =>
             s.firstUserMessage?.toLowerCase().includes(q) ||
             s.conversationId.toLowerCase().includes(q) ||
-            s.graphId.toLowerCase().includes(q)
+            s.agentId.toLowerCase().includes(q)
         );
       }
 
@@ -298,12 +298,12 @@ class SigNozStatsAPI {
       const series = this.extractSeries(resp, QUERY_EXPRESSIONS.AI_CALLS);
       const totals = new Map<string, number>();
       for (const s of series) {
-        const graphId = s.labels?.[SPAN_KEYS.GRAPH_ID] || UNKNOWN_VALUE;
+        const agentId = s.labels?.[SPAN_KEYS.GRAPH_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
-        if (count) totals.set(graphId, (totals.get(graphId) || 0) + count);
+        if (count) totals.set(agentId, (totals.get(agentId) || 0) + count);
       }
       return [...totals]
-        .map(([graphId, totalCalls]) => ({ graphId, totalCalls }))
+        .map(([agentId, totalCalls]) => ({ agentId, totalCalls }))
         .sort((a, b) => b.totalCalls - a.totalCalls);
     } catch (e) {
       console.error('getAICallsByGraph error:', e);
@@ -314,7 +314,7 @@ class SigNozStatsAPI {
   async getAICallsByAgent(
     startTime: number,
     endTime: number,
-    graphId?: string,
+    agentId?: string,
     modelId?: string,
     projectId?: string
   ) {
@@ -327,7 +327,7 @@ class SigNozStatsAPI {
         string,
         {
           subAgentId: string;
-          graphId: string;
+          agentId: string;
           modelId: string;
           totalCalls: number;
         }
@@ -340,13 +340,13 @@ class SigNozStatsAPI {
         const count = countFromSeries(s);
 
         if (!count) continue;
-        if (graphId && graphId !== 'all' && gId !== graphId) continue;
+        if (agentId && agentId !== 'all' && gId !== agentId) continue;
         if (modelId && modelId !== 'all' && mId !== modelId) continue;
 
         const key = `${agent}::${gId}::${mId}`;
         const row = acc.get(key) || {
           subAgentId: agent,
-          graphId: gId,
+          agentId: gId,
           modelId: mId,
           totalCalls: 0,
         };
@@ -363,7 +363,7 @@ class SigNozStatsAPI {
   async getAICallsByModel(
     startTime: number,
     endTime: number,
-    graphId?: string,
+    agentId?: string,
     projectId?: string
   ) {
     try {
@@ -378,7 +378,7 @@ class SigNozStatsAPI {
         const gId = s.labels?.[SPAN_KEYS.GRAPH_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
         if (!count) continue;
-        if (graphId && graphId !== 'all' && gId !== graphId) continue;
+        if (agentId && agentId !== 'all' && gId !== agentId) continue;
         totals.set(mId, (totals.get(mId) || 0) + count);
       }
 
@@ -397,11 +397,11 @@ class SigNozStatsAPI {
         this.buildUniqueGraphsPayload(startTime, endTime, projectId)
       );
       const series = this.extractSeries(resp, 'uniqueGraphs');
-      const graphs = series
+      const agent = series
         .map((s) => s.labels?.[SPAN_KEYS.GRAPH_ID])
         .filter((id): id is string => Boolean(id) && id !== UNKNOWN_VALUE)
         .sort();
-      return [...new Set(graphs)];
+      return [...new Set(agent)];
     } catch (e) {
       console.error('getUniqueGraphs error:', e);
       return [];
@@ -428,13 +428,13 @@ class SigNozStatsAPI {
   async getConversationsPerDay(
     startTime: number,
     endTime: number,
-    graphId?: string,
+    agentId?: string,
     projectId?: string
   ) {
     try {
       // 1) which conversations exist?
       const metaResp = await this.makeRequest(
-        this.buildConversationMetadataPayload(startTime, endTime, graphId, projectId)
+        this.buildConversationMetadataPayload(startTime, endTime, agentId, projectId)
       );
       const metaSeries = this.extractSeries(metaResp, 'conversationMetadata');
 
@@ -442,7 +442,7 @@ class SigNozStatsAPI {
       const activitySeries = metaSeries.length
         ? this.extractSeries(
             await this.makeRequest(
-              this.buildConversationActivityPayload(startTime, endTime, graphId, projectId)
+              this.buildConversationActivityPayload(startTime, endTime, agentId, projectId)
             ),
             'lastActivity'
           )
@@ -472,11 +472,11 @@ class SigNozStatsAPI {
     endTime: number,
     filters?: SpanFilterOptions,
     projectId?: string,
-    graphId?: string
+    agentId?: string
   ) {
     try {
       const resp = await this.makeRequest(
-        this.buildCombinedPayload(startTime, endTime, filters, projectId, graphId)
+        this.buildCombinedPayload(startTime, endTime, filters, projectId, agentId)
       );
 
       const toolsSeries = this.extractSeries(resp, 'tools');
@@ -489,14 +489,14 @@ class SigNozStatsAPI {
 
       const metaByConv = new Map<
         string,
-        { tenantId: string; graphId: string; graphName: string }
+        { tenantId: string; agentId: string; graphName: string }
       >();
       for (const s of metadataSeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
         if (!id) continue;
         metaByConv.set(id, {
           tenantId: s.labels?.[SPAN_KEYS.TENANT_ID] ?? UNKNOWN_VALUE,
-          graphId: s.labels?.[SPAN_KEYS.GRAPH_ID] ?? UNKNOWN_VALUE,
+          agentId: s.labels?.[SPAN_KEYS.GRAPH_ID] ?? UNKNOWN_VALUE,
           graphName: s.labels?.[SPAN_KEYS.GRAPH_NAME] ?? UNKNOWN_VALUE,
         });
       }
@@ -538,7 +538,7 @@ class SigNozStatsAPI {
   async getAvailableSpanNames(
     startTime: number,
     endTime: number,
-    graphId?: string,
+    agentId?: string,
     projectId?: string
   ) {
     try {
@@ -552,11 +552,11 @@ class SigNozStatsAPI {
           value: '',
         },
       ];
-      if (graphId && graphId !== 'all') {
+      if (agentId && agentId !== 'all') {
         filterItems.push({
           key: { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           op: OPERATORS.EQUALS,
-          value: graphId,
+          value: agentId,
         });
       }
       if (projectId) {
@@ -629,7 +629,7 @@ class SigNozStatsAPI {
     transferSeries: Series[],
     delegationSeries: Series[],
     aiCallsSeries: Series[],
-    metaByConv: Map<string, { tenantId: string; graphId: string; graphName: string }>,
+    metaByConv: Map<string, { tenantId: string; agentId: string; graphName: string }>,
     contextErrSeries: Series[],
     agentGenErrSeries: Series[],
     firstMsgByConv: Map<string, { content: string; timestamp: number }>
@@ -741,13 +741,13 @@ class SigNozStatsAPI {
       const acc = byConv.get(id) || ensure(id);
       const meta = metaByConv.get(id) || {
         tenantId: UNKNOWN_VALUE,
-        graphId: UNKNOWN_VALUE,
+        agentId: UNKNOWN_VALUE,
         graphName: UNKNOWN_VALUE,
       };
       out.push({
         conversationId: id,
         tenantId: meta.tenantId,
-        graphId: meta.graphId,
+        agentId: meta.agentId,
         graphName: meta.graphName || '',
         totalToolCalls: acc.totalToolCalls,
         toolsUsed: [...acc.toolsUsed.values()],
@@ -954,7 +954,7 @@ class SigNozStatsAPI {
   private buildConversationActivityPayload(
     start: number,
     end: number,
-    graphId?: string,
+    agentId?: string,
     projectId?: string
   ) {
     const items: any[] = [
@@ -966,7 +966,7 @@ class SigNozStatsAPI {
         op: OPERATORS.EXISTS,
         value: '',
       },
-      ...(graphId && graphId !== 'all'
+      ...(agentId && agentId !== 'all'
         ? [
             {
               key: {
@@ -974,7 +974,7 @@ class SigNozStatsAPI {
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
-              value: graphId,
+              value: agentId,
             },
           ]
         : []),
@@ -1036,7 +1036,7 @@ class SigNozStatsAPI {
   private buildConversationMetadataPayload(
     start: number,
     end: number,
-    graphId?: string,
+    agentId?: string,
     projectId?: string
   ) {
     const items: any[] = [
@@ -1058,7 +1058,7 @@ class SigNozStatsAPI {
         op: OPERATORS.EXISTS,
         value: '',
       },
-      ...(graphId && graphId !== 'all'
+      ...(agentId && agentId !== 'all'
         ? [
             {
               key: {
@@ -1066,7 +1066,7 @@ class SigNozStatsAPI {
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
-              value: graphId,
+              value: agentId,
             },
           ]
         : []),
@@ -1261,7 +1261,7 @@ class SigNozStatsAPI {
     end: number,
     _filters?: SpanFilterOptions,
     projectId?: string,
-    graphId?: string
+    agentId?: string
   ) {
     const withProjectAndGraph = (items: any[]) => {
       let filtered = items;
@@ -1278,7 +1278,7 @@ class SigNozStatsAPI {
           },
         ];
       }
-      if (graphId) {
+      if (agentId) {
         filtered = [
           ...filtered,
           {
@@ -1287,7 +1287,7 @@ class SigNozStatsAPI {
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             op: OPERATORS.EQUALS,
-            value: graphId,
+            value: agentId,
           },
         ];
       }

@@ -252,7 +252,7 @@ function createExecutionHono(
     }
   );
 
-  // Mount execution routes - API key provides tenant, project, and graph context
+  // Mount execution routes - API key provides tenant, project, and agent context
   app.route('/v1/chat', chatRoutes);
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);

@@ -127,7 +127,7 @@ const validateSession = async (
   body: any,
   tenantId: string,
   projectId: string,
-  graphId: string
+  agentId: string
 ): Promise<any | null> => {
   const sessionId = req.headers['mcp-session-id'];
   logger.info({ sessionId }, 'Received MCP session ID');
@@ -168,15 +168,15 @@ const validateSession = async (
       sessionId,
       conversationFound: !!conversation,
       sessionType: conversation?.metadata?.sessionData?.sessionType,
-      storedGraphId: conversation?.metadata?.sessionData?.graphId,
-      requestGraphId: graphId,
+      storedAgentId: conversation?.metadata?.sessionData?.agentId,
+      requestAgentId: agentId,
     },
     'Conversation lookup result'
   );
   if (
     !conversation ||
     conversation.metadata?.sessionData?.sessionType !== 'mcp' ||
-    conversation.metadata?.sessionData?.graphId !== graphId
+    conversation.metadata?.sessionData?.agentId !== agentId
   ) {
     logger.info(
       { sessionId, conversationId: conversation?.id },
@@ -200,13 +200,13 @@ const validateSession = async (
 /**
  * Sets up tracing attributes for the active span
  */
-const setupTracing = (conversationId: string, tenantId: string, graphId: string): void => {
+const setupTracing = (conversationId: string, tenantId: string, agentId: string): void => {
   const activeSpan = trace.getActiveSpan();
   if (activeSpan) {
     activeSpan.setAttributes({
       'conversation.id': conversationId,
       'tenant.id': tenantId,
-      'graph.id': graphId,
+      'agent.id': agentId,
     });
   }
 };
@@ -305,12 +305,12 @@ const getServer = async (
   const { tenantId, projectId, agentId } = executionContext;
   setupTracing(conversationId, tenantId, agentId);
 
-  const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+  const agent = await getAgentWithDefaultSubAgent(dbClient)({
     scopes: { tenantId, projectId, agentId },
   });
 
-  if (!agentGraph) {
-    throw new Error('Agent graph not found');
+  if (!agent) {
+    throw new Error('Agent agent not found');
   }
 
   const server = new McpServer(
@@ -324,24 +324,24 @@ const getServer = async (
   // Register tools and prompts
   server.tool(
     'send-query-to-agent',
-    `Send a query to the ${agentGraph.name} agent. The agent has the following description: ${agentGraph.description}`,
+    `Send a query to the ${agent.name} agent. The agent has the following description: ${agent.description}`,
     {
       query: createMCPSchema(z.string().describe('The query to send to the agent')),
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
-        if (!agentGraph.defaultSubAgentId) {
+        if (!agent.defaultSubAgentId) {
           return {
             content: [
               {
                 type: 'text',
-                text: `Graph does not have a default agent configured`,
+                text: `Agent does not have a default agent configured`,
               },
             ],
             isError: true,
           };
         }
-        const defaultSubAgentId = agentGraph.defaultSubAgentId;
+        const defaultSubAgentId = agent.defaultSubAgentId;
 
         const agentInfo = await getSubAgentById(dbClient)({
           scopes: { tenantId, projectId, agentId },
@@ -375,7 +375,7 @@ const getServer = async (
             projectId,
             agentId,
             conversationId,
-            hasContextConfig: !!agentGraph.contextConfigId,
+            hasContextConfig: !!agent.contextConfigId,
             hasHeaders: !!headers,
             hasValidatedContext: !!resolvedContext,
           },
@@ -465,26 +465,26 @@ const handleInitializationRequest = async (
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
-  // Get the default agent for the graph
-  const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+  // Get the default agent for the agent
+  const agent = await getAgentWithDefaultSubAgent(dbClient)({
     scopes: { tenantId, projectId, agentId },
   });
-  if (!agentGraph) {
+  if (!agent) {
     return c.json(
       {
         jsonrpc: '2.0',
-        error: { code: -32001, message: 'Agent graph not found' },
+        error: { code: -32001, message: 'Agent agent not found' },
         id: body.id || null,
       },
       { status: 404 }
     );
   }
 
-  if (!agentGraph.defaultSubAgentId) {
+  if (!agent.defaultSubAgentId) {
     return c.json(
       {
         jsonrpc: '2.0',
-        error: { code: -32001, message: 'Graph does not have a default agent configured' },
+        error: { code: -32001, message: 'Agent does not have a default agent configured' },
         id: body.id || null,
       },
       { status: 400 }
@@ -496,7 +496,7 @@ const handleInitializationRequest = async (
     id: sessionId,
     tenantId,
     projectId,
-    activeSubAgentId: agentGraph.defaultSubAgentId,
+    activeSubAgentId: agent.defaultSubAgentId,
     metadata: {
       sessionData: {
         agentId,
@@ -646,7 +646,7 @@ app.openapi(
         description: 'Unauthorized - API key authentication required',
       },
       404: {
-        description: 'Not Found - Agent graph not found',
+        description: 'Not Found - Agent agent not found',
       },
       500: {
         description: 'Internal Server Error',

@@ -1,4 +1,4 @@
-import { Graph } from '@/components/graph/graph';
+import { Agent } from '@/components/agent/agent';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
@@ -42,11 +42,11 @@ async function NewGraphPage({
   return (
     <BodyTemplate
       breadcrumbs={[
-        { label: 'Graphs', href: `/${tenantId}/projects/${projectId}/graphs` },
-        { label: 'New Graph' },
+        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agent` },
+        { label: 'New Agent' },
       ]}
     >
-      <Graph
+      <Agent
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={toolLookup}

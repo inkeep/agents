@@ -9,7 +9,7 @@ import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 
 interface PlaygroundProps {
-  graphId: string;
+  agentId: string;
   projectId: string;
   tenantId: string;
   setShowPlayground: (show: boolean) => void;
@@ -17,7 +17,7 @@ interface PlaygroundProps {
 }
 
 export const Playground = ({
-  graphId,
+  agentId,
   projectId,
   tenantId,
   closeSidePane,
@@ -78,7 +78,7 @@ export const Playground = ({
               setConversationId={setConversationId}
               startPolling={startPolling}
               stopPolling={stopPolling}
-              graphId={graphId}
+              agentId={agentId}
               projectId={projectId}
               tenantId={tenantId}
               customHeaders={customHeaders}

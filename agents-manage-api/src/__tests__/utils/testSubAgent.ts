@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
  * @param options - Configuration options for the test sub-agent
  * @param options.id - Optional custom ID (defaults to nanoid())
  * @param options.suffix - Optional suffix to append to name/description/prompt
- * @param options.graphId - Optional graph ID
+ * @param options.agentId - Optional agent ID
  * @param options.tenantId - Optional tenant ID
  * @param options.projectId - Optional project ID
  * @param options.tools - Optional array of tool IDs
@@ -19,7 +19,7 @@ import { nanoid } from 'nanoid';
  *
  * @example
  * ```typescript
- * const subAgent = createTestSubAgentData({ suffix: ' QA', graphId: 'my-graph' });
+ * const subAgent = createTestSubAgentData({ suffix: ' QA', agentId: 'my-agent' });
  * ```
  */
 export function createTestSubAgentData({
@@ -145,7 +145,7 @@ export function createTestExternalAgentData({
  * Creates test data for an agent relation.
  *
  * @param options - Configuration options for the agent relation
- * @param options.graphId - The graph ID for the relation
+ * @param options.agentId - The agent ID for the relation
  * @param options.sourceSubAgentId - The source sub-agent ID
  * @param options.targetSubAgentId - The target sub-agent ID
  * @param options.relationType - The type of relation ('transfer' or 'delegate')
@@ -154,7 +154,7 @@ export function createTestExternalAgentData({
  * @example
  * ```typescript
  * const relation = createTestAgentRelationData({
- *   graphId: 'my-graph',
+ *   agentId: 'my-agent',
  *   sourceSubAgentId: 'agent-1',
  *   targetSubAgentId: 'agent-2',
  *   relationType: 'transfer'
@@ -162,19 +162,19 @@ export function createTestExternalAgentData({
  * ```
  */
 export function createTestAgentRelationData({
-  graphId,
+  agentId,
   sourceSubAgentId,
   targetSubAgentId,
   relationType = 'transfer',
 }: {
-  graphId: string;
+  agentId: string;
   sourceSubAgentId: string;
   targetSubAgentId: string;
   relationType?: 'transfer' | 'delegate';
 }) {
   return {
     id: nanoid(),
-    graphId,
+    agentId,
     sourceSubAgentId,
     targetSubAgentId,
     relationType,

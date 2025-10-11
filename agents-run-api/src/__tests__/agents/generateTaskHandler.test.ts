@@ -81,14 +81,14 @@ const {
 
   const getAgentGraphMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       contextConfigId: 'context-123',
       models: null,
     })
   );
   const getAgentGraphByIdMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       contextConfigId: 'context-123',
       models: {
         base: { model: 'openai/gpt-4' },
@@ -332,7 +332,7 @@ describe('generateTaskHandler', () => {
   const mockConfig: TaskHandlerConfig = {
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    graphId: 'test-graph',
+    agentId: 'test-agent',
     subAgentId: 'test-agent',
     baseUrl: 'http://localhost:3000',
     agentSchema: {
@@ -668,7 +668,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          agentId: 'test-graph',
+          agentId: 'test-agent',
         },
         subAgentId: 'test-agent',
       });
@@ -678,7 +678,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          agentId: 'test-graph',
+          agentId: 'test-agent',
           subAgentId: 'test-agent',
         },
       });
@@ -688,7 +688,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          agentId: 'test-graph',
+          agentId: 'test-agent',
           subAgentId: 'test-agent',
         },
       });
@@ -700,7 +700,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -708,7 +708,7 @@ describe('generateTaskHandler', () => {
       expect(config).toEqual({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         agentSchema: {
           id: 'test-agent',
@@ -754,7 +754,7 @@ describe('generateTaskHandler', () => {
         createTaskHandlerConfig({
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          agentId: 'test-graph',
+          agentId: 'test-agent',
           subAgentId: 'non-existent',
           baseUrl: 'https://test.com',
         })
@@ -792,7 +792,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -849,7 +849,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -899,7 +899,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });

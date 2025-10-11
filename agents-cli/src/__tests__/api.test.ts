@@ -61,10 +61,10 @@ describe('ApiClient', () => {
   });
 
   describe('listGraphs', () => {
-    it('should fetch and return graphs list successfully', async () => {
+    it('should fetch and return agent list successfully', async () => {
       const mockGraphs = [
-        { id: 'graph1', name: 'Test Graph 1' },
-        { id: 'graph2', name: 'Test Graph 2' },
+        { id: 'graph1', name: 'Test Agent 1' },
+        { id: 'graph2', name: 'Test Agent 2' },
       ];
 
       mockFetch.mockResolvedValueOnce({
@@ -151,7 +151,7 @@ describe('ApiClient', () => {
         'test-project-id'
       );
 
-      const mockGraphs = [{ id: 'graph1', name: 'Test Graph 1' }];
+      const mockGraphs = [{ id: 'graph1', name: 'Test Agent 1' }];
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: mockGraphs }),
@@ -174,10 +174,10 @@ describe('ApiClient', () => {
   });
 
   describe('getGraph', () => {
-    it('should return graph when found in list', async () => {
+    it('should return agent when found in list', async () => {
       const mockGraphs = [
-        { id: 'graph1', name: 'Test Graph 1' },
-        { id: 'graph2', name: 'Test Graph 2' },
+        { id: 'graph1', name: 'Test Agent 1' },
+        { id: 'graph2', name: 'Test Agent 2' },
       ];
 
       mockFetch.mockResolvedValueOnce({
@@ -187,11 +187,11 @@ describe('ApiClient', () => {
 
       const result = await apiClient.getAgent('graph1');
 
-      expect(result).toEqual({ id: 'graph1', name: 'Test Graph 1' });
+      expect(result).toEqual({ id: 'graph1', name: 'Test Agent 1' });
     });
 
-    it('should return null when graph not found', async () => {
-      const mockGraphs = [{ id: 'graph1', name: 'Test Graph 1' }];
+    it('should return null when agent not found', async () => {
+      const mockGraphs = [{ id: 'graph1', name: 'Test Agent 1' }];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -205,16 +205,16 @@ describe('ApiClient', () => {
   });
 
   describe('pushGraph', () => {
-    it('should push graph successfully', async () => {
+    it('should push agent successfully', async () => {
       const graphDefinition = {
-        id: 'test-graph',
-        name: 'Test Graph',
-        description: 'A test graph',
+        id: 'test-agent',
+        name: 'Test Agent',
+        description: 'A test agent',
       };
 
       const expectedResponse = {
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant-id',
       };
 
@@ -226,7 +226,7 @@ describe('ApiClient', () => {
       const result = await apiClient.pushAgent(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-graph',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
         {
           method: 'PUT',
           headers: {
@@ -242,10 +242,10 @@ describe('ApiClient', () => {
       expect(result).toEqual(expectedResponse);
     });
 
-    it('should throw error when graph has no id', async () => {
+    it('should throw error when agent has no id', async () => {
       const graphDefinition = {
-        name: 'Test Graph',
-        description: 'A test graph without id',
+        name: 'Test Agent',
+        description: 'A test agent without id',
       };
 
       await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
@@ -255,18 +255,18 @@ describe('ApiClient', () => {
 
     it('should throw error when push request fails', async () => {
       const graphDefinition = {
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
         statusText: 'Bad Request',
-        text: async () => 'Invalid graph definition',
+        text: async () => 'Invalid agent definition',
       });
 
       await expect(apiClient.pushAgent(graphDefinition)).rejects.toThrow(
-        'Failed to push agent: Bad Request\nInvalid graph definition'
+        'Failed to push agent: Bad Request\nInvalid agent definition'
       );
     });
 
@@ -293,19 +293,19 @@ describe('ApiClient', () => {
       );
 
       const graphDefinition = {
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: { id: 'test-graph' } }),
+        json: async () => ({ data: { id: 'test-agent' } }),
       });
 
       await clientWithApiKey.pushAgent(graphDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-graph',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
         {
           method: 'PUT',
           headers: {
@@ -335,7 +335,7 @@ describe('ApiClient', () => {
         body: mockStream,
       });
 
-      const result = await executionApiClient.chatCompletion('test-graph', messages);
+      const result = await executionApiClient.chatCompletion('test-agent', messages);
 
       expect(mockFetch).toHaveBeenCalled();
       expect(result).toBe(mockStream);
@@ -361,7 +361,7 @@ describe('ApiClient', () => {
         json: async () => mockResponse,
       });
 
-      const result = await executionApiClient.chatCompletion('test-graph', messages);
+      const result = await executionApiClient.chatCompletion('test-agent', messages);
 
       expect(result).toBe('Hello! How can I help you?');
     });
@@ -380,7 +380,7 @@ describe('ApiClient', () => {
         json: async () => mockResponse,
       });
 
-      const result = await executionApiClient.chatCompletion('test-graph', messages);
+      const result = await executionApiClient.chatCompletion('test-agent', messages);
 
       expect(result).toBe('This is the result');
     });
@@ -398,7 +398,7 @@ describe('ApiClient', () => {
         body: mockStream,
       });
 
-      await executionApiClient.chatCompletion('test-graph', messages, conversationId);
+      await executionApiClient.chatCompletion('test-agent', messages, conversationId);
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
@@ -422,7 +422,7 @@ describe('ApiClient', () => {
         text: async () => 'Invalid credentials',
       });
 
-      await expect(executionApiClient.chatCompletion('test-graph', messages)).rejects.toThrow(
+      await expect(executionApiClient.chatCompletion('test-agent', messages)).rejects.toThrow(
         'Chat request failed: Unauthorized\nInvalid credentials'
       );
     });
@@ -438,7 +438,7 @@ describe('ApiClient', () => {
         json: async () => ({}),
       });
 
-      const result = await executionApiClient.chatCompletion('test-graph', messages);
+      const result = await executionApiClient.chatCompletion('test-agent', messages);
 
       expect(result).toBe('');
     });
@@ -476,7 +476,7 @@ describe('ApiClient', () => {
         body: mockStream,
       });
 
-      await clientWithApiKey.chatCompletion('test-graph', messages);
+      await clientWithApiKey.chatCompletion('test-agent', messages);
 
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3003/v1/chat/completions', {
         method: 'POST',
@@ -486,7 +486,7 @@ describe('ApiClient', () => {
           Authorization: 'Bearer test-run-key-789',
           'x-inkeep-tenant-id': 'test-tenant-id',
           'x-inkeep-project-id': 'test-project-id',
-          'x-inkeep-agent-id': 'test-graph',
+          'x-inkeep-agent-id': 'test-agent',
         },
         body: JSON.stringify({
           model: 'openai/gpt-4.1-mini-2025-04-14',

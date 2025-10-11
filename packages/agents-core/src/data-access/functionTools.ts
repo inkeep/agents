@@ -9,7 +9,7 @@ import { getLogger } from '../utils/logger';
 const logger = getLogger('functionTools');
 
 /**
- * Get a function tool by ID (graph-scoped)
+ * Get a function tool by ID (agent-scoped)
  */
 export const getFunctionToolById =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
@@ -30,7 +30,7 @@ export const getFunctionToolById =
   };
 
 /**
- * List function tools (graph-scoped)
+ * List function tools (agent-scoped)
  */
 export const listFunctionTools =
   (db: DatabaseClient) =>
@@ -66,7 +66,7 @@ export const listFunctionTools =
   };
 
 /**
- * Create a function tool (graph-scoped)
+ * Create a function tool (agent-scoped)
  */
 export const createFunctionTool =
   (db: DatabaseClient) =>
@@ -93,7 +93,7 @@ export const createFunctionTool =
   };
 
 /**
- * Update a function tool (graph-scoped)
+ * Update a function tool (agent-scoped)
  */
 export const updateFunctionTool =
   (db: DatabaseClient) =>
@@ -124,7 +124,7 @@ export const updateFunctionTool =
   };
 
 /**
- * Delete a function tool (graph-scoped)
+ * Delete a function tool (agent-scoped)
  */
 export const deleteFunctionTool =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
@@ -189,7 +189,7 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
     const { tenantId, projectId, agentId } = scopes;
 
     try {
-      // Get function tools for this graph
+      // Get function tools for this agent
       const functionToolsList = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page: 1, limit: 1000 },

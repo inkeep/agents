@@ -1,10 +1,10 @@
 import type { Edge, Node } from '@xyflow/react';
-import { EdgeType } from '@/components/graph/configuration/edge-types';
-import { NodeType } from '@/components/graph/configuration/node-types';
-import { deserializeGraphData } from '@/features/graph/domain/deserialize';
-import { serializeGraphData } from '@/features/graph/domain/serialize';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
+import { NodeType } from '@/components/agent/configuration/node-types';
+import { deserializeGraphData } from '@/features/agent/domain/deserialize';
+import { serializeGraphData } from '@/features/agent/domain/serialize';
 
-describe('graph serialize/deserialize', () => {
+describe('agent serialize/deserialize', () => {
   it('handles self-referencing agents correctly', () => {
     const nodes: Node[] = [
       {
@@ -48,9 +48,9 @@ describe('graph serialize/deserialize', () => {
     ];
 
     const serialized = serializeGraphData(nodes, edges, {
-      id: 'test-graph',
-      name: 'Test Graph',
-      description: 'Graph with self-referencing agent',
+      id: 'test-agent',
+      name: 'Test Agent',
+      description: 'Agent with self-referencing agent',
       contextConfig: {
         id: '',
         contextVariables: '',
@@ -142,7 +142,7 @@ describe('graph serialize/deserialize', () => {
     });
     expect(serialized.id).toBe('g1');
     expect(serialized.subAgents.a1).toBeDefined();
-    // Note: Tools are now project-scoped and not included in graph serialization
+    // Note: Tools are now project-scoped and not included in agent serialization
     // expect(serialized.tools.t1).toBeDefined();
     const a1 = serialized.subAgents.a1;
     if ('tools' in a1) {

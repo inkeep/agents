@@ -37,7 +37,7 @@ export function NewProjectDialog({
 
   const handleSuccess = (projectId: string) => {
     setOpen(false);
-    router.push(`/${tenantId}/projects/${projectId}/graphs`);
+    router.push(`/${tenantId}/projects/${projectId}/agent`);
   };
 
   return (

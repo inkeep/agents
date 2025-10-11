@@ -123,7 +123,7 @@ vi.mock('../../utils/stream-registry.js', () => ({
   unregisterStreamHelper: vi.fn(),
 }));
 
-vi.mock('../../utils/graph-session.js', () => ({
+vi.mock('../../utils/agent-session.js', () => ({
   graphSessionManager: {
     createSession: vi.fn(),
     endSession: vi.fn(),
@@ -184,7 +184,7 @@ describe('Integration Tests', () => {
         apiKey: 'test-api-key',
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         apiKeyId: 'test-key',
         baseUrl: 'http://localhost:3003',
       });

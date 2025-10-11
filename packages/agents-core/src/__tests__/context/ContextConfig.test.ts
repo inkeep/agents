@@ -16,7 +16,7 @@ global.fetch = mockFetch;
 describe('ContextConfig', () => {
   const tenantId = 'test-tenant';
   const projectId = 'test-project';
-  const graphId = 'test-graph';
+  const agentId = 'test-agent';
   const baseURL = 'http://localhost:3002';
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       expect(config.getId()).toBe('test-config');
@@ -43,7 +43,7 @@ describe('ContextConfig', () => {
       const config = new ContextConfigBuilder({
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const id = config.getId();
@@ -52,7 +52,7 @@ describe('ContextConfig', () => {
       expect(id.length).toBeGreaterThan(0);
     });
 
-    it('should use default values for tenantId, projectId, graphId if not provided', () => {
+    it('should use default values for tenantId, projectId, agentId if not provided', () => {
       const config = new ContextConfigBuilder({});
 
       const obj = config.toObject();
@@ -83,7 +83,7 @@ describe('ContextConfig', () => {
         headers: schema,
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const headersSchema = config.getHeadersSchema();
@@ -104,7 +104,7 @@ describe('ContextConfig', () => {
         headers: schemaBuilder,
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const headersSchema = config.getHeadersSchema();
@@ -146,7 +146,7 @@ describe('ContextConfig', () => {
         },
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const variables = config.getContextVariables();
@@ -175,7 +175,7 @@ describe('ContextConfig', () => {
         },
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const variables = config.getContextVariables();
@@ -202,7 +202,7 @@ describe('ContextConfig', () => {
         },
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const variables = config.getContextVariables();
@@ -211,20 +211,20 @@ describe('ContextConfig', () => {
   });
 
   describe('ContextConfigBuilder - setContext', () => {
-    it('should update context (tenantId, projectId, graphId)', () => {
+    it('should update context (tenantId, projectId, agentId)', () => {
       const config = new ContextConfigBuilder({
         id: 'test-config',
         tenantId: 'old-tenant',
         projectId: 'old-project',
-        graphId: 'old-graph',
+        agentId: 'old-agent',
       });
 
-      config.setContext('new-tenant', 'new-project', 'new-graph', 'https://new-url.com');
+      config.setContext('new-tenant', 'new-project', 'new-agent', 'https://new-url.com');
 
       const obj = config.toObject();
       expect(obj.tenantId).toBe('new-tenant');
       expect(obj.projectId).toBe('new-project');
-      expect(obj.agentId).toBe('new-graph');
+      expect(obj.agentId).toBe('new-agent');
     });
   });
 
@@ -234,7 +234,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const obj = config.toObject();
@@ -242,7 +242,7 @@ describe('ContextConfig', () => {
       expect(obj).toHaveProperty('id', 'test-config');
       expect(obj).toHaveProperty('tenantId', tenantId);
       expect(obj).toHaveProperty('projectId', projectId);
-      expect(obj).toHaveProperty('agentId', graphId);
+      expect(obj).toHaveProperty('agentId', agentId);
       expect(obj).toHaveProperty('createdAt');
       expect(obj).toHaveProperty('updatedAt');
     });
@@ -254,7 +254,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const result = config.validate();
@@ -280,7 +280,7 @@ describe('ContextConfig', () => {
         } as any,
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const result = config.validate();
@@ -304,7 +304,7 @@ describe('ContextConfig', () => {
       } as any,
       tenantId,
       projectId,
-      graphId,
+      agentId,
     });
 
     await expect(config.init()).rejects.toThrow('Context config validation failed');
@@ -356,7 +356,7 @@ describe('ContextConfig', () => {
         id: 'factory-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       expect(config).toBeInstanceOf(ContextConfigBuilder);
@@ -420,7 +420,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -440,7 +440,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -461,7 +461,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -484,7 +484,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const newSchema = { type: 'object', properties: { id: { type: 'string' } } };
@@ -502,7 +502,7 @@ describe('ContextConfig', () => {
         contextVariables: {},
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       expect(config.getContextVariables()).toEqual({});
@@ -515,7 +515,7 @@ describe('ContextConfig', () => {
         id: 'test-config',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       // Verify by triggering a fetch call
@@ -546,7 +546,7 @@ describe('ContextConfig', () => {
         headers: complexSchema,
         tenantId,
         projectId,
-        graphId,
+        agentId,
       });
 
       const jsonSchema = config.getHeadersSchema();

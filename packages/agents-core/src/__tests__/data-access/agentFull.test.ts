@@ -7,7 +7,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph-1';
+  const testAgentId = 'test-agent-1';
 
   beforeEach(async () => {
     db = await createTestDatabaseClient();
@@ -15,8 +15,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
   });
 
   describe('getFullGraphDefinition', () => {
-    it('should return null when graph is not found', async () => {
-      // Mock the database query to return null for graph lookup
+    it('should return null when agent is not found', async () => {
+      // Mock the database query to return null for agent lookup
       const mockQuery = {
         agents: {
           findFirst: vi.fn().mockResolvedValue(null),
@@ -32,17 +32,17 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect(result).toBeNull();
       expect(mockQuery.agents.findFirst).toHaveBeenCalled();
     });
 
-    it('should return basic graph definition with default agent only', async () => {
+    it('should return basic agent definition with default agent only', async () => {
       const mockGraph = {
-        id: testGraphId,
-        name: 'Test Graph',
+        id: testAgentId,
+        name: 'Test Agent',
         defaultSubAgentId: 'default-agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -82,7 +82,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
               models: null,
               tenantId: testTenantId,
               projectId: testProjectId,
-              agentId: testGraphId,
+              agentId: testAgentId,
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -119,12 +119,12 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect(result).toBeDefined();
-      expect(result?.id).toBe(testGraphId);
-      expect(result?.name).toBe('Test Graph');
+      expect(result?.id).toBe(testAgentId);
+      expect(result?.name).toBe('Test Agent');
       expect(result?.defaultSubAgentId).toBe('default-agent-1');
       expect(result?.subAgents).toHaveProperty('default-agent-1');
       expect(result?.subAgents['default-agent-1']).toEqual({
@@ -141,10 +141,10 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       });
     });
 
-    it('should handle graph with agent relationships', async () => {
+    it('should handle agent with agent relationships', async () => {
       const mockGraph = {
-        id: testGraphId,
-        name: 'Test Graph',
+        id: testAgentId,
+        name: 'Test Agent',
         defaultSubAgentId: 'agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -162,7 +162,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           targetSubAgentId: 'agent-2',
           externalSubAgentId: null,
           relationType: 'transfer',
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -211,7 +211,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue(
             mockAgents.map((agent) => ({
               ...agent,
-              agentId: testGraphId,
+              agentId: testAgentId,
             }))
           ),
         },
@@ -246,7 +246,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect(result).toBeDefined();
@@ -256,8 +256,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
     it('should include tools when present', async () => {
       const mockGraph = {
-        id: testGraphId,
-        name: 'Test Graph',
+        id: testAgentId,
+        name: 'Test Agent',
         defaultSubAgentId: 'agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -308,7 +308,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue([
             {
               ...mockAgent,
-              agentId: testGraphId,
+              agentId: testAgentId,
             },
           ]),
         },
@@ -359,7 +359,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect((result?.subAgents['agent-1'] as any).canUse).toEqual([
@@ -375,8 +375,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       };
 
       const mockGraph = {
-        id: testGraphId,
-        name: 'Test Graph',
+        id: testAgentId,
+        name: 'Test Agent',
         defaultSubAgentId: 'agent-1',
         models: mockModelSettings,
         createdAt: '2024-01-01T00:00:00.000Z',
@@ -412,7 +412,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue([
             {
               ...mockAgent,
-              agentId: testGraphId,
+              agentId: testAgentId,
             },
           ]),
         },
@@ -447,7 +447,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       expect(result?.models).toEqual(mockModelSettings);
@@ -455,8 +455,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
     it('should handle invalid dates gracefully', async () => {
       const mockGraph = {
-        id: testGraphId,
-        name: 'Test Graph',
+        id: testAgentId,
+        name: 'Test Agent',
         defaultSubAgentId: 'agent-1',
         createdAt: 'invalid-date',
         updatedAt: 'invalid-date',
@@ -507,7 +507,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           findMany: vi.fn().mockResolvedValue([
             {
               ...mockAgent,
-              agentId: testGraphId,
+              agentId: testAgentId,
             },
           ]),
         },
@@ -542,7 +542,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       // Should use current date for invalid dates
@@ -552,8 +552,8 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
 
     it('should filter out null agent responses gracefully', async () => {
       const mockGraph = {
-        id: testGraphId,
-        name: 'Test Graph',
+        id: testAgentId,
+        name: 'Test Agent',
         defaultSubAgentId: 'agent-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -571,7 +571,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
           targetSubAgentId: 'non-existent-agent',
           externalSubAgentId: null,
           relationType: 'transfer',
-          agentId: testGraphId,
+          agentId: testAgentId,
           tenantId: testTenantId,
           projectId: testProjectId,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -611,7 +611,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
               models: null,
               tenantId: testTenantId,
               projectId: testProjectId,
-              agentId: testGraphId,
+              agentId: testAgentId,
               createdAt: '2024-01-01T00:00:00.000Z',
               updatedAt: '2024-01-01T00:00:00.000Z',
             },
@@ -648,7 +648,7 @@ describe('GraphFull Data Access - getFullGraphDefinition', () => {
       } as any;
 
       const result = await getFullGraphDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testGraphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
       // Should only include the valid agent

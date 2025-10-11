@@ -4,7 +4,7 @@ import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
 
-// Hydrate graph function
+// Hydrate agent function
 async function hydrateGraph({
   dbGraph,
   baseUrl,
@@ -17,10 +17,10 @@ async function hydrateGraph({
   try {
     // Check if defaultSubAgentId exists
     if (!dbGraph.defaultSubAgentId) {
-      throw new Error(`Graph ${dbGraph.id} does not have a default agent configured`);
+      throw new Error(`Agent ${dbGraph.id} does not have a default agent configured`);
     }
 
-    // Get the default agent for this graph to create the task handler
+    // Get the default agent for this agent to create the task handler
     const defaultSubAgent = await getSubAgentById(dbClient)({
       scopes: {
         tenantId: dbGraph.tenantId,
@@ -32,7 +32,7 @@ async function hydrateGraph({
 
     if (!defaultSubAgent) {
       throw new Error(
-        `Default agent ${dbGraph.defaultSubAgentId} not found for graph ${dbGraph.id}`
+        `Default agent ${dbGraph.defaultSubAgentId} not found for agent ${dbGraph.id}`
       );
     }
 
@@ -47,10 +47,10 @@ async function hydrateGraph({
     });
     const taskHandler = createTaskHandler(taskHandlerConfig);
 
-    // Create AgentCard for the graph (representing it as a single agent)
+    // Create AgentCard for the agent (representing it as a single agent)
     const agentCard: AgentCard = {
       name: dbGraph.name,
-      description: dbGraph.description || `Agent graph: ${dbGraph.name}`,
+      description: dbGraph.description || `Agent agent: ${dbGraph.name}`,
       url: baseUrl ? `${baseUrl}/a2a` : '',
       version: '1.0.0',
       capabilities: {
@@ -60,7 +60,7 @@ async function hydrateGraph({
       },
       defaultInputModes: ['text', 'text/plain'],
       defaultOutputModes: ['text', 'text/plain'],
-      skills: [], // TODO: Could aggregate skills from all agents in the graph
+      skills: [], // TODO: Could aggregate skills from all agents in the agent
       // Add provider info if available
       ...(baseUrl && {
         provider: {
@@ -71,20 +71,20 @@ async function hydrateGraph({
     };
 
     return {
-      subAgentId: dbGraph.id, // Use graph ID as agent ID for A2A purposes
+      subAgentId: dbGraph.id, // Use agent ID as agent ID for A2A purposes
       tenantId: dbGraph.tenantId,
       projectId: dbGraph.projectId,
-      graphId: dbGraph.id,
+      agentId: dbGraph.id,
       agentCard,
       taskHandler,
     };
   } catch (error) {
-    console.error(`❌ Failed to hydrate graph ${dbGraph.id}:`, error);
+    console.error(`❌ Failed to hydrate agent ${dbGraph.id}:`, error);
     throw error;
   }
 }
 
-// A2A functions that hydrate graphs on-demand
+// A2A functions that hydrate agent on-demand
 export async function getRegisteredAgent(
   executionContext: ExecutionContext
 ): Promise<RegisteredAgent | null> {

@@ -8,7 +8,7 @@ export interface RegisteredAgent {
   subAgentId: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   agentCard: AgentCard;
   taskHandler: (task: A2ATask) => Promise<A2ATaskResult>;
 }

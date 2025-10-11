@@ -1,29 +1,29 @@
-import { Graph } from '@/components/graph/graph';
+import { Agent } from '@/components/agent/agent';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
-import { getFullGraphAction } from '@/lib/actions/graph-full';
+import { getFullGraphAction } from '@/lib/actions/agent-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 interface GraphPageProps {
-  params: Promise<{ graphId: string; tenantId: string; projectId: string }>;
+  params: Promise<{ agentId: string; tenantId: string; projectId: string }>;
 }
 
 async function GraphPage({ params }: GraphPageProps) {
-  const { graphId, tenantId, projectId } = await params;
+  const { agentId, tenantId, projectId } = await params;
 
-  const [graph, dataComponents, artifactComponents, credentials, tools] = await Promise.all([
-    getFullGraphAction(tenantId, projectId, graphId),
+  const [agent, dataComponents, artifactComponents, credentials, tools] = await Promise.all([
+    getFullGraphAction(tenantId, projectId, agentId),
     fetchDataComponentsAction(tenantId, projectId),
     fetchArtifactComponentsAction(tenantId, projectId),
     fetchCredentialsAction(tenantId, projectId),
     fetchToolsAction(tenantId, projectId),
   ]);
 
-  if (!graph.success) throw new Error(graph.error);
+  if (!agent.success) throw new Error(agent.error);
   if (
     !dataComponents.success ||
     !artifactComponents.success ||
@@ -53,12 +53,12 @@ async function GraphPage({ params }: GraphPageProps) {
   return (
     <BodyTemplate
       breadcrumbs={[
-        { label: 'Graphs', href: `/${tenantId}/projects/${projectId}/graphs` },
-        { label: graph.data.name },
+        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agent` },
+        { label: agent.data.name },
       ]}
     >
-      <Graph
-        graph={graph?.data}
+      <Agent
+        agent={agent?.data}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={toolLookup}

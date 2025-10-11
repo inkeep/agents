@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useGraphActions } from '@/features/graph/state/use-graph-store';
+import { useGraphActions } from '@/features/agent/state/use-agent-store';
 
 export function useGraphShortcuts() {
   const { undo, redo, deleteSelected } = useGraphActions();

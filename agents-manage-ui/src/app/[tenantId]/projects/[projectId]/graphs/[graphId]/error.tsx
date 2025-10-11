@@ -14,8 +14,8 @@ export default function GraphError({ error }: { error: Error & { digest?: string
   return (
     <FullPageError
       description="Something went wrong."
-      link={`/${tenantId}/projects/${projectId}/graphs`}
-      linkText="Go back to graphs"
+      link={`/${tenantId}/projects/${projectId}/agent`}
+      linkText="Go back to agent"
     />
   );
 }

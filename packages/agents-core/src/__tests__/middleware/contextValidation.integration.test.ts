@@ -31,7 +31,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
 
     // Mock successful database calls
     mockGetAgentWithDefaultSubAgent.mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       contextConfigId: 'test-config',
     });
 
@@ -112,7 +112,7 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
   it('should work without context config (no validation)', async () => {
     // No context config
     mockGetAgentWithDefaultSubAgent.mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       // No contextConfigId
     });
 

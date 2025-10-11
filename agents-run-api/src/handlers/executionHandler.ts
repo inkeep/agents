@@ -3,7 +3,7 @@ import {
   createTask,
   type ExecutionContext,
   getActiveAgentForConversation,
-  getFullGraph,
+  getFullAgent,
   getTask,
   type SendMessageResponse,
   setSpanWithError,
@@ -91,7 +91,7 @@ export class ExecutionHandler {
     // Initialize status updates if configured
     let graphConfig: any = null;
     try {
-      graphConfig = await getFullGraph(dbClient)({
+      graphConfig = await getFullAgent(dbClient)({
         scopes: { tenantId, projectId, agentId },
       });
 
@@ -209,7 +209,7 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
-      // Get transfer limit from graph configuration
+      // Get transfer limit from agent configuration
       const maxTransfers = graphConfig?.stopWhen?.transferCountIs ?? 10;
 
       // Start execution loop
@@ -385,7 +385,7 @@ export class ExecutionHandler {
         }
 
         if (responseParts && responseParts.length > 0) {
-          // Log graph session data after completion response
+          // Log agent session data after completion response
           const graphSessionData = graphSessionManager.getSession(requestId);
           if (graphSessionData) {
             const sessionSummary = graphSessionData.getSummary();

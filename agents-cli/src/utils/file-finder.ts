@@ -85,7 +85,7 @@ export function categorizeTypeScriptFiles(
       fileName === 'inkeep.config.ts'
     ) {
       configFiles.push(file);
-    } else if (fileName.includes('.graph.') || relativePath.includes('graphs/')) {
+    } else if (fileName.includes('.agent.') || relativePath.includes('agent/')) {
       graphFiles.push(file);
     } else if (
       fileName.includes('agent') ||

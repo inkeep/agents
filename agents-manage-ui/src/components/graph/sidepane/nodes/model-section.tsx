@@ -1,5 +1,5 @@
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
-import type { AgentNodeData } from '@/components/graph/configuration/node-types';
+import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import {
   getModelInheritanceStatus,

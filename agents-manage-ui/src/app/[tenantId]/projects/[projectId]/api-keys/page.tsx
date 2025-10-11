@@ -6,16 +6,16 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { apiKeyDescription } from '@/constants/page-descriptions';
 import { fetchApiKeys } from '@/lib/api/api-keys';
-import { fetchGraphs } from '@/lib/api/graph-full-client';
-import type { Graph } from '@/lib/types/graph-full';
+import { fetchGraphs } from '@/lib/api/agent-full-client';
+import type { Agent } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-const createGraphOptions = (graphs: Graph[]): SelectOption[] => {
-  return graphs.map((graph) => ({
-    value: graph.id,
-    label: graph.name,
+const createGraphOptions = (agent: Agent[]): SelectOption[] => {
+  return agent.map((agent) => ({
+    value: agent.id,
+    label: agent.name,
   }));
 };
 
@@ -25,13 +25,13 @@ interface ApiKeysPageProps {
 
 async function ApiKeysPage({ params }: ApiKeysPageProps) {
   const { tenantId, projectId } = await params;
-  const [apiKeys, graphs] = await Promise.all([
+  const [apiKeys, agent] = await Promise.all([
     fetchApiKeys(tenantId, projectId),
     fetchGraphs(tenantId, projectId),
   ]);
 
-  const graphLookup = createLookup(graphs.data);
-  const graphOptions = createGraphOptions(graphs.data);
+  const graphLookup = createLookup(agent.data);
+  const graphOptions = createGraphOptions(agent.data);
   return (
     <BodyTemplate
       breadcrumbs={[

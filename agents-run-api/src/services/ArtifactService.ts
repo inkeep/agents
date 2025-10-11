@@ -265,7 +265,7 @@ export class ArtifactService {
   ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
-    // Check graph session cache
+    // Check agent session cache
     if (this.context.streamRequestId) {
       const cachedArtifact = await graphSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -327,7 +327,7 @@ export class ArtifactService {
   ): Promise<ArtifactFullData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
-    // Check graph session cache
+    // Check agent session cache
     if (this.context.streamRequestId) {
       const cachedArtifact = await graphSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -416,7 +416,7 @@ export class ArtifactService {
   }
 
   /**
-   * Persist artifact to database via graph session
+   * Persist artifact to database via agent session
    */
   private async persistArtifact(
     request: ArtifactCreateRequest,
@@ -488,7 +488,7 @@ export class ArtifactService {
     // Store in local cache
     this.createdArtifacts.set(cacheKey, artifactForCache);
 
-    // Store in graph session cache
+    // Store in agent session cache
     if (this.context.streamRequestId) {
       await graphSessionManager.setArtifactCache(
         this.context.streamRequestId,

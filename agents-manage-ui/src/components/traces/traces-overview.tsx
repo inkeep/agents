@@ -14,7 +14,7 @@ import { AreaChartCard } from './charts/area-chart-card';
 import { StatCard } from './charts/stat-card';
 import { ConversationStatsCard } from './conversation-stats/conversation-stats-card';
 import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
-import { GraphFilter } from './filters/graph-filter';
+import { GraphFilter } from './filters/agent-filter';
 import { SpanFilters } from './filters/span-filters';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
@@ -55,7 +55,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   // Aggregate stats now come from useAggregateStats hook
   const [aiCallsByGraph, setAiCallsByGraph] = useState<
-    Array<{ graphId: string; totalCalls: number }>
+    Array<{ agentId: string; totalCalls: number }>
   >([]);
   const [_aiCallsLoading, setAiCallsLoading] = useState(true);
   const [activityData, setActivityData] = useState<Array<{ date: string; count: number }>>([]);
@@ -133,7 +133,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
-    graphId: selectedGraph,
+    agentId: selectedGraph,
   });
 
   // Get paginated conversations for the list display
@@ -144,7 +144,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     projectId: projectId as string,
     searchQuery: debouncedSearchQuery,
     pagination: { enabled: true, pageSize: 10 },
-    graphId: selectedGraph,
+    agentId: selectedGraph,
   });
 
   // Server-side pagination is now handled by the hook
@@ -159,7 +159,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
   // Aggregate stats now come directly from server-side aggregation
 
-  // Fetch AI calls by graph
+  // Fetch AI calls by agent
   useEffect(() => {
     const fetchAICallsByGraph = async () => {
       try {
@@ -168,7 +168,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         const aiCallsData = await client.getAICallsByGraph(startTime, endTime, projectId as string);
         setAiCallsByGraph(aiCallsData);
       } catch (err) {
-        console.error('Error fetching AI calls by graph:', err);
+        console.error('Error fetching AI calls by agent:', err);
       } finally {
         setAiCallsLoading(false);
       }
@@ -183,17 +183,17 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       try {
         setActivityLoading(true);
         const client = getSigNozStatsClient();
-        const graphId = selectedGraph ? selectedGraph : undefined;
+        const agentId = selectedGraph ? selectedGraph : undefined;
         console.log('🔍 Fetching activity data:', {
           startTime,
           endTime,
-          graphId,
+          agentId,
           selectedGraph,
         });
         const data = await client.getConversationsPerDay(
           startTime,
           endTime,
-          graphId,
+          agentId,
           projectId as string
         );
         console.log('🔍 Activity data received:', data);
@@ -210,7 +210,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     }
   }, [startTime, endTime, selectedGraph, projectId]);
 
-  // Fetch available span names when time range or selected graph changes
+  // Fetch available span names when time range or selected agent changes
   useEffect(() => {
     const fetchSpanNames = async () => {
       if (!startTime || !endTime) return;
@@ -239,15 +239,15 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     }
   }, [startTime, endTime, selectedGraph, projectId]);
 
-  // Filter stats based on selected graph (for aggregate calculations)
+  // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
 
-  // Get AI calls for selected graph
+  // Get AI calls for selected agent
   const selectedGraphAICalls = useMemo(() => {
     if (!selectedGraph) {
       return aggregateStats.totalAICalls;
     }
-    const graphAICalls = aiCallsByGraph.find((ac) => ac.graphId === selectedGraph);
+    const graphAICalls = aiCallsByGraph.find((ac) => ac.agentId === selectedGraph);
     return graphAICalls?.totalCalls || 0;
   }, [selectedGraph, aiCallsByGraph, aggregateStats.totalAICalls]);
 
@@ -324,7 +324,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       )}
 
       <div className="flex items-center gap-4">
-        {/* Graph Filter */}
+        {/* Agent Filter */}
         <GraphFilter onSelect={setSelectedGraph} selectedValue={selectedGraph} />
         {/* Time Range Filter */}
         <DatePickerWithPresets

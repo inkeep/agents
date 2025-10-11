@@ -72,7 +72,7 @@ export function ApiKeyForm({
       const name = data.name;
 
       const payload: Partial<ApiKey> = {
-        graphId: data.graphId,
+        agentId: data.agentId,
         expiresAt,
         name,
       };
@@ -114,11 +114,11 @@ export function ApiKeyForm({
         />
         <GenericComboBox
           control={form.control}
-          name="graphId"
-          label="Graph"
+          name="agentId"
+          label="Agent"
           options={graphsOptions}
-          placeholder="Select a graph"
-          searchPlaceholder="Search graphs..."
+          placeholder="Select a agent"
+          searchPlaceholder="Search agent..."
           isRequired
         />
         <div className="flex justify-end">

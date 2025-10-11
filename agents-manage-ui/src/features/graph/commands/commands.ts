@@ -1,8 +1,8 @@
 import type { Connection, Edge, Node } from '@xyflow/react';
 import { addEdge } from '@xyflow/react';
-import { EdgeType } from '@/components/graph/configuration/edge-types';
-import type { GraphMetadata } from '@/components/graph/configuration/graph-types';
-import { graphStore } from '@/features/graph/state/use-graph-store';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
+import type { GraphMetadata } from '@/components/agent/configuration/agent-types';
+import { graphStore } from '@/features/agent/state/use-agent-store';
 import { eventBus } from '@/lib/events';
 import type { Command } from './command-manager';
 

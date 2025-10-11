@@ -7,7 +7,7 @@ export const GraphsIcon = () => {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Graphs"
+      aria-label="Agent"
       className="size-full"
     >
       <g clipPath="url(#clip0_38_332)">

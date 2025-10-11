@@ -1,6 +1,6 @@
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 
-const paneType = ['graph', 'node', 'edge'] as const;
+const paneType = ['agent', 'node', 'edge'] as const;
 
 export function useSidePane() {
   const [queryState, setQueryState] = useQueryStates({
@@ -15,6 +15,6 @@ export function useSidePane() {
     edgeId: queryState.edgeId,
     isOpen: Boolean(queryState.pane),
     setQueryState,
-    openGraphPane: () => setQueryState({ pane: 'graph', nodeId: null, edgeId: null }),
+    openGraphPane: () => setQueryState({ pane: 'agent', nodeId: null, edgeId: null }),
   };
 }

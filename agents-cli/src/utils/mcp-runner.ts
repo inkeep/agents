@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * MCP Runner - Loads and starts MCP servers from a graph file
+ * MCP Runner - Loads and starts MCP servers from a agent file
  * This is executed as a subprocess by the CLI
  */
 
@@ -20,7 +20,7 @@ if (!existsSync(MCP_DIR)) {
 
 interface McpServer {
   pid: number;
-  graphId: string;
+  agentId: string;
   toolId: string;
   name: string;
   port?: number;
@@ -34,16 +34,16 @@ interface McpServer {
 
 async function startServers(graphPath: string) {
   try {
-    // Import the graph module
+    // Import the agent module
     const module = await import(graphPath);
 
     // Get servers
     const servers = module.servers || module.tools || [];
 
-    // Get graph ID
-    let graphId = 'unknown';
-    if (module.graph && typeof module.graph.getId === 'function') {
-      graphId = module.graph.getId();
+    // Get agent ID
+    let agentId = 'unknown';
+    if (module.agent && typeof module.agent.getId === 'function') {
+      agentId = module.agent.getId();
     }
 
     const registeredServers: McpServer[] = [];
@@ -110,7 +110,7 @@ async function startServers(graphPath: string) {
 
         registeredServers.push({
           pid: process.pid,
-          graphId,
+          agentId,
           toolId: id,
           name,
           port,
@@ -124,7 +124,7 @@ async function startServers(graphPath: string) {
         // Register remote server
         registeredServers.push({
           pid: process.pid,
-          graphId,
+          agentId,
           toolId: id,
           name,
           serverUrl: server.serverUrl || server.getServerUrl?.(),
@@ -175,13 +175,13 @@ async function startServers(graphPath: string) {
   }
 }
 
-// Get graph path from command line
+// Get agent path from command line
 const graphPath = process.argv[2];
 if (!graphPath) {
   console.error(
     JSON.stringify({
       type: 'error',
-      message: 'Graph path is required',
+      message: 'Agent path is required',
     })
   );
   process.exit(1);

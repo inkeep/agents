@@ -9,7 +9,7 @@ import {
 } from '../../middleware/contextValidation';
 
 // Mock the data access functions directly
-vi.mock('../../data-access/agentGraphs', () => ({
+vi.mock('../../data-access/agent', () => ({
   getAgentGraphWithDefaultSubAgent: vi.fn(),
 }));
 

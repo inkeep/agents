@@ -27,25 +27,25 @@ export async function listAgentsCommand(options: ListAgentsOptions) {
     config.tenantId,
     options.project // pass project ID as projectIdOverride
   );
-  const spinner = ora('Fetching graphs...').start();
+  const spinner = ora('Fetching agent...').start();
 
   try {
-    const graphs = await api.listAgents();
-    spinner.succeed(`Found ${graphs.length} graph(s) in project "${options.project}"`);
+    const agents = await api.listAgents();
+    spinner.succeed(`Found ${agents.length} agent(s) in project "${options.project}"`);
 
-    if (graphs.length === 0) {
+    if (agents.length === 0) {
       console.log(
         chalk.gray(
-          `No graphs found in project "${options.project}". Define graphs in your project and run: inkeep push`
+          `No agent found in project "${options.project}". Define agent in your project and run: inkeep push`
         )
       );
       return;
     }
 
-    // Create a table to display graphs
+    // Create a table to display agent
     const table = new Table({
       head: [
-        chalk.cyan('Graph ID'),
+        chalk.cyan('Agent ID'),
         chalk.cyan('Name'),
         chalk.cyan('Default Agent'),
         chalk.cyan('Created'),
@@ -56,22 +56,22 @@ export async function listAgentsCommand(options: ListAgentsOptions) {
       },
     });
 
-    for (const graph of graphs) {
-      const createdDate = graph.createdAt
-        ? new Date(graph.createdAt).toLocaleDateString()
+    for (const agent of agents) {
+      const createdDate = agent.createdAt
+        ? new Date(agent.createdAt).toLocaleDateString()
         : 'Unknown';
 
       table.push([
-        graph.id || '',
-        graph.name || graph.id || '',
-        graph.defaultSubAgentId || chalk.gray('None'),
+        agent.id || '',
+        agent.name || agent.id || '',
+        agent.defaultSubAgentId || chalk.gray('None'),
         createdDate,
       ]);
     }
 
     console.log(`\n${table.toString()}`);
   } catch (error) {
-    spinner.fail('Failed to fetch graphs');
+    spinner.fail('Failed to fetch agent');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }

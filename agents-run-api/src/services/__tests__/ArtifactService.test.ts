@@ -61,7 +61,7 @@ describe('ArtifactService', () => {
       const mockTask = {
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         id: 'task1',
         contextId: 'test-context',
         status: 'active',
@@ -107,7 +107,7 @@ describe('ArtifactService', () => {
           Promise.resolve({
             tenantId: 'test-tenant',
             projectId: 'test-project',
-            agentId: 'test-graph',
+            agentId: 'test-agent',
             id: 'task1',
             contextId: 'test-context',
             status: 'active',
@@ -294,7 +294,7 @@ describe('ArtifactService', () => {
   });
 
   describe('getArtifactSummary', () => {
-    it('should return cached artifact from graph session', async () => {
+    it('should return cached artifact from agent session', async () => {
       const mockCachedArtifact = {
         name: 'Cached Artifact',
         description: 'Cached Description',

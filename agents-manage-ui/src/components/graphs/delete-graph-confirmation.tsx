@@ -4,16 +4,16 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
-import { deleteFullGraphAction } from '@/lib/actions/graph-full';
+import { deleteFullGraphAction } from '@/lib/actions/agent-full';
 
 interface DeleteGraphConfirmationProps {
-  graphId: string;
+  agentId: string;
   graphName?: string;
   setIsOpen: (isOpen: boolean) => void;
 }
 
 export function DeleteGraphConfirmation({
-  graphId,
+  agentId,
   graphName,
   setIsOpen,
 }: DeleteGraphConfirmationProps) {
@@ -27,9 +27,9 @@ export function DeleteGraphConfirmation({
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteFullGraphAction(tenantId, projectId, graphId);
+      const result = await deleteFullGraphAction(tenantId, projectId, agentId);
       if (result.success) {
-        toast.success('Graph deleted.');
+        toast.success('Agent deleted.');
         setIsOpen(false);
       } else {
         toast.error(result.error);
@@ -41,7 +41,7 @@ export function DeleteGraphConfirmation({
 
   return (
     <DeleteConfirmation
-      itemName={graphName || 'this graph'}
+      itemName={graphName || 'this agent'}
       isSubmitting={isSubmitting}
       onDelete={handleDelete}
     />

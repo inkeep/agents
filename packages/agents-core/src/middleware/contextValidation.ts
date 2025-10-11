@@ -333,14 +333,14 @@ export async function validateHeaders({
   credentialStores?: CredentialStoreRegistry;
 }): Promise<ContextValidationResult> {
   try {
-    // Get the graph's context config
-    const agentGraph = await getAgentWithDefaultSubAgent(dbClient)({
+    // Get the agent's context config
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, agentId: agentId },
     });
 
-    if (!agentGraph?.contextConfigId) {
+    if (!agent?.contextConfigId) {
       // No context config means no validation needed
-      logger.debug({ agentId }, 'No context config found for graph, skipping validation');
+      logger.debug({ agentId }, 'No context config found for agent, skipping validation');
       return {
         valid: true,
         errors: [],
@@ -351,11 +351,11 @@ export async function validateHeaders({
     // Get context configuration
     const contextConfig = await getContextConfigById(dbClient)({
       scopes: { tenantId, projectId, agentId: agentId },
-      id: agentGraph.contextConfigId,
+      id: agent.contextConfigId,
     });
 
     if (!contextConfig) {
-      logger.warn({ contextConfigId: agentGraph.contextConfigId }, 'Context config not found');
+      logger.warn({ contextConfigId: agent.contextConfigId }, 'Context config not found');
       return {
         valid: false,
         errors: [
@@ -431,7 +431,7 @@ export async function validateHeaders({
     logger.error(
       {
         tenantId,
-        graphId: agentId,
+        agentId: agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to validate headers'

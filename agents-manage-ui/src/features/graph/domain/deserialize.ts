@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import * as dagre from 'dagre';
 import { nanoid } from 'nanoid';
-import { EdgeType } from '@/components/graph/configuration/edge-types';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
@@ -9,12 +9,12 @@ import {
   functionToolNodeHandleId,
   mcpNodeHandleId,
   NodeType,
-} from '@/components/graph/configuration/node-types';
+} from '@/components/agent/configuration/node-types';
 import type {
   ExternalAgentDefinition,
   FullGraphDefinition,
   InternalAgentDefinition,
-} from '@/lib/types/graph-full';
+} from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 
 interface TransformResult {
@@ -66,7 +66,7 @@ function calculateNodeHeight(node: Node): number {
 }
 
 export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
-  const g = new dagre.graphlib.Graph();
+  const g = new dagre.graphlib.Agent();
   g.setGraph({
     rankdir: 'TB',
     nodesep: 150,

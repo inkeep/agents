@@ -11,7 +11,7 @@ import {
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
 
-describe('Agent Graph Data Access', () => {
+describe('Agent Agent Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
@@ -21,12 +21,12 @@ describe('Agent Graph Data Access', () => {
   });
 
   describe('getAgentGraphById', () => {
-    it('should retrieve an agent graph by tenant and graph ID', async () => {
-      const graphId = 'graph-1';
+    it('should retrieve an agent agent by tenant and agent ID', async () => {
+      const agentId = 'agent-1';
       const expectedGraph = {
-        id: graphId,
+        id: agentId,
         tenantId: testTenantId,
-        name: 'Test Graph',
+        name: 'Test Agent',
         description: 'Test description',
       };
 
@@ -42,14 +42,14 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentById(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
       expect(mockQuery.agents.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedGraph);
     });
 
-    it('should return null if graph not found', async () => {
+    it('should return null if agent not found', async () => {
       const mockQuery = {
         agents: {
           findFirst: vi.fn().mockResolvedValue(null),
@@ -70,13 +70,13 @@ describe('Agent Graph Data Access', () => {
   });
 
   describe('getAgentGraphById', () => {
-    it('should retrieve an agent graph by full parameters', async () => {
-      const graphId = 'graph-1';
+    it('should retrieve an agent agent by full parameters', async () => {
+      const agentId = 'agent-1';
       const expectedGraph = {
-        id: graphId,
+        id: agentId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Graph',
+        name: 'Test Agent',
         description: 'Test description',
       };
 
@@ -92,7 +92,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentById(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
       expect(mockQuery.agents.findFirst).toHaveBeenCalled();
@@ -101,13 +101,13 @@ describe('Agent Graph Data Access', () => {
   });
 
   describe('getAgentGraphWithDefaultSubAgent', () => {
-    it('should retrieve an agent graph with default agent relation', async () => {
-      const graphId = 'graph-1';
+    it('should retrieve an agent agent with default agent relation', async () => {
+      const agentId = 'agent-1';
       const expectedGraph = {
-        id: graphId,
+        id: agentId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Graph',
+        name: 'Test Agent',
         defaultSubAgent: { id: 'agent-1', name: 'Default Agent' },
       };
 
@@ -123,7 +123,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await getAgentWithDefaultSubAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
       expect(mockQuery.agents.findFirst).toHaveBeenCalled();
@@ -132,10 +132,10 @@ describe('Agent Graph Data Access', () => {
   });
 
   describe('listAgentGraphs', () => {
-    it('should list all agent graphs', async () => {
+    it('should list all agent agent', async () => {
       const expectedGraphs = [
-        { id: 'graph-1', name: 'Graph 1' },
-        { id: 'graph-2', name: 'Graph 2' },
+        { id: 'agent-1', name: 'Agent 1' },
+        { id: 'agent-2', name: 'Agent 2' },
       ];
 
       const mockQuery = {
@@ -159,7 +159,7 @@ describe('Agent Graph Data Access', () => {
 
   describe('listAgentGraphsPaginated', () => {
     it('should handle pagination without limit and offset', async () => {
-      const expectedGraphs = [{ id: 'graph-1', name: 'Graph 1' }];
+      const expectedGraphs = [{ id: 'agent-1', name: 'Agent 1' }];
 
       // Mock the query chain that includes limit, offset, orderBy
       const mockQuery = vi.fn().mockResolvedValue(expectedGraphs);
@@ -214,13 +214,13 @@ describe('Agent Graph Data Access', () => {
   });
 
   describe('createAgentGraph', () => {
-    it('should create a new agent graph', async () => {
+    it('should create a new agent agent', async () => {
       const graphData = {
-        id: 'graph-1',
+        id: 'agent-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Graph',
-        description: 'A test graph',
+        name: 'Test Agent',
+        description: 'A test agent',
         defaultSubAgentId: 'agent-1',
       };
 
@@ -241,19 +241,19 @@ describe('Agent Graph Data Access', () => {
 
       expect(mockInsert).toHaveBeenCalled();
       expect(result).toMatchObject({
-        id: 'graph-1',
+        id: 'agent-1',
         name: graphData.name,
         description: graphData.description,
         defaultSubAgentId: graphData.defaultSubAgentId,
       });
     });
 
-    it('should create an agent graph without optional fields', async () => {
+    it('should create an agent agent without optional fields', async () => {
       const graphData = {
-        id: 'graph-1',
+        id: 'agent-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        name: 'Test Graph',
+        name: 'Test Agent',
         description: 'Test description',
         defaultSubAgentId: 'agent-1',
       };
@@ -273,16 +273,16 @@ describe('Agent Graph Data Access', () => {
         ...graphData,
       });
 
-      expect(result.id).toBe('graph-1');
+      expect(result.id).toBe('agent-1');
       expect(result.name).toBe(graphData.name);
     });
   });
 
   describe('updateAgentGraph', () => {
-    it('should update an agent graph', async () => {
-      const graphId = 'graph-1';
+    it('should update an agent agent', async () => {
+      const agentId = 'agent-1';
       const updateData = {
-        name: 'Updated Graph Name',
+        name: 'Updated Agent Name',
         description: 'Updated description',
       };
 
@@ -291,7 +291,7 @@ describe('Agent Graph Data Access', () => {
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([
               {
-                id: graphId,
+                id: agentId,
                 ...updateData,
                 updatedAt: new Date().toISOString(),
               },
@@ -306,7 +306,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await updateAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
         data: updateData,
       });
 
@@ -316,7 +316,7 @@ describe('Agent Graph Data Access', () => {
     });
 
     it('should handle model settings clearing', async () => {
-      const graphId = 'graph-1';
+      const agentId = 'agent-1';
       const updateData = {
         models: {}, // Empty object should be set to null
       };
@@ -326,7 +326,7 @@ describe('Agent Graph Data Access', () => {
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([
               {
-                id: graphId,
+                id: agentId,
                 models: null,
                 updatedAt: new Date().toISOString(),
               },
@@ -341,7 +341,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await updateAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
         data: updateData,
       });
 
@@ -350,16 +350,16 @@ describe('Agent Graph Data Access', () => {
   });
 
   describe('deleteAgentGraph', () => {
-    it('should delete an agent graph', async () => {
-      const graphId = 'graph-1';
+    it('should delete an agent agent', async () => {
+      const agentId = 'agent-1';
 
       const mockDelete = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: graphId }]),
+          returning: vi.fn().mockResolvedValue([{ id: agentId }]),
         }),
       });
 
-      // Mock getAgentGraphById to return null (graph not found after deletion)
+      // Mock getAgentGraphById to return null (agent not found after deletion)
       const mockQuery = {
         agents: {
           findFirst: vi.fn().mockResolvedValue(null),
@@ -373,7 +373,7 @@ describe('Agent Graph Data Access', () => {
       } as any;
 
       const result = await deleteAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: graphId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
       expect(mockDelete).toHaveBeenCalled();

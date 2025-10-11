@@ -539,8 +539,8 @@ For technical support questions, please refer to our comprehensive documentation
       const complexData = {
         id: 'test-project',
         name: 'Test Project',
-        graphs: {
-          'main-graph': {
+        agent: {
+          'main-agent': {
             agents: {
               qa: {
                 id: 'qa',
@@ -565,12 +565,12 @@ For technical support questions, please refer to our comprehensive documentation
       const { processedData, replacements } = createPlaceholders(complexData);
 
       // Verify large prompts were replaced
-      expect(processedData.graphs['main-graph'].agents.qa.prompt).toMatch(/^<{{.*}}>$/);
-      expect(processedData.graphs['main-graph'].agents.router.prompt).toMatch(/^<{{.*}}>$/);
+      expect(processedData.agent['main-agent'].agents.qa.prompt).toMatch(/^<{{.*}}>$/);
+      expect(processedData.agent['main-agent'].agents.router.prompt).toMatch(/^<{{.*}}>$/);
 
       // Verify short descriptions were not replaced
-      expect(processedData.graphs['main-graph'].agents.qa.description).toBe('QA agent description');
-      expect(processedData.graphs['main-graph'].agents.router.description).toBe(
+      expect(processedData.agent['main-agent'].agents.qa.description).toBe('QA agent description');
+      expect(processedData.agent['main-agent'].agents.router.description).toBe(
         'Router agent description'
       );
 
@@ -581,13 +581,13 @@ import { agent } from '@inkeep/agents-sdk';
 const qaAgent = agent({
   id: 'qa',
   name: 'QA Agent',
-  prompt: '${processedData.graphs['main-graph'].agents.qa.prompt}',
+  prompt: '${processedData.agent['main-agent'].agents.qa.prompt}',
 });
 
 const routerAgent = agent({
   id: 'router',
   name: 'Router Agent',
-  prompt: '${processedData.graphs['main-graph'].agents.router.prompt}',
+  prompt: '${processedData.agent['main-agent'].agents.router.prompt}',
 });
       `;
 
@@ -595,8 +595,8 @@ const routerAgent = agent({
       const restoredCode = restorePlaceholders(simulatedGeneratedCode, replacements);
 
       // Verify original prompts are restored
-      expect(restoredCode).toContain(complexData.graphs['main-graph'].agents.qa.prompt);
-      expect(restoredCode).toContain(complexData.graphs['main-graph'].agents.router.prompt);
+      expect(restoredCode).toContain(complexData.agent['main-agent'].agents.qa.prompt);
+      expect(restoredCode).toContain(complexData.agent['main-agent'].agents.router.prompt);
       expect(restoredCode).not.toContain('<{{');
 
       // Calculate and verify savings
@@ -607,8 +607,8 @@ const routerAgent = agent({
     it('should handle real project data structure from inkeep-qa-project', () => {
       // This mimics the actual data structure from the JSON file
       const projectData = {
-        graphs: {
-          'inkeep-qa-graph': {
+        agent: {
+          'inkeep-qa-agent': {
             agents: {
               facts: {
                 prompt:
@@ -621,8 +621,8 @@ const routerAgent = agent({
 
       const { processedData, replacements } = createPlaceholders(projectData);
 
-      const processedPrompt = processedData.graphs['inkeep-qa-graph'].agents.facts.prompt;
-      const originalPrompt = projectData.graphs['inkeep-qa-graph'].agents.facts.prompt;
+      const processedPrompt = processedData.agent['inkeep-qa-agent'].agents.facts.prompt;
+      const originalPrompt = projectData.agent['inkeep-qa-agent'].agents.facts.prompt;
 
       // The prompt contains template literals, so it should be split into parts
       // Template literals should be preserved

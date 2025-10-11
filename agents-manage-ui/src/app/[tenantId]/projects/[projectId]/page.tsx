@@ -11,7 +11,7 @@ export default function ProjectPage() {
 
   useEffect(() => {
     // Use client-side navigation instead of server-side redirect
-    router.replace(`/${tenantId}/projects/${projectId}/graphs`);
+    router.replace(`/${tenantId}/projects/${projectId}/agent`);
   }, [tenantId, projectId, router]);
 
   // Show loading state while redirecting

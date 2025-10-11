@@ -1,14 +1,14 @@
-import { createFullGraphAction, updateFullGraphAction } from '@/lib/actions/graph-full';
-import type { FullGraphDefinition } from '@/lib/types/graph-full';
+import { createFullGraphAction, updateFullGraphAction } from '@/lib/actions/agent-full';
+import type { FullGraphDefinition } from '@/lib/types/agent-full';
 
 export async function saveGraph(
   tenantId: string,
   projectId: string,
-  graph: FullGraphDefinition,
-  graphId?: string
+  agent: FullGraphDefinition,
+  agentId?: string
 ) {
-  if (graphId) {
-    return updateFullGraphAction(tenantId, projectId, graphId, graph);
+  if (agentId) {
+    return updateFullGraphAction(tenantId, projectId, agentId, agent);
   }
-  return createFullGraphAction(tenantId, projectId, graph);
+  return createFullGraphAction(tenantId, projectId, agent);
 }

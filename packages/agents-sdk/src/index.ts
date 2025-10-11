@@ -1,8 +1,7 @@
-export { SubAgent as Agent } from './agent';
-export { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
+export { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {
-  agentGraph,
+  agent,
   agentMcp,
   artifactComponent,
   credential,
@@ -11,7 +10,7 @@ export {
   mcpServer,
   mcpTool,
   project,
-  subAgent as agent,
+  subAgent,
 } from './builderFunctions';
 export { transfer } from './builders';
 export {
@@ -40,5 +39,6 @@ export {
   updateFullProjectViaAPI,
 } from './projectFullClient';
 export { Runner, raceGraphs, run, stream } from './runner';
+export { SubAgent } from './subAgent';
 export { Tool } from './tool';
 export type * from './types';

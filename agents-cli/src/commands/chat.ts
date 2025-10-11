@@ -13,8 +13,8 @@ export async function chatCommand(agentId: string, options: ChatOptions) {
   const managementApi = await ManagementApiClient.create(options.url, options.config);
   const executionApi = await ExecutionApiClient.create(options.url, options.config);
 
-  // Check if graph exists using management API
-  const spinner = ora('Connecting to graph...').start();
+  // Check if agent exists using management API
+  const spinner = ora('Connecting to agent...').start();
   try {
     const agent = await managementApi.getAgent(agentId);
     if (!agent) {
@@ -23,7 +23,7 @@ export async function chatCommand(agentId: string, options: ChatOptions) {
     }
     spinner.succeed(`Connected to agent: ${agent.name || agentId}`);
   } catch (error) {
-    spinner.fail('Failed to connect to graph');
+    spinner.fail('Failed to connect to agent');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }
@@ -95,7 +95,7 @@ export async function chatCommand(agentId: string, options: ChatOptions) {
     return responseContent;
   }
 
-  // Set up tab completion for graph IDs
+  // Set up tab completion for agent IDs
   rl.on('line', async (input) => {
     const trimmedInput = input.trim();
 

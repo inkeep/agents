@@ -1,12 +1,12 @@
-import { GraphList } from '@/components/graphs/graph-list';
-import { GraphsIcon } from '@/components/icons/empty-state/graphs';
+import { GraphList } from '@/components/agent/agent-list';
+import { GraphsIcon } from '@/components/icons/empty-state/agent';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { graphDescription } from '@/constants/page-descriptions';
-import { fetchGraphs } from '@/lib/api/graph-full-client';
-import type { Graph } from '@/lib/types/graph-full';
+import { fetchGraphs } from '@/lib/api/agent-full-client';
+import type { Agent } from '@/lib/types/agent-full';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,29 +16,29 @@ interface GraphsPageProps {
 
 async function GraphsPage({ params }: GraphsPageProps) {
   const { tenantId, projectId } = await params;
-  let graphs: { data: Graph[] } = { data: [] };
+  let agent: { data: Agent[] } = { data: [] };
   try {
     const response = await fetchGraphs(tenantId, projectId);
-    graphs = response;
+    agent = response;
   } catch (_error) {
-    throw new Error('Failed to fetch graphs');
+    throw new Error('Failed to fetch agent');
   }
   return (
     <BodyTemplate
-      breadcrumbs={[{ label: 'Graphs', href: `/${tenantId}/projects/${projectId}/graphs` }]}
+      breadcrumbs={[{ label: 'Agent', href: `/${tenantId}/projects/${projectId}/agent` }]}
     >
       <MainContent className="min-h-full">
-        {graphs.data.length > 0 ? (
+        {agent.data.length > 0 ? (
           <>
-            <PageHeader title="Graphs" description={graphDescription} />
-            <GraphList tenantId={tenantId} projectId={projectId} graphs={graphs.data} />
+            <PageHeader title="Agent" description={graphDescription} />
+            <GraphList tenantId={tenantId} projectId={projectId} agent={agent.data} />
           </>
         ) : (
           <EmptyState
-            title="No graphs yet."
+            title="No agent yet."
             description={graphDescription}
-            link={`/${tenantId}/projects/${projectId}/graphs/new`}
-            linkText="Create graph"
+            link={`/${tenantId}/projects/${projectId}/agent/new`}
+            linkText="Create agent"
             icon={<GraphsIcon />}
           />
         )}

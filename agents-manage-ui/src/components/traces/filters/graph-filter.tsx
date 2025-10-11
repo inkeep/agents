@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { OptionType } from '@/components/ui/combobox';
 import { Combobox } from '@/components/ui/combobox';
-import { getAllGraphsAction } from '@/lib/actions/graph-full';
+import { getAllGraphsAction } from '@/lib/actions/agent-full';
 import { FilterTriggerComponent } from './filter-trigger';
 
 interface GraphFilterProps {
@@ -27,16 +27,16 @@ export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
         const response = await getAllGraphsAction(tenantId, projectId);
         if (!cancelled && response.success) {
           setGraphOptions(
-            response.data?.map((graph) => ({
-              value: graph.id,
-              label: graph.name,
-              searchBy: graph.name,
+            response.data?.map((agent) => ({
+              value: agent.id,
+              label: agent.name,
+              searchBy: agent.name,
             })) || []
           );
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to fetch graphs:', error);
+          console.error('Failed to fetch agent:', error);
           setGraphOptions([]);
         }
       } finally {
@@ -52,7 +52,7 @@ export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
   return (
     <Combobox
       defaultValue={selectedValue}
-      notFoundMessage={'No graphs found'}
+      notFoundMessage={'No agent found'}
       onSelect={(value) => {
         onSelect(value);
       }}
@@ -60,7 +60,7 @@ export const GraphFilter = ({ onSelect, selectedValue }: GraphFilterProps) => {
       TriggerComponent={
         <FilterTriggerComponent
           disabled={loading}
-          filterLabel={'Graph'}
+          filterLabel={'Agent'}
           isRemovable={true}
           onDeleteFilter={() => {
             onSelect(undefined);

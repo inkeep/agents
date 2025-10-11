@@ -31,9 +31,9 @@ export const SPAN_KEYS = {
   OTEL_STATUS_CODE: 'otel.status_code',
   OTEL_STATUS_DESCRIPTION: 'otel.status_description',
 
-  // Graph attributes
-  GRAPH_ID: 'graph.id',
-  GRAPH_NAME: 'graph.name',
+  // Agent attributes
+  GRAPH_ID: 'agent.id',
+  GRAPH_NAME: 'agent.name',
   TENANT_ID: 'tenant.id',
   PROJECT_ID: 'project.id',
 

@@ -329,7 +329,7 @@ async function generateProjectFiles(
   generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
   fileInfo.push({ type: 'config', name: 'index.ts' });
 
-  // Add graph generation tasks
+  // Add agent generation tasks
   if (agents && Object.keys(agents).length > 0) {
     for (const [agentId, agentData] of Object.entries(agents)) {
       const agentPath = join(dirs.agentsDir, `${agentId}.ts`);
@@ -391,7 +391,7 @@ async function generateProjectFiles(
     console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
   }
   if (filesByType.agent) {
-    console.log(chalk.gray(`     • Graphs: ${filesByType.agent.join(', ')}`));
+    console.log(chalk.gray(`     • Agent: ${filesByType.agent.join(', ')}`));
   }
   if (filesByType.tool) {
     console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
@@ -638,8 +638,8 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     // Show project summary
     const agentCount = Object.keys(projectData.agents || {}).length;
     const toolCount = Object.keys(projectData.tools || {}).length;
-    const subAgentCount = Object.values(projectData.agents || {}).reduce((total, graph) => {
-      return total + Object.keys(graph.subAgents || {}).length;
+    const subAgentCount = Object.values(projectData.agents || {}).reduce((total, agent) => {
+      return total + Object.keys(agent.subAgents || {}).length;
     }, 0);
 
     const dataComponentCount = Object.keys(projectData.dataComponents || {}).length;

@@ -27,21 +27,21 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List agent graphs
+// List agent agent
 app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Agent Graphs',
-    operationId: 'list-agent-graphs',
-    tags: ['Agent Graph'],
+    summary: 'List Agent Agent',
+    operationId: 'list-agent-agent',
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
       200: {
-        description: 'List of agent graphs retrieved successfully',
+        description: 'List of agent agent retrieved successfully',
         content: {
           'application/json': {
             schema: ListResponseSchema(AgentApiSelectSchema),
@@ -56,33 +56,33 @@ app.openapi(
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const graphs = await listAgents(dbClient)({ scopes: { tenantId, projectId } });
+    const agent = await listAgents(dbClient)({ scopes: { tenantId, projectId } });
     return c.json({
-      data: graphs,
+      data: agent,
       pagination: {
         page,
         limit,
-        total: graphs.length,
-        pages: Math.ceil(graphs.length / limit),
+        total: agent.length,
+        pages: Math.ceil(agent.length / limit),
       },
     });
   }
 );
 
-// Get agent graph by ID
+// Get agent agent by ID
 app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Agent Graph',
-    operationId: 'get-agent-graph',
-    tags: ['Agent Graph'],
+    summary: 'Get Agent Agent',
+    operationId: 'get-agent-agent',
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Agent graph found',
+        description: 'Agent agent found',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentApiSelectSchema),
@@ -94,32 +94,32 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const graph = await getAgentById(dbClient)({
+    const agent = await getAgentById(dbClient)({
       scopes: { tenantId, projectId, agentId: id },
     });
 
-    if (!graph) {
+    if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent graph not found',
+        message: 'Agent agent not found',
       });
     }
 
-    return c.json({ data: graph });
+    return c.json({ data: agent });
   }
 );
 
-// Get related agent infos for a specific agent within a graph
+// Get related agent infos for a specific agent within a agent
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{graphId}/sub-agents/{subAgentId}/related',
+    path: '/{agentId}/sub-agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
-    tags: ['Agent Graph'],
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectParamsSchema.extend({
-        graphId: z.string(),
+        agentId: z.string(),
         subAgentId: z.string(),
       }),
     },
@@ -142,11 +142,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, subAgentId } = c.req.valid('param');
+    const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
 
     const relatedAgents = await getAgentSubAgentInfos(dbClient)({
       scopes: { tenantId, projectId },
-      agentId: graphId,
+      agentId: agentId,
       subAgentId: subAgentId,
     });
 
@@ -162,20 +162,20 @@ app.openapi(
   }
 );
 
-// Get full graph definition
+// Get full agent definition
 app.openapi(
   createRoute({
     method: 'get',
     path: '/{agentId}/full',
-    summary: 'Get Full Graph Definition',
-    operationId: 'get-full-graph-definition',
-    tags: ['Agent Graph'],
+    summary: 'Get Full Agent Definition',
+    operationId: 'get-full-agent-definition',
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectAgentParamsSchema,
     },
     responses: {
       200: {
-        description: 'Full graph definition retrieved successfully',
+        description: 'Full agent definition retrieved successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
@@ -195,7 +195,7 @@ app.openapi(
     if (!fullGraph) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent graph not found',
+        message: 'Agent agent not found',
       });
     }
 
@@ -203,14 +203,14 @@ app.openapi(
   }
 );
 
-// Create agent graph
+// Create agent agent
 app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Agent Graph',
-    operationId: 'create-agent-graph',
-    tags: ['Agent Graph'],
+    summary: 'Create Agent Agent',
+    operationId: 'create-agent-agent',
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -223,7 +223,7 @@ app.openapi(
     },
     responses: {
       201: {
-        description: 'Agent graph created successfully',
+        description: 'Agent agent created successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentApiSelectSchema),
@@ -237,7 +237,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const graph = await createAgent(dbClient)({
+    const agent = await createAgent(dbClient)({
       tenantId,
       projectId,
       id: validatedBody.id || nanoid(),
@@ -246,18 +246,18 @@ app.openapi(
       contextConfigId: validatedBody.contextConfigId ?? undefined,
     });
 
-    return c.json({ data: graph }, 201);
+    return c.json({ data: agent }, 201);
   }
 );
 
-// Update agent graph
+// Update agent agent
 app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Agent Graph',
-    operationId: 'update-agent-graph',
-    tags: ['Agent Graph'],
+    summary: 'Update Agent Agent',
+    operationId: 'update-agent-agent',
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -270,7 +270,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Agent graph updated successfully',
+        description: 'Agent agent updated successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentApiSelectSchema),
@@ -295,7 +295,7 @@ app.openapi(
     if (!updatedGraph) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent graph not found',
+        message: 'Agent agent not found',
       });
     }
 
@@ -303,23 +303,23 @@ app.openapi(
   }
 );
 
-// Delete agent graph
+// Delete agent agent
 app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Agent Graph',
-    operationId: 'delete-agent-graph',
-    tags: ['Agent Graph'],
+    summary: 'Delete Agent Agent',
+    operationId: 'delete-agent-agent',
+    tags: ['Agent Agent'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {
-        description: 'Agent graph deleted successfully',
+        description: 'Agent agent deleted successfully',
       },
       404: {
-        description: 'Agent graph not found',
+        description: 'Agent agent not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -337,7 +337,7 @@ app.openapi(
     if (!deleted) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent graph not found',
+        message: 'Agent agent not found',
       });
     }
 

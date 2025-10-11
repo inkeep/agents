@@ -144,7 +144,7 @@ async function hydrateAgent({
       subAgentId: dbAgent.id,
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
-      graphId: agentId,
+      agentId: agentId,
       agentCard,
       taskHandler,
     };

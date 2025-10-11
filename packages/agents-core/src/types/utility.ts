@@ -204,7 +204,7 @@ export interface ProjectInfo {
 
 export interface ProjectResourceCounts {
   agents: number;
-  agentGraphs: number;
+  agent: number;
   tools: number;
   contextConfigs: number;
   externalAgents: number;

@@ -2,7 +2,7 @@ import { Play, Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useGraphStore } from '@/features/agent/state/use-agent-store';
 import { isMacOs } from '@/lib/utils';
 
 interface ToolbarProps {
@@ -56,8 +56,8 @@ export function Toolbar({
           </TooltipTrigger>
           <TooltipContent>
             {dirty
-              ? 'Please save your changes before trying the graph.'
-              : 'Please save the graph to try it.'}
+              ? 'Please save your changes before trying the agent.'
+              : 'Please save the agent to try it.'}
           </TooltipContent>
         </Tooltip>
       ) : (
@@ -73,7 +73,7 @@ export function Toolbar({
       </Button>
       <Button type="button" variant="outline" onClick={toggleSidePane}>
         <Settings className="w-4 h-4" />
-        Graph Settings
+        Agent Settings
       </Button>
     </div>
   );

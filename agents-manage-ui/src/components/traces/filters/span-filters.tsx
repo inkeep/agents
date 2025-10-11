@@ -100,13 +100,13 @@ export function SpanFilters({
               )}
               {!spanNamesLoading && availableSpanNames.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No span names found in {selectedGraph ? `graph "${selectedGraph}"` : 'any graph'}.
+                  No span names found in {selectedGraph ? `agent "${selectedGraph}"` : 'any agent'}.
                   You can type a custom span name above.
                 </p>
               )}
               {!spanNamesLoading && availableSpanNames.length > 0 && selectedGraph && (
                 <p className="text-xs text-muted-foreground">
-                  Showing span names from graph "{selectedGraph}" only
+                  Showing span names from agent "{selectedGraph}" only
                 </p>
               )}
             </div>

@@ -12,7 +12,7 @@ export * from './dataComponents';
 export * from './externalAgents';
 export * from './functions';
 export * from './functionTools';
-export * from './graphFull';
+export * from './agentFull';
 export * from './ledgerArtifacts';
 export * from './messages';
 export * from './projectFull';

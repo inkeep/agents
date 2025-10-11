@@ -115,7 +115,7 @@ const PROJECT_JSON_EXAMPLE = `
     "transferCountIs": 10,
     "stepCountIs": 24
   },
-  "graphs": {
+  "agent": {
     "customer-service": {
       "id": "customer-service",
       "name": "customer-service",
@@ -241,7 +241,7 @@ CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
 - Examples:
   - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
   - Component: import { userProfile } from '../data-components/user-profile'; export const userProfile = dataComponent({ id: 'user-profile', ... })
-  - Graph: import { myGraph } from './graphs/my-graph'; export const myGraph = agentGraph({ id: 'my-graph', ... })
+  - Agent: import { myGraph } from './agent/my-agent'; export const myGraph = agent({ id: 'my-agent', ... })
 `;
 
 const IMPORT_INSTRUCTIONS = `
@@ -251,7 +251,7 @@ CRITICAL IMPORT PATTERNS:
 - Tools: Import from '../tools/{toolId}' (individual files)
 - Data components: Import from '../data-components/{componentId}' (individual files)
 - Artifact components: Import from '../artifact-components/{componentId}' (individual files)
-- Graphs: Import from './graphs/{graphId}' (individual files)
+- Agent: Import from './agent/{agentId}' (individual files)
 
 NEVER use barrel imports from directories:
 ❌ WRONG: import { ordersList, refundApproval } from '../data-components';
@@ -268,9 +268,9 @@ import { refundApproval } from '../data-components/refund-approval';
 import { inkeepFacts } from '../tools/inkeep_facts';
 import { weatherApi } from '../tools/weather-api';
 
-// Graphs - each from individual file:
-import { inkeepQaGraph } from './graphs/inkeep-qa-graph';
-import { weatherGraph } from './graphs/weather-graph';
+// Agent - each from individual file:
+import { inkeepQaGraph } from './agent/inkeep-qa-agent';
+import { weatherGraph } from './agent/weather-agent';
 `;
 
 /**
@@ -418,23 +418,23 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
- * Generate a graph TypeScript file
+ * Generate a agent TypeScript file
  */
 export async function generateGraphFile(
   graphData: FullGraphDefinition,
-  graphId: string,
+  agentId: string,
   outputPath: string,
   modelSettings: ModelSettings,
   debug: boolean = false
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const promptTemplate = `Generate a TypeScript file for an Inkeep agent graph.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep agent agent.
 
-GRAPH DATA:
+AGENT DATA:
 {{DATA}}
 
-GRAPH ID: ${graphId}
+AGENT ID: ${agentId}
 
 ${getTypeDefinitions()}
 
@@ -448,9 +448,9 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. Import { agent, agentGraph } from '@inkeep/agents-sdk'
+1. Import { agent, agent } from '@inkeep/agents-sdk'
 2. Define each agent using the agent() function following the type definitions provided above
-3. Create the graph using agentGraph() with proper structure
+3. Create the agent using agent() with proper structure
    - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
 4. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
    - Single-line strings: use regular quotes 'short string'
@@ -458,7 +458,7 @@ REQUIREMENTS:
    - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
    - Placeholders contain multi-line content and require template literals
    - This prevents TypeScript syntax errors with newlines and special characters
-   - you must import { z } from 'zod' if you are using zod schemas in the graph file.
+   - you must import { z } from 'zod' if you are using zod schemas in the agent file.
    - you must import { headers } from '@inkeep/agents-core' and use it to create the headers schema if you are using headers in a contextConfig.
    - convert template literals to use the appropriate headers schema or context config toTemplate method. a template literal is a substring that starts with {{ and ends with }}.
     - if you see a template literal with {{headers.}}, convert it to use the headers schema toTemplate method.
@@ -473,7 +473,7 @@ prompt: \`<{{subAgents.facts.prompt.abc12345}}>\`
 prompt: '<{{subAgents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
-import { agent, agentGraph } from '@inkeep/agents-sdk';
+import { agent, agent } from '@inkeep/agents-sdk';
 import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';
@@ -537,9 +537,9 @@ Follow these rules:
   dataComponents: () => [userProfile.config]
 });
 
-export const supportGraph = agentGraph({
-  id: 'support-graph',
-  name: 'Support Graph',
+export const supportGraph = agent({
+  id: 'support-agent',
+  name: 'Support Agent',
   description: 'Multi-agent support system', // Only include if description has a value
   defaultSubAgent: routerAgent,
   subAgents: () => [routerAgent, qaAgent]
@@ -548,12 +548,12 @@ export const supportGraph = agentGraph({
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
   if (debug) {
-    console.log(`\n[DEBUG] === Starting graph generation for: ${graphId} ===`);
+    console.log(`\n[DEBUG] === Starting agent generation for: ${agentId} ===`);
     console.log(`[DEBUG] Output path: ${outputPath}`);
     console.log(`[DEBUG] Model: ${modelSettings.model || 'default'}`);
-    console.log(`[DEBUG] Graph data size: ${JSON.stringify(graphData).length} characters`);
+    console.log(`[DEBUG] Agent data size: ${JSON.stringify(graphData).length} characters`);
 
-    // Log graph complexity
+    // Log agent complexity
     const agentCount = Object.keys(graphData.subAgents || {}).length;
     const toolIds = new Set();
     const dataComponentIds = new Set();
@@ -577,7 +577,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       }
     }
 
-    console.log(`[DEBUG] Graph complexity:`);
+    console.log(`[DEBUG] Agent complexity:`);
     console.log(`[DEBUG]   - Agents: ${agentCount}`);
     console.log(`[DEBUG]   - Unique tools: ${toolIds.size}`);
     console.log(`[DEBUG]   - Data components: ${dataComponentIds.size}`);
@@ -599,7 +599,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       {
         temperature: 0.1,
         maxOutputTokens: 16000,
-        abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex graphs
+        abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex agent
       },
       debug // Pass debug flag to show placeholder optimization info
     );
@@ -616,17 +616,17 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     writeFileSync(outputPath, cleanedCode);
 
     if (debug) {
-      console.log(`[DEBUG] Graph file written successfully`);
-      console.log(`[DEBUG] === Completed graph generation for: ${graphId} ===\n`);
+      console.log(`[DEBUG] Agent file written successfully`);
+      console.log(`[DEBUG] === Completed agent generation for: ${agentId} ===\n`);
     }
   } catch (error: any) {
     if (debug) {
-      console.error(`[DEBUG] === ERROR generating graph file ${graphId} ===`);
+      console.error(`[DEBUG] === ERROR generating agent file ${agentId} ===`);
       console.error(`[DEBUG] Error name: ${error.name}`);
       console.error(`[DEBUG] Error message: ${error.message}`);
       if (error.name === 'AbortError') {
         console.error(`[DEBUG] Request timed out after 240 seconds`);
-        console.error(`[DEBUG] This might indicate the graph is too complex or the API is slow`);
+        console.error(`[DEBUG] This might indicate the agent is too complex or the API is slow`);
       }
       if (error.response) {
         console.error(`[DEBUG] Response status: ${error.response.status}`);
@@ -980,11 +980,11 @@ export { ${exportStatement} };
 
 /**
  * Legacy function for backward compatibility
- * Generate TypeScript code using LLM to intelligently merge graph data
+ * Generate TypeScript code using LLM to intelligently merge agent data
  */
 export async function generateTypeScriptFileWithLLM(
   graphData: any,
-  graphId: string,
+  agentId: string,
   outputFilePath: string,
   modelSettings: ModelSettings,
   retryContext?: {
@@ -1011,7 +1011,7 @@ export async function generateTypeScriptFileWithLLM(
   const model = createModel(modelSettings);
 
   // Prepare the prompt
-  const prompt = createPrompt(graphData, graphId, existingContent, fileExists, retryContext);
+  const prompt = createPrompt(graphData, agentId, existingContent, fileExists, retryContext);
 
   try {
     // Generate the updated code using the LLM
@@ -1038,7 +1038,7 @@ export async function generateTypeScriptFileWithLLM(
  */
 function createPrompt(
   graphData: any,
-  graphId: string,
+  agentId: string,
   existingContent: string,
   fileExists: boolean,
   retryContext?: {
@@ -1067,18 +1067,18 @@ IMPORTANT: Pay special attention to these specific issues and ensure they are re
     : ''
 }
 
-CRITICAL: This is a retry attempt. You must be extremely careful to match the exact structure and values from the graph data. Double-check all IDs, names, and configurations.
+CRITICAL: This is a retry attempt. You must be extremely careful to match the exact structure and values from the agent data. Double-check all IDs, names, and configurations.
 `
       : '';
 
   if (!fileExists) {
     // Create new file
-    return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent graph configuration.${retryInstructions}
+    return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent agent configuration.${retryInstructions}
 
-GRAPH DATA (JSON):
+AGENT DATA (JSON):
 ${graphDataJson}
 
-GRAPH ID: ${graphId}
+AGENT ID: ${agentId}
 
 ${getTypeDefinitions()}
 
@@ -1087,22 +1087,22 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. Create a complete TypeScript file that exports an agentGraph configuration
-2. Use the exact structure and patterns shown in the graph data
+1. Create a complete TypeScript file that exports an agent configuration
+2. Use the exact structure and patterns shown in the agent data
 3. For agents, use the \`agent()\` function with proper configuration
 4. For MCP tools, use the \`mcpTool()\` function with proper configuration
 5. For context configs, use the \`contextConfig()\` function
 6. For credential references, use the \`credential()\` function
 7. Use proper TypeScript syntax with correct imports
 8. Handle multi-line strings with template literals (backticks) when needed
-9. Preserve the exact structure and relationships from the graph data
+9. Preserve the exact structure and relationships from the agent data
 10. Use descriptive variable names based on IDs (e.g., \`qaAgent\`, \`factsTool\`)
 11. Include helpful comments for complex configurations
-12. Preserve all configuration details exactly as provided in the graph data
+12. Preserve all configuration details exactly as provided in the agent data
 
 IMPORTANT:
 - Agents use \`canUse\` for tools, not \`tools\`
-- Graph's \`subAgents\` property should be an arrow function: subAgents: () => [...]
+- Agent's \`subAgents\` property should be an arrow function: subAgents: () => [...]
 - DataComponents don't have \`id\` field in their config
 - Use \`undefined\` instead of \`null\` for missing optional values
 - If tools array contains numeric indices, use the actual tool IDs instead
@@ -1110,7 +1110,7 @@ IMPORTANT:
 - Use proper TypeScript formatting and indentation
 - Include all necessary imports at the top
 - Add comments for complex objects like GraphQL queries or multi-line instructions
-- Keep the same structure and organization as typical Inkeep graph files
+- Keep the same structure and organization as typical Inkeep agent files
 
 CRITICAL: Generate ONLY the raw TypeScript code. Do NOT wrap it in markdown code blocks (no triple backticks with typescript). Do NOT include any explanations, comments, or markdown formatting. Return only the pure TypeScript code that can be written directly to a .ts file.`;
   } else {
@@ -1122,10 +1122,10 @@ EXISTING FILE CONTENT:
 ${existingContent}
 \`\`\`
 
-NEW GRAPH DATA (JSON):
+NEW AGENT DATA (JSON):
 ${graphDataJson}
 
-GRAPH ID: ${graphId}
+AGENT ID: ${agentId}
 
 ${getTypeDefinitions()}
 
@@ -1135,7 +1135,7 @@ ${IMPORT_INSTRUCTIONS}
 
 CRITICAL RULES - FOLLOW THESE EXACTLY:
 1. PRESERVE ALL EXISTING CONTENT - Do not delete, rewrite, or restructure anything
-2. ONLY change property values that are actually different between the existing file and new graph data
+2. ONLY change property values that are actually different between the existing file and new agent data
 3. KEEP ALL COMMENTS - Do not remove any comments unless they are factually incorrect
 4. KEEP ALL FORMATTING - Preserve exact spacing, indentation, line breaks, and code style
 5. KEEP ALL IMPORTS - Do not change import statements
@@ -1145,8 +1145,8 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 WHAT TO CHANGE:
 - Only update property values (like id, name, description, instructions, etc.) that are different
 - If a property value is the same, leave it exactly as it is
-- If a new agent/tool/config is added in the graph data, add it following the existing patterns
-- If an agent/tool/config is removed from the graph data, remove it from the file
+- If a new agent/tool/config is added in the agent data, add it following the existing patterns
+- If an agent/tool/config is removed from the agent data, remove it from the file
 
 WHAT NOT TO CHANGE:
 - Do not rewrite entire functions or objects

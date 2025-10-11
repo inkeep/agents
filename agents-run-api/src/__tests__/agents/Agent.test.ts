@@ -73,7 +73,7 @@ const {
   const listTaskIdsByContextIdMock = vi.fn(() => vi.fn().mockResolvedValue([]));
   const getFullGraphDefinitionMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       agents: [],
       transferRelations: [],
       delegateRelations: [],
@@ -112,7 +112,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -174,7 +174,7 @@ vi.mock('../../agents/ToolSessionManager.js', () => ({
 }));
 
 // Mock GraphSessionManager
-vi.mock('../../utils/graph-session.js', () => ({
+vi.mock('../../utils/agent-session.js', () => ({
   graphSessionManager: {
     recordEvent: vi.fn(),
   },
@@ -354,7 +354,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
@@ -642,7 +642,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
@@ -847,7 +847,7 @@ describe('Agent Credential Integration', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
@@ -1078,7 +1078,7 @@ describe('Agent Credential Integration', () => {
     const contextConfig = {
       id: 'context-agent',
       tenantId: 'context-tenant',
-      graphId: 'context-graph',
+      agentId: 'context-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Context Agent',
@@ -1141,7 +1141,7 @@ describe('Two-Pass Generation System', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
@@ -1227,7 +1227,7 @@ describe('Agent Model Settings', () => {
       id: 'test-agent',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent for model settingsuration',
@@ -1450,7 +1450,7 @@ describe('Agent Model Settings', () => {
 });
 
 describe('Agent Conditional Tool Availability', () => {
-  test('agent without artifact components in graph without components should have no artifact tools', async () => {
+  test('agent without artifact components in agent without components should have no artifact tools', async () => {
     // Mock graphHasArtifactComponents to return false
     graphHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
 
@@ -1460,7 +1460,7 @@ describe('Agent Conditional Tool Availability', () => {
       name: 'Test Agent',
       description: 'Test agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph-no-components',
+      agentId: 'test-agent-no-components',
       baseUrl: 'http://localhost:3000',
       agentPrompt: 'Test instructions',
       subAgentRelations: [],
@@ -1480,7 +1480,7 @@ describe('Agent Conditional Tool Availability', () => {
     expect(tools.get_reference_artifact).toBeUndefined();
   });
 
-  test('agent without artifact components in graph with components should have get_reference_artifact', async () => {
+  test('agent without artifact components in agent with components should have get_reference_artifact', async () => {
     // Mock graphHasArtifactComponents to return true
     graphHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
@@ -1490,7 +1490,7 @@ describe('Agent Conditional Tool Availability', () => {
       name: 'Test Agent',
       description: 'Test agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph-with-components',
+      agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
       agentPrompt: 'Test instructions',
       subAgentRelations: [],
@@ -1540,7 +1540,7 @@ describe('Agent Conditional Tool Availability', () => {
       name: 'Test Agent',
       description: 'Test agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph-with-components',
+      agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
       agentPrompt: 'Test instructions',
       subAgentRelations: [],

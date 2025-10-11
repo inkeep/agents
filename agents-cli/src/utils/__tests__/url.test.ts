@@ -43,26 +43,26 @@ describe('normalizeBaseUrl', () => {
 describe('buildGraphViewUrl', () => {
   const tenantId = 'test-tenant';
   const projectId = 'test-project';
-  const graphId = 'test-graph';
+  const agentId = 'test-agent';
 
   it('should build correct URL with provided base URL', () => {
-    const result = buildGraphViewUrl('http://localhost:3000', tenantId, projectId, graphId);
+    const result = buildGraphViewUrl('http://localhost:3000', tenantId, projectId, agentId);
     expect(result).toBe(
-      'http://localhost:3000/test-tenant/projects/test-project/agents/test-graph'
+      'http://localhost:3000/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
   it('should use default URL when manageUiUrl is undefined', () => {
-    const result = buildGraphViewUrl(undefined, tenantId, projectId, graphId);
+    const result = buildGraphViewUrl(undefined, tenantId, projectId, agentId);
     expect(result).toBe(
-      'http://localhost:3000/test-tenant/projects/test-project/agents/test-graph'
+      'http://localhost:3000/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
   it('should handle trailing slashes in base URL', () => {
-    const result = buildGraphViewUrl('http://localhost:3000/', tenantId, projectId, graphId);
+    const result = buildGraphViewUrl('http://localhost:3000/', tenantId, projectId, agentId);
     expect(result).toBe(
-      'http://localhost:3000/test-tenant/projects/test-project/agents/test-graph'
+      'http://localhost:3000/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
@@ -71,10 +71,10 @@ describe('buildGraphViewUrl', () => {
       'https://app.example.com/dashboard/',
       tenantId,
       projectId,
-      graphId
+      agentId
     );
     expect(result).toBe(
-      'https://app.example.com/dashboard/test-tenant/projects/test-project/agents/test-graph'
+      'https://app.example.com/dashboard/test-tenant/projects/test-project/agents/test-agent'
     );
   });
 
@@ -83,15 +83,15 @@ describe('buildGraphViewUrl', () => {
       'http://localhost:3000',
       'tenant-123',
       'project_456',
-      'graph.with.dots'
+      'agent.with.dots'
     );
     expect(result).toBe(
-      'http://localhost:3000/tenant-123/projects/project_456/agents/graph.with.dots'
+      'http://localhost:3000/tenant-123/projects/project_456/agents/agent.with.dots'
     );
   });
 
   it('should throw error for invalid base URL', () => {
-    expect(() => buildGraphViewUrl('not-a-url', tenantId, projectId, graphId)).toThrow(
+    expect(() => buildGraphViewUrl('not-a-url', tenantId, projectId, agentId)).toThrow(
       'Invalid URL format'
     );
   });
@@ -101,10 +101,10 @@ describe('buildGraphViewUrl', () => {
       'https://manage.inkeep.com',
       'prod-tenant',
       'prod-project',
-      'prod-graph'
+      'prod-agent'
     );
     expect(result).toBe(
-      'https://manage.inkeep.com/prod-tenant/projects/prod-project/agents/prod-graph'
+      'https://manage.inkeep.com/prod-tenant/projects/prod-project/agents/prod-agent'
     );
   });
 });

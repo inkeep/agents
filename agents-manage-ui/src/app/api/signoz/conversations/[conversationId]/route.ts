@@ -832,12 +832,12 @@ export async function GET(
       }
     }
 
-    let graphId: string | null = null;
+    let agentId: string | null = null;
     let graphName: string | null = null;
     for (const s of userMessageSpans) {
-      graphId = getString(s, SPAN_KEYS.GRAPH_ID, '') || null;
+      agentId = getString(s, SPAN_KEYS.GRAPH_ID, '') || null;
       graphName = getString(s, SPAN_KEYS.GRAPH_NAME, '') || null;
-      if (graphId || graphName) break;
+      if (agentId || graphName) break;
     }
     // activities
     type Activity = {
@@ -871,7 +871,7 @@ export async function GET(
       messageContent?: string;
       // context resolution
       contextConfigId?: string;
-      contextAgentGraphId?: string;
+      contextAgentAgentId?: string;
       contextHeadersKeys?: string[];
       contextTrigger?: string;
       contextStatusDescription?: string;
@@ -983,7 +983,7 @@ export async function GET(
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
-        contextAgentGraphId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
+        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
         contextHeadersKeys: keys,
       });
     }
@@ -1013,7 +1013,7 @@ export async function GET(
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
-        contextAgentGraphId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
+        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
         contextHeadersKeys: keys,
       });
     }
@@ -1291,7 +1291,7 @@ export async function GET(
       totalInputTokens,
       totalOutputTokens,
       mcpToolErrors: [],
-      graphId,
+      agentId,
       graphName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,

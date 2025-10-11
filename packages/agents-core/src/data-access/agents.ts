@@ -667,7 +667,7 @@ export const getFullGraphDefinition =
       }
       result.tools = toolsObject;
 
-      // Get function tools for this graph
+      // Get function tools for this agent
       const functionToolsList = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page: 1, limit: 1000 },

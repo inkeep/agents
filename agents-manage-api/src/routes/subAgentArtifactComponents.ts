@@ -23,7 +23,7 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List artifact components for a specific agent in a graph
+// List artifact components for a specific agent in a agent
 app.openapi(
   createRoute({
     method: 'get',

@@ -103,7 +103,7 @@ export type AgentConfig = {
   id: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
@@ -383,7 +383,7 @@ export class Agent {
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
             'ai.agentName': this.config.name || 'unknown',
-            'graph.id': this.config.graphId || 'unknown',
+            'agent.id': this.config.agentId || 'unknown',
           });
         }
 
@@ -477,7 +477,7 @@ export class Agent {
               callingAgentId: this.config.id,
               tenantId: this.config.tenantId,
               projectId: this.config.projectId,
-              agentId: this.config.graphId,
+              agentId: this.config.agentId,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -622,7 +622,7 @@ export class Agent {
       scopes: {
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
-        agentId: this.config.graphId,
+        agentId: this.config.agentId,
         subAgentId: this.config.id,
       },
     });
@@ -756,14 +756,14 @@ export class Agent {
               'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
               'ai.toolCall.result': JSON.stringify({
                 status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
                 originalToolName: tool.name,
               }),
               'ai.toolType': 'mcp',
               'ai.agentName': this.config.name || 'unknown',
               'conversation.id': this.conversationId || 'unknown',
-              'graph.id': this.config.graphId || 'unknown',
+              'agent.id': this.config.agentId || 'unknown',
               'tenant.id': this.config.tenantId || 'unknown',
               'project.id': this.config.projectId || 'unknown',
             },
@@ -775,7 +775,7 @@ export class Agent {
               args: { operation: 'mcp_tool_discovery' },
               result: {
                 status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
               },
             });
@@ -835,7 +835,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          agentId: this.config.graphId,
+          agentId: this.config.agentId,
         },
         subAgentId: this.config.id,
       });
@@ -953,7 +953,7 @@ export class Agent {
   ): Promise<Record<string, unknown> | null> {
     try {
       if (!this.config.contextConfigId) {
-        logger.debug({ graphId: this.config.graphId }, 'No context config found for graph');
+        logger.debug({ agentId: this.config.agentId }, 'No context config found for agent');
         return null;
       }
 
@@ -962,7 +962,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          agentId: this.config.graphId,
+          agentId: this.config.agentId,
         },
         id: this.config.contextConfigId,
       });
@@ -1017,15 +1017,15 @@ export class Agent {
   }
 
   /**
-   * Get the graph prompt for this agent's graph
+   * Get the agent prompt for this agent's agent
    */
-  private async getGraphPrompt(): Promise<string | undefined> {
+  private async getAgentPrompt(): Promise<string | undefined> {
     try {
       const graphDefinition = await getFullGraphDefinition(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          agentId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
 
@@ -1033,17 +1033,17 @@ export class Agent {
     } catch (error) {
       logger.warn(
         {
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to get graph prompt'
+        'Failed to get agent prompt'
       );
       return undefined;
     }
   }
 
   /**
-   * Check if any agent in the graph has artifact components configured
+   * Check if any agent in the agent has artifact components configured
    */
   private async hasGraphArtifactComponents(): Promise<boolean> {
     try {
@@ -1051,7 +1051,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          agentId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
 
@@ -1059,7 +1059,7 @@ export class Agent {
         return false;
       }
 
-      // Check if any agent in the graph has artifact components
+      // Check if any agent in the agent has artifact components
       return Object.values(graphDefinition.subAgents).some(
         (subAgent) =>
           'artifactComponents' in subAgent &&
@@ -1069,21 +1069,21 @@ export class Agent {
     } catch (error) {
       logger.warn(
         {
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to check graph artifact components, assuming none exist'
+        'Failed to check agent artifact components, assuming none exist'
       );
-      // Fallback to current agent's artifact components if graph query fails
+      // Fallback to current agent's artifact components if agent query fails
       return this.artifactComponents.length > 0;
     }
   }
 
   /**
    * Build adaptive system prompt for Phase 2 structured output generation
-   * based on configured data components and artifact components across the graph
+   * based on configured data components and artifact components across the agent
    */
   private async buildPhase2SystemPrompt(runtimeContext?: {
     contextId: string;
@@ -1244,10 +1244,10 @@ export class Agent {
     const isThinkingPreparation =
       this.config.dataComponents && this.config.dataComponents.length > 0 && excludeDataComponents;
 
-    // Get graph prompt for additional context
-    let graphPrompt = await this.getGraphPrompt();
+    // Get agent prompt for additional context
+    let graphPrompt = await this.getAgentPrompt();
 
-    // Process graph prompt with context variables
+    // Process agent prompt with context variables
     if (graphPrompt && resolvedContext) {
       try {
         graphPrompt = TemplateEngine.render(graphPrompt, resolvedContext, {
@@ -1260,7 +1260,7 @@ export class Agent {
             conversationId,
             error: error instanceof Error ? error.message : 'Unknown error',
           },
-          'Failed to process graph prompt with context, using original'
+          'Failed to process agent prompt with context, using original'
         );
         // graphPrompt remains unchanged if processing fails
       }
@@ -1270,7 +1270,7 @@ export class Agent {
     // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    // Check if any agent in the graph has artifact components (for referencing guidance)
+    // Check if any agent in the agent has artifact components (for referencing guidance)
     const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
 
     const config: SystemPromptV1 = {
@@ -1344,8 +1344,8 @@ export class Agent {
   private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
-    // Add get_reference_artifact if any agent in the graph has artifact components
-    // This enables cross-agent artifact collaboration within the same graph
+    // Add get_reference_artifact if any agent in the agent has artifact components
+    // This enables cross-agent artifact collaboration within the same agent
     if (await this.graphHasArtifactComponents()) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
@@ -1643,20 +1643,20 @@ export class Agent {
     }
   }
 
-  // Check if any agents in the graph have artifact components
+  // Check if any agents in the agent have artifact components
   private async graphHasArtifactComponents(): Promise<boolean> {
     try {
       return await graphHasArtifactComponents(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          agentId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
     } catch (error) {
       logger.error(
-        { error, graphId: this.config.graphId },
-        'Failed to check graph artifact components'
+        { error, agentId: this.config.agentId },
+        'Failed to check agent artifact components'
       );
       return false;
     }
@@ -2376,7 +2376,7 @@ ${output}${structureHintsFormatted}`;
         }
 
         // Don't clean up ToolSession here - let ToolSessionManager handle timeout-based cleanup
-        // The ToolSession might still be needed by other agents in the graph execution
+        // The ToolSession might still be needed by other agents in the agent execution
 
         return formattedResponse;
       } catch (error) {

@@ -235,7 +235,7 @@ app.openapi(
       const agentType = isExternalAgent ? 'external' : 'internal';
       throw createApiError({
         code: 'unprocessable_entity',
-        message: `A relation between these agents (${agentType}) in this graph already exists`,
+        message: `A relation between these agents (${agentType}) in this agent already exists`,
       });
     }
 

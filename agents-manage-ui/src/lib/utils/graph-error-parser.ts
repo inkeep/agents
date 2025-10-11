@@ -1,7 +1,7 @@
 /**
- * Graph Error Parser Utilities
+ * Agent Error Parser Utilities
  *
- * Transforms Zod validation errors from graph save operations into user-friendly
+ * Transforms Zod validation errors from agent save operations into user-friendly
  * error messages with node/edge mapping for visual feedback.
  */
 
@@ -13,7 +13,7 @@ export interface ValidationErrorDetail {
 }
 
 export interface ProcessedGraphError {
-  type: 'node' | 'edge' | 'graph';
+  type: 'node' | 'edge' | 'agent';
   nodeType?: 'agent' | 'functionTool';
   nodeId?: string;
   edgeId?: string;
@@ -73,7 +73,7 @@ export function parseGraphValidationErrors(apiError: string): GraphErrorSummary 
       edgeErrors: {},
       graphErrors: [
         {
-          type: 'graph',
+          type: 'agent',
           field: 'unknown',
           message: 'An unknown validation error occurred',
           fullPath: [],
@@ -99,7 +99,7 @@ function processValidationError(
   const fullPath = [...basePath, ...error.path];
 
   // Determine error type and extract IDs
-  let type: 'node' | 'edge' | 'graph' = 'graph';
+  let type: 'node' | 'edge' | 'agent' = 'agent';
   let nodeType: 'agent' | 'functionTool' | undefined;
   let nodeId: string | undefined;
   let edgeId: string | undefined;
@@ -149,7 +149,7 @@ function processValidationError(
 function createUserFriendlyMessage(
   error: ValidationErrorDetail,
   field: string,
-  type: 'node' | 'edge' | 'graph',
+  type: 'node' | 'edge' | 'agent',
   nodeType?: 'agent' | 'functionTool'
 ): string {
   let entityType: string;
@@ -158,7 +158,7 @@ function createUserFriendlyMessage(
   } else if (type === 'edge') {
     entityType = 'Connection';
   } else {
-    entityType = 'Graph';
+    entityType = 'Agent';
   }
   const fieldName = getFieldDisplayName(field);
 
@@ -262,7 +262,7 @@ function categorizeErrors(errors: ProcessedGraphError[]): GraphErrorSummary {
           edgeErrors[error.edgeId].push(error);
         }
         break;
-      case 'graph':
+      case 'agent':
         graphErrors.push(error);
         break;
     }
@@ -304,7 +304,7 @@ export function getErrorSummaryMessage(errorSummary: GraphErrorSummary): string 
     parts.push(`${edgeErrorCount} connection${edgeErrorCount > 1 ? 's' : ''}`);
   }
   if (graphErrorCount > 0) {
-    parts.push(`${graphErrorCount} graph setting${graphErrorCount > 1 ? 's' : ''}`);
+    parts.push(`${graphErrorCount} agent setting${graphErrorCount > 1 ? 's' : ''}`);
   }
 
   const summary = parts.join(', ');

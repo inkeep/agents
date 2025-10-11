@@ -8,14 +8,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DeleteGraphConfirmation } from './delete-graph-confirmation';
+import { DeleteGraphConfirmation } from './delete-agent-confirmation';
 
 interface GraphItemMenuProps {
-  graphId: string;
+  agentId: string;
   graphName?: string;
 }
 
-export function GraphItemMenu({ graphId, graphName }: GraphItemMenuProps) {
+export function GraphItemMenu({ agentId, graphName }: GraphItemMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleOpenChange = (open: boolean) => {
@@ -47,7 +47,7 @@ export function GraphItemMenu({ graphId, graphName }: GraphItemMenuProps) {
         </DropdownMenuContent>
       </DropdownMenu>
       {isOpen && (
-        <DeleteGraphConfirmation graphId={graphId} graphName={graphName} setIsOpen={setIsOpen} />
+        <DeleteGraphConfirmation agentId={agentId} graphName={graphName} setIsOpen={setIsOpen} />
       )}
     </Dialog>
   );

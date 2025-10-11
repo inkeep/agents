@@ -1,9 +1,9 @@
 /**
- * Hook for accessing graph error state and utilities
+ * Hook for accessing agent error state and utilities
  */
 
 import { useCallback } from 'react';
-import { useGraphStore, useGraphActions } from '@/features/graph/state/use-graph-store';
+import { useGraphStore, useGraphActions } from '@/features/agent/state/use-agent-store';
 
 export interface ErrorHelpers {
   hasFieldError: (fieldName: string) => boolean;

@@ -31,7 +31,7 @@ const logger = getLogger('generateTaskHandler');
 export interface TaskHandlerConfig {
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   subAgentId: string;
   agentSchema: SubAgentApiSelect;
   name: string;
@@ -74,7 +74,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            agentId: config.graphId,
+            agentId: config.agentId,
           },
           subAgentId: config.subAgentId,
         }),
@@ -82,7 +82,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            agentId: config.graphId,
+            agentId: config.agentId,
             subAgentId: config.subAgentId,
           },
         }),
@@ -90,7 +90,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            agentId: config.graphId,
+            agentId: config.agentId,
             subAgentId: config.subAgentId,
           },
         }),
@@ -98,7 +98,7 @@ export const createTaskHandler = (
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            agentId: config.graphId,
+            agentId: config.agentId,
             subAgentId: config.subAgentId,
           },
         }),
@@ -107,7 +107,7 @@ export const createTaskHandler = (
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
       // Enhance internal relation descriptions with their transfer/delegation info
-      // This allows agents to see the full capability graph for routing decisions
+      // This allows agents to see the full capability agent for routing decisions
       // We batch the operations to be more efficient than the original N+1 approach
       const enhancedInternalRelations = await Promise.all(
         internalRelations.map(async (relation) => {
@@ -116,7 +116,7 @@ export const createTaskHandler = (
               scopes: {
                 tenantId: config.tenantId,
                 projectId: config.projectId,
-                agentId: config.graphId,
+                agentId: config.agentId,
               },
               subAgentId: relation.id,
             });
@@ -126,7 +126,7 @@ export const createTaskHandler = (
                 scopes: {
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  agentId: config.graphId,
+                  agentId: config.agentId,
                 },
                 subAgentId: relation.id,
               });
@@ -163,7 +163,7 @@ export const createTaskHandler = (
           id: config.subAgentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
-          graphId: config.graphId,
+          agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           name: config.name,
@@ -175,7 +175,7 @@ export const createTaskHandler = (
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.agentId,
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
@@ -193,7 +193,7 @@ export const createTaskHandler = (
               id: relation.id,
               tenantId: config.tenantId,
               projectId: config.projectId,
-              graphId: config.graphId,
+              agentId: config.agentId,
               name: relation.name,
               description: relation.description,
               agentPrompt: '',
@@ -211,7 +211,7 @@ export const createTaskHandler = (
                   id: relation.id,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  graphId: config.graphId,
+                  agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   name: relation.name,
@@ -468,14 +468,14 @@ export const createTaskHandlerConfig = async (params: {
     throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
-  // Inherit graph models if agent doesn't have one
+  // Inherit agent models if agent doesn't have one
   const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
   const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
 
   return {
     tenantId: params.tenantId,
     projectId: params.projectId,
-    graphId: params.agentId,
+    agentId: params.agentId,
     subAgentId: params.subAgentId,
     agentSchema: {
       id: subAgent.id,

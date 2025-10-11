@@ -54,7 +54,7 @@ export function NewApiKeyDialog({ tenantId, projectId, graphsOptions }: NewApiKe
           </TooltipTrigger>
           {!hasGraphs && (
             <TooltipContent className="max-w-3xs">
-              Please create a graph first, then you will be able to create an API key.
+              Please create a agent first, then you will be able to create an API key.
             </TooltipContent>
           )}
         </Tooltip>

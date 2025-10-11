@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
-import { EdgeType } from '@/components/graph/configuration/edge-types';
-import type { AgentNodeData, MCPNodeData } from '@/components/graph/configuration/node-types';
-import { NodeType } from '@/components/graph/configuration/node-types';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
+import type { AgentNodeData, MCPNodeData } from '@/components/agent/configuration/node-types';
+import { NodeType } from '@/components/agent/configuration/node-types';
 import { serializeGraphData } from '../serialize';
 
 describe('serializeGraphData', () => {

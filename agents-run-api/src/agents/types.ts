@@ -12,12 +12,12 @@ export interface VersionConfig<TConfig> {
 
 export interface SystemPromptV1 {
   corePrompt: string; // Just the agent's prompt string
-  graphPrompt?: string; // Graph-level context and instructions
+  graphPrompt?: string; // Agent-level context and instructions
   artifacts: Artifact[];
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
-  hasGraphArtifactComponents?: boolean; // Whether any agent in the graph has artifact components
+  hasGraphArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
   isThinkingPreparation?: boolean; // Flag for thinking/preparation mode (first pass of 2-phase generation)
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities

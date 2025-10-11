@@ -37,7 +37,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        agentId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -140,7 +140,7 @@ vi.mock('../../server.js', () => ({
 }));
 
 // Mock the session managers to prevent loading heavy dependencies
-vi.mock('../../utils/graph-session.js', () => ({
+vi.mock('../../utils/agent-session.js', () => ({
   graphSessionManager: {
     getSession: vi.fn(),
     createSession: vi.fn(),
@@ -173,7 +173,7 @@ describe('Relationship Tools', () => {
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    agentId: 'test-graph',
+    agentId: 'test-agent',
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
@@ -192,7 +192,7 @@ describe('Relationship Tools', () => {
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    agentId: 'test-graph',
+    agentId: 'test-agent',
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
@@ -225,7 +225,7 @@ describe('Relationship Tools', () => {
       id: 'target-agent',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       baseUrl: 'http://localhost:3000',
       name: 'Target Agent',
       description: 'A target agent for testing',
