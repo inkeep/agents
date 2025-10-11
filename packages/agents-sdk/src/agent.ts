@@ -8,7 +8,7 @@ import {
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { FunctionTool } from './function-tool';
-import { updateFullGraphViaAPI } from './graphFullClient';
+import { updateFullGraphViaAPI } from './agentFullClient';
 import type {
   AllSubAgentInterface,
   ExternalAgentInterface,
