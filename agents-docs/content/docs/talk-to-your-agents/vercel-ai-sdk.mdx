@@ -206,7 +206,7 @@ export default function Page() {
                   );
                 }
 
-                if (part.type.startsWith("data-")) {
+                if (part.type?.startsWith("data-")) {
                   return (
                     <div
                       key={partKey}

@@ -827,8 +827,8 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 // Full Project Definition Schema - extends Project with agents and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   agents: z.record(z.string(), AgentWithinContextOfProjectSchema),
-  tools: z.record(z.string(), ToolApiInsertSchema), // Now includes both MCP and function tools
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Global functions
+  tools: z.record(z.string(), ToolApiInsertSchema),
+  functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),

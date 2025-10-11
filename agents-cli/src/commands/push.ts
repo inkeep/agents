@@ -165,10 +165,10 @@ export async function pushCommand(options: PushOptions) {
         console.log(chalk.gray(`  • Size: ${JSON.stringify(projectDefinition).length} bytes`));
 
         // Show a summary of what was saved
-        const graphCount = Object.keys(projectDefinition.graphs || {}).length;
+        const graphCount = Object.keys(projectDefinition.agents || {}).length;
         const toolCount = Object.keys(projectDefinition.tools || {}).length;
-        const agentCount = Object.values(projectDefinition.graphs || {}).reduce((total, graph) => {
-          return total + Object.keys(graph.subAgents || {}).length;
+        const agentCount = Object.values(projectDefinition.agents || {}).reduce((total, agent) => {
+          return total + Object.keys(agent.subAgents || {}).length;
         }, 0);
 
         console.log(chalk.cyan('\n📊 Project Data Summary:'));

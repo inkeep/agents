@@ -7,7 +7,7 @@ import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
-import { listGraphsCommand } from './commands/list-graphs';
+import { listAgentsCommand } from './commands/list-agents';
 import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
 
@@ -148,7 +148,7 @@ program
   .action(async (options) => {
     // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
-    await listGraphsCommand({ ...options, config });
+    await listAgentsCommand({ ...options, config });
   });
 
 // Dev command

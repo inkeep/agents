@@ -188,7 +188,7 @@ async function verifyGeneratedFiles(
       console.log(chalk.gray('\n🔍 Structural Verification Summary:'));
       console.log(chalk.gray(`  • Project loaded successfully: ${!!project}`));
       console.log(
-        chalk.gray(`  • Expected graphs: ${Object.keys(originalProjectData.graphs || {}).length}`)
+        chalk.gray(`  • Expected agents: ${Object.keys(originalProjectData.agents || {}).length}`)
       );
       console.log(
         chalk.gray(`  • Expected tools: ${Object.keys(originalProjectData.tools || {}).length}`)
@@ -266,7 +266,7 @@ function createProjectStructure(
   projectId: string
 ): {
   projectRoot: string;
-  graphsDir: string;
+  agentsDir: string;
   toolsDir: string;
   dataComponentsDir: string;
   artifactComponentsDir: string;
@@ -276,7 +276,7 @@ function createProjectStructure(
   const dirName = projectDir.split('/').pop() || projectDir;
   const projectRoot = dirName === projectId ? projectDir : join(projectDir, projectId);
 
-  const graphsDir = join(projectRoot, 'graphs');
+  const agentsDir = join(projectRoot, 'agents');
   const toolsDir = join(projectRoot, 'tools');
   const dataComponentsDir = join(projectRoot, 'data-components');
   const artifactComponentsDir = join(projectRoot, 'artifact-components');
@@ -284,7 +284,7 @@ function createProjectStructure(
 
   // Create all directories
   ensureDirectoryExists(projectRoot);
-  ensureDirectoryExists(graphsDir);
+  ensureDirectoryExists(agentsDir);
   ensureDirectoryExists(toolsDir);
   ensureDirectoryExists(dataComponentsDir);
   ensureDirectoryExists(artifactComponentsDir);
@@ -292,7 +292,7 @@ function createProjectStructure(
 
   return {
     projectRoot,
-    graphsDir,
+    agentsDir,
     toolsDir,
     dataComponentsDir,
     artifactComponentsDir,
@@ -306,7 +306,7 @@ function createProjectStructure(
 async function generateProjectFiles(
   dirs: {
     projectRoot: string;
-    graphsDir: string;
+    agentsDir: string;
     toolsDir: string;
     dataComponentsDir: string;
     artifactComponentsDir: string;
@@ -317,7 +317,7 @@ async function generateProjectFiles(
   environment: string = 'development',
   debug: boolean = false
 ): Promise<void> {
-  const { graphs, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
+  const { agents, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
 
   // Prepare all generation tasks
   const generationTasks: Promise<void>[] = [];
@@ -329,11 +329,11 @@ async function generateProjectFiles(
   fileInfo.push({ type: 'config', name: 'index.ts' });
 
   // Add graph generation tasks
-  if (graphs && Object.keys(graphs).length > 0) {
-    for (const [graphId, graphData] of Object.entries(graphs)) {
-      const graphPath = join(dirs.graphsDir, `${graphId}.ts`);
-      generationTasks.push(generateGraphFile(graphData, graphId, graphPath, modelSettings));
-      fileInfo.push({ type: 'graph', name: `${graphId}.ts` });
+  if (agents && Object.keys(agents).length > 0) {
+    for (const [agentId, agentData] of Object.entries(agents)) {
+      const agentPath = join(dirs.agentsDir, `${agentId}.ts`);
+      generationTasks.push(generateGraphFile(agentData, agentId, agentPath, modelSettings));
+      fileInfo.push({ type: 'agent', name: `${agentId}.ts` });
     }
   }
 
@@ -389,8 +389,8 @@ async function generateProjectFiles(
   if (filesByType.config) {
     console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
   }
-  if (filesByType.graph) {
-    console.log(chalk.gray(`     • Graphs: ${filesByType.graph.join(', ')}`));
+  if (filesByType.agent) {
+    console.log(chalk.gray(`     • Graphs: ${filesByType.agent.join(', ')}`));
   }
   if (filesByType.tool) {
     console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
@@ -635,9 +635,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     spinner.succeed('Project data fetched');
 
     // Show project summary
-    const graphCount = Object.keys(projectData.graphs || {}).length;
+    const agentCount = Object.keys(projectData.agents || {}).length;
     const toolCount = Object.keys(projectData.tools || {}).length;
-    const agentCount = Object.values(projectData.graphs || {}).reduce((total, graph) => {
+    const subAgentCount = Object.values(projectData.agents || {}).reduce((total, graph) => {
       return total + Object.keys(graph.subAgents || {}).length;
     }, 0);
 
@@ -647,9 +647,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Name: ${projectData.name}`));
     console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
-    console.log(chalk.gray(`  • Graphs: ${graphCount}`));
-    console.log(chalk.gray(`  • Tools: ${toolCount}`));
     console.log(chalk.gray(`  • Agents: ${agentCount}`));
+    console.log(chalk.gray(`  • Tools: ${toolCount}`));
+    console.log(chalk.gray(`  • SubAgents: ${subAgentCount}`));
     if (dataComponentCount > 0) {
       console.log(chalk.gray(`  • Data Components: ${dataComponentCount}`));
     }
@@ -727,13 +727,13 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Count generated files for summary
     const fileCount = {
-      graphs: Object.keys(projectData.graphs || {}).length,
+      agents: Object.keys(projectData.agents || {}).length,
       tools: Object.keys(projectData.tools || {}).length,
       dataComponents: Object.keys(projectData.dataComponents || {}).length,
       artifactComponents: Object.keys(projectData.artifactComponents || {}).length,
     };
     const totalFiles =
-      fileCount.graphs +
+      fileCount.agents +
       fileCount.tools +
       fileCount.dataComponents +
       fileCount.artifactComponents +
@@ -788,8 +788,8 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.cyan('\n📁 Generated structure:'));
     console.log(chalk.gray(`  ${dirs.projectRoot}/`));
     console.log(chalk.gray(`  ├── index.ts`));
-    if (fileCount.graphs > 0) {
-      console.log(chalk.gray(`  ├── graphs/ (${fileCount.graphs} files)`));
+    if (fileCount.agents > 0) {
+      console.log(chalk.gray(`  ├── agents/ (${fileCount.agents} files)`));
     }
     if (fileCount.tools > 0) {
       console.log(chalk.gray(`  ├── tools/ (${fileCount.tools} files)`));
