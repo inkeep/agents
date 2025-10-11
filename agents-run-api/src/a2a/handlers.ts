@@ -208,7 +208,7 @@ async function handleMessageSend(
 
     // --- Store A2A message in database if this is agent-to-agent communication ---
     // TODO: we need to identify external agent requests through propoer auth headers
-    if (params.message.metadata?.fromAgentId || params.message.metadata?.fromExternalAgentId) {
+    if (params.message.metadata?.fromSubAgentId || params.message.metadata?.fromExternalAgentId) {
       const messageText = params.message.parts
         .filter((part) => part.kind === 'text' && 'text' in part && part.text)
         .map((part) => (part as any).text)
@@ -230,23 +230,23 @@ async function handleMessageSend(
         };
 
         // Set appropriate agent tracking fields
-        if (params.message.metadata?.fromAgentId) {
+        if (params.message.metadata?.fromSubAgentId) {
           // Internal agent communication
-          messageData.fromAgentId = params.message.metadata.fromAgentId;
-          messageData.toAgentId = agent.subAgentId;
+          messageData.fromSubAgentId = params.message.metadata.fromSubAgentId;
+          messageData.toSubAgentId = agent.subAgentId;
         } else if (params.message.metadata?.fromExternalAgentId) {
           // External agent communication
           messageData.fromExternalAgentId = params.message.metadata.fromExternalAgentId;
-          messageData.toAgentId = agent.subAgentId;
+          messageData.toSubAgentId = agent.subAgentId;
         }
 
         await createMessage(dbClient)(messageData);
 
         logger.info(
           {
-            fromAgentId: params.message.metadata.fromAgentId,
+            fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
-            toAgentId: agent.subAgentId,
+            toSubAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
             messageType: 'a2a-request',
             taskId: task.id,
@@ -257,9 +257,9 @@ async function handleMessageSend(
         logger.error(
           {
             error,
-            fromAgentId: params.message.metadata.fromAgentId,
+            fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
-            toAgentId: agent.subAgentId,
+            toSubAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
           },
           'Failed to store A2A message in database'

@@ -71,7 +71,7 @@ export const createTransferToAgentTool = ({
       logger.info(
         {
           transferTo: transferConfig.id ?? 'unknown',
-          fromAgent: callingAgentId,
+          fromSubAgent: callingAgentId,
         },
         'invoked transferToAgentTool'
       );
@@ -88,7 +88,7 @@ export const createTransferToAgentTool = ({
       return {
         type: 'transfer',
         target: transferConfig.id ?? 'unknown',
-        fromAgentId: callingAgentId, // Include the calling agent ID for tracking
+        fromSubAgentId: callingAgentId, // Include the calling agent ID for tracking
       };
     },
   });
@@ -259,7 +259,7 @@ export function createDelegateToAgentTool({
           isDelegation: true, // Flag to prevent streaming in delegated agents
           delegationId, // Include delegation ID for tracking
           ...(isInternal
-            ? { fromAgentId: callingAgentId }
+            ? { fromSubAgentId: callingAgentId }
             : { fromExternalAgentId: callingAgentId }),
         },
       };
@@ -279,7 +279,7 @@ export function createDelegateToAgentTool({
         messageType: 'a2a-request',
         fromSubAgentId: callingAgentId,
         ...(isInternal
-          ? { toAgentId: delegateConfig.config.id }
+          ? { toSubAgentId: delegateConfig.config.id }
           : { toExternalAgentId: delegateConfig.config.id }),
       });
 

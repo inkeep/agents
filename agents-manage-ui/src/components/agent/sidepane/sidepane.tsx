@@ -7,6 +7,7 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
+import type { AgentToolConfigLookup } from '../agent';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
@@ -16,15 +17,14 @@ import {
   NodeType,
   nodeTypeMap,
 } from '../configuration/node-types';
-import type { AgentToolConfigLookup } from '../agent';
 import EdgeEditor from './edges/edge-editor';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
-import { AgentNodeEditor } from './nodes/agent-node-editor';
 import { ExternalAgentNodeEditor } from './nodes/external-agent-node-editor';
 import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
 import { MCPServerNodeEditor } from './nodes/mcp-node-editor';
 import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
+import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
 
 interface SidePaneProps {
   selectedNodeId: string | null;
@@ -92,9 +92,9 @@ export function SidePane({
       };
 
       switch (nodeType) {
-        case NodeType.Agent:
+        case NodeType.SubAgent:
           return (
-            <AgentNodeEditor
+            <SubAgentNodeEditor
               selectedNode={selectedNode as Node<AgentNodeData>}
               dataComponentLookup={dataComponentLookup}
               artifactComponentLookup={artifactComponentLookup}

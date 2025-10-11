@@ -460,7 +460,7 @@ describe('Relationship Tools', () => {
           },
           visibility: 'external',
           messageType: 'a2a-request',
-          fromAgentId: 'test-calling-agent',
+          fromSubAgentId: 'test-calling-agent',
           toExternalAgentId: 'external-agent',
         })
       );
@@ -483,7 +483,7 @@ describe('Relationship Tools', () => {
         conversationId: 'test-context',
         messageType: 'a2a-response',
         visibility: 'external',
-        toAgentId: 'test-calling-agent',
+        toSubAgentId: 'test-calling-agent',
         fromExternalAgentId: 'external-agent',
       });
     });
@@ -549,7 +549,7 @@ describe('Relationship Tools', () => {
           metadata: {
             conversationId: 'test-conversation',
             threadId: 'test-thread',
-            fromAgentId: 'test-calling-agent',
+            fromSubAgentId: 'test-calling-agent',
             isDelegation: true,
             delegationId: 'del_test-nanoid-123',
           },
@@ -583,8 +583,8 @@ describe('Relationship Tools', () => {
           },
           visibility: 'internal',
           messageType: 'a2a-request',
-          fromAgentId: 'test-calling-agent',
-          toAgentId: 'target-agent',
+          fromSubAgentId: 'test-calling-agent',
+          toSubAgentId: 'target-agent',
         })
       );
     });

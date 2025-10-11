@@ -1,10 +1,10 @@
 import type { Edge, Node } from '@xyflow/react';
 import { nanoid } from 'nanoid';
+import type { AgentToolConfigLookup } from '@/components/agent/agent';
+import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
@@ -104,7 +104,7 @@ export function serializeAgentData(
   let defaultSubAgentId = '';
 
   for (const node of nodes) {
-    if (node.type === NodeType.Agent) {
+    if (node.type === NodeType.SubAgent) {
       const subAgentId = (node.data.id as string) || node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];

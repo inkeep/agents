@@ -4,7 +4,7 @@ import { NodeType, nodeTypeMap } from '../configuration/node-types';
 import { NodeItem } from './node-item';
 
 const nodeTypes: NodeItem[] = [
-  nodeTypeMap[NodeType.Agent],
+  nodeTypeMap[NodeType.SubAgent],
   nodeTypeMap[NodeType.ExternalAgent],
   nodeTypeMap[NodeType.MCPPlaceholder],
   nodeTypeMap[NodeType.FunctionTool],

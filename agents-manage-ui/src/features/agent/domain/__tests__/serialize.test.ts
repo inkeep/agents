@@ -10,7 +10,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -35,7 +35,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -60,7 +60,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -89,7 +89,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -118,7 +118,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -147,7 +147,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -176,7 +176,7 @@ describe('serializeAgentData', () => {
       const nodes: Node<AgentNodeData>[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -199,7 +199,7 @@ describe('serializeAgentData', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -243,7 +243,7 @@ describe('serializeAgentData', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -289,7 +289,7 @@ describe('serializeAgentData', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -333,7 +333,7 @@ describe('serializeAgentData', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',
@@ -372,7 +372,7 @@ describe('serializeAgentData', () => {
       const nodes: Node[] = [
         {
           id: 'agent1',
-          type: NodeType.Agent,
+          type: NodeType.SubAgent,
           position: { x: 0, y: 0 },
           data: {
             id: 'agent1',

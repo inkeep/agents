@@ -116,7 +116,7 @@ export class ExecutionHandler {
     let iterations = 0;
     let errorCount = 0;
     let task: any = null;
-    let fromAgentId: string | undefined; // Track the agent that executed a transfer
+    let fromSubAgentId: string | undefined; // Track the agent that executed a transfer
 
     try {
       // Send agent initializing and ready operations immediately to ensure UI rendering
@@ -220,8 +220,8 @@ export class ExecutionHandler {
         // Iteration start (data operations removed)
 
         logger.info(
-          { iterations, currentAgentId, agentId, conversationId, fromAgentId },
-          `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromAgentId || 'none'}`
+          { iterations, currentAgentId, agentId, conversationId, fromSubAgentId },
+          `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
         );
 
         // Step 1: Determine which agent should handle the message
@@ -254,12 +254,12 @@ export class ExecutionHandler {
         // const agentCard = await a2aClient.getAgentCard();
         let messageResponse: SendMessageResponse | null = null;
 
-        // Build message metadata - include fromAgentId only if this is a transfer
+        // Build message metadata - include fromSubAgentId only if this is a transfer
         const messageMetadata: any = {
           stream_request_id: requestId, // This also serves as the AgentSession ID
         };
-        if (fromAgentId) {
-          messageMetadata.fromAgentId = fromAgentId;
+        if (fromSubAgentId) {
+          messageMetadata.fromSubAgentId = fromSubAgentId;
         }
 
         messageResponse = await a2aClient.sendMessage({
@@ -334,7 +334,7 @@ export class ExecutionHandler {
           logger.info({ targetSubAgentId, transferReason }, 'transfer response');
 
           // Update the current message to the transfer reason so as not to duplicate the user message on every transfer
-          // including the xml because the fromAgent does not always directly adress the toAgent in its text
+          // including the xml because the fromSubAgent does not always directly adress the toSubAgent in its text
           currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
@@ -344,17 +344,17 @@ export class ExecutionHandler {
             targetSubAgentId,
           });
           if (success) {
-            // Set fromAgentId to track which agent executed this transfer
-            fromAgentId = currentAgentId;
+            // Set fromSubAgentId to track which agent executed this transfer
+            fromSubAgentId = currentAgentId;
             currentAgentId = newAgentId;
 
             logger.info(
               {
-                transferFrom: fromAgentId,
+                transferFrom: fromSubAgentId,
                 transferTo: currentAgentId,
                 reason: transferReason,
               },
-              'Transfer executed, tracking fromAgentId for next iteration'
+              'Transfer executed, tracking fromSubAgentId for next iteration'
             );
           }
 

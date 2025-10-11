@@ -31,7 +31,7 @@ function calculateNodeHeight(node: Node): number {
   let height = MIN_NODE_HEIGHT;
 
   // Agent and External Agent nodes have dynamic height
-  if (node.type === NodeType.Agent || node.type === NodeType.ExternalAgent) {
+  if (node.type === NodeType.SubAgent || node.type === NodeType.ExternalAgent) {
     const data = node.data as any;
 
     // Add height for description if it exists
@@ -111,7 +111,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
     const isDefault = subAgentId === data.defaultSubAgentId;
     const isExternal = agent.type === 'external';
 
-    const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.Agent;
+    const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.SubAgent;
     const agentNodeData = isExternal
       ? {
           id: agent.id,

@@ -41,7 +41,7 @@ const ListSection = ({
   );
 };
 
-export function AgentNode(props: NodeProps & { data: AgentNodeData }) {
+export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { data, selected, id } = props;
   const { name, isDefault, description, models } = data;
   const modelName = models?.base?.model;

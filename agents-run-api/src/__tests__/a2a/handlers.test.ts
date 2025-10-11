@@ -345,7 +345,7 @@ describe('A2A Handlers', () => {
             role: 'agent',
             contextId: 'conv-123',
             metadata: {
-              fromAgentId: 'source-agent',
+              fromSubAgentId: 'source-agent',
             },
             kind: 'message',
           },
@@ -370,8 +370,8 @@ describe('A2A Handlers', () => {
           tenantId: 'test-tenant',
           conversationId: 'conv-123',
           role: 'agent',
-          fromAgentId: 'source-agent',
-          toAgentId: 'test-agent',
+          fromSubAgentId: 'source-agent',
+          toSubAgentId: 'test-agent',
           messageType: 'a2a-request',
         })
       );

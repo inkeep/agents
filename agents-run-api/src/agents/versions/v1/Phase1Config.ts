@@ -145,7 +145,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     return `- You have transfer_to_* tools that seamlessly continue the conversation
 - NEVER announce transfers - just call the tool when needed
-- The conversation continues naturally without any handoff language`;
+- The conversation continues naturally without any transfer language`;
   }
 
   private generateDelegationInstructions(hasDelegateRelations?: boolean): string {

@@ -9,7 +9,7 @@ describe('agent serialize/deserialize', () => {
     const nodes: Node[] = [
       {
         id: 'goodbye-agent',
-        type: NodeType.Agent,
+        type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: {
           id: 'goodbye-agent',
@@ -19,7 +19,7 @@ describe('agent serialize/deserialize', () => {
       },
       {
         id: 'hello-agent',
-        type: NodeType.Agent,
+        type: NodeType.SubAgent,
         position: { x: 0, y: 100 },
         data: {
           id: 'hello-agent',
@@ -90,14 +90,14 @@ describe('agent serialize/deserialize', () => {
     const nodes: Node[] = [
       {
         id: 'a1',
-        type: NodeType.Agent,
+        type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: { id: 'a1', name: 'A1', isDefault: true, prompt: 'i' },
         deletable: false,
       },
       {
         id: 'a2',
-        type: NodeType.Agent,
+        type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: { id: 'a2', name: 'A2', prompt: 'i' },
       },

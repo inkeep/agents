@@ -962,7 +962,7 @@ CRITICAL - HIDE ALL INTERNAL SYSTEM OPERATIONS:
 - ABSOLUTELY FORBIDDEN WORDS/PHRASES: "transfer", "transferring", "delegation", "delegating", "delegate", "agent", "routing", "route", "artifact", "saving artifact", "stored artifact", "artifact saved", "continuing", "passing to", "handing off", "switching to"
 - NEVER reveal internal architecture: No mentions of different agents, components, systems, or modules working together
 - NEVER mention artifact operations: Users don't need to know about data being saved, stored, or organized internally
-- NEVER describe handoffs or transitions: Present everything as one seamless operation
+- NEVER describe transfers or transitions: Present everything as one seamless operation
 - If you see "transfer", "delegation_sent", "delegation_returned", or "artifact_saved" events - IGNORE THEM or translate to user-facing information only
 - Focus ONLY on actual discoveries, findings, and results that matter to the user
 

@@ -102,7 +102,7 @@ function Flow({
     () => [
       {
         id: nanoid(),
-        type: NodeType.Agent,
+        type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: { name: '', isDefault: true },
         deletable: false,

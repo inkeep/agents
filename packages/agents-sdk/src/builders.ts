@@ -83,7 +83,7 @@ export type AgentMcpConfig = {
 // ============================================================================
 
 /**
- * Creates a transfer configuration for agent handoffs.
+ * Creates a transfer configuration for agent transfers.
  *
  * Transfers allow one agent to hand off control to another agent
  * based on optional conditions.
@@ -96,7 +96,7 @@ export type AgentMcpConfig = {
  * @example
  * ```typescript
  * // Simple transfer
- * const handoff = transfer(supportAgent, 'Transfer to support');
+ * const transfer = transfer(supportAgent, 'Transfer to support');
  *
  * // Conditional transfer
  * const conditionalHandoff = transfer(

@@ -1,5 +1,5 @@
 import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
-import { AgentNode } from '../nodes/agent-node';
+import { SubAgentNode } from '../nodes/agent-node';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
@@ -60,7 +60,7 @@ export interface FunctionToolNodeData extends Record<string, unknown> {
 }
 
 export enum NodeType {
-  Agent = 'agent',
+  SubAgent = 'agent',
   ExternalAgent = 'external-agent',
   MCP = 'mcp',
   MCPPlaceholder = 'mcp-placeholder',
@@ -68,7 +68,7 @@ export enum NodeType {
 }
 
 export const nodeTypes = {
-  [NodeType.Agent]: AgentNode,
+  [NodeType.SubAgent]: SubAgentNode,
   [NodeType.ExternalAgent]: ExternalAgentNode,
   [NodeType.MCP]: MCPNode,
   [NodeType.MCPPlaceholder]: MCPPlaceholderNode,
@@ -82,7 +82,7 @@ export const externalAgentNodeTargetHandleId = 'target-external-agent';
 export const functionToolNodeHandleId = 'target-function-tool';
 
 export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
-  [NodeType.Agent]: {
+  [NodeType.SubAgent]: {
     name: '',
   },
   [NodeType.ExternalAgent]: {
@@ -103,9 +103,9 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
 };
 
 export const nodeTypeMap = {
-  [NodeType.Agent]: {
-    type: NodeType.Agent,
-    name: 'Agent',
+  [NodeType.SubAgent]: {
+    type: NodeType.SubAgent,
+    name: 'Sub Agent',
     Icon: Bot,
   },
   [NodeType.ExternalAgent]: {
