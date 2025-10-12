@@ -1,10 +1,10 @@
 /**
- * Example: Using the Project class with AgentAgent
+ * Example: Using the Project class with Agent
  * This example demonstrates how to use the new Project object helper
  * alongside the existing AgentAgent pattern.
  */
 
-import { agent, OPENAI_MODELS, project, subAgent } from '../src';
+import { agent, OPENAI_MODELS, project, subAgent } from './src';
 
 // Create a project with model inheritance and execution limits
 const customerSupportProject = project({
@@ -32,29 +32,32 @@ const customerSupportProject = project({
       id: 'tier1-support-agent',
       name: 'Tier 1 Support',
       description: 'Initial customer support handling',
-      defaultSubAgent: agent({
+      defaultSubAgent: subAgent({
         id: 'tier1-agent',
         name: 'Tier 1 Support Agent',
+        description: 'Initial customer support handling',
         prompt:
           'You are a Tier 1 customer support agent. Help customers with basic questions and escalate complex issues.',
       }),
-      agents: () => [
-        agent({
+      subAgents: () => [
+        subAgent({
           id: 'tier1-agent',
           name: 'Tier 1 Support Agent',
+          description: 'Initial customer support handling',
           prompt:
             'You are a Tier 1 customer support agent. Help customers with basic questions and escalate complex issues.',
         }),
-        agent({
+        subAgent({
           id: 'escalation-agent',
           name: 'Escalation Agent',
+          description: 'Handles escalated support issues',
           prompt: 'You handle escalated issues from Tier 1 support.',
         }),
       ],
     }),
 
     // Specialized technical support agent
-    agentAgent({
+    agent({
       id: 'technical-support-agent',
       name: 'Technical Support',
       description: 'Specialized technical issue resolution',
@@ -62,9 +65,10 @@ const customerSupportProject = project({
       stopWhen: {
         transferCountIs: 15, // Override project default for technical issues
       },
-      defaultSubAgent: agent({
+      defaultSubAgent: subAgent({
         id: 'technical-agent',
         name: 'Technical Support Agent',
+        description: 'Technical support specialist',
         prompt: 'You are a technical support specialist. Provide detailed technical assistance.',
       }),
     }),
@@ -96,13 +100,14 @@ async function initializeProject() {
 
 // Example of adding a new agent to an existing project
 function addNewAgent() {
-  const billingAgent = agentAgent({
+  const billingAgent = agent({
     id: 'billing-support-agent',
     name: 'Billing Support',
     description: 'Specialized billing and payment support',
-    defaultSubAgent: agent({
+    defaultSubAgent: subAgent({
       id: 'billing-agent',
       name: 'Billing Support Agent',
+      description: 'Handles billing and payment inquiries',
       prompt: 'You handle billing inquiries and payment issues.',
     }),
   });
