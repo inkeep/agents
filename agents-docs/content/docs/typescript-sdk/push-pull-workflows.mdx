@@ -134,8 +134,8 @@ graph TD
     L --> M{File type?}
 
     M -->|Index| N[Full project context]
-    M -->|Graph| O[Specific graph data]
-    M -->|Agent| P[Specific agent data]
+    M -->|Agent| O[Specific agent data]
+    M -->|Sub Agent| P[Specific sub agent data]
     M -->|Tool| Q[Specific tool data]
     M -->|Data Component| R[Specific component data]
     M -->|Other| S[General project context]
@@ -186,19 +186,19 @@ graph TD
     A[TypeScript File] --> B{Filename check}
 
     B -->|index.ts, main.ts| C[Index File]
-    B -->|In /graphs/ dir| D[Graph File]
+    B -->|In /agents/ dir| D[Agent File]
     B -->|In /tools/ dir| E[Tool File]
     B -->|In /data-components/ dir| F[Data Component File]
     B -->|In /environments/ dir| G[Environment File]
-    B -->|Contains agent call| H[Agent File]
+    B -->|Contains subAgent call| H[Sub Agent File]
     B -->|Other| I[Generic File]
 
     C --> J[Full project context]
-    D --> K[Relevant graph data]
+    D --> K[Relevant agent data]
     E --> L[Relevant tool data]
     F --> M[Relevant component data]
     G --> N[Environment data]
-    H --> O[Relevant agent data]
+    H --> O[Relevant sub agent data]
     I --> P[General context]
 
     style C fill:#e3f2fd
@@ -233,8 +233,8 @@ graph TD
     J --> K{Export type}
 
     K -->|project call| L[Project Definition]
-    K -->|agentGraph call| M[Graph Definition]
-    K -->|agent call| N[Agent Definition]
+    K -->|agent call| M[Agent Definition]
+    K -->|subAgent call| N[Sub Agent Definition]
     K -->|tool call| O[Tool Definition]
     K -->|dataComponent call| P[Data Component]
     K -->|Other| Q[Generic Resource]
@@ -316,14 +316,14 @@ graph TD
     A[File Discovery] --> B[Group by Type]
     B --> C[Parallel Processing]
 
-    C --> D[Graph Files]
+    C --> D[Agent Files]
     C --> E[Tool Files]
-    C --> F[Agent Files]
+    C --> F[Sub Agent Files]
     C --> G[Data Component Files]
 
-    D --> H[Process Graphs]
+    D --> H[Process Agents]
     E --> I[Process Tools]
-    F --> J[Process Agents]
+    F --> J[Process Sub Agents]
     G --> K[Process Components]
 
     H --> L[Merge Results]

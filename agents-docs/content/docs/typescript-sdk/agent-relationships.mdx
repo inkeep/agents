@@ -1,38 +1,38 @@
 ---
-title: Agent Relationships
-description: Learn how to add agent relationships to your agent graph
+title: Sub Agent Relationships
+description: Learn how to add sub agent relationships to your agent
 icon: "LuUsers"
 ---
 
-Agent relationships are used to coordinate specialized agents for complex workflows. This framework implements agent relationships through using `canDelegateTo()` and `canTransferTo()`, allowing a parent agent to automatically coordinate specialized agents for complex workflows.
+Sub agent relationships are used to coordinate specialized sub agents for complex workflows. This framework implements sub agent relationships through using `canDelegateTo()` and `canTransferTo()`, allowing a parent sub agent to automatically coordinate specialized sub agents for complex workflows.
 
-## Understanding Agent Relationships
+## Understanding Sub Agent Relationships
 
-The framework supports two types of agent relationships:
+The framework supports two types of sub agent relationships:
 
 ### Transfer Relationships
 
-Transfer relationships **completely relinquish control** from one agent to another. When an agent hands off to another:
+Transfer relationships **completely relinquish control** from one sub agent to another. When a sub agent hands off to another:
 
-- The source agent stops processing
-- The target agent takes full control of the conversation
-- Control is permanently transferred until the target agent hands back
+- The source sub agent stops processing
+- The target sub agent takes full control of the conversation
+- Control is permanently transferred until the target sub agent hands back
 
 ```typescript
-import { agent, agentGraph } from "agent-sdk";
+import { subAgent, agent } from "agent-sdk";
 
-// Create specialized sub-agents first
-const qaAgent = agent({
+// Create specialized sub agents first
+const qaAgent = subAgent({
   id: "qa-agent",
   name: "QA Agent",
   description: "Answers product and service questions",
   prompt: "Provide accurate information using available tools. Hand back to router if unable to help.",
   canUse: () => [knowledgeBaseTool],
-  // Sub-agents can hand back to the router
+  // Sub agents can hand back to the router
   canTransferTo: () => [routerAgent],
 });
 
-const orderAgent = agent({
+const orderAgent = subAgent({
   id: "order-agent",
   name: "Order Agent",
   description: "Handles order-related inquiries and actions",
@@ -41,8 +41,8 @@ const orderAgent = agent({
   canTransferTo: () => [routerAgent],
 });
 
-// Create router agent that coordinates sub-agents
-const routerAgent = agent({
+// Create router sub agent that coordinates other sub agents
+const routerAgent = subAgent({
   id: "router-agent",
   name: "Router Agent",
   description: "Routes customer inquiries to specialized agents",
@@ -50,21 +50,25 @@ const routerAgent = agent({
     - Product questions → Hand off to QA Agent
     - Order issues → Hand off to Order Agent
     - Complex issues → Handle directly or escalate`,
-  // Router can hand off to sub-agents
+  // Router can hand off to other sub agents
   canTransferTo: () => [qaAgent, orderAgent],
 });
 
-// Create the graph with router as default entry point
-const supportGraph = agentGraph({
-  id: "customer-support-graph",
+// Create the agent with router as default entry point
+const customerSupportAgent = agent({
+  id: "customer-support-agent",
   defaultSubAgent: routerAgent, // Router is the entry point
-  agents: () => [routerAgent, qaAgent, orderAgent],
-  // Optional: Set default model settings for all agents
-  modelSettings: {
-    model: "anthropic/claude-sonnet-4-20250514",
-    structuredOutput: "openai/gpt-4.1-mini-2025-04-14",
-    providerOptions: {
-      anthropic: { temperature: 0.5 },
+  subAgents: () => [routerAgent, qaAgent, orderAgent],
+  // Optional: Set default model settings for all sub agents
+  models: {
+    base: {
+      model: "anthropic/claude-sonnet-4-20250514",
+      providerOptions: {
+        temperature: 0.5,
+      },
+    },
+    structuredOutput: {
+      model: "openai/gpt-4.1-mini-2025-04-14",
     },
   },
 });
@@ -72,51 +76,53 @@ const supportGraph = agentGraph({
 
 ### Delegation Relationships
 
-Delegation relationships are used to **pass a task** from one agent to another while maintaining oversight:
+Delegation relationships are used to **pass a task** from one sub agent to another while maintaining oversight:
 
-- The source agent remains in control
-- The target agent executes a specific task
-- Results are returned to the source agent
-- The source agent continues processing
+- The source sub agent remains in control
+- The target sub agent executes a specific task
+- Results are returned to the source sub agent
+- The source sub agent continues processing
 
 ```typescript
-// Sub-agents for specific tasks
-const numberProducerA = agent({
+// Sub agents for specific tasks
+const numberProducerA = subAgent({
   id: "number-producer-a",
   name: "Number Producer A",
   description: "Produces low-range numbers (0-50)",
   prompt: "Generate numbers between 0 and 50. Respond with a single integer.",
 });
 
-const numberProducerB = agent({
+const numberProducerB = subAgent({
   id: "number-producer-b",
   name: "Number Producer B",
   description: "Produces high-range numbers (50-100)",
   prompt: "Generate numbers between 50 and 100. Respond with a single integer.",
 });
 
-// Coordinating agent that delegates tasks
-const mathSupervisor = agent({
+// Coordinating sub agent that delegates tasks
+const mathSupervisor = subAgent({
   id: "math-supervisor",
   name: "Math Supervisor",
   description: "Coordinates mathematical operations",
   prompt: `When given a math task:
     1. Delegate to Number Producer A for a low number
-    2. Delegate to Number Producer B for a high number  
+    2. Delegate to Number Producer B for a high number
     3. Add the results together and provide the final answer`,
   // Use delegation to get results back
   canDelegateTo: () => [numberProducerA, numberProducerB],
 });
 
-const mathGraph = agentGraph({
-  id: "math-delegation-graph",
+const mathAgent = agent({
+  id: "math-delegation-agent",
   defaultSubAgent: mathSupervisor,
-  agents: () => [mathSupervisor, numberProducerA, numberProducerB],
-  // Optional: Graph-level model settings inherited by agents without their own config
-  modelSettings: {
-    model: "anthropic/claude-3-5-haiku-20241022", // Fast model for simple math tasks
-    providerOptions: {
-      anthropic: { temperature: 0.1 }, // Low creativity for precise calculations
+  subAgents: () => [mathSupervisor, numberProducerA, numberProducerB],
+  // Optional: Agent-level model settings inherited by sub agents without their own config
+  models: {
+    base: {
+      model: "anthropic/claude-3-5-haiku-20241022", // Fast model for simple math tasks
+      providerOptions: {
+        temperature: 0.1, // Low creativity for precise calculations
+      },
     },
   },
 });
@@ -126,7 +132,7 @@ const mathGraph = agentGraph({
 
 ### Use Transfers for Complex Tasks
 
-Use `canTransferTo` when the task is complex and the user will likely want to ask follow-up questions to the specialized agent:
+Use `canTransferTo` when the task is complex and the user will likely want to ask follow-up questions to the specialized sub agent:
 
 - **Customer support conversations** - User may have multiple related questions
 - **Technical troubleshooting** - Requires back-and-forth interaction
@@ -144,14 +150,14 @@ Use `canDelegateTo` when the task is simple and self-contained:
 
 ```typescript
 // TRANSFER: User will likely have follow-up questions about their order
-const routerAgent = agent({
+const routerAgent = subAgent({
   id: "router",
   prompt: "For order inquiries, transfer to order specialist",
-  canTransferTo: () => [orderAgent], // User can continue talking to order agent
+  canTransferTo: () => [orderAgent], // User can continue talking to order sub agent
 });
 
 // DELEGATION: Just need a quick calculation, then continue
-const mathSupervisor = agent({
+const mathSupervisor = subAgent({
   id: "supervisor",
   prompt: "Delegate to number producers, then add results together",
   canDelegateTo: () => [numberProducerA, numberProducerB], // Get numbers and continue

@@ -2,5 +2,10 @@
   {
     "source": "/",
     "destination": "/overview"
+  },
+  {
+    "source": "/visual-builder/graphs",
+    "destination": "/visual-builder/agents",
+    "permanent": true
   }
 ]
