@@ -23,6 +23,7 @@ export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneTheme
     rules: [
       { token: 'string.key.json', foreground: '#b29762' },
       { token: 'string.value.json', foreground: '#1659df' },
+      { token: '', foreground: '#1b1917' },
     ],
     colors: {
       ...baseColors,
@@ -36,6 +37,7 @@ export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneTheme
     rules: [
       { token: 'string.key.json', foreground: '#9a86fd' },
       { token: 'string.value.json', foreground: '#ffb870' },
+      { token: '', foreground: '#fafafa' },
     ],
     colors: {
       ...baseColors,

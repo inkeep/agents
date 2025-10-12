@@ -13,12 +13,12 @@ export const MonacoEditor = dynamic(
 );
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
-  uri?: `${string}.txt`;
+  uri?: `${string}.plaintext`;
 }
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   const id = useId();
-  uri ??= useMemo(() => `${id.replaceAll('_', '')}.txt` as `${string}.txt`, [id]);
+  uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
 
   return <MonacoEditor uri={uri} {...props} />;
 };
