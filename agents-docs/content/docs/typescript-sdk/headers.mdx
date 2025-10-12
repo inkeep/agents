@@ -169,9 +169,9 @@ const userDataFetcher = fetchDefinition({
   })
 });
 
-// Configure context for your graph
+// Configure context for your agent
 // You must include the headers schema and fetchers in your context config.
-const personalGraphContext = contextConfig({
+const personalAgentContext = contextConfig({
   headers: personalGraphHeaders,
   contextVariables: {
     user: userFetcher,
@@ -228,8 +228,8 @@ const externalAgent = externalAgent({
   }
 });
 
-// Configure context for your graph with your headers schema.
-const personalGraphContext = contextConfig({
+// Configure context for your agent with your headers schema.
+const personalAgentContext = contextConfig({
   headers: personalGraphHeaders,
 });
 ```
@@ -291,7 +291,7 @@ If context values aren't available in subsequent requests:
 
 1. Ensure you're using the same `conversationId` across requests
 2. Verify headers are being sent correctly
-3. Check that your context config is properly attached to the graph
+3. Check that your context config is properly attached to the agent
 
 ## Related documentation
 
