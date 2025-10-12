@@ -15,6 +15,7 @@ import { provideAnswerConfidenceSchema } from './support-escalation';
 const validSalesSignalTypes: string[] = salesSignalType.options.map((option) => option.value);
 
 const apiKey = process.env.NEXT_PUBLIC_INKEEP_API_KEY;
+const isApiConfigured = Boolean(apiKey);
 
 export function InkeepScript() {
   const [syncTarget, setSyncTarget] = useState<HTMLElement | null>(null);
@@ -176,6 +177,9 @@ export function InkeepScript() {
   const modalRef = useRef<InkeepEmbeddedSearchAndChatFunctions>(null);
 
   useEffect(() => {
+    if (!isApiConfigured) {
+      return;
+    }
     // Create named functions so we can remove them later
     const handleSearchClick = () => {
       setModalOpen(true);
@@ -225,8 +229,9 @@ export function InkeepScript() {
     };
   }, []);
 
-  if (!apiKey) {
+  if (!isApiConfigured) {
     console.warn('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
+    return null;
   }
 
   return (
